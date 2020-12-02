@@ -16,27 +16,24 @@
 
 package androidx.media2.common;
 
-import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
-
 import androidx.annotation.IntRange;
-import androidx.annotation.RestrictTo;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.versionedparcelable.ParcelField;
 import androidx.versionedparcelable.VersionedParcelable;
 import androidx.versionedparcelable.VersionedParcelize;
 
 /**
  * Immutable class for describing video size.
- *
- * @hide
  */
-@RestrictTo(LIBRARY_GROUP)
-// TODO: Merge androidx.media2.player.VideoSize into this
 @VersionedParcelize
-public final class VideoSize implements VersionedParcelable {
+public class VideoSize implements VersionedParcelable {
     @ParcelField(1)
     int mWidth;
     @ParcelField(2)
     int mHeight;
+
+    // WARNING: Adding a new ParcelField may break old library users (b/152830728)
 
     /**
      * Used for VersionedParcelable
@@ -88,7 +85,7 @@ public final class VideoSize implements VersionedParcelable {
      * @return {@code true} if the objects were equal, {@code false} otherwise
      */
     @Override
-    public boolean equals(final Object obj) {
+    public boolean equals(@Nullable final Object obj) {
         if (obj == null) {
             return false;
         }
@@ -107,6 +104,7 @@ public final class VideoSize implements VersionedParcelable {
      *
      * @return string representation of the video size
      */
+    @NonNull
     @Override
     public String toString() {
         return mWidth + "x" + mHeight;

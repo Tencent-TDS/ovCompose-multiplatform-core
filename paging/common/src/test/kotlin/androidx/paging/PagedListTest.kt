@@ -16,122 +16,170 @@
 
 package androidx.paging
 
-import androidx.paging.futures.DirectExecutor
+import androidx.paging.ContiguousPagedListTest.Companion.EXCEPTION
+import androidx.paging.LoadType.REFRESH
+import androidx.testutils.TestDispatcher
 import androidx.testutils.TestExecutor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 @RunWith(JUnit4::class)
 class PagedListTest {
     companion object {
         private val ITEMS = List(100) { "$it" }
         private val config = Config(10)
-        private val dataSource = object : PositionalDataSource<String>() {
-            override fun loadInitial(
-                params: LoadInitialParams,
-                callback: LoadInitialCallback<String>
-            ) {
-                callback.onResult(listOf("a"), 0, 1)
-            }
 
-            override fun loadRange(params: LoadRangeParams, callback: LoadRangeCallback<String>) {
-                fail()
-            }
+        private val pagingSource = object : PagingSource<Int, String>() {
+            override suspend fun load(params: LoadParams<Int>): LoadResult<Int, String> =
+                when (params) {
+                    is LoadParams.Refresh -> LoadResult.Page(
+                        data = listOf("a"),
+                        prevKey = null,
+                        nextKey = null
+                    )
+                    else -> throw NotImplementedError("Test should fail if we get here")
+                }
         }
     }
 
-    private val mainThread = TestExecutor()
-    private val backgroundThread = TestExecutor()
+    private val testCoroutineScope = CoroutineScope(EmptyCoroutineContext)
 
     @Test
     fun createLegacy() {
         @Suppress("DEPRECATION")
-        val pagedList = PagedList.Builder(ListDataSource(ITEMS), 100)
-            .setNotifyExecutor(mainThread)
-            .setFetchExecutor(backgroundThread)
+        val pagedList = PagedList.Builder(TestPositionalDataSource(ITEMS), 100)
+            .setNotifyExecutor(TestExecutor())
+            .setFetchExecutor(TestExecutor())
             .build()
         // if build succeeds without flushing an executor, success!
         assertEquals(ITEMS, pagedList)
     }
 
     @Test
-    fun createAsync() {
-        val config = PagedList.Config.Builder()
-            .setPageSize(10)
-            .setEnablePlaceholders(false)
-            .build()
-        val success = mutableListOf(false)
-        val future = PagedList.create(
-            ListDataSource(ITEMS),
-            mainThread,
-            backgroundThread,
-            backgroundThread,
-            null,
-            config,
-            0
-        )
-        future.addListener(Runnable {
-            assertEquals(ITEMS.subList(0, 30), future.get())
-            success[0] = true
-        }, backgroundThread)
-        backgroundThread.executeAll()
-        assertTrue(success[0])
+    fun createNoInitialPageThrow() {
+        runBlocking {
+            val pagingSource = object : PagingSource<Int, String>() {
+                override suspend fun load(params: LoadParams<Int>): LoadResult<Int, String> {
+                    throw IllegalStateException()
+                }
+            }
+            assertFailsWith<IllegalStateException> {
+                @Suppress("DEPRECATION")
+                PagedList.create(
+                    pagingSource,
+                    null,
+                    testCoroutineScope,
+                    DirectDispatcher,
+                    DirectDispatcher,
+                    null,
+                    Config(10),
+                    0
+                )
+            }
+        }
     }
 
     @Test
-    fun createAsyncThrow() {
-        val dataSource = object : PositionalDataSource<String>() {
-            override fun loadInitial(
-                params: LoadInitialParams,
-                callback: LoadInitialCallback<String>
-            ) {
-                callback.onError(Exception())
+    fun createNoInitialPageError() {
+        runBlocking {
+            val exception = IllegalStateException()
+            val pagingSource = object : PagingSource<Int, String>() {
+                override suspend fun load(params: LoadParams<Int>): LoadResult<Int, String> {
+                    return LoadResult.Error(exception)
+                }
             }
 
-            override fun loadRange(params: LoadRangeParams, callback: LoadRangeCallback<String>) {
-                fail("no load range expected")
+            // create doesn't differentiate between throw vs error runnable, which is why
+            // PagedList.Builder without the initial page is deprecated
+            assertFailsWith<IllegalStateException> {
+                @Suppress("DEPRECATION")
+                PagedList.create(
+                    pagingSource,
+                    null,
+                    testCoroutineScope,
+                    DirectDispatcher,
+                    DirectDispatcher,
+                    null,
+                    Config(10),
+                    0
+                )
+            }
+        }
+    }
+
+    @Test
+    fun defaults() = runBlocking {
+        val initialPage = pagingSource.load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 10,
+                placeholdersEnabled = false,
+            )
+        ) as PagingSource.LoadResult.Page
+
+        @Suppress("DEPRECATION")
+        val pagedList = PagedList.Builder(pagingSource, initialPage, config)
+            .setNotifyDispatcher(DirectDispatcher)
+            .setFetchDispatcher(DirectDispatcher)
+            .build()
+
+        assertEquals(pagingSource, pagedList.pagingSource)
+        assertEquals(config, pagedList.config)
+    }
+
+    @Test
+    fun setState_Error() {
+        var onStateChangeCalls = 0
+
+        @Suppress("DEPRECATION")
+        val loadStateManager = object : PagedList.LoadStateManager() {
+            override fun onStateChanged(type: LoadType, state: LoadState) {
+                onStateChangeCalls++
             }
         }
 
-        val config = PagedList.Config.Builder()
-            .setPageSize(10)
-            .setEnablePlaceholders(false)
-            .build()
-        val success = mutableListOf(false)
-        val future = PagedList.create(
-            dataSource,
-            mainThread,
-            backgroundThread,
-            backgroundThread,
-            null,
-            config,
-            0
-        )
-        future.addListener(Runnable {
-            try {
-                future.get()
-            } catch (e: Exception) {
-                success[0] = true
-            }
-        }, backgroundThread)
-        backgroundThread.executeAll()
-        assertTrue(success[0])
+        loadStateManager.setState(REFRESH, LoadState.Error(EXCEPTION))
+        loadStateManager.setState(REFRESH, LoadState.Error(EXCEPTION))
+
+        assertEquals(1, onStateChangeCalls)
     }
 
     @Test
-    fun defaults() {
-        val pagedList = PagedList(
-            dataSource = dataSource,
-            config = config,
-            fetchExecutor = DirectExecutor,
-            notifyExecutor = DirectExecutor
-        )
+    fun dispatchStateChange_dispatchesOnNotifyDispatcher() {
+        val notifyDispatcher = TestDispatcher()
 
-        assertEquals(dataSource, pagedList.dataSource)
-        assertEquals(config, pagedList.config)
+        @Suppress("DEPRECATION")
+        val pagedList = object : PagedList<String>(
+            pagingSource,
+            testCoroutineScope,
+            notifyDispatcher,
+            PagedStorage(),
+            config
+        ) {
+            override val lastKey: Any? = null
+
+            override val isDetached: Boolean = true
+
+            override fun dispatchCurrentLoadState(callback: (LoadType, LoadState) -> Unit) {}
+
+            override fun loadAroundInternal(index: Int) {}
+
+            override fun detach() {}
+        }
+
+        assertTrue { notifyDispatcher.queue.isEmpty() }
+
+        pagedList.dispatchStateChangeAsync(REFRESH, LoadState.Loading)
+        assertEquals(1, notifyDispatcher.queue.size)
+
+        pagedList.dispatchStateChangeAsync(REFRESH, LoadState.NotLoading.Incomplete)
+        assertEquals(2, notifyDispatcher.queue.size)
     }
 }

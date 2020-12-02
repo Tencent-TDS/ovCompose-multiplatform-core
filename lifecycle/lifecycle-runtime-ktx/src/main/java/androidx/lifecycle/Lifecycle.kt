@@ -29,9 +29,10 @@ import kotlin.coroutines.CoroutineContext
  *
  * This scope will be cancelled when the [Lifecycle] is destroyed.
  *
- * This scope is bound to [Dispatchers.Main]
+ * This scope is bound to
+ * [Dispatchers.Main.immediate][kotlinx.coroutines.MainCoroutineDispatcher.immediate]
  */
-val Lifecycle.coroutineScope: LifecycleCoroutineScope
+public val Lifecycle.coroutineScope: LifecycleCoroutineScope
     get() {
         while (true) {
             val existing = mInternalScopeRef.get() as LifecycleCoroutineScopeImpl?
@@ -40,7 +41,7 @@ val Lifecycle.coroutineScope: LifecycleCoroutineScope
             }
             val newScope = LifecycleCoroutineScopeImpl(
                 this,
-                SupervisorJob() + Dispatchers.Main
+                SupervisorJob() + Dispatchers.Main.immediate
             )
             if (mInternalScopeRef.compareAndSet(null, newScope)) {
                 newScope.register()
@@ -50,14 +51,15 @@ val Lifecycle.coroutineScope: LifecycleCoroutineScope
     }
 
 /**
- * [CoroutineScope] tied to a [Lifecycle] and [Dispatchers.Main]
+ * [CoroutineScope] tied to a [Lifecycle] and
+ * [Dispatchers.Main.immediate][kotlinx.coroutines.MainCoroutineDispatcher.immediate]
  *
  * This scope will be cancelled when the [Lifecycle] is destroyed.
  *
  * This scope provides specialised versions of `launch`: [launchWhenCreated], [launchWhenStarted],
  * [launchWhenResumed]
  */
-abstract class LifecycleCoroutineScope internal constructor() : CoroutineScope {
+public abstract class LifecycleCoroutineScope internal constructor() : CoroutineScope {
     internal abstract val lifecycle: Lifecycle
 
     /**
@@ -68,7 +70,7 @@ abstract class LifecycleCoroutineScope internal constructor() : CoroutineScope {
      * @see Lifecycle.whenCreated
      * @see Lifecycle.coroutineScope
      */
-    fun launchWhenCreated(block: suspend CoroutineScope.() -> Unit): Job = launch {
+    public fun launchWhenCreated(block: suspend CoroutineScope.() -> Unit): Job = launch {
         lifecycle.whenCreated(block)
     }
 
@@ -81,7 +83,7 @@ abstract class LifecycleCoroutineScope internal constructor() : CoroutineScope {
      * @see Lifecycle.coroutineScope
      */
 
-    fun launchWhenStarted(block: suspend CoroutineScope.() -> Unit): Job = launch {
+    public fun launchWhenStarted(block: suspend CoroutineScope.() -> Unit): Job = launch {
         lifecycle.whenStarted(block)
     }
 
@@ -93,7 +95,7 @@ abstract class LifecycleCoroutineScope internal constructor() : CoroutineScope {
      * @see Lifecycle.whenResumed
      * @see Lifecycle.coroutineScope
      */
-    fun launchWhenResumed(block: suspend CoroutineScope.() -> Unit): Job = launch {
+    public fun launchWhenResumed(block: suspend CoroutineScope.() -> Unit): Job = launch {
         lifecycle.whenResumed(block)
     }
 }
@@ -112,8 +114,7 @@ internal class LifecycleCoroutineScopeImpl(
     }
 
     fun register() {
-        // TODO use Main.Immediate once it is graduated out of experimental.
-        launch(Dispatchers.Main) {
+        launch(Dispatchers.Main.immediate) {
             if (lifecycle.currentState >= Lifecycle.State.INITIALIZED) {
                 lifecycle.addObserver(this@LifecycleCoroutineScopeImpl)
             } else {

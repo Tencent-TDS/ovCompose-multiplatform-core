@@ -35,19 +35,25 @@ import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.SmallTest;
+import androidx.test.filters.MediumTest;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.Callable;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+import java.util.zip.ZipInputStream;
 
-@SmallTest
+@MediumTest
 @RunWith(AndroidJUnit4.class)
 public class PrepackageTest {
 
@@ -62,6 +68,31 @@ public class PrepackageTest {
 
         ProductDao dao = database.getProductDao();
         assertThat(dao.countProducts(), is(2));
+
+        database.close();
+    }
+
+    @Test
+    public void createFromZippedAsset() {
+        Context context = ApplicationProvider.getApplicationContext();
+        context.deleteDatabase("products.db");
+
+        final Callable<InputStream> inputStreamCallable = () -> {
+            ZipInputStream zipInputStream =
+                    new ZipInputStream(context.getAssets().open("databases/products_v1.db.zip"));
+            zipInputStream.getNextEntry();
+            return zipInputStream;
+        };
+
+        ProductsDatabase database = Room.databaseBuilder(
+                context, ProductsDatabase.class, "products.db")
+                .createFromInputStream(inputStreamCallable)
+                .build();
+
+        ProductDao dao = database.getProductDao();
+        assertThat(dao.countProducts(), is(2));
+
+        database.close();
     }
 
     @Test
@@ -81,7 +112,10 @@ public class PrepackageTest {
             throwable = t;
         }
         assertThat(throwable, instanceOf(IllegalStateException.class));
-        assertThat(throwable.getMessage(), containsString("Migration didn't properly handle"));
+        assertThat(throwable.getMessage(),
+                containsString("Pre-packaged database has an invalid schema"));
+
+        database.close();
     }
 
     @Test
@@ -102,6 +136,8 @@ public class PrepackageTest {
         }
         assertThat(throwable, instanceOf(RuntimeException.class));
         assertThat(throwable.getCause(), instanceOf(FileNotFoundException.class));
+
+        database.close();
     }
 
     @Test
@@ -118,6 +154,8 @@ public class PrepackageTest {
 
         ProductDao dao = database.getProductDao();
         assertThat(dao.countProducts(), is(2));
+
+        database.close();
     }
 
     @Test
@@ -137,7 +175,10 @@ public class PrepackageTest {
             throwable = t;
         }
         assertThat(throwable, instanceOf(IllegalStateException.class));
-        assertThat(throwable.getMessage(), containsString("Migration didn't properly handle"));
+        assertThat(throwable.getMessage(),
+                containsString("Pre-packaged database has an invalid schema"));
+
+        database.close();
     }
 
     @Test
@@ -164,6 +205,8 @@ public class PrepackageTest {
                 .build();
         dao = database.getProductDao();
         assertThat(dao.countProducts(), is(3));
+
+        database.close();
     }
 
     @Test
@@ -179,6 +222,8 @@ public class PrepackageTest {
 
         ProductDao dao = database.getProductDao();
         assertThat(dao.countProducts(), is(0));
+
+        database.close();
     }
 
     @Test
@@ -200,6 +245,8 @@ public class PrepackageTest {
         ProductDao dao = database.getProductDao();
         assertThat(dao.countProducts(), is(3));
         assertThat(dao.getProductById(3).name, is("Mofongo"));
+
+        database.close();
     }
 
     @Test
@@ -214,6 +261,8 @@ public class PrepackageTest {
 
         ProductDao dao = database.getProductDao();
         assertThat(dao.countProducts(), is(0));
+
+        database.close();
     }
 
     @Test
@@ -238,6 +287,8 @@ public class PrepackageTest {
                 .build();
         dao = database_v2.getProductDao();
         assertThat(dao.countProducts(), is(3));
+
+        database_v2.close();
     }
 
     @Test
@@ -262,6 +313,8 @@ public class PrepackageTest {
                 .build();
         dao = database_v2.getProductDao();
         assertThat(dao.countProducts(), is(0));
+
+        database_v2.close();
     }
 
     @Test
@@ -294,6 +347,47 @@ public class PrepackageTest {
         dao = database_v2.getProductDao();
         assertThat(dao.countProducts(), is(3));
         assertThat(dao.getProductById(3).name, is("Mofongo"));
+
+        database_v2.close();
+    }
+
+    @Test
+    @Ignore("Flaky test, see b/149072706")
+    public void createFromAssert_multiInstanceCopy() throws InterruptedException {
+        Context context = ApplicationProvider.getApplicationContext();
+        context.deleteDatabase("products.db");
+
+        ProductsDatabase database1 = Room.databaseBuilder(
+                context, ProductsDatabase.class, "products.db")
+                .createFromAsset("databases/products_big.db")
+                .build();
+
+        ProductsDatabase database2 = Room.databaseBuilder(
+                context, ProductsDatabase.class, "products.db")
+                .createFromAsset("databases/products_big.db")
+                .build();
+
+        Thread t1 = new Thread("DB Thread A") {
+            @Override
+            public void run() {
+                database1.getProductDao().countProducts();
+            }
+        };
+        Thread t2 = new Thread("DB Thread B") {
+            @Override
+            public void run() {
+                database2.getProductDao().countProducts();
+            }
+        };
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+
+        database1.close();
+        database2.close();
     }
 
     @Test
@@ -308,11 +402,13 @@ public class PrepackageTest {
 
         ProductsDatabase database = Room.databaseBuilder(
                 context, ProductsDatabase.class, "products_external.db")
-                .createFromFile(dataDbFile.getAbsolutePath())
+                .createFromFile(dataDbFile)
                 .build();
 
         ProductDao dao = database.getProductDao();
         assertThat(dao.countProducts(), is(2));
+
+        database.close();
     }
 
     @Test
@@ -328,7 +424,7 @@ public class PrepackageTest {
 
         ProductsDatabase database_v1 = Room.databaseBuilder(
                 context, ProductsDatabase.class, "products_external.db")
-                .createFromFile(dataDbFile.getAbsolutePath())
+                .createFromFile(dataDbFile)
                 .build();
         dao = database_v1.getProductDao();
         assertThat(dao.countProducts(), is(2));
@@ -340,15 +436,42 @@ public class PrepackageTest {
 
         ProductsDatabase_v2 database_v2 = Room.databaseBuilder(
                 context, ProductsDatabase_v2.class, "products_external.db")
-                .createFromFile(dataDbFile.getAbsolutePath())
+                .createFromFile(dataDbFile)
                 .fallbackToDestructiveMigration()
                 .build();
         dao = database_v2.getProductDao();
         assertThat(dao.countProducts(), is(0));
+
+        database_v2.close();
     }
 
     @Test
-    public void openExternalDatabase() throws IOException {
+    public void createFromInputStream() throws IOException {
+        Context context = ApplicationProvider.getApplicationContext();
+        context.deleteDatabase("products_external.db");
+        File dataDbFile = new File(ContextCompat.getDataDir(context), "products_external.db.gz");
+        context.deleteDatabase(dataDbFile.getAbsolutePath());
+
+        InputStream toCopyInput = context.getAssets().open("databases/products_v1.db");
+
+        // gzip the file while copying it - note that gzipping files in assets doesn't work because
+        // aapt drops the gz extension and makes them available without requiring a GZip stream.
+        final OutputStream output = new GZIPOutputStream(new FileOutputStream(dataDbFile));
+        copyStream(toCopyInput, output);
+
+        ProductsDatabase database = Room.databaseBuilder(
+                context, ProductsDatabase.class, "products_external.db")
+                .createFromInputStream(() -> new GZIPInputStream(new FileInputStream(dataDbFile)))
+                .build();
+
+        ProductDao dao = database.getProductDao();
+        assertThat(dao.countProducts(), is(2));
+
+        database.close();
+    }
+
+    @Test
+    public void openDataDirDatabase() throws IOException {
         Context context = ApplicationProvider.getApplicationContext();
 
         File dataDbFile = new File(ContextCompat.getDataDir(context), "products.db");
@@ -363,10 +486,12 @@ public class PrepackageTest {
 
         ProductDao dao = database.getProductDao();
         assertThat(dao.countProducts(), is(2));
+
+        database.close();
     }
 
     @Test
-    public void openExternalDatabase_badSchema() throws IOException {
+    public void openDataDirDatabase_badSchema() throws IOException {
         Context context = ApplicationProvider.getApplicationContext();
 
         File dataDbFile = new File(ContextCompat.getDataDir(context), "products.db");
@@ -387,11 +512,14 @@ public class PrepackageTest {
             throwable = t;
         }
         assertThat(throwable, instanceOf(IllegalStateException.class));
-        assertThat(throwable.getMessage(), containsString("Migration didn't properly handle"));
+        assertThat(throwable.getMessage(),
+                containsString("Pre-packaged database has an invalid schema"));
+
+        database.close();
     }
 
     @Test
-    public void openExternalDatabase_versionZero() throws IOException {
+    public void openDataDirDatabase_versionZero() throws IOException {
         Context context = ApplicationProvider.getApplicationContext();
 
         File dataDbFile = new File(ContextCompat.getDataDir(context), "products.db");
@@ -406,10 +534,12 @@ public class PrepackageTest {
 
         ProductDao dao = database.getProductDao();
         assertThat(dao.countProducts(), is(2));
+
+        database.close();
     }
 
     @Test
-    public void openExternalDatabase_versionZero_badSchema() throws IOException {
+    public void openDataDirDatabase_versionZero_badSchema() throws IOException {
         Context context = ApplicationProvider.getApplicationContext();
 
         File dataDbFile = new File(ContextCompat.getDataDir(context), "products.db");
@@ -430,7 +560,159 @@ public class PrepackageTest {
             throwable = t;
         }
         assertThat(throwable, instanceOf(IllegalStateException.class));
-        assertThat(throwable.getMessage(), containsString("Migration didn't properly handle"));
+        assertThat(throwable.getMessage(),
+                containsString("Pre-packaged database has an invalid schema"));
+
+        database.close();
+    }
+
+    @Test
+    public void onCreateFromAsset_calledOnOpenPrepackagedDatabase() {
+        Context context = ApplicationProvider.getApplicationContext();
+        context.deleteDatabase("products.db");
+        TestPrepackagedDatabaseCallback callback = new TestPrepackagedDatabaseCallback();
+        ProductsDatabase database = Room.databaseBuilder(
+                context, ProductsDatabase.class, "products.db")
+                .createFromAsset("databases/products_v1.db", callback)
+                .build();
+
+        assertThat(callback.mOpenPrepackagedDatabaseCount, is(0));
+
+        database.getProductDao().countProducts();
+
+        assertThat(callback.mOpenPrepackagedDatabaseCount, is(1));
+        database.close();
+    }
+
+    @Test
+    public void onCreateFromFile_calledOnOpenPrepackagedDatabase() throws IOException {
+        Context context = ApplicationProvider.getApplicationContext();
+        context.deleteDatabase("products_external.db");
+        File dataDbFile = new File(ContextCompat.getDataDir(context), "products_external.db");
+        context.deleteDatabase(dataDbFile.getAbsolutePath());
+
+        InputStream toCopyInput = context.getAssets().open("databases/products_v1.db");
+        copyAsset(toCopyInput, dataDbFile);
+
+        TestPrepackagedDatabaseCallback callback = new TestPrepackagedDatabaseCallback();
+        ProductsDatabase database = Room.databaseBuilder(
+                context, ProductsDatabase.class, "products_external.db")
+                .createFromFile(dataDbFile, callback)
+                .build();
+
+        assertThat(callback.mOpenPrepackagedDatabaseCount, is(0));
+
+        database.getProductDao().countProducts();
+
+        assertThat(callback.mOpenPrepackagedDatabaseCount, is(1));
+
+        database.close();
+    }
+
+    @Test
+    public void onCreateFromZippedAsset_calledOnOpenPrepackagedDatabase() {
+        Context context = ApplicationProvider.getApplicationContext();
+        context.deleteDatabase("products.db");
+
+        final Callable<InputStream> inputStreamCallable = () -> {
+            ZipInputStream zipInputStream =
+                    new ZipInputStream(context.getAssets().open("databases/products_v1.db.zip"));
+            zipInputStream.getNextEntry();
+            return zipInputStream;
+        };
+
+        TestPrepackagedDatabaseCallback callback = new TestPrepackagedDatabaseCallback();
+        ProductsDatabase database = Room.databaseBuilder(
+                context, ProductsDatabase.class, "products.db")
+                .createFromInputStream(inputStreamCallable, callback)
+                .build();
+
+        assertThat(callback.mOpenPrepackagedDatabaseCount, is(0));
+
+        database.getProductDao().countProducts();
+
+        assertThat(callback.mOpenPrepackagedDatabaseCount, is(1));
+
+        database.close();
+    }
+
+    @Test
+    public void onOpenedDbTwice_calledOnPrepackagedCallbackOnce() {
+        Context context = ApplicationProvider.getApplicationContext();
+        context.deleteDatabase("products.db");
+
+        ProductsDatabase db1 = null;
+        ProductsDatabase db2 = null;
+        try {
+            TestPrepackagedDatabaseCallback callback = new TestPrepackagedDatabaseCallback();
+            db1 = Room.databaseBuilder(
+                    context, ProductsDatabase.class, "products.db")
+                    .createFromAsset("databases/products_v1.db", callback)
+                    .build();
+
+            assertThat(callback.mOpenPrepackagedDatabaseCount, is(0));
+            db1.getProductDao().countProducts();
+            assertThat(callback.mOpenPrepackagedDatabaseCount, is(1));
+
+            db2 = Room.databaseBuilder(
+                    context, ProductsDatabase.class, "products.db")
+                    .createFromAsset("databases/products_v1.db", callback)
+                    .build();
+
+            assertThat(callback.mOpenPrepackagedDatabaseCount, is(1));
+            db2.getProductDao().countProducts();
+            // Not called this time; db file was already copied and callback was called by db1
+            assertThat(callback.mOpenPrepackagedDatabaseCount, is(1));
+        } finally {
+            if (db1 != null) {
+                db1.close();
+            }
+            if (db2 != null) {
+                db2.close();
+            }
+        }
+    }
+
+    @Test
+    public void onPrepackagedCallbackException_calledOnPrepackagedCallbackWhenOpenedAgain() {
+        Context context = ApplicationProvider.getApplicationContext();
+        context.deleteDatabase("products.db");
+        TestPrepackagedDatabaseCallback throwingCallback = new TestPrepackagedDatabaseCallback() {
+            @Override
+            public void onOpenPrepackagedDatabase(@NonNull SupportSQLiteDatabase db) {
+                throw new RuntimeException("Something went wrong!");
+            }
+        };
+
+        TestPrepackagedDatabaseCallback callback = new TestPrepackagedDatabaseCallback();
+
+        ProductsDatabase db1 = null;
+        ProductsDatabase db2 = null;
+        try {
+            db1 = Room.databaseBuilder(
+                    context, ProductsDatabase.class, "products.db")
+                    .createFromAsset("databases/products_v1.db", throwingCallback)
+                    .build();
+            db1.getProductDao().countProducts();
+        } catch (Exception e) {
+            assertThat(throwingCallback.mOpenPrepackagedDatabaseCount, is(0));
+
+            db2 = Room.databaseBuilder(
+                    context, ProductsDatabase.class, "products.db")
+                    .createFromAsset("databases/products_v1.db", callback)
+                    .build();
+
+            assertThat(callback.mOpenPrepackagedDatabaseCount, is(0));
+            db2.getProductDao().countProducts();
+            assertThat(callback.mOpenPrepackagedDatabaseCount, is(1));
+        } finally {
+            if (db1 != null) {
+                db1.close();
+            }
+            if (db2 != null) {
+                db2.close();
+            }
+        }
     }
 
     @Database(entities = Product.class, version = 1, exportSchema = false)
@@ -445,6 +727,10 @@ public class PrepackageTest {
 
     private static void copyAsset(InputStream input, File outputFile) throws IOException {
         OutputStream output = new FileOutputStream(outputFile);
+        copyStream(input, output);
+    }
+
+    private static void copyStream(InputStream input, OutputStream output) throws IOException {
         try {
             int length;
             byte[] buffer = new byte[1024 * 4];
@@ -454,6 +740,17 @@ public class PrepackageTest {
         } finally {
             input.close();
             output.close();
+        }
+    }
+
+    public static class TestPrepackagedDatabaseCallback extends
+            RoomDatabase.PrepackagedDatabaseCallback {
+
+        int mOpenPrepackagedDatabaseCount;
+
+        @Override
+        public void onOpenPrepackagedDatabase(@NonNull SupportSQLiteDatabase db) {
+            mOpenPrepackagedDatabaseCount++;
         }
     }
 }

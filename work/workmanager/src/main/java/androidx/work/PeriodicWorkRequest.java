@@ -15,6 +15,7 @@
  */
 package androidx.work;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
@@ -31,9 +32,9 @@ import java.util.concurrent.TimeUnit;
  * such as doze mode.
  * <p>
  * You can control when the work executes in the period interval more exactly - see
- * {@code PeriodicWorkRequest.Builder#Builder} for documentation on {@code flexInterval}s.
+ * {@link PeriodicWorkRequest.Builder} for documentation on {@code flexInterval}s.
  * <p>
- * Periodic work has a minimum interval of 15 minutes and it cannot have an initial delay.
+ * Periodic work has a minimum interval of 15 minutes.
  * <p>
  * Periodic work is intended for use cases where you want a fairly consistent delay between
  * consecutive runs, and you are willing to accept inexactness due to battery optimizations and doze
@@ -57,10 +58,12 @@ public final class PeriodicWorkRequest extends WorkRequest {
     /**
      * The minimum interval duration for {@link PeriodicWorkRequest} (in milliseconds).
      */
+    @SuppressLint("MinMaxConstant")
     public static final long MIN_PERIODIC_INTERVAL_MILLIS = 15 * 60 * 1000L; // 15 minutes.
     /**
      * The minimum flex duration for {@link PeriodicWorkRequest} (in milliseconds).
      */
+    @SuppressLint("MinMaxConstant")
     public static final long MIN_PERIODIC_FLEX_MILLIS = 5 * 60 * 1000L; // 5 minutes.
 
     PeriodicWorkRequest(Builder builder) {
@@ -117,10 +120,9 @@ public final class PeriodicWorkRequest extends WorkRequest {
 
         /**
          * Creates a {@link PeriodicWorkRequest} to run periodically once within the
-         * <strong>flex period</strong> of every interval period. See diagram below.  Note that flex
-         * intervals are ignored for certain OS versions (in particular, API 23).  The flex period
-         * begins at {@code repeatInterval - flexInterval} to the end of the interval.  The repeat
-         * interval must be greater than or equal to
+         * <strong>flex period</strong> of every interval period. See diagram below.  The flex
+         * period begins at {@code repeatInterval - flexInterval} to the end of the interval.
+         * The repeat interval must be greater than or equal to
          * {@link PeriodicWorkRequest#MIN_PERIODIC_INTERVAL_MILLIS} and the flex interval must
          * be greater than or equal to {@link PeriodicWorkRequest#MIN_PERIODIC_FLEX_MILLIS}.
          *
@@ -152,10 +154,9 @@ public final class PeriodicWorkRequest extends WorkRequest {
 
         /**
          * Creates a {@link PeriodicWorkRequest} to run periodically once within the
-         * <strong>flex period</strong> of every interval period. See diagram below. Note that flex
-         * intervals are ignored for certain OS versions (in particular, API 23).  The flex period
-         * begins at {@code repeatInterval - flexInterval} to the end of the interval.  The repeat
-         * interval must be greater than or equal to
+         * <strong>flex period</strong> of every interval period. See diagram below.  The flex
+         * period begins at {@code repeatInterval - flexInterval} to the end of the interval.
+         * The repeat interval must be greater than or equal to
          * {@link PeriodicWorkRequest#MIN_PERIODIC_INTERVAL_MILLIS} and the flex interval must
          * be greater than or equal to {@link PeriodicWorkRequest#MIN_PERIODIC_FLEX_MILLIS}.
          *
@@ -187,6 +188,12 @@ public final class PeriodicWorkRequest extends WorkRequest {
                     && mWorkSpec.constraints.requiresDeviceIdle()) {
                 throw new IllegalArgumentException(
                         "Cannot set backoff criteria on an idle mode job");
+            }
+            if (mWorkSpec.runInForeground
+                    && Build.VERSION.SDK_INT >= 23
+                    && mWorkSpec.constraints.requiresDeviceIdle()) {
+                throw new IllegalArgumentException(
+                        "Cannot run in foreground with an idle mode constraint");
             }
             return new PeriodicWorkRequest(this);
         }

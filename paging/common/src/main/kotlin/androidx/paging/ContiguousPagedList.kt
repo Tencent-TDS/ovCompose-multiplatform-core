@@ -16,32 +16,43 @@
 
 package androidx.paging
 
+import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
-import java.util.concurrent.Executor
+import androidx.paging.LoadState.Loading
+import androidx.paging.LoadState.NotLoading
+import androidx.paging.LoadType.APPEND
+import androidx.paging.LoadType.PREPEND
+import androidx.paging.LoadType.REFRESH
+import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 /**
- * @hide
+ * @suppress
  */
+@Suppress("DEPRECATION")
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 open class ContiguousPagedList<K : Any, V : Any>(
-    override val dataSource: DataSource<K, V>,
-    mainThreadExecutor: Executor,
-    backgroundThreadExecutor: Executor,
-    boundaryCallback: BoundaryCallback<V>?,
+    final override val pagingSource: PagingSource<K, V>,
+    coroutineScope: CoroutineScope,
+    notifyDispatcher: CoroutineDispatcher,
+    backgroundDispatcher: CoroutineDispatcher,
+    internal val boundaryCallback: BoundaryCallback<V>?,
     config: Config,
-    initialResult: DataSource.BaseResult<V>,
-    lastLoad: Int
+    initialPage: PagingSource.LoadResult.Page<K, V>,
+    private val initialLastKey: K?
 ) : PagedList<V>(
+    pagingSource,
+    coroutineScope,
+    notifyDispatcher,
     PagedStorage<V>(),
-    mainThreadExecutor,
-    backgroundThreadExecutor,
-    boundaryCallback,
-    config
-), PagedStorage.Callback, Pager.PageConsumer<V> {
+    config,
+),
+    PagedStorage.Callback,
+    LegacyPageFetcher.PageConsumer<V> {
     internal companion object {
-        internal const val LAST_LOAD_UNSPECIFIED = -1
-
         internal fun getPrependItemsRequested(
             prefetchDistance: Int,
             index: Int,
@@ -55,66 +66,85 @@ open class ContiguousPagedList<K : Any, V : Any>(
         ) = index + prefetchDistance + 1 - itemsBeforeTrailingNulls
     }
 
-    var prependItemsRequested = 0
+    private var prependItemsRequested = 0
+    private var appendItemsRequested = 0
 
-    var appendItemsRequested = 0
+    // if set to true, boundaryCallback is non-null, and should
+    // be dispatched when nearby load has occurred
+    private var boundaryCallbackBeginDeferred = false
+    private var boundaryCallbackEndDeferred = false
 
-    var replacePagesWithNulls = false
+    // lowest and highest index accessed by loadAround. Used to
+    // decide when boundaryCallback should be dispatched
+    private var lowestIndexAccessed = Int.MAX_VALUE
+    private var highestIndexAccessed = Int.MIN_VALUE
 
-    private val shouldTrim: Boolean
+    private var replacePagesWithNulls = false
 
-    private val pager: Pager<K, V>
+    private val shouldTrim = config.maxSize != Config.MAX_SIZE_UNBOUNDED
+
+    @Suppress("UNCHECKED_CAST")
+    private val pager = LegacyPageFetcher(
+        coroutineScope,
+        config,
+        pagingSource,
+        notifyDispatcher,
+        backgroundDispatcher,
+        this,
+        storage as LegacyPageFetcher.KeyProvider<K>
+    )
+
+    @Suppress("UNCHECKED_CAST")
+    override val lastKey: K?
+        get() {
+            @OptIn(ExperimentalPagingApi::class)
+            return (storage.getRefreshKeyInfo(config) as PagingState<K, V>?)
+                ?.let { pagingSource.getRefreshKey(it) }
+                ?: initialLastKey
+        }
 
     override val isDetached
         get() = pager.isDetached
 
-    override val isContiguous = true
-
-    override val lastKey
-        get() = when (dataSource.type) {
-            DataSource.KeyType.POSITIONAL -> {
-                @Suppress("UNCHECKED_CAST")
-                lastLoad as K
-            }
-            else -> lastItem?.let { dataSource.getKeyInternal(it) }
-        }
-
     /**
      * Given a page result, apply or drop it, and return whether more loading is needed.
      */
-    override fun onPageResult(type: LoadType, pageResult: DataSource.BaseResult<V>): Boolean {
+    override fun onPageResult(
+        type: LoadType,
+        page: PagingSource.LoadResult.Page<*, V>
+    ): Boolean {
         var continueLoading = false
-        val page = pageResult.data
+        val list = page.data
 
         // if we end up trimming, we trim from side that's furthest from most recent access
-        val trimFromFront = lastLoad > storage.middleOfLoadedRange
+        val trimFromFront = lastLoad() > storage.middleOfLoadedRange
 
         // is the new page big enough to warrant pre-trimming (i.e. dropping) it?
         val skipNewPage = shouldTrim && storage.shouldPreTrimNewPage(
             config.maxSize,
             requiredRemainder,
-            page.size
+            list.size
         )
 
-        if (type == LoadType.END) {
+        if (type == APPEND) {
             if (skipNewPage && !trimFromFront) {
                 // don't append this data, drop it
                 appendItemsRequested = 0
             } else {
                 storage.appendPage(page, this@ContiguousPagedList)
-                appendItemsRequested -= page.size
-                if (appendItemsRequested > 0 && page.size != 0) {
+                appendItemsRequested -= list.size
+                if (appendItemsRequested > 0 && list.isNotEmpty()) {
                     continueLoading = true
                 }
             }
-        } else if (type == LoadType.START) {
+        } else if (type == PREPEND) {
             if (skipNewPage && trimFromFront) {
                 // don't append this data, drop it
                 prependItemsRequested = 0
             } else {
                 storage.prependPage(page, this@ContiguousPagedList)
-                prependItemsRequested -= page.size
-                if (prependItemsRequested > 0 && page.size != 0) {
+                prependItemsRequested -= list.size
+                if (prependItemsRequested > 0 && list.isNotEmpty()) {
                     continueLoading = true
                 }
             }
@@ -124,10 +154,10 @@ open class ContiguousPagedList<K : Any, V : Any>(
 
         if (shouldTrim) {
             // Try and trim, but only if the side being trimmed isn't actually fetching.
-            // For simplicity (both of impl here, and contract w/ DataSource) we don't
+            // For simplicity (both of impl here, and contract w/ PagingSource) we don't
             // allow fetches in same direction - this means reading the load state is safe.
             if (trimFromFront) {
-                if (pager.loadStateManager.start != LoadState.LOADING) {
+                if (pager.loadStateManager.startState !is Loading) {
                     if (storage.trimFromFront(
                             replacePagesWithNulls,
                             config.maxSize,
@@ -136,15 +166,11 @@ open class ContiguousPagedList<K : Any, V : Any>(
                         )
                     ) {
                         // trimmed from front, ensure we can fetch in that dir
-                        pager.loadStateManager.setState(
-                            LoadType.START,
-                            LoadState.IDLE,
-                            null
-                        )
+                        pager.loadStateManager.setState(PREPEND, NotLoading.Incomplete)
                     }
                 }
             } else {
-                if (pager.loadStateManager.end != LoadState.LOADING) {
+                if (pager.loadStateManager.endState !is Loading) {
                     if (storage.trimFromEnd(
                             replacePagesWithNulls,
                             config.maxSize,
@@ -152,25 +178,112 @@ open class ContiguousPagedList<K : Any, V : Any>(
                             this@ContiguousPagedList
                         )
                     ) {
-                        pager.loadStateManager.setState(LoadType.END, LoadState.IDLE, null)
+                        pager.loadStateManager.setState(APPEND, NotLoading.Incomplete)
                     }
                 }
             }
         }
 
-        triggerBoundaryCallback(type, page)
+        triggerBoundaryCallback(type, list)
         return continueLoading
     }
 
-    override fun onStateChanged(type: LoadType, state: LoadState, error: Throwable?) =
-        dispatchStateChange(type, state, error)
+    override fun onStateChanged(type: LoadType, state: LoadState) {
+        dispatchStateChangeAsync(type, state)
+    }
 
     private fun triggerBoundaryCallback(type: LoadType, page: List<V>) {
         if (boundaryCallback != null) {
             val deferEmpty = storage.size == 0
-            val deferBegin = (!deferEmpty && type == LoadType.START && page.isEmpty())
-            val deferEnd = (!deferEmpty && type == LoadType.END && page.isEmpty())
+            val deferBegin = (!deferEmpty && type == PREPEND && page.isEmpty())
+            val deferEnd = (!deferEmpty && type == APPEND && page.isEmpty())
             deferBoundaryCallbacks(deferEmpty, deferBegin, deferEnd)
+        }
+    }
+
+    // Creation thread for initial synchronous load, otherwise main thread
+    // Safe to access main thread only state - no other thread has reference during construction
+    @AnyThread
+    internal fun deferBoundaryCallbacks(
+        deferEmpty: Boolean,
+        deferBegin: Boolean,
+        deferEnd: Boolean
+    ) {
+        if (boundaryCallback == null) {
+            throw IllegalStateException("Can't defer BoundaryCallback, no instance")
+        }
+
+        /*
+         * If lowest/highest haven't been initialized, set them to storage size,
+         * since placeholders must already be computed by this point.
+         *
+         * This is just a minor optimization so that BoundaryCallback callbacks are sent immediately
+         * if the initial load size is smaller than the prefetch window (see
+         * TiledPagedListTest#boundaryCallback_immediate())
+         */
+        if (lowestIndexAccessed == Int.MAX_VALUE) {
+            lowestIndexAccessed = storage.size
+        }
+        if (highestIndexAccessed == Int.MIN_VALUE) {
+            highestIndexAccessed = 0
+        }
+
+        if (deferEmpty || deferBegin || deferEnd) {
+            // Post to the main thread, since we may be on creation thread currently
+            coroutineScope.launch(notifyDispatcher) {
+                // on is dispatched immediately, since items won't be accessed
+
+                if (deferEmpty) {
+                    boundaryCallback.onZeroItemsLoaded()
+                }
+
+                // for other callbacks, mark deferred, and only dispatch if loadAround
+                // has been called near to the position
+                if (deferBegin) {
+                    boundaryCallbackBeginDeferred = true
+                }
+                if (deferEnd) {
+                    boundaryCallbackEndDeferred = true
+                }
+                tryDispatchBoundaryCallbacks(false)
+            }
+        }
+    }
+
+    /**
+     * Call this when lowest/HighestIndexAccessed are changed, or boundaryCallbackBegin/EndDeferred
+     * is set.
+     */
+    private fun tryDispatchBoundaryCallbacks(post: Boolean) {
+        val dispatchBegin = boundaryCallbackBeginDeferred &&
+            lowestIndexAccessed <= config.prefetchDistance
+        val dispatchEnd = boundaryCallbackEndDeferred &&
+            highestIndexAccessed >= size - 1 - config.prefetchDistance
+
+        if (!dispatchBegin && !dispatchEnd) return
+
+        if (dispatchBegin) {
+            boundaryCallbackBeginDeferred = false
+        }
+        if (dispatchEnd) {
+            boundaryCallbackEndDeferred = false
+        }
+        if (post) {
+            coroutineScope.launch(notifyDispatcher) {
+                dispatchBoundaryCallbacks(dispatchBegin, dispatchEnd)
+            }
+        } else {
+            dispatchBoundaryCallbacks(dispatchBegin, dispatchEnd)
+        }
+    }
+
+    private fun dispatchBoundaryCallbacks(begin: Boolean, end: Boolean) {
+        // safe to deref boundaryCallback here, since we only defer if boundaryCallback present
+        if (begin) {
+            boundaryCallback!!.onItemAtFrontLoaded(storage.firstLoadedItem)
+        }
+        if (end) {
+            boundaryCallback!!.onItemAtEndLoaded(storage.lastLoadedItem)
         }
     }
 
@@ -178,120 +291,58 @@ open class ContiguousPagedList<K : Any, V : Any>(
         super.retry()
         pager.retry()
 
-        if (pager.loadStateManager.refresh == LoadState.RETRYABLE_ERROR) {
-            // Loading the next PagedList failed, signal the retry callback.
-            refreshRetryCallback?.run()
+        pager.loadStateManager.refreshState.run {
+            // If loading the next PagedList failed, signal the retry callback.
+            if (this is LoadState.Error) {
+                refreshRetryCallback?.run()
+            }
         }
     }
 
     init {
-        this.lastLoad = lastLoad
-        pager = Pager(
-            config,
-            dataSource,
-            mainThreadExecutor,
-            backgroundThreadExecutor,
-            this,
-            storage,
-            initialResult
-        )
-
         if (config.enablePlaceholders) {
             // Placeholders enabled, pass raw data to storage init
             storage.init(
-                initialResult.leadingNulls,
-                initialResult.data,
-                initialResult.trailingNulls,
-                initialResult.offset,
-                this
+                if (initialPage.itemsBefore != COUNT_UNDEFINED) initialPage.itemsBefore else 0,
+                initialPage,
+                if (initialPage.itemsAfter != COUNT_UNDEFINED) initialPage.itemsAfter else 0,
+                0,
+                this,
+                initialPage.itemsBefore != COUNT_UNDEFINED &&
+                    initialPage.itemsAfter != COUNT_UNDEFINED
             )
         } else {
-            // If placeholder are disabled, avoid passing leading/trailing nulls,
-            // since DataSource may have passed them anyway
+            // If placeholder are disabled, avoid passing leading/trailing nulls, since PagingSource
+            // may have passed them anyway.
             storage.init(
                 0,
-                initialResult.data,
+                initialPage,
                 0,
-                initialResult.offset + initialResult.leadingNulls,
-                this
+                if (initialPage.itemsBefore != COUNT_UNDEFINED) initialPage.itemsBefore else 0,
+                this,
+                false
             )
         }
 
-        shouldTrim =
-            dataSource.supportsPageDropping && config.maxSize != Config.MAX_SIZE_UNBOUNDED
-
-        if (this.lastLoad == LAST_LOAD_UNSPECIFIED) {
-            // Because the ContiguousPagedList wasn't initialized with a last load position,
-            // initialize it to the middle of the initial load
-            this.lastLoad = (initialResult.leadingNulls + initialResult.offset +
-                    initialResult.data.size / 2)
-        }
-        triggerBoundaryCallback(LoadType.REFRESH, initialResult.data)
+        triggerBoundaryCallback(REFRESH, initialPage.data)
     }
 
-    override fun dispatchCurrentLoadState(callback: LoadStateListener) =
+    override fun dispatchCurrentLoadState(callback: (LoadType, LoadState) -> Unit) {
         pager.loadStateManager.dispatchCurrentLoadState(callback)
+    }
 
-    override fun setInitialLoadState(loadState: LoadState, error: Throwable?) =
-        pager.loadStateManager.setState(LoadType.REFRESH, loadState, error)
-
-    @MainThread
-    override fun dispatchUpdatesSinceSnapshot(snapshot: PagedList<V>, callback: Callback) {
-        val snapshotStorage = snapshot.storage
-
-        val newlyAppended = storage.numberAppended - snapshotStorage.numberAppended
-        val newlyPrepended = storage.numberPrepended - snapshotStorage.numberPrepended
-
-        val previousTrailing = snapshotStorage.trailingNullCount
-        val previousLeading = snapshotStorage.leadingNullCount
-
-        // Validate that the snapshot looks like a previous version of this list - if it's not,
-        // we can't be sure we'll dispatch callbacks safely
-        if (snapshotStorage.isEmpty() ||
-            newlyAppended < 0 ||
-            newlyPrepended < 0 ||
-            storage.trailingNullCount != maxOf(previousTrailing - newlyAppended, 0) ||
-            storage.leadingNullCount != maxOf(previousLeading - newlyPrepended, 0) ||
-            storage.storageCount != snapshotStorage.storageCount + newlyAppended + newlyPrepended
-        ) {
-            throw IllegalArgumentException(
-                "Invalid snapshot provided - doesn't appear to be a snapshot of this PagedList"
-            )
-        }
-
-        if (newlyAppended != 0) {
-            val changedCount = minOf(previousTrailing, newlyAppended)
-            val addedCount = newlyAppended - changedCount
-
-            val endPosition = snapshotStorage.leadingNullCount + snapshotStorage.storageCount
-            if (changedCount != 0) {
-                callback.onChanged(endPosition, changedCount)
-            }
-            if (addedCount != 0) {
-                callback.onInserted(endPosition + changedCount, addedCount)
-            }
-        }
-        if (newlyPrepended != 0) {
-            val changedCount = minOf(previousLeading, newlyPrepended)
-            val addedCount = newlyPrepended - changedCount
-
-            if (changedCount != 0) {
-                callback.onChanged(previousLeading, changedCount)
-            }
-            if (addedCount != 0) {
-                callback.onInserted(0, addedCount)
-            }
-        }
+    override fun setInitialLoadState(loadType: LoadType, loadState: LoadState) {
+        pager.loadStateManager.setState(loadType, loadState)
     }
 
     @MainThread
     override fun loadAroundInternal(index: Int) {
         val prependItems =
-            getPrependItemsRequested(config.prefetchDistance, index, storage.leadingNullCount)
+            getPrependItemsRequested(config.prefetchDistance, index, storage.placeholdersBefore)
         val appendItems = getAppendItemsRequested(
             config.prefetchDistance,
             index,
-            storage.leadingNullCount + storage.storageCount
+            storage.placeholdersBefore + storage.storageCount
         )
 
         prependItemsRequested = maxOf(prependItems, prependItemsRequested)
@@ -303,6 +354,19 @@ open class ContiguousPagedList<K : Any, V : Any>(
         if (appendItemsRequested > 0) {
             pager.tryScheduleAppend()
         }
+
+        lowestIndexAccessed = minOf(lowestIndexAccessed, index)
+        highestIndexAccessed = maxOf(highestIndexAccessed, index)
+
+        /*
+         * lowestIndexAccessed / highestIndexAccessed have been updated, so check if we need to
+         * dispatch boundary callbacks. Boundary callbacks are deferred until last items are loaded,
+         * and accesses happen near the boundaries.
+         *
+         * Note: we post here, since RecyclerView may want to add items in response, and this
+         * call occurs in PagedListAdapter bind.
+         */
+        tryDispatchBoundaryCallbacks(true)
     }
 
     override fun detach() = pager.detach()
@@ -310,8 +374,12 @@ open class ContiguousPagedList<K : Any, V : Any>(
     @MainThread
     override fun onInitialized(count: Int) {
         notifyInserted(0, count)
-        // simple heuristic to decide if, when dropping pages, we should replace with placeholders
-        replacePagesWithNulls = storage.leadingNullCount > 0 || storage.trailingNullCount > 0
+        // Simple heuristic to decide if, when dropping pages, we should replace with placeholders.
+        // If we're not presenting placeholders at initialization time, we won't add them when
+        // we drop a page. Note that we don't use config.enablePlaceholders, since the
+        // PagingSource may have opted not to load any.
+        replacePagesWithNulls = storage.placeholdersBefore > 0 ||
+            storage.placeholdersAfter > 0
     }
 
     @MainThread
@@ -320,7 +388,9 @@ open class ContiguousPagedList<K : Any, V : Any>(
         notifyChanged(leadingNulls, changed)
         notifyInserted(0, added)
 
-        offsetAccessIndices(added)
+        // update access range
+        lowestIndexAccessed += added
+        highestIndexAccessed += added
     }
 
     @MainThread
@@ -328,16 +398,6 @@ open class ContiguousPagedList<K : Any, V : Any>(
         // finally dispatch callbacks, after append may have already been scheduled
         notifyChanged(endPosition, changed)
         notifyInserted(endPosition + changed, added)
-    }
-
-    @MainThread
-    override fun onPagePlaceholderInserted(pageIndex: Int) {
-        throw IllegalStateException("Tiled callback on ContiguousPagedList")
-    }
-
-    @MainThread
-    override fun onPageInserted(start: Int, count: Int) {
-        throw IllegalStateException("Tiled callback on ContiguousPagedList")
     }
 
     override fun onPagesRemoved(startOfDrops: Int, count: Int) = notifyRemoved(startOfDrops, count)

@@ -19,6 +19,7 @@ package androidx.media2.session;
 import static android.support.v4.media.MediaDescriptionCompat.EXTRA_BT_FOLDER_TYPE;
 import static android.support.v4.media.session.MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS;
 
+import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 import static androidx.media2.common.MediaMetadata.BROWSABLE_TYPE_MIXED;
 import static androidx.media2.common.MediaMetadata.BROWSABLE_TYPE_NONE;
 import static androidx.media2.common.MediaMetadata.METADATA_KEY_ADVERTISEMENT;
@@ -34,13 +35,17 @@ import static androidx.media2.common.MediaMetadata.METADATA_KEY_MEDIA_ID;
 import static androidx.media2.common.MediaMetadata.METADATA_KEY_MEDIA_URI;
 import static androidx.media2.common.MediaMetadata.METADATA_KEY_PLAYABLE;
 import static androidx.media2.common.MediaMetadata.METADATA_KEY_TITLE;
+import static androidx.media2.session.SessionCommand.COMMAND_CODE_PLAYER_DESELECT_TRACK;
+import static androidx.media2.session.SessionCommand.COMMAND_CODE_PLAYER_SELECT_TRACK;
 import static androidx.media2.session.SessionCommand.COMMAND_CODE_PLAYER_SET_SPEED;
-import static androidx.media2.session.SessionCommand.COMMAND_VERSION_CURRENT;
+import static androidx.media2.session.SessionCommand.COMMAND_CODE_PLAYER_SET_SURFACE;
+import static androidx.media2.session.SessionCommand.COMMAND_VERSION_1;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.BadParcelableException;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -54,11 +59,11 @@ import android.support.v4.media.session.MediaSessionCompat.QueueItem;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v4.media.session.PlaybackStateCompat.CustomAction;
 import android.text.TextUtils;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
-import androidx.annotation.VisibleForTesting;
 import androidx.media.AudioAttributesCompat;
 import androidx.media.MediaBrowserServiceCompat.BrowserRoot;
 import androidx.media2.common.MediaItem;
@@ -67,6 +72,8 @@ import androidx.media2.common.MediaParcelUtils;
 import androidx.media2.common.ParcelImplListSlice;
 import androidx.media2.common.Rating;
 import androidx.media2.common.SessionPlayer;
+import androidx.media2.common.SessionPlayer.TrackInfo;
+import androidx.media2.common.VideoSize;
 import androidx.media2.session.MediaLibraryService.LibraryParams;
 import androidx.media2.session.MediaSession.CommandButton;
 import androidx.versionedparcelable.ParcelImpl;
@@ -80,8 +87,7 @@ import java.util.concurrent.Executor;
 /**
  * @hide
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
+@RestrictTo(LIBRARY)
 public class MediaUtils {
     public static final String TAG = "MediaUtils";
     public static final int TRANSACTION_SIZE_LIMIT_IN_BYTES = 256 * 1024; // 256KB
@@ -96,6 +102,9 @@ public class MediaUtils {
             command.run();
         }
     };
+
+    // UNKNOWN version for legacy support
+    public static final int VERSION_UNKNOWN = -1;
 
     // Initial version for all Media2 APIs.
     public static final int VERSION_0 = 0;
@@ -115,7 +124,6 @@ public class MediaUtils {
 
         // Invert METADATA_COMPAT_KEY_TO_METADATA_KEY to create METADATA_KEY_TO_METADATA_COMPAT_KEY.
         for (Map.Entry<String, String> entry : METADATA_COMPAT_KEY_TO_METADATA_KEY.entrySet()) {
-            // Sanity check..
             if (METADATA_KEY_TO_METADATA_COMPAT_KEY.containsKey(entry.getValue())) {
                 throw new RuntimeException("Shouldn't map to the same value");
             }
@@ -127,12 +135,84 @@ public class MediaUtils {
     }
 
     /**
+     * Upcasts a {@link MediaItem} to the {@link MediaItem} type for pre-parceling. Note that
+     * {@link MediaItem}'s subclass object cannot be parceled due to the security issue.
+     *
+     * @param item an item
+     * @return upcasted item
+     */
+    @Nullable
+    public static MediaItem upcastForPreparceling(@Nullable MediaItem item) {
+        if (item == null || item.getClass() == MediaItem.class) {
+            return item;
+        }
+        return new MediaItem.Builder()
+                .setStartPosition(item.getStartPosition())
+                .setEndPosition(item.getEndPosition())
+                .setMetadata(item.getMetadata()).build();
+    }
+
+    /**
+     * Upcasts a {@link VideoSize} subclass to the {@link MediaItem} type for pre-parceling.
+     * Note that {@link VideoSize}'s subclass object cannot be parceled due the issue that remote
+     * apps may not have the subclass.
+     *
+     * @param size a size
+     * @return upcasted size
+     */
+    @Nullable
+    public static VideoSize upcastForPreparceling(@Nullable VideoSize size) {
+        if (size == null || size.getClass() == VideoSize.class) {
+            return size;
+        }
+        return new VideoSize(size.getWidth(), size.getHeight());
+    }
+
+    /**
+     * Upcasts a {@link TrackInfo} subclass to the {@link TrackInfo} type for pre-parceling.
+     * Note that {@link TrackInfo}'s subclass object cannot be parceled due to the issue that remote
+     * apps may not have the subclass.
+     *
+     * @param track a track
+     * @return upcasted track
+     */
+    @Nullable
+    public static TrackInfo upcastForPreparceling(@Nullable TrackInfo track) {
+        if (track == null || track.getClass() == TrackInfo.class) {
+            return track;
+        }
+        return new TrackInfo(track.getId(), track.getTrackType(), track.getFormat(),
+                track.isSelectable());
+    }
+
+    /**
+     * Upcasts a list of {@link TrackInfo} subclass objects to a List of {@link TrackInfo} type
+     * for pre-parceling. Note that {@link TrackInfo}'s subclass object cannot be parceled due
+     * to the issue that remote apps may not have the subclass.
+     *
+     * @param tracks a list of tracks
+     * @return list of upcasted tracks
+     */
+    @Nullable
+    public static List<TrackInfo> upcastForPreparceling(@Nullable List<TrackInfo> tracks) {
+        if (tracks == null) {
+            return tracks;
+        }
+        List<TrackInfo> upcastTracks = new ArrayList<>();
+        for (int i = 0; i < tracks.size(); i++) {
+            upcastTracks.add(upcastForPreparceling(tracks.get(i)));
+        }
+        return upcastTracks;
+    }
+
+    /**
      * Creates a {@link MediaBrowserCompat.MediaItem} from the {@link MediaItem}.
      *
      * @param item2 an item.
      * @return The newly created media item.
      */
-    public static MediaBrowserCompat.MediaItem convertToMediaItem(MediaItem item2) {
+    @Nullable
+    public static MediaBrowserCompat.MediaItem convertToMediaItem(@Nullable MediaItem item2) {
         if (item2 == null) {
             return null;
         }
@@ -182,7 +262,9 @@ public class MediaUtils {
     /**
      * Convert a list of {@link MediaItem} to a list of {@link MediaBrowserCompat.MediaItem}.
      */
-    public static List<MediaBrowserCompat.MediaItem> convertToMediaItemList(List<MediaItem> items) {
+    @Nullable
+    public static List<MediaBrowserCompat.MediaItem> convertToMediaItemList(
+            @Nullable List<MediaItem> items) {
         if (items == null) {
             return null;
         }
@@ -328,9 +410,25 @@ public class MediaUtils {
             MediaDescriptionCompat description = (item.getMetadata() == null)
                     ? new MediaDescriptionCompat.Builder().setMediaId(item.getMediaId()).build()
                     : convertToMediaMetadataCompat(item.getMetadata()).getDescription();
-            result.add(new QueueItem(description, i));
+            long id = convertToQueueItemId(i);
+            result.add(new QueueItem(description, id));
         }
         return result;
+    }
+
+    /**
+     * Convert the index of a {@link MediaItem} in a playlist into id of {@link QueueItem}.
+     *
+     * @param mediaItemIndex index of a {@link MediaItem} in a playlist. It can be
+     *        {@link SessionPlayer#INVALID_ITEM_INDEX}.
+     * @return id of {@link QueueItem} or {@link QueueItem#UNKNOWN_ID} if the index is
+     *         {@link SessionPlayer#INVALID_ITEM_INDEX}.
+     */
+    public static long convertToQueueItemId(int mediaItemIndex) {
+        if (mediaItemIndex == SessionPlayer.INVALID_ITEM_INDEX) {
+            return QueueItem.UNKNOWN_ID;
+        }
+        return mediaItemIndex;
     }
 
     /**
@@ -364,18 +462,21 @@ public class MediaUtils {
         }
         List<T> result = new ArrayList<>();
         Parcel parcel = Parcel.obtain();
-        for (int i = 0; i < list.size(); i++) {
-            // Calculate the size.
-            T item = list.get(i);
-            parcel.writeParcelable(item, 0);
-            if (parcel.dataSize() < sizeLimitInBytes) {
-                result.add(item);
-            } else {
-                break;
+        try {
+            for (int i = 0; i < list.size(); i++) {
+                // Calculate the size.
+                T item = list.get(i);
+                parcel.writeParcelable(item, 0);
+                if (parcel.dataSize() < sizeLimitInBytes) {
+                    result.add(item);
+                } else {
+                    break;
+                }
             }
+            return result;
+        } finally {
+            parcel.recycle();
         }
-        parcel.recycle();
-        return result;
     }
 
     /**
@@ -672,8 +773,8 @@ public class MediaUtils {
     public static MediaController.PlaybackInfo toPlaybackInfo2(
             MediaControllerCompat.PlaybackInfo info) {
         return MediaController.PlaybackInfo.createPlaybackInfo(info.getPlaybackType(),
-                new AudioAttributesCompat.Builder()
-                        .setLegacyStreamType(info.getAudioStream()).build(),
+                new AudioAttributesCompat.Builder().setLegacyStreamType(
+                        info.getAudioAttributes().getLegacyStreamType()).build(),
                 info.getVolumeControl(), info.getMaxVolume(), info.getCurrentVolume());
     }
 
@@ -734,7 +835,9 @@ public class MediaUtils {
      * @param legacyBundle
      * @return new LibraryParams
      */
-    public static LibraryParams convertToLibraryParams(Context context, Bundle legacyBundle) {
+    @Nullable
+    public static LibraryParams convertToLibraryParams(@NonNull Context context,
+            @Nullable Bundle legacyBundle) {
         if (legacyBundle == null) {
             return null;
         }
@@ -757,7 +860,8 @@ public class MediaUtils {
      * @param params
      * @return new root hints
      */
-    public static Bundle convertToRootHints(LibraryParams params) {
+    @Nullable
+    public static Bundle convertToRootHints(@Nullable LibraryParams params) {
         if (params == null) {
             return null;
         }
@@ -775,6 +879,7 @@ public class MediaUtils {
      * @param list
      * @return
      */
+    @Nullable
     public static <T> List<T> removeNullElements(@Nullable List<T> list) {
         if (list == null) {
             return null;
@@ -802,18 +907,22 @@ public class MediaUtils {
      */
     @NonNull
     public static SessionCommandGroup convertToSessionCommandGroup(long sessionFlags,
-            PlaybackStateCompat state) {
+            @Nullable PlaybackStateCompat state) {
         SessionCommandGroup.Builder commandsBuilder = new SessionCommandGroup.Builder();
-        commandsBuilder.addAllPlayerBasicCommands(COMMAND_VERSION_CURRENT);
+
+        // MediaSessionCompat only support COMMAND_VERSION_1.
+        commandsBuilder.addAllPlayerBasicCommands(COMMAND_VERSION_1);
         boolean includePlaylistCommands = (sessionFlags & FLAG_HANDLES_QUEUE_COMMANDS) != 0;
         if (includePlaylistCommands) {
-            commandsBuilder.addAllPlayerPlaylistCommands(COMMAND_VERSION_CURRENT);
+            commandsBuilder.addAllPlayerPlaylistCommands(COMMAND_VERSION_1);
         }
-        commandsBuilder.addAllVolumeCommands(COMMAND_VERSION_CURRENT);
-        commandsBuilder.addAllSessionCommands(COMMAND_VERSION_CURRENT);
+        commandsBuilder.addAllVolumeCommands(COMMAND_VERSION_1);
+        commandsBuilder.addAllSessionCommands(COMMAND_VERSION_1);
 
-        commandsBuilder.removeCommand(new SessionCommand(
-                COMMAND_CODE_PLAYER_SET_SPEED));
+        commandsBuilder.removeCommand(new SessionCommand(COMMAND_CODE_PLAYER_SET_SPEED));
+        commandsBuilder.removeCommand(new SessionCommand(COMMAND_CODE_PLAYER_SET_SURFACE));
+        commandsBuilder.removeCommand(new SessionCommand(COMMAND_CODE_PLAYER_SELECT_TRACK));
+        commandsBuilder.removeCommand(new SessionCommand(COMMAND_CODE_PLAYER_DESELECT_TRACK));
 
         if (state != null && state.getCustomActions() != null) {
             for (CustomAction customAction : state.getCustomActions()) {
@@ -832,7 +941,7 @@ public class MediaUtils {
      * @return custom layout. Always non-null.
      */
     @NonNull
-    public static List<CommandButton> convertToCustomLayout(PlaybackStateCompat state) {
+    public static List<CommandButton> convertToCustomLayout(@Nullable PlaybackStateCompat state) {
         List<CommandButton> layout = new ArrayList<>();
         if (state == null) {
             return layout;
@@ -846,5 +955,27 @@ public class MediaUtils {
             layout.add(button);
         }
         return layout;
+    }
+
+    @SuppressWarnings("ParcelClassLoader")
+    static boolean doesBundleHaveCustomParcelable(@NonNull Bundle bundle) {
+        // Try writing the bundle to parcel, and read it with framework classloader.
+        Parcel parcel = Parcel.obtain();
+        try {
+            parcel.writeBundle(bundle);
+            parcel.setDataPosition(0);
+            Bundle out = parcel.readBundle(null);
+
+            if (out != null) {
+                // Calling Bundle#isEmpty() will trigger Bundle#unparcel().
+                out.isEmpty();
+            }
+            return false;
+        } catch (BadParcelableException e) {
+            Log.d(TAG, "Custom parcelables are not allowed", e);
+            return true;
+        } finally {
+            parcel.recycle();
+        }
     }
 }

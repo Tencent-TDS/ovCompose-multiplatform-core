@@ -16,9 +16,8 @@
 
 package androidx.paging
 
-import androidx.arch.core.util.Function
-import androidx.paging.futures.DirectExecutor
-import androidx.testutils.TestExecutor
+import androidx.testutils.TestDispatcher
+import kotlinx.coroutines.CoroutineScope
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -30,16 +29,19 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.verifyZeroInteractions
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.test.assertFailsWith
 
 @RunWith(JUnit4::class)
 class PageKeyedDataSourceTest {
-    private val mainThread = TestExecutor()
-    private val backgroundThread = TestExecutor()
+    private val mainThread = TestDispatcher()
+    private val backgroundThread = TestDispatcher()
 
     internal data class Item(val name: String)
 
     internal data class Page(val prev: String?, val data: List<Item>, val next: String?)
 
+    @Suppress("DEPRECATION")
     internal class ItemDataSource(val data: Map<String, Page> = PAGE_MAP) :
         PageKeyedDataSource<String, Item>() {
         private var error = false
@@ -51,7 +53,6 @@ class PageKeyedDataSourceTest {
             callback: LoadInitialCallback<String, Item>
         ) {
             if (error) {
-                callback.onError(EXCEPTION)
                 error = false
                 return
             }
@@ -62,7 +63,6 @@ class PageKeyedDataSourceTest {
 
         override fun loadBefore(params: LoadParams<String>, callback: LoadCallback<String, Item>) {
             if (error) {
-                callback.onError(EXCEPTION)
                 error = false
                 return
             }
@@ -73,7 +73,6 @@ class PageKeyedDataSourceTest {
 
         override fun loadAfter(params: LoadParams<String>, callback: LoadCallback<String, Item>) {
             if (error) {
-                callback.onError(EXCEPTION)
                 error = false
                 return
             }
@@ -90,17 +89,14 @@ class PageKeyedDataSourceTest {
     @Test
     fun loadFullVerify() {
         // validate paging entire ItemDataSource results in full, correctly ordered data
-        val pagedListFuture = PagedList.create(
-            ItemDataSource(),
-            mainThread,
-            backgroundThread,
-            backgroundThread,
-            null,
-            PagedList.Config.Builder().setPageSize(100).build(),
-            null
-        )
-        backgroundThread.executeAll()
-        val pagedList = pagedListFuture.get()
+        val testCoroutineScope = CoroutineScope(EmptyCoroutineContext)
+
+        @Suppress("DEPRECATION")
+        val pagedList = PagedList.Builder(ItemDataSource(), 100)
+            .setCoroutineScope(testCoroutineScope)
+            .setNotifyDispatcher(mainThread)
+            .setFetchDispatcher(DirectDispatcher)
+            .build()
 
         // validate initial load
         assertEquals(PAGE_MAP[INIT_KEY]!!.data, pagedList)
@@ -116,6 +112,7 @@ class PageKeyedDataSourceTest {
         assertEquals(ITEM_LIST, pagedList)
     }
 
+    @Suppress("DEPRECATION")
     private fun performLoadInitial(
         invalidateDataSource: Boolean = false,
         callbackInvoker:
@@ -148,17 +145,11 @@ class PageKeyedDataSourceTest {
             }
         }
 
-        PagedList.create(
-            dataSource,
-            FailExecutor(),
-            DirectExecutor,
-            DirectExecutor,
-            null,
-            PagedList.Config.Builder()
-                .setPageSize(10)
-                .build(),
-            ""
-        ).get()
+        @Suppress("DEPRECATION")
+        PagedList.Builder(dataSource, 10)
+            .setNotifyDispatcher(FailDispatcher())
+            .setFetchDispatcher(DirectDispatcher)
+            .build()
     }
 
     @Test
@@ -174,28 +165,44 @@ class PageKeyedDataSourceTest {
         it.onResult(elevenLetterList, 0, 12, null, null)
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun loadInitialCallbackListTooBig() = performLoadInitial {
-        // LoadInitialCallback can't accept pos + list > totalCount
-        it.onResult(listOf("a", "b", "c"), 0, 2, null, null)
+    @Test
+    fun loadInitialCallbackListTooBig() {
+        assertFailsWith<IllegalArgumentException> {
+            performLoadInitial {
+                // LoadInitialCallback can't accept pos + list > totalCount
+                it.onResult(listOf("a", "b", "c"), 0, 2, null, null)
+            }
+        }
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun loadInitialCallbackPositionTooLarge() = performLoadInitial {
-        // LoadInitialCallback can't accept pos + list > totalCount
-        it.onResult(listOf("a", "b"), 1, 2, null, null)
+    @Test
+    fun loadInitialCallbackPositionTooLarge() {
+        assertFailsWith<IllegalArgumentException> {
+            performLoadInitial {
+                // LoadInitialCallback can't accept pos + list > totalCount
+                it.onResult(listOf("a", "b"), 1, 2, null, null)
+            }
+        }
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun loadInitialCallbackPositionNegative() = performLoadInitial {
-        // LoadInitialCallback can't accept negative position
-        it.onResult(listOf("a", "b", "c"), -1, 2, null, null)
+    @Test
+    fun loadInitialCallbackPositionNegative() {
+        assertFailsWith<IllegalArgumentException> {
+            performLoadInitial {
+                // LoadInitialCallback can't accept negative position
+                it.onResult(listOf("a", "b", "c"), -1, 2, null, null)
+            }
+        }
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun loadInitialCallbackEmptyCannotHavePlaceholders() = performLoadInitial {
-        // LoadInitialCallback can't accept empty result unless data set is empty
-        it.onResult(emptyList(), 0, 2, null, null)
+    @Test
+    fun loadInitialCallbackEmptyCannotHavePlaceholders() {
+        assertFailsWith<IllegalArgumentException> {
+            performLoadInitial {
+                // LoadInitialCallback can't accept empty result unless data set is empty
+                it.onResult(emptyList(), 0, 2, null, null)
+            }
+        }
     }
 
     @Test
@@ -205,6 +212,7 @@ class PageKeyedDataSourceTest {
 
     @Test
     fun testBoundaryCallback() {
+        @Suppress("DEPRECATION")
         val dataSource = object : PageKeyedDataSource<String, String>() {
             override fun loadInitial(
                 params: LoadInitialParams<String>,
@@ -230,28 +238,25 @@ class PageKeyedDataSourceTest {
             }
         }
 
-        @Suppress("UNCHECKED_CAST")
+        @Suppress("UNCHECKED_CAST", "DEPRECATION")
         val boundaryCallback =
             mock(PagedList.BoundaryCallback::class.java) as PagedList.BoundaryCallback<String>
-        val executor = TestExecutor()
+        val dispatcher = TestDispatcher()
 
-        val pagedList = PagedList.create(
-            dataSource,
-            executor,
-            executor,
-            executor,
-            boundaryCallback,
-            PagedList.Config.Builder()
-                .setPageSize(10)
-                .build(),
-            ""
-        ).apply { executor.executeAll() }.get()
+        val testCoroutineScope = CoroutineScope(EmptyCoroutineContext)
+        @Suppress("DEPRECATION")
+        val pagedList = PagedList.Builder(dataSource, 10)
+            .setBoundaryCallback(boundaryCallback)
+            .setCoroutineScope(testCoroutineScope)
+            .setFetchDispatcher(dispatcher)
+            .setNotifyDispatcher(dispatcher)
+            .build()
 
         pagedList.loadAround(0)
 
         verifyZeroInteractions(boundaryCallback)
 
-        executor.executeAll()
+        dispatcher.executeAll()
 
         // verify boundary callbacks are triggered
         verify(boundaryCallback).onItemAtFrontLoaded("A")
@@ -261,6 +266,7 @@ class PageKeyedDataSourceTest {
 
     @Test
     fun testBoundaryCallbackJustInitial() {
+        @Suppress("DEPRECATION")
         val dataSource = object : PageKeyedDataSource<String, String>() {
             override fun loadInitial(
                 params: LoadInitialParams<String>,
@@ -285,28 +291,25 @@ class PageKeyedDataSourceTest {
             }
         }
 
-        @Suppress("UNCHECKED_CAST")
+        @Suppress("UNCHECKED_CAST", "DEPRECATION")
         val boundaryCallback =
             mock(PagedList.BoundaryCallback::class.java) as PagedList.BoundaryCallback<String>
-        val executor = TestExecutor()
+        val dispatcher = TestDispatcher()
 
-        val pagedList = PagedList.create(
-            dataSource,
-            executor,
-            executor,
-            executor,
-            boundaryCallback,
-            PagedList.Config.Builder()
-                .setPageSize(10)
-                .build(),
-            ""
-        ).apply { executor.executeAll() }.get()
+        val testCoroutineScope = CoroutineScope(EmptyCoroutineContext)
+        @Suppress("DEPRECATION")
+        val pagedList = PagedList.Builder(dataSource, 10)
+            .setBoundaryCallback(boundaryCallback)
+            .setCoroutineScope(testCoroutineScope)
+            .setFetchDispatcher(dispatcher)
+            .setNotifyDispatcher(dispatcher)
+            .build()
 
         pagedList.loadAround(0)
 
         verifyZeroInteractions(boundaryCallback)
 
-        executor.executeAll()
+        dispatcher.executeAll()
 
         // verify boundary callbacks are triggered
         verify(boundaryCallback).onItemAtFrontLoaded("B")
@@ -314,6 +317,7 @@ class PageKeyedDataSourceTest {
         verifyNoMoreInteractions(boundaryCallback)
     }
 
+    @Suppress("DEPRECATION")
     private abstract class WrapperDataSource<K : Any, A : Any, B : Any>(
         private val source: PageKeyedDataSource<K, A>
     ) : PageKeyedDataSource<K, B>() {
@@ -336,60 +340,58 @@ class PageKeyedDataSourceTest {
             params: LoadInitialParams<K>,
             callback: LoadInitialCallback<K, B>
         ) {
-            source.loadInitial(params, object : LoadInitialCallback<K, A>() {
-                override fun onResult(
-                    data: List<A>,
-                    position: Int,
-                    totalCount: Int,
-                    previousPageKey: K?,
-                    nextPageKey: K?
-                ) {
-                    callback.onResult(
-                        convert(data),
-                        position,
-                        totalCount,
-                        previousPageKey,
-                        nextPageKey
-                    )
-                }
+            source.loadInitial(
+                params,
+                object : LoadInitialCallback<K, A>() {
+                    override fun onResult(
+                        data: List<A>,
+                        position: Int,
+                        totalCount: Int,
+                        previousPageKey: K?,
+                        nextPageKey: K?
+                    ) {
+                        callback.onResult(
+                            convert(data),
+                            position,
+                            totalCount,
+                            previousPageKey,
+                            nextPageKey
+                        )
+                    }
 
-                override fun onResult(data: List<A>, previousPageKey: K?, nextPageKey: K?) {
-                    callback.onResult(convert(data), previousPageKey, nextPageKey)
+                    override fun onResult(data: List<A>, previousPageKey: K?, nextPageKey: K?) {
+                        callback.onResult(convert(data), previousPageKey, nextPageKey)
+                    }
                 }
-
-                override fun onError(error: Throwable) {
-                    callback.onError(error)
-                }
-            })
+            )
         }
 
         override fun loadBefore(params: LoadParams<K>, callback: LoadCallback<K, B>) {
-            source.loadBefore(params, object : LoadCallback<K, A>() {
-                override fun onResult(data: List<A>, adjacentPageKey: K?) {
-                    callback.onResult(convert(data), adjacentPageKey)
+            source.loadBefore(
+                params,
+                object : LoadCallback<K, A>() {
+                    override fun onResult(data: List<A>, adjacentPageKey: K?) {
+                        callback.onResult(convert(data), adjacentPageKey)
+                    }
                 }
-
-                override fun onError(error: Throwable) {
-                    callback.onError(error)
-                }
-            })
+            )
         }
 
         override fun loadAfter(params: LoadParams<K>, callback: LoadCallback<K, B>) {
-            source.loadAfter(params, object : LoadCallback<K, A>() {
-                override fun onResult(data: List<A>, adjacentPageKey: K?) {
-                    callback.onResult(convert(data), adjacentPageKey)
+            source.loadAfter(
+                params,
+                object : LoadCallback<K, A>() {
+                    override fun onResult(data: List<A>, adjacentPageKey: K?) {
+                        callback.onResult(convert(data), adjacentPageKey)
+                    }
                 }
-
-                override fun onError(error: Throwable) {
-                    callback.onError(error)
-                }
-            })
+            )
         }
 
         protected abstract fun convert(source: List<A>): List<B>
     }
 
+    @Suppress("DEPRECATION")
     private class StringWrapperDataSource<K : Any, V : Any>(source: PageKeyedDataSource<K, V>) :
         WrapperDataSource<K, V, String>(source) {
         override fun convert(source: List<V>): List<String> {
@@ -397,6 +399,7 @@ class PageKeyedDataSourceTest {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun verifyWrappedDataSource(
         createWrapper: (PageKeyedDataSource<String, Item>) -> PageKeyedDataSource<String, String>
     ) {
@@ -407,7 +410,7 @@ class PageKeyedDataSourceTest {
         // load initial
         @Suppress("UNCHECKED_CAST")
         val loadInitialCallback = mock(PageKeyedDataSource.LoadInitialCallback::class.java)
-                as PageKeyedDataSource.LoadInitialCallback<String, String>
+            as PageKeyedDataSource.LoadInitialCallback<String, String>
 
         val initParams = PageKeyedDataSource.LoadInitialParams<String>(4, true)
         wrapper.loadInitial(initParams, loadInitialCallback)
@@ -421,20 +424,19 @@ class PageKeyedDataSourceTest {
         @Suppress("UNCHECKED_CAST")
         // load after
         var loadCallback = mock(PageKeyedDataSource.LoadCallback::class.java)
-                as PageKeyedDataSource.LoadCallback<String, String>
+            as PageKeyedDataSource.LoadCallback<String, String>
         wrapper.loadAfter(PageKeyedDataSource.LoadParams(expectedInitial.next!!, 4), loadCallback)
         val expectedAfter = PAGE_MAP[expectedInitial.next]!!
         verify(loadCallback).onResult(expectedAfter.data.map { it.toString() }, expectedAfter.next)
         // load after - error
         orig.enqueueError()
         wrapper.loadAfter(PageKeyedDataSource.LoadParams(expectedInitial.next, 4), loadCallback)
-        verify(loadCallback).onError(EXCEPTION)
         verifyNoMoreInteractions(loadCallback)
 
         // load before
         @Suppress("UNCHECKED_CAST")
         loadCallback = mock(PageKeyedDataSource.LoadCallback::class.java)
-                as PageKeyedDataSource.LoadCallback<String, String>
+            as PageKeyedDataSource.LoadCallback<String, String>
         wrapper.loadBefore(PageKeyedDataSource.LoadParams(expectedAfter.prev!!, 4), loadCallback)
         verify(loadCallback).onResult(
             expectedInitial.data.map { it.toString() },
@@ -444,7 +446,6 @@ class PageKeyedDataSourceTest {
         // load before - error
         orig.enqueueError()
         wrapper.loadBefore(PageKeyedDataSource.LoadParams(expectedAfter.prev, 4), loadCallback)
-        verify(loadCallback).onError(EXCEPTION)
         verifyNoMoreInteractions(loadCallback)
 
         // verify invalidation
@@ -459,18 +460,18 @@ class PageKeyedDataSourceTest {
 
     @Test
     fun testListConverterWrappedDataSource() = verifyWrappedDataSource { dataSource ->
-        dataSource.mapByPage(Function { page -> page.map { it.toString() } })
+        dataSource.mapByPage { page -> page.map { it.toString() } }
     }
 
     @Test
     fun testItemConverterWrappedDataSource() = verifyWrappedDataSource { dataSource ->
-        dataSource.map(Function { it.toString() })
+        dataSource.map { it.toString() }
     }
 
     @Test
     fun testInvalidateToWrapper() {
         val orig = ItemDataSource()
-        val wrapper = orig.map<String>(Function { it.toString() })
+        val wrapper = orig.map { it.toString() }
 
         orig.invalidate()
         assertTrue(wrapper.isInvalid)
@@ -479,7 +480,7 @@ class PageKeyedDataSourceTest {
     @Test
     fun testInvalidateFromWrapper() {
         val orig = ItemDataSource()
-        val wrapper = orig.map<String>(Function { it.toString() })
+        val wrapper = orig.map { it.toString() }
 
         wrapper.invalidate()
         assertTrue(orig.isInvalid)
@@ -490,7 +491,6 @@ class PageKeyedDataSourceTest {
         private const val INIT_KEY: String = "key 2"
         private val PAGE_MAP: Map<String, Page>
         private val ITEM_LIST: List<Item>
-        private val EXCEPTION = Exception()
 
         init {
             val map = HashMap<String, Page>()
@@ -511,10 +511,9 @@ class PageKeyedDataSourceTest {
     }
 
     private fun drain() {
-        var executed: Boolean
-        do {
-            executed = backgroundThread.executeAll()
-            executed = mainThread.executeAll() || executed
-        } while (executed)
+        while (backgroundThread.queue.isNotEmpty() || mainThread.queue.isNotEmpty()) {
+            backgroundThread.executeAll()
+            mainThread.executeAll()
+        }
     }
 }

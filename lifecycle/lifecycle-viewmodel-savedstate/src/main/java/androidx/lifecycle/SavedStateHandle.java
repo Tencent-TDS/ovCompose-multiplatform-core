@@ -16,6 +16,7 @@
 
 package androidx.lifecycle;
 
+import android.annotation.SuppressLint;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
@@ -38,14 +39,15 @@ import java.util.Set;
 
 /**
  * A handle to saved state passed down to {@link androidx.lifecycle.ViewModel}. You should use
- * {@link SavedStateVMFactory} if you want to receive this object in {@code ViewModel}'s
+ * {@link SavedStateViewModelFactory} if you want to receive this object in {@code ViewModel}'s
  * constructor.
  * <p>
  * This is a key-value map that will let you write and retrieve objects to and from the saved state.
  * These values will persist after the process is killed by the system
  * and remain available via the same object.
  * <p>
- * You can read a value from it via {@link #get(String)} or observe it via {@link androidx.lifecycle.LiveData} returned
+ * You can read a value from it via {@link #get(String)} or observe it via
+ * {@link androidx.lifecycle.LiveData} returned
  * by {@link #getLiveData(String)}.
  * <p>
  * You can write a value to it via {@link #set(String, Object)} or setting a value to
@@ -53,6 +55,7 @@ import java.util.Set;
  */
 public final class SavedStateHandle {
     final Map<String, Object> mRegular;
+    final Map<String, SavedStateProvider> mSavedStateProviders = new HashMap<>();
     private final Map<String, SavingStateLiveData<?>> mLiveDatas = new HashMap<>();
 
     private static final String VALUES = "values";
@@ -63,6 +66,14 @@ public final class SavedStateHandle {
         @NonNull
         @Override
         public Bundle saveState() {
+            // Get the saved state from each SavedStateProvider registered with this
+            // SavedStateHandle, iterating through a copy to avoid re-entrance
+            Map<String, SavedStateProvider> map = new HashMap<>(mSavedStateProviders);
+            for (Map.Entry<String, SavedStateProvider> entry : map.entrySet()) {
+                Bundle savedState = entry.getValue().saveState();
+                set(entry.getKey(), savedState);
+            }
+            // Convert the Map of current values into a Bundle
             Set<String> keySet = mRegular.keySet();
             ArrayList keys = new ArrayList(keySet.size());
             ArrayList value = new ArrayList(keys.size());
@@ -102,7 +113,7 @@ public final class SavedStateHandle {
 
         Map<String, Object> state = new HashMap<>();
         if (defaultState != null) {
-            for (String key: defaultState.keySet()) {
+            for (String key : defaultState.keySet()) {
                 state.put(key, defaultState.get(key));
             }
         }
@@ -136,12 +147,57 @@ public final class SavedStateHandle {
     }
 
     /**
-     * Returns a {@link androidx.lifecycle.LiveData} that access data associated with the given key,.
+     * Returns a {@link androidx.lifecycle.LiveData} that access data associated with the given key.
+     *
+     * @see #getLiveData(String, Object)
      */
     @SuppressWarnings("unchecked")
     @MainThread
     @NonNull
-    public <T> MutableLiveData<T> getLiveData(@Nullable String key) {
+    public <T> MutableLiveData<T> getLiveData(@NonNull String key) {
+        return getLiveDataInternal(key, false, null);
+    }
+
+    /**
+     * Returns a {@link androidx.lifecycle.LiveData} that access data associated with the given key.
+     *
+     * <pre>{@code
+     *     LiveData<String> liveData = savedStateHandle.get(KEY, "defaultValue");
+     * }</pre
+     *
+     * Keep in mind that {@link LiveData} can have {@code null} as a valid value. If the
+     * {@code initialValue} is {@code null} and the data does not already exist in the
+     * {@link SavedStateHandle}, the value of the returned {@link LiveData} will be set to
+     * {@code null} and observers will be notified. You can call {@link #getLiveData(String)} if
+     * you want to avoid dispatching {@code null} to observers.
+     * <pre>{@code
+     *     String defaultValue = ...; // nullable
+     *     LiveData<String> liveData;
+     *     if (defaultValue != null) {
+     *         liveData = savedStateHandle.getLiveData(KEY, defaultValue);
+     *     } else {
+     *         liveData = savedStateHandle.getLiveData(KEY);
+     *     }
+     * }</pre>
+     *
+     * @param key          The identifier for the value
+     * @param initialValue If no value exists with the given {@code key}, a new one is created
+     *                     with the given {@code initialValue}. Note that passing {@code null} will
+     *                     create a {@link LiveData} with {@code null} value.
+     */
+    @MainThread
+    @NonNull
+    public <T> MutableLiveData<T> getLiveData(@NonNull String key,
+            @SuppressLint("UnknownNullness") T initialValue) {
+        return getLiveDataInternal(key, true, initialValue);
+    }
+
+    @SuppressWarnings("unchecked")
+    @NonNull
+    private <T> MutableLiveData<T> getLiveDataInternal(
+            @NonNull String key,
+            boolean hasInitialValue,
+            @Nullable T initialValue) {
         MutableLiveData<T> liveData = (MutableLiveData<T>) mLiveDatas.get(key);
         if (liveData != null) {
             return liveData;
@@ -150,6 +206,8 @@ public final class SavedStateHandle {
         // double hashing but null is valid value
         if (mRegular.containsKey(key)) {
             mutableLd = new SavingStateLiveData<>(this, key, (T) mRegular.get(key));
+        } else if (hasInitialValue) {
+            mutableLd = new SavingStateLiveData<>(this, key, initialValue);
         } else {
             mutableLd = new SavingStateLiveData<>(this, key);
         }
@@ -231,6 +289,52 @@ public final class SavedStateHandle {
             liveData.detach();
         }
         return latestValue;
+    }
+
+    /**
+     * Set a {@link SavedStateProvider} that will have its state saved into this SavedStateHandle.
+     * This provides a mechanism to lazily provide the {@link Bundle} of saved state for the
+     * given key.
+     * <p>
+     * Calls to {@link #get} with this same key will return the previously saved state as a
+     * {@link Bundle} if it exists.
+     *
+     * <pre>
+     *     Bundle previousState = savedStateHandle.get("custom_object");
+     *     if (previousState != null) {
+     *         // Convert the previousState into your custom object
+     *     }
+     *     savedStateHandle.setSavedStateProvider("custom_object", () -> {
+     *         Bundle savedState = new Bundle();
+     *         // Put your custom object into the Bundle, doing any conversion required
+     *         return savedState;
+     *     });
+     * </pre>
+     *
+     * Note: calling this method within {@link SavedStateProvider#saveState()} is supported, but
+     * will only affect future state saving operations.
+     *
+     * @param key a key which will populated with a {@link Bundle} produced by the provider
+     * @param provider a SavedStateProvider which will receive a callback to
+     * {@link SavedStateProvider#saveState()} when the state should be saved
+     */
+    @MainThread
+    public void setSavedStateProvider(@NonNull String key, @NonNull SavedStateProvider provider) {
+        mSavedStateProviders.put(key, provider);
+    }
+
+    /**
+     * Clear any {@link SavedStateProvider} that was previously set via
+     * {@link #setSavedStateProvider(String, SavedStateProvider)}.
+     *
+     * Note: calling this method within {@link SavedStateProvider#saveState()} is supported, but
+     * will only affect future state saving operations.
+     *
+     * @param key a key previously used with {@link #setSavedStateProvider}
+     */
+    @MainThread
+    public void clearSavedStateProvider(@NonNull String key) {
+            mSavedStateProviders.remove(key);
     }
 
     static class SavingStateLiveData<T> extends MutableLiveData<T> {

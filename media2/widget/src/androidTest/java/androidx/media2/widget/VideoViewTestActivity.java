@@ -22,7 +22,7 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.media2.widget.test.R;
 
 /**
- * A minimal application for {@link VideoView} test.
+ * A minimal application for testing {@link VideoView}.
  */
 public class VideoViewTestActivity extends FragmentActivity {
     /**
@@ -31,6 +31,7 @@ public class VideoViewTestActivity extends FragmentActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TestUtils.setKeepScreenOn(this);
         setContentView(R.layout.videoview_layout);
     }
 }

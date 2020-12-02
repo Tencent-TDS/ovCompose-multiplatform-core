@@ -24,7 +24,7 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.media2.widget.test.R;
 
 /**
- * A minimal application for {@link MediaControlViewTest}.
+ * A minimal application for testing {@link MediaControlView}.
  */
 public class MediaControlViewTestActivity extends FragmentActivity {
     private SurfaceView mSurfaceView;
@@ -35,6 +35,7 @@ public class MediaControlViewTestActivity extends FragmentActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        TestUtils.setKeepScreenOn(this);
         setContentView(R.layout.mediacontrolviewtest_layout);
         mSurfaceView = findViewById(R.id.surfaceview);
     }

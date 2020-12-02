@@ -263,6 +263,7 @@ class SuspendingQueryTest : TestDatabaseTest() {
             }
 
             try {
+                @Suppress("IMPLICIT_NOTHING_AS_TYPE_PARAMETER")
                 database.withTransaction {
                     booksDao.insertBookSuspend(TestUtil.BOOK_2)
                     throw IOException("Boom!")
@@ -308,6 +309,7 @@ class SuspendingQueryTest : TestDatabaseTest() {
                 )
 
                 try {
+                    @Suppress("IMPLICIT_NOTHING_AS_TYPE_PARAMETER")
                     database.withTransaction {
                         booksDao.insertBookSuspend(TestUtil.BOOK_1.copy(salesCnt = 0))
                         throw IOException("Boom!")
@@ -332,6 +334,7 @@ class SuspendingQueryTest : TestDatabaseTest() {
             try {
                 database.withTransaction {
                     try {
+                        @Suppress("IMPLICIT_NOTHING_AS_TYPE_PARAMETER")
                         database.withTransaction {
                             throw IOException("Boom!")
                         }
@@ -664,7 +667,8 @@ class SuspendingQueryTest : TestDatabaseTest() {
         }
         val wrappedExecutor = WrappedService(Executors.newCachedThreadPool())
         val localDatabase = Room.inMemoryDatabaseBuilder(
-            ApplicationProvider.getApplicationContext(), TestDatabase::class.java)
+            ApplicationProvider.getApplicationContext(), TestDatabase::class.java
+        )
             .setQueryExecutor(ArchTaskExecutor.getIOThreadExecutor())
             .setTransactionExecutor(wrappedExecutor)
             .build()
@@ -696,7 +700,8 @@ class SuspendingQueryTest : TestDatabaseTest() {
         runBlocking {
             val executorService = Executors.newSingleThreadExecutor()
             val localDatabase = Room.inMemoryDatabaseBuilder(
-                ApplicationProvider.getApplicationContext(), TestDatabase::class.java)
+                ApplicationProvider.getApplicationContext(), TestDatabase::class.java
+            )
                 .setTransactionExecutor(executorService)
                 .build()
 
@@ -731,7 +736,8 @@ class SuspendingQueryTest : TestDatabaseTest() {
         runBlocking {
             val executorService = Executors.newCachedThreadPool()
             val localDatabase = Room.inMemoryDatabaseBuilder(
-                ApplicationProvider.getApplicationContext(), TestDatabase::class.java)
+                ApplicationProvider.getApplicationContext(), TestDatabase::class.java
+            )
                 .setTransactionExecutor(executorService)
                 .build()
 
@@ -753,7 +759,8 @@ class SuspendingQueryTest : TestDatabaseTest() {
     fun withTransaction_databaseOpenError() {
         runBlocking {
             val localDatabase = Room.inMemoryDatabaseBuilder(
-                ApplicationProvider.getApplicationContext(), TestDatabase::class.java)
+                ApplicationProvider.getApplicationContext(), TestDatabase::class.java
+            )
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onOpen(db: SupportSQLiteDatabase) {
                         // this causes all transaction methods to throw, this can happen IRL
@@ -778,12 +785,13 @@ class SuspendingQueryTest : TestDatabaseTest() {
         runBlocking {
             // delegate and delegate just so that we can throw in beginTransaction()
             val localDatabase = Room.inMemoryDatabaseBuilder(
-                ApplicationProvider.getApplicationContext(), TestDatabase::class.java)
+                ApplicationProvider.getApplicationContext(), TestDatabase::class.java
+            )
                 .openHelperFactory(
                     object : SupportSQLiteOpenHelper.Factory {
                         val factoryDelegate = FrameworkSQLiteOpenHelperFactory()
                         override fun create(
-                            configuration: SupportSQLiteOpenHelper.Configuration?
+                            configuration: SupportSQLiteOpenHelper.Configuration
                         ): SupportSQLiteOpenHelper {
                             val helperDelegate = factoryDelegate.create(configuration)
                             return object : SupportSQLiteOpenHelper by helperDelegate {
@@ -791,6 +799,9 @@ class SuspendingQueryTest : TestDatabaseTest() {
                                     val databaseDelegate = helperDelegate.writableDatabase
                                     return object : SupportSQLiteDatabase by databaseDelegate {
                                         override fun beginTransaction() {
+                                            throw RuntimeException("Error beginning transaction.")
+                                        }
+                                        override fun beginTransactionNonExclusive() {
                                             throw RuntimeException("Error beginning transaction.")
                                         }
                                     }
@@ -827,7 +838,7 @@ class SuspendingQueryTest : TestDatabaseTest() {
                     assertThat(ex).hasMessageThat()
                         .contains(
                             "Cannot perform this operation because there is no current " +
-                                    "transaction"
+                                "transaction"
                         )
                 } else {
                     assertThat(ex).hasMessageThat()
@@ -840,6 +851,7 @@ class SuspendingQueryTest : TestDatabaseTest() {
     @Test
     @Suppress("DEPRECATION")
     fun withTransaction_endTransaction_error() {
+        @Suppress("IMPLICIT_NOTHING_AS_TYPE_PARAMETER")
         runBlocking {
             try {
                 database.withTransaction {
@@ -854,7 +866,7 @@ class SuspendingQueryTest : TestDatabaseTest() {
                     assertThat(ex).hasMessageThat()
                         .contains(
                             "Cannot perform this operation because there is no current " +
-                                    "transaction"
+                                "transaction"
                         )
                 } else {
                     assertThat(ex).hasMessageThat()

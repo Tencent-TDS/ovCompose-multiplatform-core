@@ -23,7 +23,9 @@ import android.transition.TransitionSet;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.core.os.CancellationSignal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -144,6 +146,14 @@ class FragmentTransitionCompat21 extends FragmentTransitionImpl {
         exitTransition.addListener(new Transition.TransitionListener() {
             @Override
             public void onTransitionStart(Transition transition) {
+                // If any of the exiting views are not shared elements, the TransitionManager
+                // adds additional listeners to the this transition. If those listeners are
+                // DisappearListeners for a view that is going away, they can change the state of
+                // views after our onTransitionEnd callback.
+                // We need to make sure this listener gets the onTransitionEnd callback last to
+                // ensure that exiting views are made visible once the Transition is complete.
+                transition.removeListener(this);
+                transition.addListener(this);
             }
 
             @Override
@@ -242,6 +252,39 @@ class FragmentTransitionCompat21 extends FragmentTransitionImpl {
             @Override
             public void onTransitionResume(Transition transition) {
             }
+        });
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * If either exitingViews or SharedElementsOut contain a view, an
+     * {@link Transition.TransitionListener#onTransitionEnd} listener is added that calls
+     * {@link Runnable#run()} once the Transition ends.
+     *
+     * Destroying the view of the Fragment is how the Transition gets canceled.
+     */
+    @Override
+    public void setListenerForTransitionEnd(@NonNull final Fragment outFragment,
+            @NonNull Object transition, @NonNull final CancellationSignal signal,
+            @NonNull final Runnable transitionCompleteRunnable) {
+        ((Transition) transition).addListener(new Transition.TransitionListener() {
+            @Override
+            public void onTransitionStart(Transition transition) { }
+
+            @Override
+            public void onTransitionEnd(Transition transition) {
+                transitionCompleteRunnable.run();
+            }
+
+            @Override
+            public void onTransitionCancel(Transition transition) { }
+
+            @Override
+            public void onTransitionPause(Transition transition) { }
+
+            @Override
+            public void onTransitionResume(Transition transition) { }
         });
     }
 

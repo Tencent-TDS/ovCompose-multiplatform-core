@@ -19,29 +19,18 @@ import static androidx.build.dependencies.DependenciesKt.*
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
-}
-
-android {
-    defaultConfig {
-        applicationId "androidx.lifecycle.testapp"
-    }
-    buildTypes {
-        // test coverage does not work w/ jack
-        debug {
-            testCoverageEnabled = false
-        }
-        release {
-            testCoverageEnabled = false
-        }
-    }
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
+    implementation(KOTLIN_STDLIB)
     implementation(project(":fragment:fragment"))
     implementation(project(":lifecycle:lifecycle-process"))
+    implementation(project(":lifecycle:lifecycle-common"))
     annotationProcessor(project(":lifecycle:lifecycle-compiler"))
 
     androidTestAnnotationProcessor(project(":lifecycle:lifecycle-compiler"))
+    androidTestImplementation(project(":lifecycle:lifecycle-common")) // Added for b/155802460
     androidTestImplementation(ANDROIDX_TEST_EXT_JUNIT)
     androidTestImplementation(ANDROIDX_TEST_CORE)
     androidTestImplementation(ANDROIDX_TEST_RUNNER)
@@ -52,5 +41,3 @@ dependencies {
     testImplementation(MOCKITO_CORE)
     testAnnotationProcessor(project(":lifecycle:lifecycle-compiler"))
 }
-
-tasks['check'].dependsOn(tasks['connectedCheck'])

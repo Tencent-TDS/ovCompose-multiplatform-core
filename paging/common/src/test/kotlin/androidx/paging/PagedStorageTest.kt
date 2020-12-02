@@ -16,6 +16,7 @@
 
 package androidx.paging
 
+import androidx.paging.PagingSource.LoadResult.Page
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -26,16 +27,19 @@ import org.junit.runners.JUnit4
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
+import kotlin.test.assertNotNull
 
 @RunWith(JUnit4::class)
 class PagedStorageTest {
-    private fun createPage(vararg strings: String): List<String> {
-        return strings.asList()
-    }
+    private fun pageOf(vararg strings: String): Page<Any, String> = Page(
+        data = strings.asList(),
+        prevKey = null,
+        nextKey = null
+    )
 
     @Test
     fun construct() {
-        val storage = PagedStorage(2, createPage("a", "b"), 2)
+        val storage = PagedStorage(2, pageOf("a", "b"), 2)
 
         assertArrayEquals(arrayOf(null, null, "a", "b", null, null), storage.toArray())
         assertEquals(6, storage.size)
@@ -45,8 +49,8 @@ class PagedStorageTest {
     fun appendFill() {
         val callback = mock(PagedStorage.Callback::class.java)
 
-        val storage = PagedStorage(2, createPage("a", "b"), 2)
-        storage.appendPage(createPage("c", "d"), callback)
+        val storage = PagedStorage(2, pageOf("a", "b"), 2)
+        storage.appendPage(pageOf("c", "d"), callback)
 
         assertArrayEquals(arrayOf(null, null, "a", "b", "c", "d"), storage.toArray())
         verify(callback).onPageAppended(4, 2, 0)
@@ -57,8 +61,8 @@ class PagedStorageTest {
     fun appendAdd() {
         val callback = mock(PagedStorage.Callback::class.java)
 
-        val storage = PagedStorage(2, createPage("a", "b"), 0)
-        storage.appendPage(createPage("c", "d"), callback)
+        val storage = PagedStorage(2, pageOf("a", "b"), 0)
+        storage.appendPage(pageOf("c", "d"), callback)
 
         assertArrayEquals(arrayOf(null, null, "a", "b", "c", "d"), storage.toArray())
         verify(callback).onPageAppended(4, 0, 2)
@@ -69,17 +73,17 @@ class PagedStorageTest {
     fun appendFillAdd() {
         val callback = mock(PagedStorage.Callback::class.java)
 
-        val storage = PagedStorage(2, createPage("a", "b"), 2)
+        val storage = PagedStorage(2, pageOf("a", "b"), 2)
 
         // change 2 nulls into c, d
-        storage.appendPage(createPage("c", "d"), callback)
+        storage.appendPage(pageOf("c", "d"), callback)
 
         assertArrayEquals(arrayOf(null, null, "a", "b", "c", "d"), storage.toArray())
         verify(callback).onPageAppended(4, 2, 0)
         verifyNoMoreInteractions(callback)
 
         // append e, f
-        storage.appendPage(createPage("e", "f"), callback)
+        storage.appendPage(pageOf("e", "f"), callback)
 
         assertArrayEquals(arrayOf(null, null, "a", "b", "c", "d", "e", "f"), storage.toArray())
         verify(callback).onPageAppended(6, 0, 2)
@@ -90,8 +94,8 @@ class PagedStorageTest {
     fun prependFill() {
         val callback = mock(PagedStorage.Callback::class.java)
 
-        val storage = PagedStorage(2, createPage("c", "d"), 2)
-        storage.prependPage(createPage("a", "b"), callback)
+        val storage = PagedStorage(2, pageOf("c", "d"), 2)
+        storage.prependPage(pageOf("a", "b"), callback)
 
         assertArrayEquals(arrayOf("a", "b", "c", "d", null, null), storage.toArray())
         verify(callback).onPagePrepended(0, 2, 0)
@@ -102,8 +106,8 @@ class PagedStorageTest {
     fun prependAdd() {
         val callback = mock(PagedStorage.Callback::class.java)
 
-        val storage = PagedStorage(0, createPage("c", "d"), 2)
-        storage.prependPage(createPage("a", "b"), callback)
+        val storage = PagedStorage(0, pageOf("c", "d"), 2)
+        storage.prependPage(pageOf("a", "b"), callback)
 
         assertArrayEquals(arrayOf("a", "b", "c", "d", null, null), storage.toArray())
         verify(callback).onPagePrepended(0, 0, 2)
@@ -114,17 +118,17 @@ class PagedStorageTest {
     fun prependFillAdd() {
         val callback = mock(PagedStorage.Callback::class.java)
 
-        val storage = PagedStorage(2, createPage("e", "f"), 2)
+        val storage = PagedStorage(2, pageOf("e", "f"), 2)
 
         // change 2 nulls into c, d
-        storage.prependPage(createPage("c", "d"), callback)
+        storage.prependPage(pageOf("c", "d"), callback)
 
         assertArrayEquals(arrayOf("c", "d", "e", "f", null, null), storage.toArray())
         verify(callback).onPagePrepended(0, 2, 0)
         verifyNoMoreInteractions(callback)
 
         // prepend a, b
-        storage.prependPage(createPage("a", "b"), callback)
+        storage.prependPage(pageOf("a", "b"), callback)
 
         assertArrayEquals(arrayOf("a", "b", "c", "d", "e", "f", null, null), storage.toArray())
         verify(callback).onPagePrepended(0, 0, 2)
@@ -134,9 +138,9 @@ class PagedStorageTest {
     @Test
     fun get() {
         val callback = mock(PagedStorage.Callback::class.java)
-        val storage = PagedStorage(1, createPage("a"), 6)
-        storage.appendPage(createPage("b", "c"), callback)
-        storage.appendPage(createPage("d", "e", "f"), callback)
+        val storage = PagedStorage(1, pageOf("a"), 6)
+        storage.appendPage(pageOf("b", "c"), callback)
+        storage.appendPage(pageOf("d", "e", "f"), callback)
         assertArrayEquals(arrayOf(null, "a", "b", "c", "d", "e", "f", null), storage.toArray())
     }
 
@@ -144,9 +148,9 @@ class PagedStorageTest {
     fun trim_twoPagesNoOp() {
         val callback = mock(PagedStorage.Callback::class.java)
         val storage = PagedStorage<String>()
-        storage.init(0, listOf("a", "b", "c"), 3, 0, callback)
+        storage.init(0, pageOf("a", "b", "c"), 3, 0, callback, true)
         verify(callback).onInitialized(6)
-        storage.appendPage(listOf("d", "e", "f"), callback)
+        storage.appendPage(pageOf("d", "e", "f"), callback)
         verify(callback).onPageAppended(3, 3, 0)
 
         storage.trimFromFront(true, 4, 4, callback)
@@ -157,7 +161,9 @@ class PagedStorageTest {
 
     @Test
     fun trim_remainderPreventsNoOp() {
-        val storage = PagedStorage(listOf(listOf("a", "b"), listOf("c", "d"), listOf("d", "e")))
+        val storage = PagedStorage(
+            listOf(pageOf("a", "b"), pageOf("c", "d"), pageOf("d", "e"))
+        )
 
         // can't trim, since removing a page would mean fewer items than required
         assertFalse(storage.needsTrimFromFront(5, 5))
@@ -171,7 +177,7 @@ class PagedStorageTest {
     @Test
     fun trimFromFront_simple() {
         val callback = mock(PagedStorage.Callback::class.java)
-        val storage = PagedStorage(('a'..'e').map { listOf("$it") })
+        val storage = PagedStorage(('a'..'e').map { pageOf("$it") })
 
         storage.trimFromFront(false, 4, 4, callback)
         verify(callback).onPagesRemoved(0, 1)
@@ -184,7 +190,7 @@ class PagedStorageTest {
     @Test
     fun trimFromFront_simplePlaceholders() {
         val callback = mock(PagedStorage.Callback::class.java)
-        val storage = PagedStorage(('a'..'e').map { listOf("$it") })
+        val storage = PagedStorage(('a'..'e').map { pageOf("$it") })
 
         storage.trimFromFront(true, 4, 4, callback)
         verify(callback).onPagesSwappedToPlaceholder(0, 1)
@@ -197,7 +203,7 @@ class PagedStorageTest {
     @Test
     fun trimFromEnd_simple() {
         val callback = mock(PagedStorage.Callback::class.java)
-        val storage = PagedStorage(('a'..'e').map { listOf("$it") })
+        val storage = PagedStorage(('a'..'e').map { pageOf("$it") })
 
         storage.trimFromEnd(false, 4, 4, callback)
         verify(callback).onPagesRemoved(4, 1)
@@ -207,19 +213,122 @@ class PagedStorageTest {
     @Test
     fun trimFromEnd_simplePlaceholders() {
         val callback = mock(PagedStorage.Callback::class.java)
-        val storage = PagedStorage(('a'..'e').map { listOf("$it") })
+        val storage = PagedStorage(('a'..'e').map { pageOf("$it") })
 
         storage.trimFromEnd(true, 4, 4, callback)
         verify(callback).onPagesSwappedToPlaceholder(4, 1)
         verifyNoMoreInteractions(callback)
     }
 
+    @Test
+    fun getRefreshKeyInfo_withoutPlaceholders() {
+        val page = pageOf("a", "b", "c")
+        val storage = PagedStorage(0, page, 0)
+
+        storage.lastLoadAroundIndex = -5
+        var pagingState = storage.getRefreshKeyInfo(
+            @Suppress("DEPRECATION")
+            PagedList.Config(
+                pageSize = 3,
+                prefetchDistance = 0,
+                enablePlaceholders = true,
+                initialLoadSizeHint = 3,
+                maxSize = 3
+            )
+        )
+        assertNotNull(pagingState)
+        assertEquals(0, pagingState.anchorPosition)
+
+        storage.lastLoadAroundIndex = 1
+        pagingState = storage.getRefreshKeyInfo(
+            @Suppress("DEPRECATION")
+            PagedList.Config(
+                pageSize = 3,
+                prefetchDistance = 0,
+                enablePlaceholders = true,
+                initialLoadSizeHint = 3,
+                maxSize = 3
+            )
+        )
+        assertNotNull(pagingState)
+        assertEquals(1, pagingState.anchorPosition)
+
+        storage.lastLoadAroundIndex = 5
+        pagingState = storage.getRefreshKeyInfo(
+            @Suppress("DEPRECATION")
+            PagedList.Config(
+                pageSize = 3,
+                prefetchDistance = 0,
+                enablePlaceholders = true,
+                initialLoadSizeHint = 3,
+                maxSize = 3
+            )
+        )
+        assertNotNull(pagingState)
+        assertEquals(2, pagingState.anchorPosition)
+    }
+
+    @Test
+    fun getRefreshKeyInfo_withPlaceholders() {
+        val page = pageOf("a", "b", "c")
+        val storage = PagedStorage(10, page, 10)
+
+        storage.lastLoadAroundIndex = 1
+        var pagingState = storage.getRefreshKeyInfo(
+            @Suppress("DEPRECATION")
+            PagedList.Config(
+                pageSize = 3,
+                prefetchDistance = 0,
+                enablePlaceholders = true,
+                initialLoadSizeHint = 3,
+                maxSize = 3
+            )
+        )
+        assertNotNull(pagingState)
+        assertEquals(10, pagingState.anchorPosition)
+
+        storage.lastLoadAroundIndex = 11
+        pagingState = storage.getRefreshKeyInfo(
+            @Suppress("DEPRECATION")
+            PagedList.Config(
+                pageSize = 3,
+                prefetchDistance = 0,
+                enablePlaceholders = true,
+                initialLoadSizeHint = 3,
+                maxSize = 3
+            )
+        )
+        assertNotNull(pagingState)
+        assertEquals(11, pagingState.anchorPosition)
+
+        storage.lastLoadAroundIndex = 21
+        pagingState = storage.getRefreshKeyInfo(
+            @Suppress("DEPRECATION")
+            PagedList.Config(
+                pageSize = 3,
+                prefetchDistance = 0,
+                enablePlaceholders = true,
+                initialLoadSizeHint = 3,
+                maxSize = 3
+            )
+        )
+        assertNotNull(pagingState)
+        assertEquals(12, pagingState.anchorPosition)
+    }
+
     companion object {
         @Suppress("TestFunctionName")
-        private fun PagedStorage(pages: List<List<String>>): PagedStorage<String> {
+        private fun PagedStorage(pages: List<Page<*, String>>): PagedStorage<String> {
             val storage = PagedStorage<String>()
-            val totalPageCount = pages.map { it.size }.reduce { a, b -> a + b }
-            storage.init(0, pages[0], totalPageCount - pages[0].size, 0, IGNORED_CALLBACK)
+            val totalPageCount = pages.map { it.data.size }.sum()
+            storage.init(
+                leadingNulls = 0,
+                page = pages[0],
+                trailingNulls = totalPageCount - pages[0].data.size,
+                positionOffset = 0,
+                callback = IGNORED_CALLBACK,
+                counted = true
+            )
             pages.forEachIndexed { index, page ->
                 if (index != 0) {
                     storage.appendPage(page, IGNORED_CALLBACK)
@@ -232,8 +341,6 @@ class PagedStorageTest {
             override fun onInitialized(count: Int) {}
             override fun onPagePrepended(leadingNulls: Int, changed: Int, added: Int) {}
             override fun onPageAppended(endPosition: Int, changed: Int, added: Int) {}
-            override fun onPagePlaceholderInserted(pageIndex: Int) {}
-            override fun onPageInserted(start: Int, count: Int) {}
             override fun onPagesRemoved(startOfDrops: Int, count: Int) {}
             override fun onPagesSwappedToPlaceholder(startOfDrops: Int, count: Int) {}
         }

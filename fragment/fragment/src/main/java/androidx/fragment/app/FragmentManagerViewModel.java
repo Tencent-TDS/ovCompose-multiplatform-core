@@ -27,7 +27,6 @@ import androidx.lifecycle.ViewModelStore;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -35,7 +34,8 @@ import java.util.Map;
  * FragmentManagerViewModel is the always up to date view of the Fragment's
  * non configuration state
  */
-class FragmentManagerViewModel extends ViewModel {
+final class FragmentManagerViewModel extends ViewModel {
+    private static final String TAG = FragmentManager.TAG;
 
     private static final ViewModelProvider.Factory FACTORY = new ViewModelProvider.Factory() {
         @NonNull
@@ -54,7 +54,7 @@ class FragmentManagerViewModel extends ViewModel {
         return viewModelProvider.get(FragmentManagerViewModel.class);
     }
 
-    private final HashSet<Fragment> mRetainedFragments = new HashSet<>();
+    private final HashMap<String, Fragment> mRetainedFragments = new HashMap<>();
     private final HashMap<String, FragmentManagerViewModel> mChildNonConfigs = new HashMap<>();
     private final HashMap<String, ViewModelStore> mViewModelStores = new HashMap<>();
 
@@ -63,6 +63,10 @@ class FragmentManagerViewModel extends ViewModel {
     private boolean mHasBeenCleared = false;
     // Only used when mStateAutomaticallySaved is false
     private boolean mHasSavedSnapshot = false;
+
+    // Flag set by the FragmentManager to indicate when we should allow
+    // changes to the set of retained fragments
+    private boolean mIsStateSaved = false;
 
     /**
      * FragmentManagerViewModel simultaneously supports two modes:
@@ -73,7 +77,7 @@ class FragmentManagerViewModel extends ViewModel {
      *     is being permanently destroyed.</li>
      *     <li>Not automatically saved: in this model, the FragmentManager is responsible for
      *     calling {@link #getSnapshot()} and later restoring the ViewModel with
-     *     {@link #restoreFromSnapshot(FragmentManagerNonConfig)}.</li>
+     *     <code>restoreFromSnapshot</code>.</li>
      * </ol>
      * These states are mutually exclusive.
      *
@@ -83,10 +87,19 @@ class FragmentManagerViewModel extends ViewModel {
         mStateAutomaticallySaved = stateAutomaticallySaved;
     }
 
+    /**
+     * Set whether the FragmentManager has saved its state
+     *
+     * @param isStateSaved Whether the FragmentManager has saved its state
+     */
+    void setIsStateSaved(boolean isStateSaved) {
+        mIsStateSaved = isStateSaved;
+    }
+
     @Override
     protected void onCleared() {
-        if (FragmentManagerImpl.DEBUG) {
-            Log.d(FragmentManagerImpl.TAG, "onCleared called for " + this);
+        if (FragmentManager.isLoggingEnabled(Log.DEBUG)) {
+            Log.d(TAG, "onCleared called for " + this);
         }
         mHasBeenCleared = true;
     }
@@ -95,17 +108,34 @@ class FragmentManagerViewModel extends ViewModel {
         return mHasBeenCleared;
     }
 
-    boolean addRetainedFragment(@NonNull Fragment fragment) {
-        return mRetainedFragments.add(fragment);
+    void addRetainedFragment(@NonNull Fragment fragment) {
+        if (mIsStateSaved) {
+            if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
+                Log.v(TAG, "Ignoring addRetainedFragment as the state is already saved");
+            }
+            return;
+        }
+        if (mRetainedFragments.containsKey(fragment.mWho)) {
+            return;
+        }
+        mRetainedFragments.put(fragment.mWho, fragment);
+        if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
+            Log.v(TAG, "Updating retained Fragments: Added " + fragment);
+        }
+    }
+
+    @Nullable
+    Fragment findRetainedFragmentByWho(String who) {
+        return mRetainedFragments.get(who);
     }
 
     @NonNull
     Collection<Fragment> getRetainedFragments() {
-        return mRetainedFragments;
+        return new ArrayList<>(mRetainedFragments.values());
     }
 
     boolean shouldDestroy(@NonNull Fragment fragment) {
-        if (!mRetainedFragments.contains(fragment)) {
+        if (!mRetainedFragments.containsKey(fragment.mWho)) {
             // Always destroy non-retained Fragments
             return true;
         }
@@ -120,8 +150,17 @@ class FragmentManagerViewModel extends ViewModel {
         }
     }
 
-    boolean removeRetainedFragment(@NonNull Fragment fragment) {
-        return mRetainedFragments.remove(fragment);
+    void removeRetainedFragment(@NonNull Fragment fragment) {
+        if (mIsStateSaved) {
+            if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
+                Log.v(TAG, "Ignoring removeRetainedFragment as the state is already saved");
+            }
+            return;
+        }
+        boolean removed = mRetainedFragments.remove(fragment.mWho) != null;
+        if (removed && FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
+            Log.v(TAG, "Updating retained Fragments: Removed " + fragment);
+        }
     }
 
     @NonNull
@@ -145,8 +184,8 @@ class FragmentManagerViewModel extends ViewModel {
     }
 
     void clearNonConfigState(@NonNull Fragment f) {
-        if (FragmentManagerImpl.DEBUG) {
-            Log.d(FragmentManagerImpl.TAG, "Clearing non-config state for " + f);
+        if (FragmentManager.isLoggingEnabled(Log.DEBUG)) {
+            Log.d(TAG, "Clearing non-config state for " + f);
         }
         // Clear and remove the Fragment's child non config state
         FragmentManagerViewModel childNonConfig = mChildNonConfigs.get(f.mWho);
@@ -167,6 +206,7 @@ class FragmentManagerViewModel extends ViewModel {
      * code, alongside
      * {@link FragmentController#restoreAllState(android.os.Parcelable, FragmentManagerNonConfig)}.
      */
+    @SuppressWarnings({"deprecation", "DeprecatedIsStillUsed"})
     @Deprecated
     void restoreFromSnapshot(@Nullable FragmentManagerNonConfig nonConfig) {
         mRetainedFragments.clear();
@@ -175,7 +215,11 @@ class FragmentManagerViewModel extends ViewModel {
         if (nonConfig != null) {
             Collection<Fragment> fragments = nonConfig.getFragments();
             if (fragments != null) {
-                mRetainedFragments.addAll(fragments);
+                for (Fragment fragment : fragments) {
+                    if (fragment != null) {
+                        mRetainedFragments.put(fragment.mWho, fragment);
+                    }
+                }
             }
             Map<String, FragmentManagerNonConfig> childNonConfigs = nonConfig.getChildNonConfigs();
             if (childNonConfigs != null) {
@@ -220,7 +264,7 @@ class FragmentManagerViewModel extends ViewModel {
             return null;
         }
         return new FragmentManagerNonConfig(
-                new ArrayList<>(mRetainedFragments),
+                new ArrayList<>(mRetainedFragments.values()),
                 childNonConfigs,
                 new HashMap<>(mViewModelStores));
     }
@@ -251,7 +295,7 @@ class FragmentManagerViewModel extends ViewModel {
         StringBuilder sb = new StringBuilder("FragmentManagerViewModel{");
         sb.append(Integer.toHexString(System.identityHashCode(this)));
         sb.append("} Fragments (");
-        Iterator<Fragment> fragmentIterator = mRetainedFragments.iterator();
+        Iterator<Fragment> fragmentIterator = mRetainedFragments.values().iterator();
         while (fragmentIterator.hasNext()) {
             sb.append(fragmentIterator.next());
             if (fragmentIterator.hasNext()) {

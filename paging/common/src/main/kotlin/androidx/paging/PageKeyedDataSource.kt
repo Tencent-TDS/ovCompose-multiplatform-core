@@ -17,14 +17,16 @@
 package androidx.paging
 
 import androidx.arch.core.util.Function
-import androidx.concurrent.futures.ResolvableFuture
-import com.google.common.util.concurrent.ListenableFuture
+import androidx.paging.DataSource.KeyType.PAGE_KEYED
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /**
  * Incremental data loader for page-keyed content, where requests return keys for next/previous
  * pages.
  *
- * Implement a DataSource using PageKeyedDataSource if you need to use data from page `N - 1` to
+ * Implement a [DataSource] using [PageKeyedDataSource] if you need to use data from page `N - 1` to
  * load page `N`. This is common, for example, in network APIs that include a next/previous link or
  * key with each page load.
  *
@@ -34,26 +36,46 @@ import com.google.common.util.concurrent.ListenableFuture
  * [Retrofit](https://square.github.io/retrofit/), while
  * handling swipe-to-refresh, network errors, and retry.
  *
- * @param Key Type of data used to query Value types out of the DataSource.
- * @param Value Type of items being loaded by the DataSource.
+ * @param Key Type of data used to query Value types out of the [DataSource].
+ * @param Value Type of items being loaded by the [DataSource].
  */
-abstract class PageKeyedDataSource<Key : Any, Value : Any> :
-    ListenablePageKeyedDataSource<Key, Value>() {
+@Deprecated(
+    message = "PageKeyedDataSource is deprecated and has been replaced by PagingSource",
+    replaceWith = ReplaceWith(
+        "PagingSource<Key, Value>",
+        "androidx.paging.PagingSource"
+    )
+)
+abstract class PageKeyedDataSource<Key : Any, Value : Any> : DataSource<Key, Value>(PAGE_KEYED) {
+
     /**
      * Holder object for inputs to [loadInitial].
      *
      * @param Key Type of data used to query pages.
+     * @property requestedLoadSize Requested number of items to load.
+     *
+     * Note that this may be larger than available data.
+     * @property placeholdersEnabled Defines whether placeholders are enabled, and whether the
+     * loaded total count will be ignored.
      */
-    open class LoadInitialParams<Key : Any>(requestedLoadSize: Int, placeholdersEnabled: Boolean) :
-        ListenablePageKeyedDataSource.LoadInitialParams<Key>(requestedLoadSize, placeholdersEnabled)
+    open class LoadInitialParams<Key : Any>(
+        @JvmField val requestedLoadSize: Int,
+        @JvmField val placeholdersEnabled: Boolean
+    )
 
     /**
      * Holder object for inputs to [loadBefore] and [loadAfter].
      *
      * @param Key Type of data used to query pages.
+     * @property key Load items before/after this key.
+     *
+     * Returned data must begin directly adjacent to this position.
+     * @property requestedLoadSize Requested number of items to load.
+     *
+     * Returned page can be of this size, but it may be altered if that is easier, e.g. a network
+     * data source where the backend defines page size.
      */
-    open class LoadParams<Key : Any>(key: Key, requestedLoadSize: Int) :
-        ListenablePageKeyedDataSource.LoadParams<Key>(key, requestedLoadSize)
+    open class LoadParams<Key : Any>(@JvmField val key: Key, @JvmField val requestedLoadSize: Int)
 
     /**
      * Callback for [loadInitial] to return data and, optionally, position/count information.
@@ -85,14 +107,13 @@ abstract class PageKeyedDataSource<Key : Any, Value : Any> :
          * It is always valid to pass a different amount of data than what is requested. Pass an
          * empty list if there is no more data to load.
          *
-         * @param data List of items loaded from the DataSource. If this is empty, the DataSource
-         *             is treated as empty, and no further loads will occur.
+         * @param data List of items loaded from the [DataSource]. If this is empty, the
+         * [DataSource] is treated as empty, and no further loads will occur.
          * @param position Position of the item at the front of the list. If there are `N`
-         *                 items before the items in data that can be loaded from this DataSource,
-         *                 pass `N`.
+         * items before the items in data that can be loaded from this DataSource, pass `N`.
          * @param totalCount Total number of items that may be returned from this DataSource.
-         *                   Includes the number in the initial `data` parameter as well as any
-         *                   items that can be loaded in front or behind of `data`.
+         * Includes the number in the initial `data` parameter as well as any items that can be
+         * loaded in front or behind of `data`.
          */
         abstract fun onResult(
             data: List<Value>,
@@ -113,25 +134,11 @@ abstract class PageKeyedDataSource<Key : Any, Value : Any> :
          *
          * @param data List of items loaded from the [PageKeyedDataSource].
          * @param previousPageKey Key for page before the initial load result, or `null` if no more
-         *                        data can be loaded before.
-         * @param nextPageKey Key for page after the initial load result, or `null` if no
-         *                    more data can be loaded after.
+         * data can be loaded before.
+         * @param nextPageKey Key for page after the initial load result, or `null` if no more data
+         * can be loaded after.
          */
         abstract fun onResult(data: List<Value>, previousPageKey: Key?, nextPageKey: Key?)
-
-        /**
-         * Called to report an error from a DataSource.
-         *
-         * Call this method to report an error from [loadInitial].
-         *
-         * @param error The error that occurred during loading.
-         */
-        open fun onError(error: Throwable) {
-            // TODO: remove default implementation in 3.0
-            throw IllegalStateException(
-                "You must implement onError if implementing your own load callback"
-            )
-        }
     }
 
     /**
@@ -163,93 +170,90 @@ abstract class PageKeyedDataSource<Key : Any, Value : Any> :
          *
          * @param data List of items loaded from the PageKeyedDataSource.
          * @param adjacentPageKey Key for subsequent page load (previous page in [loadBefore] / next
-         *                        page in [loadAfter]), or `null` if there are no more pages to load
-         *                        in the current load direction.
+         * page in [loadAfter]), or `null` if there are no more pages to load in the current load
+         * direction.
          */
         abstract fun onResult(data: List<Value>, adjacentPageKey: Key?)
-
-        /**
-         * Called to report an error from a DataSource.
-         *
-         * Call this method to report an error from your PageKeyedDataSource's [loadBefore] and
-         * [loadAfter] methods.
-         *
-         * @param error The error that occurred during loading.
-         */
-        open fun onError(error: Throwable) {
-            // TODO: remove default implementation in 3.0
-            throw IllegalStateException(
-                "You must implement onError if implementing your own load callback"
-            )
-        }
     }
 
-    final override fun loadInitial(
-        params: ListenablePageKeyedDataSource.LoadInitialParams<Key>
-    ): ListenableFuture<InitialResult<Key, Value>> {
-        val future = ResolvableFuture.create<InitialResult<Key, Value>>()
-        executor.execute {
-            val callback = object : LoadInitialCallback<Key, Value>() {
-                override fun onResult(
-                    data: List<Value>,
-                    position: Int,
-                    totalCount: Int,
-                    previousPageKey: Key?,
-                    nextPageKey: Key?
-                ) {
-                    future.set(
-                        InitialResult(data, position, totalCount, previousPageKey, nextPageKey)
-                    )
-                }
+    /**
+     * @throws [IllegalArgumentException] when passed an unsupported load type.
+     */
+    @Suppress("RedundantVisibilityModifier") // Metalava doesn't inherit visibility properly.
+    internal final override suspend fun load(params: Params<Key>): BaseResult<Value> = when {
+        params.type == LoadType.REFRESH -> loadInitial(
+            LoadInitialParams(
+                params.initialLoadSize,
+                params.placeholdersEnabled
+            )
+        )
+        params.key == null -> BaseResult.empty()
+        params.type == LoadType.PREPEND -> loadBefore(LoadParams(params.key, params.pageSize))
+        params.type == LoadType.APPEND -> loadAfter(LoadParams(params.key, params.pageSize))
+        else -> throw IllegalArgumentException("Unsupported type " + params.type.toString())
+    }
 
-                override fun onResult(data: List<Value>, previousPageKey: Key?, nextPageKey: Key?) {
-                    future.set(InitialResult(data, previousPageKey, nextPageKey))
-                }
-
-                override fun onError(error: Throwable) {
-                    future.setException(error)
-                }
-            }
+    private suspend fun loadInitial(params: LoadInitialParams<Key>) =
+        suspendCancellableCoroutine<BaseResult<Value>> { cont ->
             loadInitial(
-                LoadInitialParams(params.requestedLoadSize, params.placeholdersEnabled),
-                callback
+                params,
+                object : LoadInitialCallback<Key, Value>() {
+                    override fun onResult(
+                        data: List<Value>,
+                        position: Int,
+                        totalCount: Int,
+                        previousPageKey: Key?,
+                        nextPageKey: Key?
+                    ) {
+                        cont.resume(
+                            BaseResult(
+                                data = data,
+                                prevKey = previousPageKey,
+                                nextKey = nextPageKey,
+                                itemsBefore = position,
+                                itemsAfter = totalCount - data.size - position
+                            )
+                        )
+                    }
+
+                    override fun onResult(
+                        data: List<Value>,
+                        previousPageKey: Key?,
+                        nextPageKey: Key?
+                    ) {
+                        cont.resume(BaseResult(data, previousPageKey, nextPageKey))
+                    }
+                }
             )
         }
-        return future
-    }
 
-    private fun getFutureAsCallback(future: ResolvableFuture<Result<Key, Value>>) =
-        object : LoadCallback<Key, Value>() {
+    private suspend fun loadBefore(params: LoadParams<Key>) =
+        suspendCancellableCoroutine<BaseResult<Value>> { cont ->
+            loadBefore(params, continuationAsCallback(cont, false))
+        }
+
+    private suspend fun loadAfter(params: LoadParams<Key>) =
+        suspendCancellableCoroutine<BaseResult<Value>> { cont ->
+            loadAfter(params, continuationAsCallback(cont, true))
+        }
+
+    // Possible workaround for b/161464680; issue was reported when built with Kotlin 1.3.71
+    @Suppress("RemoveRedundantQualifierName")
+    private fun continuationAsCallback(
+        continuation: CancellableContinuation<BaseResult<Value>>,
+        isAppend: Boolean
+    ): LoadCallback<Key, Value> {
+        return object : LoadCallback<Key, Value>() {
             override fun onResult(data: List<Value>, adjacentPageKey: Key?) {
-                future.set(Result(data, adjacentPageKey))
+                continuation.resume(
+                    BaseResult(
+                        data = data,
+                        prevKey = if (isAppend) null else adjacentPageKey,
+                        nextKey = if (isAppend) adjacentPageKey else null
+                    )
+                )
             }
-
-            override fun onError(error: Throwable) {
-                future.setException(error)
-            }
         }
-
-    final override fun loadBefore(
-        params: ListenablePageKeyedDataSource.LoadParams<Key>
-    ): ListenableFuture<Result<Key, Value>> {
-        val future = ResolvableFuture.create<Result<Key, Value>>()
-        executor.execute {
-            loadBefore(
-                LoadParams(params.key, params.requestedLoadSize),
-                getFutureAsCallback(future)
-            )
-        }
-        return future
-    }
-
-    final override fun loadAfter(
-        params: ListenablePageKeyedDataSource.LoadParams<Key>
-    ): ListenableFuture<Result<Key, Value>> {
-        val future = ResolvableFuture.create<Result<Key, Value>>()
-        executor.execute {
-            loadAfter(LoadParams(params.key, params.requestedLoadSize), getFutureAsCallback(future))
-        }
-        return future
     }
 
     /**
@@ -286,7 +290,7 @@ abstract class PageKeyedDataSource<Key : Any, Value : Any> :
      * prevent further loading.
      *
      * @param params Parameters for the load, including the key for the new page, and requested load
-     *               size.
+     * size.
      * @param callback Callback that receives loaded data.
      */
     abstract fun loadBefore(params: LoadParams<Key>, callback: LoadCallback<Key, Value>)
@@ -306,17 +310,36 @@ abstract class PageKeyedDataSource<Key : Any, Value : Any> :
      * prevent further loading.
      *
      * @param params Parameters for the load, including the key for the new page, and requested load
-     *               size.
+     * size.
      * @param callback Callback that receives loaded data.
      */
     abstract fun loadAfter(params: LoadParams<Key>, callback: LoadCallback<Key, Value>)
 
+    @Suppress("RedundantVisibilityModifier") // Metalava doesn't inherit visibility properly.
+    internal override fun getKeyInternal(item: Value): Key =
+        throw IllegalStateException("Cannot get key by item in pageKeyedDataSource")
+
+    @Suppress("RedundantVisibilityModifier") // Metalava doesn't inherit visibility properly.
+    internal override val supportsPageDropping = false
+
+    @Suppress("DEPRECATION")
     final override fun <ToValue : Any> mapByPage(
         function: Function<List<Value>, List<ToValue>>
     ): PageKeyedDataSource<Key, ToValue> = WrapperPageKeyedDataSource(this, function)
 
+    @Suppress("DEPRECATION")
+    final override fun <ToValue : Any> mapByPage(
+        function: (List<Value>) -> List<ToValue>
+    ): PageKeyedDataSource<Key, ToValue> = mapByPage(Function { function(it) })
+
+    @Suppress("DEPRECATION")
     final override fun <ToValue : Any> map(
         function: Function<Value, ToValue>
     ): PageKeyedDataSource<Key, ToValue> =
         mapByPage(Function { list -> list.map { function.apply(it) } })
+
+    @Suppress("DEPRECATION")
+    final override fun <ToValue : Any> map(
+        function: (Value) -> ToValue
+    ): PageKeyedDataSource<Key, ToValue> = mapByPage(Function { list -> list.map(function) })
 }

@@ -18,16 +18,18 @@ package androidx.lifecycle.viewmodel.savedstate
 
 import android.app.Application
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.AbstractSavedStateViewModelFactory
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.SavedStateVMFactory
+import androidx.lifecycle.SavedStateViewModelFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import androidx.test.annotation.UiThreadTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import androidx.test.rule.ActivityTestRule
 import com.google.common.truth.Truth.assertThat
+import org.junit.Assert.fail
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,15 +38,60 @@ import org.junit.runner.RunWith
 @SmallTest
 class SavedStateFactoryTest {
 
+    @Suppress("DEPRECATION")
     @get:Rule
-    var activityRule = ActivityTestRule(MyActivity::class.java)
+    var activityRule = androidx.test.rule.ActivityTestRule(MyActivity::class.java)
 
+    @UiThreadTest
     @Test
     fun testCreateAndroidVM() {
-        val savedStateVMFactory = SavedStateVMFactory(activityRule.activity)
+        val savedStateVMFactory = SavedStateViewModelFactory(
+            activityRule.activity.application,
+            activityRule.activity
+        )
         val vm = ViewModelProvider(ViewModelStore(), savedStateVMFactory)
         assertThat(vm.get(MyAndroidViewModel::class.java).handle).isNotNull()
         assertThat(vm.get(MyViewModel::class.java).handle).isNotNull()
+    }
+
+    @UiThreadTest
+    @Test
+    fun testCreateFailAndroidVM() {
+        val savedStateVMFactory = SavedStateViewModelFactory(
+            null,
+            activityRule.activity
+        )
+        val vm = ViewModelProvider(ViewModelStore(), savedStateVMFactory)
+        try {
+            vm.get(MyAndroidViewModel::class.java)
+            fail("Creating an AndroidViewModel should fail when no Application is provided")
+        } catch (e: RuntimeException) {
+            assertThat(e).hasMessageThat().isEqualTo(
+                "Cannot create an instance of " +
+                    MyAndroidViewModel::class.java
+            )
+        }
+        assertThat(vm.get(MyViewModel::class.java).handle).isNotNull()
+    }
+
+    @UiThreadTest
+    @Test
+    fun testCreateAndroidAbstractVM() {
+        val activity = activityRule.activity
+        val app = activity.application
+        val savedStateVMFactory = object : AbstractSavedStateViewModelFactory(
+            activity, null
+        ) {
+            override fun <T : ViewModel?> create(
+                key: String,
+                modelClass: Class<T>,
+                handle: SavedStateHandle
+            ): T {
+                return modelClass.cast(MyAndroidViewModel(app, handle))!!
+            }
+        }
+        val vm = ViewModelProvider(ViewModelStore(), savedStateVMFactory)
+        assertThat(vm.get(MyAndroidViewModel::class.java).handle).isNotNull()
     }
 
     internal class MyAndroidViewModel(app: Application, val handle: SavedStateHandle) :

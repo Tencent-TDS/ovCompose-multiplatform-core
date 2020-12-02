@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-import static androidx.build.dependencies.DependenciesKt.*
+
 import androidx.build.LibraryGroups
 import androidx.build.LibraryVersions
 import androidx.build.Publish
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+import static androidx.build.dependencies.DependenciesKt.*
 
 plugins {
     id("AndroidXPlugin")
@@ -25,19 +28,11 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-android {
-    buildTypes {
-        debug {
-            testCoverageEnabled = false // Breaks Kotlin compiler.
-        }
-    }
-}
-
 dependencies {
-    api(project(":lifecycle:lifecycle-common"))
+    api(project(":lifecycle:lifecycle-runtime"))
     api(KOTLIN_STDLIB)
-    api(KOTLIN_COROUTINES)
-    implementation(SUPPORT_ANNOTATIONS)
+    api(KOTLIN_COROUTINES_ANDROID)
+    api("androidx.annotation:annotation:1.0.0")
 
     testImplementation(JUNIT)
     testImplementation(TRUTH)
@@ -49,8 +44,6 @@ dependencies {
     androidTestImplementation(ANDROIDX_TEST_RUNNER)
     androidTestImplementation(KOTLIN_COROUTINES_TEST)
 
-    // have to use lintChecks because, lintPublish does nothing: b/123377555
-    lintChecks(project(':lifecycle:lifecycle-runtime-ktx-lint'))
     lintPublish(project(':lifecycle:lifecycle-runtime-ktx-lint'))
 }
 
@@ -61,4 +54,11 @@ androidx {
     mavenGroup = LibraryGroups.LIFECYCLE
     inceptionYear = "2019"
     description = "Kotlin extensions for 'lifecycle' artifact"
+}
+
+// Allow usage of Kotlin's @OptIn.
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += ["-Xopt-in=kotlin.RequiresOptIn"]
+    }
 }

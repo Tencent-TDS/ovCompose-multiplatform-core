@@ -20,11 +20,9 @@ import android.os.Bundle
 import androidx.fragment.app.test.EmptyFragmentTestActivity
 import androidx.fragment.app.test.TestViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStoreOwner
 import androidx.test.annotation.UiThreadTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import androidx.test.rule.ActivityTestRule
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -34,8 +32,9 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ViewModelTestInTransaction {
 
+    @Suppress("DEPRECATION")
     @get:Rule
-    var activityRule = ActivityTestRule(EmptyFragmentTestActivity::class.java)
+    var activityRule = androidx.test.rule.ActivityTestRule(EmptyFragmentTestActivity::class.java)
 
     @Test
     @UiThreadTest
@@ -43,7 +42,7 @@ class ViewModelTestInTransaction {
         val activity = activityRule.activity
         val fragment = TestFragment()
         activity.supportFragmentManager.beginTransaction().add(fragment, "tag").commitNow()
-        val viewModelProvider = ViewModelProvider(activity, ViewModelProvider.NewInstanceFactory())
+        val viewModelProvider = ViewModelProvider(activity)
         val viewModel = viewModelProvider.get(TestViewModel::class.java)
         assertThat(viewModel).isSameInstanceAs(fragment.viewModel)
     }
@@ -65,7 +64,7 @@ class ViewModelTestInTransaction {
             super.onCreate(savedInstanceState)
             val fragment = TestFragment()
             childFragmentManager.beginTransaction().add(fragment, "tag").commitNow()
-            val viewModelProvider = ViewModelProvider(this, ViewModelProvider.NewInstanceFactory())
+            val viewModelProvider = ViewModelProvider(this)
             val viewModel = viewModelProvider.get(TestViewModel::class.java)
             assertThat(viewModel).isSameInstanceAs(fragment.viewModel)
             executed = true
@@ -79,10 +78,7 @@ class ViewModelTestInTransaction {
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
             val parentFragment = parentFragment
-            val provider = ViewModelProvider(
-                (parentFragment ?: requireActivity()) as ViewModelStoreOwner,
-                ViewModelProvider.NewInstanceFactory()
-            )
+            val provider = ViewModelProvider(parentFragment ?: requireActivity())
             viewModel = provider.get(TestViewModel::class.java)
             assertThat(viewModel).isNotNull()
         }

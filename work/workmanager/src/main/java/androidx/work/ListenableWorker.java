@@ -67,6 +67,7 @@ public abstract class ListenableWorker {
     private volatile boolean mStopped;
 
     private boolean mUsed;
+    private boolean mRunInForeground;
 
     /**
      * @param appContext The application {@link Context}
@@ -180,12 +181,51 @@ public abstract class ListenableWorker {
      * A ListenableWorker is given a maximum of ten minutes to finish its execution and return a
      * {@link Result}.  After this time has expired, the worker will be signalled to stop and its
      * {@link ListenableFuture} will be cancelled.
+     * <p>
+     * The future will also be cancelled if this worker is stopped for any reason
+     * (see {@link #onStopped()}).
      *
      * @return A {@link ListenableFuture} with the {@link Result} of the computation.  If you
      *         cancel this Future, WorkManager will treat this unit of work as failed.
      */
     @MainThread
     public abstract @NonNull ListenableFuture<Result> startWork();
+
+    /**
+     * Updates {@link ListenableWorker} progress.
+     *
+     * @param data The progress {@link Data}
+     * @return A {@link ListenableFuture} which resolves after progress is persisted.
+     * Cancelling this future is a no-op.
+     */
+    @NonNull
+    public final ListenableFuture<Void> setProgressAsync(@NonNull Data data) {
+        return mWorkerParams.getProgressUpdater()
+                .updateProgress(getApplicationContext(), getId(), data);
+    }
+
+    /**
+     * This specifies that the {@link WorkRequest} is long-running or otherwise important.  In
+     * this case, WorkManager provides a signal to the OS that the process should be kept alive
+     * if possible while this work is executing.
+     * <p>
+     * Calls to {@code setForegroundAsync} *must* complete before a {@link ListenableWorker}
+     * signals completion by returning a {@link Result}.
+     * <p>
+     * Under the hood, WorkManager manages and runs a foreground service on your behalf to
+     * execute this WorkRequest, showing the notification provided in
+     * {@link ForegroundInfo}.
+     *
+     * @param foregroundInfo The {@link ForegroundInfo}
+     * @return A {@link ListenableFuture} which resolves after the {@link ListenableWorker}
+     * transitions to running in the context of a foreground {@link android.app.Service}.
+     */
+    @NonNull
+    public final ListenableFuture<Void> setForegroundAsync(@NonNull ForegroundInfo foregroundInfo) {
+        mRunInForeground = true;
+        return mWorkerParams.getForegroundUpdater()
+                .setForegroundAsync(getApplicationContext(), getId(), foregroundInfo);
+    }
 
     /**
      * Returns {@code true} if this Worker has been told to stop.  This could be because of an
@@ -209,12 +249,13 @@ public abstract class ListenableWorker {
     }
 
     /**
-     * This method is invoked when this Worker has been told to stop.  This could happen due
-     * to an explicit cancellation signal by the user, or because the system has decided to preempt
-     * the task.  In these cases, the results of the work will be ignored by WorkManager.  All
-     * processing in this method should be lightweight - there are no contractual guarantees about
-     * which thread will invoke this call, so this should not be a long-running or blocking
-     * operation.
+     * This method is invoked when this Worker has been told to stop.  At this point, the
+     * {@link ListenableFuture} returned by the instance of {@link #startWork()} is
+     * also cancelled.  This could happen due to an explicit cancellation signal by the user, or
+     * because the system has decided to preempt the task.  In these cases, the results of the
+     * work will be ignored by WorkManager.  All processing in this method should be lightweight
+     * - there are no contractual guarantees about which thread will invoke this call, so this
+     * should not be a long-running or blocking operation.
      */
     public void onStopped() {
         // Do nothing by default.
@@ -239,6 +280,16 @@ public abstract class ListenableWorker {
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public final void setUsed() {
         mUsed = true;
+    }
+
+    /**
+     * @return {@code true} if the {@link ListenableWorker} is running in the context of a
+     * foreground {@link android.app.Service}.
+     * @hide
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public boolean isRunInForeground() {
+        return mRunInForeground;
     }
 
     /**
@@ -375,7 +426,7 @@ public abstract class ListenableWorker {
              * @hide
              */
             @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-            public Data getOutputData() {
+            public @NonNull Data getOutputData() {
                 return mOutputData;
             }
 
@@ -430,7 +481,7 @@ public abstract class ListenableWorker {
              * @hide
              */
             @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-            public Data getOutputData() {
+            public @NonNull Data getOutputData() {
                 return mOutputData;
             }
 

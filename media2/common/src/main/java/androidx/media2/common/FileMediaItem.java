@@ -17,19 +17,16 @@
 package androidx.media2.common;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
-import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
+import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
-import androidx.annotation.VisibleForTesting;
 import androidx.core.util.Preconditions;
-import androidx.versionedparcelable.NonParcelField;
 import androidx.versionedparcelable.ParcelUtils;
-import androidx.versionedparcelable.VersionedParcelize;
 
 import java.io.IOException;
 
@@ -43,7 +40,6 @@ import java.io.IOException;
  *
  * @see MediaItem
  */
-@VersionedParcelize(isCustom = true)
 public class FileMediaItem extends MediaItem {
     private static final String TAG = "FileMediaItem";
     /**
@@ -53,26 +49,17 @@ public class FileMediaItem extends MediaItem {
      */
     public static final long FD_LENGTH_UNKNOWN = LONG_MAX;
 
-    @NonParcelField
-    @SuppressWarnings("WeakerAccess") /* synthetic access */
-    ParcelFileDescriptor mPFD;
-    @NonParcelField
-    @SuppressWarnings("WeakerAccess") /* synthetic access */
-    long mFDOffset = 0;
-    @NonParcelField
-    @SuppressWarnings("WeakerAccess") /* synthetic access */
-    long mFDLength = FD_LENGTH_UNKNOWN;
-    @NonParcelField
-    Integer mRefCount = new Integer(0);
-    @NonParcelField
-    boolean mClosed;
+    private final ParcelFileDescriptor mPFD;
+    private final long mFDOffset;
+    private final long mFDLength;
 
-    /**
-     * Used for VersionedParcelable
-     */
-    FileMediaItem() {
-        // no-op
-    }
+    private final Object mLock = new Object();
+
+    @GuardedBy("mLock")
+    private int mRefCount;
+
+    @GuardedBy("mLock")
+    private boolean mClosed;
 
     FileMediaItem(Builder builder) {
         super(builder);
@@ -85,7 +72,8 @@ public class FileMediaItem extends MediaItem {
      * Returns the ParcelFileDescriptor of this media item.
      * @return the ParcelFileDescriptor of this media item
      */
-    public @NonNull ParcelFileDescriptor getParcelFileDescriptor() {
+    @NonNull
+    public ParcelFileDescriptor getParcelFileDescriptor() {
         return mPFD;
     }
 
@@ -111,9 +99,9 @@ public class FileMediaItem extends MediaItem {
      * Increases reference count for underlying ParcelFileDescriptor.
      * @hide
      */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY_GROUP)
     public void increaseRefCount() {
-        synchronized (mRefCount) {
+        synchronized (mLock) {
             if (mClosed) {
                 Log.w(TAG, "ParcelFileDescriptorClient is already closed.");
                 return;
@@ -127,9 +115,9 @@ public class FileMediaItem extends MediaItem {
      * be closed when the count becomes zero.
      * @hide
      */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY_GROUP)
     public void decreaseRefCount() {
-        synchronized (mRefCount) {
+        synchronized (mLock) {
             if (mClosed) {
                 Log.w(TAG, "ParcelFileDescriptorClient is already closed.");
                 return;
@@ -154,7 +142,7 @@ public class FileMediaItem extends MediaItem {
      */
     @RestrictTo(LIBRARY_GROUP)
     public boolean isClosed() {
-        synchronized (mRefCount) {
+        synchronized (mLock) {
             return mClosed;
         }
     }
@@ -163,10 +151,9 @@ public class FileMediaItem extends MediaItem {
      * Close the {@link ParcelFileDescriptor} of this {@link FileMediaItem}.
      * @hide
      */
-    @VisibleForTesting
     @RestrictTo(LIBRARY_GROUP)
     public void close() throws IOException {
-        synchronized (mRefCount) {
+        synchronized (mLock) {
             if (mPFD != null) {
                 mPFD.close();
             }
@@ -236,22 +223,22 @@ public class FileMediaItem extends MediaItem {
         }
 
         // Override just to change return type.
-        @NonNull
         @Override
+        @NonNull
         public Builder setMetadata(@Nullable MediaMetadata metadata) {
             return (Builder) super.setMetadata(metadata);
         }
 
         // Override just to change return type.
-        @NonNull
         @Override
+        @NonNull
         public Builder setStartPosition(long position) {
             return (Builder) super.setStartPosition(position);
         }
 
         // Override just to change return type.
-        @NonNull
         @Override
+        @NonNull
         public Builder setEndPosition(long position) {
             return (Builder) super.setEndPosition(position);
         }
@@ -259,8 +246,8 @@ public class FileMediaItem extends MediaItem {
         /**
          * @return A new FileMediaItem with values supplied by the Builder.
          */
-        @NonNull
         @Override
+        @NonNull
         public FileMediaItem build() {
             return new FileMediaItem(this);
         }

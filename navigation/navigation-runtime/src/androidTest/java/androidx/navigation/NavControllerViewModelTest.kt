@@ -60,10 +60,14 @@ class NavControllerViewModelTest {
         val viewModel = NavControllerViewModel.getInstance(baseViewModelStore)
         val navGraphId = UUID.randomUUID()
         val navGraphViewModelStore = viewModel.getViewModelStore(navGraphId)
+        // test clearing two viewmodel stores.
+        viewModel.getViewModelStore(UUID.randomUUID())
+
         assertThat(navGraphViewModelStore).isNotNull()
 
         baseViewModelStore.clear()
         assertThat(viewModel.getViewModelStore(navGraphId)).isNotSameInstanceAs(
-            navGraphViewModelStore)
+            navGraphViewModelStore
+        )
     }
 }

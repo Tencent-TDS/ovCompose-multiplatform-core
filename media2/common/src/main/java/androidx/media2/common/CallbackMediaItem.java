@@ -19,9 +19,7 @@ package androidx.media2.common;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.util.Preconditions;
-import androidx.versionedparcelable.NonParcelField;
 import androidx.versionedparcelable.ParcelUtils;
-import androidx.versionedparcelable.VersionedParcelize;
 
 /**
  * Structure for media item descriptor for {@link DataSourceCallback}.
@@ -33,18 +31,8 @@ import androidx.versionedparcelable.VersionedParcelize;
  *
  * @see MediaItem
  */
-@VersionedParcelize(isCustom = true)
 public class CallbackMediaItem extends MediaItem {
-    @NonParcelField
-    @SuppressWarnings("WeakerAccess") /* synthetic access */
-    DataSourceCallback mDataSourceCallback;
-
-    /**
-     * Used for VersionedParcelable
-     */
-    CallbackMediaItem() {
-        // no-op
-    }
+    private final DataSourceCallback mDataSourceCallback;
 
     CallbackMediaItem(Builder builder) {
         super(builder);
@@ -68,7 +56,7 @@ public class CallbackMediaItem extends MediaItem {
     public static final class Builder extends MediaItem.Builder {
 
         @SuppressWarnings("WeakerAccess") /* synthetic access */
-                DataSourceCallback mDataSourceCallback;
+        DataSourceCallback mDataSourceCallback;
 
         /**
          * Creates a new Builder object.
@@ -80,22 +68,22 @@ public class CallbackMediaItem extends MediaItem {
         }
 
         // Override just to change return type.
-        @NonNull
         @Override
+        @NonNull
         public Builder setMetadata(@Nullable MediaMetadata metadata) {
             return (Builder) super.setMetadata(metadata);
         }
 
         // Override just to change return type.
-        @NonNull
         @Override
+        @NonNull
         public Builder setStartPosition(long position) {
             return (Builder) super.setStartPosition(position);
         }
 
         // Override just to change return type.
-        @NonNull
         @Override
+        @NonNull
         public Builder setEndPosition(long position) {
             return (Builder) super.setEndPosition(position);
         }
@@ -103,8 +91,8 @@ public class CallbackMediaItem extends MediaItem {
         /**
          * @return A new CallbackMediaItem with values supplied by the Builder.
          */
-        @NonNull
         @Override
+        @NonNull
         public CallbackMediaItem build() {
             return new CallbackMediaItem(this);
         }

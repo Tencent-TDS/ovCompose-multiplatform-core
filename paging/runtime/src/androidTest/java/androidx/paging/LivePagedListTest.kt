@@ -17,15 +17,16 @@
 package androidx.paging
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 
-@RunWith(JUnit4::class)
+@RunWith(AndroidJUnit4::class)
 @SmallTest
 class LivePagedListTest {
     @JvmField
@@ -33,7 +34,8 @@ class LivePagedListTest {
     val instantTaskExecutorRule = InstantTaskExecutorRule()
 
     @Test
-    fun toLiveData_config() {
+    fun toLiveData_dataSourceConfig() {
+        @Suppress("DEPRECATION")
         val livePagedList = dataSourceFactory.toLiveData(config)
         livePagedList.observeForever {}
         assertNotNull(livePagedList.value)
@@ -41,14 +43,34 @@ class LivePagedListTest {
     }
 
     @Test
-    fun toLiveData_pageSize() {
+    fun toLiveData_dataSourcePageSize() {
+        @Suppress("DEPRECATION")
         val livePagedList = dataSourceFactory.toLiveData(24)
         livePagedList.observeForever {}
         assertNotNull(livePagedList.value)
         assertEquals(24, livePagedList.value!!.config.pageSize)
     }
 
+    @Test
+    fun toLiveData_pagingSourceConfig() {
+        @Suppress("DEPRECATION")
+        val livePagedList = pagingSourceFactory.toLiveData(config)
+        livePagedList.observeForever {}
+        assertNotNull(livePagedList.value)
+        assertEquals(config, livePagedList.value!!.config)
+    }
+
+    @Test
+    fun toLiveData_pagingSourcePageSize() {
+        @Suppress("DEPRECATION")
+        val livePagedList = pagingSourceFactory.toLiveData(24)
+        livePagedList.observeForever {}
+        assertNotNull(livePagedList.value)
+        assertEquals(24, livePagedList.value!!.config.pageSize)
+    }
+
     companion object {
+        @Suppress("DEPRECATION")
         private val dataSource = object : PositionalDataSource<String>() {
             override fun loadInitial(
                 params: LoadInitialParams,
@@ -56,15 +78,16 @@ class LivePagedListTest {
             ) {
             }
 
-            override fun loadRange(params: LoadRangeParams, callback: LoadRangeCallback<String>) {
-            }
+            override fun loadRange(params: LoadRangeParams, callback: LoadRangeCallback<String>) {}
         }
 
         private val dataSourceFactory = object : DataSource.Factory<Int, String>() {
-            override fun create(): DataSource<Int, String> {
-                return dataSource
-            }
+            override fun create(): DataSource<Int, String> = dataSource
         }
+
+        private val pagingSourceFactory = dataSourceFactory.asPagingSourceFactory(
+            fetchDispatcher = Dispatchers.Main
+        )
 
         private val config = Config(10)
     }

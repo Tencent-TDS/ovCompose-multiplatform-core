@@ -89,7 +89,7 @@ public abstract class EntityInsertionAdapter<T> extends SharedSQLiteStatement {
      *
      * @param entities Entities to insert
      */
-    public final void insert(Iterable<T> entities) {
+    public final void insert(Iterable<? extends T> entities) {
         final SupportSQLiteStatement stmt = acquire();
         try {
             for (T entity : entities) {
@@ -123,7 +123,7 @@ public abstract class EntityInsertionAdapter<T> extends SharedSQLiteStatement {
      * @param entities Entities to insert
      * @return The SQLite row ids, for entities that are not inserted the row id returned will be -1
      */
-    public final long[] insertAndReturnIdsArray(Collection<T> entities) {
+    public final long[] insertAndReturnIdsArray(Collection<? extends T> entities) {
         final SupportSQLiteStatement stmt = acquire();
         try {
             final long[] result = new long[entities.size()];
@@ -167,7 +167,7 @@ public abstract class EntityInsertionAdapter<T> extends SharedSQLiteStatement {
      * @param entities Entities to insert
      * @return The SQLite row ids, for entities that are not inserted the row id returned will be -1
      */
-    public final Long[] insertAndReturnIdsArrayBox(Collection<T> entities) {
+    public final Long[] insertAndReturnIdsArrayBox(Collection<? extends T> entities) {
         final SupportSQLiteStatement stmt = acquire();
         try {
             final Long[] result = new Long[entities.size()];
@@ -233,7 +233,7 @@ public abstract class EntityInsertionAdapter<T> extends SharedSQLiteStatement {
      * @param entities Entities to insert
      * @return The SQLite row ids, for entities that are not inserted the row id returned will be -1
      */
-    public final List<Long> insertAndReturnIdsList(Collection<T> entities) {
+    public final List<Long> insertAndReturnIdsList(Collection<? extends T> entities) {
         final SupportSQLiteStatement stmt = acquire();
         try {
             final List<Long> result = new ArrayList<>(entities.size());

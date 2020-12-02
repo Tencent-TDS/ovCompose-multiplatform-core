@@ -21,22 +21,30 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.navigation.NavController
 import androidx.navigation.createGraph
 import androidx.navigation.plusAssign
-import androidx.navigation.testing.TestNavigator
-import androidx.navigation.testing.test
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.testutils.TestNavigator
+import androidx.testutils.test
 import com.google.common.truth.Truth.assertThat
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.mock
 
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class AppBarConfigurationTest {
 
+    private lateinit var context: Context
+
+    @Before
+    fun setup() {
+        context = InstrumentationRegistry.getInstrumentation().targetContext
+    }
+
     @Test
     fun testTopLevelFromGraph() {
-        val navGraph = NavController(mock(Context::class.java)).apply {
+        val navGraph = NavController(context).apply {
             navigatorProvider += TestNavigator()
         }.createGraph(startDestination = 1) {
             test(1)
@@ -62,18 +70,20 @@ class AppBarConfigurationTest {
     }
 
     @Test
-    fun testSetDrawerLayout() {
+    fun testSetOpenableLayout() {
         val builder = AppBarConfiguration.Builder()
-        val drawerLayout: DrawerLayout = mock(DrawerLayout::class.java)
-        builder.setDrawerLayout(drawerLayout)
+        val drawerLayout = DrawerLayout(context)
+        builder.setOpenableLayout(drawerLayout)
         val appBarConfiguration = builder.build()
-        assertThat(appBarConfiguration.drawerLayout).isEqualTo(drawerLayout)
+        assertThat(appBarConfiguration.openableLayout).isEqualTo(drawerLayout)
     }
 
     @Test
     fun testSetFallbackOnNavigateUpListener() {
         val builder = AppBarConfiguration.Builder()
-        val onNavigateUpListener = mock(AppBarConfiguration.OnNavigateUpListener::class.java)
+        val onNavigateUpListener = AppBarConfiguration.OnNavigateUpListener {
+            false
+        }
         builder.setFallbackOnNavigateUpListener(onNavigateUpListener)
         val appBarConfiguration = builder.build()
         assertThat(appBarConfiguration.fallbackOnNavigateUpListener)

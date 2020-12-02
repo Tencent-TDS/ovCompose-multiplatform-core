@@ -20,11 +20,14 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.annotation.SuppressLint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+import androidx.core.os.CancellationSignal;
 import androidx.core.view.OneShotPreDrawListener;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.ViewGroupCompat;
@@ -76,9 +79,32 @@ public abstract class FragmentTransitionImpl {
      * containing the bounds relative to the screen that the view is in.
      */
     protected void getBoundsOnScreen(View view, Rect epicenter) {
-        int[] loc = new int[2];
-        view.getLocationOnScreen(loc);
-        epicenter.set(loc[0], loc[1], loc[0] + view.getWidth(), loc[1] + view.getHeight());
+        if (!ViewCompat.isAttachedToWindow(view)) {
+            return;
+        }
+
+        final RectF rect = new RectF();
+        rect.set(0, 0, view.getWidth(), view.getHeight());
+
+        view.getMatrix().mapRect(rect);
+        rect.offset(view.getLeft(), view.getTop());
+
+        ViewParent parent = view.getParent();
+        while (parent instanceof View) {
+            View parentView = (View) parent;
+
+            rect.offset(-parentView.getScrollX(), -parentView.getScrollY());
+            parentView.getMatrix().mapRect(rect);
+            rect.offset(parentView.getLeft(), parentView.getTop());
+
+            parent = parentView.getParent();
+        }
+
+        final int[] loc = new int[2];
+        view.getRootView().getLocationOnScreen(loc);
+        rect.offset(loc[0], loc[1]);
+        epicenter.set(Math.round(rect.left), Math.round(rect.top), Math.round(rect.right),
+                Math.round(rect.bottom));
     }
 
     /**
@@ -258,6 +284,23 @@ public abstract class FragmentTransitionImpl {
             Object enterTransition, ArrayList<View> enteringViews,
             Object exitTransition, ArrayList<View> exitingViews,
             Object sharedElementTransition, ArrayList<View> sharedElementsIn);
+
+
+    /**
+     * Set a listener for Transition end events. The default behavior immediately completes the
+     * transition.
+     *
+     * @param outFragment The first fragment that is exiting
+     * @param transition all transitions to be executed on a single container
+     * @param signal used indicate the desired behavior on transition cancellation
+     * @param transitionCompleteRunnable used to notify the FragmentManager when a transition is
+     *                                   complete
+     */
+    public void setListenerForTransitionEnd(@NonNull final Fragment outFragment,
+            @NonNull Object transition, @NonNull CancellationSignal signal,
+            @NonNull Runnable transitionCompleteRunnable) {
+        transitionCompleteRunnable.run();
+    }
 
     /**
      * Swap the targets for the shared element transition from those Views in sharedElementsOut

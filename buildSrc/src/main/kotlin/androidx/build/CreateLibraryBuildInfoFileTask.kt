@@ -16,14 +16,17 @@
 
 package androidx.build
 
+import androidx.build.gitclient.Commit
+import androidx.build.gitclient.GitClientImpl
+import androidx.build.gitclient.GitCommitRange
 import androidx.build.jetpad.LibraryBuildInfoFile
+import com.google.gson.GsonBuilder
 import org.gradle.api.DefaultTask
-import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.artifacts.ExternalModuleDependency
+import org.gradle.api.artifacts.ProjectDependency
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
-import org.gradle.api.provider.Property
-import com.google.gson.GsonBuilder
 import java.io.File
 import java.util.ArrayList
 
@@ -41,36 +44,62 @@ open class CreateLibraryBuildInfoFileTask : DefaultTask() {
     @OutputFile
     val outputFile: Property<File> = project.objects.property(File::class.java)
 
-    private fun getLibraryBuildInfoFilename(): String {
-        return "${project.group}_${project.name}_build_info.txt"
-    }
-
-    /* Returns the local project directory without the full framework/support root directory path */
+    /**
+     * Returns the local project directory without the full framework/support root directory path
+     * <p>
+     * Note: `project.projectDir.toString().removePrefix(project.rootDir.toString())` does not work
+     * because the project rootDir is not guaranteed to be a substring of the projectDir
+     */
     private fun getProjectSpecificDirectory(): String {
-        return project.projectDir.toString().removePrefix(project.rootDir.toString())
+        return project.projectDir.absolutePath.removePrefix(
+            project.getSupportRootFolder().absolutePath
+        )
     }
 
-    /* Returns whether or not the groupId of the project requires the same version for all
-     * artifactIds.  See CheckSameVersionLibraryGroupsTask.kt
+    /**
+     * Returns whether or not the groupId of the project requires the same version for all
+     * artifactIds.
      */
     private fun requiresSameVersion(): Boolean {
-        val library =
-            project.extensions.findByType(AndroidXExtension::class.java)
+        val library = project.extensions.findByType(AndroidXExtension::class.java)
         return library?.mavenGroup?.requireSameVersion ?: false
+    }
+
+    /* For androidx release notes, the most common use case is to track and publish the last sha
+     * of the build that is released.  Thus, we use frameworks/support to get the sha
+     */
+    private fun getFrameworksSupportCommitShaAtHead(): String {
+        val commitList: List<Commit> = GitClientImpl(project.getSupportRootFolder(), logger)
+            .getGitLog(
+                GitCommitRange(
+                    fromExclusive = "",
+                    untilInclusive = "HEAD",
+                    n = 1
+                ),
+                keepMerges = true,
+                fullProjectDir = project.getSupportRootFolder()
+            )
+        if (commitList.isEmpty()) {
+            throw RuntimeException("Failed to find git commit for HEAD!")
+        }
+        return commitList.first().sha
     }
 
     private fun writeJsonToFile(info: LibraryBuildInfoFile) {
         if (!project.getBuildInfoDirectory().exists()) {
             if (!project.getBuildInfoDirectory().mkdirs()) {
-                throw RuntimeException("Failed to create " +
-                        "output directory: ${project.getBuildInfoDirectory()}")
+                throw RuntimeException(
+                    "Failed to create " +
+                        "output directory: ${project.getBuildInfoDirectory()}"
+                )
             }
         }
-        var resolvedOutputFile: File = outputFile.get()
+        val resolvedOutputFile: File = outputFile.get()
         if (!resolvedOutputFile.exists()) {
             if (!resolvedOutputFile.createNewFile()) {
-                throw RuntimeException("Failed to create " +
-                        "output dependency dump file: $outputFile")
+                throw RuntimeException(
+                    "Failed to create output dependency dump file: $outputFile"
+                )
             }
         }
 
@@ -86,14 +115,22 @@ open class CreateLibraryBuildInfoFileTask : DefaultTask() {
         libraryBuildInfoFile.groupId = project.group.toString()
         libraryBuildInfoFile.version = project.version.toString()
         libraryBuildInfoFile.path = getProjectSpecificDirectory()
+        libraryBuildInfoFile.sha = getFrameworksSupportCommitShaAtHead()
         libraryBuildInfoFile.groupIdRequiresSameVersion = requiresSameVersion()
+        libraryBuildInfoFile.groupZipPath = project.getGroupZipPath()
+        libraryBuildInfoFile.projectZipPath = project.getProjectZipPath()
         val libraryDependencies = ArrayList<LibraryBuildInfoFile.Dependency>()
         val checks = ArrayList<LibraryBuildInfoFile.Check>()
         libraryBuildInfoFile.checks = checks
         val publishedProjects = project.getProjectsMap()
         project.configurations.filter {
             /* Ignore test configuration dependencies */
-            !it.name.contains("test", ignoreCase = true)
+            !it.name.contains("test", ignoreCase = true) &&
+                /* Ignore annotation processors */
+                !it.name.contains("annotationProcessor", ignoreCase = true) &&
+                /* Ignore compile configuration dependencies */
+                !it.name.contains("compileClasspath", ignoreCase = true) &&
+                !it.name.contains("compileOnly", ignoreCase = true)
         }.forEach { configuration ->
             configuration.allDependencies.forEach { dep ->
                 // Only consider androidx dependencies
@@ -101,9 +138,11 @@ open class CreateLibraryBuildInfoFileTask : DefaultTask() {
                     dep.group.toString().startsWith("androidx.") &&
                     !dep.group.toString().startsWith("androidx.test")
                 ) {
-                    if ((dep is ProjectDependency && publishedProjects
-                            .containsKey("${dep.group}:${dep.name}")) ||
-                        dep is ExternalModuleDependency
+                    if ((
+                        dep is ExternalModuleDependency ||
+                            dep is ProjectDependency && publishedProjects
+                            .containsKey("${dep.group}:${dep.name}")
+                        )
                     ) {
                         val androidXPublishedDependency = LibraryBuildInfoFile().Dependency()
                         androidXPublishedDependency.artifactId = dep.name.toString()
@@ -130,7 +169,8 @@ open class CreateLibraryBuildInfoFileTask : DefaultTask() {
             if (existingDependency.groupId == dependency.groupId &&
                 existingDependency.artifactId == dependency.artifactId &&
                 existingDependency.version == dependency.version &&
-                existingDependency.isTipOfTree == dependency.isTipOfTree) {
+                existingDependency.isTipOfTree == dependency.isTipOfTree
+            ) {
                 return
             }
         }

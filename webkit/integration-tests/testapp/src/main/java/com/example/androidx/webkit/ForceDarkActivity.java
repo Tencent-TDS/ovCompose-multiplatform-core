@@ -16,7 +16,8 @@
 
 package com.example.androidx.webkit;
 
-import android.annotation.SuppressLint;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Base64;
@@ -28,11 +29,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
-// TODO(amalova): enable the following attributes once Q SDK is available.
-// <item name="android:forceDarkAllowed">true</item>
-// <item name="android:isLightTheme">true</item>
-// This attributes are necessary to make force dark auto mode works.
-
 /**
  * An {@link Activity} to exercise Force Dark functionality.
  * It shows WebViews side by side with different dark mode settings.
@@ -42,7 +38,6 @@ public class ForceDarkActivity extends AppCompatActivity {
             "<html><body><h1>Force Dark Mode is %s </h1></body></html>";
 
     @Override
-    @SuppressLint("RestrictedApi")
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -62,22 +57,21 @@ public class ForceDarkActivity extends AppCompatActivity {
         }
     }
 
-    @SuppressLint("RestrictedApi")
     private void setupWebView(WebView webView, int forceDarkMode) {
         webView.setWebViewClient(new WebViewClient());
         String formatedDescription;
         switch (forceDarkMode) {
             case WebSettingsCompat.FORCE_DARK_ON:
                 formatedDescription = Base64.encodeToString(
-                        String.format(DESCRIPTION, "ON").getBytes(), Base64.NO_PADDING);
+                        String.format(DESCRIPTION, "ON").getBytes(UTF_8), Base64.NO_PADDING);
                 break;
             case WebSettingsCompat.FORCE_DARK_OFF:
                 formatedDescription = Base64.encodeToString(
-                        String.format(DESCRIPTION, "OFF").getBytes(), Base64.NO_PADDING);
+                        String.format(DESCRIPTION, "OFF").getBytes(UTF_8), Base64.NO_PADDING);
                 break;
             case WebSettingsCompat.FORCE_DARK_AUTO:
                 formatedDescription = Base64.encodeToString(
-                        String.format(DESCRIPTION, "AUTO").getBytes(), Base64.NO_PADDING);
+                        String.format(DESCRIPTION, "AUTO").getBytes(UTF_8), Base64.NO_PADDING);
                 break;
             default:
                 throw new UnsupportedOperationException("Unknown force dark mode");

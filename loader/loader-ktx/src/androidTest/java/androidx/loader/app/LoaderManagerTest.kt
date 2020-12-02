@@ -17,10 +17,11 @@
 package androidx.loader.app
 
 import android.content.Context
-import androidx.loader.app.test.LoaderOwner
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.testing.TestLifecycleOwner
 import androidx.loader.content.Loader
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.filters.MediumTest
+import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
@@ -31,14 +32,14 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
-@MediumTest
+@LargeTest
 class LoaderManagerTest {
 
     private lateinit var loaderManager: LoaderManager
 
     @Before
     fun setup() {
-        loaderManager = LoaderManager.getInstance(LoaderOwner())
+        loaderManager = LoaderManager.getInstance(TestLifecycleOwner(), ViewModelStore())
     }
 
     @Test

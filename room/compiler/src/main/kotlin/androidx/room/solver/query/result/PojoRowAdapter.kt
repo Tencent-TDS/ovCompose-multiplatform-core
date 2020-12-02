@@ -20,6 +20,7 @@ import androidx.room.ext.L
 import androidx.room.ext.RoomTypeNames
 import androidx.room.ext.S
 import androidx.room.ext.T
+import androidx.room.compiler.processing.XType
 import androidx.room.processor.Context
 import androidx.room.processor.ProcessorErrors
 import androidx.room.solver.CodeGenScope
@@ -31,9 +32,10 @@ import androidx.room.vo.RelationCollector
 import androidx.room.vo.Warning
 import androidx.room.vo.findFieldByColumnName
 import androidx.room.writer.FieldReadWriteWriter
+import capitalize
 import com.squareup.javapoet.TypeName
 import stripNonJava
-import javax.lang.model.type.TypeMirror
+import java.util.Locale
 
 /**
  * Creates the entity from the given info.
@@ -44,12 +46,13 @@ class PojoRowAdapter(
     context: Context,
     private val info: QueryResultInfo?,
     val pojo: Pojo,
-    out: TypeMirror
+    out: XType
 ) : RowAdapter(out) {
     val mapping: Mapping
     val relationCollectors: List<RelationCollector>
 
     init {
+
         // toMutableList documentation is not clear if it copies so lets be safe.
         val remainingFields = pojo.fields.mapTo(mutableListOf(), { it })
         val unusedColumns = arrayListOf<String>()
@@ -59,7 +62,7 @@ class PojoRowAdapter(
                 // first check remaining, otherwise check any. maybe developer wants to map the same
                 // column into 2 fields. (if they want to post process etc)
                 val field = remainingFields.firstOrNull { it.columnName == column.name }
-                        ?: pojo.findFieldByColumnName(column.name)
+                    ?: pojo.findFieldByColumnName(column.name)
                 if (field == null) {
                     unusedColumns.add(column.name)
                     null
@@ -70,20 +73,23 @@ class PojoRowAdapter(
             }
             if (unusedColumns.isNotEmpty() || remainingFields.isNotEmpty()) {
                 val warningMsg = ProcessorErrors.cursorPojoMismatch(
-                        pojoTypeName = pojo.typeName,
-                        unusedColumns = unusedColumns,
-                        allColumns = info.columns.map { it.name },
-                        unusedFields = remainingFields,
-                        allFields = pojo.fields
+                    pojoTypeName = pojo.typeName,
+                    unusedColumns = unusedColumns,
+                    allColumns = info.columns.map { it.name },
+                    unusedFields = remainingFields,
+                    allFields = pojo.fields
                 )
                 context.logger.w(Warning.CURSOR_MISMATCH, null, warningMsg)
             }
             val nonNulls = remainingFields.filter { it.nonNull }
             if (nonNulls.isNotEmpty()) {
-                context.logger.e(ProcessorErrors.pojoMissingNonNull(
+                context.logger.e(
+                    ProcessorErrors.pojoMissingNonNull(
                         pojoTypeName = pojo.typeName,
                         missingPojoFields = nonNulls.map { it.name },
-                        allQueryColumns = info.columns.map { it.name }))
+                        allQueryColumns = info.columns.map { it.name }
+                    )
+                )
             }
             if (matchedFields.isEmpty()) {
                 context.logger.e(ProcessorErrors.cannotFindQueryResultAdapter(out.toString()))
@@ -95,9 +101,9 @@ class PojoRowAdapter(
         relationCollectors = RelationCollector.createCollectors(context, pojo.relations)
 
         mapping = Mapping(
-                matchedFields = matchedFields,
-                unusedColumns = unusedColumns,
-                unusedFields = remainingFields
+            matchedFields = matchedFields,
+            unusedColumns = unusedColumns,
+            unusedFields = remainingFields
         )
     }
 
@@ -114,15 +120,19 @@ class PojoRowAdapter(
 
     override fun onCursorReady(cursorVarName: String, scope: CodeGenScope) {
         mapping.fieldsWithIndices = mapping.matchedFields.map {
-            val indexVar = scope.getTmpVar("_cursorIndexOf${it.name.stripNonJava().capitalize()}")
+            val indexVar = scope.getTmpVar(
+                "_cursorIndexOf${it.name.stripNonJava().capitalize(Locale.US)}"
+            )
             val indexMethod = if (info == null) {
                 "getColumnIndex"
             } else {
                 "getColumnIndexOrThrow"
             }
-            scope.builder().addStatement("final $T $L = $T.$L($L, $S)",
+            scope.builder().addStatement(
+                "final $T $L = $T.$L($L, $S)",
                 TypeName.INT, indexVar, RoomTypeNames.CURSOR_UTIL, indexMethod, cursorVarName,
-                it.columnName)
+                it.columnName
+            )
             FieldWithIndex(field = it, indexVar = indexVar, alwaysExists = info != null)
         }
         if (relationCollectors.isNotEmpty()) {
@@ -143,12 +153,13 @@ class PojoRowAdapter(
     override fun convert(outVarName: String, cursorVarName: String, scope: CodeGenScope) {
         scope.builder().apply {
             FieldReadWriteWriter.readFromCursor(
-                    outVar = outVarName,
-                    outPojo = pojo,
-                    cursorVar = cursorVarName,
-                    fieldsWithIndices = mapping.fieldsWithIndices,
-                    relationCollectors = relationCollectors,
-                    scope = scope)
+                outVar = outVarName,
+                outPojo = pojo,
+                cursorVar = cursorVarName,
+                fieldsWithIndices = mapping.fieldsWithIndices,
+                relationCollectors = relationCollectors,
+                scope = scope
+            )
         }
     }
 

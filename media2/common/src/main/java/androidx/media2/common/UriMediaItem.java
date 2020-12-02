@@ -21,9 +21,7 @@ import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.util.Preconditions;
-import androidx.versionedparcelable.NonParcelField;
 import androidx.versionedparcelable.ParcelUtils;
-import androidx.versionedparcelable.VersionedParcelize;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -43,24 +41,10 @@ import java.util.Map;
  *
  * @see MediaItem
  */
-@VersionedParcelize(isCustom = true)
 public class UriMediaItem extends MediaItem {
-    @NonParcelField
-    @SuppressWarnings("WeakerAccess") /* synthetic access */
-    Uri mUri;
-    @NonParcelField
-    @SuppressWarnings("WeakerAccess") /* synthetic access */
-    Map<String, String> mUriHeader;
-    @NonParcelField
-    @SuppressWarnings("WeakerAccess") /* synthetic access */
-    List<HttpCookie> mUriCookies;
-
-    /**
-     * Used for VersionedParcelable
-     */
-    UriMediaItem() {
-        // no-op
-    }
+    private final Uri mUri;
+    private final Map<String, String> mUriHeader;
+    private final List<HttpCookie> mUriCookies;
 
     UriMediaItem(Builder builder) {
         super(builder);
@@ -73,7 +57,8 @@ public class UriMediaItem extends MediaItem {
      * Return the Uri of this media item.
      * @return the Uri of this media item
      */
-    public @NonNull Uri getUri() {
+    @NonNull
+    public Uri getUri() {
         return mUri;
     }
 
@@ -81,7 +66,8 @@ public class UriMediaItem extends MediaItem {
      * Return the Uri headers of this media item.
      * @return the Uri headers of this media item
      */
-    public @Nullable Map<String, String> getUriHeaders() {
+    @Nullable
+    public Map<String, String> getUriHeaders() {
         if (mUriHeader == null) {
             return null;
         }
@@ -92,7 +78,8 @@ public class UriMediaItem extends MediaItem {
      * Return the Uri cookies of this media item.
      * @return the Uri cookies of this media item
      */
-    public @Nullable List<HttpCookie> getUriCookies() {
+    @Nullable
+    public List<HttpCookie> getUriCookies() {
         if (mUriCookies == null) {
             return null;
         }
@@ -161,22 +148,22 @@ public class UriMediaItem extends MediaItem {
         }
 
         // Override just to change return type.
-        @NonNull
         @Override
+        @NonNull
         public Builder setMetadata(@Nullable MediaMetadata metadata) {
             return (Builder) super.setMetadata(metadata);
         }
 
         // Override just to change return type.
-        @NonNull
         @Override
+        @NonNull
         public Builder setStartPosition(long position) {
             return (Builder) super.setStartPosition(position);
         }
 
         // Override just to change return type.
-        @NonNull
         @Override
+        @NonNull
         public Builder setEndPosition(long position) {
             return (Builder) super.setEndPosition(position);
         }
@@ -184,8 +171,8 @@ public class UriMediaItem extends MediaItem {
         /**
          * @return A new UriMediaItem with values supplied by the Builder.
          */
-        @NonNull
         @Override
+        @NonNull
         public UriMediaItem build() {
             return new UriMediaItem(this);
         }

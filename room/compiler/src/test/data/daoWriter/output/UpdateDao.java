@@ -7,26 +7,28 @@ import androidx.sqlite.db.SupportSQLiteStatement;
 import io.reactivex.Completable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
+import java.lang.Class;
 import java.lang.Exception;
 import java.lang.Integer;
 import java.lang.Override;
 import java.lang.String;
 import java.lang.SuppressWarnings;
 import java.lang.Void;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 @Generated("androidx.room.RoomProcessor")
 @SuppressWarnings({"unchecked", "deprecation"})
 public final class UpdateDao_Impl implements UpdateDao {
   private final RoomDatabase __db;
 
-  private final EntityDeletionOrUpdateAdapter __updateAdapterOfUser;
+  private final EntityDeletionOrUpdateAdapter<User> __updateAdapterOfUser;
 
-  private final EntityDeletionOrUpdateAdapter __updateAdapterOfMultiPKeyEntity;
+  private final EntityDeletionOrUpdateAdapter<MultiPKeyEntity> __updateAdapterOfMultiPKeyEntity;
 
-  private final EntityDeletionOrUpdateAdapter __updateAdapterOfBook;
+  private final EntityDeletionOrUpdateAdapter<Book> __updateAdapterOfBook;
 
   private final SharedSQLiteStatement __preparedStmtOfAgeUserByUid;
 
@@ -390,5 +392,9 @@ public final class UpdateDao_Impl implements UpdateDao {
         }
       }
     });
+  }
+
+  public static List<Class<?>> getRequiredConverters() {
+    return Collections.emptyList();
   }
 }

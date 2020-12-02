@@ -20,6 +20,7 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.annotation.AnimRes;
 import androidx.annotation.AnimatorRes;
@@ -87,13 +88,15 @@ public abstract class FragmentTransaction {
         }
     }
 
+    private final FragmentFactory mFragmentFactory;
+    private final ClassLoader mClassLoader;
+
     ArrayList<Op> mOps = new ArrayList<>();
     int mEnterAnim;
     int mExitAnim;
     int mPopEnterAnim;
     int mPopExitAnim;
     int mTransition;
-    int mTransitionStyle;
     boolean mAddToBackStack;
     boolean mAllowAddToBackStack = true;
     @Nullable String mName;
@@ -109,12 +112,55 @@ public abstract class FragmentTransaction {
 
     ArrayList<Runnable> mCommitRunnables;
 
+    /**
+     * @deprecated You should not instantiate a FragmentTransaction except via
+     * {@link FragmentManager#beginTransaction()}.
+     */
+    @Deprecated
+    public FragmentTransaction() {
+        mFragmentFactory = null;
+        mClassLoader = null;
+    }
+
+    FragmentTransaction(@NonNull FragmentFactory fragmentFactory,
+            @Nullable ClassLoader classLoader) {
+        mFragmentFactory = fragmentFactory;
+        mClassLoader = classLoader;
+    }
+
     void addOp(Op op) {
         mOps.add(op);
         op.mEnterAnim = mEnterAnim;
         op.mExitAnim = mExitAnim;
         op.mPopEnterAnim = mPopEnterAnim;
         op.mPopExitAnim = mPopExitAnim;
+    }
+
+    @NonNull
+    private Fragment createFragment(@NonNull Class<? extends Fragment> fragmentClass,
+            @Nullable Bundle args) {
+        if (mFragmentFactory == null) {
+            throw new IllegalStateException("Creating a Fragment requires that this "
+                    + "FragmentTransaction was built with FragmentManager.beginTransaction()");
+        }
+        if (mClassLoader == null) {
+            throw new IllegalStateException("The FragmentManager must be attached to its"
+                    + "host to create a Fragment");
+        }
+        Fragment fragment = mFragmentFactory.instantiate(mClassLoader, fragmentClass.getName());
+        if (args != null) {
+            fragment.setArguments(args);
+        }
+        return fragment;
+    }
+
+    /**
+     * Calls {@link #add(int, Class, Bundle, String)} with a 0 containerViewId.
+     */
+    @NonNull
+    public final FragmentTransaction add(@NonNull Class<? extends Fragment> fragmentClass,
+            @Nullable Bundle args, @Nullable String tag)  {
+        return add(createFragment(fragmentClass, args), tag);
     }
 
     /**
@@ -127,12 +173,44 @@ public abstract class FragmentTransaction {
     }
 
     /**
+     * Calls {@link #add(int, Class, Bundle, String)} with a null tag.
+     */
+    @NonNull
+    public final FragmentTransaction add(@IdRes int containerViewId,
+            @NonNull Class<? extends Fragment> fragmentClass, @Nullable Bundle args)  {
+        return add(containerViewId, createFragment(fragmentClass, args));
+    }
+
+    /**
      * Calls {@link #add(int, Fragment, String)} with a null tag.
      */
     @NonNull
     public FragmentTransaction add(@IdRes int containerViewId, @NonNull Fragment fragment) {
         doAddOp(containerViewId, fragment, null, OP_ADD);
         return this;
+    }
+
+    /**
+     * Add a fragment to the activity state.  This fragment may optionally
+     * also have its view (if {@link Fragment#onCreateView Fragment.onCreateView}
+     * returns non-null) into a container view of the activity.
+     *
+     * @param containerViewId Optional identifier of the container this fragment is
+     * to be placed in.  If 0, it will not be placed in a container.
+     * @param fragmentClass The fragment to be added, created via the
+     * {@link FragmentManager#getFragmentFactory() FragmentManager's FragmentFactory}.
+     * @param args Optional arguments to be set on the fragment.
+     * @param tag Optional tag name for the fragment, to later retrieve the
+     * fragment with {@link FragmentManager#findFragmentByTag(String)
+     * FragmentManager.findFragmentByTag(String)}.
+     *
+     * @return Returns the same FragmentTransaction instance.
+     */
+    @NonNull
+    public final FragmentTransaction add(@IdRes int containerViewId,
+            @NonNull Class<? extends Fragment> fragmentClass,
+            @Nullable Bundle args, @Nullable String tag) {
+        return add(containerViewId, createFragment(fragmentClass, args), tag);
     }
 
     /**
@@ -155,6 +233,12 @@ public abstract class FragmentTransaction {
             @Nullable String tag) {
         doAddOp(containerViewId, fragment, tag, OP_ADD);
         return this;
+    }
+
+    FragmentTransaction add(@NonNull ViewGroup container, @NonNull Fragment fragment,
+            @Nullable String tag) {
+        fragment.mContainer = container;
+        return add(container.getId(), fragment, tag);
     }
 
     void doAddOp(int containerViewId, Fragment fragment, @Nullable String tag, int opcmd) {
@@ -193,11 +277,45 @@ public abstract class FragmentTransaction {
     }
 
     /**
+     * Calls {@link #replace(int, Class, Bundle, String)} with a null tag.
+     */
+    @NonNull
+    public final FragmentTransaction replace(@IdRes int containerViewId,
+            @NonNull Class<? extends Fragment> fragmentClass, @Nullable Bundle args) {
+        return replace(containerViewId, fragmentClass, args, null);
+    }
+
+    /**
      * Calls {@link #replace(int, Fragment, String)} with a null tag.
      */
     @NonNull
     public FragmentTransaction replace(@IdRes int containerViewId, @NonNull Fragment fragment) {
         return replace(containerViewId, fragment, null);
+    }
+
+    /**
+     * Replace an existing fragment that was added to a container.  This is
+     * essentially the same as calling {@link #remove(Fragment)} for all
+     * currently added fragments that were added with the same containerViewId
+     * and then {@link #add(int, Fragment, String)} with the same arguments
+     * given here.
+     *
+     * @param containerViewId Identifier of the container whose fragment(s) are
+     * to be replaced.
+     * @param fragmentClass The new fragment to place in the container, created via the
+     * {@link FragmentManager#getFragmentFactory() FragmentManager's FragmentFactory}.
+     * @param args Optional arguments to be set on the fragment.
+     * @param tag Optional tag name for the fragment, to later retrieve the
+     * fragment with {@link FragmentManager#findFragmentByTag(String)
+     * FragmentManager.findFragmentByTag(String)}.
+     *
+     * @return Returns the same FragmentTransaction instance.
+     */
+    @NonNull
+    public final FragmentTransaction replace(@IdRes int containerViewId,
+            @NonNull Class<? extends Fragment> fragmentClass,
+            @Nullable Bundle args, @Nullable String tag) {
+        return replace(containerViewId, createFragment(fragmentClass, args), tag);
     }
 
     /**
@@ -336,9 +454,13 @@ public abstract class FragmentTransaction {
      * already above the received state, it will be forced down to the correct state.
      *
      * <p>The fragment provided must currently be added to the FragmentManager to have it's
-     * Lifecycle state capped, or previously added as part of this transaction. The
-     * {@link Lifecycle.State} passed in must at least be {@link Lifecycle.State#CREATED}, otherwise
-     * an {@link IllegalArgumentException} will be thrown.</p>
+     * Lifecycle state capped, or previously added as part of this transaction. If the
+     * {@link Lifecycle.State#INITIALIZED} is passed in as the {@link Lifecycle.State} and the
+     * provided fragment has already moved beyond {@link Lifecycle.State#INITIALIZED}, an
+     * {@link IllegalArgumentException} will be thrown.</p>
+     *
+     * <p>If the {@link Lifecycle.State#DESTROYED} is passed in as the {@link Lifecycle.State} an
+     * {@link IllegalArgumentException} will be thrown.</p>
      *
      * @param fragment the fragment to have it's state capped.
      * @param state the ceiling state for the fragment.
@@ -392,6 +514,19 @@ public abstract class FragmentTransaction {
      * entering and exiting in this transaction. These animations will not be
      * played when popping the back stack.
      *
+     * <p>This method applies the custom animations to all future fragment operations; previous
+     * operations are unaffected. Fragment operations in the same {@link FragmentTransaction} can
+     * set different animations by calling this method prior to each operation, e.g:
+     *
+     * <pre class="prettyprint">
+     *  fragmentManager.beingTransaction()
+     *      .setCustomAnimations(enter1, exit1)
+     *      .add(MyFragmentClass, args, tag1) // this fragment gets the first animations
+     *      .setCustomAnimations(enter2, exit2)
+     *      .add(MyFragmentClass, args, tag2) // this fragment gets the second animations
+     *      .commit()
+     * </pre>
+     *
      * @param enter An animation or animator resource ID used for the enter animation on the
      *              view of the fragment being added or attached.
      * @param exit An animation or animator resource ID used for the exit animation on the
@@ -408,6 +543,19 @@ public abstract class FragmentTransaction {
      * entering and exiting in this transaction. The <code>popEnter</code>
      * and <code>popExit</code> animations will be played for enter/exit
      * operations specifically when popping the back stack.
+     *
+     * <p>This method applies the custom animations to all future fragment operations; previous
+     * operations are unaffected. Fragment operations in the same {@link FragmentTransaction} can
+     * set different animations by calling this method prior to each operation, e.g:
+     *
+     * <pre class="prettyprint">
+     *  fragmentManager.beingTransaction()
+     *      .setCustomAnimations(enter1, exit1, popEnter1, popExit1)
+     *      .add(MyFragmentClass, args, tag1) // this fragment gets the first animations
+     *      .setCustomAnimations(enter2, exit2, popEnter2, popExit2)
+     *      .add(MyFragmentClass, args, tag2) // this fragment gets the second animations
+     *      .commit()
+     * </pre>
      *
      * @param enter An animation or animator resource ID used for the enter animation on the
      *              view of the fragment being added or attached.
@@ -452,8 +600,8 @@ public abstract class FragmentTransaction {
                         + " sharedElements");
             }
             if (mSharedElementSourceNames == null) {
-                mSharedElementSourceNames = new ArrayList<String>();
-                mSharedElementTargetNames = new ArrayList<String>();
+                mSharedElementSourceNames = new ArrayList<>();
+                mSharedElementTargetNames = new ArrayList<>();
             } else if (mSharedElementTargetNames.contains(name)) {
                 throw new IllegalArgumentException("A shared element with the target name '"
                         + name + "' has already been added to the transaction.");
@@ -482,10 +630,12 @@ public abstract class FragmentTransaction {
     /**
      * Set a custom style resource that will be used for resolving transit
      * animations.
+     *
+     * @deprecated The desired functionality never worked correctly. This should not be used.
      */
+    @Deprecated
     @NonNull
     public FragmentTransaction setTransitionStyle(@StyleRes int styleRes) {
-        mTransitionStyle = styleRes;
         return this;
     }
 
@@ -542,7 +692,10 @@ public abstract class FragmentTransaction {
      * is on the back stack.
      *
      * @param res A string resource containing the title.
+     * @deprecated Store breadcrumb titles separately from fragment transactions. For
+     * example, by using an <code>android:label</code> on a fragment in a navigation graph.
      */
+    @Deprecated
     @NonNull
     public FragmentTransaction setBreadCrumbTitle(@StringRes int res) {
         mBreadCrumbTitleRes = res;
@@ -554,7 +707,10 @@ public abstract class FragmentTransaction {
      * Like {@link #setBreadCrumbTitle(int)} but taking a raw string; this
      * method is <em>not</em> recommended, as the string can not be changed
      * later if the locale changes.
+     * @deprecated Store breadcrumb titles separately from fragment transactions. For
+     * example, by using an <code>android:label</code> on a fragment in a navigation graph.
      */
+    @Deprecated
     @NonNull
     public FragmentTransaction setBreadCrumbTitle(@Nullable CharSequence text) {
         mBreadCrumbTitleRes = 0;
@@ -567,7 +723,10 @@ public abstract class FragmentTransaction {
      * is on the back stack.
      *
      * @param res A string resource containing the title.
+     * @deprecated Store breadcrumb short titles separately from fragment transactions. For
+     * example, by using an <code>android:label</code> on a fragment in a navigation graph.
      */
+    @Deprecated
     @NonNull
     public FragmentTransaction setBreadCrumbShortTitle(@StringRes int res) {
         mBreadCrumbShortTitleRes = res;
@@ -579,7 +738,10 @@ public abstract class FragmentTransaction {
      * Like {@link #setBreadCrumbShortTitle(int)} but taking a raw string; this
      * method is <em>not</em> recommended, as the string can not be changed
      * later if the locale changes.
+     * @deprecated Store breadcrumb short titles separately from fragment transactions. For
+     * example, by using an <code>android:label</code> on a fragment in a navigation graph.
      */
+    @Deprecated
     @NonNull
     public FragmentTransaction setBreadCrumbShortTitle(@Nullable CharSequence text) {
         mBreadCrumbShortTitleRes = 0;

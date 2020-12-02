@@ -21,7 +21,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 class FakeLifecycleOwner(initialState: Lifecycle.State? = null) : LifecycleOwner {
-    private val registry: LifecycleRegistry = LifecycleRegistry(this)
+    private val registry: LifecycleRegistry = LifecycleRegistry.createUnsafe(this)
 
     init {
         initialState?.let {
@@ -65,7 +65,7 @@ class FakeLifecycleOwner(initialState: Lifecycle.State? = null) : LifecycleOwner
         }
     }
 
-    private suspend fun getObserverCount(count: Int): Int {
+    private suspend fun getObserverCount(): Int {
         return withContext(Dispatchers.Main) {
             registry.observerCount
         }

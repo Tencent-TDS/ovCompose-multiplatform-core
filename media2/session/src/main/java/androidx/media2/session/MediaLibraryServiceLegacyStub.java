@@ -25,7 +25,6 @@ import static androidx.media2.session.MediaUtils.TRANSACTION_SIZE_LIMIT_IN_BYTES
 import android.content.Context;
 import android.os.BadParcelableException;
 import android.os.Bundle;
-import android.os.Process;
 import android.os.RemoteException;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -47,6 +46,7 @@ import androidx.media2.session.MediaController.PlaybackInfo;
 import androidx.media2.session.MediaLibraryService.LibraryParams;
 import androidx.media2.session.MediaLibraryService.MediaLibrarySession.MediaLibrarySessionImpl;
 import androidx.media2.session.MediaSession.CommandButton;
+import androidx.media2.session.MediaSession.ControllerCb;
 import androidx.media2.session.MediaSession.ControllerInfo;
 
 import java.util.ArrayList;
@@ -60,7 +60,7 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
     private static final String TAG = "MLS2LegacyStub";
     private static final boolean DEBUG = false;
 
-    private final ControllerInfo mControllersForAll;
+    private final ControllerCb mBrowserLegacyCbForBroadcast;
 
     @SuppressWarnings("WeakerAccess") /* synthetic access */
     final MediaLibrarySessionImpl mLibrarySessionImpl;
@@ -71,10 +71,7 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
             MediaSessionCompat.Token token) {
         super(context, session, token);
         mLibrarySessionImpl = session;
-        mControllersForAll = new ControllerInfo(new RemoteUserInfo(
-                RemoteUserInfo.LEGACY_CONTROLLER, Process.myPid(), Process.myUid()),
-                false /* trusted */,
-                new BrowserLegacyCbForAll(this), null /* connectionHints */);
+        mBrowserLegacyCbForBroadcast = new BrowserLegacyCbForBroadcast(this);
     }
 
     @Override
@@ -352,13 +349,13 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
 
     @Override
     ControllerInfo createControllerInfo(RemoteUserInfo remoteUserInfo) {
-        return new ControllerInfo(remoteUserInfo,
+        return new ControllerInfo(remoteUserInfo, MediaUtils.VERSION_UNKNOWN,
                 mManager.isTrustedForMediaControl(remoteUserInfo),
                 new BrowserLegacyCb(remoteUserInfo), null /* connectionHints */);
     }
 
-    ControllerInfo getControllersForAll() {
-        return mControllersForAll;
+    ControllerCb getBrowserLegacyCbForBroadcast() {
+        return mBrowserLegacyCbForBroadcast;
     }
 
     private ControllerInfo getCurrentController() {
@@ -403,23 +400,25 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
         }
 
         @Override
-        final void setCustomLayout(int seq, List<CommandButton> layout) throws RemoteException {
-            // No-op. BrowserCompat doesn't understand Controller features.
-        }
-
-        @Override
-        final void onPlaybackInfoChanged(int seq, PlaybackInfo info) throws RemoteException {
-            // No-op. BrowserCompat doesn't understand Controller features.
-        }
-
-        @Override
-        final void onAllowedCommandsChanged(int seq, SessionCommandGroup commands)
+        final void setCustomLayout(int seq, @NonNull List<CommandButton> layout)
                 throws RemoteException {
             // No-op. BrowserCompat doesn't understand Controller features.
         }
 
         @Override
-        final void sendCustomCommand(int seq, SessionCommand command, Bundle args)
+        final void onPlaybackInfoChanged(int seq, @NonNull PlaybackInfo info)
+                throws RemoteException {
+            // No-op. BrowserCompat doesn't understand Controller features.
+        }
+
+        @Override
+        final void onAllowedCommandsChanged(int seq, @NonNull SessionCommandGroup commands)
+                throws RemoteException {
+            // No-op. BrowserCompat doesn't understand Controller features.
+        }
+
+        @Override
+        final void sendCustomCommand(int seq, @NonNull SessionCommand command, Bundle args)
                 throws RemoteException {
             // No-op. BrowserCompat doesn't understand Controller features.
         }
@@ -437,7 +436,7 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
         }
 
         @Override
-        final void onBufferingStateChanged(int seq, MediaItem item, int bufferingState,
+        final void onBufferingStateChanged(int seq, @NonNull MediaItem item, int bufferingState,
                 long bufferedPositionMs, long eventTimeMs, long positionMs) throws RemoteException {
             // No-op. BrowserCompat doesn't understand Controller features.
         }
@@ -455,8 +454,9 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
         }
 
         @Override
-        final void onPlaylistChanged(int seq, List<MediaItem> playlist, MediaMetadata metadata,
-                int currentIdx, int previousIdx, int nextIdx) throws RemoteException {
+        final void onPlaylistChanged(int seq, @NonNull List<MediaItem> playlist,
+                MediaMetadata metadata, int currentIdx, int previousIdx, int nextIdx)
+                throws RemoteException {
             // No-op. BrowserCompat doesn't understand Controller features.
         }
 
@@ -489,13 +489,12 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
         }
 
         @Override
-        final void onVideoSizeChanged(int seq, @NonNull MediaItem item,
-                @NonNull VideoSize videoSize) {
+        void onVideoSizeChanged(int seq, @NonNull VideoSize videoSize) throws RemoteException {
             // No-op. BrowserCompat doesn't understand Controller features.
         }
 
         @Override
-        void onTrackInfoChanged(int seq, List<TrackInfo> trackInfos,
+        void onTracksChanged(int seq, List<TrackInfo> tracks,
                 TrackInfo selectedVideoTrack, TrackInfo selectedAudioTrack,
                 TrackInfo selectedSubtitleTrack, TrackInfo selectedMetadataTrack)
                 throws RemoteException {
@@ -521,7 +520,7 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
         }
     }
 
-    private class BrowserLegacyCb extends BaseBrowserLegacyCb {
+    private final class BrowserLegacyCb extends BaseBrowserLegacyCb {
         private final Object mLock = new Object();
         private final RemoteUserInfo mRemoteUserInfo;
 
@@ -533,15 +532,15 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
         }
 
         @Override
-        void onChildrenChanged(int seq, String parentId, int itemCount, LibraryParams params)
-                throws RemoteException {
+        void onChildrenChanged(int seq, @NonNull String parentId, int itemCount,
+                LibraryParams params) throws RemoteException {
             Bundle extras = params != null ? params.getExtras() : null;
             notifyChildrenChanged(mRemoteUserInfo, parentId, extras);
         }
 
         @Override
-        void onSearchResultChanged(int seq, String query, int itemCount, LibraryParams params)
-                throws RemoteException {
+        void onSearchResultChanged(int seq, @NonNull String query, int itemCount,
+                LibraryParams params) throws RemoteException {
             // In MediaLibrarySession/MediaBrowser, we have two different APIs for getting size of
             // search result (and also starting search) and getting result.
             // However, MediaBrowserService/MediaBrowserCompat only have one search API for getting
@@ -627,7 +626,7 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
             if (this == obj) {
                 return true;
             }
-            if (obj == null || obj.getClass() != BrowserLegacyCb.class) {
+            if (!(obj instanceof BrowserLegacyCb)) {
                 return false;
             }
             BrowserLegacyCb other = (BrowserLegacyCb) obj;
@@ -635,19 +634,17 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
         }
     }
 
-    /**
-     * Intentionally static class to prevent lint warning 'SynteheticAccessor' in constructor.
-     */
-    private static class BrowserLegacyCbForAll extends BaseBrowserLegacyCb {
+    // Intentionally static class to prevent lint warning 'SyntheticAccessor' in constructor.
+    private static class BrowserLegacyCbForBroadcast extends BaseBrowserLegacyCb {
         private final MediaBrowserServiceCompat mService;
 
-        BrowserLegacyCbForAll(MediaBrowserServiceCompat service) {
+        BrowserLegacyCbForBroadcast(MediaBrowserServiceCompat service) {
             mService = service;
         }
 
         @Override
-        void onChildrenChanged(int seq, String parentId, int itemCount, LibraryParams libraryParams)
-                throws RemoteException {
+        void onChildrenChanged(int seq, @NonNull String parentId, int itemCount,
+                LibraryParams libraryParams) throws RemoteException {
             // This will trigger {@link MediaLibraryServiceLegacyStub#onLoadChildren}.
             if (libraryParams == null || libraryParams.getExtras() == null) {
                 mService.notifyChildrenChanged(parentId);
@@ -657,8 +654,8 @@ class MediaLibraryServiceLegacyStub extends MediaSessionServiceLegacyStub {
         }
 
         @Override
-        void onSearchResultChanged(int seq, String query, int itemCount, LibraryParams params)
-                throws RemoteException {
+        void onSearchResultChanged(int seq, @NonNull String query, int itemCount,
+                LibraryParams params) throws RemoteException {
             // Shouldn't be called. If it's called, it's bug.
             // This method in the base class is introduced to internally send return of
             // {@link MediaLibrarySessionCallback#onSearchResultChanged}. However, for

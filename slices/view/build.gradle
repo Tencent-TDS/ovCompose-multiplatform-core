@@ -26,9 +26,10 @@ plugins {
 
 dependencies {
     implementation(project(":slice-core"))
-    implementation(project(":recyclerview"))
+    implementation project(":appcompat:appcompat")
+    implementation(project(":recyclerview:recyclerview"))
     implementation("androidx.collection:collection:1.1.0")
-    api(ARCH_LIFECYCLE_LIVEDATA_CORE, libs.exclude_annotations_transitive)
+    api("androidx.lifecycle:lifecycle-livedata-core:2.0.0")
 
     androidTestImplementation(project(":slice-builders"))
     androidTestImplementation(project(":slice-test"))
@@ -49,5 +50,4 @@ androidx {
     inceptionYear = "2017"
     description = "A library that handles rendering of slice content into supported templates"
     failOnDeprecationWarnings = false
-    trackRestrictedAPIs = false
 }

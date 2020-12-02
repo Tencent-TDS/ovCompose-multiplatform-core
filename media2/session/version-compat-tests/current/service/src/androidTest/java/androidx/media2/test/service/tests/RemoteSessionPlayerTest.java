@@ -22,8 +22,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.media.AudioManager;
-import android.os.Build;
 
+import androidx.annotation.NonNull;
 import androidx.media2.session.MediaSession;
 import androidx.media2.session.RemoteSessionPlayer;
 import androidx.media2.session.SessionCommandGroup;
@@ -31,7 +31,6 @@ import androidx.media2.test.service.MockPlayer;
 import androidx.media2.test.service.MockRemotePlayer;
 import androidx.media2.test.service.RemoteMediaController;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
 
 import org.junit.After;
@@ -45,7 +44,6 @@ import java.util.concurrent.TimeUnit;
  * Tests whether the methods of {@link RemoteSessionPlayer} are triggered by the
  * controller.
  */
-@SdkSuppress(minSdkVersion = Build.VERSION_CODES.JELLY_BEAN)
 @RunWith(AndroidJUnit4.class)
 @SmallTest
 public class RemoteSessionPlayerTest extends MediaSessionTestBase {
@@ -61,8 +59,8 @@ public class RemoteSessionPlayerTest extends MediaSessionTestBase {
         mSession = new MediaSession.Builder(mContext, new MockPlayer(1))
                 .setSessionCallback(sHandlerExecutor, new MediaSession.SessionCallback() {
                     @Override
-                    public SessionCommandGroup onConnect(MediaSession session,
-                            MediaSession.ControllerInfo controller) {
+                    public SessionCommandGroup onConnect(@NonNull MediaSession session,
+                            @NonNull MediaSession.ControllerInfo controller) {
                         if (CLIENT_PACKAGE_NAME.equals(controller.getPackageName())) {
                             return super.onConnect(session, controller);
                         }
@@ -85,8 +83,7 @@ public class RemoteSessionPlayerTest extends MediaSessionTestBase {
     }
 
     @Test
-    public void testSetVolumeToByController() throws Exception {
-        prepareLooper();
+    public void setVolumeToByController() throws Exception {
         final int maxVolume = 100;
         final int currentVolume = 23;
         final int volumeControlType = RemoteSessionPlayer.VOLUME_CONTROL_ABSOLUTE;
@@ -104,8 +101,7 @@ public class RemoteSessionPlayerTest extends MediaSessionTestBase {
     }
 
     @Test
-    public void testAdjustVolumeByController() throws Exception {
-        prepareLooper();
+    public void adjustVolumeByController() throws Exception {
         final int maxVolume = 100;
         final int currentVolume = 23;
         final int volumeControlType = RemoteSessionPlayer.VOLUME_CONTROL_ABSOLUTE;

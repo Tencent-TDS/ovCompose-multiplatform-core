@@ -29,7 +29,7 @@ import androidx.test.annotation.UiThreadTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
-import androidx.test.rule.ActivityTestRule
+import com.google.common.truth.Truth.assertThat
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -59,10 +59,12 @@ class ActivityNavigatorTest {
         const val TARGET_DATA_PATTERN = "http://www.example.com/{$TARGET_ARGUMENT_NAME}"
         const val TARGET_ARGUMENT_VALUE = "data_pattern"
         const val TARGET_ARGUMENT_INT_VALUE = 1
+        const val TARGET_LABEL = "test_label"
     }
 
+    @Suppress("DEPRECATION")
     @get:Rule
-    val activityRule = ActivityTestRule(ActivityNavigatorActivity::class.java)
+    val activityRule = androidx.test.rule.ActivityTestRule(ActivityNavigatorActivity::class.java)
 
     private lateinit var activityNavigator: ActivityNavigator
 
@@ -96,8 +98,10 @@ class ActivityNavigatorTest {
         val targetActivity = waitForActivity()
         val intent = targetActivity.intent
         assertNotNull(intent)
-        assertEquals("Intent should not include FLAG_ACTIVITY_NEW_TASK",
-                0, intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK)
+        assertEquals(
+            "Intent should not include FLAG_ACTIVITY_NEW_TASK",
+            0, intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK
+        )
     }
 
     @Test
@@ -114,8 +118,10 @@ class ActivityNavigatorTest {
         val targetActivity = waitForActivity()
         val intent = targetActivity.intent
         assertNotNull(intent)
-        assertEquals("Intent should include FLAG_ACTIVITY_NEW_TASK",
-                Intent.FLAG_ACTIVITY_NEW_TASK, intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK)
+        assertEquals(
+            "Intent should include FLAG_ACTIVITY_NEW_TASK",
+            Intent.FLAG_ACTIVITY_NEW_TASK, intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK
+        )
     }
 
     @Test
@@ -124,15 +130,21 @@ class ActivityNavigatorTest {
             id = TARGET_ID
             setComponentName(ComponentName(activityRule.activity, TargetActivity::class.java))
         }
-        activityNavigator.navigate(targetDestination, null, navOptions {
-            launchSingleTop = true
-        }, null)
+        activityNavigator.navigate(
+            targetDestination, null,
+            navOptions {
+                launchSingleTop = true
+            },
+            null
+        )
 
         val targetActivity = waitForActivity()
         val intent = targetActivity.intent
         assertNotNull(intent)
-        assertEquals("Intent should include FLAG_ACTIVITY_SINGLE_TOP",
-                Intent.FLAG_ACTIVITY_SINGLE_TOP, intent.flags and Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        assertEquals(
+            "Intent should include FLAG_ACTIVITY_SINGLE_TOP",
+            Intent.FLAG_ACTIVITY_SINGLE_TOP, intent.flags and Intent.FLAG_ACTIVITY_SINGLE_TOP
+        )
     }
 
     @Test
@@ -150,8 +162,10 @@ class ActivityNavigatorTest {
         val targetActivity = waitForActivity()
         val intent = targetActivity.intent
         assertNotNull(intent)
-        assertEquals("Intent should have its arguments in its extras",
-                TARGET_ARGUMENT_VALUE, intent.getStringExtra(TARGET_ARGUMENT_NAME))
+        assertEquals(
+            "Intent should have its arguments in its extras",
+            TARGET_ARGUMENT_VALUE, intent.getStringExtra(TARGET_ARGUMENT_NAME)
+        )
     }
 
     @Test
@@ -166,8 +180,10 @@ class ActivityNavigatorTest {
         val targetActivity = waitForActivity()
         val intent = targetActivity.intent
         assertNotNull(intent)
-        assertEquals("Intent should have action set",
-                TARGET_ACTION, intent.action)
+        assertEquals(
+            "Intent should have action set",
+            TARGET_ACTION, intent.action
+        )
     }
 
     @Test
@@ -182,8 +198,10 @@ class ActivityNavigatorTest {
         val targetActivity = waitForActivity()
         val intent = targetActivity.intent
         assertNotNull(intent)
-        assertEquals("Intent should have data set",
-                TARGET_DATA, intent.data)
+        assertEquals(
+            "Intent should have data set",
+            TARGET_DATA, intent.data
+        )
     }
 
     @Test
@@ -201,11 +219,15 @@ class ActivityNavigatorTest {
         val targetActivity = waitForActivity()
         val intent = targetActivity.intent
         assertNotNull(intent)
-        assertEquals("Intent should have data set with argument filled in",
-                TARGET_DATA_PATTERN.replace("{$TARGET_ARGUMENT_NAME}", TARGET_ARGUMENT_VALUE),
-                intent.data?.toString())
-        assertEquals("Intent should have its arguments in its extras",
-                TARGET_ARGUMENT_VALUE, intent.getStringExtra(TARGET_ARGUMENT_NAME))
+        assertEquals(
+            "Intent should have data set with argument filled in",
+            TARGET_DATA_PATTERN.replace("{$TARGET_ARGUMENT_NAME}", TARGET_ARGUMENT_VALUE),
+            intent.data?.toString()
+        )
+        assertEquals(
+            "Intent should have its arguments in its extras",
+            TARGET_ARGUMENT_VALUE, intent.getStringExtra(TARGET_ARGUMENT_NAME)
+        )
     }
 
     @Test
@@ -223,12 +245,18 @@ class ActivityNavigatorTest {
         val targetActivity = waitForActivity()
         val intent = targetActivity.intent
         assertNotNull(intent)
-        assertEquals("Intent should have data set with argument filled in",
-            TARGET_DATA_PATTERN.replace("{$TARGET_ARGUMENT_NAME}",
-                TARGET_ARGUMENT_INT_VALUE.toString()),
-            intent.data?.toString())
-        assertEquals("Intent should have its arguments in its extras",
-            TARGET_ARGUMENT_INT_VALUE, intent.getIntExtra(TARGET_ARGUMENT_NAME, -1))
+        assertEquals(
+            "Intent should have data set with argument filled in",
+            TARGET_DATA_PATTERN.replace(
+                "{$TARGET_ARGUMENT_NAME}",
+                TARGET_ARGUMENT_INT_VALUE.toString()
+            ),
+            intent.data?.toString()
+        )
+        assertEquals(
+            "Intent should have its arguments in its extras",
+            TARGET_ARGUMENT_INT_VALUE, intent.getIntExtra(TARGET_ARGUMENT_NAME, -1)
+        )
     }
 
     @Test
@@ -255,9 +283,10 @@ class ActivityNavigatorTest {
         val view = mock(View::class.java)
         val activityNavigator = ActivityNavigator(context)
         val activityOptions = ActivityOptionsCompat.makeSceneTransitionAnimation(
-                activityRule.activity,
-                view,
-                "test")
+            activityRule.activity,
+            view,
+            "test"
+        )
         val flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
         val extras = ActivityNavigator.Extras.Builder()
             .setActivityOptions(activityOptions)
@@ -271,9 +300,46 @@ class ActivityNavigatorTest {
         activityNavigator.navigate(targetDestination, null, null, extras)
         // Just verify that the ActivityOptions got passed through, there's
         // CTS tests to ensure that the ActivityOptions do the right thing
-        verify(context).startActivity(argThat { intent ->
-            intent.flags and flags != 0
-        }, refEq(activityOptions.toBundle()))
+        verify(context).startActivity(
+            argThat { intent ->
+                intent.flags and flags != 0
+            },
+            refEq(activityOptions.toBundle())
+        )
+    }
+
+    @Test
+    fun testToString() {
+        val targetDestination = activityNavigator.createDestination().apply {
+            id = TARGET_ID
+            label = TARGET_LABEL
+            setComponentName(ComponentName(activityRule.activity, TargetActivity::class.java))
+        }
+        val expected = "Destination(0x${TARGET_ID.toString(16)}) label=$TARGET_LABEL " +
+            "class=${TargetActivity::class.java.name}"
+        assertThat(targetDestination.toString()).isEqualTo(expected)
+    }
+
+    @Test
+    fun testToStringNoClass() {
+        val targetDestination = activityNavigator.createDestination().apply {
+            id = TARGET_ID
+            label = TARGET_LABEL
+            action = TARGET_ACTION
+        }
+        val expected = "Destination(0x${TARGET_ID.toString(16)}) label=$TARGET_LABEL " +
+            "action=$TARGET_ACTION"
+        assertThat(targetDestination.toString()).isEqualTo(expected)
+    }
+
+    @Test
+    fun testToStringNoClassOrAction() {
+        val targetDestination = activityNavigator.createDestination().apply {
+            id = TARGET_ID
+            label = TARGET_LABEL
+        }
+        val expected = "Destination(0x${TARGET_ID.toString(16)}) label=$TARGET_LABEL"
+        assertThat(targetDestination.toString()).isEqualTo(expected)
     }
 
     private fun waitForActivity(): TargetActivity {

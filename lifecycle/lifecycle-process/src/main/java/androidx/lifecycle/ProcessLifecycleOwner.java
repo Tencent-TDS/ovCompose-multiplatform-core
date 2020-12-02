@@ -19,10 +19,13 @@ package androidx.lifecycle;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.ReportFragment.ActivityInitializationListener;
 
@@ -152,14 +155,43 @@ public class ProcessLifecycleOwner implements LifecycleOwner {
     private ProcessLifecycleOwner() {
     }
 
+    @SuppressWarnings("deprecation")
     void attach(Context context) {
         mHandler = new Handler();
         mRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE);
         Application app = (Application) context.getApplicationContext();
         app.registerActivityLifecycleCallbacks(new EmptyActivityLifecycleCallbacks() {
+            @RequiresApi(29)
+            @Override
+            public void onActivityPreCreated(@NonNull Activity activity,
+                    @Nullable Bundle savedInstanceState) {
+                // We need the ProcessLifecycleOwner to get ON_START and ON_RESUME precisely
+                // before the first activity gets its LifecycleOwner started/resumed.
+                // The activity's LifecycleOwner gets started/resumed via an activity registered
+                // callback added in onCreate(). By adding our own activity registered callback in
+                // onActivityPreCreated(), we get our callbacks first while still having the
+                // right relative order compared to the Activity's onStart()/onResume() callbacks.
+                activity.registerActivityLifecycleCallbacks(new EmptyActivityLifecycleCallbacks() {
+                    @Override
+                    public void onActivityPostStarted(@NonNull Activity activity) {
+                        activityStarted();
+                    }
+
+                    @Override
+                    public void onActivityPostResumed(@NonNull Activity activity) {
+                        activityResumed();
+                    }
+                });
+            }
+
             @Override
             public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-                ReportFragment.get(activity).setProcessListener(mInitializationListener);
+                // Only use ReportFragment pre API 29 - after that, we can use the
+                // onActivityPostStarted and onActivityPostResumed callbacks registered in
+                // onActivityPreCreated()
+                if (Build.VERSION.SDK_INT < 29) {
+                    ReportFragment.get(activity).setProcessListener(mInitializationListener);
+                }
             }
 
             @Override

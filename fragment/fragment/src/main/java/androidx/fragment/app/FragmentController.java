@@ -131,7 +131,8 @@ public class FragmentController {
     @Nullable
     public View onCreateView(@Nullable View parent, @NonNull String name, @NonNull Context context,
             @NonNull AttributeSet attrs) {
-        return mHost.mFragmentManager.onCreateView(parent, name, context, attrs);
+        return mHost.mFragmentManager.getLayoutInflaterFactory()
+                .onCreateView(parent, name, context, attrs);
     }
 
     /**
@@ -159,6 +160,7 @@ public class FragmentController {
      * to automatically restore the Fragment's non configuration state and use
      * {@link #restoreSaveState(Parcelable)} to restore the Fragment's save state.
      */
+    @SuppressWarnings("deprecation")
     @Deprecated
     public void restoreAllState(@Nullable Parcelable state,
             @Nullable List<Fragment> nonConfigList) {
@@ -174,6 +176,7 @@ public class FragmentController {
      * to automatically restore the Fragment's non configuration state and use
      * {@link #restoreSaveState(Parcelable)} to restore the Fragment's save state.
      */
+    @SuppressWarnings("deprecation")
     @Deprecated
     public void restoreAllState(@Nullable Parcelable state,
             @Nullable FragmentManagerNonConfig nonConfig) {
@@ -202,6 +205,7 @@ public class FragmentController {
      * @deprecated Have your {@link FragmentHostCallback} implement {@link ViewModelStoreOwner}
      * to automatically retain the Fragment's non configuration state.
      */
+    @SuppressWarnings("deprecation")
     @Deprecated
     @Nullable
     public List<Fragment> retainNonConfig() {
@@ -218,6 +222,7 @@ public class FragmentController {
      * @deprecated Have your {@link FragmentHostCallback} implement {@link ViewModelStoreOwner}
      * to automatically retain the Fragment's non configuration state.
      */
+    @SuppressWarnings("deprecation")
     @Deprecated
     @Nullable
     public FragmentManagerNonConfig retainNestedNonConfig() {
@@ -443,7 +448,7 @@ public class FragmentController {
      * @return {@code true} if queued actions were performed
      */
     public boolean execPendingActions() {
-        return mHost.mFragmentManager.execPendingActions();
+        return mHost.mFragmentManager.execPendingActions(true);
     }
 
     /**

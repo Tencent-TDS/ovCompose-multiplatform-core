@@ -161,6 +161,12 @@ public class AccessibilityNodeInfoCompatTest {
             actionCompat = AccessibilityActionCompat.ACTION_HIDE_TOOLTIP;
             assertThat(actionCompat.getId(),
                     is(getExpectedActionId(android.R.id.accessibilityActionHideTooltip)));
+            actionCompat = AccessibilityActionCompat.ACTION_PRESS_AND_HOLD;
+            assertThat(actionCompat.getId(),
+                    is(getExpectedActionId(android.R.id.accessibilityActionPressAndHold)));
+            actionCompat = AccessibilityActionCompat.ACTION_IME_ENTER;
+            assertThat(actionCompat.getId(),
+                    is(getExpectedActionId(android.R.id.accessibilityActionImeEnter)));
         } catch (NullPointerException e) {
             Assert.fail("Expected no NullPointerException, but got: " + e.getMessage());
         }
@@ -188,6 +194,57 @@ public class AccessibilityNodeInfoCompatTest {
             assertThat(delegateInfo.getRegionAt(0), is(nullValue()));
             assertThat(delegateInfo.getTargetForRegion(region), is(nullValue()));
         }
+    }
+
+    @SdkSuppress(minSdkVersion = 21)
+    @Test
+    public void testWrappedActionEqualsStaticAction() {
+        // Static AccessibilityActionCompat
+        AccessibilityActionCompat staticAction =
+                AccessibilityActionCompat.ACTION_LONG_CLICK;
+        // Wrapped AccessibilityAction
+        AccessibilityActionCompat wrappedAction = new AccessibilityActionCompat(
+                        AccessibilityNodeInfo.AccessibilityAction.ACTION_LONG_CLICK);
+        assertThat(staticAction.equals(wrappedAction), equalTo(true));
+        assertThat(staticAction.hashCode() == wrappedAction.hashCode(), equalTo(true));
+    }
+
+    @SdkSuppress(minSdkVersion = 21)
+    @Test
+    public void testActionIdAndLabelEqualsStaticAction() {
+        AccessibilityActionCompat staticAction =
+                AccessibilityActionCompat.ACTION_LONG_CLICK;
+        // AccessibilityActionCompat defined by id and label
+        AccessibilityActionCompat wrappedIdAndLabelAction = new AccessibilityActionCompat(
+                AccessibilityNodeInfoCompat.ACTION_LONG_CLICK, "label", null);
+        assertThat(staticAction.equals(wrappedIdAndLabelAction), equalTo(true));
+        assertThat(staticAction.hashCode() == wrappedIdAndLabelAction.hashCode(), equalTo(true));
+    }
+
+    @SdkSuppress(minSdkVersion = 21)
+    @Test
+    public void testDifferentActionIdsNotEquals() {
+        AccessibilityActionCompat staticLongClickAction =
+                AccessibilityActionCompat.ACTION_LONG_CLICK;
+        AccessibilityActionCompat staticClickAction = AccessibilityActionCompat.ACTION_CLICK;
+
+        assertThat(staticLongClickAction.equals(staticClickAction), equalTo(false));
+        assertThat(staticLongClickAction.hashCode() == staticClickAction.hashCode(),
+                equalTo(false));
+
+        // AccessibilityActionCompat defined by id
+        AccessibilityActionCompat wrappedIdLongClickAction = new AccessibilityActionCompat(
+                AccessibilityNodeInfoCompat.ACTION_LONG_CLICK, null, null);
+        assertThat(wrappedIdLongClickAction.equals(staticClickAction), equalTo(false));
+        assertThat(wrappedIdLongClickAction.hashCode() == staticClickAction.hashCode(),
+                equalTo(false));
+
+        // Wrapped AccessibilityAction
+        AccessibilityActionCompat wrappedLongClickAction = new AccessibilityActionCompat(
+                AccessibilityNodeInfo.AccessibilityAction.ACTION_LONG_CLICK);
+        assertThat(wrappedLongClickAction.equals(staticClickAction), equalTo(false));
+        assertThat(wrappedLongClickAction.hashCode() == staticClickAction.hashCode(),
+                equalTo(false));
     }
 
     private AccessibilityNodeInfoCompat obtainedWrappedNodeCompat() {

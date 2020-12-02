@@ -16,6 +16,7 @@
 
 package androidx.navigation.testapp
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -46,11 +47,21 @@ class MainFragment : Fragment() {
         val myarg = arguments?.getString("myarg")
         tv.text = myarg
 
+        view.setBackgroundColor(
+            if (myarg == "one") {
+                Color.GREEN
+            } else {
+                Color.RED
+            }
+        )
+
         val b = view.findViewById<Button>(R.id.next_button)
         ViewCompat.setTransitionName(b, "next")
         b.setOnClickListener {
-            findNavController().navigate(R.id.next, null, null,
-                    FragmentNavigatorExtras(b to "next"))
+            findNavController().navigate(
+                R.id.next, null, null,
+                FragmentNavigatorExtras(b to "next")
+            )
         }
         view.findViewById<Button>(R.id.learn_more).setOnClickListener {
             val args = Bundle().apply {

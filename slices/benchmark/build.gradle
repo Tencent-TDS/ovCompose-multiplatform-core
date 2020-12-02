@@ -21,14 +21,15 @@ import androidx.build.Publish
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
+    id("androidx.benchmark")
 }
 
 dependencies {
-    androidTestImplementation(project(":core:core"))
+    androidTestImplementation("androidx.core:core:1.3.0-beta01")
     androidTestImplementation(project(":slice-view"))
     androidTestImplementation(project(":slice-core"))
     androidTestImplementation(project(":slice-builders"))
-    androidTestImplementation(project(":benchmark"))
+    androidTestImplementation(project(":benchmark:benchmark-junit4"))
     androidTestImplementation(JUNIT)
     androidTestImplementation(ANDROIDX_TEST_EXT_JUNIT)
     androidTestImplementation(ANDROIDX_TEST_CORE)

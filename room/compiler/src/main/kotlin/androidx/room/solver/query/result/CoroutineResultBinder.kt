@@ -23,17 +23,16 @@ import androidx.room.ext.N
 import androidx.room.ext.RoomCoroutinesTypeNames
 import androidx.room.ext.RoomTypeNames
 import androidx.room.ext.T
-import androidx.room.ext.typeName
+import androidx.room.compiler.processing.XType
 import androidx.room.solver.CodeGenScope
 import com.squareup.javapoet.FieldSpec
 import com.squareup.javapoet.MethodSpec
-import javax.lang.model.type.TypeMirror
 
 /**
  * Binds the result of a of a Kotlin coroutine suspend function.
  */
 class CoroutineResultBinder(
-    val typeArg: TypeMirror,
+    val typeArg: XType,
     private val continuationParamName: String,
     adapter: QueryResultAdapter?
 ) : QueryResultBinder(adapter) {
@@ -45,24 +44,36 @@ class CoroutineResultBinder(
         inTransaction: Boolean,
         scope: CodeGenScope
     ) {
-        val callableImpl = CallableTypeSpecBuilder(typeArg.typeName()) {
+        val cancellationSignalVar = scope.getTmpVar("_cancellationSignal")
+        scope.builder().addStatement(
+            "final $T $L = $T.createCancellationSignal()",
+            AndroidTypeNames.CANCELLATION_SIGNAL,
+            cancellationSignalVar,
+            RoomTypeNames.DB_UTIL
+        )
+
+        val callableImpl = CallableTypeSpecBuilder(typeArg.typeName) {
             createRunQueryAndReturnStatements(
                 builder = this,
                 roomSQLiteQueryVar = roomSQLiteQueryVar,
                 canReleaseQuery = canReleaseQuery,
                 dbField = dbField,
                 inTransaction = inTransaction,
-                scope = scope)
+                scope = scope,
+                cancellationSignalVar = "null"
+            )
         }.build()
 
         scope.builder().apply {
             addStatement(
-                "return $T.execute($N, $L, $L, $N)",
+                "return $T.execute($N, $L, $L, $L, $N)",
                 RoomCoroutinesTypeNames.COROUTINES_ROOM,
                 dbField,
                 if (inTransaction) "true" else "false",
+                cancellationSignalVar,
                 callableImpl,
-                continuationParamName)
+                continuationParamName
+            )
         }
     }
 
@@ -72,7 +83,8 @@ class CoroutineResultBinder(
         canReleaseQuery: Boolean,
         dbField: FieldSpec,
         inTransaction: Boolean,
-        scope: CodeGenScope
+        scope: CodeGenScope,
+        cancellationSignalVar: String
     ) {
         val transactionWrapper = if (inTransaction) {
             builder.transactionWrapper(dbField)
@@ -84,13 +96,16 @@ class CoroutineResultBinder(
         val cursorVar = scope.getTmpVar("_cursor")
         transactionWrapper?.beginTransactionWithControlFlow()
         builder.apply {
-            addStatement("final $T $L = $T.query($N, $L, $L)",
+            addStatement(
+                "final $T $L = $T.query($N, $L, $L, $L)",
                 AndroidTypeNames.CURSOR,
                 cursorVar,
                 RoomTypeNames.DB_UTIL,
                 dbField,
                 roomSQLiteQueryVar,
-                if (shouldCopyCursor) "true" else "false")
+                if (shouldCopyCursor) "true" else "false",
+                cancellationSignalVar
+            )
             beginControlFlow("try").apply {
                 val adapterScope = scope.fork()
                 adapter?.convert(outVar, cursorVar, adapterScope)

@@ -42,7 +42,7 @@ import javax.crypto.Mac;
  * @deprecated Use {@code androidx.biometrics.BiometricPrompt} instead.
  */
 @Deprecated
-public final class FingerprintManagerCompat {
+public class FingerprintManagerCompat {
 
     private final Context mContext;
 
@@ -123,7 +123,10 @@ public final class FingerprintManagerCompat {
     @Nullable
     @RequiresApi(23)
     private static FingerprintManager getFingerprintManagerOrNull(@NonNull Context context) {
-        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_FINGERPRINT)) {
+        if (Build.VERSION.SDK_INT == 23) {
+            return context.getSystemService(FingerprintManager.class);
+        } else if (Build.VERSION.SDK_INT > 23 && context.getPackageManager()
+                .hasSystemFeature(PackageManager.FEATURE_FINGERPRINT)) {
             return context.getSystemService(FingerprintManager.class);
         } else {
             return null;

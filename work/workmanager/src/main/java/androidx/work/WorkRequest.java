@@ -15,6 +15,8 @@
  */
 package androidx.work;
 
+import android.annotation.SuppressLint;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
@@ -43,11 +45,13 @@ public abstract class WorkRequest {
     /**
      * The maximum backoff time (in milliseconds) for work that has to be retried.
      */
+    @SuppressLint("MinMaxConstant")
     public static final long MAX_BACKOFF_MILLIS = 5 * 60 * 60 * 1000; // 5 hours.
 
     /**
      * The minimum backoff time for work (in milliseconds) that has to be retried.
      */
+    @SuppressLint("MinMaxConstant")
     public static final long MIN_BACKOFF_MILLIS = 10 * 1000; // 10 seconds.
 
     private @NonNull UUID mId;
@@ -113,15 +117,17 @@ public abstract class WorkRequest {
      * @param <B> The concrete implementation of this Builder
      * @param <W> The type of work object built by this Builder
      */
-    public abstract static class Builder<B extends Builder, W extends WorkRequest> {
+    public abstract static class Builder<B extends Builder<?, ?>, W extends WorkRequest> {
 
         boolean mBackoffCriteriaSet = false;
         UUID mId;
         WorkSpec mWorkSpec;
         Set<String> mTags = new HashSet<>();
+        Class<? extends ListenableWorker> mWorkerClass;
 
         Builder(@NonNull Class<? extends ListenableWorker> workerClass) {
             mId = UUID.randomUUID();
+            mWorkerClass = workerClass;
             mWorkSpec = new WorkSpec(mId.toString(), workerClass.getName());
             addTag(workerClass.getName());
         }
@@ -252,9 +258,15 @@ public abstract class WorkRequest {
          * @param duration The length of the delay in {@code timeUnit} units
          * @param timeUnit The units of time for {@code duration}
          * @return The current {@link Builder}
+         * @throws IllegalArgumentException if the given initial delay will push the execution time
+         *         past {@code Long.MAX_VALUE} and cause an overflow
          */
         public @NonNull B setInitialDelay(long duration, @NonNull TimeUnit timeUnit) {
             mWorkSpec.initialDelay = timeUnit.toMillis(duration);
+            if (Long.MAX_VALUE - System.currentTimeMillis() <= mWorkSpec.initialDelay) {
+                throw new IllegalArgumentException("The given initial delay is too large and will"
+                        + " cause an overflow!");
+            }
             return getThis();
         }
 
@@ -262,11 +274,17 @@ public abstract class WorkRequest {
          * Sets an initial delay for the {@link WorkRequest}.
          *
          * @param duration The length of the delay
-         * @return The current {@link Builder}
+         * @return The current {@link Builder}         *
+         * @throws IllegalArgumentException if the given initial delay will push the execution time
+         *         past {@code Long.MAX_VALUE} and cause an overflow
          */
         @RequiresApi(26)
         public @NonNull B setInitialDelay(@NonNull Duration duration) {
             mWorkSpec.initialDelay = duration.toMillis();
+            if (Long.MAX_VALUE - System.currentTimeMillis() <= mWorkSpec.initialDelay) {
+                throw new IllegalArgumentException("The given initial delay is too large and will"
+                        + " cause an overflow!");
+            }
             return getThis();
         }
 

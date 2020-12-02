@@ -18,13 +18,16 @@ package androidx.work.impl;
 
 import static androidx.work.impl.WorkDatabaseMigrations.MIGRATION_3_4;
 import static androidx.work.impl.WorkDatabaseMigrations.MIGRATION_4_5;
+import static androidx.work.impl.WorkDatabaseMigrations.MIGRATION_6_7;
+import static androidx.work.impl.WorkDatabaseMigrations.MIGRATION_7_8;
+import static androidx.work.impl.WorkDatabaseMigrations.MIGRATION_8_9;
+import static androidx.work.impl.WorkDatabaseMigrations.VERSION_10;
+import static androidx.work.impl.WorkDatabaseMigrations.VERSION_11;
 import static androidx.work.impl.WorkDatabaseMigrations.VERSION_2;
 import static androidx.work.impl.WorkDatabaseMigrations.VERSION_3;
 import static androidx.work.impl.WorkDatabaseMigrations.VERSION_5;
 import static androidx.work.impl.WorkDatabaseMigrations.VERSION_6;
 import static androidx.work.impl.model.WorkTypeConverters.StateIds.COMPLETED_STATES;
-import static androidx.work.impl.model.WorkTypeConverters.StateIds.ENQUEUED;
-import static androidx.work.impl.model.WorkTypeConverters.StateIds.RUNNING;
 
 import android.content.Context;
 
@@ -35,13 +38,20 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 import androidx.sqlite.db.SupportSQLiteDatabase;
+import androidx.sqlite.db.SupportSQLiteOpenHelper;
+import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory;
 import androidx.work.Data;
 import androidx.work.impl.model.Dependency;
 import androidx.work.impl.model.DependencyDao;
+import androidx.work.impl.model.Preference;
+import androidx.work.impl.model.PreferenceDao;
+import androidx.work.impl.model.RawWorkInfoDao;
 import androidx.work.impl.model.SystemIdInfo;
 import androidx.work.impl.model.SystemIdInfoDao;
 import androidx.work.impl.model.WorkName;
 import androidx.work.impl.model.WorkNameDao;
+import androidx.work.impl.model.WorkProgress;
+import androidx.work.impl.model.WorkProgressDao;
 import androidx.work.impl.model.WorkSpec;
 import androidx.work.impl.model.WorkSpecDao;
 import androidx.work.impl.model.WorkTag;
@@ -62,17 +72,12 @@ import java.util.concurrent.TimeUnit;
         WorkSpec.class,
         WorkTag.class,
         SystemIdInfo.class,
-        WorkName.class},
-        version = 6)
+        WorkName.class,
+        WorkProgress.class,
+        Preference.class},
+        version = 11)
 @TypeConverters(value = {Data.class, WorkTypeConverters.class})
 public abstract class WorkDatabase extends RoomDatabase {
-
-    private static final String DB_NAME = "androidx.work.workdb";
-    private static final String CLEANUP_SQL = "UPDATE workspec "
-            + "SET state=" + ENQUEUED + ","
-            + " schedule_requested_at=" + WorkSpec.SCHEDULE_NOT_REQUESTED_YET
-            + " WHERE state=" + RUNNING;
-
     // Delete rows in the workspec table that...
     private static final String PRUNE_SQL_FORMAT_PREFIX = "DELETE FROM workspec WHERE "
             // are completed...
@@ -86,7 +91,7 @@ public abstract class WorkDatabase extends RoomDatabase {
             + "    work_spec_id NOT IN "
             + "        (SELECT id FROM workspec WHERE state IN " + COMPLETED_STATES + "))";
 
-    private static final long PRUNE_THRESHOLD_MILLIS = TimeUnit.DAYS.toMillis(7);
+    private static final long PRUNE_THRESHOLD_MILLIS = TimeUnit.DAYS.toMillis(1);
 
     /**
      * Creates an instance of the WorkDatabase.
@@ -98,8 +103,9 @@ public abstract class WorkDatabase extends RoomDatabase {
      *                        access
      * @return The created WorkDatabase
      */
+    @NonNull
     public static WorkDatabase create(
-            @NonNull Context context,
+            @NonNull final Context context,
             @NonNull Executor queryExecutor,
             boolean useTestDatabase) {
         RoomDatabase.Builder<WorkDatabase> builder;
@@ -107,18 +113,43 @@ public abstract class WorkDatabase extends RoomDatabase {
             builder = Room.inMemoryDatabaseBuilder(context, WorkDatabase.class)
                     .allowMainThreadQueries();
         } else {
-            builder = Room.databaseBuilder(context, WorkDatabase.class, DB_NAME)
-                    .setQueryExecutor(queryExecutor);
+            String name = WorkDatabasePathHelper.getWorkDatabaseName();
+            builder = Room.databaseBuilder(context, WorkDatabase.class, name);
+            builder.openHelperFactory(new SupportSQLiteOpenHelper.Factory() {
+                @NonNull
+                @Override
+                public SupportSQLiteOpenHelper create(
+                        @NonNull SupportSQLiteOpenHelper.Configuration configuration) {
+                    SupportSQLiteOpenHelper.Configuration.Builder configBuilder =
+                            SupportSQLiteOpenHelper.Configuration.builder(context);
+                    configBuilder.name(configuration.name)
+                            .callback(configuration.callback)
+                            .noBackupDirectory(true);
+                    FrameworkSQLiteOpenHelperFactory factory =
+                            new FrameworkSQLiteOpenHelperFactory();
+                    return factory.create(configBuilder.build());
+                }
+            });
         }
 
-        return builder.addCallback(generateCleanupCallback())
+        return builder.setQueryExecutor(queryExecutor)
+                .addCallback(generateCleanupCallback())
                 .addMigrations(WorkDatabaseMigrations.MIGRATION_1_2)
                 .addMigrations(
-                        new WorkDatabaseMigrations.WorkMigration(context, VERSION_2, VERSION_3))
+                        new WorkDatabaseMigrations.RescheduleMigration(context, VERSION_2,
+                                VERSION_3))
                 .addMigrations(MIGRATION_3_4)
                 .addMigrations(MIGRATION_4_5)
                 .addMigrations(
-                        new WorkDatabaseMigrations.WorkMigration(context, VERSION_5, VERSION_6))
+                        new WorkDatabaseMigrations.RescheduleMigration(context, VERSION_5,
+                                VERSION_6))
+                .addMigrations(MIGRATION_6_7)
+                .addMigrations(MIGRATION_7_8)
+                .addMigrations(MIGRATION_8_9)
+                .addMigrations(new WorkDatabaseMigrations.WorkMigration9To10(context))
+                .addMigrations(
+                        new WorkDatabaseMigrations.RescheduleMigration(context, VERSION_10,
+                                VERSION_11))
                 .fallbackToDestructiveMigration()
                 .build();
     }
@@ -130,12 +161,9 @@ public abstract class WorkDatabase extends RoomDatabase {
                 super.onOpen(db);
                 db.beginTransaction();
                 try {
-                    db.execSQL(CLEANUP_SQL);
-
                     // Prune everything that is completed, has an expired retention time, and has no
                     // active dependents:
                     db.execSQL(getPruneSQL());
-
                     db.setTransactionSuccessful();
                 } finally {
                     db.endTransaction();
@@ -145,6 +173,7 @@ public abstract class WorkDatabase extends RoomDatabase {
     }
 
     @SuppressWarnings("WeakerAccess") /* synthetic access */
+    @NonNull
     static String getPruneSQL() {
         return PRUNE_SQL_FORMAT_PREFIX + getPruneDate() + PRUNE_SQL_FORMAT_SUFFIX;
     }
@@ -156,25 +185,48 @@ public abstract class WorkDatabase extends RoomDatabase {
     /**
      * @return The Data Access Object for {@link WorkSpec}s.
      */
+    @NonNull
     public abstract WorkSpecDao workSpecDao();
 
     /**
      * @return The Data Access Object for {@link Dependency}s.
      */
+    @NonNull
     public abstract DependencyDao dependencyDao();
 
     /**
      * @return The Data Access Object for {@link WorkTag}s.
      */
+    @NonNull
     public abstract WorkTagDao workTagDao();
 
     /**
      * @return The Data Access Object for {@link SystemIdInfo}s.
      */
+    @NonNull
     public abstract SystemIdInfoDao systemIdInfoDao();
 
     /**
      * @return The Data Access Object for {@link WorkName}s.
      */
+    @NonNull
     public abstract WorkNameDao workNameDao();
+
+    /**
+     * @return The Data Access Object for {@link WorkProgress}.
+     */
+    @NonNull
+    public abstract WorkProgressDao workProgressDao();
+
+    /**
+     * @return The Data Access Object for {@link Preference}.
+     */
+    @NonNull
+    public abstract PreferenceDao preferenceDao();
+
+    /**
+     * @return The Data Access Object which can be used to execute raw queries.
+     */
+    @NonNull
+    public abstract RawWorkInfoDao rawWorkInfoDao();
 }

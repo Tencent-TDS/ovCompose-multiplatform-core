@@ -17,10 +17,16 @@
 package androidx.build
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.TaskProvider
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileNotFoundException
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 
 /**
  * Task for building all of Androidx libraries and documentation
@@ -42,14 +48,16 @@ open class BuildOnServer : DefaultTask() {
         val buildId = getBuildId()
 
         val filesNames = mutableListOf(
-        // TODO: re-add after merge to compose merge to master
-        // "androidx-public-docs-$buildId.zip",
-        // "dokkaPublicDocs-$buildId.zip",
-        "androidx-tipOfTree-docs-$buildId.zip",
-        "dokkaTipOfTreeDocs-$buildId.zip",
-        "androidx_aggregate_build_info.txt",
-        "gmaven-diff-all-$buildId.zip",
-        "top-of-tree-m2repository-all-$buildId.zip")
+            "androidx_aggregate_build_info.txt",
+            "top-of-tree-m2repository-all-$buildId.zip"
+        )
+
+        if (project.isDocumentationEnabled()) {
+            filesNames.add("doclava-tip-of-tree-docs-$buildId.zip")
+            filesNames.add("doclava-public-docs-$buildId.zip")
+            filesNames.add("dokka-tip-of-tree-docs-$buildId.zip")
+            filesNames.add("dokka-public-docs-$buildId.zip")
+        }
 
         if (project.findProject(":jetifier-standalone") != null) {
             filesNames.add("jetifier-standalone.zip")
@@ -65,7 +73,7 @@ open class BuildOnServer : DefaultTask() {
         val missingFiles = mutableListOf<String>()
         getRequiredFiles().forEach { file ->
             if (!file.exists()) {
-                missingFiles.add(file.name)
+                missingFiles.add(file.path)
             }
         }
 
@@ -73,5 +81,49 @@ open class BuildOnServer : DefaultTask() {
             val missingFileString = missingFiles.reduce { acc, s -> "$acc, $s" }
             throw FileNotFoundException("buildOnServer required output missing: $missingFileString")
         }
+
+        verifyVersionFilesPresent()
+    }
+
+    private fun verifyVersionFilesPresent() {
+        project.getRepositoryDirectory().walk().forEach { file ->
+            if (file.extension == "aar") {
+                val inputStream = FileInputStream(file)
+                val aarFileInputStream = ZipInputStream(inputStream)
+                var entry: ZipEntry? = aarFileInputStream.nextEntry
+                while (entry != null) {
+                    if (entry.name == "classes.jar") {
+                        var foundVersionFile = false
+                        val classesJarInputStream = ZipInputStream(aarFileInputStream)
+                        var jarEntry = classesJarInputStream.nextEntry
+                        while (jarEntry != null) {
+                            if (jarEntry.name.startsWith("META-INF/androidx.") &&
+                                jarEntry.name.endsWith(".version")
+                            ) {
+                                foundVersionFile = true
+                                break
+                            }
+                            jarEntry = classesJarInputStream.nextEntry
+                        }
+                        if (!foundVersionFile) {
+                            throw Exception(
+                                "Missing META-INF/ version file in ${file.absolutePath}"
+                            )
+                        }
+                        break
+                    }
+                    entry = aarFileInputStream.nextEntry
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Configures the root project's buildOnServer task to run the specified task.
+ */
+fun <T : Task> Project.addToBuildOnServer(taskProvider: TaskProvider<T>) {
+    rootProject.tasks.named(AndroidXPlugin.BUILD_ON_SERVER_TASK).configure {
+        it.dependsOn(taskProvider)
     }
 }
