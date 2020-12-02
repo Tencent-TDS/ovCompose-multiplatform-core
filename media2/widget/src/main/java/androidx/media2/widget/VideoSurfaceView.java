@@ -20,7 +20,6 @@ import static androidx.media2.widget.VideoView.VIEW_TYPE_SURFACEVIEW;
 
 import android.content.Context;
 import android.graphics.Rect;
-import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -29,13 +28,9 @@ import androidx.core.content.ContextCompat;
 
 class VideoSurfaceView extends SurfaceView
         implements VideoViewInterface, SurfaceHolder.Callback {
-    private static final String TAG = "VideoSurfaceView";
-    private static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
     private Surface mSurface = null;
     SurfaceListener mSurfaceListener = null;
     private PlayerWrapper mPlayer;
-    // A flag to indicate taking over other view should be proceed.
-    private boolean mIsTakingOverOldView;
 
     VideoSurfaceView(Context context) {
         super(context, null);
@@ -48,6 +43,7 @@ class VideoSurfaceView extends SurfaceView
 
     @Override
     public boolean assignSurfaceToPlayerWrapper(PlayerWrapper player) {
+        mPlayer = player;
         if (player == null || !hasAvailableSurface()) {
             return false;
         }
@@ -72,19 +68,6 @@ class VideoSurfaceView extends SurfaceView
     @Override
     public int getViewType() {
         return VIEW_TYPE_SURFACEVIEW;
-    }
-
-    @Override
-    public void setPlayerWrapper(PlayerWrapper player) {
-        mPlayer = player;
-        if (mIsTakingOverOldView) {
-            mIsTakingOverOldView = !assignSurfaceToPlayerWrapper(mPlayer);
-        }
-    }
-
-    @Override
-    public void takeOver() {
-        mIsTakingOverOldView = !assignSurfaceToPlayerWrapper(mPlayer);
     }
 
     @Override

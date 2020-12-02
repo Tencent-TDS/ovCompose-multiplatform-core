@@ -18,6 +18,7 @@ package android.support.mediacompat.client;
 
 import static android.media.AudioManager.STREAM_MUSIC;
 import static android.support.mediacompat.testlib.MediaSessionConstants.RELEASE;
+import static android.support.mediacompat.testlib.MediaSessionConstants.RELEASE_AND_THEN_SET_PLAYBACK_STATE;
 import static android.support.mediacompat.testlib.MediaSessionConstants.SEND_SESSION_EVENT;
 import static android.support.mediacompat.testlib.MediaSessionConstants.SET_CAPTIONING_ENABLED;
 import static android.support.mediacompat.testlib.MediaSessionConstants.SET_EXTRAS;
@@ -68,6 +69,7 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.AudioManager;
+import android.media.session.MediaSession;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -87,6 +89,7 @@ import android.util.Log;
 import androidx.media.VolumeProviderCompat;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
+import androidx.test.filters.MediumTest;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
 
@@ -180,7 +183,7 @@ public class MediaControllerCompatCallbackTest {
      * Tests {@link MediaSessionCompat#setExtras}.
      */
     @Test
-    @SmallTest
+    @MediumTest
     public void testSetExtras() throws Exception {
         synchronized (mWaitLock) {
             mMediaControllerCallback.resetLocked();
@@ -224,7 +227,7 @@ public class MediaControllerCompatCallbackTest {
      * Tests {@link MediaSessionCompat#setMetadata}.
      */
     @Test
-    @SmallTest
+    @MediumTest
     public void testSetMetadata() throws Exception {
         synchronized (mWaitLock) {
             mMediaControllerCallback.resetLocked();
@@ -419,7 +422,7 @@ public class MediaControllerCompatCallbackTest {
      * Tests {@link MediaSessionCompat#setRepeatMode}.
      */
     @Test
-    @SmallTest
+    @MediumTest
     public void testSetRepeatMode() throws Exception {
         synchronized (mWaitLock) {
             mMediaControllerCallback.resetLocked();
@@ -436,7 +439,7 @@ public class MediaControllerCompatCallbackTest {
      * Tests {@link MediaSessionCompat#setShuffleMode}.
      */
     @Test
-    @SmallTest
+    @MediumTest
     public void testSetShuffleMode() throws Exception {
         final int shuffleMode = PlaybackStateCompat.SHUFFLE_MODE_ALL;
         synchronized (mWaitLock) {
@@ -578,6 +581,7 @@ public class MediaControllerCompatCallbackTest {
         final SessionReadyCallback callback = new SessionReadyCallback();
         synchronized (callback.mWaitLock) {
             getInstrumentation().runOnMainSync(new Runnable() {
+                @SuppressWarnings("deprecation")
                 @Override
                 public void run() {
                     try {
@@ -599,7 +603,7 @@ public class MediaControllerCompatCallbackTest {
     }
 
     @Test
-    @SmallTest
+    @LargeTest
     @SdkSuppress(minSdkVersion = 21)
     public void testOnSessionReadyCalled_extraBinderIsNotReadyWhenRegisteringCallback()
             throws Exception {
@@ -609,6 +613,7 @@ public class MediaControllerCompatCallbackTest {
                 MediaSessionCompat.Token.fromToken(mSessionToken.getToken());
         synchronized (callback.mWaitLock) {
             getInstrumentation().runOnMainSync(new Runnable() {
+                @SuppressWarnings("deprecation")
                 @Override
                 public void run() {
                     try {
@@ -640,6 +645,7 @@ public class MediaControllerCompatCallbackTest {
         final SessionReadyCallback callback = new SessionReadyCallback();
         synchronized (callback.mWaitLock) {
             getInstrumentation().runOnMainSync(new Runnable() {
+                @SuppressWarnings("deprecation")
                 @Override
                 public void run() {
                     try {
@@ -659,6 +665,38 @@ public class MediaControllerCompatCallbackTest {
             callback.mWaitLock.wait(TIME_OUT_MS);
             assertTrue(callback.mOnSessionReadyCalled);
             assertTrue(mController.isSessionReady());
+        }
+    }
+
+    @Test
+    @LargeTest
+    @SdkSuppress(minSdkVersion = 21)
+    public void testOnSessionReadyCalled_fwkMediaSession() throws Exception {
+        mController = null;
+        final MediaSession session = new MediaSession(getInstrumentation().getTargetContext(),
+                "TestFwkSession");
+        final SessionReadyCallback callback = new SessionReadyCallback();
+        synchronized (callback.mWaitLock) {
+            getInstrumentation().runOnMainSync(new Runnable() {
+                @SuppressWarnings("deprecation")
+                @Override
+                public void run() {
+                    try {
+                        // No extra binder exists in API 19. (i.e. session is always ready.)
+                        // onSessionReady() should be posted by registerCallback().
+                        MediaSession.Token fwkToken = session.getSessionToken();
+                        mController = new MediaControllerCompat(
+                                getInstrumentation().getTargetContext(),
+                                MediaSessionCompat.Token.fromToken(fwkToken));
+                        mController.registerCallback(callback, new Handler());
+                    } catch (Exception e) {
+                        fail();
+                    }
+                }
+            });
+            callback.mWaitLock.wait(TIME_OUT_MS);
+            assertFalse(mController.isSessionReady());
+            assertFalse(callback.mOnSessionReadyCalled);
         }
     }
 
@@ -716,7 +754,7 @@ public class MediaControllerCompatCallbackTest {
     }
 
     @Test
-    @SmallTest
+    @LargeTest
     public void testRegisterCallbackTwice() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(2);
 
@@ -730,7 +768,7 @@ public class MediaControllerCompatCallbackTest {
     }
 
     @Test
-    @SmallTest
+    @LargeTest
     public void testUnregisterCallbackTwice() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
 
@@ -744,7 +782,7 @@ public class MediaControllerCompatCallbackTest {
     }
 
     @Test
-    @SmallTest
+    @LargeTest
     public void testUnregisterUnknownCallback() throws InterruptedException {
         CountDownLatch latch1 = new CountDownLatch(1);
         CountDownLatch latch2 = new CountDownLatch(1);
@@ -756,6 +794,31 @@ public class MediaControllerCompatCallbackTest {
         callMediaSessionMethod(SET_EXTRAS, new Bundle(), getApplicationContext());
         assertTrue(latch1.await(TIME_OUT_MS, TimeUnit.MILLISECONDS));
         assertFalse(latch2.await(TIME_OUT_MS, TimeUnit.MILLISECONDS));
+    }
+
+    /**
+     * Tests callbacks are not called after {@link MediaSessionCompat#release}.
+     */
+    @Test
+    @LargeTest
+    public void testCallbacksAreNotCalledAfterRelease() throws Exception {
+        final CountDownLatch latchForDestroy = new CountDownLatch(1);
+        final CountDownLatch latchForPlaybackState = new CountDownLatch(1);
+
+        mController.registerCallback(new MediaControllerCompat.Callback() {
+            @Override
+            public void onSessionDestroyed() {
+                latchForDestroy.countDown();
+            }
+            @Override
+            public void onPlaybackStateChanged(PlaybackStateCompat state) {
+                latchForPlaybackState.countDown();
+            }
+        }, mHandler);
+
+        callMediaSessionMethod(RELEASE_AND_THEN_SET_PLAYBACK_STATE, null, getApplicationContext());
+        assertTrue(latchForDestroy.await(TIME_OUT_MS, TimeUnit.MILLISECONDS));
+        assertFalse(latchForPlaybackState.await(1000, TimeUnit.MILLISECONDS));
     }
 
     private void assertQueueEquals(List<QueueItem> expected, List<QueueItem> observed) {

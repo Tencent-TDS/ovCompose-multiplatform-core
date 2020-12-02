@@ -24,6 +24,7 @@ import android.graphics.RectF
 import androidx.test.filters.SmallTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -179,6 +180,39 @@ class RectTest {
         assertEquals(b, 0.0f)
     }
 
+    @Test fun timesInt() {
+        val original = Rect(1, 2, 3, 4)
+        val scaled = original * 2
+        assertNotSame(original, scaled)
+        val (l, t, r, b) = scaled
+        assertEquals(l, 2)
+        assertEquals(t, 4)
+        assertEquals(r, 6)
+        assertEquals(b, 8)
+    }
+
+    @Test fun timesFloatByInt() {
+        val original = RectF(1f, 2f, 3f, 4f)
+        val scaled = original * 2
+        assertNotSame(original, scaled)
+        val (l, t, r, b) = scaled
+        assertEquals(l, 2f, 0.0001f)
+        assertEquals(t, 4f, 0.0001f)
+        assertEquals(r, 6f, 0.0001f)
+        assertEquals(b, 8f, 0.0001f)
+    }
+
+    @Test fun timesFloatByFloat() {
+        val original = RectF(1f, 2f, 3f, 4f)
+        val scaled = original * 2f
+        assertNotSame(original, scaled)
+        val (l, t, r, b) = scaled
+        assertEquals(l, 2f, 0.0001f)
+        assertEquals(t, 4f, 0.0001f)
+        assertEquals(r, 6f, 0.0001f)
+        assertEquals(b, 8f, 0.0001f)
+    }
+
     @Test fun pointInside() {
         assertTrue(Point(1, 1) in Rect(0, 0, 2, 2))
         assertTrue(PointF(1.0f, 1.0f) in RectF(0.0f, 0.0f, 2.0f, 2.0f))
@@ -187,11 +221,13 @@ class RectTest {
     @Test fun toRect() {
         assertEquals(
             Rect(0, 1, 2, 3),
-            RectF(0f, 1f, 2f, 3f).toRect())
+            RectF(0f, 1f, 2f, 3f).toRect()
+        )
 
         assertEquals(
             Rect(0, 1, 2, 3),
-            RectF(0.1f, 1.1f, 1.9f, 2.9f).toRect())
+            RectF(0.1f, 1.1f, 1.9f, 2.9f).toRect()
+        )
     }
 
     @Test fun toRectF() {

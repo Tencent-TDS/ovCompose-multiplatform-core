@@ -28,20 +28,17 @@ plugins {
 dependencies {
     api(project(":room:room-common"))
     api(project(":room:room-runtime"))
-    api(ANDROIDX_SQLITE)
-    api(ANDROIDX_SQLITE_FRAMEWORK)
+    api("androidx.sqlite:sqlite:2.0.1")
+    api("androidx.sqlite:sqlite-framework:2.0.1")
     api(project(":room:room-migration"))
-    implementation(ARCH_CORE_RUNTIME)
-    api(SUPPORT_CORE_UTILS, libs.support_exclude_config)
+    implementation("androidx.arch.core:core-runtime:2.0.1")
     api(JUNIT)
 }
 
 androidx {
     name = "Android Room Testing"
     publish = Publish.SNAPSHOT_AND_RELEASE
-    mavenVersion = LibraryVersions.ROOM
     mavenGroup = LibraryGroups.ROOM
     inceptionYear = "2017"
     description = "Android Room Testing"
-    url = AndroidXExtension.ARCHITECTURE_URL
 }

@@ -20,7 +20,6 @@ import static androidx.media2.widget.VideoView.VIEW_TYPE_TEXTUREVIEW;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;
-import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
 
@@ -28,14 +27,10 @@ import androidx.core.content.ContextCompat;
 
 class VideoTextureView extends TextureView
         implements VideoViewInterface, TextureView.SurfaceTextureListener {
-    private static final String TAG = "VideoTextureView";
-    private static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
-
     private Surface mSurface;
     SurfaceListener mSurfaceListener;
     private PlayerWrapper mPlayer;
     // A flag to indicate taking over other view should be proceed.
-    private boolean mIsTakingOverOldView;
 
     VideoTextureView(Context context) {
         super(context, null);
@@ -48,6 +43,7 @@ class VideoTextureView extends TextureView
 
     @Override
     public boolean assignSurfaceToPlayerWrapper(PlayerWrapper player) {
+        mPlayer = player;
         if (player == null || !hasAvailableSurface()) {
             // Surface is not ready.
             return false;
@@ -73,19 +69,6 @@ class VideoTextureView extends TextureView
     @Override
     public int getViewType() {
         return VIEW_TYPE_TEXTUREVIEW;
-    }
-
-    @Override
-    public void setPlayerWrapper(PlayerWrapper player) {
-        mPlayer = player;
-        if (mIsTakingOverOldView) {
-            mIsTakingOverOldView = !assignSurfaceToPlayerWrapper(mPlayer);
-        }
-    }
-
-    @Override
-    public void takeOver() {
-        mIsTakingOverOldView = !assignSurfaceToPlayerWrapper(mPlayer);
     }
 
     @Override

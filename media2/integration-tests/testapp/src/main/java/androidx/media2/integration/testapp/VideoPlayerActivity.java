@@ -17,16 +17,14 @@
 package androidx.media2.integration.testapp;
 
 import android.app.AlertDialog;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.MediaMetadataRetriever;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -39,14 +37,22 @@ import android.widget.CompoundButton;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
-import androidx.media.AudioAttributesCompat;
-import androidx.media2.common.MediaMetadata;
-import androidx.media2.common.UriMediaItem;
-import androidx.media2.player.MediaPlayer;
+import androidx.media2.common.MediaItem;
+import androidx.media2.common.SessionPlayer;
 import androidx.media2.session.MediaController;
+import androidx.media2.session.SessionCommandGroup;
+import androidx.media2.session.SessionResult;
+import androidx.media2.session.SessionToken;
 import androidx.media2.widget.MediaControlView;
 import androidx.media2.widget.VideoView;
+
+import com.google.common.util.concurrent.ListenableFuture;
+
+import java.util.Locale;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Test application for VideoView/MediaControlView
@@ -58,13 +64,16 @@ public class VideoPlayerActivity extends FragmentActivity {
             "com.example.androidx.media.VideoPlayerActivity.MediaTypeAdvertisement";
     private static final String TAG = "VideoPlayerActivity";
 
+    @SuppressWarnings("WeakerAccess") /* synthetic access */
     MyVideoView mVideoView;
-    View mResizeHandle;
-    MediaPlayer mMediaPlayer;
+    @SuppressWarnings("WeakerAccess") /* synthetic access */
+    MediaController mMediaController;
+    @SuppressWarnings("WeakerAccess") /* synthetic access */
+    Uri mUri;
+    @SuppressWarnings("WeakerAccess") /* synthetic access */
+    float mSpeed = 1.0f;
 
-    private float mSpeed = 1.0f;
-
-    private MediaControlView mMediaControlView = null;
+    private View mResizeHandle;
 
     private int mVideoViewDX;
     private int mVideoViewDY;
@@ -87,14 +96,14 @@ public class VideoPlayerActivity extends FragmentActivity {
                 return onTouchVideoView(event);
             }
         });
-
-        mMediaPlayer = new MediaPlayer(VideoPlayerActivity.this);
-        AudioAttributesCompat audioAttributes = new AudioAttributesCompat.Builder()
-                .setUsage(AudioAttributesCompat.USAGE_MEDIA)
-                .setContentType(AudioAttributesCompat.CONTENT_TYPE_MOVIE).build();
-
-        mMediaPlayer.setAudioAttributes(audioAttributes);
-        mVideoView.setPlayer(mMediaPlayer);
+        SessionToken token = new SessionToken(this,
+                new ComponentName(this, VideoSessionService.class));
+        Executor executor = ContextCompat.getMainExecutor(this);
+        mMediaController = new MediaController.Builder(this)
+                .setControllerCallback(executor, new ControllerCallback())
+                .setSessionToken(token)
+                .build();
+        mVideoView.setMediaController(mMediaController);
 
         mResizeHandle = findViewById(R.id.resize_handle);
         mResizeHandle.setOnTouchListener(new View.OnTouchListener() {
@@ -140,13 +149,11 @@ public class VideoPlayerActivity extends FragmentActivity {
         if (intent == null || (videoUri = intent.getData()) == null || !videoUri.isAbsolute()) {
             errorString = "Invalid intent";
         } else {
-            UriMediaItem mediaItem = new UriMediaItem.Builder(videoUri).build();
-            MetadataExtractTask task = new MetadataExtractTask(mediaItem, this);
-            task.execute();
+            MediaControlView mediaControlView = new MediaControlView(this);
+            mVideoView.setMediaControlView(mediaControlView, 2000);
+            mediaControlView.setOnFullScreenListener(new FullScreenListener());
 
-            mMediaControlView = new MediaControlView(this);
-            mVideoView.setMediaControlView(mMediaControlView, 2000);
-            mMediaControlView.setOnFullScreenListener(new FullScreenListener());
+            mUri = videoUri;
         }
         if (errorString != null) {
             showErrorDialog(errorString);
@@ -157,29 +164,123 @@ public class VideoPlayerActivity extends FragmentActivity {
     protected void onDestroy() {
         Log.d(TAG, "onDestroy");
         super.onDestroy();
-        try {
-            if (mMediaPlayer != null) {
-                mMediaPlayer.close();
-            }
-        } catch (Exception e) {
-        }
+        mMediaController.close();
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             int screenWidth = getResources().getDisplayMetrics().widthPixels;
-            mSpeed = mMediaPlayer.getPlaybackSpeed();
+            mSpeed = mMediaController.getPlaybackSpeed();
             if (ev.getRawX() < (screenWidth / 2.0f)) {
                 mSpeed -= 0.1f;
             } else {
                 mSpeed += 0.1f;
             }
-            mMediaPlayer.setPlaybackSpeed(mSpeed);
-            Toast.makeText(this, "speed rate: " + String.format("%.2f", mSpeed), Toast.LENGTH_SHORT)
-                    .show();
+            final String speedString = String.format(Locale.US, "%.2f", mSpeed);
+            showErrorDialogIfFailed(mMediaController.setPlaybackSpeed(mSpeed),
+                    "failed to adjust speed rate to " + speedString);
+            Toast.makeText(this, "speed rate: " + speedString,
+                    Toast.LENGTH_SHORT).show();
         }
         return super.onTouchEvent(ev);
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+    }
+
+    @SuppressWarnings("WeakerAccess") /* synthetic access */
+    boolean onTouchVideoView(MotionEvent ev) {
+        int rawX = (int) ev.getRawX();
+        int rawY = (int) ev.getRawY();
+
+        // Move VideoView
+        ViewGroup.MarginLayoutParams vvParams = (ViewGroup.MarginLayoutParams)
+                mVideoView.getLayoutParams();
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mVideoViewDX = rawX - vvParams.leftMargin;
+                mVideoViewDY = rawY - vvParams.topMargin;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                vvParams.leftMargin = rawX - mVideoViewDX;
+                vvParams.topMargin = rawY - mVideoViewDY;
+                mVideoView.setLayoutParams(vvParams);
+                break;
+        }
+
+        // Move ResizeHandle as well
+        ViewGroup.MarginLayoutParams rhParams = (ViewGroup.MarginLayoutParams)
+                mResizeHandle.getLayoutParams();
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mResizeHandleDX = rawX - rhParams.leftMargin;
+                mResizeHandleDY = rawY - rhParams.topMargin;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                rhParams.leftMargin = rawX - mResizeHandleDX;
+                rhParams.topMargin = rawY - mResizeHandleDY;
+                mResizeHandle.setLayoutParams(rhParams);
+                break;
+        }
+
+        return true;
+    }
+
+    @SuppressWarnings("WeakerAccess") /* synthetic access */
+    boolean onTouchResizeHandle(MotionEvent ev) {
+        int rawX = (int) ev.getRawX();
+        int rawY = (int) ev.getRawY();
+
+        // Resize VideoView
+        ViewGroup.MarginLayoutParams vvParams = (ViewGroup.MarginLayoutParams)
+                mVideoView.getLayoutParams();
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mVideoViewDX = rawX - vvParams.width;
+                mVideoViewDY = rawY - vvParams.height;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                vvParams.width = rawX - mVideoViewDX;
+                vvParams.height = rawY - mVideoViewDY;
+                mVideoView.setLayoutParams(vvParams);
+                break;
+        }
+
+        // Move ResizeHandle
+        ViewGroup.MarginLayoutParams rhParams = (ViewGroup.MarginLayoutParams)
+                mResizeHandle.getLayoutParams();
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mResizeHandleDX = rawX - rhParams.leftMargin;
+                mResizeHandleDY = rawY - rhParams.topMargin;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                rhParams.leftMargin = rawX - mResizeHandleDX;
+                rhParams.topMargin = rawY - mResizeHandleDY;
+                mResizeHandle.setLayoutParams(rhParams);
+                break;
+        }
+
+        return true;
+    }
+
+    @SuppressWarnings("WeakerAccess") /* synthetic access */
+    void applyTransformability(boolean transformable) {
+        mVideoView.setTransformable(transformable);
+        mResizeHandle.setVisibility(transformable ? View.VISIBLE : View.GONE);
+    }
+
+    @SuppressWarnings("WeakerAccess") /* synthetic access */
+    String getViewTypeString(int viewType) {
+        if (viewType == VideoView.VIEW_TYPE_SURFACEVIEW) {
+            return "SurfaceView";
+        } else if (viewType == VideoView.VIEW_TYPE_TEXTUREVIEW) {
+            return "TextureView";
+        }
+        return "Unknown";
     }
 
     private void showErrorDialog(String errorMessage) {
@@ -196,11 +297,43 @@ public class VideoPlayerActivity extends FragmentActivity {
                         }).show();
     }
 
+    private void showErrorDialogIfFailed(ListenableFuture<SessionResult> result,
+            String errorMessage) {
+        result.addListener(() -> {
+            try {
+                SessionResult sessionResult = result.get(0, TimeUnit.MILLISECONDS);
+                if (sessionResult.getResultCode() != SessionResult.RESULT_SUCCESS) {
+                    showErrorDialog(errorMessage);
+                }
+            } catch (Exception e) {
+                showErrorDialog(errorMessage);
+            }
+        }, ContextCompat.getMainExecutor(this));
+    }
+
     class ControllerCallback extends MediaController.ControllerCallback {
         @Override
         public void onPlaybackSpeedChanged(
                 @NonNull MediaController controller, float speed) {
             mSpeed = speed;
+        }
+
+        @Override
+        public void onConnected(@NonNull MediaController controller,
+                @NonNull SessionCommandGroup allowedCommands) {
+            MediaItem currentItem = controller.getCurrentMediaItem();
+            // Return if current media item exists and it is the same as the one that is selected
+            // to play.
+            if (currentItem != null
+                    && TextUtils.equals(currentItem.getMediaId(), mUri.toString())
+                    && controller.getPlayerState() != SessionPlayer.PLAYER_STATE_IDLE
+                    && controller.getPlayerState() != SessionPlayer.PLAYER_STATE_ERROR) {
+                return;
+            }
+
+            showErrorDialogIfFailed(controller.setMediaItem(mUri.toString()),
+                    "failed to set " + mUri);
+            showErrorDialogIfFailed(controller.prepare(), "failed to prepare " + mUri);
         }
     }
 
@@ -260,7 +393,7 @@ public class VideoPlayerActivity extends FragmentActivity {
             super(context, attrs, defStyle);
         }
 
-        public void setTransformable(boolean transformable) {
+        void setTransformable(boolean transformable) {
             mTransformable = transformable;
         }
 
@@ -270,157 +403,6 @@ public class VideoPlayerActivity extends FragmentActivity {
                 return super.onInterceptTouchEvent(ev);
             }
             return true;
-        }
-    }
-
-    @Override
-    public void onConfigurationChanged(@NonNull Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-    }
-
-    boolean onTouchVideoView(MotionEvent ev) {
-        int rawX = (int) ev.getRawX();
-        int rawY = (int) ev.getRawY();
-
-        // Move VideoView
-        ViewGroup.MarginLayoutParams vvParams = (ViewGroup.MarginLayoutParams)
-                mVideoView.getLayoutParams();
-        switch (ev.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                mVideoViewDX = rawX - vvParams.leftMargin;
-                mVideoViewDY = rawY - vvParams.topMargin;
-                break;
-            case MotionEvent.ACTION_MOVE:
-                vvParams.leftMargin = rawX - mVideoViewDX;
-                vvParams.topMargin = rawY - mVideoViewDY;
-                mVideoView.setLayoutParams(vvParams);
-                break;
-        }
-
-        // Move ResizeHandle as well
-        ViewGroup.MarginLayoutParams rhParams = (ViewGroup.MarginLayoutParams)
-                mResizeHandle.getLayoutParams();
-        switch (ev.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                mResizeHandleDX = rawX - rhParams.leftMargin;
-                mResizeHandleDY = rawY - rhParams.topMargin;
-                break;
-            case MotionEvent.ACTION_MOVE:
-                rhParams.leftMargin = rawX - mResizeHandleDX;
-                rhParams.topMargin = rawY - mResizeHandleDY;
-                mResizeHandle.setLayoutParams(rhParams);
-                break;
-        }
-
-        return true;
-    }
-
-    boolean onTouchResizeHandle(MotionEvent ev) {
-        int rawX = (int) ev.getRawX();
-        int rawY = (int) ev.getRawY();
-
-        // Resize VideoView
-        ViewGroup.MarginLayoutParams vvParams = (ViewGroup.MarginLayoutParams)
-                mVideoView.getLayoutParams();
-        switch (ev.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                mVideoViewDX = rawX - vvParams.width;
-                mVideoViewDY = rawY - vvParams.height;
-                break;
-            case MotionEvent.ACTION_MOVE:
-                vvParams.width = rawX - mVideoViewDX;
-                vvParams.height = rawY - mVideoViewDY;
-                mVideoView.setLayoutParams(vvParams);
-                break;
-        }
-
-        // Move ResizeHandle
-        ViewGroup.MarginLayoutParams rhParams = (ViewGroup.MarginLayoutParams)
-                mResizeHandle.getLayoutParams();
-        switch (ev.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                mResizeHandleDX = rawX - rhParams.leftMargin;
-                mResizeHandleDY = rawY - rhParams.topMargin;
-                break;
-            case MotionEvent.ACTION_MOVE:
-                rhParams.leftMargin = rawX - mResizeHandleDX;
-                rhParams.topMargin = rawY - mResizeHandleDY;
-                mResizeHandle.setLayoutParams(rhParams);
-                break;
-        }
-
-        return true;
-    }
-
-    void applyTransformability(boolean transformable) {
-        mVideoView.setTransformable(transformable);
-        mResizeHandle.setVisibility(transformable ? View.VISIBLE : View.GONE);
-    }
-
-    String getViewTypeString(int viewType) {
-        if (viewType == VideoView.VIEW_TYPE_SURFACEVIEW) {
-            return "SurfaceView";
-        } else if (viewType == VideoView.VIEW_TYPE_TEXTUREVIEW) {
-            return "TextureView";
-        }
-        return "Unknown";
-    }
-
-    private class MetadataExtractTask extends AsyncTask<Void, Void, MediaMetadata> {
-        private UriMediaItem mItem;
-        private Context mContext;
-
-        MetadataExtractTask(UriMediaItem mediaItem, Context context) {
-            mItem = mediaItem;
-            mContext = context;
-        }
-
-        @Override
-        protected MediaMetadata doInBackground(Void... params) {
-            return extractMetadata(mItem.getUri());
-        }
-
-        @Override
-        protected void onPostExecute(MediaMetadata metadata) {
-            if (metadata != null) {
-                mItem.setMetadata(metadata);
-                mMediaPlayer.setMediaItem(mItem);
-                mMediaPlayer.prepare();
-            }
-        }
-
-        private MediaMetadata extractMetadata(Uri uri) {
-            MediaMetadataRetriever retriever = null;
-            try {
-                // TODO: Investigate using different API to cover for both content and remote Uris.
-                retriever = new MediaMetadataRetriever();
-                retriever.setDataSource(mContext, uri);
-            } catch (IllegalArgumentException e) {
-                Log.v(TAG, "Cannot retrieve metadata for this media file.");
-                retriever = null;
-            }
-
-            if (retriever != null) {
-                MediaMetadata.Builder builder = new MediaMetadata.Builder();
-                String title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-                if (title != null) {
-                    builder.putString(MediaMetadata.METADATA_KEY_TITLE, title);
-                }
-                String artist = retriever.extractMetadata(
-                        MediaMetadataRetriever.METADATA_KEY_ARTIST);
-                if (artist != null) {
-                    builder.putString(MediaMetadata.METADATA_KEY_ARTIST, artist);
-                }
-                byte[] album = retriever.getEmbeddedPicture();
-                if (album != null) {
-                    Bitmap bitmap = BitmapFactory.decodeByteArray(album, 0, album.length);
-                    builder.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, bitmap);
-                }
-
-                MediaMetadata metadata = builder.build();
-                return metadata;
-            }
-            return null;
         }
     }
 }

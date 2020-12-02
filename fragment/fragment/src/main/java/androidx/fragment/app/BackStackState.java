@@ -28,12 +28,13 @@ import java.util.ArrayList;
 
 @SuppressLint("BanParcelableUsage")
 final class BackStackState implements Parcelable {
+    private static final String TAG = FragmentManager.TAG;
+
     final int[] mOps;
     final ArrayList<String> mFragmentWhos;
     final int[] mOldMaxLifecycleStates;
     final int[] mCurrentMaxLifecycleStates;
     final int mTransition;
-    final int mTransitionStyle;
     final String mName;
     final int mIndex;
     final int mBreadCrumbTitleRes;
@@ -68,7 +69,6 @@ final class BackStackState implements Parcelable {
             mCurrentMaxLifecycleStates[opNum] = op.mCurrentMaxState.ordinal();
         }
         mTransition = bse.mTransition;
-        mTransitionStyle = bse.mTransitionStyle;
         mName = bse.mName;
         mIndex = bse.mIndex;
         mBreadCrumbTitleRes = bse.mBreadCrumbTitleRes;
@@ -86,7 +86,6 @@ final class BackStackState implements Parcelable {
         mOldMaxLifecycleStates = in.createIntArray();
         mCurrentMaxLifecycleStates = in.createIntArray();
         mTransition = in.readInt();
-        mTransitionStyle = in.readInt();
         mName = in.readString();
         mIndex = in.readInt();
         mBreadCrumbTitleRes = in.readInt();
@@ -98,18 +97,20 @@ final class BackStackState implements Parcelable {
         mReorderingAllowed = in.readInt() != 0;
     }
 
-    public BackStackRecord instantiate(FragmentManagerImpl fm) {
+    public BackStackRecord instantiate(FragmentManager fm) {
         BackStackRecord bse = new BackStackRecord(fm);
         int pos = 0;
         int num = 0;
         while (pos < mOps.length) {
             BackStackRecord.Op op = new BackStackRecord.Op();
             op.mCmd = mOps[pos++];
-            if (FragmentManagerImpl.DEBUG) Log.v(FragmentManagerImpl.TAG,
-                    "Instantiate " + bse + " op #" + num + " base fragment #" + mOps[pos]);
+            if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
+                Log.v(TAG, "Instantiate " + bse
+                        + " op #" + num + " base fragment #" + mOps[pos]);
+            }
             String fWho = mFragmentWhos.get(num);
             if (fWho != null) {
-                Fragment f = fm.mActive.get(fWho);
+                Fragment f = fm.findActiveFragment(fWho);
                 op.mFragment = f;
             } else {
                 op.mFragment = null;
@@ -128,7 +129,6 @@ final class BackStackState implements Parcelable {
             num++;
         }
         bse.mTransition = mTransition;
-        bse.mTransitionStyle = mTransitionStyle;
         bse.mName = mName;
         bse.mIndex = mIndex;
         bse.mAddToBackStack = true;
@@ -155,7 +155,6 @@ final class BackStackState implements Parcelable {
         dest.writeIntArray(mOldMaxLifecycleStates);
         dest.writeIntArray(mCurrentMaxLifecycleStates);
         dest.writeInt(mTransition);
-        dest.writeInt(mTransitionStyle);
         dest.writeString(mName);
         dest.writeInt(mIndex);
         dest.writeInt(mBreadCrumbTitleRes);

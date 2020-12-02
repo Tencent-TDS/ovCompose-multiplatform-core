@@ -16,7 +16,7 @@
 
 package androidx.media2.session;
 
-import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
+import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -29,8 +29,9 @@ import androidx.annotation.RestrictTo;
 import androidx.concurrent.futures.ResolvableFuture;
 import androidx.media2.common.MediaItem;
 import androidx.media2.common.SessionPlayer;
+import androidx.versionedparcelable.CustomVersionedParcelable;
+import androidx.versionedparcelable.NonParcelField;
 import androidx.versionedparcelable.ParcelField;
-import androidx.versionedparcelable.VersionedParcelable;
 import androidx.versionedparcelable.VersionedParcelize;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -42,8 +43,8 @@ import java.lang.annotation.RetentionPolicy;
  * Result class to be used with {@link ListenableFuture} for asynchronous calls between
  * {@link MediaSession} and {@link MediaController}.
  */
-@VersionedParcelize
-public class SessionResult implements RemoteResult, VersionedParcelable {
+@VersionedParcelize(isCustom = true)
+public class SessionResult extends CustomVersionedParcelable implements RemoteResult {
     /**
      * Result code representing that the command is successfully completed.
      * <p>
@@ -75,7 +76,7 @@ public class SessionResult implements RemoteResult, VersionedParcelable {
             RESULT_ERROR_SESSION_SKIP_LIMIT_REACHED,
             RESULT_ERROR_SESSION_SETUP_REQUIRED})
     @Retention(RetentionPolicy.SOURCE)
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY)
     public @interface ResultCode {}
 
     @ParcelField(1)
@@ -84,8 +85,14 @@ public class SessionResult implements RemoteResult, VersionedParcelable {
     long mCompletionTime;
     @ParcelField(3)
     Bundle mCustomCommandResult;
-    @ParcelField(4)
+    // Parceled via mParcelableItem.
+    @NonParcelField
     MediaItem mItem;
+    // For parceling mItem. Should be only used by onPreParceling() and onPostParceling().
+    @ParcelField(4)
+    MediaItem mParcelableItem;
+
+    // WARNING: Adding a new ParcelField may break old library users (b/152830728)
 
     /**
      * Constructor to be used by {@link MediaSession.SessionCallback#onCustomCommand(
@@ -207,5 +214,30 @@ public class SessionResult implements RemoteResult, VersionedParcelable {
     @Nullable
     public MediaItem getMediaItem() {
         return mItem;
+    }
+
+    /**
+     * @hide
+     */
+    @RestrictTo(LIBRARY)
+    @Override
+    @SuppressWarnings("SynchronizeOnNonFinalField") // mItem is effectively final.
+    public void onPreParceling(boolean isStream) {
+        if (mItem != null) {
+            synchronized (mItem) {
+                if (mParcelableItem == null) {
+                    mParcelableItem = MediaUtils.upcastForPreparceling(mItem);
+                }
+            }
+        }
+    }
+
+    /**
+     * @hide
+     */
+    @RestrictTo(LIBRARY)
+    @Override
+    public void onPostParceling() {
+        mItem = mParcelableItem;
     }
 }

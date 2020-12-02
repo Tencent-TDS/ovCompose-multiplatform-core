@@ -18,29 +18,45 @@ package androidx.paging
 
 import androidx.arch.core.executor.ArchTaskExecutor
 import androidx.lifecycle.LiveData
-import androidx.paging.futures.FutureCallback
-import androidx.paging.futures.addCallback
-import com.google.common.util.concurrent.ListenableFuture
+import androidx.paging.LoadState.Error
+import androidx.paging.LoadState.Loading
+import androidx.paging.LoadType.REFRESH
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.Executor
 
+@Suppress("DEPRECATION")
 internal class LivePagedList<Key : Any, Value : Any>(
+    private val coroutineScope: CoroutineScope,
     initialKey: Key?,
     private val config: PagedList.Config,
     private val boundaryCallback: PagedList.BoundaryCallback<Value>?,
-    private val dataSourceFactory: DataSource.Factory<Key, Value>,
-    private val notifyExecutor: Executor,
-    private val fetchExecutor: Executor
-) : LiveData<PagedList<Value>>(), FutureCallback<PagedList<Value>> {
+    private val pagingSourceFactory: () -> PagingSource<Key, Value>,
+    private val notifyDispatcher: CoroutineDispatcher,
+    private val fetchDispatcher: CoroutineDispatcher
+) : LiveData<PagedList<Value>>(
+    InitialPagedList(
+        pagingSourceFactory(),
+        coroutineScope,
+        config,
+        initialKey
+    )
+) {
     private var currentData: PagedList<Value>
-    private var currentFuture: ListenableFuture<PagedList<Value>>? = null
+    private var currentJob: Job? = null
 
     private val callback = { invalidate(true) }
 
     private val refreshRetryCallback = Runnable { invalidate(true) }
 
     init {
-        currentData = InitialPagedList(dataSourceFactory.create(), config, initialKey)
-        onSuccess(currentData)
+        currentData = value!!
+        currentData.setRetryCallback(refreshRetryCallback)
     }
 
     override fun onActive() {
@@ -48,69 +64,90 @@ internal class LivePagedList<Key : Any, Value : Any>(
         invalidate(false)
     }
 
-    override fun onError(throwable: Throwable) {
-        val loadState = if (currentData.dataSource.isRetryableError(throwable)) {
-            PagedList.LoadState.RETRYABLE_ERROR
-        } else {
-            PagedList.LoadState.ERROR
-        }
-
-        currentData.setInitialLoadState(loadState, throwable)
-    }
-
-    override fun onSuccess(value: PagedList<Value>) {
-        onItemUpdate(currentData, value)
-        currentData = value
-        setValue(value)
-    }
-
-    fun invalidate(force: Boolean) {
+    private fun invalidate(force: Boolean) {
         // work is already ongoing, not forcing, so skip invalidate
-        if (currentFuture != null && !force) return
+        if (currentJob != null && !force) return
 
-        currentFuture?.cancel(false)
-        currentFuture = createPagedList().also { it.addCallback(this, notifyExecutor) }
+        currentJob?.cancel()
+        currentJob = coroutineScope.launch(fetchDispatcher) {
+            currentData.pagingSource.unregisterInvalidatedCallback(callback)
+            val pagingSource = pagingSourceFactory()
+            pagingSource.registerInvalidatedCallback(callback)
+
+            withContext(notifyDispatcher) {
+                currentData.setInitialLoadState(REFRESH, Loading)
+            }
+
+            @Suppress("UNCHECKED_CAST")
+            val lastKey = currentData.lastKey as Key?
+            val params = config.toRefreshLoadParams(lastKey)
+            when (val initialResult = pagingSource.load(params)) {
+                is PagingSource.LoadResult.Error -> {
+                    currentData.setInitialLoadState(
+                        REFRESH,
+                        Error(initialResult.throwable)
+                    )
+                }
+                is PagingSource.LoadResult.Page -> {
+                    val pagedList = PagedList.create(
+                        pagingSource,
+                        initialResult,
+                        coroutineScope,
+                        notifyDispatcher,
+                        fetchDispatcher,
+                        boundaryCallback,
+                        config,
+                        lastKey
+                    )
+                    onItemUpdate(currentData, pagedList)
+                    currentData = pagedList
+                    postValue(pagedList)
+                }
+            }
+        }
     }
 
     private fun onItemUpdate(previous: PagedList<Value>, next: PagedList<Value>) {
         previous.setRetryCallback(null)
         next.setRetryCallback(refreshRetryCallback)
     }
-
-    private fun createPagedList(): ListenableFuture<PagedList<Value>> {
-        val dataSource = dataSourceFactory.create()
-        currentData.dataSource.removeInvalidatedCallback(callback)
-        dataSource.addInvalidatedCallback(callback)
-        currentData.setInitialLoadState(PagedList.LoadState.LOADING, null)
-
-        @Suppress("UNCHECKED_CAST") // getLastKey guaranteed to be of 'Key' type
-        val lastKey = currentData.lastKey as Key?
-        return PagedList.create(
-            dataSource,
-            notifyExecutor,
-            fetchExecutor,
-            fetchExecutor,
-            boundaryCallback,
-            config,
-            lastKey
-        )
-    }
 }
 
 /**
- * Constructs a `LiveData<PagedList>`, from this `DataSource.Factory`, convenience for
+ * Constructs a `LiveData<PagedList>`, from this [DataSource.Factory], convenience for
  * [LivePagedListBuilder].
  *
- * No work (such as loading) is done immediately, the creation of the first PagedList is is
- * deferred until the LiveData is observed.
+ * No work (such as loading) is done immediately, the creation of the first [PagedList] is deferred
+ * until the [LiveData] is observed.
  *
  * @param config Paging configuration.
- * @param initialLoadKey Initial load key passed to the first PagedList/DataSource.
- * @param boundaryCallback The boundary callback for listening to PagedList load state.
- * @param fetchExecutor Executor for fetching data from DataSources.
+ * @param initialLoadKey Initial load key passed to the first [PagedList] / [PagingSource].
+ * @param boundaryCallback The boundary callback for listening to [PagedList] load state.
+ * @param fetchExecutor [Executor] for fetching data from [PagingSource]s.
  *
  * @see LivePagedListBuilder
  */
+@Suppress("DEPRECATION")
+@Deprecated(
+    message = "PagedList is deprecated and has been replaced by PagingData",
+    replaceWith = ReplaceWith(
+        """Pager(
+            PagingConfig(
+                config.pageSize,
+                config.prefetchDistance,
+                config.enablePlaceholders,
+                config.initialLoadSizeHint,
+                config.maxSize
+            ),
+            initialLoadKey,
+            this.asPagingSourceFactory(fetchExecutor.asCoroutineDispatcher())
+        ).liveData""",
+        "androidx.paging.Pager",
+        "androidx.paging.PagingConfig",
+        "androidx.paging.liveData",
+        "kotlinx.coroutines.asCoroutineDispatcher"
+    )
+)
 fun <Key : Any, Value : Any> DataSource.Factory<Key, Value>.toLiveData(
     config: PagedList.Config,
     initialLoadKey: Key? = null,
@@ -128,16 +165,31 @@ fun <Key : Any, Value : Any> DataSource.Factory<Key, Value>.toLiveData(
  * Constructs a `LiveData<PagedList>`, from this `DataSource.Factory`, convenience for
  * [LivePagedListBuilder].
  *
- * No work (such as loading) is done immediately, the creation of the first PagedList is is
- * deferred until the LiveData is observed.
+ * No work (such as loading) is done immediately, the creation of the first [PagedList] is deferred
+ * until the [LiveData] is observed.
  *
  * @param pageSize Page size.
- * @param initialLoadKey Initial load key passed to the first PagedList/DataSource.
- * @param boundaryCallback The boundary callback for listening to PagedList load state.
+ * @param initialLoadKey Initial load key passed to the first [PagedList] / [PagingSource].
+ * @param boundaryCallback The boundary callback for listening to [PagedList] load state.
  * @param fetchExecutor Executor for fetching data from DataSources.
  *
  * @see LivePagedListBuilder
  */
+@Suppress("DEPRECATION")
+@Deprecated(
+    message = "PagedList is deprecated and has been replaced by PagingData",
+    replaceWith = ReplaceWith(
+        """Pager(
+            PagingConfig(pageSize),
+            initialLoadKey,
+            this.asPagingSourceFactory(fetchExecutor.asCoroutineDispatcher())
+        ).liveData""",
+        "androidx.paging.Pager",
+        "androidx.paging.PagingConfig",
+        "androidx.paging.liveData",
+        "kotlinx.coroutines.asCoroutineDispatcher"
+    )
+)
 fun <Key : Any, Value : Any> DataSource.Factory<Key, Value>.toLiveData(
     pageSize: Int,
     initialLoadKey: Key? = null,
@@ -149,4 +201,114 @@ fun <Key : Any, Value : Any> DataSource.Factory<Key, Value>.toLiveData(
         .setBoundaryCallback(boundaryCallback)
         .setFetchExecutor(fetchExecutor)
         .build()
+}
+
+/**
+ * Constructs a `LiveData<PagedList>`, from this PagingSource factory, convenience for
+ * [LivePagedListBuilder].
+ *
+ * No work (such as loading) is done immediately, the creation of the first [PagedList] is deferred
+ * until the [LiveData] is observed.
+ *
+ * @param config Paging configuration.
+ * @param initialLoadKey Initial load key passed to the first [PagedList] / [PagingSource].
+ * @param boundaryCallback The boundary callback for listening to [PagedList] load state.
+ * @param coroutineScope Set the [CoroutineScope] that page loads should be launched within. The
+ * set [coroutineScope] allows a [PagingSource] to cancel running load operations when the results
+ * are no longer needed - for example, when the containing activity is destroyed.
+ *
+ * Defaults to [GlobalScope].
+ * @param fetchDispatcher [CoroutineDispatcher] for fetching data from [PagingSource]s.
+ *
+ * @see LivePagedListBuilder
+ */
+@Suppress("DEPRECATION")
+@Deprecated(
+    message = "PagedList is deprecated and has been replaced by PagingData",
+    replaceWith = ReplaceWith(
+        """Pager(
+            PagingConfig(
+                config.pageSize,
+                config.prefetchDistance,
+                config.enablePlaceholders,
+                config.initialLoadSizeHint,
+                config.maxSize
+            ),
+            initialLoadKey,
+            this
+        ).liveData""",
+        "androidx.paging.Pager",
+        "androidx.paging.PagingConfig",
+        "androidx.paging.liveData"
+    )
+)
+fun <Key : Any, Value : Any> (() -> PagingSource<Key, Value>).toLiveData(
+    config: PagedList.Config,
+    initialLoadKey: Key? = null,
+    boundaryCallback: PagedList.BoundaryCallback<Value>? = null,
+    coroutineScope: CoroutineScope = GlobalScope,
+    fetchDispatcher: CoroutineDispatcher = ArchTaskExecutor.getIOThreadExecutor()
+        .asCoroutineDispatcher()
+): LiveData<PagedList<Value>> {
+    return LivePagedList(
+        coroutineScope,
+        initialLoadKey,
+        config,
+        boundaryCallback,
+        this,
+        ArchTaskExecutor.getMainThreadExecutor().asCoroutineDispatcher(),
+        fetchDispatcher
+    )
+}
+
+/**
+ * Constructs a `LiveData<PagedList>`, from this PagingSource factory, convenience for
+ * [LivePagedListBuilder].
+ *
+ * No work (such as loading) is done immediately, the creation of the first [PagedList] is deferred
+ * until the [LiveData] is observed.
+ *
+ * @param pageSize Page size.
+ * @param initialLoadKey Initial load key passed to the first [PagedList] / [PagingSource].
+ * @param boundaryCallback The boundary callback for listening to [PagedList] load state.
+ * @param coroutineScope Set the [CoroutineScope] that page loads should be launched within. The
+ * set [coroutineScope] allows a [PagingSource] to cancel running load operations when the results
+ * are no longer needed - for example, when the containing activity is destroyed.
+ *
+ * Defaults to [GlobalScope].
+ * @param fetchDispatcher [CoroutineDispatcher] for fetching data from [PagingSource]s.
+ *
+ * @see LivePagedListBuilder
+ */
+@Suppress("DEPRECATION")
+@Deprecated(
+    message = "PagedList is deprecated and has been replaced by PagingData",
+    replaceWith = ReplaceWith(
+        """Pager(
+            PagingConfig(pageSize),
+            initialLoadKey,
+            this
+        ).liveData""",
+        "androidx.paging.Pager",
+        "androidx.paging.PagingConfig",
+        "androidx.paging.liveData"
+    )
+)
+fun <Key : Any, Value : Any> (() -> PagingSource<Key, Value>).toLiveData(
+    pageSize: Int,
+    initialLoadKey: Key? = null,
+    boundaryCallback: PagedList.BoundaryCallback<Value>? = null,
+    coroutineScope: CoroutineScope = GlobalScope,
+    fetchDispatcher: CoroutineDispatcher = ArchTaskExecutor.getIOThreadExecutor()
+        .asCoroutineDispatcher()
+): LiveData<PagedList<Value>> {
+    return LivePagedList(
+        coroutineScope,
+        initialLoadKey,
+        PagedList.Config.Builder().setPageSize(pageSize).build(),
+        boundaryCallback,
+        this,
+        ArchTaskExecutor.getMainThreadExecutor().asCoroutineDispatcher(),
+        fetchDispatcher
+    )
 }

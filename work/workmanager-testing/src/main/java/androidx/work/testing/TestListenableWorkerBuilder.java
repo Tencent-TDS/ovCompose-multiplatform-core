@@ -16,6 +16,7 @@
 
 package androidx.work.testing;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Network;
 import android.net.Uri;
@@ -24,7 +25,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.work.Data;
+import androidx.work.ForegroundUpdater;
 import androidx.work.ListenableWorker;
+import androidx.work.ProgressUpdater;
 import androidx.work.WorkRequest;
 import androidx.work.WorkerFactory;
 import androidx.work.WorkerParameters;
@@ -42,6 +45,7 @@ import java.util.concurrent.Executor;
  *
  * @param <W> The actual {@link ListenableWorker} subtype being built.
  */
+@SuppressWarnings("rawtypes")
 public class TestListenableWorkerBuilder<W extends ListenableWorker> {
 
     private Context mContext;
@@ -55,6 +59,8 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
     private WorkerFactory mWorkerFactory;
     private TaskExecutor mTaskExecutor;
     private Executor mExecutor;
+    private ProgressUpdater mProgressUpdater;
+    private ForegroundUpdater mForegroundUpdater;
 
     TestListenableWorkerBuilder(@NonNull Context context, @NonNull Class<W> workerClass) {
         mContext = context;
@@ -68,6 +74,8 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
         mWorkerFactory = WorkerFactory.getDefaultWorkerFactory();
         mTaskExecutor = new InstantWorkTaskExecutor();
         mExecutor = mTaskExecutor.getBackgroundExecutor();
+        mProgressUpdater = new TestProgressUpdater();
+        mForegroundUpdater = new TestForegroundUpdater();
     }
 
     /**
@@ -110,7 +118,7 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
     }
 
     /**
-     * @return The {@link List<String>} tags associated with this unit of work.
+     * @return The {@link List} of tags associated with this unit of work.
      */
     @NonNull
     List<String> getTags() {
@@ -160,13 +168,31 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
     }
 
     /**
+     * @return The {@link ProgressUpdater} associated with this unit of work.
+     */
+    @NonNull
+    @SuppressWarnings({"KotlinPropertyAccess", "WeakerAccess"})
+    ProgressUpdater getProgressUpdater() {
+        return mProgressUpdater;
+    }
+
+    /**
+     * @return The {@link ForegroundUpdater} associated with this unit of work.
+     */
+    @NonNull
+    @SuppressLint("KotlinPropertyAccess")
+    ForegroundUpdater getForegroundUpdater() {
+        return mForegroundUpdater;
+    }
+
+    /**
      * Sets the id for this unit of work.
      *
      * @param id The {@link UUID}
      * @return The current {@link TestListenableWorkerBuilder}
      */
     @NonNull
-    public TestListenableWorkerBuilder setId(@NonNull UUID id) {
+    public TestListenableWorkerBuilder<W> setId(@NonNull UUID id) {
         mId = id;
         return this;
     }
@@ -178,7 +204,7 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
      * @return The current {@link TestListenableWorkerBuilder}
      */
     @NonNull
-    public TestListenableWorkerBuilder setInputData(@NonNull Data inputData) {
+    public TestListenableWorkerBuilder<W> setInputData(@NonNull Data inputData) {
         mInputData = inputData;
         return this;
     }
@@ -190,7 +216,7 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
      * @return The current {@link TestListenableWorkerBuilder}
      */
     @NonNull
-    public TestListenableWorkerBuilder setTags(@NonNull List<String> tags) {
+    public TestListenableWorkerBuilder<W> setTags(@NonNull List<String> tags) {
         mTags = tags;
         return this;
     }
@@ -202,7 +228,7 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
      * @return The current {@link TestListenableWorkerBuilder}
      */
     @NonNull
-    public TestListenableWorkerBuilder setRunAttemptCount(int runAttemptCount) {
+    public TestListenableWorkerBuilder<W> setRunAttemptCount(int runAttemptCount) {
         mRunAttemptCount = runAttemptCount;
         return this;
     }
@@ -215,7 +241,7 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
      */
     @RequiresApi(24)
     @NonNull
-    public TestListenableWorkerBuilder setTriggeredContentUris(@NonNull List<Uri> contentUris) {
+    public TestListenableWorkerBuilder<W> setTriggeredContentUris(@NonNull List<Uri> contentUris) {
         mRuntimeExtras.triggeredContentUris = contentUris;
         return this;
     }
@@ -228,7 +254,7 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
      */
     @RequiresApi(24)
     @NonNull
-    public TestListenableWorkerBuilder setTriggeredContentAuthorities(
+    public TestListenableWorkerBuilder<W> setTriggeredContentAuthorities(
             @NonNull List<String> authorities) {
         mRuntimeExtras.triggeredContentAuthorities = authorities;
         return this;
@@ -242,7 +268,7 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
      */
     @RequiresApi(28)
     @NonNull
-    public TestListenableWorkerBuilder setNetwork(@NonNull Network network) {
+    public TestListenableWorkerBuilder<W> setNetwork(@NonNull Network network) {
         mRuntimeExtras.network = network;
         return this;
     }
@@ -256,8 +282,35 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
      * @return The current {@link TestListenableWorkerBuilder}
      */
     @NonNull
-    public TestListenableWorkerBuilder setWorkerFactory(@NonNull WorkerFactory workerFactory) {
+    public TestListenableWorkerBuilder<W> setWorkerFactory(@NonNull WorkerFactory workerFactory) {
         mWorkerFactory = workerFactory;
+        return this;
+    }
+
+    /**
+     * Sets the {@link ProgressUpdater} to be used to construct the
+     * {@link androidx.work.ListenableWorker}.
+     *
+     * @param updater The {@link ProgressUpdater} which can handle progress updates.
+     * @return The current {@link TestListenableWorkerBuilder}
+     */
+    @NonNull
+    public TestListenableWorkerBuilder<W> setProgressUpdater(@NonNull ProgressUpdater updater) {
+        mProgressUpdater = updater;
+        return this;
+    }
+
+    /**
+     * Sets the {@link ForegroundUpdater} to be used to construct the
+     * {@link androidx.work.ListenableWorker}.
+     *
+     * @param updater The {@link ForegroundUpdater} which can handle notification updates.
+     * @return The current {@link TestListenableWorkerBuilder}
+     */
+    @NonNull
+    public TestListenableWorkerBuilder<W> setForegroundUpdater(
+            @NonNull ForegroundUpdater updater) {
+        mForegroundUpdater = updater;
         return this;
     }
 
@@ -268,7 +321,7 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
      * @return The current {@link TestListenableWorkerBuilder}
      */
     @NonNull
-    TestListenableWorkerBuilder setExecutor(@NonNull Executor executor) {
+    TestListenableWorkerBuilder<W> setExecutor(@NonNull Executor executor) {
         mExecutor = executor;
         return this;
     }
@@ -291,12 +344,14 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
                         // This is unused for ListenableWorker
                         getExecutor(),
                         getTaskExecutor(),
-                        getWorkerFactory()
+                        getWorkerFactory(),
+                        getProgressUpdater(),
+                        getForegroundUpdater()
                 );
 
-        WorkerFactory defaultFactory = WorkerFactory.getDefaultWorkerFactory();
+        WorkerFactory workerFactory = parameters.getWorkerFactory();
         ListenableWorker worker =
-                defaultFactory.createWorkerWithDefaultFallback(
+                workerFactory.createWorkerWithDefaultFallback(
                         getApplicationContext(),
                         getWorkerName(),
                         parameters);
@@ -327,7 +382,7 @@ public class TestListenableWorkerBuilder<W extends ListenableWorker> {
      */
     @NonNull
     @SuppressWarnings("unchecked")
-    public static TestListenableWorkerBuilder from(
+    public static TestListenableWorkerBuilder<? extends ListenableWorker> from(
             @NonNull Context context,
             @NonNull WorkRequest workRequest) {
         WorkSpec workSpec = workRequest.getWorkSpec();

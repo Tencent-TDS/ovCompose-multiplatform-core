@@ -18,13 +18,22 @@ package androidx.core.app;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
 
+import androidx.annotation.CallSuper;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.collection.SimpleArrayMap;
 import androidx.core.view.KeyEventDispatcher;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LifecycleRegistry;
+import androidx.lifecycle.ReportFragment;
 
 /**
  * Base class for activities that enables composition of higher level components.
@@ -36,15 +45,22 @@ import androidx.core.view.KeyEventDispatcher;
  * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
-public class ComponentActivity extends Activity
-        implements KeyEventDispatcher.Component {
+public class ComponentActivity extends Activity implements
+        LifecycleOwner,
+        KeyEventDispatcher.Component {
     /**
      * Storage for {@link ExtraData} instances.
      *
      * <p>Note that these objects are not retained across configuration changes</p>
      */
+    @SuppressWarnings("deprecation")
     private SimpleArrayMap<Class<? extends ExtraData>, ExtraData> mExtraDataMap =
             new SimpleArrayMap<>();
+    /**
+     * This is only used for apps that have not switched to Fragments 1.1.0, where this
+     * behavior is provided by <code>androidx.activity.ComponentActivity</code>.
+     */
+    private LifecycleRegistry mLifecycleRegistry = new LifecycleRegistry(this);
 
     /**
      * Store an instance of {@link ExtraData} for later retrieval by class name
@@ -54,10 +70,27 @@ public class ComponentActivity extends Activity
      *
      * @see #getExtraData
      * @hide
+     * @deprecated Use {@link View#setTag(int, Object)} with the window's decor view.
      */
+    @SuppressWarnings("deprecation")
     @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @Deprecated
     public void putExtraData(ExtraData extraData) {
         mExtraDataMap.put(extraData.getClass(), extraData);
+    }
+
+    @SuppressLint("RestrictedApi")
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        ReportFragment.injectIfNeededIn(this);
+    }
+
+    @CallSuper
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        mLifecycleRegistry.markState(Lifecycle.State.CREATED);
+        super.onSaveInstanceState(outState);
     }
 
     /**
@@ -65,11 +98,19 @@ public class ComponentActivity extends Activity
      *
      * @see #putExtraData
      * @hide
+     * @deprecated Use {@link View#getTag(int)} with the window's decor view.
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "deprecation"})
+    @Deprecated
     public <T extends ExtraData> T getExtraData(Class<T> extraDataClass) {
         return (T) mExtraDataMap.get(extraDataClass);
+    }
+
+    @NonNull
+    @Override
+    public Lifecycle getLifecycle() {
+        return mLifecycleRegistry;
     }
 
     /**
@@ -101,8 +142,12 @@ public class ComponentActivity extends Activity
 
     /**
      * @hide
+     * @deprecated Store the object you want to save directly by using
+     * {@link View#setTag(int, Object)} with the window's decor view.
      */
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @Deprecated
     public static class ExtraData {
     }
 }

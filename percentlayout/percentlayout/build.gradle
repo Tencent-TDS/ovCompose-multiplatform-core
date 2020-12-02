@@ -9,7 +9,8 @@ plugins {
 }
 
 dependencies {
-    api("androidx.core:core:1.1.0-rc01")
+    api("androidx.annotation:annotation:1.1.0")
+    implementation("androidx.core:core:1.1.0")
 
     androidTestImplementation(ANDROIDX_TEST_EXT_JUNIT)
     androidTestImplementation(ANDROIDX_TEST_CORE)
@@ -27,7 +28,6 @@ android {
 androidx {
     name = "Android Percent Support Library"
     publish = Publish.SNAPSHOT_AND_RELEASE
-    mavenVersion = LibraryVersions.PERCENTLAYOUT
     mavenGroup = LibraryGroups.PERCENTLAYOUT
     inceptionYear = "2015"
     description = "Android Percent Support Library"

@@ -16,12 +16,22 @@
 
 package androidx.room
 
+import android.os.Build
+import android.os.CancellationSignal
 import androidx.annotation.RestrictTo
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.util.concurrent.Callable
 import kotlin.coroutines.coroutineContext
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * A helper class for supporting Kotlin Coroutines in Room.
@@ -29,12 +39,12 @@ import kotlin.coroutines.coroutineContext
  * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-class CoroutinesRoom private constructor() {
+public class CoroutinesRoom private constructor() {
 
-    companion object {
+    public companion object {
 
         @JvmStatic
-        suspend fun <R> execute(
+        public suspend fun <R> execute(
             db: RoomDatabase,
             inTransaction: Boolean,
             callable: Callable<R>
@@ -49,6 +59,71 @@ class CoroutinesRoom private constructor() {
                 ?: if (inTransaction) db.transactionDispatcher else db.queryDispatcher
             return withContext(context) {
                 callable.call()
+            }
+        }
+
+        @JvmStatic
+        public suspend fun <R> execute(
+            db: RoomDatabase,
+            inTransaction: Boolean,
+            cancellationSignal: CancellationSignal,
+            callable: Callable<R>
+        ): R {
+            if (db.isOpen && db.inTransaction()) {
+                return callable.call()
+            }
+
+            // Use the transaction dispatcher if we are on a transaction coroutine, otherwise
+            // use the database dispatchers.
+            val context = coroutineContext[TransactionElement]?.transactionDispatcher
+                ?: if (inTransaction) db.transactionDispatcher else db.queryDispatcher
+            return suspendCancellableCoroutine<R> { continuation ->
+                val job = GlobalScope.launch(context) {
+                    try {
+                        val result = callable.call()
+                        continuation.resume(result)
+                    } catch (exception: Throwable) {
+                        continuation.resumeWithException(exception)
+                    }
+                }
+                continuation.invokeOnCancellation {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                        cancellationSignal.cancel()
+                    }
+                    job.cancel()
+                }
+            }
+        }
+
+        @JvmStatic
+        public fun <R> createFlow(
+            db: RoomDatabase,
+            inTransaction: Boolean,
+            tableNames: Array<String>,
+            callable: Callable<R>
+        ): Flow<@JvmSuppressWildcards R> = flow {
+            // Observer channel receives signals from the invalidation tracker to emit queries.
+            val observerChannel = Channel<Unit>(Channel.CONFLATED)
+            val observer = object : InvalidationTracker.Observer(tableNames) {
+                override fun onInvalidated(tables: MutableSet<String>) {
+                    observerChannel.offer(Unit)
+                }
+            }
+            observerChannel.offer(Unit) // Initial signal to perform first query.
+            val flowContext = coroutineContext
+            val queryContext = if (inTransaction) db.transactionDispatcher else db.queryDispatcher
+            withContext(queryContext) {
+                db.invalidationTracker.addObserver(observer)
+                try {
+                    // Iterate until cancelled, transforming observer signals to query results to
+                    // be emitted to the flow.
+                    for (signal in observerChannel) {
+                        val result = callable.call()
+                        withContext(flowContext) { emit(result) }
+                    }
+                } finally {
+                    db.invalidationTracker.removeObserver(observer)
+                }
             }
         }
     }
@@ -71,5 +146,5 @@ internal val RoomDatabase.queryDispatcher: CoroutineDispatcher
  */
 internal val RoomDatabase.transactionDispatcher: CoroutineDispatcher
     get() = backingFieldMap.getOrPut("TransactionDispatcher") {
-        queryExecutor.asCoroutineDispatcher()
+        transactionExecutor.asCoroutineDispatcher()
     } as CoroutineDispatcher

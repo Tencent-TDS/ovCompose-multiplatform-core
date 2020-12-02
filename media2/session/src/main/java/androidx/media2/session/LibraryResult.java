@@ -17,7 +17,6 @@
 package androidx.media2.session;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY;
-import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.os.SystemClock;
 
@@ -65,22 +64,29 @@ public class LibraryResult extends CustomVersionedParcelable implements RemoteRe
             RESULT_ERROR_SESSION_SKIP_LIMIT_REACHED,
             RESULT_ERROR_SESSION_SETUP_REQUIRED})
     @Retention(RetentionPolicy.SOURCE)
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY)
     public @interface ResultCode {}
 
     @ParcelField(1)
     int mResultCode;
     @ParcelField(2)
     long mCompletionTime;
-    @ParcelField(3)
+    // Parceled via mParcelableItem.
+    @NonParcelField
     MediaItem mItem;
+    // For parceling mItem. Should be only used by onPreParceling() and onPostParceling().
+    @ParcelField(3)
+    MediaItem mParcelableItem;
     @ParcelField(4)
     MediaLibraryService.LibraryParams mParams;
-    // Mark list of media items NonParcelField to send the list through the ParcelImpListSlice.
+    // Parceled via mItemListSlice
     @NonParcelField
     List<MediaItem> mItemList;
+    // For parceling mItemList. Should be only used by onPreParceling() and onPostParceling().
     @ParcelField(5)
     ParcelImplListSlice mItemListSlice;
+
+    // WARNING: Adding a new ParcelField may break old library users (b/152830728)
 
     // For versioned parcelable
     LibraryResult() {
@@ -220,8 +226,23 @@ public class LibraryResult extends CustomVersionedParcelable implements RemoteRe
      */
     @RestrictTo(LIBRARY)
     @Override
+    @SuppressWarnings("SynchronizeOnNonFinalField") // mItem and mItemList are effectively final.
     public void onPreParceling(boolean isStream) {
-        mItemListSlice = MediaUtils.convertMediaItemListToParcelImplListSlice(mItemList);
+        if (mItem != null) {
+            synchronized (mItem) {
+                if (mParcelableItem == null) {
+                    mParcelableItem = MediaUtils.upcastForPreparceling(mItem);
+                }
+            }
+        }
+        if (mItemList != null) {
+            synchronized (mItemList) {
+                if (mItemListSlice == null) {
+                    mItemListSlice = MediaUtils.convertMediaItemListToParcelImplListSlice(
+                            mItemList);
+                }
+            }
+        }
     }
 
     /**
@@ -230,7 +251,7 @@ public class LibraryResult extends CustomVersionedParcelable implements RemoteRe
     @RestrictTo(LIBRARY)
     @Override
     public void onPostParceling() {
+        mItem = mParcelableItem;
         mItemList = MediaUtils.convertParcelImplListSliceToMediaItemList(mItemListSlice);
-        mItemListSlice = null;
     }
 }

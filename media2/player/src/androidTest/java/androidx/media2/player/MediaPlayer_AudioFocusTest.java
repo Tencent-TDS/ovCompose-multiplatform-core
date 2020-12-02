@@ -49,18 +49,18 @@ import android.os.HandlerThread;
 import android.os.Looper;
 
 import androidx.annotation.GuardedBy;
+import androidx.annotation.NonNull;
 import androidx.media.AudioAttributesCompat;
 import androidx.media2.common.SessionPlayer;
+import androidx.media2.common.SessionPlayer.PlayerResult;
 import androidx.media2.player.test.R;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
-import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.testutils.PollingCheck;
 
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -68,6 +68,7 @@ import org.junit.runner.RunWith;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -75,9 +76,7 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * This may be flaky test because another app including system component may take audio focus.
  */
-// TODO: Lower the minSdk version. Currently instantiating ExoPlayerMediaPlayer2Impl fails in API26
 @RunWith(AndroidJUnit4.class)
-@SdkSuppress(minSdkVersion = Build.VERSION_CODES.P)
 @LargeTest
 public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
     private static final int WAIT_TIME_MS = 2000;
@@ -94,7 +93,6 @@ public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
             if (sHandler != null) {
                 return;
             }
-            prepareLooper();
             HandlerThread handlerThread = new HandlerThread("MediaPlayer_AudioFocusTest");
             handlerThread.start();
             sHandler = new TestUtils.SyncHandler(handlerThread.getLooper());
@@ -162,14 +160,15 @@ public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
         // We cannot use Context.sendBroadcast() because it throws SecurityException for such
         // framework related intent.
         Intent intent = new Intent(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
-        player.getAudioFocusHandler().sendIntent(intent);
+        player.mAudioFocusHandler.sendIntent(intent);
     }
 
     private void initPlayer(AudioAttributesCompat attr) throws Exception {
         loadResource(R.raw.loudsoftogg);
-        mPlayer.setAudioAttributes(attr);
-        Assert.assertEquals(SessionPlayer.PlayerResult.RESULT_SUCCESS,
-                mPlayer.prepare().get(WAIT_TIME_MS, TimeUnit.MILLISECONDS).getResultCode());
+        Future<PlayerResult> setAttrFuture = mPlayer.setAudioAttributes(attr);
+        Future<PlayerResult> prepareFuture = mPlayer.prepare();
+        assertFutureSuccess(setAttrFuture);
+        assertFutureSuccess(prepareFuture);
     }
 
     private void testPausedAfterAction(final AudioAttributesCompat attr,
@@ -180,7 +179,7 @@ public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
 
         mPlayer.registerPlayerCallback(sHandlerExecutor, new SessionPlayer.PlayerCallback() {
             @Override
-            public void onPlayerStateChanged(SessionPlayer mPlayer, int playerState) {
+            public void onPlayerStateChanged(@NonNull SessionPlayer mPlayer, int playerState) {
                     switch (playerState) {
                         case SessionPlayer.PLAYER_STATE_PLAYING:
                             latchForPlaying.countDown();
@@ -193,7 +192,7 @@ public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
             });
 
         // Play here for registering noisy intent.
-        mPlayer.play();
+        assertFutureSuccess(mPlayer.play());
         // Playback becomes PLAYING needs to be propagated to the session and its focus handler.
         // Wait for a while for that.
         assertTrue(latchForPlaying.await(WAIT_TIME_MS, TimeUnit.MILLISECONDS));
@@ -214,13 +213,13 @@ public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
         initPlayer(attr);
         mPlayer.registerPlayerCallback(sHandlerExecutor, new SessionPlayer.PlayerCallback() {
             @Override
-            public void onPlayerStateChanged(SessionPlayer player, int playerState) {
+            public void onPlayerStateChanged(@NonNull SessionPlayer player, int playerState) {
                 if (playerState == SessionPlayer.PLAYER_STATE_PLAYING) {
                     latchForPlaying.countDown();
                 }
             }
         });
-        mPlayer.play();
+        assertFutureSuccess(mPlayer.play());
         // Playback becomes PLAYING needs to be propagated to the session and its focus handler.
         // Wait for a while for that.
         assertTrue(latchForPlaying.await(WAIT_TIME_MS, TimeUnit.MILLISECONDS));
@@ -238,9 +237,7 @@ public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
     }
 
     @Test
-    public void testNoisyIntent_pausePlaybackForMedia() throws Exception {
-        prepareLooper();
-
+    public void noisyIntent_pausePlaybackForMedia() throws Exception {
         testPausedAfterAction(createAudioAttributes(CONTENT_TYPE_MUSIC, USAGE_MEDIA),
                 new PlayerRunnable() {
                     @Override
@@ -252,9 +249,7 @@ public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
     }
 
     @Test
-    public void testNoisyIntent_lowerVolumeForGame() throws Exception {
-        prepareLooper();
-
+    public void noisyIntent_lowerVolumeForGame() throws Exception {
         testDuckedAfterAction(createAudioAttributes(CONTENT_TYPE_MUSIC, USAGE_GAME),
                 new PlayerRunnable() {
                     @Override
@@ -299,56 +294,48 @@ public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
      * Tests whether the session requests audio focus, so previously focused one loss focus.
      */
     @Test
-    public void testAudioFocus_requestFocusWhenPlay() throws Exception {
-        prepareLooper();
-
+    public void audioFocus_requestFocusWhenPlay() throws Exception {
         // Request an audio focus in advance.
         requestAudioFocus(AUDIOFOCUS_GAIN);
 
         initPlayer(createAudioAttributes(CONTENT_TYPE_MUSIC, USAGE_MEDIA));
 
         // Play should request audio focus with AUDIOFOCUS_GAIN for USAGE_MEDIA
-        mPlayer.play();
+        assertFutureSuccess(mPlayer.play());
 
         // Previously focused one should loss audio focus
         waitForAudioFocus(AUDIOFOCUS_LOSS);
     }
 
     @Test
-    public void testAudioFocus_requestFocusWhenUnknown() throws Exception {
-        prepareLooper();
-
+    public void audioFocus_requestFocusWhenUnknown() throws Exception {
         // Request an audio focus in advance.
         requestAudioFocus(AUDIOFOCUS_GAIN);
 
         initPlayer(createAudioAttributes(CONTENT_TYPE_MUSIC, USAGE_UNKNOWN));
 
         // Play should request audio focus with AUDIOFOCUS_GAIN for USAGE_MEDIA
-        mPlayer.play();
+        assertFutureSuccess(mPlayer.play());
 
         // Previously focused one should loss audio focus
         waitForAudioFocus(AUDIOFOCUS_LOSS);
     }
 
     @Test
-    public void testAudioFocus_requestFocusTransient() throws Exception {
-        prepareLooper();
-
+    public void audioFocus_requestFocusTransient() throws Exception {
         // Request an audio focus in advance.
         requestAudioFocus(AUDIOFOCUS_GAIN);
 
         initPlayer(createAudioAttributes(CONTENT_TYPE_MUSIC, USAGE_ALARM));
 
         // Play should request audio focus with AUDIOFOCUS_GAIN_TRANSIENT for USAGE_ALARM
-        mPlayer.play();
+        assertFutureSuccess(mPlayer.play());
 
         waitForAudioFocus(AUDIOFOCUS_LOSS_TRANSIENT);
     }
 
     @Test
-    public void testAudioFocus_requestFocusTransientMayDuck() throws Exception {
-        prepareLooper();
-
+    public void audioFocus_requestFocusTransientMayDuck() throws Exception {
         // Request an audio focus in advance.
         requestAudioFocus(AUDIOFOCUS_GAIN);
 
@@ -357,15 +344,13 @@ public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
 
         // Play should request audio focus with AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK for
         // USAGE_ASSISTANCE_NAVIGATION_GUIDANCE.
-        mPlayer.play();
+        assertFutureSuccess(mPlayer.play());
 
         waitForAudioFocus(AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK);
     }
 
     @Test
-    public void testAudioFocus_pauseForFocusLoss() throws Exception {
-        prepareLooper();
-
+    public void audioFocus_pauseForFocusLoss() throws Exception {
         testPausedAfterAction(createAudioAttributes(CONTENT_TYPE_MUSIC, USAGE_MEDIA),
                 new PlayerRunnable() {
                     @Override
@@ -378,9 +363,7 @@ public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
     }
 
     @Test
-    public void testAudioFocus_pauseForDuckableFocusLoss() throws Exception {
-        prepareLooper();
-
+    public void audioFocus_pauseForDuckableFocusLoss() throws Exception {
         testPausedAfterAction(createAudioAttributes(CONTENT_TYPE_SPEECH, USAGE_MEDIA),
                 new PlayerRunnable() {
                     @Override
@@ -392,13 +375,11 @@ public class MediaPlayer_AudioFocusTest extends MediaPlayerTestBase {
     }
 
     @Test
-    public void testAudioFocus_duckForFocusLoss() throws Exception {
+    public void audioFocus_duckForFocusLoss() throws Exception {
         if (VERSION.SDK_INT >= 26) {
             // On API 26, framework automatically ducks so we cannot test it.
             return;
         }
-
-        prepareLooper();
 
         testDuckedAfterAction(createAudioAttributes(CONTENT_TYPE_MUSIC, USAGE_MEDIA),
                 new PlayerRunnable() {

@@ -16,6 +16,7 @@
 
 package androidx.navigation.fragment;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.os.Bundle;
@@ -23,13 +24,16 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 
+import androidx.activity.OnBackPressedDispatcher;
+import androidx.activity.OnBackPressedDispatcherOwner;
 import androidx.annotation.CallSuper;
 import androidx.annotation.NavigationRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentContainerView;
 import androidx.navigation.NavController;
 import androidx.navigation.NavGraph;
 import androidx.navigation.NavHost;
@@ -56,7 +60,7 @@ import androidx.navigation.Navigator;
  *            android:name="androidx.navigation.fragment.NavHostFragment"
  *            app:navGraph="@navigation/nav_sample"
  *            app:defaultNavHost="true" /&gt;
- *    &lt;android.support.design.widget.NavigationView
+ *    &lt;com.google.android.material.navigation.NavigationView
  *            android:layout_width="wrap_content"
  *            android:layout_height="match_parent"
  *            android:layout_gravity="start"/&gt;
@@ -104,7 +108,7 @@ public class NavHostFragment extends Fragment implements NavHost {
             if (findFragment instanceof NavHostFragment) {
                 return ((NavHostFragment) findFragment).getNavController();
             }
-            Fragment primaryNavFragment = findFragment.requireFragmentManager()
+            Fragment primaryNavFragment = findFragment.getParentFragmentManager()
                     .getPrimaryNavigationFragment();
             if (primaryNavFragment instanceof NavHostFragment) {
                 return ((NavHostFragment) primaryNavFragment).getNavController();
@@ -117,12 +121,22 @@ public class NavHostFragment extends Fragment implements NavHost {
         if (view != null) {
             return Navigation.findNavController(view);
         }
+
+        // For DialogFragments, look at the dialog's decor view
+        Dialog dialog = fragment instanceof DialogFragment
+                ? ((DialogFragment) fragment).getDialog()
+                : null;
+        if (dialog != null && dialog.getWindow() != null) {
+            return Navigation.findNavController(dialog.getWindow().getDecorView());
+        }
+
         throw new IllegalStateException("Fragment " + fragment
                 + " does not have a NavController set");
     }
 
     private NavHostController mNavController;
     private Boolean mIsPrimaryBeforeOnCreate = null;
+    private View mViewParent;
 
     // State that will be saved and restored
     private int mGraphId;
@@ -193,7 +207,7 @@ public class NavHostFragment extends Fragment implements NavHost {
         // but it can stay here until we can add the necessary attr resources to
         // the fragment lib.
         if (mDefaultNavHost) {
-            requireFragmentManager().beginTransaction()
+            getParentFragmentManager().beginTransaction()
                     .setPrimaryNavigationFragment(this)
                     .commit();
         }
@@ -202,29 +216,34 @@ public class NavHostFragment extends Fragment implements NavHost {
     @CallSuper
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         final Context context = requireContext();
 
         mNavController = new NavHostController(context);
         mNavController.setLifecycleOwner(this);
-        mNavController.setOnBackPressedDispatcher(requireActivity().getOnBackPressedDispatcher());
+        if (context instanceof OnBackPressedDispatcherOwner) {
+            mNavController.setOnBackPressedDispatcher(
+                    ((OnBackPressedDispatcherOwner) context).getOnBackPressedDispatcher());
+            // Otherwise, caller must register a dispatcher on the controller explicitly
+            // by overriding onCreateNavHostController()
+        }
         // Set the default state - this will be updated whenever
         // onPrimaryNavigationFragmentChanged() is called
         mNavController.enableOnBackPressed(
                 mIsPrimaryBeforeOnCreate != null && mIsPrimaryBeforeOnCreate);
         mIsPrimaryBeforeOnCreate = null;
         mNavController.setViewModelStore(getViewModelStore());
-        onCreateNavController(mNavController);
+        onCreateNavHostController(mNavController);
 
         Bundle navState = null;
         if (savedInstanceState != null) {
             navState = savedInstanceState.getBundle(KEY_NAV_CONTROLLER_STATE);
             if (savedInstanceState.getBoolean(KEY_DEFAULT_NAV_HOST, false)) {
                 mDefaultNavHost = true;
-                requireFragmentManager().beginTransaction()
+                getParentFragmentManager().beginTransaction()
                         .setPrimaryNavigationFragment(this)
                         .commit();
             }
+            mGraphId = savedInstanceState.getInt(KEY_GRAPH_ID);
         }
 
         if (navState != null) {
@@ -245,6 +264,34 @@ public class NavHostFragment extends Fragment implements NavHost {
                 mNavController.setGraph(graphId, startDestinationArgs);
             }
         }
+
+        // We purposefully run this last as this will trigger the onCreate() of
+        // child fragments, which may be relying on having the NavController already
+        // created and having its state restored by that point.
+        super.onCreate(savedInstanceState);
+    }
+
+    /**
+     * Callback for when the {@link NavHostController} is created. If you
+     * support any custom destination types, their {@link Navigator} should be added here to
+     * ensure it is available before the navigation graph is inflated / set.
+     * <p>
+     * This provides direct access to the host specific methods available on
+     * {@link NavHostController} such as
+     * {@link NavHostController#setOnBackPressedDispatcher(OnBackPressedDispatcher)}.
+     * <p>
+     * By default, this adds a {@link DialogFragmentNavigator} and {@link FragmentNavigator}.
+     * <p>
+     * This is only called once in {@link #onCreate(Bundle)} and should not be called directly by
+     * subclasses.
+     *
+     * @param navHostController The newly created {@link NavHostController} that will be
+     *                          returned by {@link #getNavController()} after
+     */
+    @SuppressWarnings("deprecation")
+    @CallSuper
+    protected void onCreateNavHostController(@NonNull NavHostController navHostController) {
+        onCreateNavController(navHostController);
     }
 
     /**
@@ -252,19 +299,32 @@ public class NavHostFragment extends Fragment implements NavHost {
      * support any custom destination types, their {@link Navigator} should be added here to
      * ensure it is available before the navigation graph is inflated / set.
      * <p>
-     * By default, this adds a {@link FragmentNavigator}.
+     * By default, this adds a {@link DialogFragmentNavigator} and {@link FragmentNavigator}.
      * <p>
      * This is only called once in {@link #onCreate(Bundle)} and should not be called directly by
      * subclasses.
      *
      * @param navController The newly created {@link NavController}.
+     * @deprecated Override {@link #onCreateNavHostController(NavHostController)} to gain
+     * access to the full {@link NavHostController} that is created by this NavHostFragment.
      */
-    @SuppressWarnings({"WeakerAccess", "deprecation"})
+    @SuppressWarnings({"DeprecatedIsStillUsed", "deprecation"})
+    @Deprecated
     @CallSuper
     protected void onCreateNavController(@NonNull NavController navController) {
         navController.getNavigatorProvider().addNavigator(
                 new DialogFragmentNavigator(requireContext(), getChildFragmentManager()));
         navController.getNavigatorProvider().addNavigator(createFragmentNavigator());
+    }
+
+    // TODO: DialogFragmentNavigator should use FragmentOnAttachListener from Fragment 1.3
+    @SuppressWarnings("deprecation")
+    @Override
+    public void onAttachFragment(@NonNull Fragment childFragment) {
+        super.onAttachFragment(childFragment);
+        DialogFragmentNavigator dialogFragmentNavigator =
+                mNavController.getNavigatorProvider().getNavigator(DialogFragmentNavigator.class);
+        dialogFragmentNavigator.onAttachFragment(childFragment);
     }
 
     @CallSuper
@@ -286,24 +346,41 @@ public class NavHostFragment extends Fragment implements NavHost {
      * @return a new instance of a FragmentNavigator
      * @deprecated Use {@link #onCreateNavController(NavController)}
      */
-    @SuppressWarnings("DeprecatedIsStillUsed")
     @Deprecated
     @NonNull
     protected Navigator<? extends FragmentNavigator.Destination> createFragmentNavigator() {
-        return new FragmentNavigator(requireContext(), getChildFragmentManager(), getId());
+        return new FragmentNavigator(requireContext(), getChildFragmentManager(),
+                getContainerId());
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        FrameLayout frameLayout = new FrameLayout(inflater.getContext());
-        // When added via XML, this has no effect (since this FrameLayout is given the ID
+        FragmentContainerView containerView = new FragmentContainerView(inflater.getContext());
+        // When added via XML, this has no effect (since this FragmentContainerView is given the ID
         // automatically), but this ensures that the View exists as part of this Fragment's View
         // hierarchy in cases where the NavHostFragment is added programmatically as is required
         // for child fragment transactions
-        frameLayout.setId(getId());
-        return frameLayout;
+        containerView.setId(getContainerId());
+        return containerView;
+    }
+
+    /**
+     * We specifically can't use {@link View#NO_ID} as the container ID (as we use
+     * {@link androidx.fragment.app.FragmentTransaction#add(int, Fragment)} under the hood),
+     * so we need to make sure we return a valid ID when asked for the container ID.
+     *
+     * @return a valid ID to be used to contain child fragments
+     */
+    private int getContainerId() {
+        int id = getId();
+        if (id != 0 && id != View.NO_ID) {
+            return id;
+        }
+        // Fallback to using our own ID if this Fragment wasn't added via
+        // add(containerViewId, Fragment)
+        return R.id.nav_host_fragment_container;
     }
 
     @Override
@@ -312,11 +389,15 @@ public class NavHostFragment extends Fragment implements NavHost {
         if (!(view instanceof ViewGroup)) {
             throw new IllegalStateException("created host view " + view + " is not a ViewGroup");
         }
-        // When added via XML, the parent is null and our view is the root of the NavHostFragment
-        // but when added programmatically, we need to set the NavController on the parent - i.e.,
+        Navigation.setViewNavController(view, mNavController);
+        // When added programmatically, we need to set the NavController on the parent - i.e.,
         // the View that has the ID matching this NavHostFragment.
-        View rootView = view.getParent() != null ? (View) view.getParent() : view;
-        Navigation.setViewNavController(rootView, mNavController);
+        if (view.getParent() != null) {
+            mViewParent = (View) view.getParent();
+            if (mViewParent.getId() == getId()) {
+                Navigation.setViewNavController(mViewParent, mNavController);
+            }
+        }
     }
 
     @CallSuper
@@ -325,8 +406,10 @@ public class NavHostFragment extends Fragment implements NavHost {
             @Nullable Bundle savedInstanceState) {
         super.onInflate(context, attrs, savedInstanceState);
 
-        final TypedArray navHost = context.obtainStyledAttributes(attrs, R.styleable.NavHost);
-        final int graphId = navHost.getResourceId(R.styleable.NavHost_navGraph, 0);
+        final TypedArray navHost = context.obtainStyledAttributes(attrs,
+                androidx.navigation.R.styleable.NavHost);
+        final int graphId = navHost.getResourceId(
+                androidx.navigation.R.styleable.NavHost_navGraph, 0);
         if (graphId != 0) {
             mGraphId = graphId;
         }
@@ -351,5 +434,17 @@ public class NavHostFragment extends Fragment implements NavHost {
         if (mDefaultNavHost) {
             outState.putBoolean(KEY_DEFAULT_NAV_HOST, true);
         }
+        if (mGraphId != 0) {
+            outState.putInt(KEY_GRAPH_ID, mGraphId);
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (mViewParent != null && Navigation.findNavController(mViewParent) == mNavController) {
+            Navigation.setViewNavController(mViewParent, null);
+        }
+        mViewParent = null;
     }
 }

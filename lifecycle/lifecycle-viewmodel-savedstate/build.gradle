@@ -34,17 +34,20 @@ android {
 
 dependencies {
     api("androidx.annotation:annotation:1.0.0")
-    api(project(":savedstate"))
+    api("androidx.savedstate:savedstate:1.0.0")
     api(project(":lifecycle:lifecycle-livedata-core"))
     api(project(":lifecycle:lifecycle-viewmodel"))
 
-    api project(":fragment:fragment"), {
-        exclude group: 'androidx.lifecycle', module: 'lifecycle-livedata-core'
+    androidTestImplementation project(":fragment:fragment"), {
+        exclude group: 'androidx.lifecycle', module: 'lifecycle-viewmodel-savedstate'
+        exclude group: 'androidx.lifecycle', module: 'lifecycle-viewmodel'
     }
-
+    androidTestImplementation project(":internal-testutils-runtime"), {
+        exclude group: 'androidx.lifecycle', module: 'lifecycle-viewmodel-savedstate'
+        exclude group: 'androidx.lifecycle', module: 'lifecycle-viewmodel'
+    }
     androidTestImplementation(TRUTH)
     androidTestImplementation(KOTLIN_STDLIB)
-    androidTestImplementation(ESPRESSO_CORE)
     androidTestImplementation(ANDROIDX_TEST_EXT_JUNIT)
     androidTestImplementation(ANDROIDX_TEST_CORE)
     androidTestImplementation(ANDROIDX_TEST_RUNNER)
@@ -54,9 +57,8 @@ dependencies {
 androidx {
     name = "Android Lifecycle ViewModel with SavedState"
     publish = Publish.SNAPSHOT_AND_RELEASE
-    mavenVersion = LibraryVersions.LIFECYCLES_SAVEDSTATE
+    mavenVersion = LibraryVersions.LIFECYCLE
     mavenGroup = LibraryGroups.LIFECYCLE
     inceptionYear = "2018"
     description = "Android Lifecycle ViewModel"
-    url = AndroidXExtension.ARCHITECTURE_URL
 }

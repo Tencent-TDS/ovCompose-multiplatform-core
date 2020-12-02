@@ -16,6 +16,7 @@
 
 package androidx.room.gradle
 
+import androidx.testutils.gradle.ProjectSetupRule
 import com.google.common.truth.Expect
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
@@ -23,12 +24,10 @@ import org.gradle.testkit.runner.TaskOutcome
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import java.io.File
 import java.nio.file.Files
-import java.util.Properties
 
 @RunWith(Parameterized::class)
 class RoomIncrementalAnnotationProcessingTest(private val withIncrementalRoom: Boolean) {
@@ -49,19 +48,10 @@ class RoomIncrementalAnnotationProcessingTest(private val withIncrementalRoom: B
     }
 
     @get:Rule
-    val testProjectDir = TemporaryFolder()
+    val projectSetup = ProjectSetupRule()
 
     @get:Rule
     val expect: Expect = Expect.create()
-
-    // Properties to set up test project
-    private lateinit var prebuiltsRepo: String
-    private lateinit var agpVersion: String
-    private lateinit var localSupportRepo: String
-    private lateinit var compileSdkVersion: String
-    private lateinit var buildToolsVersion: String
-    private lateinit var minSdkVersion: String
-    private lateinit var debugKeystore: String
 
     // Original source files
     private lateinit var srcDatabase1: File
@@ -100,25 +90,10 @@ class RoomIncrementalAnnotationProcessingTest(private val withIncrementalRoom: B
 
     @Before
     fun setup() {
-        val projectRoot = testProjectDir.root
-
-        // copy local.properties
-        File("../../../local.properties")
-            .copyTo(File(projectRoot, "local.properties"), overwrite = true)
-
-        // copy sdk.prop (created by module's build.gradle)
-        RoomIncrementalAnnotationProcessingTest::class.java.classLoader
-            .getResourceAsStream("sdk.prop")
-            .use { input ->
-                val properties = Properties().apply { load(input) }
-                prebuiltsRepo = properties.getProperty("prebuiltsRepo")
-                localSupportRepo = properties.getProperty("localSupportRepo")
-                agpVersion = properties.getProperty("agpVersion")
-                compileSdkVersion = properties.getProperty("compileSdkVersion")
-                buildToolsVersion = properties.getProperty("buildToolsVersion")
-                minSdkVersion = properties.getProperty("minSdkVersion")
-                debugKeystore = properties.getProperty("debugKeystore")
-            }
+        val projectRoot = projectSetup.rootDir
+        val prebuiltsRoot = projectSetup.props.prebuiltsRoot
+        val localSupportRepo = projectSetup.props.localSupportRepo
+        val agpDependency = projectSetup.props.agpDependency
 
         // copy test project
         File("src/test/data/simple-project").copyRecursively(projectRoot)
@@ -128,41 +103,28 @@ class RoomIncrementalAnnotationProcessingTest(private val withIncrementalRoom: B
             """
             buildscript {
                 repositories {
-                    maven { url "$prebuiltsRepo/androidx/external" }
-                    maven { url "$prebuiltsRepo/androidx/internal" }
+                    maven { url "$prebuiltsRoot/androidx/external" }
+                    maven { url "$prebuiltsRoot/androidx/internal" }
                 }
                 dependencies {
-                    classpath 'com.android.tools.build:gradle:$agpVersion'
+                    classpath "$agpDependency"
                 }
             }
 
             apply plugin: 'com.android.application'
 
             repositories {
-                maven { url "$prebuiltsRepo/androidx/external" }
+                maven { url "$prebuiltsRoot/androidx/external" }
                 maven { url "$localSupportRepo" }
                 maven {
-                    url "$prebuiltsRepo/androidx/internal"
+                    url "$prebuiltsRoot/androidx/internal"
                     content {
                         excludeModule("androidx.room", "room-compiler")
                     }
                 }
             }
 
-            android {
-                compileSdkVersion $compileSdkVersion
-                buildToolsVersion "$buildToolsVersion"
-
-                defaultConfig {
-                    minSdkVersion $minSdkVersion
-                }
-
-                signingConfigs {
-                    debug {
-                        storeFile file("$debugKeystore")
-                    }
-                }
-            }
+            %s
 
             dependencies {
                 // Uses latest Room built from tip of tree
@@ -195,7 +157,11 @@ class RoomIncrementalAnnotationProcessingTest(private val withIncrementalRoom: B
                     }
                 }
             }
-        """.trimIndent()
+        """
+                .trimIndent()
+                // doing format instead of "$projectSetup.androidProject" on purpose,
+                // because otherwise trimIndent will mess with formatting
+                .format(projectSetup.androidProject)
         )
 
         // Compute file paths
@@ -225,7 +191,7 @@ class RoomIncrementalAnnotationProcessingTest(private val withIncrementalRoom: B
 
     private fun runGradleTasks(vararg args: String): BuildResult {
         return GradleRunner.create()
-            .withProjectDir(testProjectDir.root)
+            .withProjectDir(projectSetup.rootDir)
             .withArguments(*args)
             .build()
     }
@@ -282,20 +248,20 @@ class RoomIncrementalAnnotationProcessingTest(private val withIncrementalRoom: B
     }
 
     private fun assertFilesExist(vararg files: File) {
-        expect.that(files.filter { it.exists() }).named("Existing files")
+        expect.withMessage("Existing files").that(files.filter { it.exists() })
             .containsExactlyElementsIn(files)
     }
 
     private fun assertChangedFiles(vararg files: File) {
-        expect.that(changedFiles).named("Changed files").containsAtLeastElementsIn(files)
+        expect.withMessage("Changed files").that(changedFiles).containsAtLeastElementsIn(files)
     }
 
     private fun assertUnchangedFiles(vararg files: File) {
-        expect.that(unchangedFiles).named("Unchanged files").containsAtLeastElementsIn(files)
+        expect.withMessage("Unchanged files").that(unchangedFiles).containsAtLeastElementsIn(files)
     }
 
     private fun assertDeletedFiles(vararg files: File) {
-        expect.that(deletedFiles).named("Deleted files").containsAtLeastElementsIn(files)
+        expect.withMessage("Deleted files").that(deletedFiles).containsAtLeastElementsIn(files)
     }
 
     private fun searchAndReplace(file: File, search: String, replace: String) {

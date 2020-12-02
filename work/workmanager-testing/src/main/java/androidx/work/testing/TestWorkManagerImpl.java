@@ -49,12 +49,21 @@ class TestWorkManagerImpl extends WorkManagerImpl implements TestDriver {
 
         // Note: This implies that the call to ForceStopRunnable() actually does nothing.
         // This is okay when testing.
+
+        // IMPORTANT: Leave the main thread executor as a Direct executor. This is very important.
+        // Otherwise we subtly change the order of callbacks. onExecuted() will execute after
+        // a call to StopWorkRunnable(). StopWorkRunnable() removes the pending WorkSpec and
+        // therefore the call to onExecuted() does not add the workSpecId to the list of
+        // terminated WorkSpecs. This is because internalWorkState == null.
+        // Also for PeriodicWorkRequests, Schedulers.schedule() will run before the call to
+        // onExecuted() and therefore PeriodicWorkRequests will always run twice.
         super(
                 context,
                 configuration,
                 new TaskExecutor() {
                     Executor mSynchronousExecutor = new SynchronousExecutor();
-                    Executor mBackgroundExecutor = new SerialExecutor(configuration.getExecutor());
+                    SerialExecutor mSerialExecutor =
+                            new SerialExecutor(configuration.getTaskExecutor());
 
                     @Override
                     public void postToMainThread(Runnable runnable) {
@@ -68,12 +77,12 @@ class TestWorkManagerImpl extends WorkManagerImpl implements TestDriver {
 
                     @Override
                     public void executeOnBackgroundThread(Runnable runnable) {
-                        mBackgroundExecutor.execute(runnable);
+                        mSerialExecutor.execute(runnable);
                     }
 
                     @Override
-                    public Executor getBackgroundExecutor() {
-                        return configuration.getExecutor();
+                    public SerialExecutor getBackgroundExecutor() {
+                        return mSerialExecutor;
                     }
                 },
                 true);
@@ -83,7 +92,12 @@ class TestWorkManagerImpl extends WorkManagerImpl implements TestDriver {
     }
 
     @Override
-    public @NonNull List<Scheduler> createSchedulers(Context context, TaskExecutor taskExecutor) {
+    @NonNull
+    public List<Scheduler> createSchedulers(
+            @NonNull Context context,
+            @NonNull Configuration configuration,
+            @NonNull TaskExecutor taskExecutor) {
+
         mScheduler = new TestScheduler(context);
         return Collections.singletonList((Scheduler) mScheduler);
     }

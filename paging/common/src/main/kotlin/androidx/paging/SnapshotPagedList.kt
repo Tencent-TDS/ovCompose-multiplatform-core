@@ -16,21 +16,14 @@
 
 package androidx.paging
 
+@Suppress("DEPRECATION")
 internal class SnapshotPagedList<T : Any>(private val pagedList: PagedList<T>) : PagedList<T>(
+    pagedList.pagingSource,
+    pagedList.coroutineScope,
+    pagedList.notifyDispatcher,
     pagedList.storage.snapshot(),
-    pagedList.mainThreadExecutor,
-    pagedList.backgroundThreadExecutor,
-    null,
     pagedList.config
 ) {
-    init {
-        lastLoad = pagedList.lastLoad
-    }
-
-    override val isContiguous
-        get() = pagedList.isContiguous
-
-    override val dataSource: DataSource<*, T> = pagedList.dataSource
     override val isImmutable = true
 
     override val lastKey
@@ -39,7 +32,6 @@ internal class SnapshotPagedList<T : Any>(private val pagedList: PagedList<T>) :
     override val isDetached = true
 
     override fun detach() {}
-    override fun dispatchUpdatesSinceSnapshot(snapshot: PagedList<T>, callback: Callback) {}
-    override fun dispatchCurrentLoadState(callback: LoadStateListener) {}
+    override fun dispatchCurrentLoadState(callback: (LoadType, LoadState) -> Unit) {}
     override fun loadAroundInternal(index: Int) {}
 }

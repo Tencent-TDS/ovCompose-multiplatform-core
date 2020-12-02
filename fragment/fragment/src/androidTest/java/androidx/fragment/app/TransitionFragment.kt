@@ -15,15 +15,14 @@
  */
 package androidx.fragment.app
 
-import android.os.SystemClock
 import android.transition.Transition
 import androidx.annotation.LayoutRes
 import androidx.fragment.test.R
-import org.mockito.ArgumentMatchers
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.never
-import org.mockito.Mockito.reset
-import org.mockito.Mockito.verify
+import androidx.lifecycle.Lifecycle
+import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * A fragment that has transitions that can be tracked.
@@ -33,12 +32,15 @@ open class TransitionFragment(
 ) : StrictViewFragment(contentLayoutId) {
     val enterTransition = TrackingVisibility()
     val reenterTransition = TrackingVisibility()
-    val exitTransition = TrackingVisibility()
+    var exitTransition = TrackingVisibility()
     val returnTransition = TrackingVisibility()
     val sharedElementEnter = TrackingTransition()
     val sharedElementReturn = TrackingTransition()
+    var startTransitionCountDownLatch = CountDownLatch(1)
+    var endTransitionCountDownLatch = CountDownLatch(1)
 
-    private val listener = mock(Transition.TransitionListener::class.java)
+    @Suppress("LeakingThis")
+    val listener = TestTransitionFragmentListener(this)
 
     init {
         @Suppress("LeakingThis")
@@ -60,18 +62,42 @@ open class TransitionFragment(
     }
 
     internal fun waitForTransition() {
-        verify(
-            listener,
-            within(1000)
-        ).onTransitionEnd(ArgumentMatchers.any())
-        reset(listener)
+        assertWithMessage("Timed out waiting for onTransitionEnd")
+            .that(endTransitionCountDownLatch.await(1, TimeUnit.SECONDS))
+            .isTrue()
+        assertThat(listener.lifecycleInTransitionEnd)
+            .isNotEqualTo(Lifecycle.State.DESTROYED)
+        endTransitionCountDownLatch = CountDownLatch(1)
     }
 
     internal fun waitForNoTransition() {
-        SystemClock.sleep(250)
-        verify(
-            listener,
-            never()
-        ).onTransitionStart(ArgumentMatchers.any())
+        assertThat(startTransitionCountDownLatch.await(250, TimeUnit.MILLISECONDS)).isFalse()
+    }
+}
+
+open class TestTransitionFragmentListener(
+    val fragment: TransitionFragment
+) : Transition.TransitionListener {
+
+    lateinit var lifecycleInTransitionEnd: Lifecycle.State
+
+    override fun onTransitionEnd(transition: Transition) {
+        lifecycleInTransitionEnd = if (fragment.view == null) {
+            Lifecycle.State.DESTROYED
+        } else {
+            fragment.viewLifecycleOwner.lifecycle.currentState
+        }
+        fragment.endTransitionCountDownLatch.countDown()
+        fragment.startTransitionCountDownLatch = CountDownLatch(1)
+    }
+
+    override fun onTransitionResume(transition: Transition) {}
+
+    override fun onTransitionPause(transition: Transition) {}
+
+    override fun onTransitionCancel(transition: Transition) {}
+
+    override fun onTransitionStart(transition: Transition) {
+        fragment.startTransitionCountDownLatch.countDown()
     }
 }

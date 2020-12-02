@@ -20,6 +20,7 @@ import android.view.Surface;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.util.ObjectsCompat;
 import androidx.media2.common.BaseResult;
 import androidx.media2.common.MediaItem;
 import androidx.media2.common.MediaMetadata;
@@ -33,6 +34,7 @@ import androidx.media2.session.SessionCommandGroup;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
 
@@ -45,6 +47,8 @@ class PlayerWrapper {
 
     private final Executor mCallbackExecutor;
 
+    @SuppressWarnings("WeakerAccess") /* synthetic access */
+    final PlayerCallback mWrapperCallback;
     private final MediaControllerCallback mControllerCallback;
     private final SessionPlayerCallback mPlayerCallback;
 
@@ -58,6 +62,8 @@ class PlayerWrapper {
     @SuppressWarnings("WeakerAccess") /* synthetic access */
     MediaMetadata mMediaMetadata;
 
+    private final SessionCommandGroup mAllCommands;
+
     PlayerWrapper(@NonNull MediaController controller, @NonNull Executor executor,
             @NonNull PlayerCallback callback) {
         if (controller == null) throw new NullPointerException("controller must not be null");
@@ -65,10 +71,13 @@ class PlayerWrapper {
         if (callback == null) throw new NullPointerException("callback must not be null");
         mController = controller;
         mCallbackExecutor = executor;
-        mControllerCallback = new MediaControllerCallback(callback);
+        mWrapperCallback = callback;
+        mControllerCallback = new MediaControllerCallback();
 
         mPlayer = null;
         mPlayerCallback = null;
+
+        mAllCommands = null;
     }
 
     PlayerWrapper(@NonNull SessionPlayer player, @NonNull Executor executor,
@@ -78,10 +87,19 @@ class PlayerWrapper {
         if (callback == null) throw new NullPointerException("callback must not be null");
         mPlayer = player;
         mCallbackExecutor = executor;
-        mPlayerCallback = new SessionPlayerCallback(callback);
+        mWrapperCallback = callback;
+        mPlayerCallback = new SessionPlayerCallback();
 
         mController = null;
         mControllerCallback = null;
+
+        mAllCommands = new SessionCommandGroup.Builder()
+                .addAllPredefinedCommands(SessionCommand.COMMAND_VERSION_1)
+                .build();
+    }
+
+    boolean hasDisconnectedController() {
+        return mController != null && !mController.isConnected();
     }
 
     void attachCallback() {
@@ -91,7 +109,7 @@ class PlayerWrapper {
         } else if (mPlayer != null) {
             mPlayer.registerPlayerCallback(mCallbackExecutor, mPlayerCallback);
         }
-        updateCachedStates();
+        updateAndNotifyCachedStates();
         mCallbackAttached = true;
     }
 
@@ -110,6 +128,9 @@ class PlayerWrapper {
     }
 
     long getCurrentPosition() {
+        if (mSavedPlayerState == SessionPlayer.PLAYER_STATE_IDLE) {
+            return 0;
+        }
         long position = 0;
         if (mController != null) {
             position = mController.getCurrentPosition();
@@ -120,6 +141,9 @@ class PlayerWrapper {
     }
 
     long getBufferPercentage() {
+        if (mSavedPlayerState == SessionPlayer.PLAYER_STATE_IDLE) {
+            return 0;
+        }
         long duration = getDurationMs();
         if (duration == 0) return 0;
         long bufferedPos = 0;
@@ -128,7 +152,7 @@ class PlayerWrapper {
         } else if (mPlayer != null) {
             bufferedPos = mPlayer.getBufferedPosition();
         }
-        return (bufferedPos < 0) ? -1 : (bufferedPos * 100 / duration);
+        return (bufferedPos < 0) ? 0 : (bufferedPos * 100 / duration);
     }
 
     int getPlayerState() {
@@ -176,6 +200,8 @@ class PlayerWrapper {
                 && mAllowedCommands.hasCommand(SessionCommand.COMMAND_CODE_PLAYER_DESELECT_TRACK);
     }
 
+    // TODO(b/138091975) Do not ignore the returned Future.
+    @SuppressWarnings("FutureReturnValueIgnored")
     void pause() {
         if (mController != null) {
             mController.pause();
@@ -184,6 +210,8 @@ class PlayerWrapper {
         }
     }
 
+    // TODO(b/138091975) Do not ignore the returned Future.
+    @SuppressWarnings("FutureReturnValueIgnored")
     void play() {
         if (mController != null) {
             mController.play();
@@ -192,6 +220,8 @@ class PlayerWrapper {
         }
     }
 
+    // TODO(b/138091975) Do not ignore the returned Future.
+    @SuppressWarnings("FutureReturnValueIgnored")
     void seekTo(long posMs) {
         if (mController != null) {
             mController.seekTo(posMs);
@@ -200,6 +230,8 @@ class PlayerWrapper {
         }
     }
 
+    // TODO(b/138091975) Do not ignore the returned Future.
+    @SuppressWarnings("FutureReturnValueIgnored")
     void skipToNextItem() {
         if (mController != null) {
             mController.skipToNextPlaylistItem();
@@ -208,6 +240,8 @@ class PlayerWrapper {
         }
     }
 
+    // TODO(b/138091975) Do not ignore the returned Future.
+    @SuppressWarnings("FutureReturnValueIgnored")
     void skipToPreviousItem() {
         if (mController != null) {
             mController.skipToPreviousPlaylistItem();
@@ -216,7 +250,18 @@ class PlayerWrapper {
         }
     }
 
-    void setSpeed(float speed) {
+    private float getPlaybackSpeed() {
+        if (mController != null) {
+            return mController.getPlaybackSpeed();
+        } else if (mPlayer != null) {
+            return mPlayer.getPlaybackSpeed();
+        }
+        return 1f;
+    }
+
+    // TODO(b/138091975) Do not ignore the returned Future.
+    @SuppressWarnings("FutureReturnValueIgnored")
+    void setPlaybackSpeed(float speed) {
         if (mController != null) {
             mController.setPlaybackSpeed(speed);
         } else if (mPlayer != null) {
@@ -224,29 +269,37 @@ class PlayerWrapper {
         }
     }
 
+    // TODO(b/138091975) Do not ignore the returned Future.
+    @SuppressWarnings("FutureReturnValueIgnored")
     void selectTrack(TrackInfo trackInfo) {
         if (mController != null) {
             mController.selectTrack(trackInfo);
         } else if (mPlayer != null) {
-            mPlayer.selectTrackInternal(trackInfo);
+            mPlayer.selectTrack(trackInfo);
         }
     }
 
+    // TODO(b/138091975) Do not ignore the returned Future.
+    @SuppressWarnings("FutureReturnValueIgnored")
     void deselectTrack(TrackInfo trackInfo) {
         if (mController != null) {
             mController.deselectTrack(trackInfo);
         } else if (mPlayer != null) {
-            mPlayer.deselectTrackInternal(trackInfo);
+            mPlayer.deselectTrack(trackInfo);
         }
     }
 
     long getDurationMs() {
-        if (mController != null) {
-            return mController.getDuration();
-        } else if (mPlayer != null) {
-            return mPlayer.getDuration();
+        if (mSavedPlayerState == SessionPlayer.PLAYER_STATE_IDLE) {
+            return 0;
         }
-        return SessionPlayer.UNKNOWN_TIME;
+        long duration = 0;
+        if (mController != null) {
+            duration = mController.getDuration();
+        } else if (mPlayer != null) {
+            duration = mPlayer.getDuration();
+        }
+        return (duration < 0) ? 0 : duration;
     }
 
     CharSequence getTitle() {
@@ -283,28 +336,38 @@ class PlayerWrapper {
             return mController.getAllowedCommands();
         } else if (mPlayer != null) {
             // We can assume direct players allow all commands since no MediaSession is involved.
-            return new SessionCommandGroup.Builder()
-                    .addAllPredefinedCommands(SessionCommand.COMMAND_VERSION_CURRENT)
-                    .build();
+            return mAllCommands;
         }
         return null;
     }
 
-    private void updateCachedStates() {
-        mSavedPlayerState = getPlayerState();
-        mAllowedCommands = getAllowedCommands();
+    @SuppressWarnings("WeakerAccess") /* synthetic access */
+    void updateAndNotifyCachedStates() {
+        boolean playerStateChanged = false;
+        int playerState = getPlayerState();
+        if (mSavedPlayerState != playerState) {
+            mSavedPlayerState = playerState;
+            playerStateChanged = true;
+        }
+
+        boolean allowedCommandsChanged = false;
+        SessionCommandGroup allowedCommands = getAllowedCommands();
+        if (!ObjectsCompat.equals(mAllowedCommands, allowedCommands)) {
+            mAllowedCommands = allowedCommands;
+            allowedCommandsChanged = true;
+        }
+
         MediaItem item = getCurrentMediaItem();
         mMediaMetadata = item == null ? null : item.getMetadata();
-        if (mController != null) {
-            mControllerCallback.onPlayerStateChanged(mController, mSavedPlayerState);
-            mControllerCallback.onCurrentMediaItemChanged(mController, item);
-            mControllerCallback.onAllowedCommandsChanged(mController, mAllowedCommands);
-        } else if (mPlayer != null) {
-            mPlayerCallback.onPlayerStateChanged(mPlayer, mSavedPlayerState);
-            mPlayerCallback.onCurrentMediaItemChanged(mPlayer, item);
-            mPlayerCallback.mWrapperCallback.onAllowedCommandsChanged(PlayerWrapper.this,
-                    mAllowedCommands);
+
+        if (playerStateChanged) {
+            mWrapperCallback.onPlayerStateChanged(this, playerState);
         }
+        if (allowedCommands != null && allowedCommandsChanged) {
+            mWrapperCallback.onAllowedCommandsChanged(this, allowedCommands);
+        }
+        mWrapperCallback.onCurrentMediaItemChanged(this, item);
+        notifyNonCachedStates();
     }
 
     @NonNull
@@ -312,19 +375,19 @@ class PlayerWrapper {
         if (mController != null) {
             return mController.getVideoSize();
         } else if (mPlayer != null) {
-            return mPlayer.getVideoSizeInternal();
+            return mPlayer.getVideoSize();
         }
         return new VideoSize(0, 0);
     }
 
-    @Nullable
-    List<TrackInfo> getTrackInfo() {
+    @NonNull
+    List<TrackInfo> getTracks() {
         if (mController != null) {
-            return mController.getTrackInfo();
+            return mController.getTracks();
         } else if (mPlayer != null) {
-            return mPlayer.getTrackInfoInternal();
+            return mPlayer.getTracks();
         }
-        return null;
+        return Collections.emptyList();
     }
 
     @Nullable
@@ -332,7 +395,7 @@ class PlayerWrapper {
         if (mController != null) {
             return mController.getSelectedTrack(trackType);
         } else if (mPlayer != null) {
-            return mPlayer.getSelectedTrackInternal(trackType);
+            return mPlayer.getSelectedTrack(trackType);
         }
         return null;
     }
@@ -341,28 +404,53 @@ class PlayerWrapper {
         if (mController != null) {
             return mController.setSurface(surface);
         } else if (mPlayer != null) {
-            return mPlayer.setSurfaceInternal(surface);
+            return mPlayer.setSurface(surface);
         }
         return null;
     }
 
-    private class MediaControllerCallback extends MediaController.ControllerCallback {
-        private final PlayerCallback mWrapperCallback;
+    int getCurrentMediaItemIndex() {
+        if (mController != null) {
+            return mController.getCurrentMediaItemIndex();
+        } else if (mPlayer != null) {
+            return mPlayer.getCurrentMediaItemIndex();
+        }
+        return SessionPlayer.INVALID_ITEM_INDEX;
+    }
 
-        MediaControllerCallback(@NonNull PlayerCallback callback) {
-            mWrapperCallback = callback;
+    int getPreviousMediaItemIndex() {
+        if (mController != null) {
+            return mController.getPreviousMediaItemIndex();
+        } else if (mPlayer != null) {
+            return mPlayer.getPreviousMediaItemIndex();
+        }
+        return SessionPlayer.INVALID_ITEM_INDEX;
+    }
+
+    int getNextMediaItemIndex() {
+        if (mController != null) {
+            return mController.getNextMediaItemIndex();
+        } else if (mPlayer != null) {
+            return mPlayer.getNextMediaItemIndex();
+        }
+        return SessionPlayer.INVALID_ITEM_INDEX;
+    }
+
+    private class MediaControllerCallback extends MediaController.ControllerCallback {
+        MediaControllerCallback() {
         }
 
         @Override
         public void onConnected(@NonNull MediaController controller,
                 @NonNull SessionCommandGroup allowedCommands) {
-            onAllowedCommandsChanged(controller, allowedCommands);
-            onCurrentMediaItemChanged(controller, controller.getCurrentMediaItem());
+            mWrapperCallback.onConnected(PlayerWrapper.this);
+            updateAndNotifyCachedStates();
         }
 
         @Override
         public void onAllowedCommandsChanged(@NonNull MediaController controller,
                 @NonNull SessionCommandGroup commands) {
+            if (ObjectsCompat.equals(mAllowedCommands, commands)) return;
             mAllowedCommands = commands;
             mWrapperCallback.onAllowedCommandsChanged(PlayerWrapper.this, commands);
         }
@@ -392,14 +480,20 @@ class PlayerWrapper {
         }
 
         @Override
+        public void onPlaylistChanged(@NonNull MediaController controller,
+                @Nullable List<MediaItem> list, @Nullable MediaMetadata metadata) {
+            mWrapperCallback.onPlaylistChanged(PlayerWrapper.this, list, metadata);
+        }
+
+        @Override
         public void onPlaybackCompleted(@NonNull MediaController controller) {
             mWrapperCallback.onPlaybackCompleted(PlayerWrapper.this);
         }
 
         @Override
-        public void onVideoSizeChanged(@NonNull MediaController controller, @NonNull MediaItem item,
+        public void onVideoSizeChanged(@NonNull MediaController controller,
                 @NonNull VideoSize videoSize) {
-            mWrapperCallback.onVideoSizeChanged(PlayerWrapper.this, item, videoSize);
+            mWrapperCallback.onVideoSizeChanged(PlayerWrapper.this, videoSize);
         }
 
         @Override
@@ -409,9 +503,9 @@ class PlayerWrapper {
         }
 
         @Override
-        public void onTrackInfoChanged(@NonNull MediaController controller,
-                @NonNull List<TrackInfo> trackInfos) {
-            mWrapperCallback.onTrackInfoChanged(PlayerWrapper.this, trackInfos);
+        public void onTracksChanged(@NonNull MediaController controller,
+                @NonNull List<TrackInfo> tracks) {
+            mWrapperCallback.onTracksChanged(PlayerWrapper.this, tracks);
         }
 
         @Override
@@ -427,11 +521,21 @@ class PlayerWrapper {
         }
     }
 
-    private class SessionPlayerCallback extends SessionPlayer.PlayerCallback {
-        final PlayerCallback mWrapperCallback;
+    private void notifyNonCachedStates() {
+        mWrapperCallback.onPlaybackSpeedChanged(this, getPlaybackSpeed());
 
-        SessionPlayerCallback(@NonNull PlayerCallback callback) {
-            mWrapperCallback = callback;
+        List<TrackInfo> trackInfos = getTracks();
+        if (trackInfos != null) {
+            mWrapperCallback.onTracksChanged(PlayerWrapper.this, trackInfos);
+        }
+        MediaItem item = getCurrentMediaItem();
+        if (item != null) {
+            mWrapperCallback.onVideoSizeChanged(PlayerWrapper.this, getVideoSize());
+        }
+    }
+
+    private class SessionPlayerCallback extends SessionPlayer.PlayerCallback {
+        SessionPlayerCallback() {
         }
 
         @Override
@@ -459,14 +563,19 @@ class PlayerWrapper {
         }
 
         @Override
+        public void onPlaylistChanged(@NonNull SessionPlayer player, @Nullable List<MediaItem> list,
+                @Nullable MediaMetadata metadata) {
+            mWrapperCallback.onPlaylistChanged(PlayerWrapper.this, list, metadata);
+        }
+
+        @Override
         public void onPlaybackCompleted(@NonNull SessionPlayer player) {
             mWrapperCallback.onPlaybackCompleted(PlayerWrapper.this);
         }
 
         @Override
-        public void onVideoSizeChangedInternal(@NonNull SessionPlayer player,
-                @NonNull MediaItem item, @NonNull VideoSize size) {
-            mWrapperCallback.onVideoSizeChanged(PlayerWrapper.this, item, size);
+        public void onVideoSizeChanged(@NonNull SessionPlayer player, @NonNull VideoSize size) {
+            mWrapperCallback.onVideoSizeChanged(PlayerWrapper.this, size);
         }
 
         @Override
@@ -476,9 +585,9 @@ class PlayerWrapper {
         }
 
         @Override
-        public void onTrackInfoChanged(@NonNull SessionPlayer player,
-                @NonNull List<TrackInfo> trackInfos) {
-            mWrapperCallback.onTrackInfoChanged(PlayerWrapper.this, trackInfos);
+        public void onTracksChanged(@NonNull SessionPlayer player,
+                @NonNull List<TrackInfo> tracks) {
+            mWrapperCallback.onTracksChanged(PlayerWrapper.this, tracks);
         }
 
         @Override
@@ -493,10 +602,15 @@ class PlayerWrapper {
     }
 
     abstract static class PlayerCallback {
+        void onConnected(@NonNull PlayerWrapper player) {
+        }
         void onAllowedCommandsChanged(@NonNull PlayerWrapper player,
                 @NonNull SessionCommandGroup commands) {
         }
         void onCurrentMediaItemChanged(@NonNull PlayerWrapper player, @Nullable MediaItem item) {
+        }
+        void onPlaylistChanged(@NonNull PlayerWrapper player, @Nullable List<MediaItem> list,
+                @Nullable MediaMetadata metadata) {
         }
         void onPlayerStateChanged(@NonNull PlayerWrapper player, int state) {
         }
@@ -506,11 +620,9 @@ class PlayerWrapper {
         }
         void onPlaybackCompleted(@NonNull PlayerWrapper player) {
         }
-        void onVideoSizeChanged(@NonNull PlayerWrapper player, @NonNull MediaItem item,
-                @NonNull VideoSize videoSize) {
+        void onVideoSizeChanged(@NonNull PlayerWrapper player, @NonNull VideoSize videoSize) {
         }
-        void onTrackInfoChanged(@NonNull PlayerWrapper player,
-                @NonNull List<TrackInfo> trackInfos) {
+        void onTracksChanged(@NonNull PlayerWrapper player, @NonNull List<TrackInfo> tracks) {
         }
         void onTrackSelected(@NonNull PlayerWrapper player, @NonNull TrackInfo trackInfo) {
         }

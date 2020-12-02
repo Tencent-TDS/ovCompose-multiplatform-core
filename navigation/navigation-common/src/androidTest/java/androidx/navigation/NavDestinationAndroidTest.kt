@@ -18,6 +18,8 @@ package androidx.navigation
 
 import android.net.Uri
 import android.os.Bundle
+import androidx.navigation.test.intArgument
+import androidx.navigation.test.stringArgument
 import androidx.test.filters.SmallTest
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -28,14 +30,12 @@ class NavDestinationAndroidTest {
     @Test
     fun matchDeepLink() {
         val destination = NoOpNavigator().createDestination()
-        val idArgument = NavArgument.Builder()
-            .setType(NavType.IntType)
-            .build()
-        destination.addArgument("id", idArgument)
+        destination.addArgument("id", intArgument())
         destination.addDeepLink("www.example.com/users/{id}")
 
         val match = destination.matchDeepLink(
-            Uri.parse("https://www.example.com/users/43"))
+            Uri.parse("https://www.example.com/users/43")
+        )
 
         assertWithMessage("Deep link should match")
             .that(match)
@@ -52,14 +52,12 @@ class NavDestinationAndroidTest {
 
         destination.addDeepLink("www.example.com/users/index.html")
 
-        val idArgument = NavArgument.Builder()
-            .setType(NavType.StringType)
-            .build()
-        destination.addArgument("id", idArgument)
+        destination.addArgument("id", stringArgument())
         destination.addDeepLink("www.example.com/users/{name}")
 
         val match = destination.matchDeepLink(
-            Uri.parse("https://www.example.com/users/index.html"))
+            Uri.parse("https://www.example.com/users/index.html")
+        )
 
         assertWithMessage("Deep link should match")
             .that(match)
@@ -89,20 +87,15 @@ class NavDestinationAndroidTest {
     fun matchDeepLinkBestMatch() {
         val destination = NoOpNavigator().createDestination()
 
-        val idArgument = NavArgument.Builder()
-            .setType(NavType.IntType)
-            .build()
-        destination.addArgument("id", idArgument)
+        destination.addArgument("id", intArgument())
         destination.addDeepLink("www.example.com/users/{id}")
 
-        val postIdArgument = NavArgument.Builder()
-            .setType(NavType.IntType)
-            .build()
-        destination.addArgument("postId", postIdArgument)
+        destination.addArgument("postId", intArgument())
         destination.addDeepLink("www.example.com/users/{id}/posts/{postId}")
 
         val match = destination.matchDeepLink(
-            Uri.parse("https://www.example.com/users/43/posts/99"))
+            Uri.parse("https://www.example.com/users/43/posts/99")
+        )
 
         assertWithMessage("Deep link should match")
             .that(match)
@@ -119,6 +112,41 @@ class NavDestinationAndroidTest {
     }
 
     @Test
+    fun matchDeepLinkBestMimeType() {
+        val destination = NoOpNavigator().createDestination()
+
+        destination.addArgument("deeplink1", stringArgument())
+        destination.addDeepLink(
+            NavDeepLink(
+                "www.example.com/users/{deeplink1}",
+                null, "*/*"
+            )
+        )
+
+        destination.addArgument("deeplink2", stringArgument())
+        destination.addDeepLink(
+            NavDeepLink(
+                "www.example.com/users/{deeplink2}",
+                null, "image/*"
+            )
+        )
+
+        val match = destination.matchDeepLink(
+            NavDeepLinkRequest(
+                Uri.parse("https://www.example.com/users/result"), null,
+                "image/jpg"
+            )
+        )
+
+        assertWithMessage("Deep link should match")
+            .that(match)
+            .isNotNull()
+        assertWithMessage("Deep link matching arg should be deeplink2")
+            .that(match?.matchingArgs?.getString("deeplink2"))
+            .isEqualTo("result")
+    }
+
+    @Test
     fun testIsValidDeepLinkValidLinkExact() {
         val destination = NoOpNavigator().createDestination()
         val deepLink = Uri.parse("android-app://androidx.navigation.test/test")
@@ -131,10 +159,7 @@ class NavDestinationAndroidTest {
     @Test
     fun testIsValidDeepLinkValidLinkPattern() {
         val destination = NoOpNavigator().createDestination()
-        val stringArgument = NavArgument.Builder()
-            .setType(NavType.StringType)
-            .build()
-        destination.addArgument("testString", stringArgument)
+        destination.addArgument("testString", stringArgument())
         destination.addDeepLink("android-app://androidx.navigation.test/{testString}")
         val deepLink = Uri.parse("android-app://androidx.navigation.test/test")
         destination.addDeepLink(deepLink.toString())
@@ -156,20 +181,14 @@ class NavDestinationAndroidTest {
     @Test
     fun addInDefaultArgs() {
         val destination = NoOpNavigator().createDestination()
-        val stringArgument = NavArgument.Builder()
-            .setType(NavType.StringType)
-            .setDefaultValue("aaa")
-            .build()
-        val intArgument = NavArgument.Builder()
-            .setType(NavType.IntType)
-            .setDefaultValue(123)
-            .build()
-        destination.addArgument("stringArg", stringArgument)
-        destination.addArgument("intArg", intArgument)
+        destination.addArgument("stringArg", stringArgument("aaa"))
+        destination.addArgument("intArg", intArgument(123))
 
-        val bundle = destination.addInDefaultArgs(Bundle().apply {
-            putString("stringArg", "bbb")
-        })
+        val bundle = destination.addInDefaultArgs(
+            Bundle().apply {
+                putString("stringArg", "bbb")
+            }
+        )
         assertThat(bundle?.getString("stringArg")).isEqualTo("bbb")
         assertThat(bundle?.getInt("intArg")).isEqualTo(123)
     }
@@ -177,19 +196,13 @@ class NavDestinationAndroidTest {
     @Test(expected = IllegalArgumentException::class)
     fun addInDefaultArgsWrong() {
         val destination = NoOpNavigator().createDestination()
-        val stringArgument = NavArgument.Builder()
-            .setType(NavType.StringType)
-            .setDefaultValue("aaa")
-            .build()
-        val intArgument = NavArgument.Builder()
-            .setType(NavType.IntType)
-            .setDefaultValue(123)
-            .build()
-        destination.addArgument("stringArg", stringArgument)
-        destination.addArgument("intArg", intArgument)
+        destination.addArgument("stringArg", stringArgument("aaa"))
+        destination.addArgument("intArg", intArgument(123))
 
-        destination.addInDefaultArgs(Bundle().apply {
-            putInt("stringArg", 123)
-        })
+        destination.addInDefaultArgs(
+            Bundle().apply {
+                putInt("stringArg", 123)
+            }
+        )
     }
 }

@@ -17,7 +17,6 @@
 package androidx.media2.session;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY;
-import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.content.ComponentName;
 import android.os.Bundle;
@@ -49,12 +48,12 @@ final class SessionTokenImplBase implements SessionToken.SessionTokenImpl {
     @ParcelField(7)
     Bundle mExtras;
 
+    // WARNING: Adding a new ParcelField may break old library users (b/152830728)
+
     /**
      * Constructor for the token. You can only create token for session service or library service
      * to use by {@link MediaController} or {@link MediaBrowser}.
-     * @hide
      */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
     SessionTokenImplBase(@NonNull ComponentName serviceComponent, int uid, int type) {
         if (serviceComponent == null) {
             throw new NullPointerException("serviceComponent shouldn't be null");
@@ -68,10 +67,6 @@ final class SessionTokenImplBase implements SessionToken.SessionTokenImpl {
         mExtras = null;
     }
 
-    /**
-     * @hide
-     */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
     SessionTokenImplBase(int uid, int type, String packageName, IMediaSession iSession,
             Bundle tokenExtras) {
         mUid = uid;
@@ -85,9 +80,7 @@ final class SessionTokenImplBase implements SessionToken.SessionTokenImpl {
 
     /**
      * Used for {@link VersionedParcelize}.
-     * @hide
      */
-    @RestrictTo(LIBRARY)
     SessionTokenImplBase() {
         // Do nothing.
     }
@@ -128,12 +121,14 @@ final class SessionTokenImplBase implements SessionToken.SessionTokenImpl {
     }
 
     @Override
-    public @NonNull String getPackageName() {
+    @NonNull
+    public String getPackageName() {
         return mPackageName;
     }
 
     @Override
-    public @Nullable String getServiceName() {
+    @Nullable
+    public String getServiceName() {
         return mServiceName;
     }
 
@@ -141,21 +136,22 @@ final class SessionTokenImplBase implements SessionToken.SessionTokenImpl {
      * @hide
      * @return component name of this session token. Can be null for TYPE_SESSION.
      */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY)
     @Override
     public ComponentName getComponentName() {
         return mComponentName;
     }
 
     @Override
-    public @SessionToken.TokenType int getType() {
+    @SessionToken.TokenType
+    public int getType() {
         return mType;
     }
 
-    @NonNull
     @Override
+    @Nullable
     public Bundle getExtras() {
-        return mExtras == null ? Bundle.EMPTY : new Bundle(mExtras);
+        return mExtras;
     }
 
     @Override

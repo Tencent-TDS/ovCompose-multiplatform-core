@@ -27,6 +27,7 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.media2.common.MediaMetadata;
 import androidx.media2.common.MediaParcelUtils;
 import androidx.media2.common.Rating;
@@ -195,13 +196,13 @@ public class MediaControllerProviderService extends Service {
         }
 
         @Override
-        public void createAndSetDummyPlaylist(String controllerId, int size, ParcelImpl metadata)
+        public void createAndSetFakePlaylist(String controllerId, int size, ParcelImpl metadata)
                 throws RemoteException {
             MediaController controller = mMediaControllerMap.get(controllerId);
             List<String> list = new ArrayList<>();
             for (int i = 0; i < size; i++) {
                 // Make media ID of each item same with its index.
-                list.add(TestUtils.getMediaIdInDummyList(i));
+                list.add(TestUtils.getMediaIdInFakeList(i));
             }
             controller.setPlaylist(list, (MediaMetadata) MediaParcelUtils.fromParcelable(metadata));
         }
@@ -210,6 +211,13 @@ public class MediaControllerProviderService extends Service {
         public void setMediaItem(String controllerId, String mediaId) throws RemoteException {
             MediaController controller = mMediaControllerMap.get(controllerId);
             controller.setMediaItem(mediaId);
+        }
+
+        @Override
+        public void setMediaUri(String controllerId, Uri uri, Bundle extras)
+                throws RemoteException {
+            MediaController controller = mMediaControllerMap.get(controllerId);
+            controller.setMediaUri(uri, extras);
         }
 
         @Override
@@ -238,6 +246,13 @@ public class MediaControllerProviderService extends Service {
                 throws RemoteException {
             MediaController controller = mMediaControllerMap.get(controllerId);
             controller.replacePlaylistItem(index, mediaId);
+        }
+
+        @Override
+        public void movePlaylistItem(String controllerId, int fromIdx, int toIdx)
+                throws RemoteException {
+            MediaController controller = mMediaControllerMap.get(controllerId);
+            controller.movePlaylistItem(fromIdx, toIdx);
         }
 
         @Override
@@ -316,48 +331,6 @@ public class MediaControllerProviderService extends Service {
         }
 
         @Override
-        public void playFromMediaId(String controllerId, String mediaId, Bundle extras)
-                throws RemoteException {
-            MediaController controller = mMediaControllerMap.get(controllerId);
-            controller.playFromMediaId(mediaId, extras);
-        }
-
-        @Override
-        public void playFromSearch(String controllerId, String query, Bundle extras)
-                throws RemoteException {
-            MediaController controller = mMediaControllerMap.get(controllerId);
-            controller.playFromSearch(query, extras);
-        }
-
-        @Override
-        public void playFromUri(String controllerId, Uri uri, Bundle extras)
-                throws RemoteException {
-            MediaController controller = mMediaControllerMap.get(controllerId);
-            controller.playFromUri(uri, extras);
-        }
-
-        @Override
-        public void prepareFromMediaId(String controllerId, String mediaId, Bundle extras)
-                throws RemoteException {
-            MediaController controller = mMediaControllerMap.get(controllerId);
-            controller.prepareFromMediaId(mediaId, extras);
-        }
-
-        @Override
-        public void prepareFromSearch(String controllerId, String query, Bundle extras)
-                throws RemoteException {
-            MediaController controller = mMediaControllerMap.get(controllerId);
-            controller.prepareFromSearch(query, extras);
-        }
-
-        @Override
-        public void prepareFromUri(String controllerId, Uri uri, Bundle extras)
-                throws RemoteException {
-            MediaController controller = mMediaControllerMap.get(controllerId);
-            controller.prepareFromUri(uri, extras);
-        }
-
-        @Override
         public void setRating(String controllerId, String mediaId, ParcelImpl rating)
                 throws RemoteException {
             MediaController controller = mMediaControllerMap.get(controllerId);
@@ -428,8 +401,8 @@ public class MediaControllerProviderService extends Service {
             private CountDownLatch mConnectionLatch = new CountDownLatch(1);
 
             @Override
-            public void onConnected(MediaController controller,
-                    SessionCommandGroup allowedCommands) {
+            public void onConnected(@NonNull MediaController controller,
+                    @NonNull SessionCommandGroup allowedCommands) {
                 super.onConnected(controller, allowedCommands);
                 mConnectionLatch.countDown();
             }

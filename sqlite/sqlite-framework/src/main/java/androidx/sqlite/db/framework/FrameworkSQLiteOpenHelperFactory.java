@@ -16,6 +16,7 @@
 
 package androidx.sqlite.db.framework;
 
+import androidx.annotation.NonNull;
 import androidx.sqlite.db.SupportSQLiteOpenHelper;
 
 /**
@@ -24,9 +25,14 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper;
  */
 @SuppressWarnings("unused")
 public final class FrameworkSQLiteOpenHelperFactory implements SupportSQLiteOpenHelper.Factory {
+    @NonNull
     @Override
-    public SupportSQLiteOpenHelper create(SupportSQLiteOpenHelper.Configuration configuration) {
+    public SupportSQLiteOpenHelper create(
+            @NonNull SupportSQLiteOpenHelper.Configuration configuration) {
         return new FrameworkSQLiteOpenHelper(
-                configuration.context, configuration.name, configuration.callback);
+                configuration.context,
+                configuration.name,
+                configuration.callback,
+                configuration.useNoBackupDirectory);
     }
 }

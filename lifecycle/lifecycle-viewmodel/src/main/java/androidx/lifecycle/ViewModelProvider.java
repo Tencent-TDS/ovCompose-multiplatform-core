@@ -27,7 +27,7 @@ import java.lang.reflect.InvocationTargetException;
  * An utility class that provides {@code ViewModels} for a scope.
  * <p>
  * Default {@code ViewModelProvider} for an {@code Activity} or a {@code Fragment} can be obtained
- * from {@link androidx.lifecycle.ViewModelProviders} class.
+ * by passing it to {@link ViewModelProvider#ViewModelProvider(ViewModelStoreOwner)}.
  */
 @SuppressWarnings("WeakerAccess")
 public class ViewModelProvider {
@@ -51,13 +51,18 @@ public class ViewModelProvider {
         <T extends ViewModel> T create(@NonNull Class<T> modelClass);
     }
 
+    static class OnRequeryFactory {
+        void onRequery(@NonNull ViewModel viewModel) {
+        }
+    }
+
     /**
      * Implementations of {@code Factory} interface are responsible to instantiate ViewModels.
      * <p>
      * This is more advanced version of {@link Factory} that receives a key specified for requested
      * {@link ViewModel}.
      */
-    abstract static class KeyedFactory implements Factory {
+    abstract static class KeyedFactory extends OnRequeryFactory implements Factory {
         /**
          * Creates a new instance of the given {@code Class}.
          *
@@ -80,6 +85,21 @@ public class ViewModelProvider {
 
     private final Factory mFactory;
     private final ViewModelStore mViewModelStore;
+
+    /**
+     * Creates {@code ViewModelProvider}. This will create {@code ViewModels}
+     * and retain them in a store of the given {@code ViewModelStoreOwner}.
+     * <p>
+     * This method will use the
+     * {@link HasDefaultViewModelProviderFactory#getDefaultViewModelProviderFactory() default factory}
+     * if the owner implements {@link HasDefaultViewModelProviderFactory}. Otherwise, a
+     * {@link NewInstanceFactory} will be used.
+     */
+    public ViewModelProvider(@NonNull ViewModelStoreOwner owner) {
+        this(owner.getViewModelStore(), owner instanceof HasDefaultViewModelProviderFactory
+                ? ((HasDefaultViewModelProviderFactory) owner).getDefaultViewModelProviderFactory()
+                : NewInstanceFactory.getInstance());
+    }
 
     /**
      * Creates {@code ViewModelProvider}, which will create {@code ViewModels} via the given
@@ -151,6 +171,9 @@ public class ViewModelProvider {
         ViewModel viewModel = mViewModelStore.get(key);
 
         if (modelClass.isInstance(viewModel)) {
+            if (mFactory instanceof OnRequeryFactory) {
+                ((OnRequeryFactory) mFactory).onRequery(viewModel);
+            }
             return (T) viewModel;
         } else {
             //noinspection StatementWithEmptyBody
@@ -159,9 +182,9 @@ public class ViewModelProvider {
             }
         }
         if (mFactory instanceof KeyedFactory) {
-            viewModel = ((KeyedFactory) (mFactory)).create(key, modelClass);
+            viewModel = ((KeyedFactory) mFactory).create(key, modelClass);
         } else {
-            viewModel = (mFactory).create(modelClass);
+            viewModel = mFactory.create(modelClass);
         }
         mViewModelStore.put(key, viewModel);
         return (T) viewModel;
@@ -171,6 +194,21 @@ public class ViewModelProvider {
      * Simple factory, which calls empty constructor on the give class.
      */
     public static class NewInstanceFactory implements Factory {
+
+        private static NewInstanceFactory sInstance;
+
+        /**
+         * Retrieve a singleton instance of NewInstanceFactory.
+         *
+         * @return A valid {@link NewInstanceFactory}
+         */
+        @NonNull
+        static NewInstanceFactory getInstance() {
+            if (sInstance == null) {
+                sInstance = new NewInstanceFactory();
+            }
+            return sInstance;
+        }
 
         @SuppressWarnings("ClassNewInstance")
         @NonNull

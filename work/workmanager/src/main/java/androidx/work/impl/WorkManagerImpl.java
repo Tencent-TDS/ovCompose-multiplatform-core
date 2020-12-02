@@ -16,8 +16,15 @@
 
 package androidx.work.impl;
 
+import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
+import static android.text.TextUtils.isEmpty;
+
+import static androidx.work.impl.foreground.SystemForegroundDispatcher.createCancelWorkIntent;
+
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
@@ -36,23 +43,27 @@ import androidx.work.R;
 import androidx.work.WorkContinuation;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
+import androidx.work.WorkQuery;
 import androidx.work.WorkRequest;
 import androidx.work.WorkerParameters;
 import androidx.work.impl.background.greedy.GreedyScheduler;
 import androidx.work.impl.background.systemjob.SystemJobScheduler;
+import androidx.work.impl.model.RawWorkInfoDao;
 import androidx.work.impl.model.WorkSpec;
 import androidx.work.impl.model.WorkSpecDao;
 import androidx.work.impl.utils.CancelWorkRunnable;
 import androidx.work.impl.utils.ForceStopRunnable;
 import androidx.work.impl.utils.LiveDataUtils;
-import androidx.work.impl.utils.Preferences;
+import androidx.work.impl.utils.PreferenceUtils;
 import androidx.work.impl.utils.PruneWorkRunnable;
+import androidx.work.impl.utils.RawQueries;
 import androidx.work.impl.utils.StartWorkRunnable;
 import androidx.work.impl.utils.StatusRunnable;
 import androidx.work.impl.utils.StopWorkRunnable;
 import androidx.work.impl.utils.futures.SettableFuture;
 import androidx.work.impl.utils.taskexecutor.TaskExecutor;
 import androidx.work.impl.utils.taskexecutor.WorkManagerTaskExecutor;
+import androidx.work.multiprocess.RemoteWorkManager;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -69,8 +80,11 @@ import java.util.UUID;
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class WorkManagerImpl extends WorkManager {
 
+    private static final String TAG = Logger.tagWithPrefix("WorkManagerImpl");
     public static final int MAX_PRE_JOB_SCHEDULER_API_LEVEL = 22;
     public static final int MIN_JOB_SCHEDULER_API_LEVEL = 23;
+    public static final String REMOTE_WORK_MANAGER_CLIENT =
+            "androidx.work.multiprocess.RemoteWorkManagerClient";
 
     private Context mContext;
     private Configuration mConfiguration;
@@ -78,11 +92,10 @@ public class WorkManagerImpl extends WorkManager {
     private TaskExecutor mWorkTaskExecutor;
     private List<Scheduler> mSchedulers;
     private Processor mProcessor;
-    private Preferences mPreferences;
+    private PreferenceUtils mPreferenceUtils;
     private boolean mForceStopRunnableCompleted;
     private BroadcastReceiver.PendingResult mRescheduleReceiverResult;
-    // TODO remove after moving to X: b/74477406
-    private final WorkManagerLiveDataTracker mLiveDataTracker = new WorkManagerLiveDataTracker();
+    private volatile RemoteWorkManager mRemoteWorkManager;
 
     private static WorkManagerImpl sDelegatedInstance = null;
     private static WorkManagerImpl sDefaultInstance = null;
@@ -95,7 +108,7 @@ public class WorkManagerImpl extends WorkManager {
      * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public static void setDelegate(WorkManagerImpl delegate) {
+    public static void setDelegate(@Nullable WorkManagerImpl delegate) {
         synchronized (sLock) {
             sDelegatedInstance = delegate;
         }
@@ -110,6 +123,7 @@ public class WorkManagerImpl extends WorkManager {
      */
     @Deprecated
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @SuppressWarnings("NullableProblems")
     public static @Nullable WorkManagerImpl getInstance() {
         synchronized (sLock) {
             if (sDelegatedInstance != null) {
@@ -169,7 +183,7 @@ public class WorkManagerImpl extends WorkManager {
                 throw new IllegalStateException("WorkManager is already initialized.  Did you "
                         + "try to initialize it manually without disabling "
                         + "WorkManagerInitializer? See "
-                        + "WorkManager#initialize(Context, Configuration) or the class level"
+                        + "WorkManager#initialize(Context, Configuration) or the class level "
                         + "Javadoc for more information.");
             }
 
@@ -222,12 +236,36 @@ public class WorkManagerImpl extends WorkManager {
             @NonNull Configuration configuration,
             @NonNull TaskExecutor workTaskExecutor,
             boolean useTestDatabase) {
+        this(context,
+                configuration,
+                workTaskExecutor,
+                WorkDatabase.create(
+                        context.getApplicationContext(),
+                        workTaskExecutor.getBackgroundExecutor(),
+                        useTestDatabase)
+        );
+    }
 
+    /**
+     * Create an instance of {@link WorkManagerImpl}.
+     *
+     * @param context          The application {@link Context}
+     * @param configuration    The {@link Configuration} configuration
+     * @param workTaskExecutor The {@link TaskExecutor} for running "processing" jobs, such as
+     *                         enqueueing, scheduling, cancellation, etc.
+     * @param database         The {@link WorkDatabase}
+     * @hide
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public WorkManagerImpl(
+            @NonNull Context context,
+            @NonNull Configuration configuration,
+            @NonNull TaskExecutor workTaskExecutor,
+            @NonNull WorkDatabase database) {
         Context applicationContext = context.getApplicationContext();
-        WorkDatabase database = WorkDatabase.create(
-                applicationContext, configuration.getTaskExecutor(), useTestDatabase);
         Logger.setLogger(new Logger.LogcatLogger(configuration.getMinimumLoggingLevel()));
-        List<Scheduler> schedulers = createSchedulers(applicationContext, workTaskExecutor);
+        List<Scheduler> schedulers =
+                createSchedulers(applicationContext, configuration, workTaskExecutor);
         Processor processor = new Processor(
                 context,
                 configuration,
@@ -264,6 +302,7 @@ public class WorkManagerImpl extends WorkManager {
      * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @NonNull
     public Context getApplicationContext() {
         return mContext;
     }
@@ -273,6 +312,7 @@ public class WorkManagerImpl extends WorkManager {
      * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @NonNull
     public WorkDatabase getWorkDatabase() {
         return mWorkDatabase;
     }
@@ -316,12 +356,12 @@ public class WorkManagerImpl extends WorkManager {
     }
 
     /**
-     * @return the {@link Preferences} used by the instance of {@link WorkManager}.
+     * @return the {@link PreferenceUtils} used by the instance of {@link WorkManager}.
      * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public @NonNull Preferences getPreferences() {
-        return mPreferences;
+    public @NonNull PreferenceUtils getPreferenceUtils() {
+        return mPreferenceUtils;
     }
 
     @Override
@@ -381,7 +421,11 @@ public class WorkManagerImpl extends WorkManager {
                 .enqueue();
     }
 
-    private WorkContinuationImpl createWorkContinuationForUniquePeriodicWork(
+    /**
+     * Creates a {@link WorkContinuation} for the given unique {@link PeriodicWorkRequest}.
+     */
+    @NonNull
+    public WorkContinuationImpl createWorkContinuationForUniquePeriodicWork(
             @NonNull String uniqueWorkName,
             @NonNull ExistingPeriodicWorkPolicy existingPeriodicWorkPolicy,
             @NonNull PeriodicWorkRequest periodicWork) {
@@ -427,21 +471,28 @@ public class WorkManagerImpl extends WorkManager {
         return runnable.getOperation();
     }
 
+    @NonNull
+    @Override
+    public PendingIntent createCancelPendingIntent(@NonNull UUID id) {
+        Intent intent = createCancelWorkIntent(mContext, id.toString());
+        return PendingIntent.getService(mContext, 0, intent, FLAG_UPDATE_CURRENT);
+    }
+
     @Override
     public @NonNull LiveData<Long> getLastCancelAllTimeMillisLiveData() {
-        return mPreferences.getLastCancelAllTimeMillisLiveData();
+        return mPreferenceUtils.getLastCancelAllTimeMillisLiveData();
     }
 
     @Override
     public @NonNull ListenableFuture<Long> getLastCancelAllTimeMillis() {
         final SettableFuture<Long> future = SettableFuture.create();
         // Avoiding synthetic accessors.
-        final Preferences preferences = mPreferences;
+        final PreferenceUtils preferenceUtils = mPreferenceUtils;
         mWorkTaskExecutor.executeOnBackgroundThread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    future.set(preferences.getLastCancelAllTimeMillis());
+                    future.set(preferenceUtils.getLastCancelAllTimeMillis());
                 } catch (Throwable throwable) {
                     future.setException(throwable);
                 }
@@ -462,7 +513,7 @@ public class WorkManagerImpl extends WorkManager {
         WorkSpecDao dao = mWorkDatabase.workSpecDao();
         LiveData<List<WorkSpec.WorkInfoPojo>> inputLiveData =
                 dao.getWorkStatusPojoLiveDataForIds(Collections.singletonList(id.toString()));
-        LiveData<WorkInfo> deduped = LiveDataUtils.dedupedMappedLiveDataFor(inputLiveData,
+        return LiveDataUtils.dedupedMappedLiveDataFor(inputLiveData,
                 new Function<List<WorkSpec.WorkInfoPojo>, WorkInfo>() {
                     @Override
                     public WorkInfo apply(List<WorkSpec.WorkInfoPojo> input) {
@@ -474,7 +525,6 @@ public class WorkManagerImpl extends WorkManager {
                     }
                 },
                 mWorkTaskExecutor);
-        return mLiveDataTracker.track(deduped);
     }
 
     @Override
@@ -489,11 +539,10 @@ public class WorkManagerImpl extends WorkManager {
         WorkSpecDao workSpecDao = mWorkDatabase.workSpecDao();
         LiveData<List<WorkSpec.WorkInfoPojo>> inputLiveData =
                 workSpecDao.getWorkStatusPojoLiveDataForTag(tag);
-        LiveData<List<WorkInfo>> deduped = LiveDataUtils.dedupedMappedLiveDataFor(
+        return LiveDataUtils.dedupedMappedLiveDataFor(
                 inputLiveData,
                 WorkSpec.WORK_INFO_MAPPER,
                 mWorkTaskExecutor);
-        return mLiveDataTracker.track(deduped);
     }
 
     @Override
@@ -509,11 +558,10 @@ public class WorkManagerImpl extends WorkManager {
         WorkSpecDao workSpecDao = mWorkDatabase.workSpecDao();
         LiveData<List<WorkSpec.WorkInfoPojo>> inputLiveData =
                 workSpecDao.getWorkStatusPojoLiveDataForName(name);
-        LiveData<List<WorkInfo>> deduped = LiveDataUtils.dedupedMappedLiveDataFor(
+        return LiveDataUtils.dedupedMappedLiveDataFor(
                 inputLiveData,
                 WorkSpec.WORK_INFO_MAPPER,
                 mWorkTaskExecutor);
-        return mLiveDataTracker.track(deduped);
     }
 
     @Override
@@ -525,15 +573,61 @@ public class WorkManagerImpl extends WorkManager {
         return runnable.getFuture();
     }
 
+    @NonNull
+    @Override
+    public LiveData<List<WorkInfo>> getWorkInfosLiveData(
+            @NonNull WorkQuery workQuery) {
+        RawWorkInfoDao rawWorkInfoDao = mWorkDatabase.rawWorkInfoDao();
+        LiveData<List<WorkSpec.WorkInfoPojo>> inputLiveData =
+                rawWorkInfoDao.getWorkInfoPojosLiveData(
+                        RawQueries.workQueryToRawQuery(workQuery));
+        return LiveDataUtils.dedupedMappedLiveDataFor(
+                inputLiveData,
+                WorkSpec.WORK_INFO_MAPPER,
+                mWorkTaskExecutor);
+    }
+
+    @NonNull
+    @Override
+    public ListenableFuture<List<WorkInfo>> getWorkInfos(
+            @NonNull WorkQuery workQuery) {
+        StatusRunnable<List<WorkInfo>> runnable =
+                StatusRunnable.forWorkQuerySpec(this, workQuery);
+        mWorkTaskExecutor.getBackgroundExecutor().execute(runnable);
+        return runnable.getFuture();
+    }
+
     LiveData<List<WorkInfo>> getWorkInfosById(@NonNull List<String> workSpecIds) {
         WorkSpecDao dao = mWorkDatabase.workSpecDao();
         LiveData<List<WorkSpec.WorkInfoPojo>> inputLiveData =
                 dao.getWorkStatusPojoLiveDataForIds(workSpecIds);
-        LiveData<List<WorkInfo>> deduped = LiveDataUtils.dedupedMappedLiveDataFor(
+        return LiveDataUtils.dedupedMappedLiveDataFor(
                 inputLiveData,
                 WorkSpec.WORK_INFO_MAPPER,
                 mWorkTaskExecutor);
-        return mLiveDataTracker.track(deduped);
+    }
+
+    /**
+     * @hide
+     */
+    @Nullable
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public RemoteWorkManager getRemoteWorkManager() {
+        if (mRemoteWorkManager == null) {
+            synchronized (sLock) {
+                if (mRemoteWorkManager == null) {
+                    // Initialize multi-process support.
+                    tryInitializeMultiProcessSupport();
+                    if (mRemoteWorkManager == null && !isEmpty(
+                            mConfiguration.getDefaultProcessName())) {
+                        String message = "Invalid multiprocess configuration. Define an "
+                                + "`implementation` dependency on :work:work-multiprocess library";
+                        throw new IllegalStateException(message);
+                    }
+                }
+            }
+        }
+        return mRemoteWorkManager;
     }
 
     /**
@@ -541,7 +635,7 @@ public class WorkManagerImpl extends WorkManager {
      * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public void startWork(String workSpecId) {
+    public void startWork(@NonNull String workSpecId) {
         startWork(workSpecId, null);
     }
 
@@ -551,7 +645,9 @@ public class WorkManagerImpl extends WorkManager {
      * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public void startWork(String workSpecId, WorkerParameters.RuntimeExtras runtimeExtras) {
+    public void startWork(
+            @NonNull String workSpecId,
+            @Nullable WorkerParameters.RuntimeExtras runtimeExtras) {
         mWorkTaskExecutor
                 .executeOnBackgroundThread(
                         new StartWorkRunnable(this, workSpecId, runtimeExtras));
@@ -562,8 +658,18 @@ public class WorkManagerImpl extends WorkManager {
      * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public void stopWork(String workSpecId) {
-        mWorkTaskExecutor.executeOnBackgroundThread(new StopWorkRunnable(this, workSpecId));
+    public void stopWork(@NonNull String workSpecId) {
+        mWorkTaskExecutor.executeOnBackgroundThread(new StopWorkRunnable(this, workSpecId, false));
+    }
+
+    /**
+     * @param workSpecId The {@link WorkSpec} id to stop when running in the context of a
+     *                   foreground service.
+     * @hide
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public void stopForegroundWork(@NonNull String workSpecId) {
+        mWorkTaskExecutor.executeOnBackgroundThread(new StopWorkRunnable(this, workSpecId, true));
     }
 
     /**
@@ -646,8 +752,13 @@ public class WorkManagerImpl extends WorkManager {
         mWorkDatabase = workDatabase;
         mSchedulers = schedulers;
         mProcessor = processor;
-        mPreferences = new Preferences(mContext);
+        mPreferenceUtils = new PreferenceUtils(workDatabase);
         mForceStopRunnableCompleted = false;
+
+        // Check for direct boot mode
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && context.isDeviceProtectedStorage()) {
+            throw new IllegalStateException("Cannot initialize WorkManager in direct boot mode");
+        }
 
         // Checks for app force stops.
         mWorkTaskExecutor.executeOnBackgroundThread(new ForceStopRunnable(context, this));
@@ -657,11 +768,30 @@ public class WorkManagerImpl extends WorkManager {
      * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public @NonNull List<Scheduler> createSchedulers(Context context, TaskExecutor taskExecutor) {
+    @NonNull
+    public List<Scheduler> createSchedulers(
+            @NonNull Context context,
+            @NonNull Configuration configuration,
+            @NonNull TaskExecutor taskExecutor) {
+
         return Arrays.asList(
                 Schedulers.createBestAvailableBackgroundScheduler(context, this),
                 // Specify the task executor directly here as this happens before internalInit.
                 // GreedyScheduler creates ConstraintTrackers and controllers eagerly.
-                new GreedyScheduler(context, taskExecutor, this));
+                new GreedyScheduler(context, configuration, taskExecutor, this));
+    }
+
+    /**
+     * Tries to find a multi-process safe implementation for  {@link WorkManager}.
+     */
+    private void tryInitializeMultiProcessSupport() {
+        try {
+            Class<?> klass = Class.forName(REMOTE_WORK_MANAGER_CLIENT);
+            mRemoteWorkManager = (RemoteWorkManager) klass.getConstructor(
+                    Context.class, WorkManagerImpl.class
+            ).newInstance(mContext, this);
+        } catch (Throwable throwable) {
+            Logger.get().debug(TAG, "Unable to initialize multi-process support", throwable);
+        }
     }
 }

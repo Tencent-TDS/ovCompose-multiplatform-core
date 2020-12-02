@@ -16,66 +16,34 @@
 
 package androidx.paging
 
-import androidx.annotation.AnyThread
 import androidx.annotation.IntRange
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
-import androidx.annotation.VisibleForTesting
-import androidx.annotation.WorkerThread
-import androidx.arch.core.util.Function
-import androidx.paging.PagedList.Callback
-import androidx.paging.PagedList.Config
-import androidx.paging.PagedList.Config.Builder
-import androidx.paging.PagedList.Config.Companion.MAX_SIZE_UNBOUNDED
-import androidx.paging.PagedList.LoadState
-import androidx.paging.PagedList.LoadType
-import androidx.paging.futures.DirectExecutor
-import androidx.paging.futures.transform
-import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 import java.util.AbstractList
-import java.util.ArrayList
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executor
 
 /**
- * Callback for changes to loading state - whether the refresh, prepend, or append is idle, loading,
- * or has an error.
+ * Lazy loading list that pages in immutable content from a [PagingSource].
  *
- * Used to observe the [LoadState] of any [LoadType] (REFRESH/START/END). For UI purposes (swipe
- * refresh, loading spinner, retry button), this is typically done by registering a
- * [LoadStateListener] with the [PagedListAdapter] or [AsyncPagedListDiffer].
+ * A [PagedList] is a [List] which loads its data in chunks (pages) from a [PagingSource]. Items can
+ * be accessed with [get], and further loading can be triggered with [loadAround]. To display a
+ * [PagedList], see [androidx.paging.PagedListAdapter], which enables the binding of a [PagedList]
+ * to a [androidx.recyclerview.widget.RecyclerView].
  *
- * These calls will be dispatched on the executor defined by [Builder.setNotifyExecutor], which is
- * generally the main/UI thread.
+ * ### Loading Data
  *
- * Called when the LoadState has changed - whether the refresh, prepend, or append is idle, loading,
- * or has an error.
- *
- * REFRESH events can be used to drive a [androidx.swiperefreshlayout.widget.SwipeRefreshLayout], or
- * START/END events can be used to drive loading spinner items in your `RecyclerView`.
- *
- * @param type [LoadType] - START, END, or REFRESH.
- * @param state [LoadState] - IDLE, LOADING, DONE, ERROR, or RETRYABLE_ERROR
- * @param error [Throwable] if in an error state, null otherwise.
- *
- * @see [PagedList.retry]
- */
-typealias LoadStateListener = (type: LoadType, state: LoadState, error: Throwable?) -> Unit
-
-/**
- * Lazy loading list that pages in immutable content from a [DataSource].
- *
- * A PagedList is a [List] which loads its data in chunks (pages) from a [DataSource]. Items can be
- * accessed with [get], and further loading can be triggered with [loadAround]. To display a
- * PagedList, see [androidx.paging.PagedListAdapter], which enables the binding of a PagedList to a
- * [androidx.recyclerview.widget.RecyclerView].
- *
- * <h4>Loading Data</h4>
- *
- * All data in a PagedList is loaded from its [DataSource]. Creating a PagedList loads the
- * first chunk of data from the DataSource immediately, and should for this reason be done on a
- * background thread. The constructed PagedList may then be passed to and used on the UI thread.
+ * All data in a [PagedList] is loaded from its [PagingSource]. Creating a [PagedList] loads the
+ * first chunk of data from the [PagingSource] immediately, and should for this reason be done on a
+ * background thread. The constructed [PagedList] may then be passed to and used on the UI thread.
  * This is done to prevent passing a list with no loaded content to the UI thread, which should
  * generally not be presented to the user.
  *
@@ -86,12 +54,12 @@ typealias LoadStateListener = (type: LoadType, state: LoadState, error: Throwabl
  * list.
  *
  * [PagedList] can present data for an unbounded, infinite scrolling list, or a very large but
- * countable list. Use [Config] to control how many items a [PagedList] loads, and when.
+ * countable list. Use [PagedList.Config] to control how many items a [PagedList] loads, and when.
  *
  * If you use [androidx.paging.LivePagedListBuilder] to get a [androidx.lifecycle.LiveData], it will
- * initialize PagedLists on a background thread for you.
+ * initialize [PagedList]s on a background thread for you.
  *
- * <h4>Placeholders</h4>
+ * ### Placeholders
  *
  * There are two ways that [PagedList] can represent its not-yet-loaded data - with or without
  * `null` placeholders.
@@ -100,7 +68,7 @@ typealias LoadStateListener = (type: LoadType, state: LoadState, error: Throwabl
  * the `N`th item in the data set, or `null` if its not yet loaded.
  *
  * Without `null` placeholders, the [PagedList] is the sublist of data that has already been
- * loaded. The size of the PagedList is the number of currently loaded items, and `get(N)`
+ * loaded. The size of the [PagedList] is the number of currently loaded items, and `get(N)`
  * returns the `N`th *loaded* item. This is not necessarily the `N`th item in the
  * data set.
  *
@@ -119,25 +87,26 @@ typealias LoadStateListener = (type: LoadType, state: LoadState, error: Throwabl
  *  * They don't work well if your item views are of different sizes, as this will prevent
  * loading items from cross-fading nicely.
  *  * They require you to count your data set, which can be expensive or impossible, depending
- * on your [DataSource].
+ * on your [PagingSource].
  *
  * Placeholders are enabled by default, but can be disabled in two ways. They are disabled if the
- * [DataSource] does not count its data set in its initial load, or if  `false` is passed to
- * [Config.Builder.setEnablePlaceholders] when building a [Config].
+ * [PagingSource] does not count its data set in its initial load, or if  `false` is passed to
+ * [PagedList.Config.Builder.setEnablePlaceholders] when building a [PagedList.Config].
  *
- * <h4>Mutability and Snapshots</h4>
+ * ### Mutability and Snapshots
  *
- * A [PagedList] is *mutable* while loading, or ready to load from its [DataSource].
+ * A [PagedList] is *mutable* while loading, or ready to load from its [PagingSource].
  * As loads succeed, a mutable [PagedList] will be updated via Runnables on the main thread. You can
- * listen to these updates with a [Callback]. (Note that [androidx.paging.PagedListAdapter] will
+ * listen to these updates with a [PagedList.Callback]. (Note that [androidx.paging
+ * .PagedListAdapter] will
  * listen to these to signal RecyclerView about the updates/changes).
  *
- * If a [PagedList] attempts to load from an invalid [DataSource], it will [detach] from the
- * [DataSource], meaning that it will no longer attempt to load data. It will return true from
- * [isImmutable], and a new [DataSource] / [PagedList] pair must be created to load further data.
+ * If a [PagedList] attempts to load from an invalid [PagingSource], it will [detach] from the
+ * [PagingSource], meaning that it will no longer attempt to load data. It will return true from
+ * [isImmutable], and a new [PagingSource] / [PagedList] pair must be created to load further data.
  *
- * See [DataSource] and [androidx.paging.LivePagedListBuilder] for how new PagedLists are created to
- * represent changed data.
+ * See [PagingSource] and [androidx.paging.LivePagedListBuilder] for how new [PagedList]s are
+ * created to represent changed data.
  *
  * A [PagedList] snapshot is simply an immutable shallow copy of the current state of the
  * [PagedList] as a `List`. It will reference the same inner items, and contain the same `null`
@@ -145,174 +114,176 @@ typealias LoadStateListener = (type: LoadType, state: LoadState, error: Throwabl
  *
  * @param T The type of the entries in the list.
  */
-abstract class PagedList<T : Any> : AbstractList<T> {
+@Deprecated("PagedList is deprecated and has been replaced by PagingData")
+abstract class PagedList<T : Any> internal constructor(
     /**
-     * @hide
+     * The [PagingSource] that provides data to this [PagedList].
+     *
+     * @suppress
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    open val pagingSource: PagingSource<*, T>,
+    internal val coroutineScope: CoroutineScope,
+    internal val notifyDispatcher: CoroutineDispatcher,
+    internal val storage: PagedStorage<T>,
+
+    /**
+     * Return the Config used to construct this PagedList.
+     *
+     * @return the Config of this PagedList
+     */
+    val config: Config
+) : AbstractList<T>() {
+    /**
+     * @suppress
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     companion object {
         /**
          * Create a [PagedList] which loads data from the provided data source on a background
-         * thread,posting updates to the main thread.
+         * thread, posting updates to the main thread.
          *
-         * @param dataSource DataSource providing data to the PagedList
-         * @param notifyExecutor Thread tat will use and consume data from the PagedList. Generally,
-         *                       this is the UI/main thread.
-         * @param fetchExecutor Data loading will be done via this executor - should be a background
-         *                      thread.
+         * @param pagingSource [PagingSource] providing data to the [PagedList]
+         * @param notifyDispatcher [CoroutineDispatcher] that will use and consume data from the
+         * [PagedList]. Generally, this is the UI/main thread.
+         * @param fetchDispatcher Data loading jobs will be dispatched to this
+         * [CoroutineDispatcher] - should be a background thread.
          * @param boundaryCallback Optional boundary callback to attach to the list.
-         * @param config PagedList Config, which defines how the PagedList will load data.
-         * @param K Key type that indicates to the DataSource what data to load.
-         * @param T Type of items to be held and loaded by the PagedList.
+         * @param config [PagedList.Config], which defines how the [PagedList] will load data.
+         * @param K Key type that indicates to the [PagingSource] what data to load.
+         * @param T Type of items to be held and loaded by the [PagedList].
          *
-         * @return [ListenableFuture] for newly created [PagedList], which will page in data from
-         * the [DataSource] as needed.
+         * @return The newly created [PagedList], which will page in data from the [PagingSource] as
+         * needed.
          *
-         * @hide
+         * @suppress
          */
+        @Suppress("DEPRECATION")
         @JvmStatic
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         fun <K : Any, T : Any> create(
-            dataSource: DataSource<K, T>,
-            notifyExecutor: Executor,
-            fetchExecutor: Executor,
-            initialLoadExecutor: Executor,
+            pagingSource: PagingSource<K, T>,
+            initialPage: PagingSource.LoadResult.Page<K, T>?,
+            coroutineScope: CoroutineScope,
+            notifyDispatcher: CoroutineDispatcher,
+            fetchDispatcher: CoroutineDispatcher,
             boundaryCallback: BoundaryCallback<T>?,
             config: Config,
             key: K?
-        ): ListenableFuture<PagedList<T>> {
-            dataSource.initExecutor(initialLoadExecutor)
-
-            val lastLoad = when {
-                dataSource.type == DataSource.KeyType.POSITIONAL && key != null -> key as Int
-                else -> ContiguousPagedList.LAST_LOAD_UNSPECIFIED
-            }
-
-            val params = DataSource.Params(
-                DataSource.LoadType.INITIAL,
-                key,
-                config.initialLoadSizeHint,
-                config.enablePlaceholders,
-                config.pageSize
-            )
-            return dataSource.load(params).transform(
-                Function { initialResult ->
-                    dataSource.initExecutor(fetchExecutor)
-                    ContiguousPagedList(
-                        dataSource,
-                        notifyExecutor,
-                        fetchExecutor,
-                        boundaryCallback,
-                        config,
-                        initialResult,
-                        lastLoad
+        ): PagedList<T> {
+            val resolvedInitialPage = when (initialPage) {
+                null -> {
+                    // Compatibility codepath - perform the initial load immediately, since caller
+                    // hasn't done it. We block in this case, but it's only used in the legacy path.
+                    val params = PagingSource.LoadParams.Refresh(
+                        key,
+                        config.initialLoadSizeHint,
+                        config.enablePlaceholders,
                     )
-                },
-                DirectExecutor
+                    runBlocking {
+                        val initialResult = withContext(DirectDispatcher) {
+                            pagingSource.load(params)
+                        }
+                        when (initialResult) {
+                            is PagingSource.LoadResult.Page -> initialResult
+                            is PagingSource.LoadResult.Error -> throw initialResult.throwable
+                        }
+                    }
+                }
+                else -> initialPage
+            }
+            return ContiguousPagedList(
+                pagingSource,
+                coroutineScope,
+                notifyDispatcher,
+                fetchDispatcher,
+                boundaryCallback,
+                config,
+                resolvedInitialPage,
+                key
             )
         }
-    }
-
-    /**
-     * Type of load a PagedList can perform.
-     *
-     * You can use a [LoadStateListener] to observe [LoadState] of any [LoadType]. For UI purposes
-     * (swipe refresh, loading spinner, retry button), this is typically done by registering a
-     * Listener with the [androidx.paging.PagedListAdapter] or
-     * [androidx.paging.AsyncPagedListDiffer].
-     *
-     * @see LoadState
-     */
-    enum class LoadType {
-        /**
-         * PagedList content being reloaded, may contain content updates.
-         */
-        REFRESH,
 
         /**
-         * Load at the start of the PagedList.
+         * Extremely naive diff dispatch: mark entire list as modified (essentially,
+         * notifyDataSetChanged). We do this because previous logic was incorrect, and could
+         * dispatch invalid diffs when pages are dropped. Instead of passing a snapshot, we now
+         * recommend to strictly use the addWeakCallback variant that only accepts a callback.
          */
-        START,
-
-        /**
-         * Load at the end of the PagedList.
-         */
-        END
-    }
-
-    /**
-     * State of a PagedList load - associated with a `LoadType`
-     *
-     * You can use a [LoadStateListener] to observe [LoadState] of any [LoadType]. For UI
-     * purposes (swipe refresh, loading spinner, retry button), this is typically done by
-     * registering a callback with the `PagedListAdapter` or `AsyncPagedListDiffer`.
-     */
-    enum class LoadState {
-        /**
-         * Indicates the PagedList is not currently loading, and no error currently observed.
-         */
-        IDLE,
-
-        /**
-         * Loading is in progress.
-         */
-        LOADING,
-
-        /**
-         * Loading is complete.
-         */
-        DONE,
-
-        /**
-         * Loading hit a non-retryable error.
-         */
-        ERROR,
-
-        /**
-         * Loading hit a retryable error.
-         *
-         * @see .retry
-         */
-        RETRYABLE_ERROR
+        internal fun dispatchNaiveUpdatesSinceSnapshot(
+            currentSize: Int,
+            snapshotSize: Int,
+            callback: Callback
+        ) {
+            if (snapshotSize < currentSize) {
+                if (snapshotSize > 0) {
+                    callback.onChanged(0, snapshotSize)
+                }
+                val diffCount = currentSize - snapshotSize
+                if (diffCount > 0) {
+                    callback.onInserted(snapshotSize, diffCount)
+                }
+            } else {
+                if (currentSize > 0) {
+                    callback.onChanged(0, currentSize)
+                }
+                val diffCount = snapshotSize - currentSize
+                if (diffCount != 0) {
+                    callback.onRemoved(currentSize, diffCount)
+                }
+            }
+        }
     }
 
     /**
      * Builder class for [PagedList].
      *
-     * [DataSource], [Config], main thread and background executor must all be provided.
+     * [pagingSource], [config], [notifyDispatcher] and [fetchDispatcher] must all be provided.
      *
-     * A [PagedList] queries initial data from its [DataSource] during construction, to avoid empty
-     * PagedLists being presented to the UI when possible. It's preferred to present initial data,
-     * so that the UI doesn't show an empty list, or placeholders for a few frames, just before
-     * showing initial content.
+     * A [PagedList] queries initial data from its [PagingSource] during construction, to avoid
+     * empty [PagedList]s being presented to the UI when possible. It's preferred to present
+     * initial data, so that the UI doesn't show an empty list, or placeholders for a few frames,
+     * just before showing initial content.
      *
-     * [androidx.paging.LivePagedListBuilder] does this creation on a background thread
-     * automatically, if you want to receive a `LiveData<PagedList<...>>`.
+     * [LivePagedListBuilder][androidx.paging.LivePagedListBuilder] does this creation on a
+     * background thread automatically, if you want to receive a `LiveData<PagedList<...>>`.
      *
-     * @param Key Type of key used to load data from the [DataSource].
+     * @param Key Type of key used to load data from the [PagingSource].
      * @param Value Type of items held and loaded by the [PagedList].
      */
+    @Deprecated(
+        message = "PagedList is deprecated and has been replaced by PagingData, which no " +
+            "longer supports constructing snapshots of loaded data manually.",
+        replaceWith = ReplaceWith("Pager.flow", "androidx.paging.Pager")
+    )
     class Builder<Key : Any, Value : Any> {
-        private val dataSource: DataSource<Key, Value>
+        private val pagingSource: PagingSource<Key, Value>?
+        private var dataSource: DataSource<Key, Value>?
+        private val initialPage: PagingSource.LoadResult.Page<Key, Value>?
         private val config: Config
-        private var notifyExecutor: Executor? = null
-        private var fetchExecutor: Executor? = null
+        private var coroutineScope: CoroutineScope = GlobalScope
+        private var notifyDispatcher: CoroutineDispatcher? = null
+        private var fetchDispatcher: CoroutineDispatcher? = null
         private var boundaryCallback: BoundaryCallback<Value>? = null
         private var initialKey: Key? = null
 
         /**
-         * Create a PagedList.Builder with the provided [DataSource] and [Config].
+         * Create a [Builder][PagedList.Builder] with the provided [DataSource] and
+         * [Config][PagedList.Config].
          *
          * @param dataSource [DataSource] the [PagedList] will load from.
-         * @param config [Config] that defines how the [PagedList] loads data from its [DataSource].
+         * @param config [PagedList.Config] that defines how the [PagedList] loads data from its
+         * [DataSource].
          */
         constructor(dataSource: DataSource<Key, Value>, config: Config) {
+            this.pagingSource = null
             this.dataSource = dataSource
+            this.initialPage = null
             this.config = config
         }
 
         /**
-         * Create a [PagedList.Builder] with the provided [DataSource] and page size.
+         * Create a [PagedList.Builder] with the provided [DataSource] and [pageSize].
          *
          * This method is a convenience for:
          * ```
@@ -321,37 +292,142 @@ abstract class PagedList<T : Any> : AbstractList<T> {
          * ```
          *
          * @param dataSource [DataSource] the [PagedList] will load from.
-         * @param pageSize [Config] that defines how the [PagedList] loads data from its
-         *                 [DataSource].
+         * @param pageSize Size of loaded pages when the [PagedList] loads data from its
+         * [DataSource].
          */
         constructor(dataSource: DataSource<Key, Value>, pageSize: Int) : this(
-            dataSource,
-            PagedList.Config.Builder().setPageSize(pageSize).build()
+            dataSource = dataSource,
+            config = Config(pageSize)
         )
 
         /**
-         * The executor defining where page loading updates are dispatched.
+         * Create a [PagedList.Builder] with the provided [PagingSource], initial
+         * [PagingSource.LoadResult.Page], and [PagedList.Config].
          *
-         * @param notifyExecutor Executor that receives [PagedList] updates, and where [Callback]
-         *                       calls are dispatched. Generally, this is the ui/main thread.
-         * @return this
+         * @param pagingSource [PagingSource] the [PagedList] will load from.
+         * @param initialPage Initial page loaded from the [PagingSource].
+         * @param config [PagedList.Config] that defines how the [PagedList] loads data from its
+         * [PagingSource].
          */
-        fun setNotifyExecutor(notifyExecutor: Executor) = apply {
-            this.notifyExecutor = notifyExecutor
+        constructor(
+            pagingSource: PagingSource<Key, Value>,
+            initialPage: PagingSource.LoadResult.Page<Key, Value>,
+            config: Config
+        ) {
+            this.pagingSource = pagingSource
+            this.dataSource = null
+            this.initialPage = initialPage
+            this.config = config
         }
 
         /**
-         * The executor used to fetch additional pages from the [DataSource].
+         * Create a [PagedList.Builder] with the provided [PagingSource], initial
+         * [PagingSource.LoadResult.Page], and [pageSize].
+         *
+         * This method is a convenience for:
+         * ```
+         * PagedList.Builder(
+         *     pagingSource,
+         *     page,
+         *     PagedList.Config.Builder().setPageSize(pageSize).build()
+         * )
+         * ```
+         *
+         * @param pagingSource [PagingSource] the [PagedList] will load from.
+         * @param initialPage Initial page loaded from the [PagingSource].
+         * @param pageSize Size of loaded pages when the [PagedList] loads data from its
+         * [PagingSource].
+         */
+        constructor(
+            pagingSource: PagingSource<Key, Value>,
+            initialPage: PagingSource.LoadResult.Page<Key, Value>,
+            pageSize: Int
+        ) : this(
+            pagingSource = pagingSource,
+            initialPage = initialPage,
+            config = Config(pageSize)
+        )
+
+        /**
+         * Set the [CoroutineScope] that page loads should be launched within.
+         *
+         * The set [coroutineScope] allows a [PagingSource] to cancel running load operations when
+         * the results are no longer needed - for example, when the containing Activity is
+         * destroyed.
+         *
+         * Defaults to [GlobalScope].
+         *
+         * @param coroutineScope
+         * @return this
+         */
+        fun setCoroutineScope(coroutineScope: CoroutineScope) = this.apply {
+            this.coroutineScope = coroutineScope
+        }
+
+        /**
+         * The [Executor] defining where page loading updates are dispatched.
+         *
+         * @param notifyExecutor [Executor] that receives [PagedList] updates, and where
+         * [PagedList.Callback] calls are dispatched. Generally, this is the ui/main thread.
+         * @return this
+         */
+        @Deprecated(
+            message = "Passing an executor will cause it get wrapped as a CoroutineDispatcher, " +
+                "consider passing a CoroutineDispatcher directly",
+            replaceWith = ReplaceWith(
+                "setNotifyDispatcher(fetchExecutor.asCoroutineDispatcher())",
+                "kotlinx.coroutines.asCoroutineDispatcher"
+            )
+        )
+        fun setNotifyExecutor(notifyExecutor: Executor) = apply {
+            this.notifyDispatcher = notifyExecutor.asCoroutineDispatcher()
+        }
+
+        /**
+         * The [CoroutineDispatcher] defining where page loading updates are dispatched.
+         *
+         * @param notifyDispatcher [CoroutineDispatcher] that receives [PagedList] updates, and
+         * where [PagedList.Callback] calls are dispatched. Generally, this is the ui/main thread.
+         * @return this
+         */
+        fun setNotifyDispatcher(notifyDispatcher: CoroutineDispatcher) = apply {
+            this.notifyDispatcher = notifyDispatcher
+        }
+
+        /**
+         * The [Executor] used to fetch additional pages from the [PagingSource].
          *
          * Does not affect initial load, which will be done immediately on whichever thread the
          * [PagedList] is created on.
          *
-         * @param fetchExecutor [Executor] used to fetch from [DataSources], generally a background
-         *                      thread pool for e.g. I/O or network loading.
+         * @param fetchExecutor [Executor] used to fetch from [PagingSource]s, generally a
+         * background thread pool for e.g. I/O or network loading.
          * @return this
          */
+        @Deprecated(
+            message = "Passing an executor will cause it get wrapped as a CoroutineDispatcher, " +
+                "consider passing a CoroutineDispatcher directly",
+            replaceWith = ReplaceWith(
+                "setFetchDispatcher(fetchExecutor.asCoroutineDispatcher())",
+                "kotlinx.coroutines.asCoroutineDispatcher"
+            )
+        )
         fun setFetchExecutor(fetchExecutor: Executor) = apply {
-            this.fetchExecutor = fetchExecutor
+            this.fetchDispatcher = fetchExecutor.asCoroutineDispatcher()
+        }
+
+        /**
+         * The [CoroutineDispatcher] used to fetch additional pages from the [PagingSource].
+         *
+         * Does not affect initial load, which will be done immediately on whichever thread the
+         * [PagedList] is created on.
+         *
+         * @param fetchDispatcher [CoroutineDispatcher] used to fetch from [PagingSource]s,
+         * generally a background thread pool for e.g. I/O or network loading.
+         * @return this
+         */
+        fun setFetchDispatcher(fetchDispatcher: CoroutineDispatcher) = apply {
+            this.fetchDispatcher = fetchDispatcher
         }
 
         /**
@@ -367,9 +443,9 @@ abstract class PagedList<T : Any> : AbstractList<T> {
         }
 
         /**
-         * Sets the initial key the [DataSource] should load around as part of initialization.
+         * Sets the initial key the [PagingSource] should load around as part of initialization.
          *
-         * @param initialKey Key the [DataSource] should load around as part of initialization.
+         * @param initialKey Key the [PagingSource] should load around as part of initialization.
          * @return this
          */
         fun setInitialKey(initialKey: Key?) = apply {
@@ -379,87 +455,59 @@ abstract class PagedList<T : Any> : AbstractList<T> {
         /**
          * Creates a [PagedList] with the given parameters.
          *
-         * This call will dispatch the [androidx.paging.DataSource]'s loadInitial method immediately
-         * on the current thread, and block the current on the result. This method should always be
-         * called on a worker thread to prevent blocking the main thread.
+         * This call will dispatch the [androidx.paging.PagingSource]'s loadInitial method
+         * immediately on the current thread, and block the current on the result. This method
+         * should always be called on a worker thread to prevent blocking the main thread.
          *
-         * It's fine to create a PagedList with an async DataSource on the main thread, such as in
-         * the constructor of a ViewModel. An async network load won't block the initialLoad
-         * function. For a synchronous DataSource such as one created from a Room database, a
-         * `LiveData<PagedList>` can be safely constructed with
+         * It's fine to create a [PagedList] with an async [PagingSource] on the main thread, such
+         * as in the constructor of a ViewModel. An async network load won't block the initial call
+         * to the Load function. For a synchronous [PagingSource] such as one created from a Room
+         * database, a `LiveData<PagedList>` can be safely constructed with
          * [androidx.paging.LivePagedListBuilder] on the main thread, since actual construction work
          * is deferred, and done on a background thread.
          *
-         * While build() will always return a [PagedList], it's important to note that the
-         * [PagedList] initial load may fail to acquire data from the [DataSource]. This can happen
-         * for example if the [DataSource] is invalidated during its initial load. If this happens,
-         * the [PagedList] will be immediately [detached][PagedList.isDetached], and you can retry
-         * construction (including setting a new [DataSource]).
+         * While [build] will always return a [PagedList], it's important to note that the
+         * [PagedList] initial load may fail to acquire data from the [PagingSource]. This can
+         * happen for example if the [PagingSource] is invalidated during its initial load. If this
+         * happens, the [PagedList] will be immediately [detached][PagedList.isDetached], and you
+         * can retry construction (including setting a new [PagingSource]).
+         *
+         * @throws IllegalArgumentException if [notifyDispatcher] or [fetchDispatcher] are not set.
          *
          * @return The newly constructed [PagedList]
          */
-        @WorkerThread
-        @Deprecated(
-            "This method has no means of handling errors encountered during initial load, and" +
-                    " blocks on the initial load result. Use {@link #buildAsync()} instead."
-        )
+        @Suppress("DEPRECATION")
         fun build(): PagedList<Value> {
-            // TODO: define defaults, once they can be used in module without android dependency
-            if (notifyExecutor == null) {
-                throw IllegalArgumentException("MainThreadExecutor required")
-            }
-            if (fetchExecutor == null) {
-                throw IllegalArgumentException("BackgroundThreadExecutor required")
-            }
-
-            try {
-                return create(DirectExecutor).get()
-            } catch (e: InterruptedException) {
-                throw RuntimeException(e)
-            } catch (e: ExecutionException) {
-                throw RuntimeException(e)
-            }
-        }
-
-        /**
-         * Creates a [PagedList] asynchronously with the given parameters.
-         *
-         * This call will dispatch the [DataSource]'s loadInitial method immediately, and return a
-         * `ListenableFuture<PagedList<T>>` that will resolve (triggering
-         * [loadStateListeners]) once the initial load is completed (success or failure).
-         *
-         * @return The newly constructed PagedList
-         */
-        @Suppress("unused")
-        fun buildAsync(): ListenableFuture<PagedList<Value>> {
-            // TODO: define defaults, once they can be used in module without android dependency
-            if (notifyExecutor == null) {
-                throw IllegalArgumentException("MainThreadExecutor required")
-            }
-            if (fetchExecutor == null) {
-                throw IllegalArgumentException("BackgroundThreadExecutor required")
+            val fetchDispatcher = fetchDispatcher ?: Dispatchers.IO
+            val pagingSource = pagingSource ?: dataSource?.let {
+                LegacyPagingSource { it }.also {
+                    it.setPageSize(config.pageSize)
+                }
             }
 
-            return create(fetchExecutor!!)
-        }
+            check(pagingSource != null) {
+                "PagedList cannot be built without a PagingSource or DataSource"
+            }
 
-        private fun create(initialFetchExecutor: Executor): ListenableFuture<PagedList<Value>> =
-            create(
-                dataSource,
-                notifyExecutor!!,
-                fetchExecutor!!,
-                initialFetchExecutor,
+            return create(
+                pagingSource,
+                initialPage,
+                coroutineScope,
+                notifyDispatcher ?: Dispatchers.Main.immediate,
+                fetchDispatcher,
                 boundaryCallback,
                 config,
                 initialKey
             )
+        }
     }
 
     /**
      * Callback signaling when content is loaded into the list.
      *
      * Can be used to listen to items being paged in and out. These calls will be dispatched on
-     * the executor defined by [Builder.setNotifyExecutor], which is generally the main/UI thread.
+     * the dispatcher defined by [PagedList.Builder.setNotifyDispatcher], which is generally the
+     * main/UI thread.
      */
     abstract class Callback {
         /**
@@ -467,7 +515,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
          * data that hasn't been used in a while has been dropped, and swapped back to null.
          *
          * @param position Position of first newly loaded items, out of total number of items
-         *                 (including padded nulls).
+         * (including padded nulls).
          * @param count Number of items loaded.
          */
         abstract fun onChanged(position: Int, count: Int)
@@ -476,7 +524,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
          * Called when new items have been loaded at the end or beginning of the list.
          *
          * @param position Position of the first newly loaded item (in practice, either `0` or
-         *                 `size - 1`.
+         * `size - 1`.
          * @param count Number of items loaded.
          */
         abstract fun onInserted(position: Int, count: Int)
@@ -486,17 +534,18 @@ abstract class PagedList<T : Any> : AbstractList<T> {
          * been replaced by padded nulls.
          *
          * @param position Position of the first newly loaded item (in practice, either `0` or
-         *                 `size - 1`.
+         * `size - 1`.
          * @param count Number of items loaded.
          */
         abstract fun onRemoved(position: Int, count: Int)
     }
 
     /**
-     * Configures how a [PagedList] loads content from its [DataSource].
+     * Configures how a [PagedList] loads content from its [PagingSource].
      *
-     * Use [Config.Builder] to construct and define custom loading behavior, such as
-     * [Builder.setPageSize], which defines number of items loaded at a time}.
+     * Use [PagedList.Config.Builder] to construct and define custom loading behavior, such as
+     * [setPageSize][PagedList.Config.Builder.setPageSize], which defines number of items loaded at
+     * a time.
      */
     class Config internal constructor(
         /**
@@ -515,8 +564,8 @@ abstract class PagedList<T : Any> : AbstractList<T> {
         @JvmField
         val prefetchDistance: Int,
         /**
-         * Defines whether the PagedList may display null placeholders, if the DataSource provides
-         * them.
+         * Defines whether the [PagedList] may display null placeholders, if the [PagingSource]
+         * provides them.
          */
         @JvmField
         val enablePlaceholders: Boolean,
@@ -529,17 +578,16 @@ abstract class PagedList<T : Any> : AbstractList<T> {
          * Defines the maximum number of items that may be loaded into this pagedList before pages
          * should be dropped.
          *
-         * [PageKeyedDataSource] does not currently support dropping pages - when loading from a
-         * [PageKeyedDataSource], this value is ignored.
+         * If set to [PagedList.Config.Companion.MAX_SIZE_UNBOUNDED], pages will never be dropped.
          *
-         * @see MAX_SIZE_UNBOUNDED
-         * @see Builder.setMaxSize
+         * @see PagedList.Config.Companion.MAX_SIZE_UNBOUNDED
+         * @see PagedList.Config.Builder.setMaxSize
          */
         @JvmField
         val maxSize: Int
     ) {
         /**
-         * Builder class for [Config].
+         * Builder class for [PagedList.Config].
          *
          * You must at minimum specify page size with [setPageSize].
          */
@@ -551,7 +599,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
             private var maxSize = MAX_SIZE_UNBOUNDED
 
             /**
-             * Defines the number of items loaded at once from the [DataSource].
+             * Defines the number of items loaded at once from the [PagingSource].
              *
              * Should be several times the number of visible items onscreen.
              *
@@ -565,8 +613,10 @@ abstract class PagedList<T : Any> : AbstractList<T> {
              * displaying dozens of items in a tiled grid, which can present items during a scroll
              * much more quickly, consider closer to 100.
              *
-             * @param pageSize Number of items loaded at once from the [DataSource].
+             * @param pageSize Number of items loaded at once from the [PagingSource].
              * @return this
+             *
+             * @throws IllegalArgumentException if pageSize is < `1`.
              */
             fun setPageSize(@IntRange(from = 1) pageSize: Int) = apply {
                 if (pageSize < 1) {
@@ -595,17 +645,17 @@ abstract class PagedList<T : Any> : AbstractList<T> {
             }
 
             /**
-             * Pass false to disable null placeholders in [PagedLists] using this [Config].
+             * Pass false to disable null placeholders in [PagedList]s using this [PagedList.Config].
              *
              * If not set, defaults to true.
              *
              * A [PagedList] will present null placeholders for not-yet-loaded content if two
              * conditions are met:
              *
-             * 1) Its [DataSource] can count all unloaded items (so that the number of nulls to
+             * 1) Its [PagingSource] can count all unloaded items (so that the number of nulls to
              * present is known).
              *
-             * 2) placeholders are not disabled on the [Config].
+             * 2) placeholders are not disabled on the [PagedList.Config].
              *
              * Call `setEnablePlaceholders(false)` to ensure the receiver of the PagedList
              * (often a [androidx.paging.PagedListAdapter]) doesn't need to account for null items.
@@ -631,13 +681,9 @@ abstract class PagedList<T : Any> : AbstractList<T> {
              * This value is typically larger than page size, so on first load data there's a large
              * enough range of content loaded to cover small scrolls.
              *
-             * When using a [PositionalDataSource], the initial load size will be coerced to an
-             * integer multiple of pageSize, to enable efficient tiling.
-             *
              * If not set, defaults to three times page size.
              *
-             * @param initialLoadSizeHint Number of items to load while initializing the
-             *                            [PagedList].
+             * @param initialLoadSizeHint Number of items to load while initializing the [PagedList]
              * @return this
              */
             fun setInitialLoadSizeHint(@IntRange(from = 1) initialLoadSizeHint: Int) = apply {
@@ -658,18 +704,17 @@ abstract class PagedList<T : Any> : AbstractList<T> {
              * is many times the page size, the number of items held by the [PagedList] will not
              * grow above this number. Exceptions are made as necessary to guarantee:
              *  * Pages are never dropped until there are more than two pages loaded. Note that
-             * a [DataSource] may not be held strictly to [requested pageSize][Config.pageSize], so
-             * two pages may be larger than expected.
+             * a [PagingSource] may not be held strictly to
+             * [requested pageSize][PagedList.Config.pageSize], so two pages may be larger than
+             * expected.
              *  * Pages are never dropped if they are within a prefetch window (defined to be
              * `pageSize + (2 * prefetchDistance)`) of the most recent load.
              *
-             * [PageKeyedDataSource] does not currently support dropping pages - when
-             * loading from a [PageKeyedDataSource], this value is ignored.
+             * If not set, defaults to [PagedList.Config.Companion.MAX_SIZE_UNBOUNDED], which
+             * disables page dropping.
              *
-             * If not set, defaults to [MAX_SIZE_UNBOUNDED], which disables page dropping.
-             *
-             * @param maxSize Maximum number of items to keep in memory, or [MAX_SIZE_UNBOUNDED] to
-             *                disable page dropping.
+             * @param maxSize Maximum number of items to keep in memory, or
+             * [PagedList.Config.Companion.MAX_SIZE_UNBOUNDED] to disable page dropping.
              * @return this
              *
              * @see Config.MAX_SIZE_UNBOUNDED
@@ -680,9 +725,14 @@ abstract class PagedList<T : Any> : AbstractList<T> {
             }
 
             /**
-             * Creates a [Config] with the given parameters.
+             * Creates a [PagedList.Config] with the given parameters.
              *
-             * @return A new [Config].
+             * @return A new [PagedList.Config].
+             *
+             * @throws IllegalArgumentException if placeholders are disabled and prefetchDistance
+             * is set to 0
+             * @throws IllegalArgumentException if maximum size is less than pageSize +
+             * 2*prefetchDistance
              */
             fun build(): Config {
                 if (prefetchDistance < 0) {
@@ -694,15 +744,15 @@ abstract class PagedList<T : Any> : AbstractList<T> {
                 if (!enablePlaceholders && prefetchDistance == 0) {
                     throw IllegalArgumentException(
                         "Placeholders and prefetch are the only ways" +
-                                " to trigger loading of more data in the PagedList, so either" +
-                                " placeholders must be enabled, or prefetch distance must be > 0."
+                            " to trigger loading of more data in the PagedList, so either" +
+                            " placeholders must be enabled, or prefetch distance must be > 0."
                     )
                 }
                 if (maxSize != MAX_SIZE_UNBOUNDED && maxSize < pageSize + prefetchDistance * 2) {
                     throw IllegalArgumentException(
                         "Maximum size must be at least pageSize + 2*prefetchDist" +
-                                ", pageSize=$pageSize, prefetchDist=$prefetchDistance" +
-                                ", maxSize=$maxSize"
+                            ", pageSize=$pageSize, prefetchDist=$prefetchDistance" +
+                            ", maxSize=$maxSize"
                     )
                 }
 
@@ -725,6 +775,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
              * When [maxSize] is set to [MAX_SIZE_UNBOUNDED], the maximum number of items loaded is
              * unbounded, and pages will never be dropped.
              */
+            @Suppress("MinMaxConstant")
             const val MAX_SIZE_UNBOUNDED = Int.MAX_VALUE
         }
     }
@@ -737,7 +788,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
      * to UI can be done with a `LiveData<PagedList>`, but it's still necessary to know when to
      * trigger network loads.
      *
-     * [BoundaryCallback] does this signaling - when a DataSource runs out of data at the end of
+     * [BoundaryCallback] does this signaling - when a [PagingSource] runs out of data at the end of
      * the list, [onItemAtEndLoaded] is called, and you can start an async network load that will
      * write the result directly to the database. Because the database is being observed, the UI
      * bound to the `LiveData<PagedList>` will update automatically to account for the new items.
@@ -753,7 +804,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
      * [Retrofit](https://square.github.io/retrofit/), while handling swipe-to-refresh,
      * network errors, and retry.
      *
-     * <h4>Requesting Network Data</h4>
+     * ### Requesting Network Data
      * [BoundaryCallback] only passes the item at front or end of the list when out of data. This
      * makes it an easy fit for item-keyed network requests, where you can use the item passed to
      * the [BoundaryCallback] to request more data from the network. In these cases, the source of
@@ -771,7 +822,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
      *
      * The current list size isn't passed to the BoundaryCallback though. This is because the
      * PagedList doesn't necessarily know the number of items in local storage. Placeholders may be
-     * disabled, or the DataSource may not count total number of items.
+     * disabled, or the [PagingSource] may not count total number of items.
      *
      * Instead, for these positional cases, you can query the database for the number of items, and
      * pass that to the network.
@@ -786,10 +837,10 @@ abstract class PagedList<T : Any> : AbstractList<T> {
      * [in the Paging Codelab](https://codelabs.developers.google.com/codelabs/android-paging/index.html#8),
      * the GitHub network page index is stored in memory.
      *
-     * @param T Type loaded by the PagedList.
+     * @param T Type loaded by the [PagedList].
      */
     @MainThread
-    abstract class BoundaryCallback<T> {
+    abstract class BoundaryCallback<T : Any> {
         /**
          * Called when zero items are returned from an initial load of the PagedList's data source.
          */
@@ -797,7 +848,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
 
         /**
          * Called when the item at the front of the PagedList has been loaded, and access has
-         * occurred within [Config.prefetchDistance] of it.
+         * occurred within [PagedList.Config.prefetchDistance] of it.
          *
          * No more data will be prepended to the PagedList before this item.
          *
@@ -807,7 +858,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
 
         /**
          * Called when the item at the end of the PagedList has been loaded, and access has
-         * occurred within [Config.prefetchDistance] of it.
+         * occurred within [PagedList.Config.prefetchDistance] of it.
          *
          * No more data will be appended to the [PagedList] after this item.
          *
@@ -817,132 +868,70 @@ abstract class PagedList<T : Any> : AbstractList<T> {
     }
 
     /**
-     * @hide
+     * @suppress
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     abstract class LoadStateManager {
-        var refresh = LoadState.IDLE
-            private set
-        private var refreshError: Throwable? = null
-        var start = LoadState.IDLE
-            private set
-        private var startError: Throwable? = null
-        var end = LoadState.IDLE
-            private set
-        private var endError: Throwable? = null
+        var refreshState: LoadState = LoadState.NotLoading.Incomplete
+        var startState: LoadState = LoadState.NotLoading.Incomplete
+        var endState: LoadState = LoadState.NotLoading.Incomplete
 
-        fun setState(type: LoadType, state: LoadState, error: Throwable?) {
-            val expectError = state == LoadState.RETRYABLE_ERROR || state == LoadState.ERROR
-            val hasError = error != null
-            if (expectError != hasError) {
-                throw IllegalArgumentException(
-                    "Error states must be accompanied by a throwable, other states must not"
-                )
-            }
-
+        fun setState(type: LoadType, state: LoadState) {
             // deduplicate signals
             when (type) {
                 LoadType.REFRESH -> {
-                    if (refresh == state && refreshError == error) return
-                    refresh = state
-                    refreshError = error
+                    if (refreshState == state) return
+                    refreshState = state
                 }
-                LoadType.START -> {
-                    if (start == state && startError == error) return
-                    start = state
-                    startError = error
+                LoadType.PREPEND -> {
+                    if (startState == state) return
+                    startState = state
                 }
-                LoadType.END -> {
-                    if (end == state && endError == error) return
-                    end = state
-                    endError = error
+                LoadType.APPEND -> {
+                    if (endState == state) return
+                    endState = state
                 }
             }
-            onStateChanged(type, state, error)
+
+            onStateChanged(type, state)
         }
 
         /**
-         * @hide
+         * @suppress
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // protected otherwise.
-        abstract fun onStateChanged(type: LoadType, state: LoadState, error: Throwable?)
+        abstract fun onStateChanged(type: LoadType, state: LoadState)
 
-        fun dispatchCurrentLoadState(callback: LoadStateListener) {
-            callback(LoadType.REFRESH, refresh, refreshError)
-            callback(LoadType.START, start, startError)
-            callback(LoadType.END, end, endError)
+        fun dispatchCurrentLoadState(callback: (LoadType, LoadState) -> Unit) {
+            callback(LoadType.REFRESH, refreshState)
+            callback(LoadType.PREPEND, startState)
+            callback(LoadType.APPEND, endState)
         }
     }
 
     /**
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
-    constructor(
-        storage: PagedStorage<T>,
-        mainThreadExecutor: Executor,
-        backgroundThreadExecutor: Executor,
-        boundaryCallback: BoundaryCallback<T>?,
-        config: Config
-    ) : super() {
-        this.storage = storage
-        this.mainThreadExecutor = mainThreadExecutor
-        this.backgroundThreadExecutor = backgroundThreadExecutor
-        this.boundaryCallback = boundaryCallback
-        this.config = config
-        this.callbacks = ArrayList()
-        this.loadStateListeners = ArrayList()
-        requiredRemainder = this.config.prefetchDistance * 2 + this.config.pageSize
-    }
-
-    internal val storage: PagedStorage<T>
-
-    /**
-     * @hide
+     * @suppress
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // protected otherwise
-    fun getStorage() = storage
-
-    internal val mainThreadExecutor: Executor
-    internal val backgroundThreadExecutor: Executor
-    internal val boundaryCallback: BoundaryCallback<T>?
+    fun getNullPaddedList(): NullPaddedList<T> = storage
 
     internal var refreshRetryCallback: Runnable? = null
 
     /**
-     * Last access location, in total position space (including offset).
+     * Last access location in list.
      *
-     * Used by positional data sources to initialize loading near viewport
+     * Used by list diffing to re-initialize loading near viewport.
      *
-     * @hide
+     * @suppress
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // internal otherwise
-    var lastLoad = 0
-    internal var lastItem: T? = null
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    fun lastLoad(): Int = storage.lastLoadAroundIndex
 
-    internal val requiredRemainder: Int
+    internal val requiredRemainder = config.prefetchDistance * 2 + config.pageSize
 
-    /**
-     * Return the Config used to construct this PagedList.
-     *
-     * @return the Config of this PagedList
-     */
-    open val config: Config
+    private val callbacks = mutableListOf<WeakReference<Callback>>()
 
-    private val callbacks: MutableList<WeakReference<Callback>>
-
-    private val loadStateListeners: MutableList<WeakReference<LoadStateListener>>
-
-    // if set to true, boundaryCallback is non-null, and should
-    // be dispatched when nearby load has occurred
-    private var boundaryCallbackBeginDeferred = false
-
-    private var boundaryCallbackEndDeferred = false
-
-    // lowest and highest index accessed by loadAround. Used to
-    // decide when boundaryCallback should be dispatched
-    private var lowestIndexAccessed = Int.MAX_VALUE
-    private var highestIndexAccessed = Int.MIN_VALUE
+    private val loadStateListeners = mutableListOf<WeakReference<(LoadType, LoadState) -> Unit>>()
 
     /**
      * Size of the list, including any placeholders (not-yet-loaded null padding).
@@ -954,13 +943,28 @@ abstract class PagedList<T : Any> : AbstractList<T> {
     override val size
         get() = storage.size
 
-    @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
-    abstract val isContiguous: Boolean
-
     /**
-     * The [DataSource] that provides data to this [PagedList].
+     * @throws IllegalStateException if this [PagedList] was instantiated without a
+     * wrapping a backing [DataSource]
      */
-    abstract val dataSource: DataSource<*, T>
+    @Deprecated(
+        message = "DataSource is deprecated and has been replaced by PagingSource. PagedList " +
+            "offers indirect ways of controlling fetch ('loadAround()', 'retry()') so that " +
+            "you should not need to access the DataSource/PagingSource."
+    )
+    val dataSource: DataSource<*, T>
+        @Suppress("DocumentExceptions")
+        get() {
+            val pagingSource = pagingSource
+            @Suppress("UNCHECKED_CAST")
+            if (pagingSource is LegacyPagingSource<*, *>) {
+                return pagingSource.dataSource as DataSource<*, T>
+            }
+            throw IllegalStateException(
+                "Attempt to access dataSource on a PagedList that was instantiated with a " +
+                    "${pagingSource::class.java.simpleName} instead of a DataSource"
+            )
+        }
 
     /**
      * Return the key for the position passed most recently to [loadAround].
@@ -975,43 +979,32 @@ abstract class PagedList<T : Any> : AbstractList<T> {
     abstract val lastKey: Any?
 
     /**
-     * True if the [PagedList] has detached the [DataSource] it was loading from, and will no longer
-     * load new data.
+     * True if the [PagedList] has detached the [PagingSource] it was loading from, and will no
+     * longer load new data.
      *
      * A detached list is [immutable][isImmutable].
      *
-     * @return True if the data source is detached.
+     * @return `true` if the data source is detached.
      */
     abstract val isDetached: Boolean
 
     /**
-     * @hide
+     * @suppress
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
-    abstract fun dispatchCurrentLoadState(callback: LoadStateListener)
+    abstract fun dispatchCurrentLoadState(callback: (LoadType, LoadState) -> Unit)
 
     /**
-     * Dispatch updates since the non-empty snapshot was taken.
-     *
-     * @param snapshot Non-empty snapshot.
-     * @param callback [Callback] for updates that have occurred since snapshot.
-     *
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
-    abstract fun dispatchUpdatesSinceSnapshot(snapshot: PagedList<T>, callback: Callback)
-
-    /**
-     * @hide
+     * @suppress
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     abstract fun loadAroundInternal(index: Int)
 
     /**
-     * Detach the PagedList from its DataSource, and attempt to load no more data.
+     * Detach the [PagedList] from its [PagingSource], and attempt to load no more data.
      *
-     * This is called automatically when a DataSource is observed to be invalid, which is a
-     * signal to stop loading. The PagedList will continue to present existing data, but will not
+     * This is called automatically when a [PagingSource] is observed to be invalid, which is a
+     * signal to stop loading. The [PagedList] will continue to present existing data, but will not
      * initiate new loads.
      */
     abstract fun detach()
@@ -1021,14 +1014,14 @@ abstract class PagedList<T : Any> : AbstractList<T> {
      *
      * Unlike [size] this counts only loaded items, not placeholders.
      *
-     * If placeholders are [disabled][Config.enablePlaceholders], this method is equivalent to
-     * [size].
+     * If placeholders are [disabled][PagedList.Config.enablePlaceholders], this method is
+     * equivalent to [size].
      *
      * @return Number of items currently loaded, not counting placeholders.
      *
      * @see size
      */
-    open val loadedCount
+    val loadedCount
         get() = storage.storageCount
 
     /**
@@ -1037,7 +1030,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
      * Immutable lists may not become mutable again, and may safely be accessed from any thread.
      *
      * In the future, this method may return true when a PagedList has completed loading from its
-     * DataSource. Currently, it is equivalent to [isDetached].
+     * [PagingSource]. Currently, it is equivalent to [isDetached].
      *
      * @return `true` if the [PagedList] is immutable.
      */
@@ -1047,28 +1040,27 @@ abstract class PagedList<T : Any> : AbstractList<T> {
     /**
      * Position offset of the data in the list.
      *
-     * If data is supplied by a [PositionalDataSource], the item returned from `get(i)` has a
-     * position of `i + getPositionOffset()`.
+     * If the PagingSource backing this PagedList is counted, the item returned from `get(i)` has
+     * a position in the original data set of `i + getPositionOffset()`.
      *
-     * If the DataSource is a [ItemKeyedDataSource] or [PageKeyedDataSource], it doesn't use
-     * positions, returns 0.
+     * If placeholders are enabled, this value is always `0`, since `get(i)` will return either
+     * the data in its original index, or null if it is not loaded.
      */
-    open val positionOffset: Int
+    val positionOffset: Int
         get() = storage.positionOffset
 
     /**
-     * @hide
+     * @suppress
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    open fun setInitialLoadState(loadState: LoadState, error: Throwable?) {
+    open fun setInitialLoadState(loadType: LoadType, loadState: LoadState) {
     }
 
     /**
-     * Retry any retryable errors associated with this [PagedList].
+     * Retry any errors associated with this [PagedList].
      *
-     * If for example a network DataSource append timed out, calling this method will retry the
-     * failed append load. Note that your DataSource will need to pass `true` to `onError()` to
-     * signify the error as retryable.
+     * If for example a network [PagingSource] append timed out, calling this method will retry the
+     * failed append load.
      *
      * You can observe loading state via [addWeakLoadStateListener], though generally this is done
      * through the [PagedListAdapter][androidx.paging.PagedListAdapter] or
@@ -1080,16 +1072,18 @@ abstract class PagedList<T : Any> : AbstractList<T> {
     open fun retry() {}
 
     /**
-     * @hide
+     * @suppress
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     fun setRetryCallback(refreshRetryCallback: Runnable?) {
         this.refreshRetryCallback = refreshRetryCallback
     }
 
-    internal fun dispatchStateChange(type: LoadType, state: LoadState, error: Throwable?) {
-        loadStateListeners.removeAll { it.get() == null }
-        loadStateListeners.forEach { it.get()?.invoke(type, state, error) }
+    internal fun dispatchStateChangeAsync(type: LoadType, state: LoadState) {
+        coroutineScope.launch(notifyDispatcher) {
+            loadStateListeners.removeAll { it.get() == null }
+            loadStateListeners.forEach { it.get()?.invoke(type, state) }
+        }
     }
 
     /**
@@ -1101,153 +1095,44 @@ abstract class PagedList<T : Any> : AbstractList<T> {
      *
      * @see size
      */
-    override fun get(index: Int) = storage[index]?.also { item -> lastItem = item }
+    override fun get(index: Int) = storage[index]
 
     /**
      * Load adjacent items to passed index.
      *
      * @param index Index at which to load.
+     *
+     * @throws IndexOutOfBoundsException if index is not within bounds.
      */
-    open fun loadAround(index: Int) {
+    fun loadAround(index: Int) {
         if (index < 0 || index >= size) {
             throw IndexOutOfBoundsException("Index: $index, Size: $size")
         }
-
-        lastLoad = index + positionOffset
+        storage.lastLoadAroundIndex = index
         loadAroundInternal(index)
-
-        lowestIndexAccessed = minOf(lowestIndexAccessed, index)
-        highestIndexAccessed = maxOf(highestIndexAccessed, index)
-
-        /*
-         * lowestIndexAccessed / highestIndexAccessed have been updated, so check if we need to
-         * dispatch boundary callbacks. Boundary callbacks are deferred until last items are loaded,
-         * and accesses happen near the boundaries.
-         *
-         * Note: we post here, since RecyclerView may want to add items in response, and this
-         * call occurs in PagedListAdapter bind.
-         */
-        tryDispatchBoundaryCallbacks(true)
-    }
-
-    // Creation thread for initial synchronous load, otherwise main thread
-    // Safe to access main thread only state - no other thread has reference during construction
-    @AnyThread
-    internal fun deferBoundaryCallbacks(
-        deferEmpty: Boolean,
-        deferBegin: Boolean,
-        deferEnd: Boolean
-    ) {
-        if (boundaryCallback == null) {
-            throw IllegalStateException("Can't defer BoundaryCallback, no instance")
-        }
-
-        /*
-         * If lowest/highest haven't been initialized, set them to storage size,
-         * since placeholders must already be computed by this point.
-         *
-         * This is just a minor optimization so that BoundaryCallback callbacks are sent immediately
-         * if the initial load size is smaller than the prefetch window (see
-         * TiledPagedListTest#boundaryCallback_immediate())
-         */
-        if (lowestIndexAccessed == Int.MAX_VALUE) {
-            lowestIndexAccessed = storage.size
-        }
-        if (highestIndexAccessed == Int.MIN_VALUE) {
-            highestIndexAccessed = 0
-        }
-
-        if (deferEmpty || deferBegin || deferEnd) {
-            // Post to the main thread, since we may be on creation thread currently
-            mainThreadExecutor.execute {
-                // on is dispatched immediately, since items won't be accessed
-
-                if (deferEmpty) {
-                    boundaryCallback.onZeroItemsLoaded()
-                }
-
-                // for other callbacks, mark deferred, and only dispatch if loadAround
-                // has been called near to the position
-                if (deferBegin) {
-                    boundaryCallbackBeginDeferred = true
-                }
-                if (deferEnd) {
-                    boundaryCallbackEndDeferred = true
-                }
-                tryDispatchBoundaryCallbacks(false)
-            }
-        }
-    }
-
-    /**
-     * Call this when lowest/HighestIndexAccessed are changed, or boundaryCallbackBegin/EndDeferred
-     * is set.
-     */
-    private fun tryDispatchBoundaryCallbacks(post: Boolean) {
-        val dispatchBegin = boundaryCallbackBeginDeferred &&
-                lowestIndexAccessed <= config.prefetchDistance
-        val dispatchEnd = boundaryCallbackEndDeferred &&
-                highestIndexAccessed >= size - 1 - config.prefetchDistance
-
-        if (!dispatchBegin && !dispatchEnd) return
-
-        if (dispatchBegin) {
-            boundaryCallbackBeginDeferred = false
-        }
-        if (dispatchEnd) {
-            boundaryCallbackEndDeferred = false
-        }
-        if (post) {
-            mainThreadExecutor.execute { dispatchBoundaryCallbacks(dispatchBegin, dispatchEnd) }
-        } else {
-            dispatchBoundaryCallbacks(dispatchBegin, dispatchEnd)
-        }
-    }
-
-    private fun dispatchBoundaryCallbacks(begin: Boolean, end: Boolean) {
-        // safe to deref boundaryCallback here, since we only defer if boundaryCallback present
-        if (begin) {
-            boundaryCallback!!.onItemAtFrontLoaded(storage.firstLoadedItem)
-        }
-        if (end) {
-            boundaryCallback!!.onItemAtEndLoaded(storage.lastLoadedItem)
-        }
-    }
-
-    /**
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-    internal fun offsetAccessIndices(offset: Int) {
-        // update last loadAround index
-        lastLoad += offset
-
-        // update access range
-        lowestIndexAccessed += offset
-        highestIndexAccessed += offset
     }
 
     /**
      * Returns an immutable snapshot of the [PagedList] in its current state.
      *
-     * If this [PagedList] [is immutable][isImmutable] due to its DataSource being invalid, it will
-     * be returned.
+     * If this [PagedList] [is immutable][isImmutable] due to its [PagingSource] being invalid, it
+     * will be returned.
      *
-     * @return Immutable snapshot of PagedList data.
+     * @return Immutable snapshot of [PagedList] data.
      */
-    open fun snapshot(): List<T> = when {
+    fun snapshot(): List<T> = when {
         isImmutable -> this
         else -> SnapshotPagedList(this)
     }
 
     /**
-     * Add a [LoadStateListener] to observe the loading state of the [PagedList].
+     * Add a listener to observe the loading state of the [PagedList].
      *
      * @param listener Listener to receive updates.
      *
      * @see removeWeakLoadStateListener
      */
-    open fun addWeakLoadStateListener(listener: LoadStateListener) {
+    fun addWeakLoadStateListener(listener: (LoadType, LoadState) -> Unit) {
         // Clean up any empty weak refs.
         loadStateListeners.removeAll { it.get() == null }
 
@@ -1257,13 +1142,13 @@ abstract class PagedList<T : Any> : AbstractList<T> {
     }
 
     /**
-     * Remove a previously registered [LoadStateListener].
+     * Remove a previously registered load state listener.
      *
      * @param listener Previously registered listener.
      *
      * @see addWeakLoadStateListener
      */
-    open fun removeWeakLoadStateListener(listener: LoadStateListener) {
+    fun removeWeakLoadStateListener(listener: (LoadType, LoadState) -> Unit) {
         loadStateListeners.removeAll { it.get() == null || it.get() === listener }
     }
 
@@ -1279,27 +1164,41 @@ abstract class PagedList<T : Any> : AbstractList<T> {
      * version, including any changes that may have been made.
      *
      * The callback is internally held as weak reference, so [PagedList] doesn't hold a strong
+     * reference to its observer, such as a [PagedListAdapter][androidx.paging.PagedListAdapter].
+     * If an adapter were held with a strong reference, it would be necessary to clear its
+     * [PagedList] observer before it could be GC'd.
+     *
+     * @param previousSnapshot Snapshot previously captured from this List, or `null`.
+     * @param callback [PagedList.Callback] to dispatch to.
+     *
+     * @see removeWeakCallback
+     */
+    @Deprecated(
+        "Dispatching a diff since snapshot created is behavior that can be instead " +
+            "tracked by attaching a Callback to the PagedList that is mutating, and tracking " +
+            "changes since calling PagedList.snapshot()."
+    )
+    fun addWeakCallback(previousSnapshot: List<T>?, callback: Callback) {
+        if (previousSnapshot != null && previousSnapshot !== this) {
+            dispatchNaiveUpdatesSinceSnapshot(size, previousSnapshot.size, callback)
+        }
+        addWeakCallback(callback)
+    }
+
+    /**
+     * Adds a callback.
+     *
+     * The callback is internally held as weak reference, so [PagedList] doesn't hold a strong
      * reference to its observer, such as a [androidx.paging.PagedListAdapter]. If an adapter were
      * held with a strong reference, it would be necessary to clear its [PagedList] observer before
      * it could be GC'd.
      *
-     * @param previousSnapshot Snapshot previously captured from this List, or `null`.
      * @param callback Callback to dispatch to.
      *
      * @see removeWeakCallback
      */
-    open fun addWeakCallback(previousSnapshot: List<T>?, callback: Callback) {
-        if (previousSnapshot != null && previousSnapshot !== this) {
-            if (previousSnapshot.isNotEmpty()) {
-                val storageSnapshot = previousSnapshot as PagedList<T>
-                dispatchUpdatesSinceSnapshot(storageSnapshot, callback)
-            } else if (!storage.isEmpty()) {
-                // If snapshot is empty, diff is trivial - just notify number new items.
-                // Note: occurs in async init, when snapshot taken before init page arrives
-                callback.onInserted(0, storage.size)
-            }
-        }
-
+    @Suppress("RegistrationName")
+    fun addWeakCallback(callback: Callback) {
         // first, clean up any empty weak refs
         callbacks.removeAll { it.get() == null }
 
@@ -1314,7 +1213,8 @@ abstract class PagedList<T : Any> : AbstractList<T> {
      *
      * @see addWeakCallback
      */
-    open fun removeWeakCallback(callback: Callback) {
+    @Suppress("RegistrationName")
+    fun removeWeakCallback(callback: Callback) {
         callbacks.removeAll { it.get() == null || it.get() === callback }
     }
 
@@ -1324,7 +1224,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
     }
 
     /**
-     * @hide
+     * @suppress
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     fun notifyChanged(position: Int, count: Int) {
@@ -1333,7 +1233,7 @@ abstract class PagedList<T : Any> : AbstractList<T> {
     }
 
     /**
-     * @hide
+     * @suppress
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     fun notifyRemoved(position: Int, count: Int) {
@@ -1345,21 +1245,26 @@ abstract class PagedList<T : Any> : AbstractList<T> {
 /**
  * Constructs a [PagedList], convenience for [PagedList.Builder].
  *
- * @param Key Type of key used to load data from the DataSource.
- * @param Value Type of items held and loaded by the PagedList.
- * @param dataSource DataSource the PagedList will load from.
- * @param config Config that defines how the PagedList loads data from its DataSource.
- * @param notifyExecutor Executor that receives PagedList updates, and where [PagedList.Callback]
- *                       calls are dispatched. Generally, this is the UI/main thread.
- * @param fetchExecutor Executor used to fetch from DataSources, generally a background thread pool
- *                      for e.g. I/O or network loading.
- * @param boundaryCallback BoundaryCallback for listening to out-of-data events.
- * @param initialKey Key the DataSource should load around as part of initialization.
+ * @param Key Type of key used to load data from the [DataSource].
+ * @param Value Type of items held and loaded by the [PagedList].
+ * @param dataSource [DataSource] the [PagedList] will load from.
+ * @param config Config that defines how the [PagedList] loads data from its [DataSource].
+ * @param notifyExecutor [Executor] that receives [PagedList] updates, and where
+ * [PagedList.Callback] calls are dispatched. Generally, this is the UI/main thread.
+ * @param fetchExecutor [Executor] used to fetch from [DataSource]s, generally a background thread
+ * pool for e.g. I/O or network loading.
+ * @param boundaryCallback [PagedList.BoundaryCallback] for listening to out-of-data events.
+ * @param initialKey [Key] the [DataSource] should load around as part of initialization.
  */
-@Suppress("FunctionName")
+@Suppress(
+    "FunctionName",
+    "DEPRECATION"
+)
+@JvmSynthetic
+@Deprecated("DataSource is deprecated and has been replaced by PagingSource")
 fun <Key : Any, Value : Any> PagedList(
     dataSource: DataSource<Key, Value>,
-    config: Config,
+    config: PagedList.Config,
     notifyExecutor: Executor,
     fetchExecutor: Executor,
     boundaryCallback: PagedList.BoundaryCallback<Value>? = null,

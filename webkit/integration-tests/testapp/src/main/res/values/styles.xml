@@ -15,7 +15,8 @@
   ~ limitations under the License.
   -->
 
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="NewApi">
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
@@ -26,5 +27,9 @@
         <item name="colorControlActivated">@color/colorActiveSwitchThumb</item>
         <item name="colorSwitchThumbNormal">@color/colorInctiveSwitchThumb</item>
         <item name="android:colorForeground">@color/colorInctiveSwitchTrack</item>
+    </style>
+    <style name="AppDayNightTheme" parent="Theme.AppCompat.DayNight">
+        <item name="android:forceDarkAllowed">true</item>
+        <item name="android:isLightTheme">true</item>
     </style>
 </resources>

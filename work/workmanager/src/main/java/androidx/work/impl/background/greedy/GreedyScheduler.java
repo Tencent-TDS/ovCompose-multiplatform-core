@@ -16,13 +16,15 @@
 
 package androidx.work.impl.background.greedy;
 
+import static android.os.Build.VERSION.SDK_INT;
+
 import android.content.Context;
-import android.os.Build;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
+import androidx.work.Configuration;
 import androidx.work.Logger;
 import androidx.work.WorkInfo;
 import androidx.work.impl.ExecutionListener;
@@ -31,10 +33,12 @@ import androidx.work.impl.WorkManagerImpl;
 import androidx.work.impl.constraints.WorkConstraintsCallback;
 import androidx.work.impl.constraints.WorkConstraintsTracker;
 import androidx.work.impl.model.WorkSpec;
+import androidx.work.impl.utils.ProcessUtils;
 import androidx.work.impl.utils.taskexecutor.TaskExecutor;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A greedy {@link Scheduler} that schedules unconstrained, non-timed work.  It intentionally does
@@ -48,49 +52,91 @@ public class GreedyScheduler implements Scheduler, WorkConstraintsCallback, Exec
 
     private static final String TAG = Logger.tagWithPrefix("GreedyScheduler");
 
-    private WorkManagerImpl mWorkManagerImpl;
-    private WorkConstraintsTracker mWorkConstraintsTracker;
-    private List<WorkSpec> mConstrainedWorkSpecs = new ArrayList<>();
+    private final Context mContext;
+    private final WorkManagerImpl mWorkManagerImpl;
+    private final WorkConstraintsTracker mWorkConstraintsTracker;
+    private final Set<WorkSpec> mConstrainedWorkSpecs = new HashSet<>();
+    private DelayedWorkTracker mDelayedWorkTracker;
     private boolean mRegisteredExecutionListener;
     private final Object mLock;
 
-    public GreedyScheduler(Context context,
-            TaskExecutor taskExecutor,
-            WorkManagerImpl workManagerImpl) {
+    // Internal State
+    Boolean mInDefaultProcess;
 
+    public GreedyScheduler(
+            @NonNull Context context,
+            @NonNull Configuration configuration,
+            @NonNull TaskExecutor taskExecutor,
+            @NonNull WorkManagerImpl workManagerImpl) {
+        mContext = context;
         mWorkManagerImpl = workManagerImpl;
         mWorkConstraintsTracker = new WorkConstraintsTracker(context, taskExecutor, this);
+        mDelayedWorkTracker = new DelayedWorkTracker(this, configuration.getRunnableScheduler());
         mLock = new Object();
     }
 
     @VisibleForTesting
-    public GreedyScheduler(WorkManagerImpl workManagerImpl,
-            WorkConstraintsTracker workConstraintsTracker) {
+    public GreedyScheduler(
+            @NonNull Context context,
+            @NonNull WorkManagerImpl workManagerImpl,
+            @NonNull WorkConstraintsTracker workConstraintsTracker) {
+        mContext = context;
         mWorkManagerImpl = workManagerImpl;
         mWorkConstraintsTracker = workConstraintsTracker;
         mLock = new Object();
     }
 
+    @VisibleForTesting
+    public void setDelayedWorkTracker(@NonNull DelayedWorkTracker delayedWorkTracker) {
+        mDelayedWorkTracker = delayedWorkTracker;
+    }
+
+    @Override
+    public boolean hasLimitedSchedulingSlots() {
+        return false;
+    }
+
     @Override
     public void schedule(@NonNull WorkSpec... workSpecs) {
+        if (mInDefaultProcess == null) {
+            checkDefaultProcess();
+        }
+
+        if (!mInDefaultProcess) {
+            Logger.get().info(TAG, "Ignoring schedule request in a secondary process");
+            return;
+        }
+
         registerExecutionListenerIfNeeded();
 
         // Keep track of the list of new WorkSpecs whose constraints need to be tracked.
         // Add them to the known list of constrained WorkSpecs and call replace() on
         // WorkConstraintsTracker. That way we only need to synchronize on the part where we
         // are updating mConstrainedWorkSpecs.
-        List<WorkSpec> constrainedWorkSpecs = new ArrayList<>();
-        List<String> constrainedWorkSpecIds = new ArrayList<>();
-        for (WorkSpec workSpec: workSpecs) {
-            if (workSpec.state == WorkInfo.State.ENQUEUED
-                    && !workSpec.isPeriodic()
-                    && workSpec.initialDelay == 0L
-                    && !workSpec.isBackedOff()) {
-                if (workSpec.hasConstraints()) {
-                    // Exclude content URI triggers - we don't know how to handle them here so the
-                    // background scheduler should take care of them.
-                    if (Build.VERSION.SDK_INT < 24
-                            || !workSpec.constraints.hasContentUriTriggers()) {
+        Set<WorkSpec> constrainedWorkSpecs = new HashSet<>();
+        Set<String> constrainedWorkSpecIds = new HashSet<>();
+
+        for (WorkSpec workSpec : workSpecs) {
+            long nextRunTime = workSpec.calculateNextRunTime();
+            long now = System.currentTimeMillis();
+            if (workSpec.state == WorkInfo.State.ENQUEUED) {
+                if (now < nextRunTime) {
+                    // Future work
+                    if (mDelayedWorkTracker != null) {
+                        mDelayedWorkTracker.schedule(workSpec);
+                    }
+                } else if (workSpec.hasConstraints()) {
+                    if (SDK_INT >= 23 && workSpec.constraints.requiresDeviceIdle()) {
+                        // Ignore requests that have an idle mode constraint.
+                        Logger.get().debug(TAG,
+                                String.format("Ignoring WorkSpec %s, Requires device idle.",
+                                        workSpec));
+                    } else if (SDK_INT >= 24 && workSpec.constraints.hasContentUriTriggers()) {
+                        // Ignore requests that have content uri triggers.
+                        Logger.get().debug(TAG,
+                                String.format("Ignoring WorkSpec %s, Requires ContentUri triggers.",
+                                        workSpec));
+                    } else {
                         constrainedWorkSpecs.add(workSpec);
                         constrainedWorkSpecIds.add(workSpec.id);
                     }
@@ -113,10 +159,27 @@ public class GreedyScheduler implements Scheduler, WorkConstraintsCallback, Exec
         }
     }
 
+    private void checkDefaultProcess() {
+        Configuration configuration = mWorkManagerImpl.getConfiguration();
+        mInDefaultProcess = ProcessUtils.isDefaultProcess(mContext, configuration);
+    }
+
     @Override
     public void cancel(@NonNull String workSpecId) {
+        if (mInDefaultProcess == null) {
+            checkDefaultProcess();
+        }
+
+        if (!mInDefaultProcess) {
+            Logger.get().info(TAG, "Ignoring schedule request in non-main process");
+            return;
+        }
+
         registerExecutionListenerIfNeeded();
         Logger.get().debug(TAG, String.format("Cancelling work ID %s", workSpecId));
+        if (mDelayedWorkTracker != null) {
+            mDelayedWorkTracker.unschedule(workSpecId);
+        }
         // onExecutionCompleted does the cleanup.
         mWorkManagerImpl.stopWork(workSpecId);
     }
@@ -143,6 +206,8 @@ public class GreedyScheduler implements Scheduler, WorkConstraintsCallback, Exec
     @Override
     public void onExecuted(@NonNull String workSpecId, boolean needsReschedule) {
         removeConstraintTrackingFor(workSpecId);
+        // onExecuted does not need to worry about unscheduling WorkSpecs with the mDelayedTracker.
+        // This is because, after onExecuted(), all schedulers are asked to cancel.
     }
 
     private void removeConstraintTrackingFor(@NonNull String workSpecId) {
@@ -150,10 +215,10 @@ public class GreedyScheduler implements Scheduler, WorkConstraintsCallback, Exec
             // This is synchronized because onExecuted is on the main thread but
             // Schedulers#schedule() can modify the list of mConstrainedWorkSpecs on the task
             // executor thread.
-            for (int i = 0, size = mConstrainedWorkSpecs.size(); i < size; ++i) {
-                if (mConstrainedWorkSpecs.get(i).id.equals(workSpecId)) {
+            for (WorkSpec constrainedWorkSpec : mConstrainedWorkSpecs) {
+                if (constrainedWorkSpec.id.equals(workSpecId)) {
                     Logger.get().debug(TAG, String.format("Stopping tracking for %s", workSpecId));
-                    mConstrainedWorkSpecs.remove(i);
+                    mConstrainedWorkSpecs.remove(constrainedWorkSpec);
                     mWorkConstraintsTracker.replace(mConstrainedWorkSpecs);
                     break;
                 }

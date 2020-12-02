@@ -26,16 +26,14 @@ plugins {
 }
 
 dependencies {
-    api(SUPPORT_ANNOTATIONS)
+    api("androidx.annotation:annotation:1.0.0")
     api(project(":sqlite:sqlite"))
 }
 
 androidx {
     name = "Android Support SQLite - Framework Implementation"
     publish = Publish.SNAPSHOT_AND_RELEASE
-    mavenVersion = LibraryVersions.PERSISTENCE
-    mavenGroup = LibraryGroups.PERSISTENCE
+    mavenGroup = LibraryGroups.SQLITE
     inceptionYear = "2017"
     description = "The implementation of Support SQLite library using the framework code."
-    url = AndroidXExtension.ARCHITECTURE_URL
 }

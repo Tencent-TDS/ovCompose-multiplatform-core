@@ -22,12 +22,13 @@ plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     id("kotlin-android")
+    id("androidx.benchmark")
 }
 
 dependencies {
-    androidTestImplementation(project(":benchmark"))
+    androidTestImplementation(projectOrArtifact(":benchmark:benchmark-junit4"))
     androidTestImplementation(project(":navigation:navigation-runtime"))
-    androidTestImplementation(project(":navigation:navigation-testing"))
+    androidTestImplementation(project(":internal-testutils-navigation"))
     androidTestImplementation(JUNIT)
     androidTestImplementation(ANDROIDX_TEST_EXT_JUNIT)
     androidTestImplementation(ANDROIDX_TEST_CORE)
@@ -39,7 +40,6 @@ dependencies {
 androidx {
     name = "Navigation Benchmarks"
     publish = Publish.NONE
-    mavenVersion = LibraryVersions.NAVIGATION
     mavenGroup = LibraryGroups.NAVIGATION
     inceptionYear = "2018"
     description = "Navigation Benchmarks"

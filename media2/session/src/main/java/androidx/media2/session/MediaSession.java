@@ -16,17 +16,19 @@
 
 package androidx.media2.session;
 
-import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
+import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 import static androidx.media2.session.SessionResult.RESULT_ERROR_NOT_SUPPORTED;
 import static androidx.media2.session.SessionResult.RESULT_SUCCESS;
 
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.view.KeyEvent;
@@ -59,6 +61,7 @@ import androidx.versionedparcelable.VersionedParcelize;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.Closeable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -74,40 +77,40 @@ import java.util.concurrent.Executor;
  * <p>
  * A MediaSession should be created when an app wants to publish media playback information or
  * handle media keys. In general an app only needs one session for all playback, though multiple
- * sessions can be created to provide finer grain controls of media.
+ * sessions can be created to provide finer grain controls of media. See
+ * <a href="#MultipleSessions">Supporting Multiple Sessions</a> for detail.
  * <p>
  * If you want to support background playback, {@link MediaSessionService} is preferred
  * instead. With it, your playback can be revived even after playback is finished. See
  * {@link MediaSessionService} for details.
  * <p>
- * Topic covered here:
+ * Topics covered here:
  * <ol>
  * <li><a href="#SessionLifecycle">Session Lifecycle</a>
- * <li><a href="#AudioFocusAndNoisyIntent">Audio focus and noisy intent</a>
  * <li><a href="#Thread">Thread</a>
  * <li><a href="#KeyEvents">Media key events mapping</a>
+ * <li><a href="#MultipleSessions">Supporting Multiple Sessions</a>
+ * <li><a href="#CompatibilitySession">Backward compatibility with legacy session APIs</a>
+ * <li><a href="#CompatibilityController">Backward compatibility with legacy controller APIs</a>
+ *
  * </ol>
- * <a name="SessionLifecycle"></a>
- * <h3>Session Lifecycle</h3>
+ * <h3 id="SessionLifecycle">Session Lifecycle</h3>
  * <p>
  * A session can be obtained by {@link Builder}. The owner of the session may pass its session token
  * to other processes to allow them to create a {@link MediaController} to interact with the
  * session.
  * <p>
  * When a session receive transport control commands, the session sends the commands directly to
- * the the underlying media player set by {@link Builder} or {@link #updatePlayer}.
+ * the underlying media player set by {@link Builder} or {@link #updatePlayer}.
  * <p>
  * When an app is finished performing playback it must call {@link #close()} to clean up the session
  * and notify any controllers. The app is responsible for closing the underlying player after
  * closing the session.
  * is closed.
- * <p>
- * <a name="Thread"></a>
- * <h3>Thread</h3>
+ * <h3 id="Thread">Thread</h3>
  * <p>
  * {@link MediaSession} objects are thread safe, but should be used on the thread on the looper.
- * <a name="KeyEvents"></a>
- * <h3>Media key events mapping</h3>
+ * <h3 id="KeyEvents">Media key events mapping</h3>
  * <p>
  * Here's the table of per key event.
  * <table>
@@ -136,9 +139,35 @@ import java.util.concurrent.Executor;
  *             <li>For a double tap, {@link SessionPlayer#skipToNextPlaylistItem()}</li></ul></td>
  *     </tr>
  * </table>
+ * <h3 id="MultipleSessions">Supporting Multiple Sessions</h3>
+ * Generally speaking, multiple sessions aren't necessary for most media apps. One exception is if
+ * your app can play multiple media content at the same time, but only for the playback of
+ * video-only media or remote playback, since
+ * <a href="{@docRoot}guide/topics/media-apps/audio-focus.html">audio focus policy</a> recommends
+ * not playing multiple audio content at the same time. Also keep in mind that multiple media
+ * sessions would make Android Auto and Bluetooth device with display to show your apps multiple
+ * times, because they list up media sessions, not media apps.
+ * <h3 id="CompatibilitySession">Backward compatibility with legacy session APIs</h3>
+ * An active {@link MediaSessionCompat} is internally created with the MediaSession for the backward
+ * compatibility. It's used to handle incoming connection and command from
+ * {@link MediaControllerCompat}. And helps to utilize existing APIs that are built with legacy
+ * media session APIs. Use {@link #getSessionCompatToken} for getting the token for the underlying
+ * MediaSessionCompat.
+ * <h3 id="CompatibilityController">Backward compatibility with legacy controller APIs</h3>
+ * In addition to the {@link MediaController media2 controller} API, session also supports
+ * connection from the legacy controller API -
+ * {@link android.media.session.MediaController framework controller} and
+ * {@link MediaControllerCompat AndroidX controller compat}.
+ * However, {@link ControllerInfo} may not be precise for legacy controller.
+ * See {@link ControllerInfo} for the details.
+ * <p>
+ * Unknown package name nor UID doesn't mean that you should disallow connection nor commands. For
+ * SDK levels where such issue happen, session tokens could only be obtained by trusted apps (e.g.
+ * Bluetooth, Auto, ...), so it may be better for you to allow them as you did with legacy session.
+ *
  * @see MediaSessionService
  */
-public class MediaSession implements AutoCloseable {
+public class MediaSession implements Closeable {
     static final String TAG = "MediaSession";
 
     // It's better to have private static lock instead of using MediaSession.class because the
@@ -216,7 +245,7 @@ public class MediaSession implements AutoCloseable {
     /**
      * @hide
      */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY)
     public boolean isClosed() {
         return mImpl.isClosed();
     }
@@ -228,7 +257,8 @@ public class MediaSession implements AutoCloseable {
      *
      * @return player.
      */
-    public @NonNull SessionPlayer getPlayer() {
+    @NonNull
+    public SessionPlayer getPlayer() {
         return mImpl.getPlayer();
     }
 
@@ -237,26 +267,31 @@ public class MediaSession implements AutoCloseable {
      *
      * @return
      */
-    public @NonNull String getId() {
+    @NonNull
+    public String getId() {
         return mImpl.getId();
     }
 
     /**
      * Returns the {@link SessionToken} for creating {@link MediaController}.
      */
-    public @NonNull SessionToken getToken() {
+    @NonNull
+    public SessionToken getToken() {
         return mImpl.getToken();
     }
 
-    @NonNull Context getContext() {
+    @NonNull
+    Context getContext() {
         return mImpl.getContext();
     }
 
-    @NonNull Executor getCallbackExecutor() {
+    @NonNull
+    Executor getCallbackExecutor() {
         return mImpl.getCallbackExecutor();
     }
 
-    @NonNull SessionCallback getCallback() {
+    @NonNull
+    SessionCallback getCallback() {
         return mImpl.getCallback();
     }
 
@@ -265,7 +300,8 @@ public class MediaSession implements AutoCloseable {
      *
      * @return list of {@link ControllerInfo}
      */
-    public @NonNull List<ControllerInfo> getConnectedControllers() {
+    @NonNull
+    public List<ControllerInfo> getConnectedControllers() {
         return mImpl.getConnectedControllers();
     }
 
@@ -297,7 +333,8 @@ public class MediaSession implements AutoCloseable {
      * @param controller controller to specify layout.
      * @param layout ordered list of layout.
      */
-    public @NonNull ListenableFuture<SessionResult> setCustomLayout(
+    @NonNull
+    public ListenableFuture<SessionResult> setCustomLayout(
             @NonNull ControllerInfo controller, @NonNull List<CommandButton> layout) {
         if (controller == null) {
             throw new NullPointerException("controller shouldn't be null");
@@ -331,7 +368,7 @@ public class MediaSession implements AutoCloseable {
     }
 
     /**
-     * Broadcasts custom command to all connected controllers.
+     * Broadcasts a custom command to all connected controllers.
      * <p>
      * This is synchronous call and doesn't wait for result from the controller. Use
      * {@link #sendCustomCommand(ControllerInfo, SessionCommand, Bundle)} for getting the result.
@@ -353,7 +390,7 @@ public class MediaSession implements AutoCloseable {
     }
 
     /**
-     * Send custom command to a specific controller.
+     * Sends a custom command to a specific controller.
      * <p>
      * A command is not accepted if it is not a custom command.
      *
@@ -361,7 +398,8 @@ public class MediaSession implements AutoCloseable {
      * @param args optional argument
      * @see #broadcastCustomCommand(SessionCommand, Bundle)
      */
-    public @NonNull ListenableFuture<SessionResult> sendCustomCommand(
+    @NonNull
+    public ListenableFuture<SessionResult> sendCustomCommand(
             @NonNull ControllerInfo controller, @NonNull SessionCommand command,
             @Nullable Bundle args) {
         if (controller == null) {
@@ -378,11 +416,32 @@ public class MediaSession implements AutoCloseable {
 
     /**
      * @hide
-     * @return Bundle
      */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY)
     public MediaSessionCompat getSessionCompat() {
         return mImpl.getSessionCompat();
+    }
+
+    /**
+     * Gets the {@link MediaSessionCompat.Token} for the MediaSessionCompat created internally
+     * by this session.
+     *
+     * @return {@link MediaSessionCompat.Token}
+     */
+    @NonNull
+    public MediaSessionCompat.Token getSessionCompatToken() {
+        return mImpl.getSessionCompat().getSessionToken();
+    }
+
+    /**
+     * Sets the timeout for disconnecting legacy controller.
+     * @param timeoutMs timeout in millis
+     *
+     * @hide
+     */
+    @RestrictTo(LIBRARY)
+    public void setLegacyControllerConnectionTimeoutMs(long timeoutMs) {
+        mImpl.setLegacyControllerConnectionTimeoutMs(timeoutMs);
     }
 
     /**
@@ -394,9 +453,11 @@ public class MediaSession implements AutoCloseable {
      * @param uid controller uid
      * @param connectionHints controller connection hints
      */
-    void handleControllerConnectionFromService(IMediaController controller, String packageName,
-            int pid, int uid, @Nullable Bundle connectionHints) {
-        mImpl.connectFromService(controller, packageName, pid, uid, connectionHints);
+    void handleControllerConnectionFromService(IMediaController controller,
+            int controllerVersion, String packageName, int pid, int uid,
+            @Nullable Bundle connectionHints) {
+        mImpl.connectFromService(controller, controllerVersion, packageName, pid, uid,
+                connectionHints);
     }
 
     IBinder getLegacyBrowerServiceBinder() {
@@ -434,10 +495,11 @@ public class MediaSession implements AutoCloseable {
          * @return allowed commands. Can be {@code null} to reject connection.
          * @see #onPostConnect(MediaSession, ControllerInfo)
          */
-        public @Nullable SessionCommandGroup onConnect(@NonNull MediaSession session,
+        @Nullable
+        public SessionCommandGroup onConnect(@NonNull MediaSession session,
                 @NonNull ControllerInfo controller) {
             SessionCommandGroup commands = new SessionCommandGroup.Builder()
-                    .addAllPredefinedCommands(SessionCommand.COMMAND_VERSION_1)
+                    .addAllPredefinedCommands(SessionCommand.COMMAND_VERSION_CURRENT)
                     .build();
             return commands;
         }
@@ -458,7 +520,11 @@ public class MediaSession implements AutoCloseable {
         }
 
         /**
-         * Called when a controller is disconnected
+         * Called when a controller is disconnected.
+         * <p>
+         * Interoperability: For legacy controller, this is called when the controller doesn't send
+         * any command for a while. It's because there were no explicit disconnect API in legacy
+         * controller API.
          *
          * @param session the session for this event
          * @param controller controller information
@@ -502,7 +568,8 @@ public class MediaSession implements AutoCloseable {
          * @see SessionCommand#COMMAND_CODE_VOLUME_SET_VOLUME
          * @see SessionCommand#COMMAND_CODE_VOLUME_ADJUST_VOLUME
          */
-        public @ResultCode int onCommandRequest(@NonNull MediaSession session,
+        @ResultCode
+        public int onCommandRequest(@NonNull MediaSession session,
                 @NonNull ControllerInfo controller, @NonNull SessionCommand command) {
             return RESULT_SUCCESS;
         }
@@ -546,7 +613,8 @@ public class MediaSession implements AutoCloseable {
          * @return translated media item for player with the mediaId. Can be {@code null} to ignore.
          * @see MediaMetadata#METADATA_KEY_MEDIA_ID
          */
-        public @Nullable MediaItem onCreateMediaItem(@NonNull MediaSession session,
+        @Nullable
+        public MediaItem onCreateMediaItem(@NonNull MediaSession session,
                 @NonNull ControllerInfo controller, @NonNull String mediaId) {
             return null;
         }
@@ -566,9 +634,57 @@ public class MediaSession implements AutoCloseable {
          * @param rating new rating from the controller
          * @see SessionCommand#COMMAND_CODE_SESSION_SET_RATING
          */
-        public @ResultCode int onSetRating(@NonNull MediaSession session,
+        @ResultCode
+        public int onSetRating(@NonNull MediaSession session,
                 @NonNull ControllerInfo controller, @NonNull String mediaId,
                 @NonNull Rating rating) {
+            return RESULT_ERROR_NOT_SUPPORTED;
+        }
+
+        /**
+         * Called when a controller requested to set the specific media item(s) represented by a URI
+         * through {@link MediaController#setMediaUri(Uri, Bundle)}.
+         * <p>
+         * The implementation should create proper {@link MediaItem media item(s)} for the given
+         * {@code uri} and call {@link SessionPlayer#setMediaItem} or
+         * {@link SessionPlayer#setPlaylist}.
+         * <p>
+         * When {@link MediaControllerCompat} is connected and sends commands with following
+         * methods, the {@code uri} would have the following patterns:
+         * <table>
+         * <tr>
+         * <th>Method</th><th align="left">Uri pattern</th>
+         * </tr><tr>
+         * <td>{@link MediaControllerCompat.TransportControls#prepareFromUri prepareFromUri}
+         * </td><td>The {@code uri} passed as argument</td>
+         * </tr><tr>
+         * <td>{@link MediaControllerCompat.TransportControls#prepareFromMediaId prepareFromMediaId}
+         * </td><td>{@code androidx://media2-session/prepareFromMediaId?id=[mediaId]}</td>
+         * </tr><tr>
+         * <td>{@link MediaControllerCompat.TransportControls#prepareFromSearch prepareFromSearch}
+         * </td><td>{@code androidx://media2-session/prepareFromSearch?query=[query]}</td>
+         * </tr><tr>
+         * <td>{@link MediaControllerCompat.TransportControls#playFromUri playFromUri}
+         * </td><td>The {@code uri} passed as argument</td>
+         * </tr><tr>
+         * <td>{@link MediaControllerCompat.TransportControls#playFromMediaId playFromMediaId}
+         * </td><td>{@code androidx://media2-session/playFromMediaId?id=[mediaId]}</td>
+         * </tr><tr>
+         * <td>{@link MediaControllerCompat.TransportControls#playFromSearch playFromSearch}
+         * </td><td>{@code androidx://media2-session/playFromSearch?query=[query]}</td>
+         * </tr></table>
+         * <p>
+         * {@link SessionPlayer#prepare()} or {@link SessionPlayer#play()} would be followed if
+         * this is called by above methods.
+         *
+         * @param session the session for this event
+         * @param controller controller information
+         * @param uri uri
+         * @param extras optional extra bundle
+         */
+        @ResultCode
+        public int onSetMediaUri(@NonNull MediaSession session,
+                @NonNull ControllerInfo controller, @NonNull Uri uri, @Nullable Bundle extras) {
             return RESULT_ERROR_NOT_SUPPORTED;
         }
 
@@ -589,165 +705,25 @@ public class MediaSession implements AutoCloseable {
          *         {@code null} is returned.
          * @see SessionCommand#COMMAND_CODE_CUSTOM
          */
-        public @NonNull SessionResult onCustomCommand(@NonNull MediaSession session,
+        @NonNull
+        public SessionResult onCustomCommand(@NonNull MediaSession session,
                 @NonNull ControllerInfo controller, @NonNull SessionCommand customCommand,
                 @Nullable Bundle args) {
             return new SessionResult(RESULT_ERROR_NOT_SUPPORTED, null);
         }
 
         /**
-         * Called when a controller requested to play a specific mediaId through
-         * {@link MediaController#playFromMediaId(String, Bundle)}.
-         *
-         * @param session the session for this event
-         * @param controller controller information
-         * @param mediaId non-empty media id
-         * @param extras optional extra bundle
-         * @see SessionCommand#COMMAND_CODE_SESSION_PLAY_FROM_MEDIA_ID
-         * @hide
-         */
-        @RestrictTo(LIBRARY_GROUP_PREFIX)
-        @ResultCode
-        public int onPlayFromMediaId(@NonNull MediaSession session,
-                @NonNull ControllerInfo controller, @NonNull String mediaId,
-                @Nullable Bundle extras) {
-            return RESULT_ERROR_NOT_SUPPORTED;
-        }
-
-        /**
-         * Called when a controller requested to begin playback from a search query through
-         * {@link MediaController#playFromSearch(String, Bundle)}
-         *
-         * @param session the session for this event
-         * @param controller controller information
-         * @param query non-empty search query.
-         * @param extras optional extra bundle
-         * @see SessionCommand#COMMAND_CODE_SESSION_PLAY_FROM_SEARCH
-         * @hide
-         */
-        @RestrictTo(LIBRARY_GROUP_PREFIX)
-        @ResultCode
-        public int onPlayFromSearch(@NonNull MediaSession session,
-                @NonNull ControllerInfo controller, @NonNull String query,
-                @Nullable Bundle extras) {
-            return RESULT_ERROR_NOT_SUPPORTED;
-        }
-
-        /**
-         * Called when a controller requested to play a specific media item represented by a URI
-         * through {@link MediaController#playFromUri(Uri, Bundle)}
-         *
-         * @param session the session for this event
-         * @param controller controller information
-         * @param uri uri
-         * @param extras optional extra bundle
-         * @see SessionCommand#COMMAND_CODE_SESSION_PLAY_FROM_URI
-         * @hide
-         */
-        @RestrictTo(LIBRARY_GROUP_PREFIX)
-        @ResultCode
-        public int onPlayFromUri(@NonNull MediaSession session,
-                @NonNull ControllerInfo controller, @NonNull Uri uri,
-                @Nullable Bundle extras) {
-            return RESULT_ERROR_NOT_SUPPORTED;
-        }
-
-        /**
-         * Called when a controller requested to prepare for playing a specific mediaId through
-         * {@link MediaController#prepareFromMediaId(String, Bundle)}.
-         * <p>
-         * During the prepare, a session should not hold audio focus in order to allow
-         * other sessions play seamlessly. The state of playback should be updated to
-         * {@link SessionPlayer#PLAYER_STATE_PAUSED} after the prepare is done.
-         * <p>
-         * The playback of the prepared content should start in the later calls of
-         * {@link SessionPlayer#play()}.
-         * <p>
-         * Override {@link #onPlayFromMediaId} to handle requests for starting
-         * playback without preparation.
-         *
-         * @param session the session for this event
-         * @param controller controller information
-         * @param mediaId non-empty media id
-         * @param extras optional extra bundle
-         * @see SessionCommand#COMMAND_CODE_SESSION_PREPARE_FROM_MEDIA_ID
-         * @hide
-         */
-        @RestrictTo(LIBRARY_GROUP_PREFIX)
-        @ResultCode
-        public int onPrepareFromMediaId(@NonNull MediaSession session,
-                @NonNull ControllerInfo controller, @NonNull String mediaId,
-                @Nullable Bundle extras) {
-            return RESULT_ERROR_NOT_SUPPORTED;
-        }
-
-        /**
-         * Called when a controller requested to prepare playback from a search query through
-         * {@link MediaController#prepareFromSearch(String, Bundle)}.
-         * <p>
-         * During the prepare, a session should not hold audio focus in order to allow
-         * other sessions play seamlessly. The state of playback should be updated to
-         * {@link SessionPlayer#PLAYER_STATE_PAUSED} after the prepare is done.
-         * <p>
-         * The playback of the prepared content should start in the later calls of
-         * {@link SessionPlayer#play()}.
-         * <p>
-         * Override {@link #onPlayFromSearch} to handle requests for starting playback without
-         * preparation.
-         *
-         * @param session the session for this event
-         * @param controller controller information
-         * @param query non-empty search query
-         * @param extras optional extra bundle
-         * @see SessionCommand#COMMAND_CODE_SESSION_PREPARE_FROM_SEARCH
-         * @hide
-         */
-        @RestrictTo(LIBRARY_GROUP_PREFIX)
-        @ResultCode
-        public int onPrepareFromSearch(@NonNull MediaSession session,
-                @NonNull ControllerInfo controller, @NonNull String query,
-                @Nullable Bundle extras) {
-            return RESULT_ERROR_NOT_SUPPORTED;
-        }
-
-        /**
-         * Called when a controller requested to prepare a specific media item represented by a URI
-         * through {@link MediaController#prepareFromUri(Uri, Bundle)}.
-         * <p>
-         * During the prepare, a session should not hold audio focus in order to allow
-         * other sessions play seamlessly. The state of playback should be updated to
-         * {@link SessionPlayer#PLAYER_STATE_PAUSED} after the prepare is done.
-         * <p>
-         * The playback of the prepared content should start in the later calls of
-         * {@link SessionPlayer#play()}.
-         * <p>
-         * Override {@link #onPlayFromUri} to handle requests for starting playback without
-         * preparation.
-         *
-         * @param session the session for this event
-         * @param controller controller information
-         * @param uri uri
-         * @param extras optional extra bundle
-         * @see SessionCommand#COMMAND_CODE_SESSION_PREPARE_FROM_URI
-         * @hide
-         */
-        @RestrictTo(LIBRARY_GROUP_PREFIX)
-        @ResultCode
-        public int onPrepareFromUri(@NonNull MediaSession session,
-                @NonNull ControllerInfo controller, @NonNull Uri uri, @Nullable Bundle extras) {
-            return RESULT_ERROR_NOT_SUPPORTED;
-        }
-
-        /**
          * Called when a controller called {@link MediaController#fastForward()}.
          * <p>
-         * It's recommended to increase the playback speed when this method is called.
+         * It can be implemented in many ways. For example, it can be implemented by seeking forward
+         * once, series of seeking forward, or increasing playback speed.
          *
          * @param session the session for this event
          * @param controller controller information
          * @see SessionCommand#COMMAND_CODE_SESSION_FAST_FORWARD
          */
-        public @ResultCode int onFastForward(@NonNull MediaSession session,
+        @ResultCode
+        public int onFastForward(@NonNull MediaSession session,
                 @NonNull ControllerInfo controller) {
             return RESULT_ERROR_NOT_SUPPORTED;
         }
@@ -755,28 +731,31 @@ public class MediaSession implements AutoCloseable {
         /**
          * Called when a controller called {@link MediaController#rewind()}.
          * <p>
-         * It's recommended to decrease the playback speed when this method is called.
+         * It can be implemented in many ways. For example, it can be implemented by seeking
+         * backward once, series of seeking backward, or decreasing playback speed.
          *
          * @param session the session for this event
          * @param controller controller information
          * @see SessionCommand#COMMAND_CODE_SESSION_REWIND
          */
-        public @ResultCode int onRewind(@NonNull MediaSession session,
-                @NonNull ControllerInfo controller) {
+        @ResultCode
+        public int onRewind(@NonNull MediaSession session, @NonNull ControllerInfo controller) {
             return RESULT_ERROR_NOT_SUPPORTED;
         }
 
         /**
          * Called when a controller called {@link MediaController#skipForward()}.
          * <p>
-         * It's recommended to seek forward within the current media item when this method
-         * is called.
+         * It's recommended to seek forward within the current media item, but its detail may vary.
+         * For example, it can be implemented by seeking forward for the fixed amount of seconds, or
+         * seeking forward to the nearest bookmark.
          *
          * @param session the session for this event
          * @param controller controller information
          * @see SessionCommand#COMMAND_CODE_SESSION_SKIP_FORWARD
          */
-        public @ResultCode int onSkipForward(@NonNull MediaSession session,
+        @ResultCode
+        public int onSkipForward(@NonNull MediaSession session,
                 @NonNull ControllerInfo controller) {
             return RESULT_ERROR_NOT_SUPPORTED;
         }
@@ -784,14 +763,16 @@ public class MediaSession implements AutoCloseable {
         /**
          * Called when a controller called {@link MediaController#skipBackward()}.
          * <p>
-         * It's recommended to seek backward within the current media item when this method
-         * is called.
+         * It's recommended to seek backward within the current media item, but its detail may vary.
+         * For example, it can be implemented by seeking backward for the fixed amount of seconds,
+         * or seeking backward to the nearest bookmark.
          *
          * @param session the session for this event
          * @param controller controller information
          * @see SessionCommand#COMMAND_CODE_SESSION_SKIP_BACKWARD
          */
-        public @ResultCode int onSkipBackward(@NonNull MediaSession session,
+        @ResultCode
+        public int onSkipBackward(@NonNull MediaSession session,
                 @NonNull ControllerInfo controller) {
             return RESULT_ERROR_NOT_SUPPORTED;
         }
@@ -834,12 +815,14 @@ public class MediaSession implements AutoCloseable {
         }
 
         @Override
-        public @NonNull Builder setSessionActivity(@Nullable PendingIntent pi) {
+        @NonNull
+        public Builder setSessionActivity(@Nullable PendingIntent pi) {
             return super.setSessionActivity(pi);
         }
 
         @Override
-        public @NonNull Builder setId(@NonNull String id) {
+        @NonNull
+        public Builder setId(@NonNull String id) {
             return super.setId(id);
         }
 
@@ -850,14 +833,15 @@ public class MediaSession implements AutoCloseable {
             return super.setSessionCallback(executor, callback);
         }
 
-        @NonNull
         @Override
+        @NonNull
         public Builder setExtras(@NonNull Bundle extras) {
             return super.setExtras(extras);
         }
 
         @Override
-        public @NonNull MediaSession build() {
+        @NonNull
+        public MediaSession build() {
             if (mCallbackExecutor == null) {
                 mCallbackExecutor = ContextCompat.getMainExecutor(mContext);
             }
@@ -873,6 +857,8 @@ public class MediaSession implements AutoCloseable {
      * Information of a controller.
      */
     public static final class ControllerInfo {
+        @SuppressWarnings("UnusedVariable")
+        private final int mControllerVersion;
         private final RemoteUserInfo mRemoteUserInfo;
         private final boolean mIsTrusted;
         private final ControllerCb mControllerCb;
@@ -880,6 +866,7 @@ public class MediaSession implements AutoCloseable {
 
         /**
          * @param remoteUserInfo remote user info
+         * @param version connected controller version
          * @param trusted {@code true} if trusted, {@code false} otherwise
          * @param cb ControllerCb. Can be {@code null} only when a MediaBrowserCompat connects to
          *           MediaSessionService and ControllerInfo is needed for
@@ -887,35 +874,58 @@ public class MediaSession implements AutoCloseable {
          * @param connectionHints a session-specific argument sent from the controller for the
          *                        connection. The contents of this bundle may affect the
          *                        connection result.
-         * @hide
          */
-        @RestrictTo(LIBRARY_GROUP_PREFIX)
-        ControllerInfo(@NonNull RemoteUserInfo remoteUserInfo, boolean trusted,
+        ControllerInfo(@NonNull RemoteUserInfo remoteUserInfo, int version, boolean trusted,
                 @Nullable ControllerCb cb, @Nullable Bundle connectionHints) {
             mRemoteUserInfo = remoteUserInfo;
+            mControllerVersion = version;
             mIsTrusted = trusted;
             mControllerCb = cb;
-            mConnectionHints = connectionHints;
+            if (connectionHints == null
+                    || MediaUtils.doesBundleHaveCustomParcelable(connectionHints)) {
+                mConnectionHints = null;
+            } else {
+                mConnectionHints = connectionHints;
+            }
         }
 
-        /**
-         * @hide
-         */
-        @RestrictTo(LIBRARY_GROUP_PREFIX)
-        public @NonNull RemoteUserInfo getRemoteUserInfo() {
+        RemoteUserInfo getRemoteUserInfo() {
             return mRemoteUserInfo;
         }
 
         /**
+         * Gets the package name. Can be
+         * {@link androidx.media.MediaSessionManager.RemoteUserInfo#LEGACY_CONTROLLER} for
+         * interoperability.
+         * <p>
+         * Interoperability: Package name may not be precisely obtained for legacy controller API on
+         * older device. Here are details.
+         * <table>
+         * <tr><th>SDK version when package name isn't precise</th>
+         *     <th>{@code ControllerInfo#getPackageName()} for legacy controller</th>
+         * <tr><td>{@code SDK_VERSION} &lt; {@code 21}</td>
+         *     <td>Actual package name via {@link PackageManager#getNameForUid} with UID.<br>
+         *         It's sufficient for most cases, but doesn't precisely distinguish caller if it
+         *         uses shared user ID.</td>
+         * <tr><td>{@code 21} &le; {@code SDK_VERSION} &lt; {@code 24}</td>
+         *     <td>{@link RemoteUserInfo#LEGACY_CONTROLLER LEGACY_CONTROLLER}</td>
+         * </table>
+         *
          * @return package name of the controller. Can be
-         *         {@link androidx.media.MediaSessionManager.RemoteUserInfo#LEGACY_CONTROLLER} if
-         *         the package name cannot be obtained.
+         *         {@link RemoteUserInfo#LEGACY_CONTROLLER LEGACY_CONTROLLER} if the package name
+         *         cannot be obtained.
          */
-        public @NonNull String getPackageName() {
+        @NonNull
+        public String getPackageName() {
             return mRemoteUserInfo.getPackageName();
         }
 
         /**
+         * Gets the UID of the controller. Can be a negative value for interoperability.
+         * <p>
+         * Interoperability: If {@code 21} &le; {@code SDK_VERSION} &lt; {@code 28}, then UID would
+         * be a negative value because it cannot be obtained.
+         *
          * @return uid of the controller. Can be a negative value if the uid cannot be obtained.
          */
         public int getUid() {
@@ -923,7 +933,7 @@ public class MediaSession implements AutoCloseable {
         }
 
         /**
-         * @return connection hints sent from controller, or {@link Bundle#EMPTY} if none.
+         * Gets the connection hints sent from controller, or {@link Bundle#EMPTY} if none.
          */
         @NonNull
         public Bundle getConnectionHints() {
@@ -931,14 +941,14 @@ public class MediaSession implements AutoCloseable {
         }
 
         /**
-         * Return if the controller has granted {@code android.permission.MEDIA_CONTENT_CONTROL} or
-         * has a enabled notification listener so can be trusted to accept connection and incoming
-         * command request.
+         * Returns if the controller has been granted
+         * {@code android.permission.MEDIA_CONTENT_CONTROL} or has a enabled notification listener
+         * so can be trusted to accept connection and incoming command request.
          *
          * @return {@code true} if the controller is trusted.
          * @hide
          */
-        @RestrictTo(LIBRARY_GROUP_PREFIX)
+        @RestrictTo(LIBRARY)
         public boolean isTrusted() {
             return mIsTrusted;
         }
@@ -972,6 +982,21 @@ public class MediaSession implements AutoCloseable {
         @Nullable ControllerCb getControllerCb() {
             return mControllerCb;
         }
+
+        @NonNull
+        static ControllerInfo createLegacyControllerInfo() {
+            RemoteUserInfo legacyRemoteUserInfo =
+                    new RemoteUserInfo(
+                            RemoteUserInfo.LEGACY_CONTROLLER,
+                            /* pid= */ RemoteUserInfo.UNKNOWN_PID,
+                            /* uid= */ RemoteUserInfo.UNKNOWN_UID);
+            return new ControllerInfo(
+                    legacyRemoteUserInfo,
+                    MediaUtils.VERSION_UNKNOWN,
+                    /* trusted= */ false,
+                    /* cb= */ null,
+                    /* connectionHints= */ null);
+        }
     }
 
     /**
@@ -992,6 +1017,8 @@ public class MediaSession implements AutoCloseable {
         @ParcelField(5)
         boolean mEnabled;
 
+        // WARNING: Adding a new ParcelField may break old library users (b/152830728)
+
         /**
          * Used for VersionedParcelable
          */
@@ -1008,18 +1035,19 @@ public class MediaSession implements AutoCloseable {
         }
 
         /**
-         * Get command associated with this button. Can be {@code null} if the button isn't enabled
-         * and only providing placeholder.
+         * Gets the command associated with this button. Can be {@code null} if the button isn't
+         * enabled and only providing placeholder.
          *
          * @return command or {@code null}
          */
-        public @Nullable SessionCommand getCommand() {
+        @Nullable
+        public SessionCommand getCommand() {
             return mCommand;
         }
 
         /**
-         * Resource id of the button in this package. Can be {@code 0} if the command is predefined
-         * and custom icon isn't needed.
+         * Gets the resource id of the button in this package. Can be {@code 0} if the command is
+         * predefined and custom icon isn't needed.
          *
          * @return resource id of the icon. Can be {@code 0}.
          */
@@ -1028,26 +1056,29 @@ public class MediaSession implements AutoCloseable {
         }
 
         /**
-         * Display name of the button. Can be {@code null} or empty if the command is predefined
-         * and custom name isn't needed.
+         * Gets the display name of the button. Can be {@code null} or empty if the command is
+         * predefined and custom name isn't needed.
          *
          * @return custom display name. Can be {@code null} or empty.
          */
-        public @Nullable CharSequence getDisplayName() {
+        @Nullable
+        public CharSequence getDisplayName() {
             return mDisplayName;
         }
 
         /**
-         * Extra information of the button. It's private information between session and controller.
+         * Gets extra information of the button. It's private information between session and
+         * controller.
          *
          * @return
          */
-        public @Nullable Bundle getExtras() {
+        @Nullable
+        public Bundle getExtras() {
             return mExtras;
         }
 
         /**
-         * Return whether it's enabled.
+         * Returns whether it's enabled.
          *
          * @return {@code true} if enabled. {@code false} otherwise.
          */
@@ -1071,7 +1102,8 @@ public class MediaSession implements AutoCloseable {
              *
              * @param command session command
              */
-            public @NonNull Builder setCommand(@Nullable SessionCommand command) {
+            @NonNull
+            public Builder setCommand(@Nullable SessionCommand command) {
                 mCommand = command;
                 return this;
             }
@@ -1085,7 +1117,8 @@ public class MediaSession implements AutoCloseable {
              *
              * @param resId resource id of the button
              */
-            public @NonNull Builder setIconResId(int resId) {
+            @NonNull
+            public Builder setIconResId(int resId) {
                 mIconResId = resId;
                 return this;
             }
@@ -1095,7 +1128,8 @@ public class MediaSession implements AutoCloseable {
              *
              * @param displayName display name of the button
              */
-            public @NonNull Builder setDisplayName(@Nullable CharSequence displayName) {
+            @NonNull
+            public Builder setDisplayName(@Nullable CharSequence displayName) {
                 mDisplayName = displayName;
                 return this;
             }
@@ -1107,7 +1141,8 @@ public class MediaSession implements AutoCloseable {
              * @param enabled {@code true} if the button is enabled and ready.
              *          {@code false} otherwise.
              */
-            public @NonNull Builder setEnabled(boolean enabled) {
+            @NonNull
+            public Builder setEnabled(boolean enabled) {
                 mEnabled = enabled;
                 return this;
             }
@@ -1117,7 +1152,8 @@ public class MediaSession implements AutoCloseable {
              *
              * @param extras extras information of the button
              */
-            public @NonNull Builder setExtras(@Nullable Bundle extras) {
+            @NonNull
+            public Builder setExtras(@Nullable Bundle extras) {
                 mExtras = extras;
                 return this;
             }
@@ -1127,7 +1163,8 @@ public class MediaSession implements AutoCloseable {
              *
              * @return a new {@link CommandButton}
              */
-            public @NonNull CommandButton build() {
+            @NonNull
+            public CommandButton build() {
                 return new CommandButton(mCommand, mIconResId, mDisplayName, mExtras, mEnabled);
             }
         }
@@ -1170,9 +1207,9 @@ public class MediaSession implements AutoCloseable {
                 int currentIdx, int previousIdx, int nextIdx) throws RemoteException;
         abstract void onPlaybackCompleted(int seq) throws RemoteException;
         abstract void onDisconnected(int seq) throws RemoteException;
-        abstract void onVideoSizeChanged(int seq, @NonNull MediaItem item,
-                @NonNull VideoSize videoSize) throws RemoteException;
-        abstract void onTrackInfoChanged(int seq, List<TrackInfo> trackInfos,
+        abstract void onVideoSizeChanged(int seq, @NonNull VideoSize videoSize)
+                throws RemoteException;
+        abstract void onTracksChanged(int seq, List<TrackInfo> tracks,
                 TrackInfo selectedVideoTrack, TrackInfo selectedAudioTrack,
                 TrackInfo selectedSubtitleTrack, TrackInfo selectedMetadataTrack)
                 throws RemoteException;
@@ -1188,15 +1225,20 @@ public class MediaSession implements AutoCloseable {
                 @Nullable LibraryParams params) throws RemoteException;
     }
 
-    interface MediaSessionImpl extends MediaInterface.SessionPlayer, AutoCloseable {
+    interface MediaSessionImpl extends MediaInterface.SessionPlayer, Closeable {
         void updatePlayer(@NonNull SessionPlayer player,
                 @Nullable SessionPlayer playlistAgent);
         void updatePlayer(@NonNull SessionPlayer player);
-        @NonNull SessionPlayer getPlayer();
-        @NonNull String getId();
-        @NonNull Uri getUri();
-        @NonNull SessionToken getToken();
-        @NonNull List<ControllerInfo> getConnectedControllers();
+        @NonNull
+        SessionPlayer getPlayer();
+        @NonNull
+        String getId();
+        @NonNull
+        Uri getUri();
+        @NonNull
+        SessionToken getToken();
+        @NonNull
+        List<ControllerInfo> getConnectedControllers();
         boolean isConnected(@NonNull ControllerInfo controller);
 
         ListenableFuture<SessionResult> setCustomLayout(@NonNull ControllerInfo controller,
@@ -1210,6 +1252,7 @@ public class MediaSession implements AutoCloseable {
         // Internally used methods
         MediaSession getInstance();
         MediaSessionCompat getSessionCompat();
+        void setLegacyControllerConnectionTimeoutMs(long timeoutMs);
         Context getContext();
         Executor getCallbackExecutor();
         SessionCallback getCallback();
@@ -1218,8 +1261,8 @@ public class MediaSession implements AutoCloseable {
         PlaybackInfo getPlaybackInfo();
         PendingIntent getSessionActivity();
         IBinder getLegacyBrowserServiceBinder();
-        void connectFromService(IMediaController caller, String packageName, int pid, int uid,
-                @Nullable Bundle connectionHints);
+        void connectFromService(IMediaController caller, int controllerVersion, String packageName,
+                int pid, int uid, @Nullable Bundle connectionHints);
     }
 
     /**
@@ -1239,7 +1282,7 @@ public class MediaSession implements AutoCloseable {
      *              T, U, C extends MediaSession.SessionCallback>, C></pre>
      * @hide
      */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY)
     abstract static class BuilderBase
             <T extends MediaSession, U extends BuilderBase<T, U, C>, C extends SessionCallback> {
         final Context mContext;
@@ -1264,20 +1307,22 @@ public class MediaSession implements AutoCloseable {
         }
 
         /**
-         * Set an intent for launching UI for this Session. This can be used as a
+         * Sets an intent for launching UI for this Session. This can be used as a
          * quick link to an ongoing media screen. The intent should be for an
          * activity that may be started using {@link Context#startActivity(Intent)}.
          *
          * @param pi The intent to launch to show UI for this session.
          */
         @SuppressWarnings("unchecked")
-        @NonNull U setSessionActivity(@Nullable PendingIntent pi) {
+        @NonNull
+        U setSessionActivity(@Nullable PendingIntent pi) {
             mSessionActivity = pi;
             return (U) this;
         }
 
         /**
-         * Set ID of the session. If it's not set, an empty string will be used to create a session.
+         * Sets the ID of the session. If it's not set, an empty string will be used to create a
+         * session.
          * <p>
          * Use this if and only if your app supports multiple playback at the same time and also
          * wants to provide external apps to have finer controls of them.
@@ -1289,7 +1334,8 @@ public class MediaSession implements AutoCloseable {
         // apps from creating multiple sessions without any clear reasons. If they create two
         // sessions with the same ID in a process, then an IllegalStateException will be thrown.
         @SuppressWarnings("unchecked")
-        @NonNull U setId(@NonNull String id) {
+        @NonNull
+        U setId(@NonNull String id) {
             if (id == null) {
                 throw new NullPointerException("id shouldn't be null");
             }
@@ -1298,14 +1344,15 @@ public class MediaSession implements AutoCloseable {
         }
 
         /**
-         * Set callback for the session.
+         * Sets callback for the session.
          *
          * @param executor callback executor
-         * @param callback session callback.
+         * @param callback session callback
          * @return
          */
         @SuppressWarnings("unchecked")
-        @NonNull U setSessionCallback(@NonNull Executor executor, @NonNull C callback) {
+        @NonNull
+        U setSessionCallback(@NonNull Executor executor, @NonNull C callback) {
             if (executor == null) {
                 throw new NullPointerException("executor shouldn't be null");
             }
@@ -1318,27 +1365,33 @@ public class MediaSession implements AutoCloseable {
         }
 
         /**
-         * Set extras for the session token.  If not set, {@link SessionToken#getExtras()}
-         * will return {@link Bundle#EMPTY}.
+         * Sets extras for the session token.  If not set, {@link SessionToken#getExtras()}
+         * will return an empty {@link Bundle}.
          *
-         * @return The Builder to allow chaining
+         * @return the Builder to allow chaining
+         * @throws IllegalArgumentException if the bundle contains any non-framework Parcelable
+         * objects.
          * @see SessionToken#getExtras()
          */
         @NonNull
         @SuppressWarnings("unchecked")
-        public U setExtras(@NonNull Bundle extras) {
+        U setExtras(@NonNull Bundle extras) {
             if (extras == null) {
                 throw new NullPointerException("extras shouldn't be null");
             }
-            mExtras = extras;
+            if (MediaUtils.doesBundleHaveCustomParcelable(extras)) {
+                throw new IllegalArgumentException(
+                        "extras shouldn't contain any custom parcelables");
+            }
+            mExtras = new Bundle(extras);
             return (U) this;
         }
 
         /**
-         * Build {@link MediaSession}.
+         * Builds a {@link MediaSession}.
          *
          * @return a new session
-         * @throws IllegalStateException if the session with the same id is already exists for the
+         * @throws IllegalStateException if the session with the same id already exists for the
          *      package.
          */
         @NonNull abstract T build();

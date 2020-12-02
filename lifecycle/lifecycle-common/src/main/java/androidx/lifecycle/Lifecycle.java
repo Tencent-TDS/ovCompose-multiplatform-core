@@ -18,6 +18,7 @@ package androidx.lifecycle;
 
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,9 +39,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * before {@link android.app.Activity#onStop onStop} is called.
  * This gives you certain guarantees on which state the owner is in.
  * <p>
- * Your observer should implement either {@link DefaultLifecycleObserver}
- * or {@link LifecycleEventObserver} interfaces, for example, with {@link DefaultLifecycleObserver}
- * it would look like:
+ * If you use <b>Java 8 Language</b>, then observe events with {@link DefaultLifecycleObserver}.
+ * To include it you should add {@code "androidx.lifecycle:lifecycle-common-java8:<version>"} to
+ * your build.gradle file.
  * <pre>
  * class TestObserver implements DefaultLifecycleObserver {
  *     {@literal @}Override
@@ -49,6 +50,31 @@ import java.util.concurrent.atomic.AtomicReference;
  *     }
  * }
  * </pre>
+ * If you use <b>Java 7 Language</b>, Lifecycle events are observed using annotations.
+ * Once Java 8 Language becomes mainstream on Android, annotations will be deprecated, so between
+ * {@link DefaultLifecycleObserver} and annotations,
+ * you must always prefer {@code DefaultLifecycleObserver}.
+ * <pre>
+ * class TestObserver implements LifecycleObserver {
+ *   {@literal @}OnLifecycleEvent(ON_STOP)
+ *   void onStopped() {}
+ * }
+ * </pre>
+ * <p>
+ * Observer methods can receive zero or one argument.
+ * If used, the first argument must be of type {@link LifecycleOwner}.
+ * Methods annotated with {@link Event#ON_ANY} can receive the second argument, which must be
+ * of type {@link Event}.
+ * <pre>
+ * class TestObserver implements LifecycleObserver {
+ *   {@literal @}OnLifecycleEvent(ON_CREATE)
+ *   void onCreated(LifecycleOwner source) {}
+ *   {@literal @}OnLifecycleEvent(ON_ANY)
+ *   void onAny(LifecycleOwner source, Event event) {}
+ * }
+ * </pre>
+ * These additional parameters are provided to allow you to conveniently observe multiple providers
+ * and events without tracking them manually.
  */
 public abstract class Lifecycle {
 
@@ -128,7 +154,123 @@ public abstract class Lifecycle {
         /**
          * An {@link Event Event} constant that can be used to match all events.
          */
-        ON_ANY
+        ON_ANY;
+
+        /**
+         * Returns the {@link Lifecycle.Event} that will be reported by a {@link Lifecycle}
+         * leaving the specified {@link Lifecycle.State} to a lower state, or {@code null}
+         * if there is no valid event that can move down from the given state.
+         *
+         * @param state the higher state that the returned event will transition down from
+         * @return the event moving down the lifecycle phases from state
+         */
+        @Nullable
+        public static Event downFrom(@NonNull State state) {
+            switch (state) {
+                case CREATED:
+                    return ON_DESTROY;
+                case STARTED:
+                    return ON_STOP;
+                case RESUMED:
+                    return ON_PAUSE;
+                default:
+                    return null;
+            }
+        }
+
+        /**
+         * Returns the {@link Lifecycle.Event} that will be reported by a {@link Lifecycle}
+         * entering the specified {@link Lifecycle.State} from a higher state, or {@code null}
+         * if there is no valid event that can move down to the given state.
+         *
+         * @param state the lower state that the returned event will transition down to
+         * @return the event moving down the lifecycle phases to state
+         */
+        @Nullable
+        public static Event downTo(@NonNull State state) {
+            switch (state) {
+                case DESTROYED:
+                    return ON_DESTROY;
+                case CREATED:
+                    return ON_STOP;
+                case STARTED:
+                    return ON_PAUSE;
+                default:
+                    return null;
+            }
+        }
+
+        /**
+         * Returns the {@link Lifecycle.Event} that will be reported by a {@link Lifecycle}
+         * leaving the specified {@link Lifecycle.State} to a higher state, or {@code null}
+         * if there is no valid event that can move up from the given state.
+         *
+         * @param state the lower state that the returned event will transition up from
+         * @return the event moving up the lifecycle phases from state
+         */
+        @Nullable
+        public static Event upFrom(@NonNull State state) {
+            switch (state) {
+                case INITIALIZED:
+                    return ON_CREATE;
+                case CREATED:
+                    return ON_START;
+                case STARTED:
+                    return ON_RESUME;
+                default:
+                    return null;
+            }
+        }
+
+        /**
+         * Returns the {@link Lifecycle.Event} that will be reported by a {@link Lifecycle}
+         * entering the specified {@link Lifecycle.State} from a lower state, or {@code null}
+         * if there is no valid event that can move up to the given state.
+         *
+         * @param state the higher state that the returned event will transition up to
+         * @return the event moving up the lifecycle phases to state
+         */
+        @Nullable
+        public static Event upTo(@NonNull State state) {
+            switch (state) {
+                case CREATED:
+                    return ON_CREATE;
+                case STARTED:
+                    return ON_START;
+                case RESUMED:
+                    return ON_RESUME;
+                default:
+                    return null;
+            }
+        }
+
+        /**
+         * Returns the new {@link Lifecycle.State} of a {@link Lifecycle} that just reported
+         * this {@link Lifecycle.Event}.
+         *
+         * Throws {@link IllegalArgumentException} if called on {@link #ON_ANY}, as it is a special
+         * value used by {@link OnLifecycleEvent} and not a real lifecycle event.
+         *
+         * @return the state that will result from this event
+         */
+        @NonNull
+        public State getTargetState() {
+            switch (this) {
+                case ON_CREATE:
+                case ON_STOP:
+                    return State.CREATED;
+                case ON_START:
+                case ON_PAUSE:
+                    return State.STARTED;
+                case ON_RESUME:
+                    return State.RESUMED;
+                case ON_DESTROY:
+                    return State.DESTROYED;
+                case ON_ANY:
+                    break;
+            }
+            throw new IllegalArgumentException(this + " has no target state");
+        }
     }
 
     /**

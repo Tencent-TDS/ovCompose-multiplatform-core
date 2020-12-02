@@ -16,7 +16,6 @@
 
 package androidx.lifecycle;
 
-import android.app.Activity;
 import android.app.Application;
 
 import androidx.annotation.MainThread;
@@ -24,11 +23,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import androidx.lifecycle.ViewModelProvider.Factory;
 
 /**
  * Utilities methods for {@link ViewModelStore} class.
+ *
+ * @deprecated Use the constructors for {@link ViewModelProvider} directly.
  */
+@Deprecated
 public class ViewModelProviders {
 
     /**
@@ -38,69 +39,66 @@ public class ViewModelProviders {
     public ViewModelProviders() {
     }
 
-    private static Application checkApplication(Activity activity) {
-        Application application = activity.getApplication();
-        if (application == null) {
-            throw new IllegalStateException("Your activity/fragment is not yet attached to "
-                    + "Application. You can't request ViewModel before onCreate call.");
-        }
-        return application;
-    }
-
-    private static Activity checkActivity(Fragment fragment) {
-        Activity activity = fragment.getActivity();
-        if (activity == null) {
-            throw new IllegalStateException("Can't create ViewModelProvider for detached fragment");
-        }
-        return activity;
-    }
-
     /**
      * Creates a {@link ViewModelProvider}, which retains ViewModels while a scope of given
      * {@code fragment} is alive. More detailed explanation is in {@link ViewModel}.
      * <p>
-     * It uses {@link ViewModelProvider.AndroidViewModelFactory} to instantiate new ViewModels.
+     * It uses the {@link Fragment#getDefaultViewModelProviderFactory() default factory}
+     * to instantiate new ViewModels.
      *
      * @param fragment a fragment, in whose scope ViewModels should be retained
      * @return a ViewModelProvider instance
+     * @deprecated Use the 'by viewModels()' Kotlin property delegate or
+     * {@link ViewModelProvider#ViewModelProvider(ViewModelStoreOwner)},
+     * passing in the fragment.
      */
+    @Deprecated
     @NonNull
     @MainThread
     public static ViewModelProvider of(@NonNull Fragment fragment) {
-        return of(fragment, null);
+        return new ViewModelProvider(fragment);
     }
 
     /**
      * Creates a {@link ViewModelProvider}, which retains ViewModels while a scope of given Activity
      * is alive. More detailed explanation is in {@link ViewModel}.
      * <p>
-     * It uses {@link ViewModelProvider.AndroidViewModelFactory} to instantiate new ViewModels.
+     * It uses the {@link FragmentActivity#getDefaultViewModelProviderFactory() default factory}
+     * to instantiate new ViewModels.
      *
      * @param activity an activity, in whose scope ViewModels should be retained
      * @return a ViewModelProvider instance
+     * @deprecated Use the 'by viewModels()' Kotlin property delegate or
+     * {@link ViewModelProvider#ViewModelProvider(ViewModelStoreOwner)},
+     * passing in the activity.
      */
+    @Deprecated
     @NonNull
     @MainThread
     public static ViewModelProvider of(@NonNull FragmentActivity activity) {
-        return of(activity, null);
+        return new ViewModelProvider(activity);
     }
 
     /**
      * Creates a {@link ViewModelProvider}, which retains ViewModels while a scope of given
      * {@code fragment} is alive. More detailed explanation is in {@link ViewModel}.
      * <p>
-     * It uses the given {@link Factory} to instantiate new ViewModels.
+     * It uses the given {@link ViewModelProvider.Factory} to instantiate new ViewModels.
      *
      * @param fragment a fragment, in whose scope ViewModels should be retained
-     * @param factory  a {@code Factory} to instantiate new ViewModels
+     * @param factory  a {@code ViewModelProvider.Factory} to instantiate new ViewModels
      * @return a ViewModelProvider instance
+     * @deprecated Use the 'by viewModels()' Kotlin property delegate or
+     * {@link ViewModelProvider#ViewModelProvider(ViewModelStoreOwner, ViewModelProvider.Factory)},
+     * passing in the fragment and factory.
      */
+    @Deprecated
     @NonNull
     @MainThread
-    public static ViewModelProvider of(@NonNull Fragment fragment, @Nullable Factory factory) {
-        Application application = checkApplication(checkActivity(fragment));
+    public static ViewModelProvider of(@NonNull Fragment fragment,
+            @Nullable ViewModelProvider.Factory factory) {
         if (factory == null) {
-            factory = ViewModelProvider.AndroidViewModelFactory.getInstance(application);
+            factory = fragment.getDefaultViewModelProviderFactory();
         }
         return new ViewModelProvider(fragment.getViewModelStore(), factory);
     }
@@ -109,25 +107,28 @@ public class ViewModelProviders {
      * Creates a {@link ViewModelProvider}, which retains ViewModels while a scope of given Activity
      * is alive. More detailed explanation is in {@link ViewModel}.
      * <p>
-     * It uses the given {@link Factory} to instantiate new ViewModels.
+     * It uses the given {@link ViewModelProvider.Factory} to instantiate new ViewModels.
      *
      * @param activity an activity, in whose scope ViewModels should be retained
-     * @param factory  a {@code Factory} to instantiate new ViewModels
+     * @param factory  a {@code ViewModelProvider.Factory} to instantiate new ViewModels
      * @return a ViewModelProvider instance
+     * @deprecated Use the 'by viewModels()' Kotlin property delegate or
+     * {@link ViewModelProvider#ViewModelProvider(ViewModelStoreOwner, ViewModelProvider.Factory)},
+     * passing in the activity and factory.
      */
+    @Deprecated
     @NonNull
     @MainThread
     public static ViewModelProvider of(@NonNull FragmentActivity activity,
-            @Nullable Factory factory) {
-        Application application = checkApplication(activity);
+            @Nullable ViewModelProvider.Factory factory) {
         if (factory == null) {
-            factory = ViewModelProvider.AndroidViewModelFactory.getInstance(application);
+            factory = activity.getDefaultViewModelProviderFactory();
         }
         return new ViewModelProvider(activity.getViewModelStore(), factory);
     }
 
     /**
-     * {@link Factory} which may create {@link AndroidViewModel} and
+     * {@link ViewModelProvider.Factory} which may create {@link AndroidViewModel} and
      * {@link ViewModel}, which have an empty constructor.
      *
      * @deprecated Use {@link ViewModelProvider.AndroidViewModelFactory}

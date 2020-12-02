@@ -17,9 +17,6 @@
 package androidx.paging
 
 import androidx.arch.core.util.Function
-import androidx.paging.futures.DirectExecutor
-import androidx.paging.futures.transform
-import com.google.common.util.concurrent.ListenableFuture
 import java.util.IdentityHashMap
 
 /**
@@ -29,8 +26,7 @@ import java.util.IdentityHashMap
  */
 internal open class WrapperDataSource<Key : Any, ValueFrom : Any, ValueTo : Any>(
     private val source: DataSource<Key, ValueFrom>,
-    @SuppressWarnings("WeakerAccess") /* synthetic access */
-    val listFunction: Function<List<ValueFrom>, List<ValueTo>>
+    private val listFunction: Function<List<ValueFrom>, List<ValueTo>>
 ) : DataSource<Key, ValueTo>(source.type) {
     private val keyMap = when (source.type) {
         KeyType.ITEM_KEYED -> IdentityHashMap<ValueTo, Key>()
@@ -61,20 +57,17 @@ internal open class WrapperDataSource<Key : Any, ValueFrom : Any, ValueTo : Any>
         if (keyMap != null) {
             synchronized(keyMap) {
                 for (i in dest.indices) {
-                    keyMap[dest[i]] =
-                        (this.source as ListenableItemKeyedDataSource).getKey(source[i])
+                    @Suppress("DEPRECATION")
+                    keyMap[dest[i]] = (this.source as ItemKeyedDataSource).getKey(source[i])
                 }
             }
         }
     }
 
-    override fun load(params: Params<Key>): ListenableFuture<out BaseResult<ValueTo>> =
-        source.load(params).transform(
-            Function { input ->
-                val result = BaseResult.convert(input, listFunction)
-                stashKeysIfNeeded(input.data, result.data)
-                result
-            },
-            DirectExecutor
-        )
+    override suspend fun load(params: Params<Key>): BaseResult<ValueTo> {
+        val input = source.load(params)
+        val result = BaseResult.convert(input, listFunction)
+        stashKeysIfNeeded(input.data, result.data)
+        return result
+    }
 }

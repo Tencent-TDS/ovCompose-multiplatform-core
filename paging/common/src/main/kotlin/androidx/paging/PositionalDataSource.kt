@@ -17,11 +17,13 @@
 package androidx.paging
 
 import androidx.annotation.RestrictTo
+import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
 import androidx.arch.core.util.Function
-import androidx.concurrent.futures.ResolvableFuture
-import androidx.paging.PositionalDataSource.LoadInitialCallback
-import com.google.common.util.concurrent.ListenableFuture
+import androidx.paging.DataSource.KeyType.POSITIONAL
+import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /**
  * Position-based data loader for a fixed-size, countable data set, supporting fixed-size loads at
@@ -43,30 +45,69 @@ import com.google.common.util.concurrent.ListenableFuture
  * ```
  *
  * @param T Type of items being loaded by the [PositionalDataSource].
- *
- * @see [ListenablePositionalDataSource]
  */
-abstract class PositionalDataSource<T : Any> : ListenablePositionalDataSource<T>() {
+@Deprecated(
+    message = "PositionalDataSource is deprecated and has been replaced by PagingSource",
+    replaceWith = ReplaceWith(
+        "PagingSource<Int, T>",
+        "androidx.paging.PagingSource"
+    )
+)
+abstract class PositionalDataSource<T : Any> : DataSource<Int, T>(POSITIONAL) {
+
     /**
      * Holder object for inputs to [loadInitial].
      */
     open class LoadInitialParams(
-        requestedStartPosition: Int,
-        requestedLoadSize: Int,
-        pageSize: Int,
-        placeholdersEnabled: Boolean
-    ) : ListenablePositionalDataSource.LoadInitialParams(
-        requestedStartPosition,
-        requestedLoadSize,
-        pageSize,
-        placeholdersEnabled
+        /**
+         * Initial load position requested.
+         *
+         * Note that this may not be within the bounds of your data set, it may need to be adjusted
+         * before you execute your load.
+         */
+        @JvmField
+        val requestedStartPosition: Int,
+        /**
+         * Requested number of items to load.
+         *
+         * Note that this may be larger than available data.
+         */
+        @JvmField
+        val requestedLoadSize: Int,
+        /**
+         * Defines page size acceptable for return values.
+         *
+         * List of items passed to the callback must be an integer multiple of page size.
+         */
+        @JvmField
+        val pageSize: Int,
+        /**
+         * Defines whether placeholders are enabled, and whether the loaded total count will be
+         * ignored.
+         */
+        @JvmField
+        val placeholdersEnabled: Boolean
     )
 
     /**
      * Holder object for inputs to [loadRange].
      */
-    open class LoadRangeParams(startPosition: Int, loadSize: Int) :
-        ListenablePositionalDataSource.LoadRangeParams(startPosition, loadSize)
+    open class LoadRangeParams(
+        /**
+         * START position of data to load.
+         *
+         * Returned data must start at this position.
+         */
+        @JvmField
+        val startPosition: Int,
+        /**
+         * Number of items to load.
+         *
+         * Returned data must be of this size, unless at end of the list.
+         */
+        @JvmField
+        val loadSize: Int
+    )
 
     /**
      * Callback for [loadInitial] to return data, position, and count.
@@ -90,12 +131,12 @@ abstract class PositionalDataSource<T : Any> : ListenablePositionalDataSource<T>
          * [LoadInitialParams.placeholdersEnabled] is false), you can instead call [onResult].
          *
          * @param data List of items loaded from the [DataSource]. If this is empty, the
-         *             [DataSource] is treated as empty, and no further loads will occur.
+         * [DataSource] is treated as empty, and no further loads will occur.
          * @param position Position of the item at the front of the list. If there are N items
-         *                 before the items in data that can be loaded from this DataSource, pass N.
+         * before the items in data that can be loaded from this DataSource, pass N.
          * @param totalCount Total number of items that may be returned from this DataSource.
-         *                   Includes the number in the initial [data] parameter as well as any
-         *                   items that can be loaded in front or behind of [data].
+         * Includes the number in the initial [data] parameter as well as any items that can be
+         * loaded in front or behind of [data].
          */
         abstract fun onResult(data: List<T>, position: Int, totalCount: Int)
 
@@ -111,26 +152,11 @@ abstract class PositionalDataSource<T : Any> : ListenablePositionalDataSource<T>
          * [onResult].
          *
          * @param data List of items loaded from the [DataSource]. If this is empty, the
-         *             [DataSource] is treated as empty, and no further loads will occur.
+         * [DataSource] is treated as empty, and no further loads will occur.
          * @param position Position of the item at the front of the list. If there are N items
-         *                 before the items in data that can be provided by this [DataSource], pass
-         *                 N.
+         * before the items in data that can be provided by this [DataSource], pass N.
          */
         abstract fun onResult(data: List<T>, position: Int)
-
-        /**
-         * Called to report an error from a DataSource.
-         *
-         * Call this method to report an error from [loadInitial].
-         *
-         * @param error The error that occurred during loading.
-         */
-        open fun onError(error: Throwable) {
-            // TODO: remove default implementation in 3.0
-            throw IllegalStateException(
-                "You must implement onError if implementing your own load callback"
-            )
-        }
     }
 
     /**
@@ -149,27 +175,13 @@ abstract class PositionalDataSource<T : Any> : ListenablePositionalDataSource<T>
          * Called to pass loaded data from [loadRange].
          *
          * @param data List of items loaded from the [DataSource]. Must be same size as requested,
-         *             unless at end of list.
+         * unless at end of list.
          */
         abstract fun onResult(data: List<T>)
-
-        /**
-         * Called to report an error from a [DataSource].
-         *
-         * Call this method to report an error from [loadRange].
-         *
-         * @param error The error that occurred during loading.
-         */
-        open fun onError(error: Throwable) {
-            // TODO: remove default implementation in 3.0
-            throw IllegalStateException(
-                "You must implement onError if implementing your own load callback"
-            )
-        }
     }
 
     /**
-     * @hide
+     * @suppress
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     companion object {
@@ -209,15 +221,30 @@ abstract class PositionalDataSource<T : Any> : ListenablePositionalDataSource<T>
          * ```
          *
          * @param params Params passed to [loadInitial], including page size, and requested start /
-         *               loadSize.
+         * loadSize.
          * @param totalCount Total size of the data set.
          * @return Position to start loading at.
          *
          * @see [computeInitialLoadSize]
          */
         @JvmStatic
-        fun computeInitialLoadPosition(params: LoadInitialParams, totalCount: Int): Int =
-            ListenablePositionalDataSource.computeInitialLoadPosition(params, totalCount)
+        fun computeInitialLoadPosition(params: LoadInitialParams, totalCount: Int): Int {
+            val position = params.requestedStartPosition
+            val initialLoadSize = params.requestedLoadSize
+            val pageSize = params.pageSize
+
+            var pageStart = position / pageSize * pageSize
+
+            // maximum start pos is that which will encompass end of list
+            val maximumLoadPage =
+                (totalCount - initialLoadSize + pageSize - 1) / pageSize * pageSize
+            pageStart = minOf(maximumLoadPage, pageStart)
+
+            // minimum start position is 0
+            pageStart = maxOf(0, pageStart)
+
+            return pageStart
+        }
 
         /**
          * Helper for computing an initial load size in [loadInitial] when total data set size can
@@ -255,7 +282,7 @@ abstract class PositionalDataSource<T : Any> : ListenablePositionalDataSource<T>
          * ```
          *
          * @param params Params passed to [loadInitial], including page size, and requested start /
-         *               loadSize.
+         * loadSize.
          * @param initialLoadPosition Value returned by [computeInitialLoadPosition]
          * @param totalCount Total size of the data set.
          * @return Number of items to load.
@@ -267,97 +294,160 @@ abstract class PositionalDataSource<T : Any> : ListenablePositionalDataSource<T>
             params: LoadInitialParams,
             initialLoadPosition: Int,
             totalCount: Int
-        ) = ListenablePositionalDataSource.computeInitialLoadSize(
-            params,
-            initialLoadPosition,
-            totalCount
-        )
+        ) = minOf(totalCount - initialLoadPosition, params.requestedLoadSize)
     }
 
-    final override fun loadInitial(
-        params: ListenablePositionalDataSource.LoadInitialParams
-    ): ListenableFuture<InitialResult<T>> {
-        val future = ResolvableFuture.create<InitialResult<T>>()
-        executor.execute {
-            val newParams = LoadInitialParams(
-                params.requestedStartPosition,
-                params.requestedLoadSize,
+    @Suppress("RedundantVisibilityModifier") // Metalava doesn't inherit visibility properly.
+    internal final override suspend fun load(params: Params<Int>): BaseResult<T> {
+        if (params.type == LoadType.REFRESH) {
+            var initialPosition = 0
+            var initialLoadSize = params.initialLoadSize
+            if (params.key != null) {
+                initialPosition = params.key
+
+                if (params.placeholdersEnabled) {
+                    // snap load size to page multiple (minimum two)
+                    initialLoadSize =
+                        maxOf(initialLoadSize / params.pageSize, 2) * params.pageSize
+
+                    // move start so the load is centered around the key, not starting at it
+                    val idealStart = initialPosition - initialLoadSize / 2
+                    initialPosition = maxOf(0, idealStart / params.pageSize * params.pageSize)
+                } else {
+                    // not tiled, so don't try to snap or force multiple of a page size
+                    initialPosition -= initialLoadSize / 2
+                }
+            }
+            val initParams = LoadInitialParams(
+                initialPosition,
+                initialLoadSize,
                 params.pageSize,
                 params.placeholdersEnabled
             )
-            val callback = object : LoadInitialCallback<T>() {
-                override fun onResult(data: List<T>, position: Int, totalCount: Int) {
-                    if (isInvalid) {
-                        // NOTE: this isInvalid check works around
-                        // https://issuetracker.google.com/issues/124511903
-                        future.set(InitialResult(emptyList(), 0, 0))
-                    } else {
-                        setFuture(newParams, InitialResult(data, position, totalCount))
-                    }
-                }
-
-                override fun onResult(data: List<T>, position: Int) {
-                    if (isInvalid) {
-                        // NOTE: this isInvalid check works around
-                        // https://issuetracker.google.com/issues/124511903
-                        future.set(InitialResult(emptyList(), 0))
-                    } else {
-                        setFuture(newParams, InitialResult(data, position))
-                    }
-                }
-
-                private fun setFuture(
-                    params: ListenablePositionalDataSource.LoadInitialParams,
-                    result: InitialResult<T>
-                ) {
-                    if (params.placeholdersEnabled) {
-                        result.validateForInitialTiling(params.pageSize)
-                    }
-                    future.set(result)
-                }
-
-                override fun onError(error: Throwable) {
-                    future.setException(error)
-                }
+            return loadInitial(initParams)
+        } else {
+            var startIndex = params.key!!
+            var loadSize = params.pageSize
+            if (params.type == LoadType.PREPEND) {
+                // clamp load size to positive indices only, and shift start index by load size
+                loadSize = minOf(loadSize, startIndex)
+                startIndex -= loadSize
             }
-            loadInitial(newParams, callback)
+            return loadRange(LoadRangeParams(startIndex, loadSize))
         }
-        return future
     }
 
-    final override fun loadRange(
-        params: ListenablePositionalDataSource.LoadRangeParams
-    ): ListenableFuture<RangeResult<T>> {
-        val future = ResolvableFuture.create<RangeResult<T>>()
-        executor.execute {
-            val callback = object : LoadRangeCallback<T>() {
-                override fun onResult(data: List<T>) {
-                    when {
-                        isInvalid -> future.set(RangeResult(emptyList()))
-                        else -> future.set(RangeResult(data))
+    /**
+     * Load initial list data.
+     *
+     * This method is called to load the initial page(s) from the DataSource.
+     *
+     * LoadResult list must be a multiple of pageSize to enable efficient tiling.
+     */
+    @VisibleForTesting
+    internal suspend fun loadInitial(params: LoadInitialParams) =
+        suspendCancellableCoroutine<BaseResult<T>> { cont ->
+            loadInitial(
+                params,
+                object : LoadInitialCallback<T>() {
+                    override fun onResult(data: List<T>, position: Int, totalCount: Int) {
+                        if (isInvalid) {
+                            // NOTE: this isInvalid check works around
+                            // https://issuetracker.google.com/issues/124511903
+                            cont.resume(BaseResult.empty())
+                        } else {
+                            val nextKey = position + data.size
+                            resume(
+                                params,
+                                BaseResult(
+                                    data = data,
+                                    // skip passing prevKey if nothing else to load
+                                    prevKey = if (position == 0) null else position,
+                                    // skip passing nextKey if nothing else to load
+                                    nextKey = if (nextKey == totalCount) null else nextKey,
+                                    itemsBefore = position,
+                                    itemsAfter = totalCount - data.size - position
+                                )
+                            )
+                        }
+                    }
+
+                    override fun onResult(data: List<T>, position: Int) {
+                        if (isInvalid) {
+                            // NOTE: this isInvalid check works around
+                            // https://issuetracker.google.com/issues/124511903
+                            cont.resume(BaseResult.empty())
+                        } else {
+                            resume(
+                                params,
+                                BaseResult(
+                                    data = data,
+                                    // skip passing prevKey if nothing else to load
+                                    prevKey = if (position == 0) null else position,
+                                    // can't do same for nextKey, since we don't know if load is terminal
+                                    nextKey = position + data.size,
+                                    itemsBefore = position,
+                                    itemsAfter = COUNT_UNDEFINED
+                                )
+                            )
+                        }
+                    }
+
+                    private fun resume(params: LoadInitialParams, result: BaseResult<T>) {
+                        if (params.placeholdersEnabled) {
+                            result.validateForInitialTiling(params.pageSize)
+                        }
+                        cont.resume(result)
                     }
                 }
-
-                override fun onError(error: Throwable) {
-                    future.setException(error)
-                }
-            }
-            loadRange(LoadRangeParams(params.startPosition, params.loadSize), callback)
+            )
         }
-        return future
-    }
+
+    /**
+     * Called to load a range of data from the DataSource.
+     *
+     * This method is called to load additional pages from the DataSource after the
+     * [ItemKeyedDataSource.LoadInitialCallback] passed to dispatchLoadInitial has initialized a
+     * [PagedList].
+     *
+     * Unlike [ItemKeyedDataSource.loadInitial], this method must return the number of items
+     * requested, at the position requested.
+     */
+    private suspend fun loadRange(params: LoadRangeParams) =
+        suspendCancellableCoroutine<BaseResult<T>> { cont ->
+            loadRange(
+                params,
+                object : LoadRangeCallback<T>() {
+                    override fun onResult(data: List<T>) {
+                        // skip passing prevKey if nothing else to load. We only do this for prepend
+                        // direction, since 0 as first index is well defined, but max index may not be
+                        val prevKey = if (params.startPosition == 0) null else params.startPosition
+                        when {
+                            isInvalid -> cont.resume(BaseResult.empty())
+                            else -> cont.resume(
+                                BaseResult(
+                                    data = data,
+                                    prevKey = prevKey,
+                                    nextKey = params.startPosition + data.size
+                                )
+                            )
+                        }
+                    }
+                }
+            )
+        }
 
     /**
      * Load initial list data.
      *
      * This method is called to load the initial page(s) from the [DataSource].
      *
-     * Result list must be a multiple of pageSize to enable efficient tiling.
+     * LoadResult list must be a multiple of pageSize to enable efficient tiling.
      *
      * @param params Parameters for initial load, including requested start position, load size, and
-     *               page size.
+     * page size.
      * @param callback Callback that receives initial load data, including position and total data
-     *                 set size.
+     * set size.
      */
     @WorkerThread
     abstract fun loadInitial(params: LoadInitialParams, callback: LoadInitialCallback<T>)
@@ -380,10 +470,25 @@ abstract class PositionalDataSource<T : Any> : ListenablePositionalDataSource<T>
     @Suppress("RedundantVisibilityModifier") // Metalava doesn't inherit visibility properly.
     internal override val isContiguous = false
 
+    @Suppress("RedundantVisibilityModifier") // Metalava doesn't inherit visibility properly.
+    internal final override fun getKeyInternal(item: T): Int =
+        throw IllegalStateException("Cannot get key by item in positionalDataSource")
+
+    @Suppress("DEPRECATION")
     final override fun <V : Any> mapByPage(
         function: Function<List<T>, List<V>>
     ): PositionalDataSource<V> = WrapperPositionalDataSource(this, function)
 
+    @Suppress("DEPRECATION")
+    final override fun <V : Any> mapByPage(
+        function: (List<T>) -> List<V>
+    ): PositionalDataSource<V> = mapByPage(Function { function(it) })
+
+    @Suppress("DEPRECATION")
     final override fun <V : Any> map(function: Function<T, V>): PositionalDataSource<V> =
         mapByPage(Function { list -> list.map { function.apply(it) } })
+
+    @Suppress("DEPRECATION")
+    final override fun <V : Any> map(function: (T) -> V): PositionalDataSource<V> =
+        mapByPage(Function { list -> list.map(function) })
 }

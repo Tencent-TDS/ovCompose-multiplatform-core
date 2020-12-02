@@ -30,6 +30,7 @@ import android.media.MediaPlayer.OnCompletionListener;
 import android.os.Build;
 import android.view.KeyEvent;
 
+import androidx.annotation.NonNull;
 import androidx.media2.common.SessionPlayer;
 import androidx.media2.session.MediaSession;
 import androidx.media2.session.MediaSession.ControllerInfo;
@@ -53,11 +54,15 @@ import java.util.concurrent.TimeUnit;
  * In order to get the media key events, the player state is set to 'Playing' before every test
  * method.
  */
-@SdkSuppress(minSdkVersion = Build.VERSION_CODES.KITKAT)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.KITKAT) // For AudioManager#dispatchMediaKeyEvent()
 @RunWith(AndroidJUnit4.class)
 @LargeTest
 public class MediaSession_KeyEventTest extends MediaSessionTestBase {
     private static String sExpectedControllerPackageName;
+
+    // Intentionally member variable to prevent GC while playback is running.
+    // Should be only used on the sHandler.
+    private MediaPlayer mMediaPlayer;
 
     private AudioManager mAudioManager;
     private MediaSession mSession;
@@ -71,7 +76,7 @@ public class MediaSession_KeyEventTest extends MediaSessionTestBase {
             // KeyEvent from system service has the package name "android".
             sExpectedControllerPackageName = "android";
         } else {
-            // In API 21+, MediaSessionCompat#getCurrentControllerInfo always returns dummy info.
+            // In API 21+, MediaSessionCompat#getCurrentControllerInfo always returns fake info.
             sExpectedControllerPackageName = LEGACY_CONTROLLER;
         }
     }
@@ -89,35 +94,50 @@ public class MediaSession_KeyEventTest extends MediaSessionTestBase {
                 .setSessionCallback(sHandlerExecutor, mSessionCallback)
                 .build();
 
-        // Make this test to get priority for handling media key event
-        // SDK < 26: Playback state should become *playing*
-        mPlayer.notifyPlayerStateChanged(SessionPlayer.PLAYER_STATE_PLAYING);
-
-        // SDK >= 26: Play a media item in the same process of the session.
-        // Target raw resource should be short enough to finish within the time limit of @SmallTest.
-        final CountDownLatch latch = new CountDownLatch(1);
-        sHandler.postAndSync(new Runnable() {
-            @Override
-            public void run() {
-                // Pick the shortest media.
-                final MediaPlayer player = MediaPlayer.create(mContext, R.raw.camera_click);
-                player.setOnCompletionListener(new OnCompletionListener() {
-                    @Override
-                    public void onCompletion(MediaPlayer mp) {
-                        latch.countDown();
-                        player.release();
-                    }
-                });
-                player.start();
-            }
-        });
-        assertTrue(latch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+        // Make this test to get priority for handling media key event.
+        // Here's the requirement for an app to receive media key events via MediaSession.
+        // SDK < 26: Playback state should become *playing* for receiving key events.
+        // SDK >= 26: Play a media item in the same process of the session for receiving key
+        //            events.
+        if (Build.VERSION.SDK_INT < 26) {
+            mPlayer.notifyPlayerStateChanged(SessionPlayer.PLAYER_STATE_PLAYING);
+        } else {
+            final CountDownLatch latch = new CountDownLatch(1);
+            sHandler.postAndSync(new Runnable() {
+                @Override
+                public void run() {
+                    // Pick the shortest media to finish within the TIMEOUT_MS.
+                    mMediaPlayer = MediaPlayer.create(mContext, R.raw.camera_click);
+                    mMediaPlayer.setOnCompletionListener(new OnCompletionListener() {
+                        @Override
+                        public void onCompletion(MediaPlayer mp) {
+                            if (mMediaPlayer != null) {
+                                mMediaPlayer.release();
+                                mMediaPlayer = null;
+                                latch.countDown();
+                            }
+                        }
+                    });
+                    mMediaPlayer.start();
+                }
+            });
+            assertTrue(latch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+        }
     }
 
     @After
     @Override
     public void cleanUp() throws Exception {
         super.cleanUp();
+        sHandler.postAndSync(new Runnable() {
+            @Override
+            public void run() {
+                if (mMediaPlayer != null) {
+                    mMediaPlayer.release();
+                    mMediaPlayer = null;
+                }
+            }
+        });
         mSession.close();
     }
 
@@ -131,40 +151,35 @@ public class MediaSession_KeyEventTest extends MediaSessionTestBase {
     }
 
     @Test
-    public void testPlayKeyEvent() throws Exception {
-        prepareLooper();
+    public void playKeyEvent() throws Exception {
         dispatchMediaKeyEvent(KeyEvent.KEYCODE_MEDIA_PLAY, false);
         assertTrue(mPlayer.mCountDownLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS));
         assertTrue(mPlayer.mPlayCalled);
     }
 
     @Test
-    public void testPauseKeyEvent() throws Exception {
-        prepareLooper();
+    public void pauseKeyEvent() throws Exception {
         dispatchMediaKeyEvent(KeyEvent.KEYCODE_MEDIA_PAUSE, false);
         assertTrue(mPlayer.mCountDownLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS));
         assertTrue(mPlayer.mPauseCalled);
     }
 
     @Test
-    public void testNextKeyEvent() throws Exception {
-        prepareLooper();
+    public void nextKeyEvent() throws Exception {
         dispatchMediaKeyEvent(KeyEvent.KEYCODE_MEDIA_NEXT, false);
         assertTrue(mPlayer.mCountDownLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS));
         assertTrue(mPlayer.mSkipToNextItemCalled);
     }
 
     @Test
-    public void testPreviousKeyEvent() throws Exception {
-        prepareLooper();
+    public void previousKeyEvent() throws Exception {
         dispatchMediaKeyEvent(KeyEvent.KEYCODE_MEDIA_PREVIOUS, false);
         assertTrue(mPlayer.mCountDownLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS));
         assertTrue(mPlayer.mSkipToPreviousItemCalled);
     }
 
     @Test
-    public void testStopKeyEvent() throws Exception {
-        prepareLooper();
+    public void stopKeyEvent() throws Exception {
         mPlayer = new MockPlayer(2);
         mSession.updatePlayer(mPlayer);
         dispatchMediaKeyEvent(KeyEvent.KEYCODE_MEDIA_STOP, false);
@@ -174,24 +189,21 @@ public class MediaSession_KeyEventTest extends MediaSessionTestBase {
     }
 
     @Test
-    public void testFastForwardKeyEvent() throws Exception {
-        prepareLooper();
+    public void fastForwardKeyEvent() throws Exception {
         dispatchMediaKeyEvent(KeyEvent.KEYCODE_MEDIA_FAST_FORWARD, false);
         assertTrue(mSessionCallback.mCountDownLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS));
         assertTrue(mSessionCallback.mFastForwardCalled);
     }
 
     @Test
-    public void testRewindKeyEvent() throws Exception {
-        prepareLooper();
+    public void rewindKeyEvent() throws Exception {
         dispatchMediaKeyEvent(KeyEvent.KEYCODE_MEDIA_REWIND, false);
         assertTrue(mSessionCallback.mCountDownLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS));
         assertTrue(mSessionCallback.mRewindCalled);
     }
 
     @Test
-    public void testPlayPauseKeyEvent_play() throws Exception {
-        prepareLooper();
+    public void playPauseKeyEvent_play() throws Exception {
         mPlayer.notifyPlayerStateChanged(SessionPlayer.PLAYER_STATE_PAUSED);
         dispatchMediaKeyEvent(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, false);
         assertTrue(mPlayer.mCountDownLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS));
@@ -199,16 +211,14 @@ public class MediaSession_KeyEventTest extends MediaSessionTestBase {
     }
 
     @Test
-    public void testPlayPauseKeyEvent_pause() throws Exception {
-        prepareLooper();
+    public void playPauseKeyEvent_pause() throws Exception {
         dispatchMediaKeyEvent(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, false);
         assertTrue(mPlayer.mCountDownLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS));
         assertTrue(mPlayer.mPauseCalled);
     }
 
     @Test
-    public void testPlayPauseKeyEvent_doubleTapIsTranslatedToSkipToNext() throws Exception {
-        prepareLooper();
+    public void playPauseKeyEvent_doubleTapIsTranslatedToSkipToNext() throws Exception {
         dispatchMediaKeyEvent(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, true);
         assertTrue(mPlayer.mCountDownLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS));
         assertTrue(mPlayer.mSkipToNextItemCalled);
@@ -222,7 +232,8 @@ public class MediaSession_KeyEventTest extends MediaSessionTestBase {
         boolean mRewindCalled;
 
         @Override
-        public SessionCommandGroup onConnect(MediaSession session, ControllerInfo controller) {
+        public SessionCommandGroup onConnect(@NonNull MediaSession session,
+                @NonNull ControllerInfo controller) {
             if (sExpectedControllerPackageName.equals(controller.getPackageName())) {
                 return super.onConnect(session, controller);
             }
@@ -230,14 +241,15 @@ public class MediaSession_KeyEventTest extends MediaSessionTestBase {
         }
 
         @Override
-        public int onFastForward(MediaSession session, ControllerInfo controller) {
+        public int onFastForward(@NonNull MediaSession session,
+                @NonNull ControllerInfo controller) {
             mFastForwardCalled = true;
             mCountDownLatch.countDown();
             return RESULT_SUCCESS;
         }
 
         @Override
-        public int onRewind(MediaSession session, ControllerInfo controller) {
+        public int onRewind(@NonNull MediaSession session, @NonNull ControllerInfo controller) {
             mRewindCalled = true;
             mCountDownLatch.countDown();
             return RESULT_SUCCESS;

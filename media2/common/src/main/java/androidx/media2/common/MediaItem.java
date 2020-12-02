@@ -86,6 +86,8 @@ public class MediaItem extends CustomVersionedParcelable {
     @ParcelField(3)
     long mEndPositionMs = POSITION_UNKNOWN;
 
+    // WARNING: Adding a new ParcelField may break old library users (b/152830728)
+
     @GuardedBy("mLock")
     @NonParcelField
     private final List<Pair<OnMetadataChangedListener, Executor>> mListeners = new ArrayList<>();
@@ -134,7 +136,8 @@ public class MediaItem extends CustomVersionedParcelable {
     public String toString() {
         final StringBuilder sb = new StringBuilder(getClass().getSimpleName());
         synchronized (mLock) {
-            sb.append("{mMetadata=").append(mMetadata);
+            sb.append("{Media Id=").append(getMediaId());
+            sb.append(", mMetadata=").append(mMetadata);
             sb.append(", mStartPositionMs=").append(mStartPositionMs);
             sb.append(", mEndPositionMs=").append(mEndPositionMs);
             sb.append('}');
@@ -152,9 +155,12 @@ public class MediaItem extends CustomVersionedParcelable {
     public void setMetadata(@Nullable MediaMetadata metadata) {
         List<Pair<OnMetadataChangedListener, Executor>> listeners = new ArrayList<>();
         synchronized (mLock) {
+            if (mMetadata == metadata) {
+                return;
+            }
             if (mMetadata != null && metadata != null
                     && !TextUtils.equals(getMediaId(), metadata.getMediaId())) {
-                Log.d(TAG, "MediaItem's media ID shouldn't be changed");
+                Log.w(TAG, "MediaItem's media ID shouldn't be changed");
                 return;
             }
             mMetadata = metadata;
@@ -166,7 +172,7 @@ public class MediaItem extends CustomVersionedParcelable {
             pair.second.execute(new Runnable() {
                 @Override
                 public void run() {
-                    listener.onMetadataChanged(MediaItem.this);
+                    listener.onMetadataChanged(MediaItem.this, metadata);
                 }
             });
         }
@@ -177,7 +183,8 @@ public class MediaItem extends CustomVersionedParcelable {
      *
      * @return metadata from the session
      */
-    public @Nullable MediaMetadata getMetadata() {
+    @Nullable
+    public MediaMetadata getMetadata() {
         synchronized (mLock) {
             return mMetadata;
         }
@@ -207,9 +214,9 @@ public class MediaItem extends CustomVersionedParcelable {
      * @return media Id from the session
      * @hide
      */
-    // TODO: Remove
     @RestrictTo(LIBRARY_GROUP)
-    public @Nullable String getMediaId() {
+    @Nullable
+    public String getMediaId() {
         synchronized (mLock) {
             return mMetadata != null
                     ? mMetadata.getString(MediaMetadata.METADATA_KEY_MEDIA_ID) : null;
@@ -327,12 +334,12 @@ public class MediaItem extends CustomVersionedParcelable {
         /**
          * Called when a media item's metadata is changed.
          */
-        void onMetadataChanged(MediaItem item);
+        void onMetadataChanged(@NonNull MediaItem item,
+                @Nullable MediaMetadata metadata);
     }
 
     /**
      * @hide
-     * @param isStream
      */
     @RestrictTo(LIBRARY)
     @Override

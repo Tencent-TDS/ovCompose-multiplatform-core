@@ -32,11 +32,13 @@ data class Version(
 ) : Comparable<Version> {
 
     constructor(versionString: String) : this(
-            Integer.parseInt(checkedMatcher(versionString).group(1)),
-            Integer.parseInt(checkedMatcher(versionString).group(2)),
-            Integer.parseInt(checkedMatcher(versionString).group(3)),
-            if (checkedMatcher(versionString).groupCount() == 4) checkedMatcher(
-                    versionString).group(4) else null)
+        Integer.parseInt(checkedMatcher(versionString).group(1)),
+        Integer.parseInt(checkedMatcher(versionString).group(2)),
+        Integer.parseInt(checkedMatcher(versionString).group(3)),
+        if (checkedMatcher(versionString).groupCount() == 4) checkedMatcher(
+            versionString
+        ).group(4) else null
+    )
 
     fun isPatch(): Boolean = patch != 0
 
@@ -46,15 +48,22 @@ data class Version(
 
     fun isBeta(): Boolean = extra?.toLowerCase()?.startsWith("-beta") ?: false
 
-    // Returns whether the API surface is allowed to change within the current revision (see go/androidx/versioning for policy definition)
-    fun isFinalApi(): Boolean = !(isSnapshot() || isAlpha())
+    fun isDev(): Boolean = extra?.toLowerCase()?.startsWith("-dev") ?: false
 
-    override fun compareTo(other: Version) = compareValuesBy(this, other,
-            { it.major },
-            { it.minor },
-            { it.patch },
-            { it.extra == null }, // False (no extra) sorts above true (has extra)
-            { it.extra } // gradle uses lexicographic ordering
+    fun isRC(): Boolean = extra?.toLowerCase()?.startsWith("-rc") ?: false
+
+    fun isStable(): Boolean = (extra == null)
+
+    // Returns whether the API surface is allowed to change within the current revision (see go/androidx/versioning for policy definition)
+    fun isFinalApi(): Boolean = !(isSnapshot() || isAlpha() || isDev())
+
+    override fun compareTo(other: Version) = compareValuesBy(
+        this, other,
+        { it.major },
+        { it.minor },
+        { it.patch },
+        { it.extra == null }, // False (no extra) sorts above true (has extra)
+        { it.extra } // gradle uses lexicographic ordering
     )
 
     override fun toString(): String {
@@ -68,7 +77,7 @@ data class Version(
         private fun checkedMatcher(versionString: String): Matcher {
             val matcher = VERSION_REGEX.matcher(versionString)
             if (!matcher.matches()) {
-                throw IllegalArgumentException("Can not parse version: " + versionString)
+                throw IllegalArgumentException("Can not parse version: $versionString")
             }
             return matcher
         }
@@ -89,12 +98,31 @@ data class Version(
             val matcher = VERSION_REGEX.matcher(versionString)
             return if (matcher.matches()) Version(versionString) else null
         }
+
+        /**
+         * Tells whether a version string would refer to a dependency range
+         */
+        fun isDependencyRange(version: String): Boolean {
+            if ((version.startsWith("[") || version.startsWith("(")) &&
+                version.contains(",") &&
+                (version.endsWith("]") || version.endsWith(")"))
+            ) {
+                return true
+            }
+            if (version.endsWith("+")) {
+                return true
+            }
+            return false
+        }
     }
 }
 
-fun Project.setupVersion(extension: AndroidXExtension) = afterEvaluate {
-    @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-    version = extension.mavenVersion?.toString()
-}
+fun Project.isVersionSet() = project.version is Version
 
-fun Project.version() = Version(project.version as String)
+fun Project.version(): Version {
+    return if (project.version is Version) {
+        project.version as Version
+    } else {
+        throw IllegalStateException("Tried to use project version for $name that was never set.")
+    }
+}

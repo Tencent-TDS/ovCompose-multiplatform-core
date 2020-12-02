@@ -16,7 +16,7 @@
 
 package androidx.media2.common;
 
-import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
+import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
 
 import android.annotation.SuppressLint;
 import android.os.Binder;
@@ -37,17 +37,19 @@ import java.util.List;
  * Transfer a large list of {@link ParcelImpl} objects across an IPC. Splits into
  * multiple transactions if needed.
  *
- * Note: Using this class makes synchronous binder calls, and also loses oneway property.
+ * Note: Using this class causes synchronous binder calls in the opposite direction regardless of
+ * "oneway" property.
  *
  * @hide
  */
-@RestrictTo(LIBRARY_GROUP_PREFIX)
+@RestrictTo(LIBRARY_GROUP)
 @SuppressLint("BanParcelableUsage")
 public class ParcelImplListSlice implements Parcelable {
     private static final String TAG = "ParcelImplListSlice";
     private static final boolean DEBUG = false;
 
     private static final int MAX_IPC_SIZE = 64 * 1024; // IBinder.MAX_IPC_SIZE
+    private static final int INLINE_COUNT_LIMIT = 1;
 
     final List<ParcelImpl> mList;
 
@@ -92,25 +94,29 @@ public class ParcelImplListSlice implements Parcelable {
             }
             Parcel data = Parcel.obtain();
             Parcel reply = Parcel.obtain();
-            data.writeInt(i);
             try {
-                retriever.transact(IBinder.FIRST_CALL_TRANSACTION, data, reply, 0);
-            } catch (RemoteException e) {
-                Log.w(TAG, "Failure retrieving array; only received " + i + " of " + itemCount, e);
-                return;
-            }
-            while (i < itemCount && reply.readInt() != 0) {
-                final ParcelImpl parcelImpl = reply.readParcelable(
-                        ParcelImpl.class.getClassLoader());
-                mList.add(parcelImpl);
-
-                if (DEBUG) {
-                    Log.d(TAG, "Read extra #" + i + ": " + mList.get(mList.size() - 1));
+                data.writeInt(i);
+                try {
+                    retriever.transact(IBinder.FIRST_CALL_TRANSACTION, data, reply, 0);
+                } catch (RemoteException e) {
+                    Log.w(TAG, "Failure retrieving array; only received " + i + " of " + itemCount,
+                            e);
+                    return;
                 }
-                i++;
+                while (i < itemCount && reply.readInt() != 0) {
+                    final ParcelImpl parcelImpl = reply.readParcelable(
+                            ParcelImpl.class.getClassLoader());
+                    mList.add(parcelImpl);
+
+                    if (DEBUG) {
+                        Log.d(TAG, "Read extra #" + i + ": " + mList.get(mList.size() - 1));
+                    }
+                    i++;
+                }
+            } finally {
+                reply.recycle();
+                data.recycle();
             }
-            reply.recycle();
-            data.recycle();
         }
     }
 
@@ -132,7 +138,7 @@ public class ParcelImplListSlice implements Parcelable {
         }
         if (itemCount > 0) {
             int i = 0;
-            while (i < itemCount && dest.dataSize() < MAX_IPC_SIZE) {
+            while (i < itemCount && i < INLINE_COUNT_LIMIT && dest.dataSize() < MAX_IPC_SIZE) {
                 dest.writeInt(1);
 
                 final ParcelImpl parcelable = mList.get(i);

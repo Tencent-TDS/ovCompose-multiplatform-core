@@ -31,7 +31,7 @@ dependencies {
     androidTestImplementation(ANDROIDX_TEST_EXT_JUNIT)
     androidTestImplementation(ANDROIDX_TEST_CORE)
     androidTestImplementation(ANDROIDX_TEST_RUNNER)
-    androidTestImplementation(SUPPORT_CORE_UTILS, libs.support_exclude_config)
+    androidTestImplementation("androidx.legacy:legacy-support-core-utils:1.0.0")
 }
 
 androidx {
@@ -41,5 +41,4 @@ androidx {
     mavenGroup = LibraryGroups.LIFECYCLE
     inceptionYear = "2018"
     description = "Android Lifecycle Service"
-    url = AndroidXExtension.ARCHITECTURE_URL
 }

@@ -53,26 +53,24 @@ import java.util.List;
  * &lt;/service&gt;</pre>
  * <p>
  * You may also declare <pre>android.media.browse.MediaBrowserService</pre> for compatibility with
- * {@link android.support.v4.media.MediaBrowserCompat}. This service can handle handle it
- * automatically.
+ * {@link android.support.v4.media.MediaBrowserCompat}. This service can handle it automatically.
  * <p>
  * It's recommended for an app to have a single {@link MediaSessionService} declared in the
  * manifest. Otherwise, your app might be shown twice in the list of the Auto/Wearable, or another
- * app fails to pick the right session service when it wants to start the playback this app.
+ * app fails to pick the right session service when it wants to start the playback of this app.
  * If you want to provide multiple sessions here, take a look at
  * <a href="#MultipleSessions">Supporting Multiple Sessions</a>.
  * <p>
- * Topic covered here:
+ * Topics covered here:
  * <ol>
  * <li><a href="#ServiceLifecycle">Service Lifecycle</a>
  * <li><a href="#Permissions">Permissions</a>
  * <li><a href="#MultipleSessions">Supporting Multiple Sessions</a>
  * </ol>
  * <div>
- * <a name="ServiceLifecycle"></a>
- * <h3>Service Lifecycle</h3>
+ * <h3 id="ServiceLifecycle">Service Lifecycle</h3>
  * <p>
- * Session service is bound service. When a {@link MediaController} is created for the
+ * Session service is a bound service. When a {@link MediaController} is created for the
  * session service, the controller binds to the session service.
  * {@link #onGetSession(ControllerInfo)} would be called inside of the {@link #onBind(Intent)}.
  * <p>
@@ -91,16 +89,23 @@ import java.util.List;
  * <p>
  * The service is destroyed when the all sessions are closed, or no media controller is binding to
  * the session while the service is not running as a foreground service.
- * <a name="Permissions"></a>
- * <h3>Permissions</h3>
+ * <h3 id="Permissions">Permissions</h3>
  * <p>
  * Any app can bind to the session service with controller, but the controller can be used only if
  * the session service accepted the connection request through
  * {@link MediaSession.SessionCallback#onConnect(MediaSession, MediaSession.ControllerInfo)}.
- * <a name="MultipleSessions"></a>
- * <h3>Supporting Multiple Sessions</h3>
- * You may want to keep multiple playback while the app is in the background, create multiple
- * sessions and add to this service with {@link #addSession(MediaSession)}.
+ * <h3 id="MultipleSessions">Supporting Multiple Sessions</h3>
+ * Generally speaking, multiple sessions aren't necessary for most media apps. One exception is if
+ * your app can play multiple media content at the same time, but only for the playback of
+ * video-only media or remote playback, since
+ * <a href="{@docRoot}guide/topics/media-apps/audio-focus.html">audio focus policy</a> recommends
+ * not playing multiple audio content at the same time. Also keep in mind that multiple media
+ * sessions would make Android Auto and Bluetooth device with display to show your apps multiple
+ * times, because they list up media sessions, not media apps.
+ * <p>
+ * However, if you're capable of handling multiple playback and want to keep their sessions while
+ * the app is in the background, create multiple sessions and add to this service with
+ * {@link #addSession(MediaSession)}.
  * <p>
  * Note that {@link MediaController} can be created with {@link SessionToken} for
  * connecting any session in this service. In that case, {@link #onGetSession(ControllerInfo)} will
@@ -145,8 +150,9 @@ public abstract class MediaSessionService extends Service {
      * {@link SessionToken}. Return the session for telling the controller which session to
      * connect. Return {@code null} to reject the connection from this controller.
      * <p>
-     * Session returned here will be added to this service automatically. You don't need to call
-     * {@link #addSession(MediaSession)} for that.
+     * Session service automatically maintains the returned session. In other words, session
+     * returned here will be added here and removed when the session is closed.  You don't need to
+     * manually call {@link #addSession(MediaSession)} nor {@link #removeSession(MediaSession)}.
      * <p>
      * There are two special cases where the {@link ControllerInfo#getPackageName()} returns
      * non-existent package name:
@@ -168,7 +174,7 @@ public abstract class MediaSessionService extends Service {
      * <p>
      * This method is always called on the main thread.
      *
-     * @param controllerInfo information of the controller which is trying to connect.
+     * @param controllerInfo information of the controller which is trying to connect
      * @return a {@link MediaSession} instance for the controller to connect to, or {@code null}
      *         to reject connection
      * @see MediaSession.Builder
@@ -178,7 +184,8 @@ public abstract class MediaSessionService extends Service {
     public abstract MediaSession onGetSession(@NonNull ControllerInfo controllerInfo);
 
     /**
-     * Adds a session to this service.
+     * Adds a session to this service. This is not necessary for most media apps. See
+     * <a href="#MultipleSessions">Supporting Multiple Sessions</a> for detail.
      * <p>
      * Added session will be removed automatically when it's closed, or removed when
      * {@link #removeSession} is called.
@@ -197,7 +204,8 @@ public abstract class MediaSessionService extends Service {
     }
 
     /**
-     * Removes a session from this service.
+     * Removes a session from this service. This is not necessary for most media apps. See
+     * <a href="#MultipleSessions">Supporting Multiple Sessions</a> for detail.
      *
      * @param session a session to be removed.
      * @see #addSession(MediaSession)
@@ -221,10 +229,11 @@ public abstract class MediaSessionService extends Service {
      * the permission {@link android.Manifest.permission#FOREGROUND_SERVICE} in order to use
      * this API. It becomes background service after the playback is stopped.
      *
-     * @param session a session that needs notification update.
-     * @return a {@link MediaNotification}. Can be {@code null}.
+     * @param session a session that needs notification update
+     * @return a {@link MediaNotification}. Can be {@code null}
      */
-    public @Nullable MediaNotification onUpdateNotification(@NonNull MediaSession session) {
+    @Nullable
+    public MediaNotification onUpdateNotification(@NonNull MediaSession session) {
         if (session == null) {
             throw new NullPointerException("session shouldn't be null");
         }
@@ -232,11 +241,13 @@ public abstract class MediaSessionService extends Service {
     }
 
     /**
-     * Gets the list of {@link MediaSession}s that you've added to this service.
+     * Gets the list of {@link MediaSession}s that you've added to this service via
+     * {@link #addSession} or {@link #onGetSession(ControllerInfo)}.
      *
      * @return sessions
      */
-    public final @NonNull List<MediaSession> getSessions() {
+    @NonNull
+    public final List<MediaSession> getSessions() {
         return mImpl.getSessions();
     }
 
@@ -253,8 +264,8 @@ public abstract class MediaSessionService extends Service {
      * @return Binder
      */
     @CallSuper
-    @Nullable
     @Override
+    @Nullable
     public IBinder onBind(@NonNull Intent intent) {
         return mImpl.onBind(intent);
     }
@@ -318,7 +329,8 @@ public abstract class MediaSessionService extends Service {
          *
          * @return the notification
          */
-        public @NonNull Notification getNotification() {
+        @NonNull
+        public Notification getNotification() {
             return mNotification;
         }
     }

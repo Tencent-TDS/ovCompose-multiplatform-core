@@ -26,7 +26,7 @@ TEMP_LOG="$OUT_DIR/tempLog"
 
 CHECKOUT_DIR="$ROOT_DIR/../../../../../.."
 JETIFIER_DIR="$ROOT_DIR/../.."
-BUILD_DIR="$ROOT_DIR/../../../../../../out/support"
+BUILD_DIR="$ROOT_DIR/../../../../../../out/androidx"
 DEFAULT_CONFIG="$JETIFIER_DIR/core/src/main/resources/default.config"
 GENERATED_CONFIG="$JETIFIER_DIR/core/src/main/resources/default.generated.config"
 PREPROCESSOR_DISTRO_PATH="$BUILD_DIR/jetifier-preprocessor/build/distributions/jetifier-preprocessor.zip"
@@ -61,7 +61,7 @@ function printSuccess() {
 
 function buildProjectUsingGradle() {
 	cd $1
-	sh gradlew :jetifier-preprocessor:clean :jetifier-preprocessor:uploadArchives $2 > $TEMP_LOG --stacktrace
+	sh gradlew :jetifier-preprocessor:clean :jetifier-preprocessor:publish $2 > $TEMP_LOG --stacktrace
 }
 
 function downloadPackage() {

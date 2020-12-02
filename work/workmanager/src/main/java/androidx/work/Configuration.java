@@ -18,13 +18,16 @@ package androidx.work;
 
 import static androidx.work.impl.Scheduler.MAX_SCHEDULER_LIMIT;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+import androidx.work.impl.DefaultRunnableScheduler;
 import androidx.work.impl.Scheduler;
 import androidx.work.impl.utils.IdGenerator;
 
@@ -46,15 +49,33 @@ public final class Configuration {
      * The minimum number of system requests which can be enqueued by {@link WorkManager}
      * when using {@link android.app.job.JobScheduler} or {@link android.app.AlarmManager}.
      */
+    @SuppressLint("MinMaxConstant")
     public static final int MIN_SCHEDULER_LIMIT = 20;
 
-    private final @NonNull Executor mExecutor;
-    private final @NonNull Executor mTaskExecutor;
-    private final @NonNull WorkerFactory mWorkerFactory;
-    private final int mLoggingLevel;
-    private final int mMinJobSchedulerId;
-    private final int mMaxJobSchedulerId;
-    private final int mMaxSchedulerLimit;
+    // Synthetic access
+    @SuppressWarnings("WeakerAccess")
+    final @NonNull Executor mExecutor;
+    @SuppressWarnings("WeakerAccess")
+    final @NonNull Executor mTaskExecutor;
+    @SuppressWarnings("WeakerAccess")
+    final @NonNull WorkerFactory mWorkerFactory;
+    @SuppressWarnings("WeakerAccess")
+    final @NonNull InputMergerFactory mInputMergerFactory;
+    @SuppressWarnings("WeakerAccess")
+    final @NonNull RunnableScheduler mRunnableScheduler;
+    @SuppressWarnings("WeakerAccess")
+    final @Nullable InitializationExceptionHandler mExceptionHandler;
+    @SuppressWarnings("WeakerAccess")
+    final @Nullable String mDefaultProcessName;
+    @SuppressWarnings("WeakerAccess")
+    final int mLoggingLevel;
+    @SuppressWarnings("WeakerAccess")
+    final int mMinJobSchedulerId;
+    @SuppressWarnings("WeakerAccess")
+    final int mMaxJobSchedulerId;
+    @SuppressWarnings("WeakerAccess")
+    final int mMaxSchedulerLimit;
+    private final boolean mIsUsingDefaultTaskExecutor;
 
     Configuration(@NonNull Configuration.Builder builder) {
         if (builder.mExecutor == null) {
@@ -64,11 +85,13 @@ public final class Configuration {
         }
 
         if (builder.mTaskExecutor == null) {
+            mIsUsingDefaultTaskExecutor = true;
             // This executor is used for *both* WorkManager's tasks and Room's query executor.
             // So this should not be a single threaded executor. Writes will still be serialized
             // as this will be wrapped with an SerialExecutor.
             mTaskExecutor = createDefaultExecutor();
         } else {
+            mIsUsingDefaultTaskExecutor = false;
             mTaskExecutor = builder.mTaskExecutor;
         }
 
@@ -78,10 +101,24 @@ public final class Configuration {
             mWorkerFactory = builder.mWorkerFactory;
         }
 
+        if (builder.mInputMergerFactory == null) {
+            mInputMergerFactory = InputMergerFactory.getDefaultInputMergerFactory();
+        } else {
+            mInputMergerFactory = builder.mInputMergerFactory;
+        }
+
+        if (builder.mRunnableScheduler == null) {
+            mRunnableScheduler = new DefaultRunnableScheduler();
+        } else {
+            mRunnableScheduler = builder.mRunnableScheduler;
+        }
+
         mLoggingLevel = builder.mLoggingLevel;
         mMinJobSchedulerId = builder.mMinJobSchedulerId;
         mMaxJobSchedulerId = builder.mMaxJobSchedulerId;
         mMaxSchedulerLimit = builder.mMaxSchedulerLimit;
+        mExceptionHandler = builder.mExceptionHandler;
+        mDefaultProcessName = builder.mDefaultProcessName;
     }
 
     /**
@@ -115,13 +152,30 @@ public final class Configuration {
     }
 
     /**
+     * @return The {@link InputMergerFactory} used by {@link WorkManager} to create instances of
+     * {@link InputMerger}s.
+     */
+    public @NonNull InputMergerFactory getInputMergerFactory() {
+        return mInputMergerFactory;
+    }
+
+    /**
+     * @return The {@link RunnableScheduler} to keep track of timed work in the in-process
+     * scheduler.
+     */
+    @NonNull
+    public RunnableScheduler getRunnableScheduler() {
+        return mRunnableScheduler;
+    }
+
+    /**
      * Gets the minimum logging level for {@link WorkManager}.
      *
      * @return The minimum logging level, corresponding to the constants found in
      * {@link android.util.Log}
      * @hide
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public int getMinimumLoggingLevel() {
         return mLoggingLevel;
     }
@@ -155,6 +209,14 @@ public final class Configuration {
     }
 
     /**
+     * @return The {@link String} name of the process where work should be scheduled.
+     */
+    @Nullable
+    public String getDefaultProcessName() {
+        return mDefaultProcessName;
+    }
+
+    /**
      * Gets the maximum number of system requests that can be made by {@link WorkManager} when using
      * {@link android.app.job.JobScheduler} or {@link android.app.AlarmManager}.
      *
@@ -173,6 +235,26 @@ public final class Configuration {
         }
     }
 
+    /**
+     * @return {@code true} If the default task {@link Executor} is being used
+     * @hide
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public boolean isUsingDefaultTaskExecutor() {
+        return mIsUsingDefaultTaskExecutor;
+    }
+
+    /**
+     * @return the {@link InitializationExceptionHandler} that can be used to intercept
+     * exceptions caused when trying to initialize {@link WorkManager}.
+     * @hide
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @Nullable
+    public InitializationExceptionHandler getExceptionHandler() {
+        return mExceptionHandler;
+    }
+
     private @NonNull Executor createDefaultExecutor() {
         return Executors.newFixedThreadPool(
                 // This value is the same as the core pool size for AsyncTask#THREAD_POOL_EXECUTOR.
@@ -186,12 +268,50 @@ public final class Configuration {
 
         Executor mExecutor;
         WorkerFactory mWorkerFactory;
+        InputMergerFactory mInputMergerFactory;
         Executor mTaskExecutor;
+        RunnableScheduler mRunnableScheduler;
+        @Nullable InitializationExceptionHandler mExceptionHandler;
+        @Nullable String mDefaultProcessName;
 
-        int mLoggingLevel = Log.INFO;
-        int mMinJobSchedulerId = IdGenerator.INITIAL_ID;
-        int mMaxJobSchedulerId = Integer.MAX_VALUE;
-        int mMaxSchedulerLimit = MIN_SCHEDULER_LIMIT;
+        int mLoggingLevel;
+        int mMinJobSchedulerId;
+        int mMaxJobSchedulerId;
+        int mMaxSchedulerLimit;
+
+        /**
+         * Creates a new {@link Configuration.Builder}.
+         */
+        public Builder() {
+            mLoggingLevel = Log.INFO;
+            mMinJobSchedulerId = IdGenerator.INITIAL_ID;
+            mMaxJobSchedulerId = Integer.MAX_VALUE;
+            mMaxSchedulerLimit = MIN_SCHEDULER_LIMIT;
+        }
+
+        /**
+         * Creates a new {@link Configuration.Builder} with an existing {@link Configuration} as its
+         * template.
+         *
+         * @param configuration An existing {@link Configuration} to use as a template
+         * @hide
+         */
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+        public Builder(@NonNull Configuration configuration) {
+            // Note that these must be accessed through fields and not the getters, which can
+            // otherwise manipulate the returned value (see getMaxSchedulerLimit(), for example).
+            mExecutor = configuration.mExecutor;
+            mWorkerFactory = configuration.mWorkerFactory;
+            mInputMergerFactory = configuration.mInputMergerFactory;
+            mTaskExecutor = configuration.mTaskExecutor;
+            mLoggingLevel = configuration.mLoggingLevel;
+            mMinJobSchedulerId = configuration.mMinJobSchedulerId;
+            mMaxJobSchedulerId = configuration.mMaxJobSchedulerId;
+            mMaxSchedulerLimit = configuration.mMaxSchedulerLimit;
+            mRunnableScheduler = configuration.mRunnableScheduler;
+            mExceptionHandler = configuration.mExceptionHandler;
+            mDefaultProcessName = configuration.mDefaultProcessName;
+        }
 
         /**
          * Specifies a custom {@link WorkerFactory} for WorkManager.
@@ -201,6 +321,17 @@ public final class Configuration {
          */
         public @NonNull Builder setWorkerFactory(@NonNull WorkerFactory workerFactory) {
             mWorkerFactory = workerFactory;
+            return this;
+        }
+
+        /**
+         * Specifies a custom {@link InputMergerFactory} for WorkManager.
+         * @param inputMergerFactory A {@link InputMergerFactory} for creating {@link InputMerger}s
+         * @return This {@link Builder} instance
+         */
+        @NonNull
+        public Builder setInputMergerFactory(@NonNull InputMergerFactory inputMergerFactory) {
+            mInputMergerFactory = inputMergerFactory;
             return this;
         }
 
@@ -307,6 +438,48 @@ public final class Configuration {
          */
         public @NonNull Builder setMinimumLoggingLevel(int loggingLevel) {
             mLoggingLevel = loggingLevel;
+            return this;
+        }
+
+        /**
+         * Specifies the {@link RunnableScheduler} to be used by {@link WorkManager}.
+         * <br/>
+         * This is used by the in-process scheduler to keep track of timed work.
+         *
+         * @param runnableScheduler The {@link RunnableScheduler} to be used
+         * @return This {@link Builder} instance
+         */
+        @NonNull
+        public Builder setRunnableScheduler(@NonNull RunnableScheduler runnableScheduler) {
+            mRunnableScheduler = runnableScheduler;
+            return this;
+        }
+
+        /**
+         * Specifies the {@link InitializationExceptionHandler} that can be used to intercept
+         * exceptions caused when trying to initialize  {@link WorkManager}.
+         *
+         * @param exceptionHandler The {@link InitializationExceptionHandler} instance.
+         * @return This {@link Builder} instance
+         * @hide
+         */
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+        @NonNull
+        public Builder setInitializationExceptionHandler(
+                @NonNull InitializationExceptionHandler exceptionHandler) {
+            mExceptionHandler = exceptionHandler;
+            return this;
+        }
+
+        /**
+         * Designates the primary process that {@link WorkManager} should schedule work in.
+         *
+         * @param processName The {@link String} process name.
+         * @return This {@link Builder} instance
+         */
+        @NonNull
+        public Builder setDefaultProcessName(@NonNull String processName) {
+            mDefaultProcessName = processName;
             return this;
         }
 

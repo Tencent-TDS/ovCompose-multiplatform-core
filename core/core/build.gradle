@@ -10,10 +10,13 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.2.0-alpha01")
+    api("androidx.lifecycle:lifecycle-runtime:2.0.0")
+    api("androidx.versionedparcelable:versionedparcelable:1.1.0")
     implementation("androidx.collection:collection:1.0.0")
-    api(ARCH_LIFECYCLE_RUNTIME, libs.exclude_annotations_transitive)
-    api("androidx.versionedparcelable:versionedparcelable:1.1.0-rc01")
+
+    // We don't ship this as a public artifact, so it must remain a project-type dependency.
+    annotationProcessor(project(":versionedparcelable:versionedparcelable-compiler"))
 
     androidTestImplementation(KOTLIN_STDLIB)
     androidTestImplementation(ANDROIDX_TEST_EXT_JUNIT)
@@ -24,17 +27,31 @@ dependencies {
     androidTestImplementation(ESPRESSO_CORE, libs.exclude_for_espresso)
     androidTestImplementation(MOCKITO_CORE, libs.exclude_bytebuddy) // DexMaker has it"s own MockMaker
     androidTestImplementation(DEXMAKER_MOCKITO, libs.exclude_bytebuddy) // DexMaker has it"s own MockMaker
-    androidTestImplementation project(':internal-testutils'), {
+    androidTestImplementation("androidx.appcompat:appcompat:1.1.0") {
         exclude group: 'androidx.core', module: 'core'
     }
-    annotationProcessor(project(":versionedparcelable-annotation"))
+    androidTestImplementation project(':internal-testutils-runtime'), {
+        exclude group: 'androidx.core', module: 'core'
+    }
+
+    testImplementation(ANDROIDX_TEST_CORE)
+    testImplementation(ANDROIDX_TEST_RUNNER)
+    testImplementation(TRUTH)
+    testImplementation(ROBOLECTRIC)
 }
 
 android {
+    buildFeatures {
+        aidl = true
+    }
+    testOptions.unitTests.includeAndroidResources = true
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_7
+        targetCompatibility = JavaVersion.VERSION_1_7
+    }
     aaptOptions {
         noCompress 'ttf'
     }
-
     buildTypes.all {
         consumerProguardFiles 'proguard-rules.pro'
     }

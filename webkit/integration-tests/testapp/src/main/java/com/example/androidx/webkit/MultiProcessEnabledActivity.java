@@ -16,7 +16,6 @@
 
 package com.example.androidx.webkit;
 
-import android.annotation.SuppressLint;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,14 +28,13 @@ import androidx.webkit.WebViewFeature;
 public class MultiProcessEnabledActivity extends AppCompatActivity {
 
     @Override
-    @SuppressLint("RestrictedApi")
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_is_multi_process_enabled);
         setTitle(R.string.multi_process_enabled_activity_title);
         WebkitHelpers.appendWebViewVersionToTitle(this);
 
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROCESS_QUERY)) {
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROCESS)) {
             if (WebViewCompat.isMultiProcessEnabled()) {
                 WebkitHelpers.showMessageInActivity(MultiProcessEnabledActivity.this,
                         R.string.multi_process_enabled);
@@ -46,7 +44,7 @@ public class MultiProcessEnabledActivity extends AppCompatActivity {
             }
         } else {
             WebkitHelpers.showMessageInActivity(MultiProcessEnabledActivity.this,
-                    R.string.multi_process_query_unavailable);
+                    R.string.multi_process_unavailable);
         }
     }
 }

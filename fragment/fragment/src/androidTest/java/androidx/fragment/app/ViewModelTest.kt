@@ -16,6 +16,7 @@
 
 package androidx.fragment.app
 
+import androidx.fragment.app.test.EmptyFragmentTestActivity
 import androidx.fragment.app.test.TestViewModel
 import androidx.fragment.app.test.ViewModelActivity
 import androidx.fragment.app.test.ViewModelActivity.ViewModelFragment
@@ -24,13 +25,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.test.annotation.UiThreadTest
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.filters.MediumTest
+import androidx.test.filters.LargeTest
 import androidx.testutils.withActivity
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@MediumTest
+@LargeTest
 @RunWith(AndroidJUnit4::class)
 class ViewModelTest {
 
@@ -39,6 +40,60 @@ class ViewModelTest {
     fun testNotAttachedFragment() {
         // This is similar to calling getViewModelStore in Fragment's constructor
         Fragment().viewModelStore
+    }
+
+    @Test
+    fun testMaxLifecycleInitializedFragment() {
+        with(ActivityScenario.launch(EmptyFragmentTestActivity::class.java)) {
+            withActivity {
+                val fragment = StrictFragment()
+                supportFragmentManager.beginTransaction()
+                    .setReorderingAllowed(true)
+                    .add(android.R.id.content, fragment)
+                    .setMaxLifecycle(fragment, Lifecycle.State.INITIALIZED)
+                    .commitNow()
+
+                try {
+                    fragment.viewModelStore
+                } catch (e: IllegalStateException) {
+                    assertThat(e).hasMessageThat().contains(
+                        "Calling getViewModelStore() before a Fragment " +
+                            "reaches onCreate() when using setMaxLifecycle(INITIALIZED) is " +
+                            "not supported"
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun testMaxLifecycleInitializedNestedFragment() {
+        with(ActivityScenario.launch(EmptyFragmentTestActivity::class.java)) {
+            withActivity {
+                val fragment = StrictFragment()
+                val childFragment = StrictFragment()
+
+                supportFragmentManager.beginTransaction()
+                    .setReorderingAllowed(true)
+                    .add(android.R.id.content, fragment)
+                    .setMaxLifecycle(fragment, Lifecycle.State.INITIALIZED)
+                    .commitNow()
+
+                fragment.childFragmentManager.beginTransaction()
+                    .add(android.R.id.content, childFragment)
+                    .commitNow()
+
+                try {
+                    childFragment.viewModelStore
+                } catch (e: IllegalStateException) {
+                    assertThat(e).hasMessageThat().contains(
+                        "Calling getViewModelStore() before a Fragment " +
+                            "reaches onCreate() when using setMaxLifecycle(INITIALIZED) is " +
+                            "not supported"
+                    )
+                }
+            }
+        }
     }
 
     @Test
@@ -108,20 +163,32 @@ class ViewModelTest {
             val fragmentModel = withActivity {
                 getFragment(ViewModelActivity.FRAGMENT_TAG_1).fragmentModel
             }
+            val fragmentAndroidModel = withActivity {
+                getFragment(ViewModelActivity.FRAGMENT_TAG_1).androidModel
+            }
+            val fragmentSavedStateAndroidModel = withActivity {
+                getFragment(ViewModelActivity.FRAGMENT_TAG_1).savedStateModel
+            }
             val backStackFragmentModel = withActivity {
                 getFragment(ViewModelActivity.FRAGMENT_TAG_BACK_STACK).fragmentModel
             }
             assertThat(fragmentModel.cleared).isFalse()
+            assertThat(fragmentAndroidModel.cleared).isFalse()
+            assertThat(fragmentSavedStateAndroidModel.cleared).isFalse()
             assertThat(backStackFragmentModel.cleared).isFalse()
 
             recreate()
             // recreate shouldn't clear the ViewModels
             assertThat(fragmentModel.cleared).isFalse()
+            assertThat(fragmentAndroidModel.cleared).isFalse()
+            assertThat(fragmentSavedStateAndroidModel.cleared).isFalse()
             assertThat(backStackFragmentModel.cleared).isFalse()
 
             moveToState(Lifecycle.State.DESTROYED)
             // But destroying the Activity should
             assertThat(fragmentModel.cleared).isTrue()
+            assertThat(fragmentAndroidModel.cleared).isTrue()
+            assertThat(fragmentSavedStateAndroidModel.cleared).isTrue()
             assertThat(backStackFragmentModel.cleared).isTrue()
         }
     }
@@ -134,10 +201,7 @@ class ViewModelTest {
                     supportFragmentManager.beginTransaction().add(it, "temp").commitNow()
                 }
             }
-            val viewModelProvider = ViewModelProvider(
-                fragment,
-                ViewModelProvider.NewInstanceFactory()
-            )
+            val viewModelProvider = ViewModelProvider(fragment)
             val vm = viewModelProvider.get(TestViewModel::class.java)
             assertThat(vm.cleared).isFalse()
             onActivity { activity ->

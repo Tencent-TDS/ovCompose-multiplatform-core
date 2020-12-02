@@ -21,6 +21,7 @@ import android.os.SystemClock
 import android.view.LayoutInflater
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.StrictFragment
 import androidx.fragment.app.executePendingTransactions
 import androidx.fragment.app.popBackStackImmediate
 import androidx.fragment.test.R
@@ -28,7 +29,6 @@ import androidx.test.annotation.UiThreadTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.rule.ActivityTestRule
 import androidx.testutils.waitForExecution
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -42,14 +42,15 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * Tests usage of the [FragmentTransaction] class.
+ * Tests usage of the [androidx.fragment.app.FragmentTransaction] class.
  */
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class FragmentTransactionTest {
 
+    @Suppress("DEPRECATION")
     @get:Rule
-    var activityRule = ActivityTestRule(FragmentTestActivity::class.java)
+    var activityRule = androidx.test.rule.ActivityTestRule(FragmentTestActivity::class.java)
 
     private lateinit var activity: FragmentTestActivity
     private var onBackStackChangedTimes: Int = 0
@@ -60,7 +61,7 @@ class FragmentTransactionTest {
         activity = activityRule.activity
         onBackStackChangedTimes = 0
         onBackStackChangedListener =
-                FragmentManager.OnBackStackChangedListener { onBackStackChangedTimes++ }
+            FragmentManager.OnBackStackChangedListener { onBackStackChangedTimes++ }
         activity.supportFragmentManager.addOnBackStackChangedListener(onBackStackChangedListener)
     }
 
@@ -84,6 +85,23 @@ class FragmentTransactionTest {
 
     @Test
     @UiThreadTest
+    fun testAddTransactionByClassName() {
+        val args = Bundle()
+        activity.supportFragmentManager.beginTransaction()
+            .add(R.id.content, CorrectFragment::class.java, args)
+            .addToBackStack(null)
+            .commit()
+        activity.supportFragmentManager.executePendingTransactions()
+        assertThat(onBackStackChangedTimes).isEqualTo(1)
+        val fragment = activity.supportFragmentManager.findFragmentById(R.id.content)
+        assertThat(fragment)
+            .isInstanceOf(CorrectFragment::class.java)
+        assertThat(fragment?.arguments)
+            .isSameInstanceAs(args)
+    }
+
+    @Test
+    @UiThreadTest
     fun testAddTransactionWithPrivateFragment() {
         val fragment = PrivateFragment()
         try {
@@ -95,9 +113,11 @@ class FragmentTransactionTest {
             assertThat(onBackStackChangedTimes).isEqualTo(1)
         } catch (e: IllegalStateException) {
             assertThat(e)
-                .hasMessageThat().contains("Fragment " + fragment.javaClass.canonicalName +
+                .hasMessageThat().contains(
+                    "Fragment " + fragment.javaClass.canonicalName +
                         " must be a public static class to be  properly recreated from instance " +
-                        "state.")
+                        "state."
+                )
         } finally {
             assertWithMessage("Fragment shouldn't be added").that(fragment.isAdded).isFalse()
         }
@@ -115,9 +135,11 @@ class FragmentTransactionTest {
             activity.supportFragmentManager.executePendingTransactions()
             assertThat(onBackStackChangedTimes).isEqualTo(1)
         } catch (e: IllegalStateException) {
-            assertThat(e).hasMessageThat().contains("Fragment " + fragment.javaClass.canonicalName +
+            assertThat(e).hasMessageThat().contains(
+                "Fragment " + fragment.javaClass.canonicalName +
                     " must be a public static class to be  properly recreated from instance " +
-                    "state.")
+                    "state."
+            )
         } finally {
             assertWithMessage("Fragment shouldn't be added").that(fragment.isAdded).isFalse()
         }
@@ -135,8 +157,10 @@ class FragmentTransactionTest {
             activity.supportFragmentManager.executePendingTransactions()
             assertThat(onBackStackChangedTimes).isEqualTo(1)
         } catch (e: IllegalStateException) {
-            assertThat(e).hasMessageThat().contains("Fragment " + fragment.javaClass.canonicalName +
-                    " must be a public static class to be  properly recreated from instance state.")
+            assertThat(e).hasMessageThat().contains(
+                "Fragment " + fragment.javaClass.canonicalName +
+                    " must be a public static class to be  properly recreated from instance state."
+            )
         } finally {
             assertWithMessage("Fragment shouldn't be added").that(fragment.isAdded).isFalse()
         }
@@ -186,8 +210,10 @@ class FragmentTransactionTest {
             fragment1.layoutInflater
             fail("getLayoutInflater should throw when the Fragment is detached")
         } catch (e: IllegalStateException) {
-            assertThat(e).hasMessageThat().contains("onGetLayoutInflater() cannot be executed " +
-                    "until the Fragment is attached to the FragmentManager.")
+            assertThat(e).hasMessageThat().contains(
+                "onGetLayoutInflater() cannot be executed " +
+                    "until the Fragment is attached to the FragmentManager."
+            )
         }
 
         assertThat(fragment1.onGetLayoutInflaterCalls).isEqualTo(3)
@@ -205,11 +231,37 @@ class FragmentTransactionTest {
             activity.supportFragmentManager.executePendingTransactions()
             assertThat(onBackStackChangedTimes).isEqualTo(1)
         } catch (e: IllegalStateException) {
-            assertThat(e).hasMessageThat().contains("Fragment " + fragment.javaClass.canonicalName +
-                    " must be a public static class to be  properly recreated from instance state.")
+            assertThat(e).hasMessageThat().contains(
+                "Fragment " + fragment.javaClass.canonicalName +
+                    " must be a public static class to be  properly recreated from instance state."
+            )
         } finally {
             assertWithMessage("Fragment shouldn't be added").that(fragment.isAdded).isFalse()
         }
+    }
+
+    @Test
+    @UiThreadTest
+    fun testReplaceTransactionByClassName() {
+        val firstFragment = StrictFragment()
+        activity.supportFragmentManager.beginTransaction()
+            .add(R.id.content, firstFragment)
+            .commitNow()
+        assertThat(activity.supportFragmentManager.findFragmentById(R.id.content))
+            .isSameInstanceAs(firstFragment)
+
+        val args = Bundle()
+        activity.supportFragmentManager.beginTransaction()
+            .add(R.id.content, CorrectFragment::class.java, args)
+            .addToBackStack(null)
+            .commit()
+        activity.supportFragmentManager.executePendingTransactions()
+        assertThat(onBackStackChangedTimes).isEqualTo(1)
+        val fragment = activity.supportFragmentManager.findFragmentById(R.id.content)
+        assertThat(fragment)
+            .isInstanceOf(CorrectFragment::class.java)
+        assertThat(fragment?.arguments)
+            .isSameInstanceAs(args)
     }
 
     @Test
@@ -227,8 +279,10 @@ class FragmentTransactionTest {
         try {
             fm.beginTransaction().runOnCommit { ran = true }.addToBackStack(null).commit()
         } catch (e: IllegalStateException) {
-            assertThat(e).hasMessageThat().contains("This FragmentTransaction is not allowed to" +
-                    " be added to the back stack.")
+            assertThat(e).hasMessageThat().contains(
+                "This FragmentTransaction is not allowed to" +
+                    " be added to the back stack."
+            )
         }
 
         fm.executePendingTransactions()
@@ -317,7 +371,9 @@ class FragmentTransactionTest {
             getFragmentsUntilSize(0)
         }
 
-        backStackLatch.await()
+        assertWithMessage("Timed out waiting for OnBackStackChangedListener callbacks")
+            .that(backStackLatch.await(1, TimeUnit.SECONDS))
+            .isTrue()
 
         fm.removeOnBackStackChangedListener(countDownListener)
     }

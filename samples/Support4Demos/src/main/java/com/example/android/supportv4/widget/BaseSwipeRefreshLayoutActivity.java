@@ -25,10 +25,9 @@ import android.widget.Toast;
 
 import androidx.annotation.LayoutRes;
 import androidx.fragment.app.FragmentActivity;
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener;
 
@@ -75,22 +74,19 @@ abstract class BaseSwipeRefreshLayoutActivity extends FragmentActivity
             "King Lear"
     };
 
-    // Try a SUPER quick refresh to make sure we don't get extra refreshes
-    // while the user's finger is still down.
-    private static final boolean SUPER_QUICK_REFRESH = false;
-
     private SwipeRefreshLayout mSwipeRefreshWidget;
 
+    @SuppressWarnings("deprecation")
     private final Handler mHandler = new Handler();
     private MyViewModel mViewModel;
 
     public static class MyViewModel extends ViewModel {
-        final LiveData<Event<Object>> refreshDone = new MutableLiveData<>();
+        final MutableLiveData<Event<Object>> refreshDone = new MutableLiveData<>();
 
         final Runnable mRefreshDone = new Runnable() {
             @Override
             public void run() {
-                ((MutableLiveData) refreshDone).setValue(new Event<>(new Object()));
+                refreshDone.setValue(new Event<>(new Object()));
             }
         };
     }
@@ -131,7 +127,8 @@ abstract class BaseSwipeRefreshLayoutActivity extends FragmentActivity
         super.onCreate(bundle);
         setContentView(getLayoutId());
 
-        mViewModel = ViewModelProviders.of(this).get(MyViewModel.class);
+        // TODO use by viewModels() once this class switches to Kotlin
+        mViewModel = new ViewModelProvider(this).get(MyViewModel.class);
         mViewModel.refreshDone.observe(this, event -> {
             if (event.getContentIfNotHandled() != null) {
                 mSwipeRefreshWidget.setRefreshing(false);

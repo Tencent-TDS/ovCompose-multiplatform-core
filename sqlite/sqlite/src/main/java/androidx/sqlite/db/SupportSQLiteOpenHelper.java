@@ -20,6 +20,7 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.os.Build;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
 
@@ -27,6 +28,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -38,11 +40,12 @@ import java.util.List;
  * the methods that should be overridden.
  */
 @SuppressWarnings("unused")
-public interface SupportSQLiteOpenHelper {
+public interface SupportSQLiteOpenHelper extends Closeable {
     /**
      * Return the name of the SQLite database being opened, as given to
-     * the constructor.
+     * the constructor. {@code null} indicates an in-memory database.
      */
+    @Nullable
     String getDatabaseName();
 
     /**
@@ -102,7 +105,7 @@ public interface SupportSQLiteOpenHelper {
     /**
      * Close any open database object.
      */
-    void close();
+    @Override void close();
 
     /**
      * Handles various lifecycle events for the SQLite connection, similar to
@@ -146,7 +149,7 @@ public interface SupportSQLiteOpenHelper {
          *
          * @param db The database.
          */
-        public void onConfigure(SupportSQLiteDatabase db) {
+        public void onConfigure(@NonNull SupportSQLiteDatabase db) {
 
         }
 
@@ -156,7 +159,7 @@ public interface SupportSQLiteOpenHelper {
          *
          * @param db The database.
          */
-        public abstract void onCreate(SupportSQLiteDatabase db);
+        public abstract void onCreate(@NonNull SupportSQLiteDatabase db);
 
         /**
          * Called when the database needs to be upgraded. The implementation
@@ -178,7 +181,8 @@ public interface SupportSQLiteOpenHelper {
          * @param oldVersion The old database version.
          * @param newVersion The new database version.
          */
-        public abstract void onUpgrade(SupportSQLiteDatabase db, int oldVersion, int newVersion);
+        public abstract void onUpgrade(@NonNull SupportSQLiteDatabase db, int oldVersion,
+                int newVersion);
 
         /**
          * Called when the database needs to be downgraded. This is strictly similar to
@@ -197,7 +201,7 @@ public interface SupportSQLiteOpenHelper {
          * @param oldVersion The old database version.
          * @param newVersion The new database version.
          */
-        public void onDowngrade(SupportSQLiteDatabase db, int oldVersion, int newVersion) {
+        public void onDowngrade(@NonNull SupportSQLiteDatabase db, int oldVersion, int newVersion) {
             throw new SQLiteException("Can't downgrade database from version "
                     + oldVersion + " to " + newVersion);
         }
@@ -215,7 +219,7 @@ public interface SupportSQLiteOpenHelper {
          *
          * @param db The database.
          */
-        public void onOpen(SupportSQLiteDatabase db) {
+        public void onOpen(@NonNull SupportSQLiteDatabase db) {
 
         }
 
@@ -226,7 +230,7 @@ public interface SupportSQLiteOpenHelper {
          * @param db the {@link SupportSQLiteDatabase} object representing the database on which
          *           corruption is detected.
          */
-        public void onCorruption(SupportSQLiteDatabase db) {
+        public void onCorruption(@NonNull SupportSQLiteDatabase db) {
             // the following implementation is taken from {@link DefaultDatabaseErrorHandler}.
 
             Log.e(TAG, "Corruption reported by sqlite on database: " + db.getPath());
@@ -298,7 +302,6 @@ public interface SupportSQLiteOpenHelper {
     /**
      * The configuration to create an SQLite open helper object using {@link Factory}.
      */
-    @SuppressWarnings("WeakerAccess")
     class Configuration {
         /**
          * Context to use to open or create the database.
@@ -315,11 +318,27 @@ public interface SupportSQLiteOpenHelper {
          */
         @NonNull
         public final SupportSQLiteOpenHelper.Callback callback;
+        /**
+         * If {@code true} the database will be stored in the no-backup directory.
+         */
+        public final boolean useNoBackupDirectory;
 
-        Configuration(@NonNull Context context, @Nullable String name, @NonNull Callback callback) {
+        Configuration(
+                @NonNull Context context,
+                @Nullable String name,
+                @NonNull Callback callback) {
+            this(context, name, callback, false);
+        }
+
+        Configuration(
+                @NonNull Context context,
+                @Nullable String name,
+                @NonNull Callback callback,
+                boolean useNoBackupDirectory) {
             this.context = context;
             this.name = name;
             this.callback = callback;
+            this.useNoBackupDirectory = useNoBackupDirectory;
         }
 
         /**
@@ -327,7 +346,8 @@ public interface SupportSQLiteOpenHelper {
          *
          * @param context to use to open or create the database.
          */
-        public static Builder builder(Context context) {
+        @NonNull
+        public static Builder builder(@NonNull Context context) {
             return new Builder(context);
         }
 
@@ -338,7 +358,20 @@ public interface SupportSQLiteOpenHelper {
             Context mContext;
             String mName;
             SupportSQLiteOpenHelper.Callback mCallback;
+            boolean mUseNoBackupDirectory;
 
+            /**
+             * <p>
+             * Throws an {@link IllegalArgumentException} if the {@link Callback} is {@code null}.
+             * <p>
+             * Throws an {@link IllegalArgumentException} if the {@link Context} is {@code null}.
+             * <p>
+             * Throws an {@link IllegalArgumentException} if the {@link String} database
+             * name is {@code null}. {@see Context#getNoBackupFilesDir()}
+             *
+             * @return The {@link Configuration} instance
+             */
+            @NonNull
             public Configuration build() {
                 if (mCallback == null) {
                     throw new IllegalArgumentException("Must set a callback to create the"
@@ -348,7 +381,12 @@ public interface SupportSQLiteOpenHelper {
                     throw new IllegalArgumentException("Must set a non-null context to create"
                             + " the configuration.");
                 }
-                return new Configuration(mContext, mName, mCallback);
+                if (mUseNoBackupDirectory && TextUtils.isEmpty(mName)) {
+                    throw new IllegalArgumentException(
+                            "Must set a non-null database name to a configuration that uses the "
+                                    + "no backup directory.");
+                }
+                return new Configuration(mContext, mName, mCallback, mUseNoBackupDirectory);
             }
 
             Builder(@NonNull Context context) {
@@ -359,6 +397,7 @@ public interface SupportSQLiteOpenHelper {
              * @param name Name of the database file, or null for an in-memory database.
              * @return This
              */
+            @NonNull
             public Builder name(@Nullable String name) {
                 mName = name;
                 return this;
@@ -368,8 +407,21 @@ public interface SupportSQLiteOpenHelper {
              * @param callback The callback class to handle creation, upgrade and downgrade.
              * @return this
              */
+            @NonNull
             public Builder callback(@NonNull Callback callback) {
                 mCallback = callback;
+                return this;
+            }
+
+            /**
+             * Sets whether to use a no backup directory or not.
+             * @param useNoBackupDirectory If {@code true} the database file will be stored in the
+             *                             no-backup directory.
+             * @return this
+             */
+            @NonNull
+            public Builder noBackupDirectory(boolean useNoBackupDirectory) {
+                mUseNoBackupDirectory = useNoBackupDirectory;
                 return this;
             }
         }
@@ -387,6 +439,7 @@ public interface SupportSQLiteOpenHelper {
          *
          * @return A SupportSQLiteOpenHelper which can be used to open a database.
          */
-        SupportSQLiteOpenHelper create(Configuration configuration);
+        @NonNull
+        SupportSQLiteOpenHelper create(@NonNull Configuration configuration);
     }
 }

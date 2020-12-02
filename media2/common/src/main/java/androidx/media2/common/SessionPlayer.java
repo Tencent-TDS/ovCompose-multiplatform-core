@@ -16,17 +16,17 @@
 
 package androidx.media2.common;
 
+import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
-import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.media.MediaFormat;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.Surface;
 
+import androidx.annotation.CallSuper;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
@@ -43,6 +43,7 @@ import androidx.versionedparcelable.VersionedParcelize;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.Closeable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
@@ -155,13 +156,13 @@ import java.util.concurrent.Executor;
 // Players can extend this directly (e.g. MediaPlayer) or create wrapper and control underlying
 // player.
 // Preferably it can be interface, but API guideline requires to use abstract class.
-public abstract class SessionPlayer implements AutoCloseable {
+public abstract class SessionPlayer implements Closeable {
     private static final String TAG = "SessionPlayer";
 
     /**
      * @hide
      */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY_GROUP)
     @IntDef({
             PLAYER_STATE_IDLE,
             PLAYER_STATE_PAUSED,
@@ -174,7 +175,7 @@ public abstract class SessionPlayer implements AutoCloseable {
     /**
      * @hide
      */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY_GROUP)
     @IntDef({
             BUFFERING_STATE_UNKNOWN,
             BUFFERING_STATE_BUFFERING_AND_PLAYABLE,
@@ -231,7 +232,7 @@ public abstract class SessionPlayer implements AutoCloseable {
     /**
      * @hide
      */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY_GROUP)
     @IntDef({REPEAT_MODE_NONE, REPEAT_MODE_ONE, REPEAT_MODE_ALL,
             REPEAT_MODE_GROUP})
     @Retention(RetentionPolicy.SOURCE)
@@ -263,7 +264,7 @@ public abstract class SessionPlayer implements AutoCloseable {
     /**
      * @hide
      */
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY_GROUP)
     @IntDef({SHUFFLE_MODE_NONE, SHUFFLE_MODE_ALL, SHUFFLE_MODE_GROUP})
     @Retention(RetentionPolicy.SOURCE)
     public @interface ShuffleMode {
@@ -309,8 +310,11 @@ public abstract class SessionPlayer implements AutoCloseable {
      * was completed. If it is called in {@link #PLAYER_STATE_IDLE} or {@link #PLAYER_STATE_ERROR},
      * it should be ignored and a {@link PlayerResult} should be returned with
      * {@link PlayerResult#RESULT_ERROR_INVALID_STATE}.
+     *
+     * @return a {@link ListenableFuture} representing the pending completion of the command
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> play();
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> play();
 
     /**
      * Pauses playback.
@@ -320,38 +324,49 @@ public abstract class SessionPlayer implements AutoCloseable {
      * was completed. If it is called in {@link #PLAYER_STATE_IDLE} or {@link #PLAYER_STATE_ERROR},
      * it should be ignored and a {@link PlayerResult} should be returned with
      * {@link PlayerResult#RESULT_ERROR_INVALID_STATE}.
+     *
+     * @return a {@link ListenableFuture} representing the pending completion of the command
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> pause();
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> pause();
 
     /**
      * Prepares the media items for playback. During this time, the player may allocate resources
-     * required to play, such as audio and video decoders. Before calling this API, sets media
+     * required to play, such as audio and video decoders. Before calling this API, set media
      * item(s) through either {@link #setMediaItem} or {@link #setPlaylist}.
      * <p>
      * On success, this transfers the player state from {@link #PLAYER_STATE_IDLE} to
      * {@link #PLAYER_STATE_PAUSED} and a {@link PlayerResult} should be returned with the prepared
      * media item when the command completed. If it's not called in {@link #PLAYER_STATE_IDLE},
-     * it is ignored and {@link PlayerResult} should be returned with
+     * it should be ignored and {@link PlayerResult} should be returned with
      * {@link PlayerResult#RESULT_ERROR_INVALID_STATE}.
+     *
+     * @return a {@link ListenableFuture} representing the pending completion of the command
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> prepare();
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> prepare();
 
     /**
-     * Seeks to the specified position. Moves the playback head to the specified position.
+     * Seeks to the specified position.
+     * <p>
+     * The position is the relative position based on the {@link MediaItem#getStartPosition()}. So
+     * calling {@link #seekTo(long)} with {@code 0} means the seek to the start position.
      * <p>
      * On success, a {@link PlayerResult} should be returned with the current media item when the
      * command completed. If it's called in {@link #PLAYER_STATE_IDLE}, it is ignored and
      * a {@link PlayerResult} should be returned with
      * {@link PlayerResult#RESULT_ERROR_INVALID_STATE}.
      *
+     * @return a {@link ListenableFuture} representing the pending completion of the command
      * @param position the new playback position in ms. The value should be in the range of start
      * and end positions defined in {@link MediaItem}.
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> seekTo(long position);
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> seekTo(long position);
 
     /**
-     * Sets the playback speed. {@code 1.0f} is the default, negative values indicate reverse
-     * playback and {@code 0.0f} is not allowed.
+     * Sets the playback speed. The default playback speed is {@code 1.0f}, and negative values
+     * indicate reverse playback and {@code 0.0f} is not allowed.
      * <p>
      * The supported playback speed range depends on the underlying player implementation, so it is
      * recommended to query the actual speed of the player via {@link #getPlaybackSpeed()} after the
@@ -361,12 +376,13 @@ public abstract class SessionPlayer implements AutoCloseable {
      * On success, a {@link PlayerResult} should be returned with the current media item when the
      * command completed.
      *
-     * @param playbackSpeed The requested playback speed.
-     * @return A {@link ListenableFuture} representing the pending completion of the command.
+     * @param playbackSpeed the requested playback speed
+     * @return a {@link ListenableFuture} representing the pending completion of the command
      * @see #getPlaybackSpeed()
      * @see PlayerCallback#onPlaybackSpeedChanged(SessionPlayer, float)
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> setPlaybackSpeed(float playbackSpeed);
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> setPlaybackSpeed(float playbackSpeed);
 
     /**
      * Sets the {@link AudioAttributesCompat} to be used during the playback of the media.
@@ -380,7 +396,8 @@ public abstract class SessionPlayer implements AutoCloseable {
      *
      * @param attributes non-null <code>AudioAttributes</code>.
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> setAudioAttributes(
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> setAudioAttributes(
             @NonNull AudioAttributesCompat attributes);
 
     /**
@@ -393,26 +410,35 @@ public abstract class SessionPlayer implements AutoCloseable {
      * @see #PLAYER_STATE_PLAYING
      * @see #PLAYER_STATE_ERROR
      */
-    public abstract @PlayerState int getPlayerState();
+    @PlayerState
+    public abstract int getPlayerState();
 
     /**
-     * Gets the current playback head position.
+     * Gets the current playback position.
+     * <p>
+     * The position is the relative position based on the {@link MediaItem#getStartPosition()}.
+     * So the position {@code 0} means the start position of the {@link MediaItem}.
      *
-     * @return the current playback position in ms, or {@link #UNKNOWN_TIME} if unknown.
+     * @return the current playback position in ms, or {@link #UNKNOWN_TIME} if unknown
      */
     public abstract long getCurrentPosition();
 
     /**
-     * Gets the duration of the current media item, or {@link #UNKNOWN_TIME} if unknown.
+     * Gets the duration of the current media item, or {@link #UNKNOWN_TIME} if unknown. If the
+     * current {@link MediaItem} has either start or end position, then duration would be adjusted
+     * accordingly instead of returning the whole size of the {@link MediaItem}.
      *
-     * @return the duration in ms, or {@link #UNKNOWN_TIME}.
+     * @return the duration in ms, or {@link #UNKNOWN_TIME} if unknown
      */
     public abstract long getDuration();
 
     /**
      * Gets the position for how much has been buffered, or {@link #UNKNOWN_TIME} if unknown.
+     * <p>
+     * The position is the relative position based on the {@link MediaItem#getStartPosition()}.
+     * So the position {@code 0} means the start position of the {@link MediaItem}.
      *
-     * @return the buffered position in ms, or {@link #UNKNOWN_TIME}.
+     * @return the buffered position in ms, or {@link #UNKNOWN_TIME} if unknown
      */
     public abstract long getBufferedPosition();
 
@@ -422,10 +448,11 @@ public abstract class SessionPlayer implements AutoCloseable {
      * During the buffering, see {@link #getBufferedPosition()} for the quantifying the amount
      * already buffered.
      *
-     * @return the buffering state.
+     * @return the buffering state, or {@link #BUFFERING_STATE_UNKNOWN} if unknown
      * @see #getBufferedPosition()
      */
-    public abstract @BuffState int getBufferingState();
+    @BuffState
+    public abstract int getBufferingState();
 
     /**
      * Gets the actual playback speed to be used by the player when playing. A value of {@code 1.0f}
@@ -438,46 +465,31 @@ public abstract class SessionPlayer implements AutoCloseable {
     public abstract float getPlaybackSpeed();
 
     /**
-     * Returns the size of the video.
+     * Gets the size of the video.
      *
      * @return the size of the video. The width and height of size could be 0 if there is no video
-     * or the size has not been determined yet.
-     * The {@link PlayerCallback} can be registered via {@link #registerPlayerCallback} to
-     * receive a notification {@link PlayerCallback#onVideoSizeChangedInternal} when the size
-     * is available.
-     *
-     * @hide
+     *         or the size has not been determined yet.
+     * @see PlayerCallback#onVideoSizeChanged(SessionPlayer, VideoSize)
      */
-    // TODO: Change this into getVideoSize
-    @RestrictTo(LIBRARY_GROUP)
     @NonNull
-    public VideoSize getVideoSizeInternal() {
-        throw new UnsupportedOperationException("getVideoSizeInternal is internal use only");
+    public VideoSize getVideoSize() {
+        throw new UnsupportedOperationException("getVideoSize is not implemented");
     }
 
     /**
      * Sets the {@link Surface} to be used as the sink for the video portion of the media.
-     * <p>
-     * The default implementation returns {@link PlayerResult} with the result code
-     * {@link BaseResult#RESULT_ERROR_NOT_SUPPORTED}.
      * <p>
      * A null surface will reset any Surface and result in only the audio track being played.
      * <p>
      * On success, a {@link SessionPlayer.PlayerResult} is returned with
      * the current media item when the command completed.
      *
-     * @param surface The {@link Surface} to be used for the video portion of the media.
-     * @return a {@link ListenableFuture} which represents the pending completion of the command.
-     * {@link SessionPlayer.PlayerResult} will be delivered when the command
-     * completed.
-     *
-     * @hide
+     * @param surface the {@link Surface} to be used for the video portion of the media
+     * @return a {@link ListenableFuture} which represents the pending completion of the command
      */
-    // TODO: Change this into setSurface
-    @RestrictTo(LIBRARY_GROUP)
     @NonNull
-    public ListenableFuture<PlayerResult> setSurfaceInternal(@Nullable Surface surface) {
-        return PlayerResult.createFuture(BaseResult.RESULT_ERROR_NOT_SUPPORTED);
+    public ListenableFuture<PlayerResult> setSurface(@Nullable Surface surface) {
+        throw new UnsupportedOperationException("setSurface is not implemented");
     }
 
     /**
@@ -505,21 +517,23 @@ public abstract class SessionPlayer implements AutoCloseable {
      * On success, a {@link PlayerResult} should be returned with the first media item of the
      * playlist when the command completed.
      *
-     * @param list A list of {@link MediaItem} objects to set as a play list.
+     * @param list a list of {@link MediaItem} objects to set as a play list
      * @throws IllegalArgumentException if the given list is {@code null} or empty, or has
      *         duplicated media items.
-     * @return a {@link ListenableFuture} which represents the pending completion of the command.
+     * @return a {@link ListenableFuture} which represents the pending completion of the command
      * @see #setMediaItem
      * @see PlayerCallback#onPlaylistChanged
      * @see PlayerCallback#onCurrentMediaItemChanged
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> setPlaylist(
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> setPlaylist(
             @NonNull List<MediaItem> list, @Nullable MediaMetadata metadata);
 
     /**
      * Gets the {@link AudioAttributesCompat} that media player has.
      */
-    public abstract @Nullable AudioAttributesCompat getAudioAttributes();
+    @Nullable
+    public abstract AudioAttributesCompat getAudioAttributes();
 
     /**
      * Sets a {@link MediaItem} for playback. Use this or {@link #setPlaylist} to specify which
@@ -545,23 +559,23 @@ public abstract class SessionPlayer implements AutoCloseable {
      * On success, a {@link PlayerResult} should be returned with {@code item} set.
      *
      * @param item the descriptor of media item you want to play
-     * @return a {@link ListenableFuture} which represents the pending completion of the command.
+     * @return a {@link ListenableFuture} which represents the pending completion of the command
      * @see #setPlaylist
      * @see PlayerCallback#onPlaylistChanged
      * @see PlayerCallback#onCurrentMediaItemChanged
      * @throws IllegalArgumentException if the given item is {@code null}.
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> setMediaItem(
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> setMediaItem(
             @NonNull MediaItem item);
 
     /**
-     * Adds the media item to the playlist at position index. Index equals or greater than
+     * Adds the media item to the playlist at the index. Index equals to or greater than
      * the current playlist size (e.g. {@link Integer#MAX_VALUE}) will add the item at the end of
      * the playlist.
      * <p>
-     * The implementation may not change the currently playing media item.
      * If index is less than or equal to the current index of the playlist,
-     * the current index of the playlist will be increased correspondingly.
+     * the current index of the playlist should be increased correspondingly.
      * <p>
      * The implementation must notify registered callbacks with
      * {@link PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)} when it's
@@ -576,24 +590,26 @@ public abstract class SessionPlayer implements AutoCloseable {
      * @param item the media item you want to add
      * @see PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> addPlaylistItem(int index,
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> addPlaylistItem(int index,
             @NonNull MediaItem item);
 
     /**
      * Removes the media item from the playlist
-     * <p>
-     * The implementation may not change the currently playing media item even when it's removed.
      * <p>
      * The implementation must notify registered callbacks with
      * {@link PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)} when it's
      * completed.
      * <p>
      * On success, a {@link PlayerResult} should be returned with {@code item} removed.
+     * <p>
+     * If the last item is removed, the player should be moved to {@link #PLAYER_STATE_IDLE}.
      *
      * @param index the index of the item you want to remove in the playlist
      * @see PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> removePlaylistItem(
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> removePlaylistItem(
             @IntRange(from = 0) int index);
 
     /**
@@ -613,8 +629,28 @@ public abstract class SessionPlayer implements AutoCloseable {
      * @param item the new item
      * @see PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> replacePlaylistItem(int index,
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> replacePlaylistItem(int index,
             @NonNull MediaItem item);
+
+    /**
+     * Moves the media item at {@code fromIdx} to {@code toIdx} in the playlist.
+     * <p>
+     * The implementation must notify registered callbacks with
+     * {@link PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)} when it's
+     * completed.
+     * <p>
+     * On success, a {@link PlayerResult} should be returned with {@code item} set.
+     *
+     * @param fromIndex the media item's initial index in the playlist
+     * @param toIndex the media item's target index in the playlist
+     * @see PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)
+     */
+    @NonNull
+    public ListenableFuture<PlayerResult> movePlaylistItem(
+            @IntRange(from = 0) int fromIndex, @IntRange(from = 0) int toIndex) {
+        throw new UnsupportedOperationException("movePlaylistItem is not implemented");
+    }
 
     /**
      * Skips to the previous item in the playlist.
@@ -626,9 +662,11 @@ public abstract class SessionPlayer implements AutoCloseable {
      * On success, a {@link PlayerResult} should be returned with the current media item when the
      * command completed.
      *
+     * @return a {@link ListenableFuture} representing the pending completion of the command
      * @see PlayerCallback#onCurrentMediaItemChanged(SessionPlayer, MediaItem)
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> skipToPreviousPlaylistItem();
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> skipToPreviousPlaylistItem();
 
     /**
      * Skips to the next item in the playlist.
@@ -640,12 +678,14 @@ public abstract class SessionPlayer implements AutoCloseable {
      * On success, a {@link PlayerResult} should be returned with the current media item when the
      * command completed.
      *
+     * @return a {@link ListenableFuture} representing the pending completion of the command
      * @see PlayerCallback#onCurrentMediaItemChanged(SessionPlayer, MediaItem)
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> skipToNextPlaylistItem();
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> skipToNextPlaylistItem();
 
     /**
-     * Skips to the the media item.
+     * Skips to the item in the playlist at the index.
      * <p>
      * The implementation must notify registered callbacks with
      * {@link PlayerCallback#onCurrentMediaItemChanged(SessionPlayer, MediaItem)} when it's
@@ -654,10 +694,11 @@ public abstract class SessionPlayer implements AutoCloseable {
      * On success, a {@link PlayerResult} should be returned with the current media item when the
      * command completed.
      *
-     * @param index The index of the item you want to play in the playlist
+     * @param index the index of the item you want to play in the playlist
      * @see PlayerCallback#onCurrentMediaItemChanged(SessionPlayer, MediaItem)
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> skipToPlaylistItem(
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> skipToPlaylistItem(
             @IntRange(from = 0) int index);
 
     /**
@@ -673,7 +714,8 @@ public abstract class SessionPlayer implements AutoCloseable {
      * @param metadata metadata of the playlist
      * @see PlayerCallback#onPlaylistMetadataChanged(SessionPlayer, MediaMetadata)
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> updatePlaylistMetadata(
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> updatePlaylistMetadata(
             @Nullable MediaMetadata metadata);
 
     /**
@@ -692,7 +734,8 @@ public abstract class SessionPlayer implements AutoCloseable {
      * @see #REPEAT_MODE_GROUP
      * @see PlayerCallback#onRepeatModeChanged(SessionPlayer, int)
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> setRepeatMode(
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> setRepeatMode(
             @RepeatMode int repeatMode);
 
     /**
@@ -704,23 +747,26 @@ public abstract class SessionPlayer implements AutoCloseable {
      * On success, a {@link PlayerResult} should be returned with the current media item when the
      * command completed.
      *
-     * @param shuffleMode The shuffle mode
+     * @param shuffleMode the shuffle mode
+     * @return a {@link ListenableFuture} representing the pending completion of the command
      * @see #SHUFFLE_MODE_NONE
      * @see #SHUFFLE_MODE_ALL
      * @see #SHUFFLE_MODE_GROUP
      * @see PlayerCallback#onShuffleModeChanged(SessionPlayer, int)
      */
-    public abstract @NonNull ListenableFuture<PlayerResult> setShuffleMode(
+    @NonNull
+    public abstract ListenableFuture<PlayerResult> setShuffleMode(
             @ShuffleMode int shuffleMode);
 
     /**
-     * Gets the playlist. Can be {@code null} if the playlist hasn't been set or it's reset by
+     * Gets the playlist. It can be {@code null} if the playlist hasn't been set or it's reset by
      * {@link #setMediaItem}.
      *
      * @return playlist, or {@code null}
      * @see PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)
      */
-    public abstract @Nullable List<MediaItem> getPlaylist();
+    @Nullable
+    public abstract List<MediaItem> getPlaylist();
 
     /**
      * Gets the playlist metadata.
@@ -729,7 +775,8 @@ public abstract class SessionPlayer implements AutoCloseable {
      * @see PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)
      * @see PlayerCallback#onPlaylistMetadataChanged(SessionPlayer, MediaMetadata)
      */
-    public abstract @Nullable MediaMetadata getPlaylistMetadata();
+    @Nullable
+    public abstract MediaMetadata getPlaylistMetadata();
 
     /**
      * Gets the repeat mode.
@@ -741,18 +788,20 @@ public abstract class SessionPlayer implements AutoCloseable {
      * @see #REPEAT_MODE_GROUP
      * @see PlayerCallback#onRepeatModeChanged(SessionPlayer, int)
      */
-    public abstract @RepeatMode int getRepeatMode();
+    @RepeatMode
+    public abstract int getRepeatMode();
 
     /**
      * Gets the shuffle mode.
      *
-     * @return The shuffle mode
+     * @return the shuffle mode
      * @see #SHUFFLE_MODE_NONE
      * @see #SHUFFLE_MODE_ALL
      * @see #SHUFFLE_MODE_GROUP
      * @see PlayerCallback#onShuffleModeChanged(SessionPlayer, int)
      */
-    public abstract @ShuffleMode int getShuffleMode();
+    @ShuffleMode
+    public abstract int getShuffleMode();
 
     /**
      * Gets the current media item, which is currently playing or would be played with later
@@ -761,42 +810,46 @@ public abstract class SessionPlayer implements AutoCloseable {
      * {@link PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)} is
      * called.
      *
-     * @return the current media item. Can be {@code null} only when media item or playlist hasn't
-     *         been set.
+     * @return the current media item. Can be {@code null} only when the player is in
+     * {@link #PLAYER_STATE_IDLE} and a media item or playlist hasn't been set.
      * @see #setMediaItem
      * @see #setPlaylist
      */
-    public abstract @Nullable MediaItem getCurrentMediaItem();
+    @Nullable
+    public abstract MediaItem getCurrentMediaItem();
 
     /**
-     * Gets the index of current media item in playlist. This value may be updated when
+     * Gets the index of current media item in playlist. This value should be updated when
      * {@link PlayerCallback#onCurrentMediaItemChanged(SessionPlayer, MediaItem)} or
      * {@link PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)} is called.
      *
      * @return the index of current media item. Can be {@link #INVALID_ITEM_INDEX} when current
      *         media item is null or not in the playlist, and when the playlist hasn't been set.
      */
-    public abstract @IntRange(from = INVALID_ITEM_INDEX) int getCurrentMediaItemIndex();
+    @IntRange(from = INVALID_ITEM_INDEX)
+    public abstract int getCurrentMediaItemIndex();
 
     /**
-     * Gets the previous item index in the playlist. The returned value can be outdated after
+     * Gets the previous item index in the playlist. This value should be updated when
      * {@link PlayerCallback#onCurrentMediaItemChanged(SessionPlayer, MediaItem)} or
      * {@link PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)} is called.
      *
      * @return the index of previous media item. Can be {@link #INVALID_ITEM_INDEX} only when
      *         previous media item does not exist or playlist hasn't been set.
      */
-    public abstract @IntRange(from = INVALID_ITEM_INDEX) int getPreviousMediaItemIndex();
+    @IntRange(from = INVALID_ITEM_INDEX)
+    public abstract int getPreviousMediaItemIndex();
 
     /**
-     * Gets the next item index in the playlist. The returned value can be outdated after
+     * Gets the next item index in the playlist. This value should be updated when
      * {@link PlayerCallback#onCurrentMediaItemChanged(SessionPlayer, MediaItem)} or
      * {@link PlayerCallback#onPlaylistChanged(SessionPlayer, List, MediaMetadata)} is called.
      *
      * @return the index of next media item. Can be {@link #INVALID_ITEM_INDEX} only when next media
      *         item does not exist or playlist hasn't been set.
      */
-    public abstract @IntRange(from = INVALID_ITEM_INDEX) int getNextMediaItemIndex();
+    @IntRange(from = INVALID_ITEM_INDEX)
+    public abstract int getNextMediaItemIndex();
 
     // Listeners / Callback related
     // Intentionally final not to allow developers to change the behavior
@@ -852,7 +905,8 @@ public abstract class SessionPlayer implements AutoCloseable {
      *
      * @return map of callbacks and its executors
      */
-    protected final @NonNull List<Pair<PlayerCallback, Executor>> getCallbacks() {
+    @NonNull
+    protected final List<Pair<PlayerCallback, Executor>> getCallbacks() {
         List<Pair<PlayerCallback, Executor>> list = new ArrayList<>();
         synchronized (mLock) {
             list.addAll(mCallbacks);
@@ -861,107 +915,140 @@ public abstract class SessionPlayer implements AutoCloseable {
     }
 
     /**
-     * Gets the list of tracks.
+     * Gets the full list of selected and unselected tracks that the media contains. The order of
+     * the list is irrelevant as different players expose tracks in different ways, but the tracks
+     * will generally be ordered based on track type.
      * <p>
      * The types of tracks supported may vary based on player implementation.
      *
+     * @return list of tracks. The total number of tracks is the size of the list. If empty,
+     *         the implementation should return an empty list instead of {@code null}.
      * @see TrackInfo#MEDIA_TRACK_TYPE_VIDEO
      * @see TrackInfo#MEDIA_TRACK_TYPE_AUDIO
      * @see TrackInfo#MEDIA_TRACK_TYPE_SUBTITLE
      * @see TrackInfo#MEDIA_TRACK_TYPE_METADATA
-     *
-     * TODO: Change this into getTrackInfo() (b/132928418)
-     * @hide
      */
-    @RestrictTo(LIBRARY_GROUP)
     @NonNull
-    public List<TrackInfo> getTrackInfoInternal() {
-        throw new UnsupportedOperationException("getTrackInfoInternal is for internal use only");
-    };
+    public List<TrackInfo> getTracks() {
+        throw new UnsupportedOperationException("getTracks is not implemented");
+    }
 
     /**
-     * Selects a track.
+     * Selects the {@link TrackInfo} for the current media item.
      * <p>
      * Generally one track will be selected for each track type.
      * <p>
      * The types of tracks supported may vary based on player implementation.
+     * <p>
+     * Note: {@link #getTracks()} returns the list of tracks that can be selected, but the
+     * list may be invalidated when {@link PlayerCallback#onTracksChanged(SessionPlayer, List)}
+     * is called.
      *
+     * @param trackInfo track to be selected
+     * @return a {@link ListenableFuture} representing the pending completion of the command
      * @see TrackInfo#MEDIA_TRACK_TYPE_VIDEO
      * @see TrackInfo#MEDIA_TRACK_TYPE_AUDIO
      * @see TrackInfo#MEDIA_TRACK_TYPE_SUBTITLE
      * @see TrackInfo#MEDIA_TRACK_TYPE_METADATA
      * @see PlayerCallback#onTrackSelected(SessionPlayer, TrackInfo)
-     *
-     * TODO: Change this into selectTrack(TrackInfo) (b/132928418)
-     * @hide
      */
-    @RestrictTo(LIBRARY_GROUP)
     @NonNull
-    public ListenableFuture<PlayerResult> selectTrackInternal(
-            @NonNull TrackInfo trackInfo) {
-        throw new UnsupportedOperationException("selectTrackInternal is for internal use only");
+    public ListenableFuture<PlayerResult> selectTrack(@NonNull TrackInfo trackInfo) {
+        throw new UnsupportedOperationException("selectTrack is not implemented");
     }
 
     /**
-     * Deselects a track.
+     * Deselects the {@link TrackInfo} for the current media item.
      * <p>
-     * Generally, a track should already be selected in order to be deselected and audio and video
+     * Generally, a track should already be selected in order to be deselected, and audio and video
      * tracks should not be deselected.
      * <p>
      * The types of tracks supported may vary based on player implementation.
+     * <p>
+     * Note: {@link #getSelectedTrack(int)} returns the currently selected track per track type that
+     * can be deselected, but the list may be invalidated when
+     * {@link PlayerCallback#onTracksChanged(SessionPlayer, List)} is called.
      *
+     * @param trackInfo track to be deselected
+     * @return a {@link ListenableFuture} which represents the pending completion of the command
      * @see TrackInfo#MEDIA_TRACK_TYPE_VIDEO
      * @see TrackInfo#MEDIA_TRACK_TYPE_AUDIO
      * @see TrackInfo#MEDIA_TRACK_TYPE_SUBTITLE
      * @see TrackInfo#MEDIA_TRACK_TYPE_METADATA
      * @see PlayerCallback#onTrackDeselected(SessionPlayer, TrackInfo)
-     *
-     * TODO: Change this into deselectTrack(TrackInfo) (b/132928418)
-     * @hide
      */
-    @RestrictTo(LIBRARY_GROUP)
     @NonNull
-    public ListenableFuture<PlayerResult> deselectTrackInternal(
-            @NonNull TrackInfo trackInfo) {
-        throw new UnsupportedOperationException("deselectTrackInternal is for internal use only");
+    public ListenableFuture<PlayerResult> deselectTrack(@NonNull TrackInfo trackInfo) {
+        throw new UnsupportedOperationException("deselectTrack is not implemented");
     }
 
     /**
      * Gets currently selected track's {@link TrackInfo} for the given track type.
+     * <p>
+     * The returned value can be outdated after
+     * {@link PlayerCallback#onTracksChanged(SessionPlayer, List)},
+     * {@link PlayerCallback#onTrackSelected(SessionPlayer, TrackInfo)},
+     * or {@link PlayerCallback#onTrackDeselected(SessionPlayer, TrackInfo)} is called.
      *
+     * @param trackType type of selected track
+     * @return selected track info
      * @see TrackInfo#MEDIA_TRACK_TYPE_VIDEO
      * @see TrackInfo#MEDIA_TRACK_TYPE_AUDIO
      * @see TrackInfo#MEDIA_TRACK_TYPE_SUBTITLE
      * @see TrackInfo#MEDIA_TRACK_TYPE_METADATA
-     *
-     * TODO: Change this into getSelectedTrack(int) (b/132928418)
-     * @hide
      */
-    @RestrictTo(LIBRARY_GROUP)
     @Nullable
-    public TrackInfo getSelectedTrackInternal(@TrackInfo.MediaTrackType int trackType) {
+    public TrackInfo getSelectedTrack(@TrackInfo.MediaTrackType int trackType) {
         throw new UnsupportedOperationException(
-                "getSelectedTrackInternal is for internal use only.");
+                "getSelectedTrack is not implemented");
     }
 
     /**
-     * Internal use only.
-     * @see #getTrackInfoInternal
-     * @hide
+     * Removes all existing references to callbacks and executors.
+     *
+     * Note: Sub classes of {@link SessionPlayer} that override this API should call this super
+     * method.
      */
-    @RestrictTo(LIBRARY_GROUP)
+    @CallSuper
+    @Override
+    public void close() {
+        synchronized (mLock) {
+            mCallbacks.clear();
+        }
+    }
+
+    /**
+     * Class for the player to return each audio/video/subtitle track's metadata.
+     *
+     * Note: TrackInfo holds a MediaFormat instance, but only the following key-values will be
+     * supported when sending it over different processes:
+     * <ul>
+     * <li>{@link MediaFormat#KEY_LANGUAGE}</li>
+     * <li>{@link MediaFormat#KEY_MIME}</li>
+     * <li>{@link MediaFormat#KEY_IS_FORCED_SUBTITLE}</li>
+     * <li>{@link MediaFormat#KEY_IS_AUTOSELECT}</li>
+     * <li>{@link MediaFormat#KEY_IS_DEFAULT}</li>
+     * </ul>
+     *
+     * @see #getTracks
+     */
     @VersionedParcelize(isCustom = true)
-    public static final class TrackInfo extends CustomVersionedParcelable {
+    public static class TrackInfo extends CustomVersionedParcelable {
         public static final int MEDIA_TRACK_TYPE_UNKNOWN = 0;
         public static final int MEDIA_TRACK_TYPE_VIDEO = 1;
         public static final int MEDIA_TRACK_TYPE_AUDIO = 2;
         public static final int MEDIA_TRACK_TYPE_SUBTITLE = 4;
         public static final int MEDIA_TRACK_TYPE_METADATA = 5;
 
+        private static final String KEY_IS_FORMAT_NULL =
+                "androidx.media2.common.SessionPlayer.TrackInfo.KEY_IS_FORMAT_NULL";
+        private static final String KEY_IS_SELECTABLE =
+                "androidx.media2.common.SessionPlayer.TrackInfo.KEY_IS_SELECTABLE";
+
         /**
          * @hide
          */
-        @IntDef(flag = false, /*prefix = "PLAYER_ERROR",*/ value = {
+        @IntDef(flag = false, /*prefix = "MEDIA_TRACK_TYPE",*/ value = {
                 MEDIA_TRACK_TYPE_UNKNOWN,
                 MEDIA_TRACK_TYPE_VIDEO,
                 MEDIA_TRACK_TYPE_AUDIO,
@@ -974,17 +1061,27 @@ public abstract class SessionPlayer implements AutoCloseable {
 
         @ParcelField(1)
         int mId;
-        @ParcelField(2)
-        MediaItem mUpCastMediaItem;
+
+        // Removed @ParcelField(2)
+
         @ParcelField(3)
         int mTrackType;
-        @ParcelField(4)
-        Bundle mParcelledFormat;
 
+        // Parceled via mParcelableExtras.
         @NonParcelField
+        @Nullable
         MediaFormat mFormat;
+        // Parceled via mParcelableExtras.
         @NonParcelField
-        MediaItem mMediaItem;
+        boolean mIsSelectable;
+        // For extra information containing MediaFormat and isSelectable data. Should only be used
+        // by onPreParceling() and onPostParceling().
+        @ParcelField(4)
+        Bundle mParcelableExtras;
+        @NonParcelField
+        private final Object mLock = new Object();
+
+        // WARNING: Adding a new ParcelField may break old library users (b/152830728)
 
         /**
          * Used for VersionedParcelable
@@ -993,16 +1090,38 @@ public abstract class SessionPlayer implements AutoCloseable {
             // no-op
         }
 
-        public TrackInfo(int id, MediaItem item, int type, MediaFormat format) {
+        /**
+         * Constructor to create a TrackInfo instance.
+         *
+         * Note: The default value for {@link #isSelectable()} is false.
+         *
+         * @param id id of track unique across {@link MediaItem}s
+         * @param type type of track. Can be video, audio or subtitle
+         * @param format format of track
+         */
+        public TrackInfo(int id, int type, @Nullable MediaFormat format) {
+            this(id, type, format, /* isSelectable= */ false);
+        }
+
+        /**
+         * Constructor to create a TrackInfo instance.
+         *
+         * @param id id of track unique across {@link MediaItem}s
+         * @param type type of track. Can be video, audio or subtitle
+         * @param format format of track
+         * @param isSelectable whether track can be selected via
+         * {@link SessionPlayer#selectTrack(TrackInfo)}.
+         */
+        public TrackInfo(int id, int type, @Nullable MediaFormat format, boolean isSelectable) {
             mId = id;
-            mMediaItem = item;
             mTrackType = type;
             mFormat = format;
+            mIsSelectable = isSelectable;
         }
 
         /**
          * Gets the track type.
-         * @return MediaTrackType which indicates if the track is video, audio or subtitle.
+         * @return MediaTrackType which indicates if the track is video, audio or subtitle
          */
         @MediaTrackType
         public int getTrackType() {
@@ -1011,7 +1130,7 @@ public abstract class SessionPlayer implements AutoCloseable {
 
         /**
          * Gets the language code of the track.
-         * @return {@link Locale} which includes the language information.
+         * @return {@link Locale} which includes the language information
          */
         @NonNull
         public Locale getLanguage() {
@@ -1028,28 +1147,39 @@ public abstract class SessionPlayer implements AutoCloseable {
          */
         @Nullable
         public MediaFormat getFormat() {
-            if (mTrackType == MEDIA_TRACK_TYPE_SUBTITLE) {
-                return mFormat;
-            }
-            return null;
+            return mFormat;
         }
 
+        /**
+         * Gets the id of the track.
+         * The id is used by {@link #selectTrack(TrackInfo)} and {@link #deselectTrack(TrackInfo)}
+         * to identify the track to be (de)selected.
+         * So, it's highly recommended to ensure that the id of each track is unique across
+         * {@link MediaItem}s to avoid potential mis-selection when a stale {@link TrackInfo} is
+         * used.
+         *
+         * @return id of the track
+         */
         public int getId() {
             return mId;
         }
 
-        @Nullable
-        public MediaItem getMediaItem() {
-            return mMediaItem;
+        /**
+         * Whether the current track can be selected via {@link #selectTrack(TrackInfo)} or not.
+         *
+         * @return true if the current track can be selected; false if otherwise.
+         */
+        public boolean isSelectable() {
+            return mIsSelectable;
         }
 
         @Override
+        @NonNull
         public String toString() {
             StringBuilder out = new StringBuilder(128);
             out.append(getClass().getName());
-            out.append(", id: ").append(mId);
-            out.append(", MediaItem: " + mMediaItem);
-            out.append(", TrackType: ");
+            out.append('#').append(mId);
+            out.append('{');
             switch (mTrackType) {
                 case MEDIA_TRACK_TYPE_VIDEO:
                     out.append("VIDEO");
@@ -1060,146 +1190,108 @@ public abstract class SessionPlayer implements AutoCloseable {
                 case MEDIA_TRACK_TYPE_SUBTITLE:
                     out.append("SUBTITLE");
                     break;
+                case MEDIA_TRACK_TYPE_METADATA:
+                    out.append("METADATA");
+                    break;
                 default:
                     out.append("UNKNOWN");
                     break;
             }
-            out.append(", Format: " + mFormat);
+            out.append(", ").append(mFormat);
+            out.append(", isSelectable=").append(mIsSelectable);
+            out.append("}");
             return out.toString();
         }
 
         @Override
         public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + mId;
-            int hashCode = 0;
-            if (mMediaItem != null) {
-                if (mMediaItem.getMediaId() != null) {
-                    hashCode = mMediaItem.getMediaId().hashCode();
-                } else {
-                    hashCode = mMediaItem.hashCode();
-                }
-            }
-            result = prime * result + hashCode;
-            return result;
+            return mId;
         }
 
         @Override
-        public boolean equals(Object obj) {
+        public boolean equals(@Nullable Object obj) {
             if (this == obj) {
                 return true;
             }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
+            if (!(obj instanceof TrackInfo)) {
                 return false;
             }
             TrackInfo other = (TrackInfo) obj;
-            if (mId != other.mId) {
-                return false;
-            }
-            if (mTrackType != other.mTrackType) {
-                return false;
-            }
-            if (mFormat == null && other.mFormat == null) {
-                // continue
-            } else if (mFormat == null && other.mFormat != null) {
-                return false;
-            } else if (mFormat != null && other.mFormat == null) {
-                return false;
-            } else {
-                if (!stringEquals(MediaFormat.KEY_LANGUAGE, mFormat, other.mFormat)
-                        || !stringEquals(MediaFormat.KEY_MIME, mFormat, other.mFormat)
-                        || !intEquals(MediaFormat.KEY_IS_FORCED_SUBTITLE, mFormat, other.mFormat)
-                        || !intEquals(MediaFormat.KEY_IS_AUTOSELECT, mFormat, other.mFormat)
-                        || !intEquals(MediaFormat.KEY_IS_DEFAULT, mFormat, other.mFormat)) {
-                    return false;
-                }
-            }
-            // TODO (b/131873726): Replace this with MediaItem#getMediaId once media id is
-            // guaranteed to be NonNull.
-            if (mMediaItem == null && other.mMediaItem == null) {
-                return true;
-            } else if (mMediaItem == null || other.mMediaItem == null) {
-                return false;
-            } else {
-                String mediaId = mMediaItem.getMediaId();
-                if (mediaId != null) {
-                    return mediaId.equals(other.mMediaItem.getMediaId());
-                }
-                return mMediaItem.equals(other.mMediaItem);
-            }
+            return mId == other.mId;
         }
 
+        /**
+         * @hide
+         * @param isStream
+         */
+        @RestrictTo(LIBRARY)
         @Override
         public void onPreParceling(boolean isStream) {
-            if (mFormat != null) {
-                mParcelledFormat = new Bundle();
-                parcelStringValue(MediaFormat.KEY_LANGUAGE);
-                parcelStringValue(MediaFormat.KEY_MIME);
-                parcelIntValue(MediaFormat.KEY_IS_FORCED_SUBTITLE);
-                parcelIntValue(MediaFormat.KEY_IS_AUTOSELECT);
-                parcelIntValue(MediaFormat.KEY_IS_DEFAULT);
-            }
+            synchronized (mLock) {
+                mParcelableExtras = new Bundle();
 
-            // Up-cast MediaItem's subclass object to MediaItem class.
-            if (mMediaItem != null && mUpCastMediaItem == null) {
-                mUpCastMediaItem = new MediaItem(mMediaItem);
+                mParcelableExtras.putBoolean(KEY_IS_FORMAT_NULL, mFormat == null);
+                if (mFormat != null) {
+                    putStringValueToBundle(MediaFormat.KEY_LANGUAGE, mFormat, mParcelableExtras);
+                    putStringValueToBundle(MediaFormat.KEY_MIME, mFormat, mParcelableExtras);
+                    putIntValueToBundle(MediaFormat.KEY_IS_FORCED_SUBTITLE, mFormat,
+                            mParcelableExtras);
+                    putIntValueToBundle(MediaFormat.KEY_IS_AUTOSELECT, mFormat, mParcelableExtras);
+                    putIntValueToBundle(MediaFormat.KEY_IS_DEFAULT, mFormat, mParcelableExtras);
+                }
+
+                mParcelableExtras.putBoolean(KEY_IS_SELECTABLE, mIsSelectable);
             }
         }
 
+        /**
+         * @hide
+         */
+        @RestrictTo(LIBRARY)
         @Override
         public void onPostParceling() {
-            if (mParcelledFormat != null) {
+            if (mParcelableExtras != null && !mParcelableExtras.getBoolean(KEY_IS_FORMAT_NULL)) {
                 mFormat = new MediaFormat();
-                unparcelStringValue(MediaFormat.KEY_LANGUAGE);
-                unparcelStringValue(MediaFormat.KEY_MIME);
-                unparcelIntValue(MediaFormat.KEY_IS_FORCED_SUBTITLE);
-                unparcelIntValue(MediaFormat.KEY_IS_AUTOSELECT);
-                unparcelIntValue(MediaFormat.KEY_IS_DEFAULT);
+                setStringValueToMediaFormat(MediaFormat.KEY_LANGUAGE, mFormat, mParcelableExtras);
+                setStringValueToMediaFormat(MediaFormat.KEY_MIME, mFormat, mParcelableExtras);
+                setIntValueToMediaFormat(MediaFormat.KEY_IS_FORCED_SUBTITLE, mFormat,
+                        mParcelableExtras);
+                setIntValueToMediaFormat(MediaFormat.KEY_IS_AUTOSELECT, mFormat, mParcelableExtras);
+                setIntValueToMediaFormat(MediaFormat.KEY_IS_DEFAULT, mFormat, mParcelableExtras);
             }
-            if (mMediaItem == null) {
-                mMediaItem = mUpCastMediaItem;
-            }
-        }
 
-        private boolean stringEquals(String key, MediaFormat format1, MediaFormat format2) {
-            return TextUtils.equals(format1.getString(key), format2.getString(key));
-        }
-
-        private boolean intEquals(String key, MediaFormat format1, MediaFormat format2) {
-            boolean exists1 = format1.containsKey(key);
-            boolean exists2 = format2.containsKey(key);
-            if (exists1 && exists2) {
-                return format1.getInteger(key) == format2.getInteger(key);
+            if (mParcelableExtras == null || !mParcelableExtras.containsKey(KEY_IS_SELECTABLE)) {
+                mIsSelectable = mTrackType != MEDIA_TRACK_TYPE_VIDEO;
             } else {
-                return !exists1 && !exists2;
+                mIsSelectable = mParcelableExtras.getBoolean(KEY_IS_SELECTABLE);
             }
         }
 
-        private void parcelIntValue(String key) {
-            if (mFormat.containsKey(key)) {
-                mParcelledFormat.putInt(key, mFormat.getInteger(key));
+        private static void putIntValueToBundle(
+                String intValueKey, MediaFormat mediaFormat, Bundle bundle) {
+            if (mediaFormat.containsKey(intValueKey)) {
+                bundle.putInt(intValueKey, mediaFormat.getInteger(intValueKey));
             }
         }
 
-        private void parcelStringValue(String key) {
-            if (mFormat.containsKey(key)) {
-                mParcelledFormat.putString(key, mFormat.getString(key));
+        private static void putStringValueToBundle(
+                String stringValueKey, MediaFormat mediaFormat, Bundle bundle) {
+            if (mediaFormat.containsKey(stringValueKey)) {
+                bundle.putString(stringValueKey, mediaFormat.getString(stringValueKey));
             }
         }
 
-        private void unparcelIntValue(String key) {
-            if (mParcelledFormat.containsKey(key)) {
-                mFormat.setInteger(key, mParcelledFormat.getInt(key));
+        private static void setIntValueToMediaFormat(
+                String intValueKey, MediaFormat mediaFormat, Bundle bundle) {
+            if (bundle.containsKey(intValueKey)) {
+                mediaFormat.setInteger(intValueKey, bundle.getInt(intValueKey));
             }
         }
 
-        private void unparcelStringValue(String key) {
-            if (mParcelledFormat.containsKey(key)) {
-                mFormat.setString(key, mParcelledFormat.getString(key));
+        private static void setStringValueToMediaFormat(
+                String stringValueKey, MediaFormat mediaFormat, Bundle bundle) {
+            if (bundle.containsKey(stringValueKey)) {
+                mediaFormat.setString(stringValueKey, bundle.getString(stringValueKey));
             }
         }
     }
@@ -1212,8 +1304,8 @@ public abstract class SessionPlayer implements AutoCloseable {
         /**
          * Called when the state of the player has changed.
          *
-         * @param player the player whose state has changed.
-         * @param playerState the new state of the player.
+         * @param player the player whose state has changed
+         * @param playerState the new state of the player
          * @see #getPlayerState()
          */
         public void onPlayerStateChanged(@NonNull SessionPlayer player,
@@ -1224,8 +1316,8 @@ public abstract class SessionPlayer implements AutoCloseable {
          * Called when a buffering events for a media item happened.
          *
          * @param player the player that is buffering
-         * @param item the media item for which buffering is happening.
-         * @param buffState the new buffering state.
+         * @param item the media item for which buffering is happening
+         * @param buffState the new buffering state
          * @see #getBufferingState()
          */
         public void onBufferingStateChanged(@NonNull SessionPlayer player,
@@ -1235,8 +1327,8 @@ public abstract class SessionPlayer implements AutoCloseable {
         /**
          * Called when the playback speed has changed.
          *
-         * @param player the player that has changed the playback speed.
-         * @param playbackSpeed the new playback speed.
+         * @param player the player that has changed the playback speed
+         * @param playbackSpeed the new playback speed
          * @see #getPlaybackSpeed()
          */
         public void onPlaybackSpeedChanged(@NonNull SessionPlayer player,
@@ -1246,8 +1338,8 @@ public abstract class SessionPlayer implements AutoCloseable {
         /**
          * Called when {@link #seekTo(long)} is completed.
          *
-         * @param player the player that has completed seeking.
-         * @param position the previous seeking request.
+         * @param player the player that has completed seeking
+         * @param position the previous seeking request
          * @see #getCurrentPosition()
          */
         public void onSeekCompleted(@NonNull SessionPlayer player, long position) {
@@ -1257,7 +1349,7 @@ public abstract class SessionPlayer implements AutoCloseable {
          * Called when a playlist is changed. It's also called after {@link #setPlaylist} or
          * {@link #setMediaItem}.
          *
-         * @param player the player that has changed the playlist and playlist metadata.
+         * @param player the player that has changed the playlist and playlist metadata
          * @param list new playlist
          * @param metadata new metadata
          * @see #getPlaylist()
@@ -1270,7 +1362,7 @@ public abstract class SessionPlayer implements AutoCloseable {
         /**
          * Called when a playlist metadata is changed.
          *
-         * @param player the player that has changed the playlist metadata.
+         * @param player the player that has changed the playlist metadata
          * @param metadata new metadata
          * @see #getPlaylistMetadata()
          */
@@ -1316,15 +1408,17 @@ public abstract class SessionPlayer implements AutoCloseable {
         }
 
         /**
-         * Called when the player's current media item has changed. It's also called after
-         * {@link #setPlaylist} or {@link #setMediaItem}.
+         * Called when the player's current media item has changed. Generally called after a new
+         * media item is set through {@link #setPlaylist} or {@link #setMediaItem}, or after
+         * skipping to a different item in a given playlist.
          *
-         * @param player the player whose media item changed.
-         * @param item the new current media item.
+         * @param player the player whose media item changed
+         * @param item the new current media item. This can be {@code null} when the state of
+         * the player becomes {@link #PLAYER_STATE_IDLE}.
          * @see #getCurrentMediaItem()
          */
         public void onCurrentMediaItemChanged(@NonNull SessionPlayer player,
-                @NonNull MediaItem item) {
+                @Nullable MediaItem item) {
         }
 
         /**
@@ -1333,7 +1427,7 @@ public abstract class SessionPlayer implements AutoCloseable {
          * <p>
          * This will be called only when the repeat mode is set to {@link #REPEAT_MODE_NONE}.
          *
-         * @param player the player whose playback is completed.
+         * @param player the player whose playback is completed
          * @see #REPEAT_MODE_NONE
          */
         public void onPlaybackCompleted(@NonNull SessionPlayer player) {
@@ -1342,7 +1436,7 @@ public abstract class SessionPlayer implements AutoCloseable {
         /**
          * Called when the player's current audio attributes are changed.
          *
-         * @param player the player whose audio attributes are changed.
+         * @param player the player whose audio attributes are changed
          * @param attributes the new current audio attributes
          * @see #getAudioAttributes()
          */
@@ -1355,18 +1449,16 @@ public abstract class SessionPlayer implements AutoCloseable {
          * <p>
          * The video size (width and height) could be 0 if there was no video,
          * no display surface was set, or the value was not determined yet.
+         * <p>
+         * This callback is generally called when player updates video size, but will also be
+         * called when {@link PlayerCallback#onCurrentMediaItemChanged(SessionPlayer, MediaItem)}
+         * is called.
          *
          * @param player the player associated with this callback
-         * @param item the MediaItem of this media item
          * @param size the size of the video
-         * @see #getVideoSizeInternal()
-         *
-         * @hide
+         * @see #getVideoSize()
          */
-        // TODO: Change this into onVideoSizeChanged
-        @RestrictTo(LIBRARY_GROUP)
-        public void onVideoSizeChangedInternal(
-                @NonNull SessionPlayer player, @NonNull MediaItem item, @NonNull VideoSize size) {
+        public void onVideoSizeChanged(@NonNull SessionPlayer player, @NonNull VideoSize size) {
         }
 
         /**
@@ -1375,30 +1467,27 @@ public abstract class SessionPlayer implements AutoCloseable {
          * @param item the MediaItem of this media item
          * @param track the track that has the subtitle data
          * @param data the subtitle data
-         *
-         * @hide
          */
-        @RestrictTo(LIBRARY_GROUP)
         public void onSubtitleData(@NonNull SessionPlayer player, @NonNull MediaItem item,
                 @NonNull TrackInfo track, @NonNull SubtitleData data) {
         }
 
         /**
-         * Called when the tracks are first retrieved after media is prepared or when new tracks are
-         * found during playback.
+         * Called when the tracks of the current media item is changed such as
+         * 1) when tracks of a media item become available,
+         * 2) when new tracks are found during playback, or
+         * 3) when the current media item is changed.
          * <p>
          * When it's called, you should invalidate previous track information and use the new
-         * tracks to call {@link #selectTrackInternal(SessionPlayer.TrackInfo)} or
-         * {@link #deselectTrackInternal(SessionPlayer.TrackInfo)}.
+         * tracks to call {@link #selectTrack(TrackInfo)} or
+         * {@link #deselectTrack(TrackInfo)}.
          *
          * @param player the player associated with this callback
-         * @param trackInfos the list of track
-         * @see #getTrackInfoInternal()
-         * @hide
+         * @param tracks the list of tracks. It can be empty
+         * @see #getTracks()
          */
-        @RestrictTo(LIBRARY_GROUP)
-        public void onTrackInfoChanged(@NonNull SessionPlayer player,
-                @NonNull List<TrackInfo> trackInfos) {
+        public void onTracksChanged(@NonNull SessionPlayer player,
+                @NonNull List<TrackInfo> tracks) {
         }
 
         /**
@@ -1406,10 +1495,8 @@ public abstract class SessionPlayer implements AutoCloseable {
          *
          * @param player the player associated with this callback
          * @param trackInfo the selected track
-         * @see #selectTrackInternal(TrackInfo)
-         * @hide
+         * @see #selectTrack(TrackInfo)
          */
-        @RestrictTo(LIBRARY_GROUP)
         public void onTrackSelected(@NonNull SessionPlayer player, @NonNull TrackInfo trackInfo) {
         }
 
@@ -1417,14 +1504,12 @@ public abstract class SessionPlayer implements AutoCloseable {
          * Called when a track is deselected.
          * <p>
          * This callback will generally be called only after calling
-         * {@link #deselectTrackInternal(TrackInfo)}.
+         * {@link #deselectTrack(TrackInfo)}.
          *
          * @param player the player associated with this callback
          * @param trackInfo the deselected track
-         * @see #deselectTrackInternal(TrackInfo)
-         * @hide
+         * @see #deselectTrack(TrackInfo)
          */
-        @RestrictTo(LIBRARY_GROUP)
         public void onTrackDeselected(@NonNull SessionPlayer player, @NonNull TrackInfo trackInfo) {
         }
     }
@@ -1446,7 +1531,7 @@ public abstract class SessionPlayer implements AutoCloseable {
         /**
          * @hide
          */
-        @IntDef(flag = false, /*prefix = "RESULT_CODE",*/ value = {
+        @IntDef(flag = false, /*prefix = "RESULT",*/ value = {
                 RESULT_SUCCESS,
                 RESULT_ERROR_UNKNOWN,
                 RESULT_ERROR_INVALID_STATE,
@@ -1456,7 +1541,7 @@ public abstract class SessionPlayer implements AutoCloseable {
                 RESULT_ERROR_NOT_SUPPORTED,
                 RESULT_INFO_SKIPPED})
         @Retention(RetentionPolicy.SOURCE)
-        @RestrictTo(LIBRARY_GROUP_PREFIX)
+        @RestrictTo(LIBRARY)
         public @interface ResultCode {}
 
         private final int mResultCode;
@@ -1486,6 +1571,7 @@ public abstract class SessionPlayer implements AutoCloseable {
          * @hide
          */
         @RestrictTo(LIBRARY_GROUP)
+        @NonNull
         public static ListenableFuture<PlayerResult> createFuture(int resultCode) {
             ResolvableFuture<PlayerResult> result = ResolvableFuture.create();
             result.set(new PlayerResult(resultCode, null));
@@ -1498,7 +1584,7 @@ public abstract class SessionPlayer implements AutoCloseable {
          * Subclass of the {@link SessionPlayer} may have defined customized extra code other than
          * codes defined here. Check the documentation of the class that you're interested in.
          *
-         * @return result code.
+         * @return result code
          * @see #RESULT_ERROR_UNKNOWN
          * @see #RESULT_ERROR_INVALID_STATE
          * @see #RESULT_ERROR_BAD_VALUE
@@ -1508,7 +1594,8 @@ public abstract class SessionPlayer implements AutoCloseable {
          * @see #RESULT_INFO_SKIPPED
          */
         @Override
-        public @ResultCode int getResultCode() {
+        @ResultCode
+        public int getResultCode() {
             return mResultCode;
         }
 
@@ -1529,10 +1616,11 @@ public abstract class SessionPlayer implements AutoCloseable {
          * the command completed.
          *
          * @return media item when the command completed. Can be {@code null} for an error, or
-         *         the current media item was {@code null}.
+         *         the current media item was {@code null}
          */
         @Override
-        public @Nullable MediaItem getMediaItem() {
+        @Nullable
+        public MediaItem getMediaItem() {
             return mItem;
         }
     }

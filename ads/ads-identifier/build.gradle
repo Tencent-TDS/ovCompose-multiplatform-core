@@ -22,22 +22,38 @@ import androidx.build.Publish
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
 }
 
 dependencies {
+    api("androidx.annotation:annotation:1.1.0")
+    implementation("androidx.core:core:1.1.0")
+    implementation(AUTO_VALUE_ANNOTATIONS)
+    annotationProcessor(AUTO_VALUE)
+    api(GUAVA_LISTENABLE_FUTURE)
+    implementation("androidx.concurrent:concurrent-futures:1.0.0")
 
+    implementation(project(":ads-identifier-common"))
+
+    androidTestImplementation(project(":ads-identifier-testing"))
+    androidTestImplementation(JUNIT)
+    androidTestImplementation(TRUTH)
+    androidTestImplementation(ANDROIDX_TEST_EXT_JUNIT)
+    androidTestImplementation(ANDROIDX_TEST_CORE)
+    androidTestImplementation(ANDROIDX_TEST_RUNNER)
+    androidTestImplementation(ANDROIDX_TEST_RULES)
+    androidTestImplementation(DEXMAKER_MOCKITO, libs.exclude_bytebuddy)
 }
 
 android {
-    defaultConfig {
-        minSdkVersion 14
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
     }
 }
 
 androidx {
     name = "AndroidX Ads Identifier"
-    publish = Publish.NONE
+    publish = Publish.SNAPSHOT_AND_RELEASE
     mavenVersion = LibraryVersions.ADS_IDENTIFIER
     mavenGroup = LibraryGroups.ADS
     inceptionYear = "2019"

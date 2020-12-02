@@ -38,7 +38,7 @@ import androidx.navigation.fragment.findNavController
  * factory returned by it will be used to create [ViewModel]:
  * ```
  * class MyFragment : Fragment() {
- *     val viewmodel: MainViewModel by navGraphViewModels(R.navigation.main) { myFactory }
+ *     val viewmodel: MainViewModel by navGraphViewModels(R.id.main) { myFactory }
  * }
  * ```
  *
@@ -48,10 +48,20 @@ import androidx.navigation.fragment.findNavController
  * @param navGraphId ID of a NavGraph that exists on the {@link NavController} back stack
  */
 @MainThread
-inline fun <reified VM : ViewModel> Fragment.navGraphViewModels(
+public inline fun <reified VM : ViewModel> Fragment.navGraphViewModels(
     @IdRes navGraphId: Int,
     noinline factoryProducer: (() -> ViewModelProvider.Factory)? = null
 ): Lazy<VM> {
-    val storeProducer: () -> ViewModelStore = { findNavController().getViewModelStore(navGraphId) }
-    return createViewModelLazy(VM::class, storeProducer, factoryProducer)
+    val backStackEntry by lazy {
+        findNavController().getBackStackEntry(navGraphId)
+    }
+    val storeProducer: () -> ViewModelStore = {
+        backStackEntry.viewModelStore
+    }
+    return createViewModelLazy(
+        VM::class, storeProducer,
+        {
+            factoryProducer?.invoke() ?: backStackEntry.defaultViewModelProviderFactory
+        }
+    )
 }

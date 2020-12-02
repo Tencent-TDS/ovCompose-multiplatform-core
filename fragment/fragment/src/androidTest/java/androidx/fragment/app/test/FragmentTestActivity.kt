@@ -21,11 +21,26 @@ import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.test.R
+import java.util.concurrent.CountDownLatch
 
 /**
  * A simple activity used for Fragment Transitions and lifecycle event ordering
  */
 class FragmentTestActivity : FragmentActivity(R.layout.activity_content) {
+
+    val finishCountDownLatch = CountDownLatch(1)
+
+    override fun finish() {
+        super.finish()
+        finishCountDownLatch.countDown()
+    }
+
+    @Suppress("DEPRECATION")
+    public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        supportFragmentManager.beginTransaction()
+            .commitNow()
+    }
 
     class ParentFragment : Fragment() {
         var wasAttachedInTime: Boolean = false
@@ -35,16 +50,20 @@ class FragmentTestActivity : FragmentActivity(R.layout.activity_content) {
         val childFragment: ChildFragment
             get() = childFragmentManager.findFragmentByTag(CHILD_FRAGMENT_TAG) as ChildFragment
 
+        @Suppress("DEPRECATION")
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
 
             if (childFragmentManager.findFragmentByTag(CHILD_FRAGMENT_TAG) == null) {
                 childFragmentManager.beginTransaction()
-                    .add(ChildFragment().apply {
-                        if (retainChildInstance) {
-                            retainInstance = true
-                        }
-                    }, CHILD_FRAGMENT_TAG)
+                    .add(
+                        ChildFragment().apply {
+                            if (retainChildInstance) {
+                                retainInstance = true
+                            }
+                        },
+                        CHILD_FRAGMENT_TAG
+                    )
                     .commitNow()
             }
             wasAttachedInTime = childFragment.attached

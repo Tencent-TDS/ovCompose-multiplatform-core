@@ -30,13 +30,12 @@ import java.util.Map;
  * It also handles the communication of the Activity / Fragment with the rest of the application
  * (e.g. calling the business logic classes).
  * <p>
- * A ViewModel is always created in association with a scope (an fragment or an activity) and will
+ * A ViewModel is always created in association with a scope (a fragment or an activity) and will
  * be retained as long as the scope is alive. E.g. if it is an Activity, until it is
  * finished.
  * <p>
  * In other words, this means that a ViewModel will not be destroyed if its owner is destroyed for a
- * configuration change (e.g. rotation). The new instance of the owner will just re-connected to the
- * existing ViewModel.
+ * configuration change (e.g. rotation). The new owner instance just re-connects to the existing model.
  * <p>
  * The purpose of the ViewModel is to acquire and keep the information that is necessary for an
  * Activity or a Fragment. The Activity or the Fragment should be able to observe changes in the
@@ -54,9 +53,9 @@ import java.util.Map;
  *     protected void onCreate(Bundle savedInstanceState) {
  *         super.onCreate(savedInstanceState);
  *         setContentView(R.layout.user_activity_layout);
- *         final UserModel viewModel = ViewModelProviders.of(this).get(UserModel.class);
- *         viewModel.userLiveData.observer(this, new Observer<User>() {
- *            {@literal @}Override
+ *         final UserModel viewModel = new ViewModelProvider(this).get(UserModel.class);
+ *         viewModel.getUser().observe(this, new Observer&lt;User&gt;() {
+ *             {@literal @}Override
  *             public void onChanged(@Nullable User data) {
  *                 // update ui.
  *             }
@@ -99,7 +98,7 @@ import java.util.Map;
  * <pre>
  * public class MyFragment extends Fragment {
  *     public void onStart() {
- *         UserModel userModel = ViewModelProviders.of(getActivity()).get(UserModel.class);
+ *         UserModel userModel = new ViewModelProvider(requireActivity()).get(UserModel.class);
  *     }
  * }
  * </pre>
@@ -175,6 +174,9 @@ public abstract class ViewModel {
      */
     @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
     <T> T getTag(String key) {
+        if (mBagOfTags == null) {
+            return null;
+        }
         synchronized (mBagOfTags) {
             return (T) mBagOfTags.get(key);
         }

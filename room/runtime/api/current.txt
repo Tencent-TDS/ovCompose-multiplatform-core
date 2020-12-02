@@ -1,29 +1,26 @@
-// Signature format: 3.0
+// Signature format: 4.0
 package androidx.room {
 
   public class DatabaseConfiguration {
     method public boolean isMigrationRequired(int, int);
     method @Deprecated public boolean isMigrationRequiredFrom(int);
-    field public static final int COPY_FROM_ASSET = 1; // 0x1
-    field public static final int COPY_FROM_FILE = 2; // 0x2
-    field public static final int COPY_FROM_NONE = 0; // 0x0
     field public final boolean allowDestructiveMigrationOnDowngrade;
     field public final boolean allowMainThreadQueries;
     field public final java.util.List<androidx.room.RoomDatabase.Callback!>? callbacks;
     field public final android.content.Context context;
-    field @androidx.room.DatabaseConfiguration.CopyFrom public final int copyFrom;
-    field public final String? copyFromPath;
+    field public final String? copyFromAssetPath;
+    field public final java.io.File? copyFromFile;
+    field public final java.util.concurrent.Callable<java.io.InputStream!>? copyFromInputStream;
     field public final androidx.room.RoomDatabase.JournalMode! journalMode;
     field public final androidx.room.RoomDatabase.MigrationContainer migrationContainer;
     field public final boolean multiInstanceInvalidation;
     field public final String? name;
+    field public final androidx.room.RoomDatabase.PrepackagedDatabaseCallback? prepackagedDatabaseCallback;
     field public final java.util.concurrent.Executor queryExecutor;
     field public final boolean requireMigration;
     field public final androidx.sqlite.db.SupportSQLiteOpenHelper.Factory sqliteOpenHelperFactory;
     field public final java.util.concurrent.Executor transactionExecutor;
-  }
-
-  @IntDef({androidx.room.DatabaseConfiguration.COPY_FROM_NONE, androidx.room.DatabaseConfiguration.COPY_FROM_ASSET, androidx.room.DatabaseConfiguration.COPY_FROM_FILE}) @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.CLASS) public static @interface DatabaseConfiguration.CopyFrom {
+    field public final java.util.List<java.lang.Object!> typeConverters;
   }
 
   public class InvalidationTracker {
@@ -58,26 +55,32 @@ package androidx.room {
     method public androidx.sqlite.db.SupportSQLiteOpenHelper getOpenHelper();
     method public java.util.concurrent.Executor getQueryExecutor();
     method public java.util.concurrent.Executor getTransactionExecutor();
+    method public <T> T? getTypeConverter(Class<T!>);
     method public boolean inTransaction();
     method @CallSuper public void init(androidx.room.DatabaseConfiguration);
     method protected void internalInitInvalidationTracker(androidx.sqlite.db.SupportSQLiteDatabase);
     method public boolean isOpen();
-    method public android.database.Cursor! query(String!, Object![]?);
-    method public android.database.Cursor! query(androidx.sqlite.db.SupportSQLiteQuery!);
+    method public android.database.Cursor query(String, Object![]?);
+    method public android.database.Cursor query(androidx.sqlite.db.SupportSQLiteQuery);
+    method public android.database.Cursor query(androidx.sqlite.db.SupportSQLiteQuery, android.os.CancellationSignal?);
     method public void runInTransaction(Runnable);
     method public <V> V! runInTransaction(java.util.concurrent.Callable<V!>);
     method @Deprecated public void setTransactionSuccessful();
-    field @Deprecated protected java.util.List<androidx.room.RoomDatabase.Callback!>? mCallbacks;
     field @Deprecated protected volatile androidx.sqlite.db.SupportSQLiteDatabase! mDatabase;
   }
 
   public static class RoomDatabase.Builder<T extends androidx.room.RoomDatabase> {
     method public androidx.room.RoomDatabase.Builder<T!> addCallback(androidx.room.RoomDatabase.Callback);
     method public androidx.room.RoomDatabase.Builder<T!> addMigrations(androidx.room.migration.Migration!...);
+    method public androidx.room.RoomDatabase.Builder<T!> addTypeConverter(Object);
     method public androidx.room.RoomDatabase.Builder<T!> allowMainThreadQueries();
     method public T build();
     method public androidx.room.RoomDatabase.Builder<T!> createFromAsset(String);
-    method public androidx.room.RoomDatabase.Builder<T!> createFromFile(String);
+    method public androidx.room.RoomDatabase.Builder<T!> createFromAsset(String, androidx.room.RoomDatabase.PrepackagedDatabaseCallback);
+    method public androidx.room.RoomDatabase.Builder<T!> createFromFile(java.io.File);
+    method public androidx.room.RoomDatabase.Builder<T!> createFromFile(java.io.File, androidx.room.RoomDatabase.PrepackagedDatabaseCallback);
+    method public androidx.room.RoomDatabase.Builder<T!> createFromInputStream(java.util.concurrent.Callable<java.io.InputStream!>);
+    method public androidx.room.RoomDatabase.Builder<T!> createFromInputStream(java.util.concurrent.Callable<java.io.InputStream!>, androidx.room.RoomDatabase.PrepackagedDatabaseCallback);
     method public androidx.room.RoomDatabase.Builder<T!> enableMultiInstanceInvalidation();
     method public androidx.room.RoomDatabase.Builder<T!> fallbackToDestructiveMigration();
     method public androidx.room.RoomDatabase.Builder<T!> fallbackToDestructiveMigrationFrom(int...);
@@ -91,6 +94,7 @@ package androidx.room {
   public abstract static class RoomDatabase.Callback {
     ctor public RoomDatabase.Callback();
     method public void onCreate(androidx.sqlite.db.SupportSQLiteDatabase);
+    method public void onDestructiveMigration(androidx.sqlite.db.SupportSQLiteDatabase);
     method public void onOpen(androidx.sqlite.db.SupportSQLiteDatabase);
   }
 
@@ -104,6 +108,11 @@ package androidx.room {
     ctor public RoomDatabase.MigrationContainer();
     method public void addMigrations(androidx.room.migration.Migration!...);
     method public java.util.List<androidx.room.migration.Migration!>? findMigrationPath(int, int);
+  }
+
+  public abstract static class RoomDatabase.PrepackagedDatabaseCallback {
+    ctor public RoomDatabase.PrepackagedDatabaseCallback();
+    method public void onOpenPrepackagedDatabase(androidx.sqlite.db.SupportSQLiteDatabase);
   }
 
 }

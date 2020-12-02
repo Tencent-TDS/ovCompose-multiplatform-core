@@ -17,6 +17,7 @@
 package androidx.work.impl.utils;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import java.util.ArrayDeque;
 import java.util.concurrent.Executor;
@@ -54,6 +55,21 @@ public class SerialExecutor implements Executor {
                 mExecutor.execute(mActive);
             }
         }
+    }
+
+    /**
+     * @return {@code true} if there are tasks to execute in the queue.
+     */
+    public boolean hasPendingTasks() {
+        synchronized (mLock) {
+            return !mTasks.isEmpty();
+        }
+    }
+
+    @NonNull
+    @VisibleForTesting
+    public Executor getDelegatedExecutor() {
+        return mExecutor;
     }
 
     /**

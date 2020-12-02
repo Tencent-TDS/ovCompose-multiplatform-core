@@ -29,6 +29,7 @@ import android.os.Handler;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+import androidx.annotation.VisibleForTesting;
 import androidx.collection.LruCache;
 import androidx.core.content.res.FontResourcesParserCompat;
 import androidx.core.content.res.FontResourcesParserCompat.FamilyResourceEntry;
@@ -115,7 +116,7 @@ public class TypefaceCompat {
             final int timeout = isRequestFromLayoutInflator ? providerEntry.getTimeout()
                     : FontResourcesParserCompat.INFINITE_TIMEOUT_VALUE;
             typeface = FontsContractCompat.getFontSync(context, providerEntry.getRequest(),
-                    fontCallback, handler, isBlocking, timeout, style, isRequestFromLayoutInflator);
+                    fontCallback, handler, isBlocking, timeout, style);
         } else {
             typeface = sTypefaceCompatImpl.createFromFontFamilyFilesResourceEntry(
                     context, (FontFamilyFilesResourceEntry) entry, resources, style);
@@ -204,5 +205,14 @@ public class TypefaceCompat {
         }
 
         return Typeface.create(family, style);
+    }
+
+    /**
+     * @hide
+     */
+    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @VisibleForTesting
+    public static void clearCache() {
+        sTypefaceCache.evictAll();
     }
 }
