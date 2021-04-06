@@ -23,33 +23,39 @@ import androidx.compose.runtime.DisposableEffectScope
 import androidx.compose.runtime.NonRestartableComposable
 import org.w3c.dom.HTMLElement
 
-interface ElementScope {
+interface DOMScope<out THTMLElement : HTMLElement>
+
+interface ElementScope<out THTMLElement : HTMLElement> : DOMScope<THTMLElement> {
 
     @Composable
     @NonRestartableComposable
     fun DisposableRefEffect(
         key: Any?,
-        effect: DisposableEffectScope.(HTMLElement) -> DisposableEffectResult
+        effect: DisposableEffectScope.(THTMLElement) -> DisposableEffectResult
     )
 
     @Composable
     @NonRestartableComposable
     fun DisposableRefEffect(
-        effect: DisposableEffectScope.(HTMLElement) -> DisposableEffectResult
+        effect: DisposableEffectScope.(THTMLElement) -> DisposableEffectResult
     ) {
         DisposableRefEffect(null, effect)
     }
 }
 
-class ElementScopeImpl : ElementScope {
-    lateinit var element: HTMLElement
+abstract class ElementScopeBase<out THTMLElement : HTMLElement> : ElementScope<THTMLElement> {
+    protected abstract val element: THTMLElement
 
     @Composable
     @NonRestartableComposable
     override fun DisposableRefEffect(
         key: Any?,
-        effect: DisposableEffectScope.(HTMLElement) -> DisposableEffectResult
+        effect: DisposableEffectScope.(THTMLElement) -> DisposableEffectResult
     ) {
         DisposableEffect(key) { effect(element) }
     }
+}
+
+open class ElementScopeImpl<THTMLElement : HTMLElement> : ElementScopeBase<THTMLElement>() {
+    public override lateinit var element: THTMLElement
 }

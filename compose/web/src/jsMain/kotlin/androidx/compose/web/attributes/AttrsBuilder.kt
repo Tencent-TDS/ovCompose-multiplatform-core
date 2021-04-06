@@ -20,7 +20,7 @@ import androidx.compose.runtime.DisposableEffectResult
 import androidx.compose.runtime.DisposableEffectScope
 import org.w3c.dom.HTMLElement
 
-class AttrsBuilder<T> : EventsListenerBuilder() {
+class AttrsBuilder<TTag : Tag> : EventsListenerBuilder() {
     private val map = mutableMapOf<String, String>()
 
     val propertyUpdates = mutableListOf<Pair<(HTMLElement, Any) -> Unit, Any>>()
@@ -28,6 +28,7 @@ class AttrsBuilder<T> : EventsListenerBuilder() {
 
     inline fun classes(builder: ClassesAttrBuilder.() -> Unit) =
         attr(CLASS, ClassesAttrBuilder().apply(builder).asString())
+
     fun classes(vararg value: String) = attr(CLASS, value.joinToString(separator = " "))
 
     fun id(value: String) = attr(ID, value)
@@ -44,7 +45,7 @@ class AttrsBuilder<T> : EventsListenerBuilder() {
         this.refEffect = effect
     }
 
-    fun attr(attr: String, value: String?): AttrsBuilder<T> {
+    fun attr(attr: String, value: String?): AttrsBuilder<TTag> {
         if (value == null && attr in map) {
             map.remove(attr)
         } else if (value != null) {
@@ -75,10 +76,6 @@ class AttrsBuilder<T> : EventsListenerBuilder() {
         const val TAB_INDEX = "tabindex"
         const val SPELLCHECK = "spellcheck"
     }
-}
-
-open class StyleBuilder {
-    var cssText: String? = null
 }
 
 class ClassesAttrBuilder {

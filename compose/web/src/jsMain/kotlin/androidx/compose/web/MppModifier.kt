@@ -1,7 +1,7 @@
 package androidx.compose.web
 
-import org.w3c.dom.css.CSSStyleDeclaration
 import androidx.compose.runtime.Composable
+import org.w3c.dom.css.CSSStyleDeclaration
 
 /**
  * Adds a css style configuration which would be applied when node is updated

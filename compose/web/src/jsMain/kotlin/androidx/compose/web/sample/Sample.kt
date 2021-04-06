@@ -16,28 +16,39 @@
 
 package androidx.compose.web.sample
 
-import androidx.compose.web.attributes.Draggable
-import androidx.compose.web.elements.A
-import androidx.compose.web.elements.Button
-import androidx.compose.web.elements.Div
-import androidx.compose.web.elements.Text
-import androidx.compose.web.elements.TextArea
-import androidx.compose.web.renderComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.web.attributes.Draggable
 import androidx.compose.web.attributes.InputType
 import androidx.compose.web.attributes.name
+import androidx.compose.web.css.className
+import androidx.compose.web.css.color
+import androidx.compose.web.css.fontSize
+import androidx.compose.web.css.margin
+import androidx.compose.web.css.opacity
+import androidx.compose.web.css.padding
+import androidx.compose.web.css.percent
+import androidx.compose.web.css.px
+import androidx.compose.web.css.width
+import androidx.compose.web.elements.A
+import androidx.compose.web.elements.Button
+import androidx.compose.web.elements.Div
 import androidx.compose.web.elements.Input
+import androidx.compose.web.elements.Style
+import androidx.compose.web.elements.Text
+import androidx.compose.web.elements.TextArea
+import androidx.compose.web.renderComposable
 import kotlinx.browser.document
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.w3c.dom.HTMLElement
 
 class State {
     var isDarkTheme by mutableStateOf(false)
@@ -52,12 +63,10 @@ fun CounterApp(counter: MutableState<Int>) {
 
     Button(
         style = {
-            cssText = """
-                color: ${if (counter.value % 2 == 0) "green" else "red"};
-                width: ${counter.value + 200}px;
-                font-size: ${if (counter.value % 2 == 0) "25px" else "30px"};
-                margin: 15px;
-            """.trimIndent().replace("\n", "")
+            color(if (counter.value % 2 == 0) "green" else "red")
+            width((counter.value + 200).px)
+            fontSize(if (counter.value % 2 == 0) 25.px else 30.px)
+            margin(15.px)
         },
         attrs = {
             onClick { counter.value = counter.value + 1 }
@@ -78,15 +87,17 @@ fun Counter(value: Int) {
             onDrag { println("DRAGGING NOW!!!!") }
         },
         style = {
-            cssText = "color: red;"
+            color("red")
         }
     ) {
         Text("Counter = $value")
     }
 }
 
+const val MyClassName = "MyClassName"
+
 fun main() {
-    val root = document.getElementById("root")!!
+    val root = document.getElementById("root")!! as HTMLElement
 
     renderComposable(
         root = root
@@ -115,6 +126,45 @@ fun main() {
         MyInputComponent(text = inputValue) {
             inputValue.value = it
         }
+
+        Text("inputValue.value" + inputValue.value)
+
+        Style {
+            className(MyClassName) with {
+                opacity(0.3)
+            }
+
+            className(MyClassName) with {
+                opacity(0.3)
+            }
+        }
+
+        Div(
+            attrs = {
+                classes(MyClassName)
+            }
+        ) {
+            Text("My text")
+        }
+
+        Div(
+            attrs = {
+                classes(MyClassName)
+            },
+            style = {
+                opacity(0.3)
+            }
+        ) {
+            Text("My text")
+        }
+
+        Div(
+            style = {
+                opacity(30.percent)
+            }
+        ) {
+            Text("My text")
+        }
     }
 
     MainScope().launch {
@@ -129,7 +179,7 @@ fun main() {
 fun MyInputComponent(text: State<String>, onChange: (String) -> Unit) {
     Div(
         style = {
-            cssText = "padding:50px;"
+            padding(50.px)
         },
         attrs = {
             onTouchStart {
@@ -220,10 +270,10 @@ fun smallColoredText(text: String) {
                 }
             },
             style = {
-                cssText = if (globalState.isDarkTheme) {
-                    "color: black;"
+                if (globalState.isDarkTheme) {
+                    color("black")
                 } else {
-                    "color: green;"
+                    color("green")
                 }
             }
         ) {

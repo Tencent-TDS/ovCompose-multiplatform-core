@@ -16,10 +16,6 @@
 
 package androidx.compose.web.elements
 
-import androidx.compose.web.DomApplier
-import androidx.compose.web.DomNodeWrapper
-import androidx.compose.web.attributes.AttrsBuilder
-import androidx.compose.web.attributes.StyleBuilder
 import androidx.compose.runtime.Applier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ComposeCompilerApi
@@ -30,18 +26,23 @@ import androidx.compose.runtime.ExplicitGroupsComposable
 import androidx.compose.runtime.SkippableUpdater
 import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.remember
+import androidx.compose.web.DomApplier
+import androidx.compose.web.DomNodeWrapper
+import androidx.compose.web.attributes.AttrsBuilder
+import androidx.compose.web.attributes.Tag
+import androidx.compose.web.css.StyleBuilder
 import kotlinx.browser.document
 import org.w3c.dom.HTMLElement
 
 @OptIn(ComposeCompilerApi::class)
 @Composable
 @ExplicitGroupsComposable
-inline fun <T, reified E : Applier<*>> ComposeDomNode(
+inline fun <TScope, T, reified E : Applier<*>> ComposeDomNode(
     noinline factory: () -> T,
-    elementScope: ElementScope,
+    elementScope: TScope,
     noinline attrsSkippableUpdate: @Composable SkippableUpdater<T>.() -> Unit,
     noinline styleSkippableUpdate: @Composable SkippableUpdater<T>.() -> Unit,
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable TScope.() -> Unit
 ) {
     if (currentComposer.applier !is E) error("Invalid applier")
     currentComposer.startNode()
@@ -66,24 +67,23 @@ class DisposableEffectHolder(
 )
 
 @Composable
-inline fun <T : Any> TagElement(
+inline fun <TTag : Tag, THTMLElement : HTMLElement> TagElement(
     tagName: String,
-    crossinline applyAttrs: AttrsBuilder<T>.() -> Unit,
+    crossinline applyAttrs: AttrsBuilder<TTag>.() -> Unit,
     crossinline applyStyle: StyleBuilder.() -> Unit,
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<THTMLElement>.() -> Unit
 ) {
-
-    val scope = remember { ElementScopeImpl() }
+    val scope = remember { ElementScopeImpl<THTMLElement>() }
     val refEffect = remember { DisposableEffectHolder() }
 
-    ComposeDomNode<DomNodeWrapper, DomApplier>(
+    ComposeDomNode<ElementScope<THTMLElement>, DomNodeWrapper, DomApplier>(
         factory = {
             DomNodeWrapper(document.createElement(tagName)).also {
-                scope.element = it.node as HTMLElement
+                scope.element = it.node.unsafeCast<THTMLElement>()
             }
         },
         attrsSkippableUpdate = {
-            val attrsApplied = AttrsBuilder<T>().also { it.applyAttrs() }
+            val attrsApplied = AttrsBuilder<TTag>().also { it.applyAttrs() }
             refEffect.effect = attrsApplied.refEffect
             val attrsCollected = attrsApplied.collect()
             val events = attrsApplied.asList()
@@ -95,9 +95,9 @@ inline fun <T : Any> TagElement(
             }
         },
         styleSkippableUpdate = {
-            val style = StyleBuilder().apply(applyStyle).cssText
+            val properties = StyleBuilder().apply(applyStyle).properties
             update {
-                set(style, DomNodeWrapper.UpdateStyle)
+                set(properties, DomNodeWrapper.UpdateStyleDeclarations)
             }
         },
         elementScope = scope,

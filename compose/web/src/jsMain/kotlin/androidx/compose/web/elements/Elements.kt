@@ -16,12 +16,13 @@
 
 package androidx.compose.web.elements
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ComposeNode
 import androidx.compose.web.DomApplier
 import androidx.compose.web.DomNodeWrapper
-import androidx.compose.web.attributes.Attrs
 import androidx.compose.web.attributes.AttrsBuilder
 import androidx.compose.web.attributes.InputType
-import androidx.compose.web.attributes.StyleBuilder
+import androidx.compose.web.attributes.Tag
 import androidx.compose.web.attributes.action
 import androidx.compose.web.attributes.alt
 import androidx.compose.web.attributes.href
@@ -29,10 +30,25 @@ import androidx.compose.web.attributes.label
 import androidx.compose.web.attributes.src
 import androidx.compose.web.attributes.type
 import androidx.compose.web.attributes.value
-import androidx.compose.web.attributes.valueProp
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ComposeNode
+import androidx.compose.web.css.StyleBuilder
 import kotlinx.browser.document
+import org.w3c.dom.HTMLAnchorElement
+import org.w3c.dom.HTMLBRElement
+import org.w3c.dom.HTMLDivElement
+import org.w3c.dom.HTMLElement
+import org.w3c.dom.HTMLFormElement
+import org.w3c.dom.HTMLHeadingElement
+import org.w3c.dom.HTMLImageElement
+import org.w3c.dom.HTMLInputElement
+import org.w3c.dom.HTMLLIElement
+import org.w3c.dom.HTMLOListElement
+import org.w3c.dom.HTMLOptGroupElement
+import org.w3c.dom.HTMLOptionElement
+import org.w3c.dom.HTMLParagraphElement
+import org.w3c.dom.HTMLSelectElement
+import org.w3c.dom.HTMLSpanElement
+import org.w3c.dom.HTMLTextAreaElement
+import org.w3c.dom.HTMLUListElement
 import org.w3c.dom.Text
 
 @Composable
@@ -47,9 +63,9 @@ fun Text(value: String) {
 
 @Composable
 inline fun Div(
-    crossinline attrs: (AttrsBuilder<Attrs.Div>.() -> Unit) = {},
+    crossinline attrs: (AttrsBuilder<Tag.Div>.() -> Unit) = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLDivElement>.() -> Unit
 ) {
     TagElement(
         tagName = "div",
@@ -62,11 +78,11 @@ inline fun Div(
 @Composable
 inline fun A(
     href: String? = null,
-    crossinline attrs: (AttrsBuilder<Attrs.A>.() -> Unit) = {},
+    crossinline attrs: (AttrsBuilder<Tag.A>.() -> Unit) = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLAnchorElement>.() -> Unit
 ) {
-    TagElement<Attrs.A>(
+    TagElement<Tag.A, HTMLAnchorElement>(
         tagName = "a",
         applyAttrs = {
             href(href)
@@ -81,15 +97,15 @@ inline fun A(
 inline fun Input(
     type: InputType = InputType.Text,
     value: String = "",
-    crossinline attrs: (AttrsBuilder<Attrs.Input>.() -> Unit) = {},
+    crossinline attrs: (AttrsBuilder<Tag.Input>.() -> Unit) = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit = {}
+    content: @Composable ElementScope<HTMLInputElement>.() -> Unit = {}
 ) {
-    TagElement<Attrs.Input>(
+    TagElement<Tag.Input, HTMLInputElement>(
         tagName = "input",
         applyAttrs = {
             type(type)
-            valueProp(value)
+            value(value)
             attrs()
         },
         applyStyle = style,
@@ -99,131 +115,138 @@ inline fun Input(
 
 @Composable
 inline fun Button(
-    crossinline attrs: AttrsBuilder<Attrs.Button>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.Button>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLHeadingElement>.() -> Unit
 ) = TagElement("button", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun H1(
-    crossinline attrs: AttrsBuilder<Attrs.H>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.H>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLHeadingElement>.() -> Unit
 ) = TagElement("h1", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun H2(
-    crossinline attrs: AttrsBuilder<Attrs.H>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.H>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLHeadingElement>.() -> Unit
 ) = TagElement("h2", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun H3(
-    crossinline attrs: AttrsBuilder<Attrs.H>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.H>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLHeadingElement>.() -> Unit
 ) = TagElement("h3", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun H4(
-    crossinline attrs: AttrsBuilder<Attrs.H>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.H>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLHeadingElement>.() -> Unit
 ) = TagElement("h4", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun H5(
-    crossinline attrs: AttrsBuilder<Attrs.H>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.H>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLHeadingElement>.() -> Unit
 ) = TagElement("h5", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun H6(
-    crossinline attrs: AttrsBuilder<Attrs.H>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.H>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLHeadingElement>.() -> Unit
 ) = TagElement("h6", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun P(
-    crossinline attrs: AttrsBuilder<Attrs>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.P>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLParagraphElement>.() -> Unit
 ) = TagElement("p", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun Em(
-    crossinline attrs: AttrsBuilder<Attrs>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLElement>.() -> Unit
 ) = TagElement("em", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun I(
-    crossinline attrs: AttrsBuilder<Attrs>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLElement>.() -> Unit
 ) = TagElement("i", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun B(
-    crossinline attrs: AttrsBuilder<Attrs>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLElement>.() -> Unit
 ) = TagElement("b", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun Small(
-    crossinline attrs: AttrsBuilder<Attrs>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLElement>.() -> Unit
 ) = TagElement("small", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun Span(
-    crossinline attrs: AttrsBuilder<Attrs>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.Span>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLSpanElement>.() -> Unit
 ) = TagElement("span", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun Br(
-    crossinline attrs: AttrsBuilder<Attrs>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.Br>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLBRElement>.() -> Unit
 ) = TagElement("br", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun Ul(
-    crossinline attrs: AttrsBuilder<Attrs.Ul>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.Ul>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit,
+    content: @Composable ElementScope<HTMLUListElement>.() -> Unit,
 ) = TagElement("ul", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun Ol(
-    crossinline attrs: AttrsBuilder<Attrs.Ol>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.Ol>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLOListElement>.() -> Unit
 ) = TagElement("ol", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
-inline fun Li(
-    crossinline attrs: AttrsBuilder<Attrs.Li>.() -> Unit = {},
+inline fun DOMScope<HTMLOListElement>.Li(
+    crossinline attrs: AttrsBuilder<Tag.Li>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
+    content: @Composable ElementScope<HTMLLIElement>.() -> Unit
+) = TagElement("li", applyAttrs = attrs, applyStyle = style, content = content)
+
+@Composable
+inline fun DOMScope<HTMLUListElement>.Li(
+    crossinline attrs: AttrsBuilder<Tag.Li>.() -> Unit = {},
+    crossinline style: (StyleBuilder.() -> Unit) = {},
+    content: @Composable ElementScope<HTMLLIElement>.() -> Unit
 ) = TagElement("li", applyAttrs = attrs, applyStyle = style, content = content)
 
 @Composable
 inline fun Img(
     src: String,
     alt: String = "",
-    crossinline attrs: AttrsBuilder<Attrs.Img>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.Img>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
-) = TagElement<Attrs.Img>(
+    content: @Composable ElementScope<HTMLImageElement>.() -> Unit
+) = TagElement<Tag.Img, HTMLImageElement>(
     tagName = "img",
     applyAttrs = {
         src(src).alt(alt)
@@ -235,10 +258,10 @@ inline fun Img(
 @Composable
 inline fun Form(
     action: String? = null,
-    crossinline attrs: AttrsBuilder<Attrs.Form>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.Form>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
-) = TagElement<Attrs.Form>(
+    content: @Composable ElementScope<HTMLFormElement>.() -> Unit
+) = TagElement<Tag.Form, HTMLFormElement>(
     tagName = "form",
     applyAttrs = {
         if (!action.isNullOrEmpty()) action(action)
@@ -249,10 +272,10 @@ inline fun Form(
 
 @Composable
 inline fun Select(
-    crossinline attrs: AttrsBuilder<Attrs.Select>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.Select>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
-) = TagElement<Attrs.Select>(
+    content: @Composable ElementScope<HTMLSelectElement>.() -> Unit
+) = TagElement(
     tagName = "select",
     applyAttrs = attrs,
     applyStyle = style,
@@ -260,12 +283,12 @@ inline fun Select(
 )
 
 @Composable
-inline fun Option(
+inline fun DOMScope<HTMLUListElement>.Option(
     value: String,
-    crossinline attrs: AttrsBuilder<Attrs.Option>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.Option>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
-) = TagElement<Attrs.Option>(
+    content: @Composable ElementScope<HTMLOptionElement>.() -> Unit
+) = TagElement<Tag.Option, HTMLOptionElement>(
     tagName = "option",
     applyAttrs = {
         value(value)
@@ -278,10 +301,10 @@ inline fun Option(
 @Composable
 inline fun OptGroup(
     label: String,
-    crossinline attrs: AttrsBuilder<Attrs.OptGroup>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.OptGroup>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
-) = TagElement<Attrs.OptGroup>(
+    content: @Composable ElementScope<HTMLOptGroupElement>.() -> Unit
+) = TagElement<Tag.OptGroup, HTMLOptGroupElement>(
     tagName = "optgroup",
     applyAttrs = {
         label(label)
@@ -293,10 +316,10 @@ inline fun OptGroup(
 
 @Composable
 inline fun Section(
-    crossinline attrs: AttrsBuilder<Attrs>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
-) = TagElement<Attrs>(
+    content: @Composable ElementScope<HTMLElement>.() -> Unit
+) = TagElement(
     tagName = "section",
     applyAttrs = attrs,
     applyStyle = style,
@@ -305,13 +328,13 @@ inline fun Section(
 
 @Composable
 inline fun TextArea(
-    crossinline attrs: AttrsBuilder<Attrs.TextArea>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.TextArea>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
     value: String
-) = TagElement<Attrs.TextArea>(
+) = TagElement<Tag.TextArea, HTMLTextAreaElement>(
     tagName = "textarea",
     applyAttrs = {
-        valueProp(value)
+        value(value)
         attrs()
     },
     applyStyle = style
@@ -321,10 +344,10 @@ inline fun TextArea(
 
 @Composable
 inline fun Nav(
-    crossinline attrs: AttrsBuilder<Attrs.Nav>.() -> Unit = {},
+    crossinline attrs: AttrsBuilder<Tag.Nav>.() -> Unit = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
-    content: @Composable ElementScope.() -> Unit
-) = TagElement<Attrs.Nav>(
+    content: @Composable ElementScope<HTMLElement>.() -> Unit
+) = TagElement(
     tagName = "nav",
     applyAttrs = attrs,
     applyStyle = style,

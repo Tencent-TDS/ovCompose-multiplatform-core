@@ -16,7 +16,6 @@
 
 package androidx.compose.web
 
-import androidx.compose.web.events.EventModifier
 import androidx.compose.runtime.AbstractApplier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ComposeNode
@@ -25,18 +24,24 @@ import androidx.compose.runtime.ControlledComposition
 import androidx.compose.runtime.DefaultMonotonicFrameClock
 import androidx.compose.runtime.Recomposer
 import androidx.compose.web.attributes.WrappedEventListener
+import androidx.compose.web.css.StylePropertyList
+import androidx.compose.web.css.attributeStyleMap
+import androidx.compose.web.elements.DOMScope
+import androidx.compose.web.events.EventModifier
 import kotlinx.browser.document
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.dom.clear
-import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.Node
 import org.w3c.dom.get
 
-fun renderComposable(root: Element, content: @Composable () -> Unit): Composition {
+fun <THTMLElement : HTMLElement> renderComposable(
+    root: THTMLElement,
+    content: @Composable DOMScope<THTMLElement>.() -> Unit
+): Composition {
     GlobalSnapshotManager.ensureStarted()
 
     val context = DefaultMonotonicFrameClock + Dispatchers.Main
@@ -45,7 +50,10 @@ fun renderComposable(root: Element, content: @Composable () -> Unit): Compositio
         applier = DomApplier(DomNodeWrapper(root)),
         parent = recomposer
     )
-    composition.setContent(content)
+    val scope = object : DOMScope<THTMLElement> {}
+    composition.setContent @Composable {
+        content(scope)
+    }
 
     CoroutineScope(context).launch(start = CoroutineStart.UNDISPATCHED) {
         recomposer.runRecomposeAndApplyChanges()
@@ -128,9 +136,13 @@ class DomNodeWrapper(val node: Node) {
         }
     }
 
-    fun updateStyle(style: String?) {
+    fun updateStyleDeclarations(declarations: StylePropertyList?) {
         val htmlElement = node as? HTMLElement ?: return
-        htmlElement.style.cssText = style ?: ""
+        val attributeStyleMap = htmlElement.attributeStyleMap
+        attributeStyleMap.clear()
+        declarations?.forEach { (name, value) ->
+            attributeStyleMap.set(name, value)
+        }
     }
 
     fun updateModifier(modifier: MppModifier) {
@@ -222,8 +234,8 @@ class DomNodeWrapper(val node: Node) {
         val UpdateProperties: DomNodePropertiesUpdater = {
             this.updateProperties(it)
         }
-        val UpdateStyle: DomNodeWrapper.(String?) -> Unit = {
-            this.updateStyle(it)
+        val UpdateStyleDeclarations: DomNodeWrapper.(StylePropertyList?) -> Unit = {
+            this.updateStyleDeclarations(it)
         }
     }
 }
