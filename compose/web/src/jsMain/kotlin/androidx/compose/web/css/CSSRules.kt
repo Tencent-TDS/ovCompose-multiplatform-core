@@ -18,6 +18,7 @@ package androidx.compose.web.css
 
 import androidx.compose.web.attributes.AttrsBuilder
 import androidx.compose.web.attributes.Tag
+import androidx.compose.web.css.selectors.CSSSelector
 import org.w3c.dom.HTMLStyleElement
 import org.w3c.dom.css.CSSRule
 import org.w3c.dom.css.StyleSheet
@@ -29,8 +30,6 @@ data class CSSRuleDeclaration(
     val selector: CSSSelector,
     val properties: StylePropertyList
 )
-
-fun className(className: String): CSSSelector = ".$className"
 
 typealias CSSRuleDeclarationList = List<CSSRuleDeclaration>
 typealias MutableCSSRuleDeclarationList = MutableList<CSSRuleDeclaration>

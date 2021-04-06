@@ -40,8 +40,6 @@ inline operator fun CSSRuleList.get(index: Int): CSSRule {
     return this.asDynamic()[index].unsafeCast<CSSRule>()
 }
 
-typealias CSSSelector = String
-
 fun StyleSheet.insertRule(cssRule: String, index: Int? = null): Int {
     return if (index != null) {
         this.asDynamic().insertRule(cssRule, index).unsafeCast<Int>()

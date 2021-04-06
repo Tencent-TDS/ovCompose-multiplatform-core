@@ -32,3 +32,12 @@ interface CSSSizeOrAutoValue : CSSStyleValue, StylePropertyValue {
 
 fun CSSSizeOrAutoValue.asCSSSizeValue() = this.asDynamic() as? CSSUnitValueJS
 fun CSSSizeOrAutoValue.asCSSAutoValue(): CSSAutoValue = asCSSAutoValue(this.asDynamic())
+
+enum class Direction {
+    rtl,
+    ltr;
+
+    override fun toString(): String = this.name
+}
+
+typealias LanguageCode = String

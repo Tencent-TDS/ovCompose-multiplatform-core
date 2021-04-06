@@ -16,6 +16,8 @@
 
 package androidx.compose.web.css
 
+import androidx.compose.web.css.selectors.CSSSelector
+
 open class StyleSheetBuilder {
     val cssRules: MutableCSSRuleDeclarationList = mutableListOf()
 
@@ -29,6 +31,14 @@ open class StyleSheetBuilder {
 
     infix fun CSSSelector.with(cssRule: CSSRuleBuilder.() -> Unit) {
         rule(this, cssRule)
+    }
+
+    operator fun String.invoke(cssRule: CSSRuleBuilder.() -> Unit) {
+        rule(CSSSelector.Raw(this), cssRule)
+    }
+
+    infix fun String.with(cssRule: CSSRuleBuilder.() -> Unit) {
+        rule(CSSSelector.Raw(this), cssRule)
     }
 
     fun rule(selector: CSSSelector, cssRule: CSSRuleBuilder.() -> Unit) {

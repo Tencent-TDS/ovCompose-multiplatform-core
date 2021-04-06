@@ -27,7 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.web.attributes.Draggable
 import androidx.compose.web.attributes.InputType
 import androidx.compose.web.attributes.name
-import androidx.compose.web.css.className
+import androidx.compose.web.css.selectors.className
 import androidx.compose.web.css.color
 import androidx.compose.web.css.fontSize
 import androidx.compose.web.css.margin
@@ -35,6 +35,8 @@ import androidx.compose.web.css.opacity
 import androidx.compose.web.css.padding
 import androidx.compose.web.css.percent
 import androidx.compose.web.css.px
+import androidx.compose.web.css.selectors.combine
+import androidx.compose.web.css.selectors.hover
 import androidx.compose.web.css.width
 import androidx.compose.web.elements.A
 import androidx.compose.web.elements.Button
@@ -134,8 +136,12 @@ fun main() {
                 opacity(0.3)
             }
 
-            className(MyClassName) with {
-                opacity(0.3)
+            combine(className(MyClassName), hover()) with {
+                opacity(1)
+            }
+
+            ".$MyClassName:hover" {
+                color("red")
             }
         }
 
