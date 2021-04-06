@@ -33,8 +33,16 @@ fun StyleBuilder.color(value: Color) {
     add("color", StylePropertyValue(value.toString()))
 }
 
+fun StyleBuilder.width(value: CSSSizeOrAutoValue) {
+    add("width", value)
+}
+
 fun StyleBuilder.width(value: CSSSizeValue) {
-    add("width", StylePropertyValue(value))
+    width(CSSSizeOrAutoValue(value))
+}
+
+fun StyleBuilder.width(value: CSSAutoValue) {
+    width(CSSSizeOrAutoValue(value))
 }
 
 fun StyleBuilder.fontSize(value: CSSSizeValue) {

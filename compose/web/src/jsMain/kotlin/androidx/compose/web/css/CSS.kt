@@ -19,22 +19,23 @@ package androidx.compose.web.css
 
 import org.w3c.dom.DOMMatrix
 import org.w3c.dom.DOMMatrixReadOnly
+import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.css.CSSRule
 import org.w3c.dom.css.CSSRuleList
 import org.w3c.dom.css.StyleSheet
 
-val StyleSheet.cssRules
+inline val StyleSheet.cssRules
     get() = this.asDynamic().cssRules.unsafeCast<CSSRuleList>()
 
-fun StyleSheet.deleteRule(index: Int) {
+inline fun StyleSheet.deleteRule(index: Int) {
     this.asDynamic().deleteRule(index)
 }
 
-val CSSRule.styleMap
+inline val CSSRule.styleMap
     get() = this.asDynamic().styleMap.unsafeCast<StylePropertyMap>()
 
-operator fun CSSRuleList.get(index: Int): CSSRule {
+inline operator fun CSSRuleList.get(index: Int): CSSRule {
     return this.asDynamic()[index].unsafeCast<CSSRule>()
 }
 
@@ -56,7 +57,7 @@ external interface CSSStyleValue {
 }
 
 @JsName("CSSStyleValue")
-open external class CSSStyleValueJS {
+open external class CSSStyleValueJS : CSSStyleValue {
     companion object {
         fun parse(property: String, cssText: String): CSSStyleValue
         fun parseAll(property: String, cssText: String): Array<CSSStyleValue>
@@ -94,24 +95,26 @@ external class CSSUnparsedValue(members: Array<CSSUnparsedSegment>) : CSSStyleVa
     operator fun set(index: Int, value: CSSUnparsedSegment)
 }
 
-external class CSSKeywordValue(value: String) : CSSStyleValue {
+external interface CSSKeywordValue : CSSStyleValue {
     val value: String
 }
 
-// type CSSNumberish = number | CSSNumericValue
-sealed external class CSSNumberish {
-    @JsName("number")
-    class Number : CSSNumberish
-
-    @JsName("CSSVariableReferenceValue")
-    class CSSNumericValue : CSSNumberish
+@JsName("CSSKeywordValue")
+external class CSSKeywordValueJS(value: String) : CSSKeywordValue {
+    override val value: String
 }
 
-val CSSNumberish.Number.value
-    get() = this.unsafeCast<Number>()
+// type CSSNumberish = number | CSSNumericValue
+interface CSSNumberish {
+    companion object {
+        operator fun invoke(value: Number) = value.unsafeCast<CSSNumberish>()
+        operator fun invoke(value: CSSNumericValue) =
+            value.unsafeCast<CSSNumberish>()
+    }
+}
 
-val CSSNumberish.CSSNumericValue.value
-    get() = this.unsafeCast<CSSNumericValue>()
+fun CSSNumberish.asNumber() = this.asDynamic() as? Number
+fun CSSNumberish.asCSSNumericValue(): CSSNumericValue? = this.asDynamic() as? CSSNumericValueJS
 
 // declare enum CSSNumericBaseType {
 //     'length',
@@ -377,7 +380,7 @@ interface StylePropertyValue {
 
 fun StylePropertyValue.asString() = this.asDynamic() as? String
 fun StylePropertyValue.asNumber() = this.asDynamic() as? Number
-fun StylePropertyValue.asCSSStyleValue() = this.asDynamic() as? CSSStyleValue
+fun StylePropertyValue.asCSSStyleValue(): CSSStyleValue? = this.asDynamic() as? CSSStyleValueJS
 
 external class StylePropertyMap : StylePropertyMapReadOnly {
     fun set(property: String, vararg values: StylePropertyValue)
@@ -386,9 +389,8 @@ external class StylePropertyMap : StylePropertyMapReadOnly {
     fun clear()
 }
 
-interface Element {
-    fun computedStyleMap(): StylePropertyMapReadOnly
-}
+inline fun Element.computedStyleMap(): StylePropertyMapReadOnly =
+    this.asDynamic().computedStyleMap().unsafeCast<StylePropertyMapReadOnly>()
 
 interface CSSStyleRule {
     val styleMap: StylePropertyMap
