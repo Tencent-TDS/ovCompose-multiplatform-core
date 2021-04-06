@@ -16,7 +16,6 @@
 
 package androidx.compose.web.css.selectors
 
-import androidx.compose.web.css.Direction
 import androidx.compose.web.css.LanguageCode
 
 sealed class Nth {
@@ -28,32 +27,32 @@ sealed class Nth {
             else -> ""
         }
     }
-    object Odd: Nth() {
+    object Odd : Nth() {
         override fun toString(): String = "odd"
     }
-    object Even: Nth() {
+    object Even : Nth() {
         override fun toString(): String = "even"
     }
 }
 
 open class CSSSelector {
-    data class Raw(val selector: String): CSSSelector() {
+    data class Raw(val selector: String) : CSSSelector() {
         override fun toString(): String = selector
     }
 
-    object Universal: CSSSelector() {
+    object Universal : CSSSelector() {
         override fun toString(): String = "*"
     }
 
-    data class Type(val type: String): CSSSelector() {
+    data class Type(val type: String) : CSSSelector() {
         override fun toString(): String = type
     }
 
-    data class CSSClass(val cssClass: String): CSSSelector() {
-        override fun toString(): String = ".$cssClass"
+    data class CSSClass(val className: String) : CSSSelector() {
+        override fun toString(): String = ".$className"
     }
 
-    data class Id(val id: String): CSSSelector() {
+    data class Id(val id: String) : CSSSelector() {
         override fun toString(): String = "#$id"
     }
 
@@ -62,7 +61,7 @@ open class CSSSelector {
         val value: String? = null,
         val operator: Operator = Operator.Equals,
         val caseSensitive: Boolean = true
-    ): CSSSelector() {
+    ) : CSSSelector() {
         enum class Operator(val value: String) {
             Equals("="),
             ListContains("~="),
@@ -71,35 +70,35 @@ open class CSSSelector {
             Suffixed("$="),
             Contains("*=")
         }
-        override fun toString(): String =
-            "[$name${
-                value?.let { 
-                    "${operator.value}$value${if (!caseSensitive) " i" else ""}" 
-                } ?: ""
-            }]"
+        override fun toString(): String {
+            val valueStr = value?.let {
+                "${operator.value}$value${if (!caseSensitive) " i" else ""}"
+            } ?: ""
+            return "[$name$valueStr]"
+        }
     }
 
-    data class Combine(val selectors: Array<out CSSSelector>): CSSSelector() {
+    data class Combine(val selectors: Array<out CSSSelector>) : CSSSelector() {
         override fun toString(): String = selectors.joinToString("")
     }
 
-    data class Group(val selectors: Array<out CSSSelector>): CSSSelector() {
+    data class Group(val selectors: Array<out CSSSelector>) : CSSSelector() {
         override fun toString(): String = selectors.joinToString(", ")
     }
 
-    data class Descendant(val parent: CSSSelector, val selected: CSSSelector): CSSSelector() {
+    data class Descendant(val parent: CSSSelector, val selected: CSSSelector) : CSSSelector() {
         override fun toString(): String = "$parent $selected"
     }
 
-    data class Sibling(val prev: CSSSelector, val selected: CSSSelector): CSSSelector() {
+    data class Sibling(val prev: CSSSelector, val selected: CSSSelector) : CSSSelector() {
         override fun toString(): String = "$prev~$selected"
     }
 
-    data class Adjacent(val prev: CSSSelector, val selected: CSSSelector): CSSSelector() {
+    data class Adjacent(val prev: CSSSelector, val selected: CSSSelector) : CSSSelector() {
         override fun toString(): String = "$prev+$selected"
     }
 
-    open class PseudoClass(val name: String): CSSSelector() {
+    open class PseudoClass(val name: String) : CSSSelector() {
         override fun equals(other: Any?): Boolean {
             return if (other is PseudoClass) {
                 name == other.name && argsStr() == other.argsStr()
@@ -166,34 +165,34 @@ open class CSSSelector {
         }
 
         // Linguistic pseudo-classes
-        class Lang(val langCode: LanguageCode): PseudoClass("lang") {
+        class Lang(val langCode: LanguageCode) : PseudoClass("lang") {
             override fun argsStr() = langCode
         }
 
         // Tree-structural pseudo-classes
-        class NthChild(val nth: Nth): PseudoClass("nth-child") {
+        class NthChild(val nth: Nth) : PseudoClass("nth-child") {
             override fun argsStr() = "$nth"
         }
-        class NthLastChild(val nth: Nth): PseudoClass("nth-last-child") {
+        class NthLastChild(val nth: Nth) : PseudoClass("nth-last-child") {
             override fun argsStr() = "$nth"
         }
-        class NthOfType(val nth: Nth): PseudoClass("nth-of-type") {
+        class NthOfType(val nth: Nth) : PseudoClass("nth-of-type") {
             override fun argsStr() = "$nth"
         }
-        class NthLastOfType(val nth: Nth): PseudoClass("nth-last-of-type") {
+        class NthLastOfType(val nth: Nth) : PseudoClass("nth-last-of-type") {
             override fun argsStr() = "$nth"
         }
-        class Host(val selector: CSSSelector): PseudoClass("host") {
+        class Host(val selector: CSSSelector) : PseudoClass("host") {
             override fun argsStr() = "$selector"
         }
 
         // Etc
-        class Not(val selector: CSSSelector): PseudoClass("not") {
+        class Not(val selector: CSSSelector) : PseudoClass("not") {
             override fun argsStr() = "$selector"
         }
     }
 
-    open class PseudoElement(val name: String): CSSSelector() {
+    open class PseudoElement(val name: String) : CSSSelector() {
         override fun equals(other: Any?): Boolean {
             return if (other is PseudoElement) {
                 name == other.name && argsStr() == other.argsStr()
@@ -213,7 +212,7 @@ open class CSSSelector {
             val selection = PseudoElement("selection")
         }
 
-        class Slotted(val selector: CSSSelector): PseudoElement("slotted") {
+        class Slotted(val selector: CSSSelector) : PseudoElement("slotted") {
             override fun argsStr() = selector.toString()
         }
     }

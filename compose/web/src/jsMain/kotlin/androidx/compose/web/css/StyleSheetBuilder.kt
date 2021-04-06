@@ -42,8 +42,6 @@ open class StyleSheetBuilder {
     }
 
     fun rule(selector: CSSSelector, cssRule: CSSRuleBuilder.() -> Unit) {
-        val builder = CSSRuleBuilder()
-        builder.cssRule()
-        add(selector, builder.properties)
+        add(selector, buildCSSRule(cssRule))
     }
 }

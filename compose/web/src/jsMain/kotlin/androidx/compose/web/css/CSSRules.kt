@@ -74,3 +74,9 @@ private fun setCSSRules(sheet: StyleSheet, cssRules: CSSRuleDeclarationList) {
         sheet.addRule(cssRule)
     }
 }
+
+fun buildCSSRule(cssRule: CSSRuleBuilder.() -> Unit): StylePropertyList {
+    val builder = CSSRuleBuilder()
+    builder.cssRule()
+    return builder.properties
+}

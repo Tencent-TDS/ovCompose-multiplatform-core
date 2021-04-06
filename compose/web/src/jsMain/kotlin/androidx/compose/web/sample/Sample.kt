@@ -46,6 +46,8 @@ import androidx.compose.web.elements.Style
 import androidx.compose.web.elements.Text
 import androidx.compose.web.elements.TextArea
 import androidx.compose.web.renderComposable
+import androidx.compose.web.xcss.Style
+import androidx.compose.web.xcss.StyleSheet
 import kotlinx.browser.document
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
@@ -58,6 +60,16 @@ class State {
 
 val globalState = State()
 val globalInt = mutableStateOf(1)
+
+object AppStyleSheet : StyleSheet() {
+    val myClass by rule {
+        color("green")
+    }
+}
+
+object Auto : StyleSheet(AppStyleSheet)
+
+const val MyClassName = "MyClassName"
 
 @Composable
 fun CounterApp(counter: MutableState<Int>) {
@@ -95,8 +107,6 @@ fun Counter(value: Int) {
         Text("Counter = $value")
     }
 }
-
-const val MyClassName = "MyClassName"
 
 fun main() {
     val root = document.getElementById("root")!! as HTMLElement
@@ -140,10 +150,11 @@ fun main() {
                 opacity(1)
             }
 
-            ".$MyClassName:hover" {
+            ".${AppStyleSheet.myClass}:hover" {
                 color("red")
             }
         }
+        Style(AppStyleSheet)
 
         Div(
             attrs = {
@@ -155,7 +166,9 @@ fun main() {
 
         Div(
             attrs = {
-                classes(MyClassName)
+                classes(
+                    AppStyleSheet.myClass
+                )
             },
             style = {
                 opacity(0.3)
@@ -165,6 +178,13 @@ fun main() {
         }
 
         Div(
+            attrs = {
+                classes(
+                    Auto.css {
+                        color("pink")
+                    }
+                )
+            },
             style = {
                 opacity(30.percent)
             }
