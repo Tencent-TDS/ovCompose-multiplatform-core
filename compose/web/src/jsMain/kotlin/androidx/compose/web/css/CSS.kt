@@ -17,6 +17,7 @@
 
 package androidx.compose.web.css
 
+import kotlinx.browser.window
 import org.w3c.dom.DOMMatrix
 import org.w3c.dom.DOMMatrixReadOnly
 import org.w3c.dom.Element
@@ -453,3 +454,6 @@ external class CSS {
         fun fr(value: Number): CSSUnitValue
     }
 }
+
+@Suppress("unused")
+val cssTypedOMPolyfill = CSSTypedOMPolyfill.default(window)
