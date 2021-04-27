@@ -34,6 +34,26 @@ class CSSRulesHolderState : CSSRulesHolder {
     }
 }
 
+/**
+ * Represents a collection of the css style rules.
+ * StyleSheet needs to be mounted.
+ * @see [Style]
+ *
+ * Example:
+ * ```
+ * object AppStylesheet : StyleSheet() {
+ *     val containerClass by style {
+ *         padding(24.px)
+ *     }
+ * }
+ * ```
+ *
+ * Usage Example:
+ * ```
+ *    Style(AppStylesheet) // this mounts the stylesheet
+ *    Div(classes = listOf(AppStylesheet.containerClass),...)
+ * ```
+ */
 open class StyleSheet(
     private val rulesHolder: CSSRulesHolder = CSSRulesHolderState()
 ) : StyleSheetBuilder, CSSRulesHolder by rulesHolder {

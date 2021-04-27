@@ -599,4 +599,40 @@ class StaticComposableTests {
             )
         }
     }
+
+    @Test
+    fun elementClassSetProperly() {
+        val root = "div".asHtmlElement()
+        renderComposable(root) {
+            Div(classes = listOf("cl1", "cl2"))
+        }
+
+        val div = root.firstChild as HTMLElement
+        assertEquals("cl1 cl2", div.getAttribute("class"))
+    }
+
+    @Test
+    fun elementClassSetFromAttrsProperly() {
+        val root = "div".asHtmlElement()
+        renderComposable(root) {
+            Div(attrs = { classes("cl1", "cl2") })
+        }
+
+        val div = root.firstChild as HTMLElement
+        assertEquals("cl1 cl2", div.getAttribute("class"))
+    }
+
+    @Test
+    fun elementClassSetFromAttrsGetOverriddenByClassesParam() {
+        val root = "div".asHtmlElement()
+        renderComposable(root) {
+            Div(
+                classes = listOf("cl3", "cl4"),
+                attrs = { classes("cl1", "cl2") }
+            )
+        }
+
+        val div = root.firstChild as HTMLElement
+        assertEquals("cl3 cl4", div.getAttribute("class"))
+    }
 }

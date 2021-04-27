@@ -17,51 +17,16 @@
 package androidx.compose.web
 
 import androidx.compose.runtime.AbstractApplier
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ComposeNode
-import androidx.compose.runtime.Composition
-import androidx.compose.runtime.ControlledComposition
-import androidx.compose.runtime.DefaultMonotonicFrameClock
-import androidx.compose.runtime.Recomposer
 import androidx.compose.web.attributes.WrappedEventListener
 import androidx.compose.web.css.StyleHolder
 import androidx.compose.web.css.attributeStyleMap
-import androidx.compose.web.elements.DOMScope
 import androidx.compose.web.elements.setProperty
 import androidx.compose.web.elements.setVariable
-import androidx.compose.web.events.EventModifier
 import kotlinx.browser.document
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.dom.clear
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.Node
 import org.w3c.dom.get
-
-fun <THTMLElement : HTMLElement> renderComposable(
-    root: THTMLElement,
-    content: @Composable DOMScope<THTMLElement>.() -> Unit
-): Composition {
-    GlobalSnapshotManager.ensureStarted()
-
-    val context = DefaultMonotonicFrameClock + Dispatchers.Main
-    val recomposer = Recomposer(context)
-    val composition = ControlledComposition(
-        applier = DomApplier(DomNodeWrapper(root)),
-        parent = recomposer
-    )
-    val scope = object : DOMScope<THTMLElement> {}
-    composition.setContent @Composable {
-        content(scope)
-    }
-
-    CoroutineScope(context).launch(start = CoroutineStart.UNDISPATCHED) {
-        recomposer.runRecomposeAndApplyChanges()
-    }
-    return composition
-}
 
 class DomApplier(
     root: DomNodeWrapper
@@ -93,20 +58,8 @@ class DomNodeWrapper(val node: Node) {
 
     constructor(tag: String) : this(document.createElement(tag))
 
-    private var currentModifier: MppModifier = MppModifier
-
     private var currentListeners: List<WrappedEventListener<*>> = emptyList()
     private var currentAttrs: Map<String, String?> = emptyMap()
-
-    private fun HTMLElement.updateInlineStyles(
-        old: InlineStylesModifier?,
-        new: InlineStylesModifier?
-    ) {
-        if (old?.styles == new?.styles) {
-            return
-        }
-        style.cssText = new?.styles ?: ""
-    }
 
     fun updateProperties(list: List<Pair<(HTMLElement, Any) -> Unit, Any>>) {
         val htmlElement = node as? HTMLElement ?: return
@@ -149,54 +102,6 @@ class DomNodeWrapper(val node: Node) {
         style?.variables?.forEach { (name, value) ->
             setVariable(htmlElement.style, name, value)
         }
-    }
-
-    fun updateModifier(modifier: MppModifier) {
-        val htmlElement = node as? HTMLElement ?: return
-
-        var currentStyles: InlineStylesModifier? = null
-        var newStyles: InlineStylesModifier? = null
-
-        currentModifier.foldOut(Unit) { mod, _ ->
-            when (mod) {
-                is EventModifier ->
-                    htmlElement.removeEventListener(mod.eventName, mod.listener)
-                is AttributesModifier -> {
-                    with(mutableMapOf<String, String>()) {
-                        mod.configure(this)
-                        this.forEach { htmlElement.removeAttribute(it.key) }
-                    }
-                }
-                is AttributeModifier -> {
-                    htmlElement.removeAttribute(mod.attrName)
-                }
-                is InlineStylesModifier -> currentStyles = mod
-            }
-        }
-
-        currentModifier = modifier
-        currentModifier.foldOut(Unit) { mod, _ ->
-            when (mod) {
-                is CssModifier -> htmlElement.style.apply(mod.configure)
-                is CssProperties -> {
-                    mod.props.map { (propName, value) ->
-                        htmlElement.style.asDynamic().setProperty(propName.value, value)
-                    }
-                }
-                is EventModifier -> htmlElement.addEventListener(mod.eventName, mod.listener)
-                is AttributesModifier -> htmlElement.apply {
-                    with(mutableMapOf<String, String>()) {
-                        mod.configure(this)
-                        this.forEach { htmlElement.setAttribute(it.key, it.value) }
-                    }
-                }
-                is InlineStylesModifier -> newStyles = mod
-                is ClassModifier -> htmlElement.setAttribute("class", mod.classes)
-                is AttributeModifier -> htmlElement.setAttribute(mod.attrName, mod.attrValue)
-            }
-        }
-
-        htmlElement.updateInlineStyles(currentStyles, newStyles)
     }
 
     fun insert(index: Int, nodeWrapper: DomNodeWrapper) {
@@ -248,19 +153,3 @@ class DomNodeWrapper(val node: Node) {
 
 typealias DomNodePropertiesUpdater =
     DomNodeWrapper.(List<Pair<(HTMLElement, Any) -> Unit, Any>>) -> Unit
-
-@Composable
-fun Element(tagName: String, modifier: MppModifier = MppModifier, content: @Composable () -> Unit) {
-    ComposeNode<DomNodeWrapper, DomApplier>(
-        factory = { DomNodeWrapper(document.createElement(tagName)) },
-        update = {
-            set(modifier) { value -> updateModifier(value) }
-        },
-        content = content
-    )
-}
-
-@Composable
-fun div(modifier: MppModifier = MppModifier, content: @Composable () -> Unit) {
-    Element(tagName = "div", modifier = modifier, content = content)
-}

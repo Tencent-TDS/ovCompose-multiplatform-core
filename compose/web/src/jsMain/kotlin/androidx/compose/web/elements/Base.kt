@@ -67,9 +67,16 @@ class DisposableEffectHolder(
     var effect: (DisposableEffectScope.(HTMLElement) -> DisposableEffectResult)? = null
 )
 
+/**
+ * This is supposed to be an internal function.
+ * It's used for elements implementation: [Div], [P], etc
+ *
+ * @param classes overrides the classes defined in the [applyAttrs]
+ */
 @Composable
 inline fun <TTag : Tag, THTMLElement : HTMLElement> TagElement(
     tagName: String,
+    classes: List<String>,
     crossinline applyAttrs: AttrsBuilder<TTag>.() -> Unit,
     crossinline applyStyle: StyleBuilder.() -> Unit,
     content: @Composable ElementScope<THTMLElement>.() -> Unit
@@ -85,6 +92,11 @@ inline fun <TTag : Tag, THTMLElement : HTMLElement> TagElement(
         },
         attrsSkippableUpdate = {
             val attrsApplied = AttrsBuilder<TTag>().also { it.applyAttrs() }
+            if (classes.isNotEmpty()) {
+                // This will override the classes declared in [applyAttrs]
+                attrsApplied.classes(classes = classes.toTypedArray())
+            }
+
             refEffect.effect = attrsApplied.refEffect
             val attrsCollected = attrsApplied.collect()
             val events = attrsApplied.asList()

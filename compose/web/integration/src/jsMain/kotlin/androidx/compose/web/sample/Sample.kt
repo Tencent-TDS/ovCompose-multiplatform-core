@@ -48,7 +48,6 @@ import androidx.compose.web.elements.Input
 import androidx.compose.web.elements.Style
 import androidx.compose.web.elements.Text
 import androidx.compose.web.elements.TextArea
-import androidx.compose.web.renderComposable
 import androidx.compose.web.css.Style
 import androidx.compose.web.css.StyleSheet
 import androidx.compose.web.css.and
@@ -59,11 +58,10 @@ import androidx.compose.web.css.media
 import androidx.compose.web.css.minWidth
 import androidx.compose.web.css.value
 import androidx.compose.web.css.variable
-import kotlinx.browser.document
+import androidx.compose.web.renderComposableInBody
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.w3c.dom.HTMLElement
 
 class State {
     var isDarkTheme by mutableStateOf(false)
@@ -149,11 +147,7 @@ fun Counter(value: Int) {
 }
 
 fun main() {
-    val root = document.getElementById("root")!! as HTMLElement
-
-    renderComposable(
-        root = root
-    ) {
+    renderComposableInBody {
         println("renderComposable")
         val counter = remember { mutableStateOf(0) }
 

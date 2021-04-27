@@ -39,6 +39,11 @@ import org.w3c.dom.css.CSSStyleDeclaration
 import org.w3c.dom.css.CSSStyleRule
 import org.w3c.dom.css.StyleSheet
 
+/**
+ * Use this function to mount the <style> tag into the DOM tree.
+ *
+ * @param rulesBuild allows to define the style rules using [StyleSheetBuilder]
+ */
 @Composable
 inline fun Style(
     crossinline applyAttrs: AttrsBuilder<Tag.Style>.() -> Unit = {},
@@ -49,6 +54,12 @@ inline fun Style(
     Style(applyAttrs, builder.cssRules)
 }
 
+/**
+ * Use this function to mount the <style> tag into the DOM tree.
+ *
+ * @param cssRules - is a list of style rules.
+ * Usually, it's [androidx.compose.web.css.StyleSheet] instance
+ */
 @Composable
 inline fun Style(
     crossinline applyAttrs: AttrsBuilder<Tag.Style>.() -> Unit = {},
@@ -59,7 +70,8 @@ inline fun Style(
         applyAttrs = {
             applyAttrs()
         },
-        applyStyle = {}
+        applyStyle = {},
+        classes = emptyList()
     ) {
         DomSideEffect(cssRules) { style ->
             style.sheet?.let { sheet ->
