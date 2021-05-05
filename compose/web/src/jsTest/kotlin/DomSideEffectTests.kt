@@ -21,26 +21,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.web.elements.Div
 import androidx.compose.web.renderComposable
 import kotlinx.browser.document
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.promise
 import kotlinx.dom.clear
-import org.w3c.dom.HTMLElement
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-private fun String.asHtmlElement() = document.createElement("div") as HTMLElement
-
 class DomSideEffectTests {
-
-    private suspend fun waitForRecomposition() {
-        delay(100) // This approach is not perfect. We'll rethink it.
-    }
 
     @Test
     fun canCreateElementsInDomSideEffect() {
         val root = "div".asHtmlElement()
+
         renderComposable(
             root = root
         ) {
@@ -60,16 +50,8 @@ class DomSideEffectTests {
         )
     }
 
-    private val testScope = MainScope()
-
-    private fun runBlockingTest(
-        block: suspend CoroutineScope.() -> Unit
-    ): dynamic = testScope.promise { this.block() }
-
     @Test
-    fun canUpdateElementsCreatedInDomSideEffect() = runBlockingTest {
-        val root = "div".asHtmlElement()
-
+    fun canUpdateElementsCreatedInDomSideEffect() = runTest {
         var i: Int by mutableStateOf(0)
         val disposeCalls = mutableListOf<Int>()
 
@@ -88,11 +70,8 @@ class DomSideEffectTests {
             }
         }
 
-        renderComposable(
-            root = root
-        ) {
-            CustomDiv(i)
-        }
+        composition { CustomDiv(i) }
+
         assertEquals(
             expected = "<div><div style=\"\">Value = 0</div></div>",
             actual = root.outerHTML
@@ -100,12 +79,11 @@ class DomSideEffectTests {
 
         i = 1
 
-        waitForRecomposition() // to let the composition recompose before we make assertions
+        waitChanges()
         assertEquals(
             expected = 1,
             actual = disposeCalls.size,
             message = "Only one onDispose call expected"
-
         )
         assertEquals(
             expected = 0,
@@ -119,15 +97,11 @@ class DomSideEffectTests {
     }
 
     @Test
-    fun onDisposeIsCalledWhenComposableRemovedFromComposition() = runBlockingTest {
-        val root = "div".asHtmlElement()
-
+    fun onDisposeIsCalledWhenComposableRemovedFromComposition() = runTest {
         var showDiv: Boolean by mutableStateOf(true)
         var onDisposeCalledTimes = 0
 
-        renderComposable(
-            root = root
-        ) {
+        composition {
             if (showDiv) {
                 Div {
                     DomSideEffect {
@@ -137,6 +111,7 @@ class DomSideEffectTests {
                 }
             }
         }
+
         assertEquals(
             expected = "<div><div style=\"\">Goedemorgen!</div></div>",
             actual = root.outerHTML
@@ -144,11 +119,8 @@ class DomSideEffectTests {
 
         showDiv = false
 
-        waitForRecomposition() // to let the composition recompose before we make assertions
+        waitChanges()
         assertEquals(1, onDisposeCalledTimes)
-        assertEquals(
-            expected = "<div></div>",
-            actual = root.outerHTML
-        )
+        assertEquals(expected = "<div></div>", actual = root.outerHTML)
     }
 }

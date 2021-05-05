@@ -25,12 +25,10 @@ import androidx.compose.web.elements.DOMScope
 import kotlinx.browser.document
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.w3c.dom.HTMLBodyElement
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.get
-
 /**
  * Use this method to mount the composition at the certain [root]
  *
@@ -45,7 +43,7 @@ fun <THTMLElement : HTMLElement> renderComposable(
 ): Composition {
     GlobalSnapshotManager.ensureStarted()
 
-    val context = DefaultMonotonicFrameClock + Dispatchers.Main
+    val context = DefaultMonotonicFrameClock + JsMicrotasksDispatcher()
     val recomposer = Recomposer(context)
     val composition = ControlledComposition(
         applier = DomApplier(DomNodeWrapper(root)),

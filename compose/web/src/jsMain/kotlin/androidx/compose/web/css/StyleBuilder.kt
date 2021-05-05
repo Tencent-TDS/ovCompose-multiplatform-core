@@ -125,6 +125,8 @@ typealias StylePropertyList = List<StylePropertyDeclaration>
 typealias MutableStylePropertyList = MutableList<StylePropertyDeclaration>
 
 fun StylePropertyList.nativeEquals(properties: StylePropertyList): Boolean {
+    if (this.size != properties.size) return false
+
     var index = 0
     return all { prop ->
         val otherProp = properties[index++]

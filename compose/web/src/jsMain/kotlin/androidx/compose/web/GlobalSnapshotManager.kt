@@ -20,7 +20,6 @@ import androidx.compose.runtime.snapshots.ObserverHandle
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.web.GlobalSnapshotManager.ensureStarted
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
@@ -38,7 +37,7 @@ internal object GlobalSnapshotManager {
     private var commitPending = false
     private var removeWriteObserver: (ObserverHandle)? = null
 
-    private val scheduleScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val scheduleScope = CoroutineScope(JsMicrotasksDispatcher() + SupervisorJob())
 
     fun ensureStarted() {
         if (!started) {

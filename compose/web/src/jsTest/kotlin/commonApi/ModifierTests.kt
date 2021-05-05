@@ -14,20 +14,17 @@
  * limitations under the License.
  */
 
+import androidx.compose.web.renderComposable
+import org.jetbrains.compose.common.core.graphics.Color
+import org.jetbrains.compose.common.foundation.layout.Box
+import org.jetbrains.compose.common.ui.Modifier
+import org.jetbrains.compose.common.ui.background
+import org.jetbrains.compose.common.ui.size
+import org.jetbrains.compose.common.ui.unit.dp
+import org.w3c.dom.HTMLElement
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlinx.browser.document
-import androidx.compose.web.renderComposable
-import org.w3c.dom.HTMLElement
-import org.jetbrains.compose.common.foundation.layout.Box
-import org.jetbrains.compose.common.ui.Modifier
-import org.jetbrains.compose.common.ui.size
-import org.jetbrains.compose.common.ui.background
-import org.jetbrains.compose.common.core.graphics.Color
-import org.jetbrains.compose.common.ui.unit.dp
-
-private fun String.asHtmlElement() = document.createElement("div") as HTMLElement
 
 class ModifierTests {
     @Test

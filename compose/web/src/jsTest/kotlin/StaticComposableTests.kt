@@ -14,51 +14,48 @@
  * limitations under the License.
  */
 
+import androidx.compose.web.css.AlignContent
+import androidx.compose.web.css.AlignItems
+import androidx.compose.web.css.AlignSelf
 import androidx.compose.web.css.Color
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
-import kotlinx.browser.document
-import androidx.compose.web.renderComposable
-import org.w3c.dom.HTMLElement
-import org.w3c.dom.get
-import androidx.compose.web.elements.Text
-import androidx.compose.web.elements.Div
-import androidx.compose.web.elements.Span
-import androidx.compose.web.css.opacity
-import androidx.compose.web.css.color
-import androidx.compose.web.css.border
-import androidx.compose.web.css.borderRadius
-import androidx.compose.web.css.px
-import androidx.compose.web.css.width
-import androidx.compose.web.css.height
 import androidx.compose.web.css.DisplayStyle
 import androidx.compose.web.css.FlexDirection
 import androidx.compose.web.css.FlexWrap
+import androidx.compose.web.css.JustifyContent
+import androidx.compose.web.css.Position
+import androidx.compose.web.css.alignContent
+import androidx.compose.web.css.alignItems
+import androidx.compose.web.css.alignSelf
+import androidx.compose.web.css.border
+import androidx.compose.web.css.borderRadius
+import androidx.compose.web.css.bottom
+import androidx.compose.web.css.color
 import androidx.compose.web.css.display
 import androidx.compose.web.css.flexDirection
-import androidx.compose.web.css.flexWrap
-import androidx.compose.web.css.order
-import androidx.compose.web.css.flexGrow
 import androidx.compose.web.css.flexFlow
+import androidx.compose.web.css.flexGrow
 import androidx.compose.web.css.flexShrink
-import androidx.compose.web.css.value
+import androidx.compose.web.css.flexWrap
+import androidx.compose.web.css.height
 import androidx.compose.web.css.justifyContent
-import androidx.compose.web.css.JustifyContent
-import androidx.compose.web.css.alignSelf
-import androidx.compose.web.css.AlignSelf
-import androidx.compose.web.css.alignItems
-import androidx.compose.web.css.AlignItems
-import androidx.compose.web.css.alignContent
-import androidx.compose.web.css.AlignContent
-import androidx.compose.web.css.position
-import androidx.compose.web.css.Position
-import androidx.compose.web.css.bottom
-import androidx.compose.web.css.top
 import androidx.compose.web.css.left
+import androidx.compose.web.css.opacity
+import androidx.compose.web.css.order
+import androidx.compose.web.css.position
+import androidx.compose.web.css.px
 import androidx.compose.web.css.right
-
-private fun String.asHtmlElement() = document.createElement("div") as HTMLElement
+import androidx.compose.web.css.top
+import androidx.compose.web.css.value
+import androidx.compose.web.css.width
+import androidx.compose.web.elements.Div
+import androidx.compose.web.elements.Span
+import androidx.compose.web.elements.Text
+import androidx.compose.web.renderComposable
+import org.w3c.dom.HTMLElement
+import org.w3c.dom.get
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class StaticComposableTests {
     @Test
