@@ -59,9 +59,11 @@ import androidx.compose.web.css.minWidth
 import androidx.compose.web.css.value
 import androidx.compose.web.css.variable
 import androidx.compose.web.renderComposableInBody
+import kotlinx.browser.window
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.w3c.dom.url.URLSearchParams
 
 class State {
     var isDarkTheme by mutableStateOf(false)
@@ -147,6 +149,13 @@ fun Counter(value: Int) {
 }
 
 fun main() {
+    val urlParams = URLSearchParams(window.location.search)
+
+    if (urlParams.has("test")) {
+        launchTestCase(urlParams.get("test") ?: "")
+        return
+    }
+
     renderComposableInBody {
         println("renderComposable")
         val counter = remember { mutableStateOf(0) }

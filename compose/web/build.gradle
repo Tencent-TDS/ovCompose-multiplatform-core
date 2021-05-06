@@ -67,6 +67,13 @@ kotlin {
             }
         }
 
+        jvmTest {
+            dependencies {
+                implementation kotlin("test-junit")
+                implementation("org.seleniumhq.selenium:selenium-java:3.141.59")
+            }
+        }
+
         jvmMain {
             dependencies {
                 implementation(project(":compose:ui:ui"))
@@ -89,6 +96,15 @@ androidx {
 
 task buildAll {
     dependsOn = [build, ":compose:web:integration:build"]
+}
+
+task copyIntegrationDistributionForTests(type: Copy) {
+    from "${project(":compose:web:integration").buildDir.toPath().toString()}/distributions"
+    into "${System.getenv("HOME")}/compose-web-tmp"
+}
+
+task runSeleniumTests {
+    dependsOn = [":compose:web:integration:build", copyIntegrationDistributionForTests, jvmTest]
 }
 
 tasks.register("publishAll") {
