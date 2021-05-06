@@ -69,10 +69,10 @@ fun AttrsBuilder<Tag.A>.download(value: String = "") =
 /* Button attributes */
 
 fun AttrsBuilder<Tag.Button>.autoFocus(value: Boolean = true) =
-    attr("autofocus", value.toString())
+    attr("autofocus", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Button>.disabled(value: Boolean = true) =
-    attr("disabled", value.toString())
+    attr("disabled", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Button>.form(formId: String) =
     attr("form", formId)
@@ -87,7 +87,7 @@ fun AttrsBuilder<Tag.Button>.formMethod(value: ButtonFormMethod) =
     attr("formmethod", value.methodStr)
 
 fun AttrsBuilder<Tag.Button>.formNoValidate(value: Boolean = true) =
-    attr("formnovalidate", value.toString())
+    attr("formnovalidate", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Button>.formTarget(value: ButtonFormTarget) =
     attr("formtarget", value.targetStr)
@@ -110,7 +110,7 @@ fun AttrsBuilder<Tag.Form>.acceptCharset(value: String) =
     attr("accept-charset", value)
 
 fun AttrsBuilder<Tag.Form>.autoComplete(value: Boolean) =
-    attr("autocomplete", value.toString())
+    attr("autocomplete", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Form>.encType(value: FormEncType) =
     attr("enctype", value.typeStr)
@@ -119,7 +119,7 @@ fun AttrsBuilder<Tag.Form>.method(value: FormMethod) =
     attr("method", value.methodStr)
 
 fun AttrsBuilder<Tag.Form>.noValidate(value: Boolean = true) =
-    attr("novalidate", value.toString())
+    attr("novalidate", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Form>.target(value: FormTarget) =
     attr("target", value.targetStr)
@@ -136,22 +136,22 @@ fun AttrsBuilder<Tag.Input>.alt(value: String) =
     attr("alt", value) // type: image only
 
 fun AttrsBuilder<Tag.Input>.autoComplete(value: Boolean = true) =
-    attr("autocomplete", value.toString())
+    attr("autocomplete", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Input>.autoFocus(value: Boolean = true) =
-    attr("autofocus", value.toString())
+    attr("autofocus", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Input>.capture(value: String) =
     attr("capture", value) // type: file only
 
 fun AttrsBuilder<Tag.Input>.checked(value: Boolean = true) =
-    attr("checked", value.toString()) // radio, checkbox
+    attr("checked", if (value) "" else null) // radio, checkbox
 
 fun AttrsBuilder<Tag.Input>.dirName(value: String) =
     attr("dirname", value) // text, search
 
 fun AttrsBuilder<Tag.Input>.disabled(value: Boolean = true) =
-    attr("disabled", value.toString())
+    attr("disabled", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Input>.form(id: String) =
     attr("form", id)
@@ -166,7 +166,7 @@ fun AttrsBuilder<Tag.Input>.formMethod(value: InputFormMethod) =
     attr("formmethod", value.methodStr)
 
 fun AttrsBuilder<Tag.Input>.formNoValidate(value: Boolean = true) =
-    attr("formnovalidate", value.toString())
+    attr("formnovalidate", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Input>.formTarget(value: InputFormTarget) =
     attr("formtarget", value.targetStr)
@@ -193,7 +193,7 @@ fun AttrsBuilder<Tag.Input>.minLength(value: Int) =
     attr("minlength", value.toString())
 
 fun AttrsBuilder<Tag.Input>.multiple(value: Boolean = true) =
-    attr("multiple", value.toString())
+    attr("multiple", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Input>.name(value: String) =
     attr("name", value)
@@ -205,7 +205,7 @@ fun AttrsBuilder<Tag.Input>.placeholder(value: String) =
     attr("placeholder", value)
 
 fun AttrsBuilder<Tag.Input>.readOnly(value: Boolean = true) =
-    attr("readonly", value.toString())
+    attr("readonly", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Input>.required(value: Boolean = true) =
     attr("required", value.toString())
@@ -233,10 +233,10 @@ fun AttrsBuilder<Tag.Option>.value(value: String) =
     attr("value", value)
 
 fun AttrsBuilder<Tag.Option>.disabled(value: Boolean = true) =
-    attr("disabled", value.toString())
+    attr("disabled", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Option>.selected(value: Boolean = true) =
-    attr("selected", value.toString())
+    attr("selected", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Option>.label(value: String) =
     attr("label", value)
@@ -247,22 +247,22 @@ fun AttrsBuilder<Tag.Select>.autocomplete(value: String) =
     attr("autocomplete", value)
 
 fun AttrsBuilder<Tag.Select>.autofocus(value: Boolean = true) =
-    attr("autofocus", value.toString())
+    attr("autofocus", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Select>.disabled(value: Boolean = true) =
-    attr("disabled", value.toString())
+    attr("disabled", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Select>.form(formId: String) =
     attr("form", formId)
 
 fun AttrsBuilder<Tag.Select>.multiple(value: Boolean = true) =
-    attr("multiple", value.toString())
+    attr("multiple", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Select>.name(value: String) =
     attr("name", value)
 
 fun AttrsBuilder<Tag.Select>.required(value: Boolean = true) =
-    attr("required", value.toString())
+    attr("required", if (value) "" else null)
 
 fun AttrsBuilder<Tag.Select>.size(numberOfRows: Int) =
     attr("size", numberOfRows.toString())
@@ -273,7 +273,7 @@ fun AttrsBuilder<Tag.OptGroup>.label(value: String) =
     attr("label", value)
 
 fun AttrsBuilder<Tag.OptGroup>.disabled(value: Boolean = true) =
-    attr("disabled", value.toString())
+    attr("disabled", if (value) "" else null)
 
 /* TextArea attributes */
 
@@ -281,13 +281,13 @@ fun AttrsBuilder<Tag.TextArea>.autoComplete(value: Boolean = true) =
     attr("autocomplete", if (value) "on" else "off")
 
 fun AttrsBuilder<Tag.TextArea>.autoFocus(value: Boolean = true) =
-    attr("autofocus", value.toString())
+    attr("autofocus", if (value) "" else null)
 
 fun AttrsBuilder<Tag.TextArea>.cols(value: Int) =
     attr("cols", value.toString())
 
 fun AttrsBuilder<Tag.TextArea>.disabled(value: Boolean = true) =
-    attr("disabled", value.toString())
+    attr("disabled", if (value) "" else null)
 
 fun AttrsBuilder<Tag.TextArea>.form(formId: String) =
     attr("form", formId)
@@ -305,10 +305,10 @@ fun AttrsBuilder<Tag.TextArea>.placeholder(value: String) =
     attr("placeholder", value)
 
 fun AttrsBuilder<Tag.TextArea>.readOnly(value: Boolean = true) =
-    attr("readonly", value.toString())
+    attr("readonly", if (value) "" else null)
 
 fun AttrsBuilder<Tag.TextArea>.required(value: Boolean = true) =
-    attr("required", value.toString())
+    attr("required", if (value) "" else null)
 
 fun AttrsBuilder<Tag.TextArea>.rows(value: Int) =
     attr("rows", value.toString())
