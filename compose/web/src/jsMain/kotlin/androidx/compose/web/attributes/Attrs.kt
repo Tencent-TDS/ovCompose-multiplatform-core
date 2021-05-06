@@ -40,6 +40,7 @@ open class Tag {
     object Style : Tag()
     object Pre : Tag()
     object Code : Tag()
+    object Label : Tag()
 }
 
 /* Anchor <a> attributes */
@@ -331,3 +332,7 @@ fun AttrsBuilder<Tag.Img>.alt(value: String?): AttrsBuilder<Tag.Img> =
 private val setInputValue: (HTMLInputElement, String) -> Unit = { e, v ->
     e.value = v
 }
+
+/* Img attributes */
+fun AttrsBuilder<Tag.Label>.forId(value: String?): AttrsBuilder<Tag.Label> =
+    attr("for", value)

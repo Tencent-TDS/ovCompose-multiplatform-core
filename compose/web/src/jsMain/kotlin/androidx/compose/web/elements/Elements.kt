@@ -25,6 +25,7 @@ import androidx.compose.web.attributes.InputType
 import androidx.compose.web.attributes.Tag
 import androidx.compose.web.attributes.action
 import androidx.compose.web.attributes.alt
+import androidx.compose.web.attributes.forId
 import androidx.compose.web.attributes.href
 import androidx.compose.web.attributes.label
 import androidx.compose.web.attributes.src
@@ -413,15 +414,15 @@ inline fun Footer(
 
 @Composable
 inline fun Label(
-    forId: String,
-    crossinline attrs: (AttrsBuilder<Tag.Div>.() -> Unit) = {},
+    forId: String? = null,
+    crossinline attrs: (AttrsBuilder<Tag.Label>.() -> Unit) = {},
     crossinline style: (StyleBuilder.() -> Unit) = {},
     content: @Composable ElementScope<HTMLElement>.() -> Unit = {}
 ) {
-    TagElement<Tag.Div, HTMLAnchorElement>(
+    TagElement<Tag.Label, HTMLAnchorElement>(
         tagName = "label",
         applyAttrs = {
-            attr("for", forId)
+            forId(forId)
             attrs()
         },
         applyStyle = style,
