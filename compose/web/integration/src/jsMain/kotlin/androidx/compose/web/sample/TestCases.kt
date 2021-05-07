@@ -17,16 +17,42 @@
 package androidx.compose.web.sample
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.web.elements.Div
+import androidx.compose.web.elements.Span
 import androidx.compose.web.elements.Text
+import androidx.compose.web.elements.TextArea
 import androidx.compose.web.renderComposableInBody
 
 private val testCase1 = @Composable {
     Div { Text("Hello World!") }
 }
 
+private val testCase2 = @Composable {
+    var state by remember { mutableStateOf("") }
+    Span(
+        attrs = {
+            id("result")
+        }
+    ) {
+        Text(state)
+    }
+
+    TextArea(
+        value = state,
+        attrs = {
+            id("input")
+            onTextInput { state = it.inputValue }
+        }
+    )
+}
+
 private val testCases = mapOf<String, @Composable () -> Unit>(
-    "testCase1" to testCase1
+    "testCase1" to testCase1,
+    "testCase2" to testCase2,
 )
 
 fun launchTestCase(testCaseId: String) {

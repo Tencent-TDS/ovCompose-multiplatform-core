@@ -1,12 +1,3 @@
-import org.openqa.selenium.By
-import org.openqa.selenium.chrome.ChromeDriver
-import org.openqa.selenium.chrome.ChromeOptions
-import org.openqa.selenium.remote.RemoteWebDriver
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-
 /*
  * Copyright 2021 The Android Open Source Project
  *
@@ -23,23 +14,53 @@ import kotlin.test.assertEquals
  * limitations under the License.
  */
 
+import org.jetbrains.skiko.OS
+import org.openqa.selenium.By
+import org.openqa.selenium.chrome.ChromeDriver
+import org.openqa.selenium.chrome.ChromeOptions
+import org.openqa.selenium.remote.RemoteWebDriver
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Ignore
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+@Ignore("Ignored temporarily, before we install chromedriver on CI")
 class SeleniumTests {
 
-    private val path = "file:///${System.getenv("HOME")}/compose-web-tmp/index.html"
+    private val currentOS: OS by lazy {
+        val os = System.getProperty("os.name")
+        when {
+            os.equals("Mac OS X", ignoreCase = true) -> OS.MacOS
+            os.startsWith("Win", ignoreCase = true) -> OS.Windows
+            os.startsWith("Linux", ignoreCase = true) -> OS.Linux
+            else -> error("Unknown OS name: $os")
+        }
+    }
+
+    private val homePath = if (currentOS.isWindows) {
+        System.getenv("HOMEPATH")
+    } else {
+        System.getenv("HOME")
+    }
+
+    // TODO: run and use localhost http server instead of using the index.html
+    private val path = "file:///$homePath/compose-web-tmp/dist/index.html"
 
     private fun openTestPage(test: String) {
         driver.get("$path?test=$test")
     }
 
     private val options = ChromeOptions().apply {
-        addArguments("--headless")
+        setHeadless(true)
+        addArguments("--no-sandbox")
     }
 
     private lateinit var driver: RemoteWebDriver
 
     @BeforeTest
     fun before() {
-       driver = ChromeDriver(options)
+        driver = ChromeDriver(options)
     }
 
     @AfterTest
@@ -59,10 +80,12 @@ class SeleniumTests {
 
     @Test
     fun test2() {
-        openTestPage("testCase1")
-        assertEquals(
-            expected = "Hello World!",
-            actual = driver.findElementByTagName("div").text
-        )
+        openTestPage("testCase2")
+
+        val input = driver.findElement(By.id("input"))
+        input.sendKeys("Hello")
+
+        val text = driver.findElement(By.id("result"))
+        assertEquals(expected = "Hello", actual = text.text)
     }
 }

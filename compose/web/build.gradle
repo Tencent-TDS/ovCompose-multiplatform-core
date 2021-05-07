@@ -99,8 +99,13 @@ task buildAll {
 }
 
 task copyIntegrationDistributionForTests(type: Copy) {
+    // This Copy task will be removed when we start the http localhost
+    doFirst {
+        new File(distributionForTestsPath()).delete()
+    }
+
     from "${project(":compose:web:integration").buildDir.toPath().toString()}/distributions"
-    into "${System.getenv("HOME")}/compose-web-tmp"
+    into "${distributionForTestsPath()}"
 }
 
 task runSeleniumTests {
@@ -123,3 +128,18 @@ tasks.register("publishAll") {
     }
 }
 
+static OS currentOs() {
+    String os = System.getProperty("os.name").toLowerCase()
+    if (os.equals("mac os x")) return OS.MacOS
+    if (os.contains("win")) return OS.Windows
+    if (os.contains("linux")) return OS.Linux
+    throw new Exception("Unknown OS name " + os)
+}
+
+static String distributionForTestsPath() {
+    return "${System.getenv(currentOs() == OS.Windows ? "HOMEPATH" : "HOME")}/compose-web-tmp/dist"
+}
+
+enum OS {
+    Linux, Windows, MacOS
+}
