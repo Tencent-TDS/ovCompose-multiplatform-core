@@ -41,6 +41,16 @@ open class Tag {
     object Pre : Tag()
     object Code : Tag()
     object Label : Tag()
+    object Table : Tag()
+    object Caption: Tag()
+    object Col : Tag()
+    object Colgroup : Tag()
+    object Tr : Tag()
+    object Thead : Tag()
+    object Th : Tag()
+    object Td : Tag()
+    object Tbody : Tag()
+    object Tfoot : Tag()
 }
 
 /* Anchor <a> attributes */
@@ -336,3 +346,10 @@ private val setInputValue: (HTMLInputElement, String) -> Unit = { e, v ->
 /* Img attributes */
 fun AttrsBuilder<Tag.Label>.forId(value: String?): AttrsBuilder<Tag.Label> =
     attr("for", value)
+
+/* Table attributes */
+fun AttrsBuilder<Tag.Th>.scope(value: String?): AttrsBuilder<Tag.Th> =
+    attrs("scope", value)
+
+fun AttrsBuilder<Tag.Col>.span(value: Int): AttrsBuilder<Tag.Col> =
+    attrs("span", value.toString())

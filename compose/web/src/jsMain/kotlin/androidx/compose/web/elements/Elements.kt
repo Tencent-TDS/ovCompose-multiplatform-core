@@ -429,3 +429,143 @@ inline fun Label(
         content = content
     )
 }
+
+@Composable
+inline fun Table(
+    crossinline attrs: (AttrsBuilder<Table>.() -> Unit) = {},
+    crossinline style: (StyleBuilder.() -> Unit) = {},
+    content: @Composable ElementScope<HTMLTableElement>.() -> Unit
+) {
+    TagElement(
+        tagName = "table",
+        applyAttrs = attrs,
+        applyStyle = style,
+        content = content
+    )
+}
+
+@Composable
+inline fun Caption(
+    crossinline attrs: (AttrsBuilder<Caption>.() -> Unit) = {},
+    crossinline style: (StyleBuilder.() -> Unit) = {},
+    content: @Composable ElementScope<HTMLTableCaptionElement>.() -> Unit
+) {
+    TagElement(
+        tagName = "caption",
+        applyAttrs = attrs,
+        applyStyle = style,
+        content = content
+    )
+}
+
+@Composable
+inline fun Col(
+    crossinline attrs: (AttrsBuilder<Col>.() -> Unit) = {},
+    crossinline style: (StyleBuilder.() -> Unit) = {},
+    content: @Composable ElementScope<HTMLTableColElement>.() -> Unit
+) {
+    TagElement(
+        tagName = "col",
+        applyAttrs = attrs,
+        applyStyle = style,
+        content = content
+    )
+}
+
+@Composable
+inline fun Colgroup(
+    crossinline attrs: (AttrsBuilder<Colgroup>.() -> Unit) = {},
+    crossinline style: (StyleBuilder.() -> Unit) = {},
+    content: @Composable ElementScope<HTMLTableColElement>.() -> Unit
+) {
+    TagElement(
+        tagName = "colgroup",
+        applyAttrs = attrs,
+        applyStyle = style,
+        content = content
+    )
+}
+
+@Composable
+inline fun Tr(
+    crossinline attrs: (AttrsBuilder<Tr>.() -> Unit) = {},
+    crossinline style: (StyleBuilder.() -> Unit) = {},
+    content: @Composable ElementScope<HTMLTableRowElement>.() -> Unit
+) {
+    TagElement(
+        tagName = "tr",
+        applyAttrs = attrs,
+        applyStyle = style,
+        content = content
+    )
+}
+
+@Composable
+inline fun Thead(
+    crossinline attrs: (AttrsBuilder<Thead>.() -> Unit) = {},
+    crossinline style: (StyleBuilder.() -> Unit) = {},
+    content: @Composable ElementScope<HTMLTableSectionElement>.() -> Unit
+) {
+    TagElement(
+        tagName = "thead",
+        applyAttrs = attrs,
+        applyStyle = style,
+        content = content
+    )
+}
+
+@Composable
+inline fun Th(
+    crossinline attrs: (AttrsBuilder<Th>.() -> Unit) = {},
+    crossinline style: (StyleBuilder.() -> Unit) = {},
+    content: @Composable ElementScope<HTMLTableCellElement>.() -> Unit
+) {
+    TagElement(
+        tagName = "th",
+        applyAttrs = attrs,
+        applyStyle = style,
+        content = content
+    )
+}
+
+@Composable
+inline fun Td(
+    crossinline attrs: (AttrsBuilder<Td>.() -> Unit) = {},
+    crossinline style: (StyleBuilder.() -> Unit) = {},
+    content: @Composable ElementScope<HTMLTableCellElement>.() -> Unit
+) {
+    TagElement(
+        tagName = "td",
+        applyAttrs = attrs,
+        applyStyle = style,
+        content = content
+    )
+}
+
+@Composable
+inline fun Tbody(
+    crossinline attrs: (AttrsBuilder<Tbody>.() -> Unit) = {},
+    crossinline style: (StyleBuilder.() -> Unit) = {},
+    content: @Composable ElementScope<HTMLTableSectionElement>.() -> Unit
+) {
+    TagElement(
+        tagName = "tbody",
+        applyAttrs = attrs,
+        applyStyle = style,
+        content = content
+    )
+}
+
+@Composable
+inline fun Tfoot(
+    crossinline attrs: (AttrsBuilder<Tfoot>.() -> Unit) = {},
+    crossinline style: (StyleBuilder.() -> Unit) = {},
+    content: @Composable ElementScope<HTMLTableSectionElement>.() -> Unit
+) {
+    TagElement(
+        tagName = "tfoot",
+        applyAttrs = attrs,
+        applyStyle = style,
+        content = content
+    )
+}
