@@ -32,6 +32,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class TableTests {
+
     @Test
     fun create() = runTest {
         composition {
@@ -151,8 +152,8 @@ class TableTests {
                     <tr>
                         <th scope="row">Totals</th>
                         <th></th>
-                        <td>21</td>
-                        <td>42</td>
+                        <td>40</td>
+                        <td>60</td>
                     </tr>
                 </tfoot>
             </table>
