@@ -348,8 +348,20 @@ fun AttrsBuilder<Tag.Label>.forId(value: String?): AttrsBuilder<Tag.Label> =
     attr("for", value)
 
 /* Table attributes */
-fun AttrsBuilder<Tag.Th>.scope(value: String?): AttrsBuilder<Tag.Th> =
-    attrs("scope", value)
+fun AttrsBuilder<Tag.Th>.scope(value: Scope?): AttrsBuilder<Tag.Th> =
+    attrs("scope", value?.str)
 
 fun AttrsBuilder<Tag.Col>.span(value: Int): AttrsBuilder<Tag.Col> =
     attrs("span", value.toString())
+
+fun AttrsBuilder<Tag.Th>.colspan(value: Int): AttrsBuilder<Tag.Th> =
+    attrs("colspan", value.toString())
+
+fun AttrsBuilder<Tag.Th>.rowspan(value: Int): AttrsBuilder<Tag.Th> =
+    attrs("rowspan", value.toString())
+
+fun AttrsBuilder<Tag.Td>.colspan(value: Int): AttrsBuilder<Tag.Td> =
+    attrs("colspan", value.toString())
+
+fun AttrsBuilder<Tag.Td>.rowspan(value: Int): AttrsBuilder<Tag.Td> =
+    attrs("rowspan", value.toString())

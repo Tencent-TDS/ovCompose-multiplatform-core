@@ -141,3 +141,10 @@ enum class TextAreaWrap(val str: String) {
     Soft("soft"),
     Off("off")
 }
+
+enum class Scope(val str: String) {
+    Row("row"),
+    Rowgroup("rowgroup"),
+    Col("col"),
+    Colgroup("colgroup")
+}
