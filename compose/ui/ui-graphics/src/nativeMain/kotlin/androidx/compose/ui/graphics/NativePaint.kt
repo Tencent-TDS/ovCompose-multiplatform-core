@@ -113,8 +113,8 @@ class NativePaint : Paint {
         }
 
     private fun PaintingStyle.toSkia() = when (this) {
-        PaintingStyle.Fill -> `SkPaint::Style`.kFill_Style
-        PaintingStyle.Stroke -> `SkPaint::Style`.kStroke_Style
+        PaintingStyle.Fill -> SkPaint__Style.kFill_Style
+        PaintingStyle.Stroke -> SkPaint__Style.kStroke_Style
         else -> error("Unexpected PaintingStyle")
     }
 

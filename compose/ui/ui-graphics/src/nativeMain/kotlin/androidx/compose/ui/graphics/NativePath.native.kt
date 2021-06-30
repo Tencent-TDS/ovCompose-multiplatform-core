@@ -22,7 +22,7 @@ import androidx.compose.ui.geometry.RoundRect
 import org.jetbrains.skiko.skia.native.*
 import org.jetbrains.skiko.skia.native.SkPathFillType.*
 import org.jetbrains.skiko.skia.native.SkPathDirection.*
-import org.jetbrains.skiko.skia.native.`SkPath::AddPathMode`.*
+import org.jetbrains.skiko.skia.native.SkPath__AddPathMode.*
 import kotlinx.cinterop.*
 
 actual fun Path(): Path = NativePath()

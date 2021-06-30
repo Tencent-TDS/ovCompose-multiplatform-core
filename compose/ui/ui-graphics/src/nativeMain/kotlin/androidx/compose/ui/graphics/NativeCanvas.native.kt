@@ -26,7 +26,7 @@ import androidx.compose.ui.util.fastForEach
 // import org.jetbrains.skiko.skia.native.RRect as SkiaRRect
 import org.jetbrains.skiko.skia.native.SkRect as SkiaNativeRect
 import org.jetbrains.skiko.skia.native.*
-import org.jetbrains.skiko.skia.native.`SkCanvas::SrcRectConstraint`.* // TODO: Do something with cpp nesting.
+import org.jetbrains.skiko.skia.native.SkCanvas__SrcRectConstraint.* // TODO: Do something with cpp nesting.
 
 
 internal actual fun ActualCanvas(image: ImageBitmap): Canvas {
