@@ -30,7 +30,7 @@ import javax.xml.transform.stream.StreamResult
 
 buildscript {
     repositories {
-        jcenter()
+//        jcenter()
         mavenCentral()
         google()
     }
@@ -72,7 +72,7 @@ plugins {
 
 val metalavaBuildId: String? = findProperty("metalavaBuildId") as String?
 repositories {
-    jcenter()
+//    jcenter()
     mavenCentral()
     google()
     gradlePluginPortal()
