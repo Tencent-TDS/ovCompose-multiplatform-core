@@ -442,6 +442,8 @@ internal class SuspendingPointerInputFilter(
             } else null
         }
 
+        if (newChanges.isEmpty()) return
+
         val cancelEvent = PointerEvent(newChanges)
 
         currentEvent = cancelEvent
