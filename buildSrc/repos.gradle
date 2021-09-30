@@ -65,7 +65,7 @@ def addMavenRepositories(RepositoryHandler handler) {
     }
     if (System.getenv("ALLOW_PUBLIC_REPOS") != null || System.getProperty("ALLOW_PUBLIC_REPOS") != null) {
         handler.mavenCentral()
-        handler.jcenter()
+//        handler.jcenter()
         handler.google()
         handler.maven {
             url("https://plugins.gradle.org/m2/")
