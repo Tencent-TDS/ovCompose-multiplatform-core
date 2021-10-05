@@ -22,6 +22,9 @@ package androidx.compose.runtime
 @OptIn(ExperimentalStdlibApi::class)
 internal inline infix fun Int.ror(other: Int) = this.rotateRight(other)
 
+
+
+
 // NOTE: rotateLeft, marked @ExperimentalStdlibApi is also marked inline-only,
 // which makes this usage stable.
 @OptIn(ExperimentalStdlibApi::class)
