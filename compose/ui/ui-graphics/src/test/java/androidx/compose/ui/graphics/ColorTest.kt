@@ -78,7 +78,7 @@ class ColorTest {
     @Test
     fun blue() {
         assertEquals(0f, srgbColor.blue, 0f)
-        assertEquals(0.1168f, adobeColor.blue, epsilon)
+        assertEquals(0.99f, adobeColor.blue, epsilon)
     }
 
     @Test
