@@ -70,7 +70,13 @@ interface DisposableEffectResult {
     fun dispose()
 }
 
+
+// added unnecessary empty lines
+
 private val InternalDisposableEffectScope = DisposableEffectScope()
+
+
+
 
 private class DisposableEffectImpl(
     private val effect: DisposableEffectScope.() -> DisposableEffectResult
