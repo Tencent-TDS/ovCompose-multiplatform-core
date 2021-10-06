@@ -48,6 +48,9 @@ fun SideEffect(
     currentComposer.recordSideEffect(effect)
 }
 
+@Composable
+fun NewPublicEffect(a: String, b: Int) {} 
+
 /**
  * Receiver scope for [DisposableEffect] that offers the [onDispose] clause that should be
  * the last statement in any call to [DisposableEffect].
@@ -70,13 +73,7 @@ interface DisposableEffectResult {
     fun dispose()
 }
 
-
-// added unnecessary empty lines
-
 private val InternalDisposableEffectScope = DisposableEffectScope()
-
-
-
 
 private class DisposableEffectImpl(
     private val effect: DisposableEffectScope.() -> DisposableEffectResult
