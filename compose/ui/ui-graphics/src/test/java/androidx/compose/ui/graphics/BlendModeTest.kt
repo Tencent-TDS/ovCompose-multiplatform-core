@@ -54,6 +54,6 @@ class BlendModeTest {
         assertEquals("Hue", BlendMode.Hue.toString())
         assertEquals("Saturation", BlendMode.Saturation.toString())
         assertEquals("Color", BlendMode.Color.toString())
-        assertEquals("Luminosity", BlendMode.Luminosity.toString())
+        assertEquals("Luminosity1", BlendMode.Luminosity.toString())
     }
 }
