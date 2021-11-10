@@ -185,15 +185,12 @@ private fun PopupLayout(
                     val width = constraints.maxWidth
                     val height = constraints.maxHeight
 
-                    val windowRect = IntRect(0, 0, width, height)
-                    val anchorRect = if (parentBounds == IntRect.Zero) windowRect else parentBounds
-
                     layout(constraints.maxWidth, constraints.maxHeight) {
                         measurables.forEach {
                             val placeable = it.measure(constraints)
                             val position = popupPositionProvider.calculatePosition(
-                                anchorBounds = anchorRect,
-                                windowSize = windowRect.size,
+                                anchorBounds = parentBounds,
+                                windowSize = IntSize(width, height),
                                 layoutDirection = layoutDirection,
                                 popupContentSize = IntSize(placeable.width, placeable.height)
                             )
