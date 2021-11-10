@@ -142,6 +142,7 @@ class ComposeScene internal constructor(
 
     private var pointerId = 0L
     private var isMousePressed = false
+    private var wasMouseDragEvent = false
 
     private val job = Job()
     private val coroutineScope = CoroutineScope(coroutineContext + job)
@@ -352,6 +353,7 @@ class ComposeScene internal constructor(
     }
 
     private var focusedOwner: SkiaBasedOwner? = null
+    private var mousePressOwner: SkiaBasedOwner? = null
     private val hoveredOwner: SkiaBasedOwner?
         get() = list.lastOrNull { it.isHovered(pointLocation) } ?: list.lastOrNull()
 
@@ -395,6 +397,7 @@ class ComposeScene internal constructor(
             PointerEventType.Press -> onMousePressed(event)
             PointerEventType.Release -> onMouseReleased(event)
             PointerEventType.Move -> {
+                wasMouseDragEvent = isMousePressed
                 pointLocation = position
                 hoveredOwner?.processPointerInput(event)
             }
@@ -445,15 +448,22 @@ class ComposeScene internal constructor(
                 focusedOwner?.onDismissRequest?.invoke()
             } else {
                 currentOwner.processPointerInput(event)
+                mousePressOwner = currentOwner
             }
         } else {
             focusedOwner?.processPointerInput(event)
+            mousePressOwner = focusedOwner
         }
     }
 
     private fun onMouseReleased(event: PointerInputEvent) {
-        val owner = hoveredOwner ?: focusedOwner
-        owner?.processPointerInput(event)
+        if (wasMouseDragEvent) {
+            wasMouseDragEvent = false
+            mousePressOwner?.processPointerInput(event)
+            mousePressOwner = null
+        } else {
+            (hoveredOwner ?: focusedOwner)?.processPointerInput(event)
+        }
         pointerId += 1
     }
 
