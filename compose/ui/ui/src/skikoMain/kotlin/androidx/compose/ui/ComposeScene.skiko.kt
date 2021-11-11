@@ -142,7 +142,6 @@ class ComposeScene internal constructor(
 
     private var pointerId = 0L
     private var isMousePressed = false
-    private var wasMouseDragEvent = false
 
     private val job = Job()
     private val coroutineScope = CoroutineScope(coroutineContext + job)
@@ -397,9 +396,12 @@ class ComposeScene internal constructor(
             PointerEventType.Press -> onMousePressed(event)
             PointerEventType.Release -> onMouseReleased(event)
             PointerEventType.Move -> {
-                wasMouseDragEvent = isMousePressed
                 pointLocation = position
-                hoveredOwner?.processPointerInput(event)
+                if (isMousePressed) {
+                    mousePressOwner?.processPointerInput(event)
+                } else {
+                    hoveredOwner?.processPointerInput(event)
+                }
             }
             PointerEventType.Enter -> hoveredOwner?.processPointerInput(event)
             PointerEventType.Exit -> hoveredOwner?.processPointerInput(event)
@@ -457,13 +459,9 @@ class ComposeScene internal constructor(
     }
 
     private fun onMouseReleased(event: PointerInputEvent) {
-        if (wasMouseDragEvent) {
-            wasMouseDragEvent = false
-            mousePressOwner?.processPointerInput(event)
-            mousePressOwner = null
-        } else {
-            (hoveredOwner ?: focusedOwner)?.processPointerInput(event)
-        }
+        val owner = (mousePressOwner ?: hoveredOwner) ?: focusedOwner
+        owner?.processPointerInput(event)
+        mousePressOwner = null
         pointerId += 1
     }
 
