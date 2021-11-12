@@ -22,6 +22,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.currentCompositionLocalContext
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCompositionContext
 import androidx.compose.runtime.rememberUpdatedState
@@ -43,6 +44,8 @@ import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import javax.swing.JFrame
 import javax.swing.JMenuBar
+import org.jetbrains.skiko.hostOs
+import org.jetbrains.skiko.OS
 
 // TODO(demin): support focus management
 /**
@@ -129,6 +132,7 @@ fun Window(
     onKeyEvent: (KeyEvent) -> Boolean = { false },
     content: @Composable FrameWindowScope.() -> Unit
 ) {
+    val initialPlacement by remember { mutableStateOf(state.placement) }
     val currentState by rememberUpdatedState(state)
     val currentTitle by rememberUpdatedState(title)
     val currentIcon by rememberUpdatedState(icon)
@@ -187,6 +191,19 @@ fun Window(
                         appliedState.position = currentState.position
                     }
                 })
+                when (hostOs) {
+                    OS.MacOS -> {
+                        addComponentListener(object : ComponentAdapter() {
+                            override fun componentShown(e: ComponentEvent) {
+                                if (initialPlacement != placement) {
+                                    placement = initialPlacement
+                                }
+                            }
+                        })
+                    }
+                    // Perhaps, in the future, post initialization may appear for other OS.
+                    else -> {}
+                }
             }
         },
         dispose = ComposeWindow::dispose,
