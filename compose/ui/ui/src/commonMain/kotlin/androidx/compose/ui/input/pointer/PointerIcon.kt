@@ -81,10 +81,8 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
                         else
                             PointerEventPass.Initial
                         val event = awaitPointerEvent(pass)
-                        when (event.type) {
-                            PointerEventType.Enter, PointerEventType.Move -> {
-                                pointerIconService.current = icon
-                            }
+                        if (event.type != PointerEventType.Exit) {
+                            pointerIconService.current = icon
                         }
                     }
                 }

@@ -30,7 +30,7 @@ internal const val DefaultBorderThickness = 8
 
 internal class UndecoratedWindowResizer(
     private val window: Window,
-    layer: ComposeLayer,
+    private val layer: ComposeLayer,
     var enabled: Boolean = false,
     var borderThickness: Int = DefaultBorderThickness
 ) {
@@ -70,16 +70,18 @@ internal class UndecoratedWindowResizer(
         }
         val point = event.getPoint()
         sides = getSides(point)
+        fun setCursor(cursorType: Int) {
+            layer.scene.component.desiredCursor = Cursor(cursorType)
+        }
         when (sides) {
-            Side.Left.value -> window.setCursor(Cursor(Cursor.W_RESIZE_CURSOR))
-            Side.Top.value -> window.setCursor(Cursor(Cursor.N_RESIZE_CURSOR))
-            Side.Right.value -> window.setCursor(Cursor(Cursor.E_RESIZE_CURSOR))
-            Side.Bottom.value -> window.setCursor(Cursor(Cursor.S_RESIZE_CURSOR))
-            Corner.LeftTop.value -> window.setCursor(Cursor(Cursor.NW_RESIZE_CURSOR))
-            Corner.LeftBottom.value -> window.setCursor(Cursor(Cursor.SW_RESIZE_CURSOR))
-            Corner.RightTop.value -> window.setCursor(Cursor(Cursor.NE_RESIZE_CURSOR))
-            Corner.RightBottom.value -> window.setCursor(Cursor(Cursor.SE_RESIZE_CURSOR))
-            else -> window.setCursor(Cursor(Cursor.DEFAULT_CURSOR))
+            Side.Left.value -> setCursor(Cursor.W_RESIZE_CURSOR)
+            Side.Top.value -> setCursor(Cursor.N_RESIZE_CURSOR)
+            Side.Right.value -> setCursor(Cursor.E_RESIZE_CURSOR)
+            Side.Bottom.value -> setCursor(Cursor.S_RESIZE_CURSOR)
+            Corner.LeftTop.value -> setCursor(Cursor.NW_RESIZE_CURSOR)
+            Corner.LeftBottom.value -> setCursor(Cursor.SW_RESIZE_CURSOR)
+            Corner.RightTop.value -> setCursor(Cursor.NE_RESIZE_CURSOR)
+            Corner.RightBottom.value -> setCursor(Cursor.SE_RESIZE_CURSOR)
         }
     }
 
