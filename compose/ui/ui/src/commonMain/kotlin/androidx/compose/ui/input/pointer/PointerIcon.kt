@@ -19,6 +19,9 @@ package androidx.compose.ui.input.pointer
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalPointerIconService
 import androidx.compose.ui.platform.debugInspectorInfo
 
@@ -73,7 +76,8 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
         if (pointerIconService == null) {
             Modifier
         } else {
-            this.pointerInput(icon, overrideDescendants) {
+            var coordinates: LayoutCoordinates? = null
+            this.onGloballyPositioned { coordinates = it }.pointerInput(icon, overrideDescendants) {
                 awaitPointerEventScope {
                     while (true) {
                         val pass = if (overrideDescendants)
@@ -81,7 +85,9 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
                         else
                             PointerEventPass.Initial
                         val event = awaitPointerEvent(pass)
-                        if (event.type != PointerEventType.Exit) {
+                        if (event.type != PointerEventType.Exit &&
+                            coordinates?.boundsInParent()?.contains(event.changes[0].position) == true
+                        ) {
                             pointerIconService.current = icon
                         }
                     }
