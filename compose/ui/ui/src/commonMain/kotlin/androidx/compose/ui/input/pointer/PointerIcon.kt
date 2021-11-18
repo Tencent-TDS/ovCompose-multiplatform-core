@@ -19,6 +19,7 @@ package androidx.compose.ui.input.pointer
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -41,10 +42,13 @@ interface PointerIcon
 
 @OptIn(ExperimentalComposeUiApi::class)
 internal expect val pointerIconDefault: PointerIcon
+
 @OptIn(ExperimentalComposeUiApi::class)
 internal expect val pointerIconCrosshair: PointerIcon
+
 @OptIn(ExperimentalComposeUiApi::class)
 internal expect val pointerIconText: PointerIcon
+
 @OptIn(ExperimentalComposeUiApi::class)
 internal expect val pointerIconHand: PointerIcon
 
@@ -85,7 +89,13 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
                         else
                             PointerEventPass.Initial
                         val event = awaitPointerEvent(pass)
-                        val isOutsideRelease = event.type == PointerEventType.Release && coordinates?.boundsInParent()?.contains(event.changes[0].position) == false
+                        val isOutsideRelease = event.type == PointerEventType.Release &&
+                            coordinates?.size?.let {
+                                event.changes[0].isOutOfBounds(
+                                    it,
+                                    Size.Zero
+                                )
+                            } == true
                         if (event.type != PointerEventType.Exit && !isOutsideRelease) {
                             pointerIconService.current = icon
                         }
