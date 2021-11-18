@@ -80,8 +80,7 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
         if (pointerIconService == null) {
             Modifier
         } else {
-            var coordinates: LayoutCoordinates? = null
-            this.onGloballyPositioned { coordinates = it }.pointerInput(icon, overrideDescendants) {
+            this.pointerInput(icon, overrideDescendants) {
                 awaitPointerEventScope {
                     while (true) {
                         val pass = if (overrideDescendants)
@@ -90,12 +89,7 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
                             PointerEventPass.Initial
                         val event = awaitPointerEvent(pass)
                         val isOutsideRelease = event.type == PointerEventType.Release &&
-                            coordinates?.size?.let {
-                                event.changes[0].isOutOfBounds(
-                                    it,
-                                    Size.Zero
-                                )
-                            } == true
+                            event.changes[0].isOutOfBounds(size, Size.Zero)
                         if (event.type != PointerEventType.Exit && !isOutsideRelease) {
                             pointerIconService.current = icon
                         }
