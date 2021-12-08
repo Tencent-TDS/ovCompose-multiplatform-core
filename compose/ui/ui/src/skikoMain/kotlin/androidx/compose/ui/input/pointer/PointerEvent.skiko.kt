@@ -18,6 +18,7 @@
 package androidx.compose.ui.input.pointer
 
 import org.jetbrains.skiko.SkikoPointerEventKind
+import org.jetbrains.skiko.SkikoGestureEventState
 
 fun SkikoPointerEventKind.toCompose() = when(this) {
     SkikoPointerEventKind.UP -> PointerEventType.Release
@@ -26,3 +27,9 @@ fun SkikoPointerEventKind.toCompose() = when(this) {
     else -> PointerEventType.Unknown
 }
 
+fun SkikoGestureEventState.toCompose() = when(this) {
+    SkikoGestureEventState.ENDED -> PointerEventType.Release
+    SkikoGestureEventState.STARTED -> PointerEventType.Press
+    SkikoGestureEventState.CHANGED -> PointerEventType.Move
+    else -> PointerEventType.Unknown
+}
