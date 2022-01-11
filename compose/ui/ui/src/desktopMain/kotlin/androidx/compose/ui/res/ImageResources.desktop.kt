@@ -22,12 +22,13 @@ import org.jetbrains.skia.Image
 import java.io.InputStream
 
 /**
- * Load and decode [ImageBitmap] from the given [inputStream]. [inputStream] should contain encoded
+ * Load and decode an [ImageBitmap] from the given [inputStream]. [inputStream] should contain an encoded
  * raster image in a format supported by Skia (BMP, GIF, HEIF, ICO, JPEG, PNG, WBMP, WebP)
  *
- * @param inputStream input stream to load an rater image. All bytes will be read from this
- * stream, but stream will not be closed after this method.
- * @return the decoded SVG image associated with the resource
+ * @param inputStream input stream to load a raster image from. All bytes will be read from this
+ * stream, but the stream will not be closed after this method.
+ * @return the image decoded from the stream
+ * @throws IllegalArgumentException if decoding the image fails
  */
 fun loadImageBitmap(inputStream: InputStream): ImageBitmap =
     Image.makeFromEncoded(inputStream.readAllBytes()).toComposeImageBitmap()
