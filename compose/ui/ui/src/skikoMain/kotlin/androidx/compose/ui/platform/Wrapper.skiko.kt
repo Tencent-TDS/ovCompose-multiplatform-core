@@ -41,14 +41,17 @@ internal fun SkiaBasedOwner.setContent(
     content: @Composable () -> Unit
 ): Composition {
     val composition = Composition(DefaultUiApplier(root), parent)
+    val owner = this
     composition.setContent {
         getCompositionLocalContext().provide {
             ProvideCommonCompositionLocals(
-                owner = this,
+                owner = owner,
                 uriHandler = remember { PlatformUriHandler() },
                 content = content
             )
-            LaunchedEffect(this) { accessibilityController?.syncLoop() }
+            if (owner.accessibilityController != null) {
+                LaunchedEffect(owner) { owner.accessibilityController!!.syncLoop() }
+            }
         }
     }
     return composition
