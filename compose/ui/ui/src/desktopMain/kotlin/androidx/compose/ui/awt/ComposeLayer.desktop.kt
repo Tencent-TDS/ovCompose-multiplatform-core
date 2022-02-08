@@ -452,11 +452,18 @@ private fun ComposeScene.onMouseWheelEvent(
 
 @OptIn(ExperimentalComposeUiApi::class)
 private val MouseEvent.buttons get() = PointerButtons(
-    isPrimaryPressed = (modifiersEx and MouseEvent.BUTTON1_DOWN_MASK) != 0 && !isMacOsCtrlClick,
-    isSecondaryPressed = (modifiersEx and MouseEvent.BUTTON3_DOWN_MASK) != 0 || isMacOsCtrlClick,
-    isTertiaryPressed = (modifiersEx and MouseEvent.BUTTON2_DOWN_MASK) != 0,
-    isBackPressed = (modifiersEx and MouseEvent.getMaskForButton(4)) != 0,
-    isForwardPressed = (modifiersEx and MouseEvent.getMaskForButton(5)) != 0,
+    isPrimaryPressed = ((modifiersEx and MouseEvent.BUTTON1_DOWN_MASK) != 0
+        || (id == MouseEvent.MOUSE_PRESSED && button == MouseEvent.BUTTON1))
+        && !isMacOsCtrlClick,
+    isSecondaryPressed = (modifiersEx and MouseEvent.BUTTON3_DOWN_MASK) != 0
+        || (id == MouseEvent.MOUSE_PRESSED && button == MouseEvent.BUTTON3)
+        || isMacOsCtrlClick,
+    isTertiaryPressed = (modifiersEx and MouseEvent.BUTTON2_DOWN_MASK) != 0
+        || (id == MouseEvent.MOUSE_PRESSED && button == MouseEvent.BUTTON2),
+    isBackPressed = (modifiersEx and MouseEvent.getMaskForButton(4)) != 0
+        || (id == MouseEvent.MOUSE_PRESSED && button == 4),
+    isForwardPressed = (modifiersEx and MouseEvent.getMaskForButton(5)) != 0
+        || (id == MouseEvent.MOUSE_PRESSED && button == 5),
 )
 
 @OptIn(ExperimentalComposeUiApi::class)
