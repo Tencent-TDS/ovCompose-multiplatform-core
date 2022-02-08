@@ -450,8 +450,12 @@ private fun ComposeScene.onMouseWheelEvent(
     )
 }
 
+
 @OptIn(ExperimentalComposeUiApi::class)
 private val MouseEvent.buttons get() = PointerButtons(
+    // We should check [event.button] because of case where [event.modifiersEx] does not provide
+    // info about the pressed mouse button when using touchpad on MacOS 12 (AWT only)
+    // see: https://youtrack.jetbrains.com/issue/COMPOSE-36
     isPrimaryPressed = ((modifiersEx and MouseEvent.BUTTON1_DOWN_MASK) != 0
         || (id == MouseEvent.MOUSE_PRESSED && button == MouseEvent.BUTTON1))
         && !isMacOsCtrlClick,
