@@ -20,13 +20,9 @@ import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.window.FrameWindowScope
-import androidx.compose.ui.window.UndecoratedWindowResizer
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.WindowPlacement
 import org.jetbrains.skiko.GraphicsApi
-import org.jetbrains.skiko.hostOs
-import org.jetbrains.skiko.OS
-import java.awt.Color
 import java.awt.Component
 import java.awt.GraphicsConfiguration
 import java.awt.event.MouseListener

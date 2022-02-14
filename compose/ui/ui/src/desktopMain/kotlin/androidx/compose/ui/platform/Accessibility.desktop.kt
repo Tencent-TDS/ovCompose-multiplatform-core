@@ -29,6 +29,8 @@ import javax.accessibility.AccessibleContext.ACCESSIBLE_STATE_PROPERTY
 import javax.accessibility.AccessibleContext.ACCESSIBLE_TEXT_PROPERTY
 import javax.accessibility.AccessibleState
 import kotlinx.coroutines.delay
+import java.awt.Container
+import java.awt.event.FocusEvent
 
 internal class AccessibilityControllerImpl(
     val owner: SkiaBasedOwner,
@@ -44,11 +46,17 @@ internal class AccessibilityControllerImpl(
             return _currentNodes
         }
 
-    @Suppress("UNUSED_PARAMETER")
-    fun fireNewNodeEvent(accessible: ComposeAccessible) {}
+    var parent: Container? = null
 
     @Suppress("UNUSED_PARAMETER")
-    fun fireRemovedNodeEvent(accessible: ComposeAccessible) {}
+    fun fireNewNodeEvent(accessible: ComposeAccessible) {
+        parent?.add(accessible)
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    fun fireRemovedNodeEvent(accessible: ComposeAccessible) {
+        parent?.remove(accessible)
+    }
 
     fun fireChangedNodeEvent(
         component: ComposeAccessible,
@@ -83,6 +91,7 @@ internal class AccessibilityControllerImpl(
                                 ACCESSIBLE_STATE_PROPERTY,
                                 null, AccessibleState.FOCUSED
                             )
+                            component.requestFocus(FocusEvent.Cause.TRAVERSAL)
                         } else {
                             component.accessibleContext.firePropertyChange(
                                 ACCESSIBLE_STATE_PROPERTY,
