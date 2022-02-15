@@ -134,9 +134,10 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
 
 fun Project.experimentalOELPublication() : Boolean = findProperty("oel.publication") == "true"
 fun Project.oelAndroidxVersion() : String? = findProperty("oel.androidx.version") as String?
+fun Project.oelAndroidxMaterial3Version() : String? = findProperty("oel.androidx.material3.version") as String?
 
 
-fun OELPublishingPrototype(project: Project) {
+fun enableOELPublishing(project: Project) {
     if (!project.experimentalOELPublication()) return
 
     if (project.experimentalOELPublication() && (project.oelAndroidxVersion() == null)) {
@@ -200,7 +201,14 @@ private fun Project.publishAndroidxReference(target: KotlinTarget) {
                     conf.artifacts.clear()
                     conf.dependencies.clear()
                     conf.setExtendsFrom(emptyList())
-                    var version = if (target.project.group.toString().contains("org.jetbrains.compose.material3")) "1.0.0-alpha01" else target.project.oelAndroidxVersion()!!
+                    val composeVersion = requireNotNull(target.project.oelAndroidxVersion()) {
+                        "Please specify oel.androidx.version property"
+                    }
+                    val material3Version = requireNotNull(target.project.oelAndroidxMaterial3Version()) {
+                        "Please specify oel.androidx.material3.version property"
+                    }
+
+                    val version = if (target.project.group.toString().contains("org.jetbrains.compose.material3")) material3Version else composeVersion
                     val newDependency = target.project.group.toString().replace("org.jetbrains.compose", "androidx.compose") + ":" + name + ":" + version
                     conf.dependencies.add(target.project.dependencies.create(newDependency))
                 }

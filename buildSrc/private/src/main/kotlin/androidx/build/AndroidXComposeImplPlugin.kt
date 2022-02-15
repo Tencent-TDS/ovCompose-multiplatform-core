@@ -90,7 +90,7 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
 
                     if (plugin is KotlinMultiplatformPluginWrapper) {
                         project.configureForMultiplatform()
-                        OELPublishingPrototype(project)
+                        enableOELPublishing(project)
                     }
                 }
             }
