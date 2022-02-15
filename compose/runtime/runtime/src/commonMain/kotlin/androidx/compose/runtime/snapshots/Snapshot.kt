@@ -22,7 +22,8 @@ import androidx.compose.runtime.AtomicReference
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.SnapshotThreadLocal
-import androidx.compose.runtime.synchronized
+import androidx.compose.util.synchronized
+import androidx.compose.util.createSynchronizedObject
 
 /**
  * A snapshot of the values return by mutable states and other state objects. All state object
@@ -1433,7 +1434,7 @@ private val threadSnapshot = SnapshotThreadLocal<Snapshot>()
  * of the fields below.
  */
 @PublishedApi
-internal val lock = Any()
+internal val lock = createSynchronizedObject()
 
 @PublishedApi
 internal inline fun <T> sync(block: () -> T): T = synchronized(lock, block)
