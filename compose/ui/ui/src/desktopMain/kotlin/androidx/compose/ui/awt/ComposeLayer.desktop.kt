@@ -63,6 +63,7 @@ import java.awt.im.InputMethodRequests
 import javax.accessibility.Accessible
 import javax.accessibility.AccessibleContext
 import javax.swing.SwingUtilities
+import javax.swing.Timer
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
@@ -112,6 +113,15 @@ internal class ComposeLayer {
             val controller =
                 scene.mainOwner?.accessibilityController as? AccessibilityControllerImpl
             controller?.parent = component.parent
+            controller?.onFocusRequested = {
+                it.requestFocus(FocusEvent.Cause.TRAVERSAL)
+                Timer(50) {
+                    // Listener spawns asynchronous notification post procedure, reading current focus owner
+                    // and its accessibility context. This timer is used to deal with concurrency
+                    // TODO Find more reliable procedure
+                    _component.canvas.requestFocus(FocusEvent.Cause.MOUSE_EVENT)
+                }.start()
+            }
             val accessible = controller?.rootAccessible
             accessible?.getAccessibleContext()?.accessibleParent = component.parent as Accessible
             return accessible?.getAccessibleContext()
