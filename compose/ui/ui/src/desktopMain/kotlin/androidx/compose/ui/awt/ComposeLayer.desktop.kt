@@ -63,7 +63,6 @@ import java.awt.im.InputMethodRequests
 import javax.accessibility.Accessible
 import javax.accessibility.AccessibleContext
 import javax.swing.SwingUtilities
-import javax.swing.Timer
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
@@ -112,16 +111,8 @@ internal class ComposeLayer {
             if (a11yDisabled) return null
             val controller =
                 scene.mainOwner?.accessibilityController as? AccessibilityControllerImpl
-            controller?.parent = component.parent
-            val resetFocusTimer = Timer(100) {
-                // Listener spawns asynchronous notification post procedure, reading current focus owner
-                // and its accessibility context. This timer is used to deal with concurrency
-                // TODO Find more reliable procedure, sometimes updates are missing
-                _component.canvas.requestFocus(FocusEvent.Cause.MOUSE_EVENT)
-            }
             controller?.onFocusRequested = {
-                it.requestFocus(FocusEvent.Cause.TRAVERSAL)
-                resetFocusTimer.restart()
+                _component.requestNativeFocusOnAccessible(it)
             }
             val accessible = controller?.rootAccessible
             accessible?.getAccessibleContext()?.accessibleParent = component.parent as Accessible

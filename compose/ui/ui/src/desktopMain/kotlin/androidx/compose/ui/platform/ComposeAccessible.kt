@@ -62,7 +62,6 @@ import javax.accessibility.AccessibleValue
 import javax.swing.text.AttributeSet
 import kotlin.math.roundToInt
 import org.jetbrains.skia.BreakIterator
-import java.awt.Component
 
 private fun <T> SemanticsConfiguration.getFirstOrNull(key: SemanticsPropertyKey<List<T>>): T? {
     return getOrNull(key)?.firstOrNull()
@@ -76,9 +75,9 @@ private typealias ActionKey = SemanticsPropertyKey<AccessibilityAction<() -> Boo
 internal class ComposeAccessible(
     var semanticsNode: SemanticsNode,
     val controller: AccessibilityControllerImpl? = null
-) : Component(), Accessible {
-    val composeAccessibleContext: ComposeAccessibleComponent by lazy { ComposeAccessibleComponent() }
-    override fun getAccessibleContext(): AccessibleContext = composeAccessibleContext
+) : Accessible {
+    val accessibleContext: ComposeAccessibleComponent by lazy { ComposeAccessibleComponent() }
+    override fun getAccessibleContext(): AccessibleContext = accessibleContext
 
     open inner class ComposeAccessibleComponent : AccessibleContext(), AccessibleComponent, AccessibleAction {
         val textSelectionRange
