@@ -113,14 +113,15 @@ internal class ComposeLayer {
             val controller =
                 scene.mainOwner?.accessibilityController as? AccessibilityControllerImpl
             controller?.parent = component.parent
+            val resetFocusTimer = Timer(100) {
+                // Listener spawns asynchronous notification post procedure, reading current focus owner
+                // and its accessibility context. This timer is used to deal with concurrency
+                // TODO Find more reliable procedure, sometimes updates are missing
+                _component.canvas.requestFocus(FocusEvent.Cause.MOUSE_EVENT)
+            }
             controller?.onFocusRequested = {
                 it.requestFocus(FocusEvent.Cause.TRAVERSAL)
-                Timer(50) {
-                    // Listener spawns asynchronous notification post procedure, reading current focus owner
-                    // and its accessibility context. This timer is used to deal with concurrency
-                    // TODO Find more reliable procedure
-                    _component.canvas.requestFocus(FocusEvent.Cause.MOUSE_EVENT)
-                }.start()
+                resetFocusTimer.restart()
             }
             val accessible = controller?.rootAccessible
             accessible?.getAccessibleContext()?.accessibleParent = component.parent as Accessible
