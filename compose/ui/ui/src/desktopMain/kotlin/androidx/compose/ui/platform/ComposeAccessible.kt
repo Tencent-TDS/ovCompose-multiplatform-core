@@ -62,6 +62,7 @@ import javax.accessibility.AccessibleValue
 import javax.swing.text.AttributeSet
 import kotlin.math.roundToInt
 import org.jetbrains.skia.BreakIterator
+import javax.swing.text.SimpleAttributeSet
 
 private fun <T> SemanticsConfiguration.getFirstOrNull(key: SemanticsPropertyKey<List<T>>): T? {
     return getOrNull(key)?.firstOrNull()
@@ -510,7 +511,8 @@ internal class ComposeAccessible(
 
             override fun getCharacterAttribute(i: Int): AttributeSet {
                 println("Not implemented: getCharacterAttribute")
-                TODO("Not yet implemented")
+                // TODO("Not yet implemented")
+                return SimpleAttributeSet()
             }
 
             override fun getSelectionStart(): Int {
