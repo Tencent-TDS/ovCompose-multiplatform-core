@@ -29,6 +29,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.debugInspectorInfo
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
@@ -98,8 +99,16 @@ fun Modifier.hoverable(
                         while (currentContext.isActive) {
                             val event = awaitPointerEvent()
                             when (event.type) {
-                                PointerEventType.Enter -> outerScope.launch { emitEnter() }
-                                PointerEventType.Exit -> outerScope.launch { emitExit() }
+                                PointerEventType.Enter -> outerScope.launch(
+                                    start = CoroutineStart.UNDISPATCHED
+                                ) {
+                                    emitEnter()
+                                }
+                                PointerEventType.Exit -> outerScope.launch(
+                                    start = CoroutineStart.UNDISPATCHED
+                                ) {
+                                    emitExit()
+                                }
                             }
                         }
                     }

@@ -34,7 +34,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.SkiaBasedOwner
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.setContent
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
@@ -171,6 +170,7 @@ private fun PopupLayout(
         val owner = SkiaBasedOwner(
             platformInputService = scene.platformInputService,
             component = scene.component,
+            pointerPositionUpdater = scene.pointerPositionUpdater,
             windowInfo = scene.component.windowInfo,
             density = density,
             isFocusable = focusable,

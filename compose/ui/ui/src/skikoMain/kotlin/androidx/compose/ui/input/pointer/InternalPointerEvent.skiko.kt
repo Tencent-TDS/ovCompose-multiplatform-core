@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,12 @@
 
 package androidx.compose.ui.input.pointer
 
-import java.awt.event.MouseEvent
-
 internal actual class InternalPointerEvent constructor(
     val type: PointerEventType,
     actual val changes: Map<PointerId, PointerInputChange>,
     val buttons: PointerButtons,
     val keyboardModifiers: PointerKeyboardModifiers,
-    val mouseEvent: MouseEvent?
+    val nativeEvent: Any?
 ) {
     actual constructor(
         changes: Map<PointerId, PointerInputChange>,
@@ -33,7 +31,7 @@ internal actual class InternalPointerEvent constructor(
         changes,
         pointerInputEvent.buttons,
         pointerInputEvent.keyboardModifiers,
-        pointerInputEvent.mouseEvent
+        pointerInputEvent.nativeEvent
     )
 
     actual var suppressMovementConsumption: Boolean = false

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,11 @@
 
 package androidx.compose.ui.input.pointer
 
-import androidx.compose.ui.ExperimentalComposeUiApi
 import java.awt.event.MouseEvent
 
 internal actual typealias NativePointerButtons = Int
 internal actual typealias NativePointerKeyboardModifiers = Int
 
-@ExperimentalComposeUiApi
 fun PointerButtons(
     isPrimaryPressed: Boolean = false,
     isSecondaryPressed: Boolean = false,
@@ -39,7 +37,6 @@ fun PointerButtons(
     return PointerButtons(res)
 }
 
-@ExperimentalComposeUiApi
 fun PointerKeyboardModifiers(
     isCtrlPressed: Boolean = false,
     isMetaPressed: Boolean = false,
@@ -85,6 +82,8 @@ actual data class PointerEvent internal constructor(
      */
     val nativeEvent: Any?
 ) {
+    // TODO remove it during upstream, as it isn't compatible with MPP.
+    //  It is safe to remove, because it was deprecated before 1.0
     /**
      * The original raw native event from AWT
      */
@@ -102,7 +101,7 @@ actual data class PointerEvent internal constructor(
         changes,
         internalPointerEvent?.buttons ?: PointerButtons(0),
         internalPointerEvent?.keyboardModifiers ?: PointerKeyboardModifiers(0),
-        internalPointerEvent?.mouseEvent
+        internalPointerEvent?.nativeEvent
     ) {
         this.type = internalPointerEvent?.type ?: PointerEventType.Unknown
     }

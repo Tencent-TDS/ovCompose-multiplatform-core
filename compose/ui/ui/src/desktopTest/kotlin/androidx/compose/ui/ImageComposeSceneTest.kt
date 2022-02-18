@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.ExtendedFloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
@@ -44,7 +45,9 @@ import kotlinx.coroutines.swing.Swing
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
+import java.util.concurrent.Executors
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(
@@ -91,18 +94,13 @@ class ImageComposeSceneTest {
             targetSize = 100f
             scene.render() // start animation
 
-            screenshotRule.write(scene.render(seconds(0)), "frame1")
-            screenshotRule.write(scene.render(seconds(10)), "frame2")
-            screenshotRule.write(scene.render(seconds(50)), "frame3")
-            screenshotRule.write(scene.render(seconds(100)), "frame4")
+            screenshotRule.write(scene.render(0.seconds), "frame1")
+            screenshotRule.write(scene.render(10.seconds), "frame2")
+            screenshotRule.write(scene.render(50.seconds), "frame3")
+            screenshotRule.write(scene.render(100.seconds), "frame4")
         }
     }
 
-    // TODO(b/202967533): fix deadlock
-    @Ignore(
-        "This test never ends because of the deadlock" +
-            "(https://issuetracker.google.com/issues/202967533)"
-    )
     @Test
     fun `run multiple ImageComposeScene`() {
         for (i in 1..300) {
@@ -119,6 +117,38 @@ class ImageComposeSceneTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun `render CircularProgressIndicator`() = ImageComposeScene(100, 100) {
+        CircularProgressIndicator()
+    }.use {
+        for (i in 1..1000) {
+            it.render(i.milliseconds)
+        }
+    }
+
+    @Test
+    @Ignore("It is failing with an exception. See https://github.com/JetBrains/compose-jb/issues/1396")
+    fun multithreading() {
+        val service = Executors.newFixedThreadPool(50)
+
+        (1..1000)
+            .map {
+                service.submit {
+                    ImageComposeScene(50, 50) {
+                        Box(Modifier.fillMaxSize().background(Color.White)) {
+                            CircularProgressIndicator()
+                        }
+                    }.use {
+                        it.render() // start animation
+                        it.render(50.milliseconds).close()
+                    }
+                }
+            }
+            .forEach { it.get() }
+
+        service.shutdown()
     }
 
     @Test(timeout = 5000)

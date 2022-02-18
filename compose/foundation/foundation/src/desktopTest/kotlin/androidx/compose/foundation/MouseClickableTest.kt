@@ -200,7 +200,7 @@ class MouseClickableTest {
         scene.sendPointerEvent(PointerEventType.Move, Offset(0f, 0f))
         scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), buttons = downButtons)
         scene.sendPointerEvent(PointerEventType.Move, Offset(20f, 0f))
-        scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), buttons = upButtons)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(20f, 0f), buttons = upButtons)
         assertThat(outerBoxTotalPan).isEqualTo(Offset(20f, 0f))
         assertThat(innerBoxClicks).isEqualTo(0)
 

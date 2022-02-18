@@ -28,7 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.awt.awtEvent
+import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.key.Key
@@ -202,7 +202,7 @@ object PopupAlertDialogProvider : AlertDialogProvider {
             focusable = true,
             onDismissRequest = onDismissRequest,
             onKeyEvent = {
-                if (it.awtEvent.keyCode == KeyEvent.VK_ESCAPE) {
+                if (it.awtEventOrNull?.keyCode == KeyEvent.VK_ESCAPE) {
                     onDismissRequest()
                     true
                 } else {

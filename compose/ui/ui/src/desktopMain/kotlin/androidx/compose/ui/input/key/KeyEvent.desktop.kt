@@ -16,11 +16,12 @@
 
 package androidx.compose.ui.input.key
 
-import androidx.compose.ui.awt.awtEvent
+import androidx.compose.ui.awt.awtEventOrNull
 import java.awt.event.KeyEvent.KEY_LOCATION_STANDARD
 import java.awt.event.KeyEvent.KEY_LOCATION_UNKNOWN
 import java.awt.event.KeyEvent.KEY_PRESSED
 import java.awt.event.KeyEvent.KEY_RELEASED
+import java.awt.event.KeyEvent.VK_UNDEFINED
 
 /**
  * The native desktop [KeyEvent][KeyEventAwt].
@@ -31,7 +32,10 @@ actual typealias NativeKeyEvent = Any
  * The key that was pressed.
  */
 actual val KeyEvent.key: Key
-    get() = Key(awtEvent.keyCode, awtEvent.keyLocationForCompose)
+    get() = Key(
+        awtEventOrNull?.keyCode ?: VK_UNDEFINED,
+        awtEventOrNull?.keyLocationForCompose ?: KEY_LOCATION_STANDARD
+    )
 
 private val java.awt.event.KeyEvent.keyLocationForCompose get() =
     if (keyLocation == KEY_LOCATION_UNKNOWN) KEY_LOCATION_STANDARD else keyLocation
@@ -53,13 +57,13 @@ private val java.awt.event.KeyEvent.keyLocationForCompose get() =
  * second from the low-surrogates range (\uDC00-\uDFFF).
  */
 actual val KeyEvent.utf16CodePoint: Int
-    get() = awtEvent.keyChar.code
+    get() = awtEventOrNull?.keyChar?.code ?: 0
 
 /**
  * The [type][KeyEventType] of key event.
  */
 actual val KeyEvent.type: KeyEventType
-    get() = when (awtEvent.id) {
+    get() = when (awtEventOrNull?.id) {
         KEY_PRESSED -> KeyEventType.KeyDown
         KEY_RELEASED -> KeyEventType.KeyUp
         else -> KeyEventType.Unknown
@@ -69,22 +73,22 @@ actual val KeyEvent.type: KeyEventType
  * Indicates whether the Alt key is pressed.
  */
 actual val KeyEvent.isAltPressed: Boolean
-    get() = awtEvent.isAltDown || awtEvent.isAltGraphDown
+    get() = awtEventOrNull?.isAltDown == true || awtEventOrNull?.isAltGraphDown == true
 
 /**
  * Indicates whether the Ctrl key is pressed.
  */
 actual val KeyEvent.isCtrlPressed: Boolean
-    get() = awtEvent.isControlDown
+    get() = awtEventOrNull?.isControlDown == true
 
 /**
  * Indicates whether the Meta key is pressed.
  */
 actual val KeyEvent.isMetaPressed: Boolean
-    get() = awtEvent.isMetaDown
+    get() = awtEventOrNull?.isMetaDown == true
 
 /**
  * Indicates whether the Shift key is pressed.
  */
 actual val KeyEvent.isShiftPressed: Boolean
-    get() = awtEvent.isShiftDown
+    get() = awtEventOrNull?.isShiftDown == true

@@ -94,11 +94,10 @@ fun JFrame.sendMouseEvent(
 }
 
 fun JFrame.sendMouseWheelEvent(
-    id: Int,
     x: Int,
     y: Int,
-    scrollType: Int,
-    scrollAmount: Int,
+    scrollType: Int = MouseWheelEvent.WHEEL_UNIT_SCROLL,
+    wheelRotation: Double = 0.0,
     modifiers: Int = 0,
 ): Boolean {
     // we use width and height instead of x and y because we can send (-1, -1), but still need
@@ -106,21 +105,23 @@ fun JFrame.sendMouseWheelEvent(
     val component = findComponentAt(width / 2, height / 2)
     val event = MouseWheelEvent(
         component,
-        id,
+        MouseWheelEvent.MOUSE_WHEEL,
         0,
         modifiers,
+        x,
+        y,
         x,
         y,
         1,
         false,
         scrollType,
-        scrollAmount,
-        1
+        1,
+        wheelRotation.toInt(),
+        wheelRotation
     )
     component.dispatchEvent(event)
     return event.isConsumed
 }
-
 
 private val EventComponent = object : Component() {}
 

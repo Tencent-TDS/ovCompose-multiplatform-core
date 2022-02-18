@@ -17,7 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.awt.awtEvent
+import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.input.key.KeyInputModifier
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -25,7 +25,6 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.AwtCursor
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.PointerIconDefaults
-import java.awt.Cursor
 
 internal actual fun sendKeyEvent(
     platformInputService: PlatformInput,
@@ -33,7 +32,7 @@ internal actual fun sendKeyEvent(
     keyEvent: KeyEvent
 ): Boolean {
     when {
-        keyEvent.awtEvent.id == java.awt.event.KeyEvent.KEY_TYPED ->
+        keyEvent.awtEventOrNull?.id == java.awt.event.KeyEvent.KEY_TYPED ->
             platformInputService.charKeyPressed = true
         keyEvent.type == KeyEventType.KeyUp ->
             platformInputService.charKeyPressed = false

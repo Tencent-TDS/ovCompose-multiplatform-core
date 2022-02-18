@@ -21,10 +21,9 @@ package androidx.compose.ui.platform
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.DefaultPointerButtons
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
-import androidx.compose.ui.PrimaryPressedPointerButtons
+import androidx.compose.ui.PointerPositionUpdater
 import androidx.compose.ui.autofill.Autofill
 import androidx.compose.ui.autofill.AutofillTree
 import androidx.compose.ui.focus.FocusDirection
@@ -49,6 +48,7 @@ import androidx.compose.ui.input.key.KeyInputModifier
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.PointerIconService
@@ -87,6 +87,7 @@ private typealias Command = () -> Unit
 internal class SkiaBasedOwner(
     private val platformInputService: PlatformInput,
     private val component: PlatformComponent,
+    private val pointerPositionUpdater: PointerPositionUpdater,
     override val windowInfo: WindowInfo,
     density: Density = Density(1f, 1f),
     bounds: IntRect = IntRect.Zero,
@@ -169,7 +170,7 @@ internal class SkiaBasedOwner(
     override val rootForTest = this
 
     override val snapshotObserver = OwnerSnapshotObserver { command ->
-        onDispatchCommand?.invoke(command)
+        dispatchSnapshotChanges?.invoke(command)
     }
     private val pointerInputEventProcessor = PointerInputEventProcessor(root)
     private val measureAndLayoutDelegate = MeasureAndLayoutDelegate(root)
@@ -222,39 +223,17 @@ internal class SkiaBasedOwner(
 
     override val measureIteration: Long get() = measureAndLayoutDelegate.measureIteration
 
-    private var needLayout = true
-    private var needDraw = true
-
-    val needRender get() = needLayout || needDraw
-    var onNeedRender: (() -> Unit)? = null
-    var onDispatchCommand: ((Command) -> Unit)? = null
-
-    fun render(canvas: org.jetbrains.skia.Canvas) {
-        needLayout = false
-        measureAndLayout()
-        needDraw = false
-        draw(canvas)
-        clearInvalidObservations()
-    }
+    var requestLayout: (() -> Unit)? = null
+    var requestDraw: (() -> Unit)? = null
+    var dispatchSnapshotChanges: ((Command) -> Unit)? = null
 
     private var needClearObservations = false
 
-    private fun clearInvalidObservations() {
+    fun clearInvalidObservations() {
         if (needClearObservations) {
             snapshotObserver.clearInvalidObservations()
             needClearObservations = false
         }
-    }
-
-    private fun requestLayout() {
-        needLayout = true
-        needDraw = true
-        onNeedRender?.invoke()
-    }
-
-    private fun requestDraw() {
-        needDraw = true
-        onNeedRender?.invoke()
     }
 
     var contentSize = IntSize.Zero
@@ -263,11 +242,13 @@ internal class SkiaBasedOwner(
     override fun measureAndLayout(sendPointerUpdate: Boolean) {
         measureAndLayoutDelegate.updateRootConstraints(constraints)
         if (
-            measureAndLayoutDelegate.measureAndLayout(
-                scheduleSyntheticEvents.takeIf { sendPointerUpdate }
-            )
+            measureAndLayoutDelegate.measureAndLayout {
+                if (sendPointerUpdate) {
+                    pointerPositionUpdater.onLayout()
+                }
+            }
         ) {
-            requestDraw()
+            requestDraw?.invoke()
         }
         measureAndLayoutDelegate.dispatchOnPositionedCallbacks()
 
@@ -284,13 +265,13 @@ internal class SkiaBasedOwner(
 
     override fun onRequestMeasure(layoutNode: LayoutNode) {
         if (measureAndLayoutDelegate.requestRemeasure(layoutNode)) {
-            requestLayout()
+            requestLayout?.invoke()
         }
     }
 
     override fun onRequestRelayout(layoutNode: LayoutNode) {
         if (measureAndLayoutDelegate.requestRelayout(layoutNode)) {
-            requestLayout()
+            requestLayout?.invoke()
         }
     }
 
@@ -301,7 +282,7 @@ internal class SkiaBasedOwner(
         density,
         invalidateParentLayer = {
             invalidateParentLayer()
-            requestDraw()
+            requestDraw?.invoke()
         },
         drawBlock = drawBlock,
         onDestroy = { needClearObservations = true }
@@ -336,10 +317,7 @@ internal class SkiaBasedOwner(
         root.draw(canvas.asComposeCanvas())
     }
 
-    private val scheduleSyntheticEvents = component::scheduleSyntheticMoveEvent
-
     internal fun processPointerInput(event: PointerInputEvent, isInBounds: Boolean = true): ProcessResult {
-        measureAndLayout()
         return pointerInputEventProcessor.process(
             event,
             this,
@@ -352,12 +330,15 @@ internal class SkiaBasedOwner(
     }
 
     override fun processPointerInput(timeMillis: Long, pointers: List<TestPointerInputEventData>) {
+        // TODO(https://github.com/JetBrains/compose-jb/issues/1846)
+        //  we should route test events through ComposeScene, not through SkiaBasedOwner
+        measureAndLayout()
         processPointerInput(
             PointerInputEvent(
                 PointerEventType.Unknown,
                 timeMillis,
                 pointers.map { it.toPointerInputEventData() },
-                if (pointers.any { it.down }) PrimaryPressedPointerButtons else DefaultPointerButtons
+                if (pointers.any { it.down }) PointerButtons(isPrimaryPressed = true) else  PointerButtons()
             )
         )
     }

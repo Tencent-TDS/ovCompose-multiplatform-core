@@ -93,6 +93,8 @@ inline fun <R> ImageComposeScene.use(
  * Instead of calling [close] manually, you can use the helper function [use],
  * it will close scene for you.
  *
+ * [ImageComposeScene] doesn't support concurrent read/write access from different threads.
+ *
  * @param width The width of the content.
  * @param height The height of the content.
  * @param density Density of the content which will be used to convert [dp] units.

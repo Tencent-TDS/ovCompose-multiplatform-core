@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-@file:Suppress("DEPRECATION") // https://github.com/JetBrains/compose-jb/issues/1514
-
 package androidx.compose.ui.window.window
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +37,8 @@ import androidx.compose.ui.input.mouse.MouseScrollEvent
 import androidx.compose.ui.input.mouse.MouseScrollUnit
 import androidx.compose.ui.input.mouse.mouseScrollFilter
 import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerMoveFilter
 import androidx.compose.ui.sendKeyEvent
@@ -50,10 +51,12 @@ import androidx.compose.ui.window.launchApplication
 import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.delay
 import org.junit.Test
+import java.awt.Dimension
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
-import java.awt.event.MouseWheelEvent
+import java.awt.event.MouseWheelEvent.WHEEL_UNIT_SCROLL
 
 @OptIn(ExperimentalComposeUiApi::class)
 class WindowInputEventTest {
@@ -215,8 +218,8 @@ class WindowInputEventTest {
 
                 Box(
                     Modifier.fillMaxSize().pointerInput(events) {
-                        while (true) {
-                            awaitPointerEventScope {
+                        awaitPointerEventScope {
+                            while (true) {
                                 events += awaitPointerEvent()
                             }
                         }
@@ -229,23 +232,34 @@ class WindowInputEventTest {
         awaitIdle()
         assertThat(events.size).isEqualTo(0)
 
-        window.sendMouseEvent(MouseEvent.MOUSE_PRESSED, x = 100, y = 50, modifiers = MouseEvent.BUTTON1_DOWN_MASK)
+        window.sendMouseEvent(MouseEvent.MOUSE_ENTERED, x = 100, y = 50)
         awaitIdle()
         assertThat(events.size).isEqualTo(1)
+        assertThat(events.last().pressed).isEqualTo(false)
+        assertThat(events.last().position).isEqualTo(Offset(100 * density, 50 * density))
+
+        window.sendMouseEvent(MouseEvent.MOUSE_PRESSED, x = 100, y = 50, modifiers = MouseEvent.BUTTON1_DOWN_MASK)
+        awaitIdle()
+        assertThat(events.size).isEqualTo(2)
         assertThat(events.last().pressed).isEqualTo(true)
         assertThat(events.last().position).isEqualTo(Offset(100 * density, 50 * density))
 
         window.sendMouseEvent(MouseEvent.MOUSE_DRAGGED, x = 90, y = 40, modifiers = MouseEvent.BUTTON1_DOWN_MASK)
         awaitIdle()
-        assertThat(events.size).isEqualTo(2)
+        assertThat(events.size).isEqualTo(3)
         assertThat(events.last().pressed).isEqualTo(true)
         assertThat(events.last().position).isEqualTo(Offset(90 * density, 40 * density))
 
         window.sendMouseEvent(MouseEvent.MOUSE_RELEASED, x = 80, y = 30)
         awaitIdle()
-        assertThat(events.size).isEqualTo(3)
-        assertThat(events.last().pressed).isEqualTo(false)
-        assertThat(events.last().position).isEqualTo(Offset(80 * density, 30 * density))
+        // Synthetic move, because position of the Release isn't the same as in the previous event
+        assertThat(events.size).isEqualTo(5)
+        assertThat(events[3].type).isEqualTo(PointerEventType.Move)
+        assertThat(events[3].pressed).isEqualTo(true)
+        assertThat(events[3].position).isEqualTo(Offset(80 * density, 30 * density))
+        assertThat(events[4].type).isEqualTo(PointerEventType.Release)
+        assertThat(events[4].pressed).isEqualTo(false)
+        assertThat(events[4].position).isEqualTo(Offset(80 * density, 30 * density))
 
         exitApplication()
     }
@@ -283,13 +297,13 @@ class WindowInputEventTest {
 
         window.sendMouseEvent(MouseEvent.MOUSE_ENTERED, x = 100, y = 50)
         awaitIdle()
-        assertThat(onMoves.size).isEqualTo(1)  // there is a synthetic Move on the first layout
+        assertThat(onMoves.size).isEqualTo(0)
         assertThat(onEnters).isEqualTo(1)
         assertThat(onExits).isEqualTo(0)
 
         window.sendMouseEvent(MouseEvent.MOUSE_MOVED, x = 90, y = 50)
         awaitIdle()
-        assertThat(onMoves.size).isEqualTo(2)
+        assertThat(onMoves.size).isEqualTo(1)
         assertThat(onMoves.last()).isEqualTo(Offset(90 * density, 50 * density))
         assertThat(onEnters).isEqualTo(1)
         assertThat(onExits).isEqualTo(0)
@@ -298,7 +312,7 @@ class WindowInputEventTest {
         window.sendMouseEvent(MouseEvent.MOUSE_DRAGGED, x = 80, y = 50, modifiers = MouseEvent.BUTTON1_DOWN_MASK)
         window.sendMouseEvent(MouseEvent.MOUSE_RELEASED, x = 80, y = 50)
         awaitIdle()
-        assertThat(onMoves.size).isEqualTo(3)
+        assertThat(onMoves.size).isEqualTo(2)
         assertThat(onMoves.last()).isEqualTo(Offset(80 * density, 50 * density))
         assertThat(onEnters).isEqualTo(1)
         assertThat(onExits).isEqualTo(0)
@@ -338,24 +352,12 @@ class WindowInputEventTest {
         awaitIdle()
         assertThat(events.size).isEqualTo(0)
 
-        window.sendMouseWheelEvent(
-            MouseEvent.MOUSE_WHEEL,
-            x = 100,
-            y = 50,
-            scrollType = MouseWheelEvent.WHEEL_UNIT_SCROLL,
-            scrollAmount = 3
-        )
+        window.sendMouseWheelEvent(100, 50, WHEEL_UNIT_SCROLL, wheelRotation = 3.0)
         awaitIdle()
         assertThat(events.size).isEqualTo(1)
         assertThat(events.last().delta).isEqualTo(MouseScrollUnit.Line(3f))
 
-        window.sendMouseWheelEvent(
-            MouseEvent.MOUSE_WHEEL,
-            x = 100,
-            y = 50,
-            scrollType = MouseWheelEvent.WHEEL_UNIT_SCROLL,
-            scrollAmount = 4
-        )
+        window.sendMouseWheelEvent(x = 100, y = 50, WHEEL_UNIT_SCROLL, wheelRotation = 4.0)
         awaitIdle()
         assertThat(events.size).isEqualTo(2)
         assertThat(events.last().delta).isEqualTo(MouseScrollUnit.Line(4f))
@@ -363,6 +365,84 @@ class WindowInputEventTest {
         exitApplication()
     }
 
-    private val PointerEvent.pressed get() = changes.first().pressed
-    private val PointerEvent.position get() = changes.first().position
+    @Test
+    fun `send scroll into two boxes without intermediate move`() = runApplicationTest {
+        var box1ScrollCount = 0
+        var box2ScrollCount = 0
+
+        val windowSizeAwt = 100
+        val window = ComposeWindow().apply {
+            isUndecorated = true
+            isResizable = false
+            size = Dimension(windowSizeAwt, windowSizeAwt)
+        }
+
+        window.isVisible = true
+
+        window.setContent {
+            Row {
+                Box(
+                    Modifier.size(20.dp).onPointerEvent(PointerEventType.Scroll) {
+                        box1ScrollCount++
+                    }
+                )
+                Box(
+                    Modifier.size(20.dp).onPointerEvent(PointerEventType.Scroll) {
+                        box2ScrollCount++
+                    }
+                )
+            }
+        }
+        awaitIdle()
+
+        window.sendMouseWheelEvent(x = 1, y = 1)
+        window.sendMouseWheelEvent(x = 21, y = 1)
+
+        assertThat(box1ScrollCount).isEqualTo(1)
+        assertThat(box2ScrollCount).isEqualTo(1)
+
+        window.dispose()
+    }
+
+    @Test
+    fun `send release into two boxes without intermediate move`() = runApplicationTest {
+        var box1ReleaseCount = 0
+        var box2ReleaseCount = 0
+
+        val windowSizeAwt = 100
+        val window = ComposeWindow().apply {
+            isUndecorated = true
+            isResizable = false
+            size = Dimension(windowSizeAwt, windowSizeAwt)
+        }
+
+        window.isVisible = true
+
+        window.setContent {
+            Row {
+                Box(
+                    Modifier.size(20.dp).onPointerEvent(PointerEventType.Release) {
+                        box1ReleaseCount++
+                    }
+                )
+                Box(
+                    Modifier.size(20.dp).onPointerEvent(PointerEventType.Release) {
+                        box2ReleaseCount++
+                    }
+                )
+            }
+        }
+        awaitIdle()
+
+        window.sendMouseEvent(id = MouseEvent.MOUSE_PRESSED, x = 1, y = 1)
+        window.sendMouseEvent(id = MouseEvent.MOUSE_RELEASED, x = 21, y = 1)
+
+        assertThat(box1ReleaseCount).isEqualTo(0)
+        assertThat(box2ReleaseCount).isEqualTo(1)
+
+        window.dispose()
+    }
 }
+
+private val PointerEvent.pressed get() = changes.first().pressed
+private val PointerEvent.position get() = changes.first().position
