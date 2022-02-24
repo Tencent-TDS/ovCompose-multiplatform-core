@@ -284,11 +284,22 @@ internal class SkiaParagraph(
     // workaround for https://bugs.chromium.org/p/skia/issues/detail?id=11321 :(
     private val lineMetrics: Array<LineMetrics>
         get() = if (text == "") {
-            val height = layouter.defaultHeight.toDouble()
+            val metrics = layouter.defaultFont.metrics
+            val ascent = -metrics.ascent.toDouble()
+            val descent = metrics.descent.toDouble()
+            val baseline = para.alphabeticBaseline.toDouble()
+            val height = with(layouter.paragraphStyle.strutStyle) {
+                if (isEnabled && !isHeightForced && isHeightOverridden && fontSize > 0.0f) {
+                    (height * fontSize).toDouble()
+                } else {
+                    ascent + descent
+                }
+            }
+
             arrayOf(
                 LineMetrics(
                     0, 0, 0, 0, true,
-                    height, 0.0, height, height, 0.0, 0.0, height, 0
+                    ascent, descent, ascent, height, 0.0, 0.0, baseline, 0
                 )
             )
         } else {
@@ -528,6 +539,8 @@ internal class ParagraphBuilder(
 ) {
     private lateinit var initialStyle: SpanStyle
     private lateinit var defaultStyle: ComputedStyle
+    internal lateinit var paragraphStyle: ParagraphStyle
+        private set
     private lateinit var ops: List<Op>
 
     /**
@@ -550,6 +563,7 @@ internal class ParagraphBuilder(
 
         var pos = 0
         val ps = textStyleToParagraphStyle(textStyle, defaultStyle)
+        paragraphStyle = ps
 
         if (maxLines != Int.MAX_VALUE) {
             ps.maxLinesCount = maxLines
@@ -752,6 +766,7 @@ internal class ParagraphBuilder(
                 else -> error("Unexpected size in textStyleToParagraphStyle")
             }
             strutStyle.height = lineHeight / fontSize
+            strutStyle.fontSize = fontSize
             pStyle.strutStyle = strutStyle
         }
         pStyle.direction = textDirection.toSkDirection()
