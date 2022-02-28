@@ -39,6 +39,7 @@ dependencies {
          */
         implementation(libs.kotlinStdlibCommon)
         implementation(libs.kotlinCoroutinesCore)
+        implementation(libs.atomicFu)
 
         api("androidx.compose.runtime:runtime-saveable:1.1.0-rc01")
         api(project(":compose:ui:ui-geometry"))
@@ -128,6 +129,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             commonMain.dependencies {
                 implementation(libs.kotlinStdlibCommon)
                 implementation(libs.kotlinCoroutinesCore)
+                implementation(libs.atomicFu)
 
                 api project(":compose:runtime:runtime-saveable")
                 api project(":compose:ui:ui-geometry")
