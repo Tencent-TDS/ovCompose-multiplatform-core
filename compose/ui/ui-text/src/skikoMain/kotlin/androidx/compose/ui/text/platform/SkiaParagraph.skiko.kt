@@ -68,6 +68,7 @@ import kotlin.math.floor
 import org.jetbrains.skia.Rect as SkRect
 import org.jetbrains.skia.paragraph.Paragraph as SkParagraph
 import org.jetbrains.skia.paragraph.TextStyle as SkTextStyle
+import org.jetbrains.skia.paragraph.TextIndent as SkTextIndent
 import org.jetbrains.skia.FontStyle as SkFontStyle
 import org.jetbrains.skia.Font as SkFont
 import org.jetbrains.skia.paragraph.DecorationLineStyle as SkDecorationLineStyle
@@ -770,6 +771,11 @@ internal class ParagraphBuilder(
             pStyle.strutStyle = strutStyle
         }
         pStyle.direction = textDirection.toSkDirection()
+        textStyle.textIndent?.run {
+            with(density) {
+                pStyle.textIndent = SkTextIndent(firstLine.toPx(), restLine.toPx())
+            }
+        }
         return pStyle
     }
 
