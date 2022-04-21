@@ -16,6 +16,7 @@
 
 package androidx.core.content.res;
 
+import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.content.res.Resources;
@@ -27,9 +28,11 @@ import android.util.TypedValue;
 import android.util.Xml;
 
 import androidx.annotation.ArrayRes;
+import androidx.annotation.DoNotInline;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.R;
 import androidx.core.provider.FontRequest;
@@ -77,12 +80,21 @@ public class FontResourcesParserCompat {
         private final @NonNull FontRequest mRequest;
         private final int mTimeoutMs;
         private final @FetchStrategy int mStrategy;
+        private final @Nullable String mSystemFontFamilyName;
 
+        /** @hide */
+        @RestrictTo(LIBRARY)
         public ProviderResourceEntry(@NonNull FontRequest request, @FetchStrategy int strategy,
-                int timeoutMs) {
+                int timeoutMs, @Nullable String systemFontFamilyName) {
             mRequest = request;
             mStrategy = strategy;
             mTimeoutMs = timeoutMs;
+            mSystemFontFamilyName = systemFontFamilyName;
+        }
+
+        public ProviderResourceEntry(@NonNull FontRequest request, @FetchStrategy int strategy,
+                int timeoutMs) {
+            this(request, strategy, timeoutMs, null /*systemFontFamilyName*/);
         }
 
         public @NonNull FontRequest getRequest() {
@@ -96,6 +108,12 @@ public class FontResourcesParserCompat {
         public int getTimeout() {
             return mTimeoutMs;
         }
+
+        /** @hide */
+        @RestrictTo(LIBRARY)
+        public @Nullable String getSystemFontFamilyName() {
+            return mSystemFontFamilyName;
+        }
     }
 
     /**
@@ -103,11 +121,11 @@ public class FontResourcesParserCompat {
      */
     public static final class FontFileResourceEntry {
         private final @NonNull String mFileName;
-        private int mWeight;
-        private boolean mItalic;
-        private String mVariationSettings;
-        private int mTtcIndex;
-        private int mResourceId;
+        private final int mWeight;
+        private final boolean mItalic;
+        private final String mVariationSettings;
+        private final int mTtcIndex;
+        private final int mResourceId;
 
         public FontFileResourceEntry(@NonNull String fileName, int weight, boolean italic,
                 @Nullable String variationSettings, int ttcIndex, int resourceId) {
@@ -162,8 +180,8 @@ public class FontResourcesParserCompat {
     /**
      * Parse an XML font resource. The result type will depend on the contents of the xml.
      */
-    public static @Nullable FamilyResourceEntry parse(XmlPullParser parser, Resources resources)
-            throws XmlPullParserException, IOException {
+    public static @Nullable FamilyResourceEntry parse(@NonNull XmlPullParser parser,
+            @NonNull Resources resources) throws XmlPullParserException, IOException {
         int type;
         while ((type = parser.next()) != XmlPullParser.START_TAG
                 && type != XmlPullParser.END_DOCUMENT) {
@@ -200,6 +218,9 @@ public class FontResourcesParserCompat {
                 FETCH_STRATEGY_ASYNC);
         int timeoutMs = array.getInteger(R.styleable.FontFamily_fontProviderFetchTimeout,
                 DEFAULT_TIMEOUT_MILLIS);
+        String systemFontFamilyName = array
+                .getString(R.styleable.FontFamily_fontProviderSystemFontFamily);
+
         array.recycle();
         if (authority != null && providerPackage != null && query != null) {
             while (parser.next() != XmlPullParser.END_TAG) {
@@ -207,7 +228,11 @@ public class FontResourcesParserCompat {
             }
             List<List<byte[]>> certs = readCerts(resources, certsId);
             return new ProviderResourceEntry(
-                    new FontRequest(authority, providerPackage, query, certs), strategy, timeoutMs);
+                    new FontRequest(authority, providerPackage, query, certs),
+                    strategy,
+                    timeoutMs,
+                    systemFontFamilyName
+            );
         }
         List<FontFileResourceEntry> fonts = new ArrayList<>();
         while (parser.next() != XmlPullParser.END_TAG) {
@@ -222,13 +247,15 @@ public class FontResourcesParserCompat {
         if (fonts.isEmpty()) {
             return null;
         }
+        // Passing a zero-sized array is faster, safer, and more likely to be correct.
         return new FontFamilyFilesResourceEntry(fonts.toArray(
-                new FontFileResourceEntry[fonts.size()]));
+                new FontFileResourceEntry[0]));
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static int getType(TypedArray typedArray, int index) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            return typedArray.getType(index);
+            return Api21Impl.getType(typedArray, index);
         } else {
             TypedValue tv = new TypedValue();
             typedArray.getValue(index, tv);
@@ -242,14 +269,17 @@ public class FontResourcesParserCompat {
      *
      * Provider cert entry must be cert string array or array of cert string array.
      */
-    public static List<List<byte[]>> readCerts(Resources resources, @ArrayRes int certsId) {
+    @NonNull
+    @SuppressWarnings("MixedMutabilityReturnType")
+    public static List<List<byte[]>> readCerts(@NonNull Resources resources,
+            @ArrayRes int certsId) {
         if (certsId == 0) {
-            return Collections.<List<byte[]>>emptyList();
+            return Collections.emptyList();
         }
         final TypedArray typedArray = resources.obtainTypedArray(certsId);
         try {
             if (typedArray.length() == 0) {
-                return Collections.<List<byte[]>>emptyList();
+                return Collections.emptyList();
             }
 
             final List<List<byte[]>> result = new ArrayList<>();
@@ -329,5 +359,17 @@ public class FontResourcesParserCompat {
     }
 
     private FontResourcesParserCompat() {
+    }
+
+    @RequiresApi(21)
+    static class Api21Impl {
+        private Api21Impl() {
+            // This class is not instantiable.
+        }
+
+        @DoNotInline
+        static int getType(TypedArray typedArray, int index) {
+            return typedArray.getType(index);
+        }
     }
 }

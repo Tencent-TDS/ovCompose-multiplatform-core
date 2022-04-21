@@ -64,6 +64,15 @@ public class LifecycleRegistryTest {
     }
 
     @Test
+    public void moveInitializedToDestroyed() {
+        try {
+            mRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY);
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), is("no event down from INITIALIZED"));
+        }
+    }
+
+    @Test
     public void setCurrentState() {
         mRegistry.setCurrentState(Lifecycle.State.RESUMED);
         assertThat(mRegistry.getCurrentState(), is(Lifecycle.State.RESUMED));
@@ -611,6 +620,8 @@ public class LifecycleRegistryTest {
         dispatchEvent(ON_RESUME);
     }
 
+    // TODO(b/198264598)
+    @SuppressWarnings("deprecation")
     private abstract class TestObserver implements LifecycleObserver {
         @OnLifecycleEvent(ON_CREATE)
         void onCreate() {

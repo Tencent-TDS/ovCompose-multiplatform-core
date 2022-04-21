@@ -23,6 +23,7 @@ import android.view.Surface;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,7 +38,11 @@ import java.util.Set;
  * <p>The CaptureConfig contains all the {@link android.hardware.camera2} parameters that are
  * required to issue a {@link CaptureRequest}.
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class CaptureConfig {
+    /** Indicates template type is not set. */
+    public static final int TEMPLATE_TYPE_NONE = -1;
+
     /**
      * Request that the implementation rotate the image.
      *
@@ -81,6 +86,12 @@ public final class CaptureConfig {
     private final TagBundle mTagBundle;
 
     /**
+     * The camera capture result for reprocessing capture request.
+     */
+    @Nullable
+    private final CameraCaptureResult mCameraCaptureResult;
+
+    /**
      * Private constructor for a CaptureConfig.
      *
      * <p>In practice, the {@link CaptureConfig.Builder} will be used to construct a CaptureConfig.
@@ -92,6 +103,8 @@ public final class CaptureConfig {
      *                               must match the
      *                               constants defined by {@link CameraDevice}.
      * @param cameraCaptureCallbacks All camera capture callbacks.
+     * @param cameraCaptureResult     The {@link CameraCaptureResult} for reprocessing capture
+     *                               request.
      */
     CaptureConfig(
             List<DeferrableSurface> surfaces,
@@ -99,19 +112,31 @@ public final class CaptureConfig {
             int templateType,
             List<CameraCaptureCallback> cameraCaptureCallbacks,
             boolean useRepeatingSurface,
-            @NonNull TagBundle tagBundle) {
+            @NonNull TagBundle tagBundle,
+            @Nullable CameraCaptureResult cameraCaptureResult) {
         mSurfaces = surfaces;
         mImplementationOptions = implementationOptions;
         mTemplateType = templateType;
         mCameraCaptureCallbacks = Collections.unmodifiableList(cameraCaptureCallbacks);
         mUseRepeatingSurface = useRepeatingSurface;
         mTagBundle = tagBundle;
+        mCameraCaptureResult = cameraCaptureResult;
     }
 
     /** Returns an instance of a capture configuration with minimal configurations. */
     @NonNull
     public static CaptureConfig defaultEmptyCaptureConfig() {
         return new CaptureConfig.Builder().build();
+    }
+
+    /**
+     * Returns an instance of {@link CameraCaptureResult} for reprocessing capture request.
+     *
+     * @return {@link CameraCaptureResult}.
+     */
+    @Nullable
+    public CameraCaptureResult getCameraCaptureResult() {
+        return mCameraCaptureResult;
     }
 
     /** Get all the surfaces that the request will write data to. */
@@ -125,6 +150,11 @@ public final class CaptureConfig {
         return mImplementationOptions;
     }
 
+    /**
+     * Gets the template type.
+     *
+     * <p>If not set, returns {@link #TEMPLATE_TYPE_NONE}.
+     */
     public int getTemplateType() {
         return mTemplateType;
     }
@@ -164,10 +194,12 @@ public final class CaptureConfig {
     public static final class Builder {
         private final Set<DeferrableSurface> mSurfaces = new HashSet<>();
         private MutableConfig mImplementationOptions = MutableOptionsBundle.create();
-        private int mTemplateType = -1;
+        private int mTemplateType = TEMPLATE_TYPE_NONE;
         private List<CameraCaptureCallback> mCameraCaptureCallbacks = new ArrayList<>();
         private boolean mUseRepeatingSurface = false;
         private MutableTagBundle mMutableTagBundle = MutableTagBundle.create();
+        @Nullable
+        private CameraCaptureResult mCameraCaptureResult;
 
         public Builder() {
         }
@@ -208,6 +240,15 @@ public final class CaptureConfig {
             return new Builder(base);
         }
 
+        /**
+         * Set the {@link CameraCaptureResult} for reprocessable capture request.
+         *
+         * @param cameraCaptureResult {@link CameraCaptureResult}.
+         */
+        public void setCameraCaptureResult(@NonNull CameraCaptureResult cameraCaptureResult) {
+            mCameraCaptureResult = cameraCaptureResult;
+        }
+
         public int getTemplateType() {
             return mTemplateType;
         }
@@ -223,27 +264,34 @@ public final class CaptureConfig {
         }
 
         /**
-         * Adds a {@link CameraCaptureSession.StateCallback} callback.
-         *
-         * @throws IllegalArgumentException if the callback already exists in the configuration.
+         * Adds a {@link CameraCaptureCallback} callback.
          */
         public void addCameraCaptureCallback(@NonNull CameraCaptureCallback cameraCaptureCallback) {
             if (mCameraCaptureCallbacks.contains(cameraCaptureCallback)) {
-                throw new IllegalArgumentException("duplicate camera capture callback");
+                return;
             }
             mCameraCaptureCallbacks.add(cameraCaptureCallback);
         }
 
         /**
-         * Adds all {@link CameraCaptureSession.StateCallback} callbacks.
-         *
-         * @throws IllegalArgumentException if any callback already exists in the configuration.
+         * Adds all {@link CameraCaptureCallback} callbacks.
          */
         public void addAllCameraCaptureCallbacks(
                 @NonNull Collection<CameraCaptureCallback> cameraCaptureCallbacks) {
             for (CameraCaptureCallback c : cameraCaptureCallbacks) {
                 addCameraCaptureCallback(c);
             }
+        }
+
+        /**
+         * Removes a previously added {@link CameraCaptureCallback} callback.
+         * @param cameraCaptureCallback The callback to remove.
+         * @return {@code true} if the callback was successfully removed. {@code false} if the
+         * callback wasn't present in this builder.
+         */
+        public boolean removeCameraCaptureCallback(
+                @NonNull CameraCaptureCallback cameraCaptureCallback) {
+            return mCameraCaptureCallbacks.remove(cameraCaptureCallback);
         }
 
         /** Add a surface that the request will write data to. */
@@ -303,7 +351,7 @@ public final class CaptureConfig {
             return mImplementationOptions;
         }
 
-        boolean isUseRepeatingSurface() {
+        public boolean isUseRepeatingSurface() {
             return mUseRepeatingSurface;
         }
 
@@ -313,14 +361,14 @@ public final class CaptureConfig {
 
         /** Gets a tag's value by a key. */
         @Nullable
-        public Integer getTag(@NonNull String key) {
+        public Object getTag(@NonNull String key) {
             return mMutableTagBundle.getTag(key);
         }
 
         /**
          * Sets a tag with a key to CaptureConfig.
          */
-        public void addTag(@NonNull String key, @NonNull Integer tag) {
+        public void addTag(@NonNull String key, @NonNull Object tag) {
             mMutableTagBundle.putTag(key, tag);
         }
 
@@ -343,7 +391,8 @@ public final class CaptureConfig {
                     mTemplateType,
                     mCameraCaptureCallbacks,
                     mUseRepeatingSurface,
-                    TagBundle.from(mMutableTagBundle));
+                    TagBundle.from(mMutableTagBundle),
+                    mCameraCaptureResult);
         }
     }
 }

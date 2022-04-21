@@ -16,10 +16,11 @@
 
 package androidx.compose.ui.text
 
-import androidx.compose.ui.text.font.asFontFamily
+import androidx.compose.ui.text.font.toFontFamily
 import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
@@ -40,7 +41,7 @@ class MultiParagraphIntegrationTextDirectionTest {
     private lateinit var defaultLocale: Locale
     private val context = InstrumentationRegistry.getInstrumentation().context
     private val defaultDensity = Density(density = 1f)
-    private val fontFamilyMeasureFont = FontTestData.BASIC_MEASURE_FONT.asFontFamily()
+    private val fontFamilyMeasureFont = FontTestData.BASIC_MEASURE_FONT.toFontFamily()
     private val ltrLocaleList = LocaleList("en")
     private val rtlLocaleList = LocaleList("ar")
     private val ltrLocale = Locale.ENGLISH
@@ -147,7 +148,7 @@ class MultiParagraphIntegrationTextDirectionTest {
             val fontSizeInPx = fontSize.toPx()
 
             val width = multiParagraphIntrinsics(text, fontSize).maxIntrinsicWidth
-
+            assertThat(width).isLessThan(Int.MAX_VALUE)
             val paragraph = multiParagraph(
                 text = text,
                 fontSize = fontSize,
@@ -264,7 +265,7 @@ class MultiParagraphIntegrationTextDirectionTest {
             ),
             placeholders = placeholders,
             density = defaultDensity,
-            resourceLoader = TestFontResourceLoader(context)
+            fontFamilyResolver = UncachedFontFamilyResolver(context)
         )
     }
 
@@ -283,9 +284,9 @@ class MultiParagraphIntegrationTextDirectionTest {
                 localeList = localeList,
                 textDirection = textDirection
             ),
-            width = width,
+            constraints = Constraints(maxWidth = width.ceilToInt()),
             density = defaultDensity,
-            resourceLoader = TestFontResourceLoader(context)
+            fontFamilyResolver = UncachedFontFamilyResolver(context)
         )
     }
 }

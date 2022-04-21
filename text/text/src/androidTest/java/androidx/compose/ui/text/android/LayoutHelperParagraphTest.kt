@@ -123,6 +123,19 @@ class LayoutHelperParagraphTest {
     }
 
     @Test
+    fun testParagraphForOffsetUpstream() {
+        val layoutHelper = buildLayoutHelper("aa\nbb\ncc")
+        assertThat(layoutHelper.getParagraphForOffset(0, true)).isEqualTo(0) // a
+        assertThat(layoutHelper.getParagraphForOffset(1, true)).isEqualTo(0) // a
+        assertThat(layoutHelper.getParagraphForOffset(2, true)).isEqualTo(0) // \n
+        assertThat(layoutHelper.getParagraphForOffset(3, true)).isEqualTo(0) // b*
+        assertThat(layoutHelper.getParagraphForOffset(4, true)).isEqualTo(1) // b
+        assertThat(layoutHelper.getParagraphForOffset(5, true)).isEqualTo(1) // \n
+        assertThat(layoutHelper.getParagraphForOffset(6, true)).isEqualTo(1) // c*
+        assertThat(layoutHelper.getParagraphForOffset(7, true)).isEqualTo(2) // c
+    }
+
+    @Test
     fun testParagraphForOffset_lineFeedOnlyCase() {
         val layoutHelper = buildLayoutHelper("\n\n")
         assertThat(layoutHelper.getParagraphForOffset(0)).isEqualTo(0)
@@ -130,18 +143,18 @@ class LayoutHelperParagraphTest {
     }
 
     @Test
-    fun testParagarphDirection() {
+    fun testParagraphDirection() {
         val layoutHelper = buildLayoutHelper("aa\nאא\ncc")
-        assertThat(layoutHelper.isRTLParagraph(0)).isFalse()
-        assertThat(layoutHelper.isRTLParagraph(1)).isTrue()
-        assertThat(layoutHelper.isRTLParagraph(2)).isFalse()
+        assertThat(layoutHelper.isRtlParagraph(0)).isFalse()
+        assertThat(layoutHelper.isRtlParagraph(1)).isTrue()
+        assertThat(layoutHelper.isRtlParagraph(2)).isFalse()
     }
 
     @Test
-    fun testParagarphDirection_case2() {
+    fun testParagraphDirection_case2() {
         val layoutHelper = buildLayoutHelper("אא\nbb\nאא")
-        assertThat(layoutHelper.isRTLParagraph(0)).isTrue()
-        assertThat(layoutHelper.isRTLParagraph(1)).isFalse()
-        assertThat(layoutHelper.isRTLParagraph(2)).isTrue()
+        assertThat(layoutHelper.isRtlParagraph(0)).isTrue()
+        assertThat(layoutHelper.isRtlParagraph(1)).isFalse()
+        assertThat(layoutHelper.isRtlParagraph(2)).isTrue()
     }
 }

@@ -16,105 +16,8 @@
 package androidx.datastore.preferences.core
 
 import androidx.datastore.core.DataStore
-import java.lang.IllegalArgumentException
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicBoolean
-
-/**
- * Get a preference Key of type T. Type T must be one of: Int, Long, Boolean, Float, Double, String.
- * Use the [preferencesSetKey] function to create a preference key for Set<String>. No
- * other types are supported.
- *
- * You should not have multiple keys with the same name (for use with the same Preferences).
- * Using overlapping keys with different types will result in ClassCastExceptions.
- *
- * @return the Preference.Key object for your preference
- * @throws IllegalArgumentException if an unsupported type is used
- */
-public inline fun <reified T : Any> preferencesKey(name: String): Preferences.Key<T> {
-    return when (T::class) {
-        Int::class -> {
-            Preferences.Key<T>(name)
-        }
-        String::class -> {
-            Preferences.Key<T>(name)
-        }
-        Boolean::class -> {
-            Preferences.Key<T>(name)
-        }
-        Float::class -> {
-            Preferences.Key<T>(name)
-        }
-        Long::class -> {
-            Preferences.Key<T>(name)
-        }
-        Double::class -> {
-            Preferences.Key<T>(name)
-        }
-        Set::class -> {
-            throw IllegalArgumentException("Use `preferencesSetKey` to create keys for Sets.")
-        }
-        else -> {
-            throw IllegalArgumentException("Type not supported: ${T::class.java}")
-        }
-    }
-}
-
-/**
- * Get a preference key for Set<T>. The only type currently supported for T is String.
- *
- * Note: sets returned by DataStore are unmodifiable.
- * @throws IllegalArgumentException if an unsupported type is used
- * @return the Preference.Key object for use with Preferences
- */
-public inline fun <reified T : Any> preferencesSetKey(name: String): Preferences.Key<Set<T>> {
-    if (T::class == String::class) {
-        return Preferences.Key(name)
-    } else {
-        throw IllegalArgumentException("Only String sets are currently supported.")
-    }
-}
-
-/**
- * Get a new empty Preferences.
- *
- * @return a new Preferences instance with no preferences set
- */
-public fun emptyPreferences(): Preferences = MutablePreferences(startFrozen = true)
-
-/**
- * Construct a Preferences object with a list of Preferences.Pair<T>. Comparable to mapOf().
- *
- * Example usage:
- *
- * val counterKey = preferencesKey<Int>("counter")
- * val preferences = preferencesOf(counterKey to 100)
- *
- * @param pairs
- */
-public fun preferencesOf(vararg pairs: Preferences.Pair<*>): Preferences =
-    mutablePreferencesOf(*pairs)
-
-/**
- * Construct a MutablePreferences object with a list of Preferences.Pair<T>. Comparable to mapOf().
- *
- * Example usage:
- *
- * val counterKey = preferencesKey<Int>("counter")
- * val preferences = preferencesOf(counterKey to 100)
- *
- * @param pairs
- */
-public fun mutablePreferencesOf(vararg pairs: Preferences.Pair<*>): MutablePreferences =
-    MutablePreferences(startFrozen = false).apply { putAll(*pairs) }
-
-/**
- * Infix function to create a Preferences.Pair.
- * This is used to support [preferencesOf] and [MutablePreferences.putAll]
- * @param value is the value this preferences key should point to.
- */
-public infix fun <T> Preferences.Key<T>.to(value: T): Preferences.Pair<T> =
-    Preferences.Pair(this, value)
 
 /**
  * Preferences and MutablePreferences are a lot like a generic Map and MutableMap keyed by the
@@ -128,11 +31,18 @@ public abstract class Preferences internal constructor() {
      *
      * T must be one of the following: Boolean, Int, Long, Float, String, Set<String>.
      *
-     * Construct Keys for your data type using: [preferencesKey], [preferencesSetKey].
+     * Construct Keys for your data type using: [booleanPreferencesKey], [intPreferencesKey],
+     * [longPreferencesKey], [floatPreferencesKey], [stringPreferencesKey], [stringSetPreferencesKey]
      */
     public class Key<T>
-    @PublishedApi // necessary to use this in the public inline function preferencesKey().
     internal constructor(public val name: String) {
+        /**
+         * Infix function to create a Preferences.Pair.
+         * This is used to support [preferencesOf] and [MutablePreferences.putAll]
+         * @param value is the value this preferences key should point to.
+         */
+        public infix fun to(value: T): Preferences.Pair<T> = Preferences.Pair(this, value)
+
         override fun equals(other: Any?): Boolean =
             if (other is Key<*>) {
                 name == other.name
@@ -143,6 +53,8 @@ public abstract class Preferences internal constructor() {
         override fun hashCode(): Int {
             return name.hashCode()
         }
+
+        override fun toString(): String = name
     }
 
     /**
@@ -152,7 +64,11 @@ public abstract class Preferences internal constructor() {
      */
     public class Pair<T> internal constructor(internal val key: Key<T>, internal val value: T)
 
-    /* Checks whether Preferences contains a key. */
+    /**
+     * Returns true if this Preferences contains the specified key.
+     *
+     * @param key the key to check for
+     */
     public abstract operator fun <T> contains(key: Key<T>): Boolean
 
     /**
@@ -178,6 +94,30 @@ public abstract class Preferences internal constructor() {
      * @return a map containing all the preferences in this Preferences
      */
     public abstract fun asMap(): Map<Key<*>, Any>
+
+    /**
+     * Gets a mutable copy of Preferences which contains all the preferences in this Preferences.
+     * This can be used to update your preferences without building a new Preferences object from
+     * scratch in [DataStore.updateData].
+     *
+     * This is similar to [Map.toMutableMap].
+     *
+     * @return a MutablePreferences with all the preferences from this Preferences
+     */
+    public fun toMutablePreferences(): MutablePreferences {
+        return MutablePreferences(asMap().toMutableMap(), startFrozen = false)
+    }
+
+    /**
+     * Gets a read-only copy of Preferences which contains all the preferences in this Preferences.
+     *
+     * This is similar to [Map.toMap].
+     *
+     * @return a copy of this Preferences
+     */
+    public fun toPreferences(): Preferences {
+        return MutablePreferences(asMap().toMutableMap(), startFrozen = true)
+    }
 }
 
 /**
@@ -210,11 +150,19 @@ public class MutablePreferences internal constructor(
 
     override operator fun <T> get(key: Key<T>): T? {
         @Suppress("UNCHECKED_CAST")
-        return preferencesMap[key] as T?
+        return when (val value = preferencesMap[key]) {
+            is ByteArray -> value.copyOf()
+            else -> value
+        } as T?
     }
 
     override fun asMap(): Map<Key<*>, Any> {
-        return Collections.unmodifiableMap(preferencesMap)
+        return Collections.unmodifiableMap(preferencesMap.entries.associate { entry ->
+            when (val value = entry.value) {
+                is ByteArray -> Pair(entry.key, value.copyOf())
+                else -> Pair(entry.key, entry.value)
+            }
+        })
     }
 
     // Mutating methods below:
@@ -223,7 +171,7 @@ public class MutablePreferences internal constructor(
      * Set a key value pair in MutablePreferences.
      *
      * Example usage:
-     * val COUNTER_KEY = preferencesKey<Int>("counter")
+     * val COUNTER_KEY = intPreferencesKey("counter")
      *
      * // Once edit completes successfully, preferenceStore will contain the incremented counter.
      * preferenceStore.edit { prefs: MutablePreferences ->
@@ -248,20 +196,109 @@ public class MutablePreferences internal constructor(
             // Copy set so changes to input don't change Preferences. Wrap in unmodifiableSet so
             // returned instances can't be changed.
             is Set<*> -> preferencesMap[key] = Collections.unmodifiableSet(value.toSet())
+            is ByteArray -> preferencesMap[key] = value.copyOf()
             else -> preferencesMap[key] = value
         }
     }
 
+    /**
+     * Appends or replaces all pairs from [prefs] to this MutablePreferences. Keys in [prefs]
+     * will overwrite keys in this Preferences.
+     *
+     * Example usage:
+     * mutablePrefs += preferencesOf(COUNTER_KEY to 100, NAME to "abcdef")
+     *
+     * @param prefs Preferences to append to this MutablePreferences
+     */
+    public operator fun plusAssign(prefs: Preferences) {
+        checkNotFrozen()
+        preferencesMap += prefs.asMap()
+    }
+
+    /**
+     * Appends or replaces all [pair] to this MutablePreferences.
+     *
+     * Example usage:
+     * mutablePrefs += COUNTER_KEY to 100
+     *
+     * @param pair the Preference.Pair to add to this MutablePreferences
+     */
+    public operator fun plusAssign(pair: Preferences.Pair<*>) {
+        checkNotFrozen()
+        putAll(pair)
+    }
+
+    /**
+     * Removes the preference with the given key from this MutablePreferences. If this
+     * Preferences does not contain the key, this is a no-op.
+     *
+     * Example usage:
+     * mutablePrefs -= COUNTER_KEY
+     *
+     * @param key the key to remove from this MutablePreferences
+     */
+    public operator fun minusAssign(key: Preferences.Key<*>) {
+        checkNotFrozen()
+        remove(key)
+    }
+
+    /**
+     * Appends or replaces all [pairs] to this MutablePreferences.
+     *
+     * @param pairs the pairs to append to this MutablePreferences
+     */
+    public fun putAll(vararg pairs: Preferences.Pair<*>) {
+        checkNotFrozen()
+        pairs.forEach {
+            setUnchecked(it.key, it.value)
+        }
+    }
+
+    /**
+     * Remove a preferences from this MutablePreferences.
+     *
+     * @param key the key to remove this MutablePreferences
+     * @return the original value of this preference key.
+     */
+    @Suppress("UNCHECKED_CAST")
+    public fun <T> remove(key: Preferences.Key<T>): T {
+        checkNotFrozen()
+        return preferencesMap.remove(key) as T
+    }
+
+    /* Removes all preferences from this MutablePreferences. */
+    public fun clear() {
+        checkNotFrozen()
+        preferencesMap.clear()
+    }
+
     // Equals and hash code for use by DataStore
     override fun equals(other: Any?): Boolean {
-        if (other is MutablePreferences) {
-            return preferencesMap == other.preferencesMap
+        if (other !is MutablePreferences) {
+            return false
         }
-        return false
+
+        if (other.preferencesMap === preferencesMap) return true
+
+        if (other.preferencesMap.size != preferencesMap.size) return false
+
+        return other.preferencesMap.all { otherEntry ->
+            preferencesMap[otherEntry.key]?.let { value ->
+                when (val otherVal = otherEntry.value) {
+                    is ByteArray -> value is ByteArray && otherVal.contentEquals(value)
+                    else -> otherVal == value
+                }
+            } ?: false
+        }
     }
 
     override fun hashCode(): Int {
-        return preferencesMap.hashCode()
+        return preferencesMap.entries.sumOf { entry ->
+            when (val value = entry.value) {
+                is ByteArray -> value.contentHashCode()
+                else -> value.hashCode()
+            }
+        }
     }
 
     /**
@@ -273,103 +310,12 @@ public class MutablePreferences internal constructor(
             prefix = "{\n",
             postfix = "\n}"
         ) { entry ->
-            "  ${entry.key.name} = ${entry.value}"
+            val value = when (val value = entry.value) {
+                is ByteArray -> value.joinToString(", ", "[", "]")
+                else -> "${entry.value}"
+            }
+            "  ${entry.key.name} = $value"
         }
-}
-
-/**
- * Gets a mutable copy of Preferences which contains all the preferences in this Preferences.
- * This can be used to update your preferences without building a new Preferences object from
- * scratch in [DataStore.updateData].
- *
- * This is similar to [Map.toMutableMap].
- *
- * @return a MutablePreferences with all the preferences from this Preferences
- */
-public fun Preferences.toMutablePreferences(): MutablePreferences {
-    return MutablePreferences(asMap().toMutableMap(), startFrozen = false)
-}
-
-/**
- * Gets a read-only copy of Preferences which contains all the preferences in this Preferences.
- *
- * This is similar to [Map.toMap].
- *
- * @return a copy of this Preferences
- */
-public fun Preferences.toPreferences(): Preferences {
-    return MutablePreferences(asMap().toMutableMap(), startFrozen = true)
-}
-
-/**
- * Appends or replaces all pairs from [prefs] to this MutablePreferences. Keys in [prefs]
- * will overwrite keys in this Preferences.
- *
- * Example usage:
- * mutablePrefs += preferencesOf(COUNTER_KEY to 100, NAME to "abcdef")
- *
- * @param prefs Preferences to append to this MutablePreferences
- */
-public operator fun MutablePreferences.plusAssign(prefs: Preferences) {
-    checkNotFrozen()
-    preferencesMap += prefs.asMap()
-}
-
-/**
- * Appends or replaces all [pair] to this MutablePreferences.
- *
- * Example usage:
- * mutablePrefs += COUNTER_KEY to 100
- *
- * @param pair the Preference.Pair to add to this MutablePreferences
- */
-public operator fun MutablePreferences.plusAssign(pair: Preferences.Pair<*>) {
-    checkNotFrozen()
-    putAll(pair)
-}
-
-/**
- * Removes the preference with the given key from this MutablePreferences. If this
- * Preferences does not contain the key, this is a no-op.
- *
- * Example usage:
- * mutablePrefs -= COUNTER_KEY
- *
- * @param key the key to remove from this MutablePreferences
- */
-public operator fun MutablePreferences.minusAssign(key: Preferences.Key<*>) {
-    checkNotFrozen()
-    remove(key)
-}
-
-/**
- * Appends or replaces all [pairs] to this MutablePreferences.
- *
- * @param pairs the pairs to append to this MutablePreferences
- */
-public fun MutablePreferences.putAll(vararg pairs: Preferences.Pair<*>) {
-    checkNotFrozen()
-    pairs.forEach {
-        setUnchecked(it.key, it.value)
-    }
-}
-
-/**
- * Remove a preferences from this MutablePreferences.
- *
- * @param key the key to remove this MutablePreferences
- * @return the original value of this preference key.
- */
-@Suppress("UNCHECKED_CAST")
-public fun <T> MutablePreferences.remove(key: Preferences.Key<T>): T {
-    checkNotFrozen()
-    return preferencesMap.remove(key) as T
-}
-
-/* Removes all preferences from this MutablePreferences. */
-public fun MutablePreferences.clear() {
-    checkNotFrozen()
-    preferencesMap.clear()
 }
 
 /**
@@ -391,7 +337,7 @@ public fun MutablePreferences.clear() {
  * See [DataStore.updateData].
  *
  * Example usage:
- * val COUNTER_KEY = preferencesKey<Int>("my_counter")
+ * val COUNTER_KEY = intPreferencesKey("my_counter")
  *
  * dataStore.edit { prefs ->
  *   prefs\[COUNTER_KEY\] = prefs\[COUNTER_KEY\] :? 0 + 1

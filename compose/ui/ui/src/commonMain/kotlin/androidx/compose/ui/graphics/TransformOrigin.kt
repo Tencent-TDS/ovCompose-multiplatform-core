@@ -26,17 +26,15 @@ import androidx.compose.ui.util.unpackFloat2
  * Constructs a [TransformOrigin] from the given fractional values from the Layer's
  * width and height
  */
-@Suppress("NOTHING_TO_INLINE")
-inline fun TransformOrigin(pivotFractionX: Float, pivotFractionY: Float): TransformOrigin =
+fun TransformOrigin(pivotFractionX: Float, pivotFractionY: Float): TransformOrigin =
     TransformOrigin(packFloats(pivotFractionX, pivotFractionY))
 
 /**
  * A two-dimensional position represented as a fraction of the Layer's width and height
  */
-@Suppress("EXPERIMENTAL_FEATURE_WARNING")
-@OptIn(ExperimentalUnsignedTypes::class)
 @Immutable
-inline class TransformOrigin(@PublishedApi internal val packedValue: Long) {
+@kotlin.jvm.JvmInline
+value class TransformOrigin internal constructor(@PublishedApi internal val packedValue: Long) {
 
     /**
      * Return the position along the x-axis that should be used as the

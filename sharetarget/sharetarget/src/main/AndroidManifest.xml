@@ -14,12 +14,12 @@
      limitations under the License.
 -->
 
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="androidx.sharetarget">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application>
         <service android:name=".ChooserTargetServiceCompat"
-                 android:permission="android.permission.BIND_CHOOSER_TARGET_SERVICE">
+                 android:permission="android.permission.BIND_CHOOSER_TARGET_SERVICE"
+                 android:exported="true">
             <intent-filter>
                 <action android:name="android.service.chooser.ChooserTargetService"/>
             </intent-filter>

@@ -16,8 +16,12 @@
 
 package androidx.camera.camera2.pipe.impl
 
+import androidx.camera.camera2.pipe.core.TokenLockImpl
+import androidx.camera.camera2.pipe.core.acquire
+import androidx.camera.camera2.pipe.core.acquireOrNull
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,6 +32,7 @@ import org.junit.runner.RunWith
 
 @LargeTest
 @RunWith(AndroidJUnit4::class)
+@SdkSuppress(minSdkVersion = 21)
 class TokenLockInstrumentationTest {
 
     @Test

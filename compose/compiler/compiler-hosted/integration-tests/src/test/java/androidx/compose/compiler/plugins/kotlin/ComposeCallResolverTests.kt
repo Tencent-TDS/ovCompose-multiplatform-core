@@ -24,7 +24,7 @@ import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.resolve.calls.callUtil.getResolvedCall
+import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
 import org.jetbrains.kotlin.resolve.calls.model.ResolvedCall
 import kotlin.reflect.KClass
 
@@ -34,13 +34,13 @@ class ComposeCallResolverTests : AbstractCodegenTest() {
         """
             import androidx.compose.runtime.*
 
-            @Composable val foo get() = 123
+            val foo @Composable get() = 123
 
             class A {
-                @Composable val bar get() = 123
+                val bar @Composable get() = 123
             }
 
-            @Composable val A.bam get() = 123
+            val A.bam @Composable get() = 123
 
             @Composable
             fun test() {
@@ -144,7 +144,7 @@ class ComposeCallResolverTests : AbstractCodegenTest() {
         """
             import androidx.compose.runtime.*
 
-            val x = Ambient.of<Int> { 123 }
+            val x = CompositionLocal.of<Int> { 123 }
 
             @Composable
             fun test() {
@@ -180,14 +180,14 @@ class ComposeCallResolverTests : AbstractCodegenTest() {
 
             class Density
 
-            val DensityAmbient = Ambient.of<Density>()
+            val DensityCompositionLocal = CompositionLocal.of<Density>()
 
             @Composable
-            fun ambientDensity() = ambient(DensityAmbient)
+            fun compositionLocalDensity() = compositionLocal(LocalDensity)
 
             @Composable
             fun WithDensity(block: @Composable DensityScope.() -> Unit) {
-                DensityScope(ambientDensity()).<call>block()
+                DensityScope(compositionLocalDensity()).<call>block()
             }
         """
     )

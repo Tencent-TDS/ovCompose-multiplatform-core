@@ -14,15 +14,25 @@
  * limitations under the License.
  */
 
+@file:RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+
 package androidx.camera.camera2.pipe
 
 import android.content.Context
+import android.hardware.camera2.CameraCharacteristics
 import android.os.HandlerThread
-import androidx.camera.camera2.pipe.impl.CameraGraphConfigModule
-import androidx.camera.camera2.pipe.impl.CameraPipeComponent
-import androidx.camera.camera2.pipe.impl.CameraPipeConfigModule
-import androidx.camera.camera2.pipe.impl.DaggerCameraPipeComponent
+import androidx.annotation.RequiresApi
+import androidx.camera.camera2.pipe.config.CameraGraphConfigModule
+import androidx.camera.camera2.pipe.config.CameraPipeComponent
+import androidx.camera.camera2.pipe.config.CameraPipeConfigModule
+import androidx.camera.camera2.pipe.config.DaggerCameraPipeComponent
+import androidx.camera.camera2.pipe.config.DaggerExternalCameraPipeComponent
+import androidx.camera.camera2.pipe.config.ExternalCameraGraphComponent
+import androidx.camera.camera2.pipe.config.ExternalCameraGraphConfigModule
+import androidx.camera.camera2.pipe.config.ExternalCameraPipeComponent
+import androidx.camera.camera2.pipe.config.ThreadConfigModule
 import kotlinx.atomicfu.atomic
+import java.util.concurrent.Executor
 
 internal val cameraPipeIds = atomic(0)
 
@@ -35,17 +45,18 @@ internal val cameraPipeIds = atomic(0)
  * [android.hardware.camera2.CameraDevice] and [android.hardware.camera2.CameraCaptureSession] via
  * the [CameraGraph] interface.
  */
-class CameraPipe(config: Config) {
+public class CameraPipe(config: Config, threadConfig: ThreadConfig = ThreadConfig()) {
     private val debugId = cameraPipeIds.incrementAndGet()
     private val component: CameraPipeComponent = DaggerCameraPipeComponent.builder()
         .cameraPipeConfigModule(CameraPipeConfigModule(config))
+        .threadConfigModule(ThreadConfigModule(threadConfig))
         .build()
 
     /**
      * This creates a new [CameraGraph] that can be used to interact with a single Camera on the
      * device. Multiple [CameraGraph]s can be created, but only one should be active at a time.
      */
-    fun create(config: CameraGraph.Config): CameraGraph {
+    public fun create(config: CameraGraph.Config): CameraGraph {
         return component.cameraGraphComponentBuilder()
             .cameraGraphConfigModule(CameraGraphConfigModule(config))
             .build()
@@ -55,18 +66,89 @@ class CameraPipe(config: Config) {
     /**
      * This provides access to information about the available cameras on the device.
      */
-    fun cameras(): Cameras {
+    public fun cameras(): CameraDevices {
         return component.cameras()
     }
 
     /**
-     * This is the application level configuration for [CameraPipe]. Nullable values are optional
-     * and reasonable defaults will be provided if the values are not specified.
+     * Application level configuration for [CameraPipe]. Nullable values are optional and
+     * reasonable defaults will be provided if values are not specified.
      */
-    data class Config(
+    public data class Config(
         val appContext: Context,
-        val cameraThread: HandlerThread? = null
+        val threadConfig: ThreadConfig = ThreadConfig(),
+        val cameraMetadataConfig: CameraMetadataConfig = CameraMetadataConfig()
+    )
+
+    /**
+     * Application level configuration for default thread and executors. If set, these executors
+     * will be used to run asynchronous background work across [CameraPipe].
+     *
+     * - [defaultLightweightExecutor] is used to run fast, non-blocking, lightweight tasks.
+     * - [defaultBackgroundExecutor] is used to run blocking and/or io bound tasks.
+     * - [defaultCameraExecutor] is used on newer API versions to interact with CameraAPIs. This is
+     *   split into a separate field since many camera operations are extremely latency sensitive.
+     * - [defaultCameraHandler] is used on older API versions to interact with CameraAPIs. This is
+     *   split into a separate field since many camera operations are extremely latency sensitive.
+     */
+    public data class ThreadConfig(
+        val defaultLightweightExecutor: Executor? = null,
+        val defaultBackgroundExecutor: Executor? = null,
+        val defaultBlockingExecutor: Executor? = null,
+        val defaultCameraExecutor: Executor? = null,
+        val defaultCameraHandler: HandlerThread? = null
+    )
+
+    /**
+     * Application level configuration options for [CameraMetadata] provider(s).
+     *
+     * @param cacheBlocklist is used to prevent the metadata backend from caching the results of
+     *   specific keys.
+     * @param cameraCacheBlocklist is used to prevent the metadata backend from caching the results
+     *   of specific keys for specific cameraIds.
+     */
+    public class CameraMetadataConfig(
+        public val cacheBlocklist: Set<CameraCharacteristics.Key<*>> = emptySet(),
+        public val cameraCacheBlocklist: Map<CameraId, Set<CameraCharacteristics.Key<*>>> =
+            emptyMap()
     )
 
     override fun toString(): String = "CameraPipe-$debugId"
+
+    /**
+     * External may be used if the underlying implementation needs to delegate to another library
+     * or system.
+     */
+    class External(threadConfig: ThreadConfig = ThreadConfig()) {
+        private val component: ExternalCameraPipeComponent = DaggerExternalCameraPipeComponent
+            .builder()
+            .threadConfigModule(ThreadConfigModule(threadConfig))
+            .build()
+
+        /**
+         * This creates a new [CameraGraph] instance that is configured to use an externally
+         * defined [RequestProcessor].
+         *
+         * TODO: Consider changing cameraDevices to be a single device + physical metadata.
+         */
+        public fun create(
+            config: CameraGraph.Config,
+            cameraMetadata: CameraMetadata,
+            requestProcessor: RequestProcessor
+        ): CameraGraph {
+            check(config.camera == cameraMetadata.camera) {
+                "Invalid camera config: ${config.camera} does not match ${cameraMetadata.camera}"
+            }
+            val componentBuilder = component.cameraGraphBuilder()
+            val component: ExternalCameraGraphComponent = componentBuilder
+                .externalCameraGraphConfigModule(
+                    ExternalCameraGraphConfigModule(
+                        config,
+                        cameraMetadata,
+                        requestProcessor
+                    )
+                ).build()
+            return component.cameraGraph()
+        }
+    }
 }

@@ -17,6 +17,7 @@ package androidx.compose.ui.text.android.style
 
 import android.graphics.Paint.FontMetricsInt
 import androidx.compose.ui.text.android.InternalPlatformTextApi
+import kotlin.math.ceil
 
 /**
  * The span which modifies the height of the covered paragraphs. A paragraph is defined as a
@@ -29,7 +30,10 @@ import androidx.compose.ui.text.android.InternalPlatformTextApi
  * @suppress
  */
 @InternalPlatformTextApi
-class LineHeightSpan(val lineHeight: Int) : android.text.style.LineHeightSpan {
+class LineHeightSpan(
+    val lineHeight: Float
+) : android.text.style.LineHeightSpan {
+
     override fun chooseHeight(
         text: CharSequence,
         start: Int,
@@ -37,15 +41,16 @@ class LineHeightSpan(val lineHeight: Int) : android.text.style.LineHeightSpan {
         spanstartVertical: Int,
         lineHeight: Int,
         fontMetricsInt: FontMetricsInt
-    ) { // In StaticLayout, line height is computed with descent - ascent
-        val currentHeight = fontMetricsInt.descent - fontMetricsInt.ascent
+    ) {
+        // In StaticLayout, line height is computed with descent - ascent
+        val currentHeight = fontMetricsInt.lineHeight()
         // If current height is not positive, do nothing.
         if (currentHeight <= 0) {
             return
         }
-        val ratio = this.lineHeight * 1.0f / currentHeight
-        fontMetricsInt.descent =
-            Math.ceil(fontMetricsInt.descent * ratio.toDouble()).toInt()
-        fontMetricsInt.ascent = fontMetricsInt.descent - this.lineHeight
+        val ceiledLineHeight = ceil(this.lineHeight).toInt()
+        val ratio = ceiledLineHeight * 1.0f / currentHeight
+        fontMetricsInt.descent = ceil(fontMetricsInt.descent * ratio.toDouble()).toInt()
+        fontMetricsInt.ascent = fontMetricsInt.descent - ceiledLineHeight
     }
 }

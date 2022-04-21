@@ -388,6 +388,13 @@ public enum WebViewFeatureInternal implements ConditionallySupportedFeature {
 
     /**
      * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setAlgorithmicDarkeningAllowed(WebSettings, boolean)} and
+     * {@link androidx.webkit.WebSettingsCompat#isAlgorithmicDarkeningAllowed(WebSettings)}.
+     */
+    ALGORITHMIC_DARKENING(WebViewFeature.ALGORITHMIC_DARKENING, Features.ALGORITHMIC_DARKENING),
+
+    /**
+     * This feature covers
      * {@link androidx.webkit.WebViewCompat#setWebMessageListener(android.webkit.WebView,
      * androidx.webkit.WebViewCompat.WebMessageListener, String, String[])} and
      * {@link androidx.webkit.WebViewCompat#removeWebMessageListener()}
@@ -401,6 +408,28 @@ public enum WebViewFeatureInternal implements ConditionallySupportedFeature {
      * Set)}
      */
     DOCUMENT_START_SCRIPT(WebViewFeature.DOCUMENT_START_SCRIPT, Features.DOCUMENT_START_SCRIPT),
+
+    /**
+     * This feature covers {@link androidx.webkit.ProxyConfig.Builder.setReverseBypass(boolean)}
+     */
+    PROXY_OVERRIDE_REVERSE_BYPASS(WebViewFeature.PROXY_OVERRIDE_REVERSE_BYPASS,
+            Features.PROXY_OVERRIDE_REVERSE_BYPASS),
+
+    /**
+     * This feature covers
+     * {@link androidx.webkit.WebViewCompat#getVariationsHeader()}
+     */
+    GET_VARIATIONS_HEADER(WebViewFeature.GET_VARIATIONS_HEADER, Features.GET_VARIATIONS_HEADER),
+
+    /**
+     * This feature covers
+     * {@link androidx.webkit.WebSettingsCompat#setRequestedWithHeaderMode(WebSettings, int)},
+     * {@link androidx.webkit.WebSettingsCompat#getRequestedWithHeaderMode(WebSettings)},
+     * {@link androidx.webkit.ServiceWorkerWebSettingsCompat#setRequestedWithHeaderMode(int)},
+     * and {@link androidx.webkit.ServiceWorkerWebSettingsCompat#getRequestedWithHeaderMode()}
+     */
+    REQUESTED_WITH_HEADER_CONTROL(WebViewFeature.REQUESTED_WITH_HEADER_CONTROL,
+            Features.REQUESTED_WITH_HEADER_CONTROL),
 
     ;  // This semicolon ends the enum. Add new features with a trailing comma above this line.
 

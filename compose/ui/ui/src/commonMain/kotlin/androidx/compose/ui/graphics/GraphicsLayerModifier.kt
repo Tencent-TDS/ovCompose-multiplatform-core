@@ -25,6 +25,7 @@ import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.InspectorValueInfo
 import androidx.compose.ui.platform.debugInspectorInfo
+import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
 import androidx.compose.ui.unit.Constraints
 
 /**
@@ -35,6 +36,15 @@ import androidx.compose.ui.unit.Constraints
  * [graphicsLayer] can also be used to apply effects to content, such as scaling ([scaleX], [scaleY]),
  * rotation ([rotationX], [rotationY], [rotationZ]), opacity ([alpha]), shadow
  * ([shadowElevation], [shape]), and clipping ([clip], [shape]).
+ *
+ * Note that if you provide a non-zero [shadowElevation] and if the passed [shape] is concave the
+ * shadow will not be drawn on Android versions less than 10.
+ *
+ * Also note that alpha values less than 1.0f will have their contents implicitly clipped to their
+ * bounds. This is because an intermediate compositing layer is created to render contents into
+ * first before being drawn into the destination with the desired alpha.
+ * This layer is sized to the bounds of the composable this modifier is configured on, and contents
+ * outside of these bounds are omitted.
  *
  * If the layer parameters are backed by a [androidx.compose.runtime.State] or an animated value
  * prefer an overload with a lambda block on [GraphicsLayerScope] as reading a state inside the block
@@ -56,6 +66,17 @@ import androidx.compose.ui.unit.Constraints
  * @param shape see [GraphicsLayerScope.shape]
  * @param clip see [GraphicsLayerScope.clip]
  */
+@Deprecated(
+    "Replace with graphicsLayer that consumes an optional RenderEffect parameter and " +
+        "shadow color parameters",
+    replaceWith = ReplaceWith(
+        "Modifier.graphicsLayer(scaleX, scaleY, alpha, translationX, translationY, " +
+            "shadowElevation, rotationX, rotationY, rotationZ, cameraDistance, transformOrigin, " +
+            "shape, clip, null, DefaultShadowColor, DefaultShadowColor)",
+        "androidx.compose.ui.graphics"
+    ),
+    level = DeprecationLevel.HIDDEN
+)
 @Stable
 fun Modifier.graphicsLayer(
     scaleX: Float = 1f,
@@ -71,6 +92,169 @@ fun Modifier.graphicsLayer(
     transformOrigin: TransformOrigin = TransformOrigin.Center,
     shape: Shape = RectangleShape,
     clip: Boolean = false
+) = graphicsLayer(
+    scaleX = scaleX,
+    scaleY = scaleY,
+    alpha = alpha,
+    translationX = translationX,
+    translationY = translationY,
+    shadowElevation = shadowElevation,
+    rotationX = rotationX,
+    rotationY = rotationY,
+    rotationZ = rotationZ,
+    cameraDistance = cameraDistance,
+    transformOrigin = transformOrigin,
+    shape = shape,
+    clip = clip,
+    renderEffect = null
+)
+
+/**
+ * A [Modifier.Element] that makes content draw into a draw layer. The draw layer can be
+ * invalidated separately from parents. A [graphicsLayer] should be used when the content
+ * updates independently from anything above it to minimize the invalidated content.
+ *
+ * [graphicsLayer] can also be used to apply effects to content, such as scaling ([scaleX], [scaleY]),
+ * rotation ([rotationX], [rotationY], [rotationZ]), opacity ([alpha]), shadow
+ * ([shadowElevation], [shape]), clipping ([clip], [shape]), as well as altering the result of the
+ * layer with [RenderEffect].
+ *
+ * Note that if you provide a non-zero [shadowElevation] and if the passed [shape] is concave the
+ * shadow will not be drawn on Android versions less than 10.
+ *
+ * Also note that alpha values less than 1.0f will have their contents implicitly clipped to their
+ * bounds. This is because an intermediate compositing layer is created to render contents into
+ * first before being drawn into the destination with the desired alpha.
+ * This layer is sized to the bounds of the composable this modifier is configured on, and contents
+ * outside of these bounds are omitted.
+ *
+ * If the layer parameters are backed by a [androidx.compose.runtime.State] or an animated value
+ * prefer an overload with a lambda block on [GraphicsLayerScope] as reading a state inside the block
+ * will only cause the layer properties update without triggering recomposition and relayout.
+ *
+ * @sample androidx.compose.ui.samples.ChangeOpacity
+ *
+ * @param scaleX see [GraphicsLayerScope.scaleX]
+ * @param scaleY see [GraphicsLayerScope.scaleY]
+ * @param alpha see [GraphicsLayerScope.alpha]
+ * @param translationX see [GraphicsLayerScope.translationX]
+ * @param translationY see [GraphicsLayerScope.translationY]
+ * @param shadowElevation see [GraphicsLayerScope.shadowElevation]
+ * @param rotationX see [GraphicsLayerScope.rotationX]
+ * @param rotationY see [GraphicsLayerScope.rotationY]
+ * @param rotationZ see [GraphicsLayerScope.rotationZ]
+ * @param cameraDistance see [GraphicsLayerScope.cameraDistance]
+ * @param transformOrigin see [GraphicsLayerScope.transformOrigin]
+ * @param shape see [GraphicsLayerScope.shape]
+ * @param clip see [GraphicsLayerScope.clip]
+ * @param renderEffect see [GraphicsLayerScope.renderEffect]
+ */
+@Deprecated(
+    "Replace with graphicsLayer that consumes shadow color parameters",
+    replaceWith = ReplaceWith(
+        "Modifier.graphicsLayer(scaleX, scaleY, alpha, translationX, translationY, " +
+            "shadowElevation, rotationX, rotationY, rotationZ, cameraDistance, transformOrigin, " +
+            "shape, clip, null, DefaultShadowColor, DefaultShadowColor)",
+        "androidx.compose.ui.graphics"
+    ),
+    level = DeprecationLevel.HIDDEN
+)
+@Stable
+fun Modifier.graphicsLayer(
+    scaleX: Float = 1f,
+    scaleY: Float = 1f,
+    alpha: Float = 1f,
+    translationX: Float = 0f,
+    translationY: Float = 0f,
+    shadowElevation: Float = 0f,
+    rotationX: Float = 0f,
+    rotationY: Float = 0f,
+    rotationZ: Float = 0f,
+    cameraDistance: Float = DefaultCameraDistance,
+    transformOrigin: TransformOrigin = TransformOrigin.Center,
+    shape: Shape = RectangleShape,
+    clip: Boolean = false,
+    renderEffect: RenderEffect? = null
+) = graphicsLayer(
+    scaleX = scaleX,
+    scaleY = scaleY,
+    alpha = alpha,
+    translationX = translationX,
+    translationY = translationY,
+    shadowElevation = shadowElevation,
+    ambientShadowColor = DefaultShadowColor,
+    spotShadowColor = DefaultShadowColor,
+    rotationX = rotationX,
+    rotationY = rotationY,
+    rotationZ = rotationZ,
+    cameraDistance = cameraDistance,
+    transformOrigin = transformOrigin,
+    shape = shape,
+    clip = clip,
+    renderEffect = renderEffect
+)
+
+/**
+ * A [Modifier.Element] that makes content draw into a draw layer. The draw layer can be
+ * invalidated separately from parents. A [graphicsLayer] should be used when the content
+ * updates independently from anything above it to minimize the invalidated content.
+ *
+ * [graphicsLayer] can also be used to apply effects to content, such as scaling ([scaleX], [scaleY]),
+ * rotation ([rotationX], [rotationY], [rotationZ]), opacity ([alpha]), shadow
+ * ([shadowElevation], [shape]), clipping ([clip], [shape]), as well as altering the result of the
+ * layer with [RenderEffect]. Shadow color and ambient colors can be modified by configuring the
+ * [spotShadowColor] and [ambientShadowColor] respectively.
+ *
+ * Note that if you provide a non-zero [shadowElevation] and if the passed [shape] is concave the
+ * shadow will not be drawn on Android versions less than 10.
+ *
+ * Also note that alpha values less than 1.0f will have their contents implicitly clipped to their
+ * bounds. This is because an intermediate compositing layer is created to render contents into
+ * first before being drawn into the destination with the desired alpha.
+ * This layer is sized to the bounds of the composable this modifier is configured on, and contents
+ * outside of these bounds are omitted.
+ *
+ * If the layer parameters are backed by a [androidx.compose.runtime.State] or an animated value
+ * prefer an overload with a lambda block on [GraphicsLayerScope] as reading a state inside the block
+ * will only cause the layer properties update without triggering recomposition and relayout.
+ *
+ * @sample androidx.compose.ui.samples.ChangeOpacity
+ *
+ * @param scaleX see [GraphicsLayerScope.scaleX]
+ * @param scaleY see [GraphicsLayerScope.scaleY]
+ * @param alpha see [GraphicsLayerScope.alpha]
+ * @param translationX see [GraphicsLayerScope.translationX]
+ * @param translationY see [GraphicsLayerScope.translationY]
+ * @param shadowElevation see [GraphicsLayerScope.shadowElevation]
+ * @param rotationX see [GraphicsLayerScope.rotationX]
+ * @param rotationY see [GraphicsLayerScope.rotationY]
+ * @param rotationZ see [GraphicsLayerScope.rotationZ]
+ * @param cameraDistance see [GraphicsLayerScope.cameraDistance]
+ * @param transformOrigin see [GraphicsLayerScope.transformOrigin]
+ * @param shape see [GraphicsLayerScope.shape]
+ * @param clip see [GraphicsLayerScope.clip]
+ * @param renderEffect see [GraphicsLayerScope.renderEffect]
+ * @param ambientShadowColor see [GraphicsLayerScope.ambientShadowColor]
+ * @param spotShadowColor see [GraphicsLayerScope.spotShadowColor]
+ */
+@Stable
+fun Modifier.graphicsLayer(
+    scaleX: Float = 1f,
+    scaleY: Float = 1f,
+    alpha: Float = 1f,
+    translationX: Float = 0f,
+    translationY: Float = 0f,
+    shadowElevation: Float = 0f,
+    rotationX: Float = 0f,
+    rotationY: Float = 0f,
+    rotationZ: Float = 0f,
+    cameraDistance: Float = DefaultCameraDistance,
+    transformOrigin: TransformOrigin = TransformOrigin.Center,
+    shape: Shape = RectangleShape,
+    clip: Boolean = false,
+    renderEffect: RenderEffect? = null,
+    ambientShadowColor: Color = DefaultShadowColor,
+    spotShadowColor: Color = DefaultShadowColor,
 ) = this.then(
     SimpleGraphicsLayerModifier(
         scaleX = scaleX,
@@ -79,6 +263,8 @@ fun Modifier.graphicsLayer(
         translationX = translationX,
         translationY = translationY,
         shadowElevation = shadowElevation,
+        ambientShadowColor = ambientShadowColor,
+        spotShadowColor = spotShadowColor,
         rotationX = rotationX,
         rotationY = rotationY,
         rotationZ = rotationZ,
@@ -86,6 +272,7 @@ fun Modifier.graphicsLayer(
         transformOrigin = transformOrigin,
         shape = shape,
         clip = clip,
+        renderEffect = renderEffect,
         inspectorInfo = debugInspectorInfo {
             name = "graphicsLayer"
             properties["scaleX"] = scaleX
@@ -101,6 +288,9 @@ fun Modifier.graphicsLayer(
             properties["transformOrigin"] = transformOrigin
             properties["shape"] = shape
             properties["clip"] = clip
+            properties["renderEffect"] = renderEffect
+            properties["ambientShadowColor"] = ambientShadowColor
+            properties["spotShadowColor"] = spotShadowColor
         }
     )
 )
@@ -131,6 +321,14 @@ fun Modifier.graphicsLayer(block: GraphicsLayerScope.() -> Unit): Modifier =
             }
         )
     )
+
+/**
+ * A [Modifier.Element] that adds a draw layer such that tooling can identify an element
+ * in the drawn image.
+ */
+@Stable
+fun Modifier.toolingGraphicsLayer() =
+    if (isDebugInspectorInfoEnabled) this.then(Modifier.graphicsLayer()) else this
 
 private class BlockGraphicsLayerModifier(
     private val layerBlock: GraphicsLayerScope.() -> Unit,
@@ -175,6 +373,9 @@ private class SimpleGraphicsLayerModifier(
     private val transformOrigin: TransformOrigin,
     private val shape: Shape,
     private val clip: Boolean,
+    private val renderEffect: RenderEffect?,
+    private val ambientShadowColor: Color,
+    private val spotShadowColor: Color,
     inspectorInfo: InspectorInfo.() -> Unit
 ) : LayoutModifier, InspectorValueInfo(inspectorInfo) {
 
@@ -192,6 +393,9 @@ private class SimpleGraphicsLayerModifier(
         transformOrigin = this@SimpleGraphicsLayerModifier.transformOrigin
         shape = this@SimpleGraphicsLayerModifier.shape
         clip = this@SimpleGraphicsLayerModifier.clip
+        renderEffect = this@SimpleGraphicsLayerModifier.renderEffect
+        ambientShadowColor = this@SimpleGraphicsLayerModifier.ambientShadowColor
+        spotShadowColor = this@SimpleGraphicsLayerModifier.spotShadowColor
     }
 
     override fun MeasureScope.measure(
@@ -218,6 +422,9 @@ private class SimpleGraphicsLayerModifier(
         result = 31 * result + transformOrigin.hashCode()
         result = 31 * result + shape.hashCode()
         result = 31 * result + clip.hashCode()
+        result = 31 * result + renderEffect.hashCode()
+        result = 31 * result + ambientShadowColor.hashCode()
+        result = 31 * result + spotShadowColor.hashCode()
         return result
     }
 
@@ -235,7 +442,10 @@ private class SimpleGraphicsLayerModifier(
             cameraDistance == otherModifier.cameraDistance &&
             transformOrigin == otherModifier.transformOrigin &&
             shape == otherModifier.shape &&
-            clip == otherModifier.clip
+            clip == otherModifier.clip &&
+            renderEffect == otherModifier.renderEffect &&
+            ambientShadowColor == otherModifier.ambientShadowColor &&
+            spotShadowColor == otherModifier.spotShadowColor
     }
 
     override fun toString(): String =
@@ -252,5 +462,8 @@ private class SimpleGraphicsLayerModifier(
             "cameraDistance=$cameraDistance, " +
             "transformOrigin=$transformOrigin, " +
             "shape=$shape, " +
-            "clip=$clip)"
+            "clip=$clip, " +
+            "renderEffect=$renderEffect, " +
+            "ambientShadowColor=$ambientShadowColor, " +
+            "spotShadowColor=$spotShadowColor)"
 }

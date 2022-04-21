@@ -154,7 +154,7 @@ public class BiometricViewModel extends ViewModel {
     /**
      * Reference to latest {@link androidx.fragment.app.FragmentActivity} hosting BiometricPrompt
      */
-    @NonNull private WeakReference<FragmentActivity> mClientActivity;
+    @Nullable private WeakReference<FragmentActivity> mClientActivity;
 
     /**
      * Info about the appearance and behavior of the prompt provided by the client application.
@@ -219,6 +219,12 @@ public class BiometricViewModel extends ViewModel {
      * Whether the prompt should ignore cancel requests not initiated by the client.
      */
     private boolean mIsIgnoringCancel;
+
+    /**
+     * Whether {@link android.app.KeyguardManager} is being used directly for authentication with
+     * both biometric and credential authenticator types allowed.
+     */
+    private boolean mIsUsingKeyguardManagerForBiometricAndCredential;
 
     /**
      * Information associated with a successful authentication attempt.
@@ -293,13 +299,20 @@ public class BiometricViewModel extends ViewModel {
     }
 
     /**
+     * Clears the client callback reference held by this view model.
+     */
+    void resetClientCallback() {
+        mClientCallback = null;
+    }
+
+    /**
      * Returns reference to latest activity hosting BiometricPrompt or null if activity has
      * already been destroyed
      * @return Reference to latest activity hosting BiometricPrompt
      */
     @Nullable
     public FragmentActivity getClientActivity() {
-        return mClientActivity.get();
+        return mClientActivity != null ? mClientActivity.get() : null;
     }
 
     /**
@@ -492,6 +505,16 @@ public class BiometricViewModel extends ViewModel {
 
     void setIgnoringCancel(boolean ignoringCancel) {
         mIsIgnoringCancel = ignoringCancel;
+    }
+
+    boolean isUsingKeyguardManagerForBiometricAndCredential() {
+        return mIsUsingKeyguardManagerForBiometricAndCredential;
+    }
+
+    void setUsingKeyguardManagerForBiometricAndCredential(
+            boolean usingKeyguardManagerForBiometricAndCredential) {
+        mIsUsingKeyguardManagerForBiometricAndCredential =
+                usingKeyguardManagerForBiometricAndCredential;
     }
 
     @NonNull

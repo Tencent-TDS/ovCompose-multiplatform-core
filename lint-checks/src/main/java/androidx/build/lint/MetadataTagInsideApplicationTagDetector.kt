@@ -13,12 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:Suppress("UnstableApiUsage")
+
 package androidx.build.lint
 
 import com.android.SdkConstants.TAG_META_DATA
 import com.android.tools.lint.detector.api.Category
 import com.android.tools.lint.detector.api.Detector
 import com.android.tools.lint.detector.api.Implementation
+import com.android.tools.lint.detector.api.Incident
 import com.android.tools.lint.detector.api.Issue
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
@@ -29,17 +32,19 @@ import org.w3c.dom.Element
 
 class MetadataTagInsideApplicationTagDetector : Detector(), Detector.XmlScanner {
 
-    override fun getApplicableElements(): Collection<String>? {
+    override fun getApplicableElements(): Collection<String> {
         return listOf(TAG_META_DATA)
     }
 
     override fun visitElement(context: XmlContext, element: Element) {
         if (element.parentNode.nodeName == NODE_APPLICATION) {
-            context.report(
-                ISSUE, element, context.getLocation(element),
-                "Detected " +
-                    "<application>-level meta-data tag."
-            )
+            val incident = Incident(context)
+                .issue(ISSUE)
+                .location(context.getLocation(element))
+                .message("Detected <application>-level meta-data tag.")
+                .scope(element)
+
+            context.report(incident)
         }
     }
 

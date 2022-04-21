@@ -15,8 +15,7 @@
   -->
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="androidx.benchmark.integration.macrobenchmark.target">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:label="Jetpack Benchmark Macrobenchmark Target"
@@ -25,9 +24,11 @@
         android:theme="@style/Theme.AppCompat"
         tools:ignore="MissingApplicationIcon">
 
+        <!-- Profileable to enable macrobenchmark profiling -->
+        <profileable android:shell="true"/>
+
         <!--
-        Activities need to be exported so the macrobenchmark can discover them
-        under the new package visibility changes for Android 11.
+        Activities need to be exported so the macrobenchmark can discover them.
          -->
         <activity
             android:name=".TrivialStartupActivity"
@@ -43,10 +44,57 @@
         </activity>
 
         <activity
+            android:name=".TrivialStartupFullyDrawnActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.benchmark.integration.macrobenchmark.target.TRIVIAL_STARTUP_FULLY_DRAWN_ACTIVITY" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".RecyclerViewActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="androidx.benchmark.integration.macrobenchmark.target.RECYCLER_VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".AudioActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.benchmark.integration.macrobenchmark.target.AUDIO_ACTIVITY" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+
+        <activity
+            android:name=".BackgroundWorkActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.benchmark.integration.macrobenchmark.target.BACKGROUND_WORK_ACTIVITY" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".NotExportedActivity"
+            android:exported="false"> <!-- intentionally not exported -->
+            <intent-filter>
+                <action android:name="androidx.benchmark.integration.macrobenchmark.target.NOT_EXPORTED_ACTIVITY" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".SeparateProcessActivity"
+            android:process=":ui"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.benchmark.integration.macrobenchmark.target.SEPARATE_PROCESS_ACTIVITY" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

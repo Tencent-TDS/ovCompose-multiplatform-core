@@ -122,14 +122,13 @@ public class PartiallyCoveredActivityTest {
     }
 
     @Test
-    @FlakyTest
     public void coveredWithDialog_activity() throws Throwable {
         final CollectingSupportActivity activity = activityRule.getActivity();
         runTest(activity);
     }
 
+    @FlakyTest(bugId = 206645367)
     @Test
-    @FlakyTest
     public void coveredWithDialog_fragment() throws Throwable {
         CollectingSupportFragment fragment = new CollectingSupportFragment();
         activityRule.runOnUiThread(() -> activityRule.getActivity().replaceFragment(fragment));
@@ -137,7 +136,6 @@ public class PartiallyCoveredActivityTest {
     }
 
     @Test
-    @FlakyTest
     public void coveredWithDialog_childFragment() throws Throwable {
         CollectingSupportFragment parentFragment = new CollectingSupportFragment();
         CollectingSupportFragment childFragment = new CollectingSupportFragment();

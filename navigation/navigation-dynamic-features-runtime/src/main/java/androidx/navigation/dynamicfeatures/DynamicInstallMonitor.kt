@@ -19,14 +19,13 @@ package androidx.navigation.dynamicfeatures
 import androidx.annotation.RestrictTo
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-
 import com.google.android.play.core.splitinstall.SplitInstallManager
 import com.google.android.play.core.splitinstall.SplitInstallSessionState
 import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
 
 /**
  * Monitor installation progress of dynamic feature modules.
- * This class enables you to subscribe to the current installation state via [.getStatus].
+ * This class enables you to subscribe to the current installation state via [getStatus].
  * You also can perform various checks on installation state directly through this monitor.
  *
  * In order to enable installation and monitoring of progress you'll have to provide an instance
@@ -71,15 +70,13 @@ public class DynamicInstallMonitor {
      * The [SplitInstallManager] used to monitor the installation if any was set.
      * @hide
      */
-    @get:RestrictTo(RestrictTo.Scope.LIBRARY)
+    @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public var splitInstallManager: SplitInstallManager? = null
 
     /**
      * `true` if the monitor has been used to request an install, else
      * `false`.
-     * @hide
      */
-    @get:RestrictTo(RestrictTo.Scope.LIBRARY)
     internal var isUsed = false
         private set
 

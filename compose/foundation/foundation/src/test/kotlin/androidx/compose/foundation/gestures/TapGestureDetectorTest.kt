@@ -14,17 +14,8 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalPointerInput::class)
-
 package androidx.compose.foundation.gestures
 
-import androidx.compose.ui.gesture.DoubleTapTimeout
-import androidx.compose.ui.gesture.ExperimentalPointerInput
-import androidx.compose.ui.gesture.LongPressTimeout
-import androidx.compose.ui.input.pointer.consumeDownChange
-import androidx.compose.ui.input.pointer.consumePositionChange
-import androidx.compose.ui.unit.inMilliseconds
-import androidx.compose.ui.unit.milliseconds
 import kotlinx.coroutines.delay
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -34,7 +25,6 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
-@OptIn(ExperimentalPointerInput::class)
 class TapGestureDetectorTest {
     private var pressed = false
     private var released = false
@@ -43,8 +33,35 @@ class TapGestureDetectorTest {
     private var doubleTapped = false
     private var longPressed = false
 
+    /** The time before a long press gesture attempts to win. */
+    private val LongPressTimeoutMillis: Long = 500L
+
+    /**
+     * The maximum time from the start of the first tap to the start of the second
+     * tap in a double-tap gesture.
+     */
+// TODO(shepshapard): In Android, this is actually the time from the first's up event
+// to the second's down event, according to the ViewConfiguration docs.
+    private val DoubleTapTimeoutMillis: Long = 300L
+
     private val util = SuspendingGestureTestUtil {
         detectTapGestures(
+            onPress = {
+                pressed = true
+                if (tryAwaitRelease()) {
+                    released = true
+                } else {
+                    canceled = true
+                }
+            },
+            onTap = {
+                tapped = true
+            }
+        )
+    }
+
+    private val utilWithShortcut = SuspendingGestureTestUtil {
+        detectTapAndPress(
             onPress = {
                 pressed = true
                 if (tryAwaitRelease()) {
@@ -92,14 +109,36 @@ class TapGestureDetectorTest {
     @Test
     fun normalTap() = util.executeInComposition {
         val down = down(5f, 5f)
-        assertTrue(down.consumed.downChange)
+        assertTrue(down.isConsumed)
+        assertTrue(down.isConsumed)
 
         assertTrue(pressed)
         assertFalse(tapped)
         assertFalse(released)
 
-        val up = down.up(50.milliseconds)
-        assertTrue(up.consumed.downChange)
+        val up = down.up(50)
+        assertTrue(up.isConsumed)
+        assertTrue(up.isConsumed)
+
+        assertTrue(tapped)
+        assertTrue(released)
+        assertFalse(canceled)
+    }
+
+    /**
+     * Clicking in the region should result in the callback being invoked.
+     */
+    @Test
+    fun normalTap_withShortcut() = utilWithShortcut.executeInComposition {
+        val down = down(5f, 5f)
+        assertTrue(down.isConsumed)
+
+        assertTrue(pressed)
+        assertFalse(tapped)
+        assertFalse(released)
+
+        val up = down.up(50)
+        assertTrue(up.isConsumed)
 
         assertTrue(tapped)
         assertTrue(released)
@@ -112,12 +151,12 @@ class TapGestureDetectorTest {
     @Test
     fun normalTapWithAllGestures() = allGestures.executeInComposition {
         val down = down(5f, 5f)
-        assertTrue(down.consumed.downChange)
+        assertTrue(down.isConsumed)
 
         assertTrue(pressed)
 
-        val up = down.up(50.milliseconds)
-        assertTrue(up.consumed.downChange)
+        val up = down.up(50)
+        assertTrue(up.isConsumed)
 
         assertTrue(released)
 
@@ -126,7 +165,7 @@ class TapGestureDetectorTest {
         assertFalse(tapped)
         assertFalse(doubleTapped)
 
-        delay(DoubleTapTimeout.inMilliseconds() + 10)
+        delay(DoubleTapTimeoutMillis + 10)
 
         assertTrue(tapped)
         assertFalse(doubleTapped)
@@ -139,7 +178,7 @@ class TapGestureDetectorTest {
     fun normalDoubleTap() = allGestures.executeInComposition {
         val up = down(5f, 5f)
             .up()
-        assertTrue(up.consumed.downChange)
+        assertTrue(up.isConsumed)
 
         assertTrue(pressed)
         assertTrue(released)
@@ -149,9 +188,9 @@ class TapGestureDetectorTest {
         pressed = false
         released = false
 
-        val up2 = down(5f, 5f, 50.milliseconds)
+        val up2 = down(5f, 5f, 50)
             .up()
-        assertTrue(up2.consumed.downChange)
+        assertTrue(up2.isConsumed)
 
         assertFalse(tapped)
         assertTrue(doubleTapped)
@@ -165,15 +204,15 @@ class TapGestureDetectorTest {
     @Test
     fun normalLongPress() = allGestures.executeInComposition {
         val down = down(5f, 5f)
-        assertTrue(down.consumed.downChange)
+        assertTrue(down.isConsumed)
 
         assertTrue(pressed)
-        delay(LongPressTimeout.inMilliseconds() + 10)
+        delay(LongPressTimeoutMillis + 10)
 
         assertTrue(longPressed)
 
-        val up = down.up(500.milliseconds)
-        assertTrue(up.consumed.downChange)
+        val up = down.up(500)
+        assertTrue(up.isConsumed)
 
         assertFalse(tapped)
         assertFalse(doubleTapped)
@@ -195,7 +234,25 @@ class TapGestureDetectorTest {
         assertTrue(canceled)
         assertFalse(released)
         assertFalse(tapped)
-        assertFalse(up.consumed.downChange)
+        assertFalse(up.isConsumed)
+        assertFalse(up.isConsumed)
+    }
+
+    /**
+     * Pressing in the region, sliding out and then lifting should result in
+     * the callback not being invoked
+     */
+    @Test
+    fun tapMiss_withShortcut() = utilWithShortcut.executeInComposition {
+        val up = down(5f, 5f)
+            .moveTo(15f, 15f)
+            .up()
+
+        assertTrue(pressed)
+        assertTrue(canceled)
+        assertFalse(released)
+        assertFalse(tapped)
+        assertFalse(up.isConsumed)
     }
 
     /**
@@ -207,9 +264,9 @@ class TapGestureDetectorTest {
         val pointer = down(5f, 5f)
             .moveTo(15f, 15f)
 
-        delay(DoubleTapTimeout.inMilliseconds() + 10)
+        delay(DoubleTapTimeoutMillis + 10)
         val up = pointer.up()
-        assertFalse(up.consumed.downChange)
+        assertFalse(up.isConsumed)
 
         assertTrue(pressed)
         assertFalse(released)
@@ -226,7 +283,7 @@ class TapGestureDetectorTest {
     @Test
     fun doubleTapMiss() = allGestures.executeInComposition {
         val up1 = down(5f, 5f).up()
-        assertTrue(up1.consumed.downChange)
+        assertTrue(up1.isConsumed)
 
         assertTrue(pressed)
         assertTrue(released)
@@ -235,11 +292,11 @@ class TapGestureDetectorTest {
         pressed = false
         released = false
 
-        val up2 = down(5f, 5f, 50.milliseconds)
+        val up2 = down(5f, 5f, 50)
             .moveTo(15f, 15f)
             .up()
 
-        assertFalse(up2.consumed.downChange)
+        assertFalse(up2.isConsumed)
 
         assertTrue(pressed)
         assertFalse(released)
@@ -261,7 +318,25 @@ class TapGestureDetectorTest {
             .up()
 
         assertFalse(tapped)
-        assertFalse(up.consumed.downChange)
+        assertFalse(up.isConsumed)
+        assertTrue(pressed)
+        assertFalse(released)
+        assertTrue(canceled)
+    }
+
+    /**
+     * Pressing in the region, sliding out, then back in, then lifting
+     * should result the gesture being canceled.
+     */
+    @Test
+    fun tapOutAndIn_withShortcut() = utilWithShortcut.executeInComposition {
+        val up = down(5f, 5f)
+            .moveTo(15f, 15f)
+            .moveTo(6f, 6f)
+            .up()
+
+        assertFalse(tapped)
+        assertFalse(up.isConsumed)
         assertTrue(pressed)
         assertFalse(released)
         assertTrue(canceled)
@@ -286,7 +361,32 @@ class TapGestureDetectorTest {
         val up2 = down(4f, 4f)
             .up()
         assertTrue(tapped)
-        assertTrue(up2.consumed.downChange)
+        assertTrue(up2.isConsumed)
+        assertTrue(pressed)
+        assertTrue(released)
+        assertFalse(canceled)
+    }
+
+    /**
+     * After a first tap, a second tap should also be detected.
+     */
+    @Test
+    fun secondTap_withShortcut() = utilWithShortcut.executeInComposition {
+        down(5f, 5f)
+            .up()
+
+        assertTrue(pressed)
+        assertTrue(released)
+        assertFalse(canceled)
+
+        tapped = false
+        pressed = false
+        released = false
+
+        val up2 = down(4f, 4f)
+            .up()
+        assertTrue(tapped)
+        assertTrue(up2.isConsumed)
         assertTrue(pressed)
         assertTrue(released)
         assertFalse(canceled)
@@ -304,7 +404,27 @@ class TapGestureDetectorTest {
         assertTrue(pressed)
 
         down.up {
-            consumeDownChange()
+            if (pressed != previousPressed) consume()
+        }
+
+        assertFalse(tapped)
+        assertFalse(released)
+        assertTrue(canceled)
+    }
+
+    /**
+     * Clicking in the region with the up already consumed should result in the callback not
+     * being invoked.
+     */
+    @Test
+    fun consumedUpTap_withShortcut() = utilWithShortcut.executeInComposition {
+        val down = down(5f, 5f)
+
+        assertFalse(tapped)
+        assertTrue(pressed)
+
+        down.up {
+            if (pressed != previousPressed) consume()
         }
 
         assertFalse(tapped)
@@ -320,12 +440,64 @@ class TapGestureDetectorTest {
     fun consumedMotionTap() = util.executeInComposition {
         down(5f, 5f)
             .moveTo(6f, 2f) {
-                consumePositionChange(1f, -3f)
+                consume()
             }
-            .up(50.milliseconds)
+            .up(50)
 
         assertFalse(tapped)
         assertTrue(pressed)
+        assertFalse(released)
+        assertTrue(canceled)
+    }
+
+    /**
+     * Clicking in the region with the motion consumed should result in the callback not
+     * being invoked.
+     */
+    @Test
+    fun consumedMotionTap_withShortcut() = utilWithShortcut.executeInComposition {
+        down(5f, 5f)
+            .moveTo(6f, 2f) {
+                consume()
+            }
+            .up(50)
+
+        assertFalse(tapped)
+        assertTrue(pressed)
+        assertFalse(released)
+        assertTrue(canceled)
+    }
+
+    @Test
+    fun consumedChange_MotionTap() = util.executeInComposition {
+        down(5f, 5f)
+            .moveTo(6f, 2f) {
+                consume()
+            }
+            .up(50)
+
+        assertFalse(tapped)
+        assertTrue(pressed)
+        assertFalse(released)
+        assertTrue(canceled)
+    }
+
+    /**
+     * Clicking in the region with the up already consumed should result in the callback not
+     * being invoked.
+     */
+    @Test
+    fun consumedChange_upTap() = util.executeInComposition {
+        val down = down(5f, 5f)
+
+        assertFalse(tapped)
+        assertTrue(pressed)
+
+        down.up {
+            consume()
+        }
+
+        assertFalse(tapped)
         assertFalse(released)
         assertTrue(canceled)
     }
@@ -336,23 +508,55 @@ class TapGestureDetectorTest {
     @Test
     fun twoFingerTap() = util.executeInComposition {
         val down = down(1f, 1f)
-        assertTrue(down.consumed.downChange)
+        assertTrue(down.isConsumed)
 
         assertTrue(pressed)
         pressed = false
 
         val down2 = down(9f, 5f)
-        assertFalse(down2.consumed.downChange)
+        assertFalse(down2.isConsumed)
+        assertFalse(down2.isConsumed)
 
         assertFalse(pressed)
 
         val up = down.up()
-        assertFalse(up.consumed.downChange)
+        assertFalse(up.isConsumed)
+        assertFalse(up.isConsumed)
         assertFalse(tapped)
         assertFalse(released)
 
         val up2 = down2.up()
-        assertTrue(up2.consumed.downChange)
+        assertTrue(up2.isConsumed)
+        assertTrue(up2.isConsumed)
+
+        assertTrue(tapped)
+        assertTrue(released)
+        assertFalse(canceled)
+    }
+
+    /**
+     * Ensure that two-finger taps work.
+     */
+    @Test
+    fun twoFingerTap_withShortcut() = utilWithShortcut.executeInComposition {
+        val down = down(1f, 1f)
+        assertTrue(down.isConsumed)
+
+        assertTrue(pressed)
+        pressed = false
+
+        val down2 = down(9f, 5f)
+        assertFalse(down2.isConsumed)
+
+        assertFalse(pressed)
+
+        val up = down.up()
+        assertFalse(up.isConsumed)
+        assertFalse(tapped)
+        assertFalse(released)
+
+        val up2 = down2.up()
+        assertTrue(up2.isConsumed)
 
         assertTrue(tapped)
         assertTrue(released)
@@ -371,15 +575,41 @@ class TapGestureDetectorTest {
         val down2 = down(9f, 5f)
 
         val up = down.moveTo(5f, 5f) {
-            consumePositionChange(4f, 4f)
+            consume()
         }.up()
-        assertFalse(up.consumed.downChange)
+        assertFalse(up.isConsumed)
 
         assertFalse(tapped)
         assertTrue(canceled)
 
-        val up2 = down2.up(50.milliseconds)
-        assertFalse(up2.consumed.downChange)
+        val up2 = down2.up(50)
+        assertFalse(up2.isConsumed)
+
+        assertFalse(tapped)
+        assertFalse(released)
+    }
+
+    /**
+     * A position change consumption on any finger should cause tap to cancel.
+     */
+    @Test
+    fun twoFingerTapCancel_withShortcut() = utilWithShortcut.executeInComposition {
+        val down = down(1f, 1f)
+
+        assertTrue(pressed)
+
+        val down2 = down(9f, 5f)
+
+        val up = down.moveTo(5f, 5f) {
+            consume()
+        }.up()
+        assertFalse(up.isConsumed)
+
+        assertFalse(tapped)
+        assertTrue(canceled)
+
+        val up2 = down2.up(50)
+        assertFalse(up2.isConsumed)
 
         assertFalse(tapped)
         assertFalse(released)
@@ -402,18 +632,18 @@ class TapGestureDetectorTest {
         pressed = false
         released = false
 
-        val secondDown = down(5f, 5f, 50.milliseconds)
+        val secondDown = down(5f, 5f, 50)
 
         assertTrue(pressed)
 
-        delay(LongPressTimeout.inMilliseconds() + 10)
+        delay(LongPressTimeoutMillis + 10)
 
         assertTrue(tapped)
         assertTrue(longPressed)
         assertFalse(released)
         assertFalse(canceled)
 
-        secondDown.up(500.milliseconds)
+        secondDown.up(500)
         assertTrue(released)
     }
 }

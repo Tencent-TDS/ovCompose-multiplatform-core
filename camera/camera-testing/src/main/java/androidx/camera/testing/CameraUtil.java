@@ -16,16 +16,23 @@
 
 package androidx.camera.testing;
 
+import static android.hardware.camera2.CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_BACKWARD_COMPATIBLE;
+
 import static org.junit.Assume.assumeTrue;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
+import android.media.CamcorderProfile;
+import android.media.MediaCodec;
+import android.media.MediaCodecInfo;
+import android.media.MediaFormat;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -35,6 +42,7 @@ import androidx.annotation.GuardedBy;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.CameraSelector;
@@ -59,16 +67,20 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** Utility functions for obtaining instances of camera2 classes. */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class CameraUtil {
     private CameraUtil() {
     }
@@ -101,7 +113,7 @@ public final class CameraUtil {
             throws CameraAccessException, InterruptedException, TimeoutException,
             ExecutionException {
         // Use the first camera available.
-        List<String> cameraIds = getCameraIdListOrThrow();
+        List<String> cameraIds = getBackwardCompatibleCameraIdListOrThrow();
         if (cameraIds.isEmpty()) {
             throw new CameraAccessException(
                     CameraAccessException.CAMERA_ERROR, "Device contains no cameras.");
@@ -109,6 +121,29 @@ public final class CameraUtil {
         String cameraName = cameraIds.get(0);
 
         return new CameraDeviceHolder(getCameraManager(), cameraName, stateCallback);
+    }
+
+    /**
+     * Gets a new instance of a {@link CameraDevice} by given camera id.
+     *
+     * <p>This method attempts to open up a new camera. Since the camera api is asynchronous it
+     * needs to wait for camera open
+     *
+     * <p>After the camera is no longer needed {@link #releaseCameraDevice(CameraDeviceHolder)}
+     * should be called to clean up resources.
+     *
+     * @throws CameraAccessException if the device is unable to access the camera
+     * @throws InterruptedException  if a {@link CameraDevice} can not be retrieved within a set
+     *                               time
+     */
+    @RequiresPermission(Manifest.permission.CAMERA)
+    @NonNull
+    public static CameraDeviceHolder getCameraDevice(
+            @NonNull String cameraId,
+            @Nullable CameraDevice.StateCallback stateCallback)
+            throws CameraAccessException, InterruptedException, TimeoutException,
+            ExecutionException {
+        return new CameraDeviceHolder(getCameraManager(), cameraId, stateCallback);
     }
 
     /**
@@ -120,6 +155,7 @@ public final class CameraUtil {
      * <p>The camera device should always be closed with
      * {@link CameraUtil#releaseCameraDevice(CameraDeviceHolder)} once finished with the device.
      */
+    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     public static class CameraDeviceHolder {
 
         final Object mLock = new Object();
@@ -150,69 +186,86 @@ public final class CameraUtil {
                 @Nullable CameraDevice.StateCallback extraStateCallback) {
             return CallbackToFutureAdapter.getFuture(openCompleter -> {
                 mCloseFuture = CallbackToFutureAdapter.getFuture(closeCompleter -> {
-                    cameraManager.openCamera(cameraId, new CameraDevice.StateCallback() {
-
-                        @Override
-                        public void onOpened(@NonNull CameraDevice cameraDevice) {
-                            synchronized (mLock) {
-                                Preconditions.checkState(mCameraDevice == null, "CameraDevice "
-                                        + "should not have been opened yet.");
-                                mCameraDevice = cameraDevice;
-                            }
-                            if (extraStateCallback != null) {
-                                extraStateCallback.onOpened(cameraDevice);
-                            }
-                            openCompleter.set(null);
-                        }
-
-                        @Override
-                        public void onClosed(@NonNull CameraDevice cameraDevice) {
-                            if (extraStateCallback != null) {
-                                extraStateCallback.onClosed(cameraDevice);
-                            }
-                            closeCompleter.set(null);
-                            mHandlerThread.quitSafely();
-                        }
-
-                        @Override
-                        public void onDisconnected(@NonNull CameraDevice cameraDevice) {
-                            synchronized (mLock) {
-                                mCameraDevice = null;
-                            }
-                            if (extraStateCallback != null) {
-                                extraStateCallback.onDisconnected(cameraDevice);
-                            }
-                            cameraDevice.close();
-                        }
-
-                        @Override
-                        public void onError(@NonNull CameraDevice cameraDevice, int i) {
-                            boolean notifyOpenFailed = false;
-                            synchronized (mLock) {
-                                if (mCameraDevice == null) {
-                                    notifyOpenFailed = true;
-                                } else {
-                                    mCameraDevice = null;
-                                }
-                            }
-                            if (extraStateCallback != null) {
-                                extraStateCallback.onError(cameraDevice, i);
-                            }
-
-                            if (notifyOpenFailed) {
-                                openCompleter.setException(new RuntimeException("Failed to "
-                                        + "open camera device due to error code: " + i));
-                            }
-                            cameraDevice.close();
-
-                        }
-                    }, new Handler(mHandlerThread.getLooper()));
-
+                    cameraManager.openCamera(cameraId,
+                            new DeviceStateCallbackImpl(openCompleter, closeCompleter,
+                                    extraStateCallback), new Handler(mHandlerThread.getLooper()));
                     return "Close[cameraId=" + cameraId + "]";
                 });
-
                 return "Open[cameraId=" + cameraId + "]";
             });
+        }
+
+        @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info
+        final class DeviceStateCallbackImpl extends CameraDevice.StateCallback {
+
+            private final CallbackToFutureAdapter.Completer<Void> mOpenCompleter;
+            private final CallbackToFutureAdapter.Completer<Void> mCloseCompleter;
+            @Nullable
+            private final CameraDevice.StateCallback mExtraStateCallback;
+
+            DeviceStateCallbackImpl(
+                    @NonNull CallbackToFutureAdapter.Completer<Void> openCompleter,
+                    @NonNull CallbackToFutureAdapter.Completer<Void> closeCompleter,
+                    @Nullable CameraDevice.StateCallback extraStateCallback) {
+                mOpenCompleter = openCompleter;
+                mCloseCompleter = closeCompleter;
+                mExtraStateCallback = extraStateCallback;
+            }
+
+            @Override
+            public void onOpened(@NonNull CameraDevice cameraDevice) {
+                synchronized (mLock) {
+                    Preconditions.checkState(mCameraDevice == null, "CameraDevice "
+                            + "should not have been opened yet.");
+                    mCameraDevice = cameraDevice;
+                }
+                if (mExtraStateCallback != null) {
+                    mExtraStateCallback.onOpened(cameraDevice);
+                }
+                mOpenCompleter.set(null);
+            }
+
+            @Override
+            public void onClosed(@NonNull CameraDevice cameraDevice) {
+                if (mExtraStateCallback != null) {
+                    mExtraStateCallback.onClosed(cameraDevice);
+                }
+                mCloseCompleter.set(null);
+                mHandlerThread.quitSafely();
+            }
+
+            @Override
+            public void onDisconnected(@NonNull CameraDevice cameraDevice) {
+                synchronized (mLock) {
+                    mCameraDevice = null;
+                }
+                if (mExtraStateCallback != null) {
+                    mExtraStateCallback.onDisconnected(cameraDevice);
+                }
+                cameraDevice.close();
+            }
+
+            @Override
+            public void onError(@NonNull CameraDevice cameraDevice, int i) {
+                boolean notifyOpenFailed = false;
+                synchronized (mLock) {
+                    if (mCameraDevice == null) {
+                        notifyOpenFailed = true;
+                    } else {
+                        mCameraDevice = null;
+                    }
+                }
+                if (mExtraStateCallback != null) {
+                    mExtraStateCallback.onError(cameraDevice, i);
+                }
+
+                if (notifyOpenFailed) {
+                    mOpenCompleter.setException(new RuntimeException("Failed to "
+                            + "open camera device due to error code: " + i));
+                }
+                cameraDevice.close();
+
+            }
         }
 
         /**
@@ -254,6 +307,7 @@ public final class CameraUtil {
         cameraDeviceHolder.close();
     }
 
+    @NonNull
     public static CameraManager getCameraManager() {
         return (CameraManager)
                 ApplicationProvider.getApplicationContext()
@@ -264,8 +318,9 @@ public final class CameraUtil {
     /**
      * Creates the CameraUseCaseAdapter that would be created with the given CameraSelector.
      *
-     * <p> This requires that {@link CameraX#initialize(Context, CameraXConfig)} has been called
-     * to properly initialize the cameras.
+     * <p>This requires that {@link CameraXUtil#initialize(Context, CameraXConfig)} has been called
+     * to properly initialize the cameras. {@link CameraXUtil#shutdown()} also needs to be
+     * properly called by the caller class to release the created {@link CameraX} instance.
      *
      * <p>A new CameraUseCaseAdapter instance will be created every time this method is called.
      * UseCases previously attached to CameraUseCasesAdapters returned by this method or
@@ -281,7 +336,8 @@ public final class CameraUtil {
     public static CameraUseCaseAdapter createCameraUseCaseAdapter(@NonNull Context context,
             @NonNull CameraSelector cameraSelector) {
         try {
-            CameraX cameraX = CameraX.getOrCreateInstance(context).get(5000, TimeUnit.MILLISECONDS);
+            CameraX cameraX = CameraXUtil.getOrCreateInstance(context, null).get(5000,
+                    TimeUnit.MILLISECONDS);
             LinkedHashSet<CameraInternal> cameras =
                     cameraSelector.filter(cameraX.getCameraRepository().getCameras());
             return new CameraUseCaseAdapter(cameras,
@@ -295,8 +351,9 @@ public final class CameraUtil {
      * Creates the CameraUseCaseAdapter that would be created with the given CameraSelector and
      * attaches the UseCases.
      *
-     * <p> This requires that {@link CameraX#initialize(Context, CameraXConfig)} has been called
-     * to properly initialize the cameras.
+     * <p>This requires that {@link CameraXUtil#initialize(Context, CameraXConfig)} has been called
+     * to properly initialize the cameras. {@link CameraXUtil#shutdown()} also needs to be
+     * properly called by the caller class to release the created {@link CameraX} instance.
      *
      * <p>A new CameraUseCaseAdapter instance will be created every time this method is called.
      * UseCases previously attached to CameraUseCasesAdapters returned by this method or
@@ -321,7 +378,7 @@ public final class CameraUtil {
             try {
                 cameraUseCaseAdapter.addUseCases(Arrays.asList(useCases));
             } catch (CameraUseCaseAdapter.CameraException e) {
-                throw new IllegalArgumentException("Unable to attach use cases to camera.");
+                throw new IllegalArgumentException("Unable to attach use cases to camera.", e);
             }
         });
 
@@ -348,7 +405,7 @@ public final class CameraUtil {
         int numberOfCamera = 0;
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP) {
             try {
-                numberOfCamera = getCameraIdListOrThrow().size();
+                numberOfCamera = getBackwardCompatibleCameraIdListOrThrow().size();
             } catch (IllegalStateException e) {
                 Logger.e(LOG_TAG, "Unable to check camera availability.", e);
             }
@@ -401,7 +458,7 @@ public final class CameraUtil {
     public static String getCameraIdWithLensFacing(@CameraSelector.LensFacing int lensFacing) {
         @SupportedLensFacingInt
         int lensFacingInteger = getLensFacingIntFromEnum(lensFacing);
-        for (String cameraId : getCameraIdListOrThrow()) {
+        for (String cameraId : getBackwardCompatibleCameraIdListOrThrow()) {
             CameraCharacteristics characteristics = getCameraCharacteristicsOrThrow(cameraId);
             Integer cameraLensFacing = characteristics.get(CameraCharacteristics.LENS_FACING);
             if (cameraLensFacing != null && cameraLensFacing.intValue() == lensFacingInteger) {
@@ -421,7 +478,7 @@ public final class CameraUtil {
     public static boolean hasFlashUnitWithLensFacing(@CameraSelector.LensFacing int lensFacing) {
         @SupportedLensFacingInt
         int lensFacingInteger = getLensFacingIntFromEnum(lensFacing);
-        for (String cameraId : getCameraIdListOrThrow()) {
+        for (String cameraId : getBackwardCompatibleCameraIdListOrThrow()) {
             CameraCharacteristics characteristics = getCameraCharacteristicsOrThrow(cameraId);
             Integer cameraLensFacing = characteristics.get(CameraCharacteristics.LENS_FACING);
             if (cameraLensFacing == null || cameraLensFacing.intValue() != lensFacingInteger) {
@@ -446,7 +503,7 @@ public final class CameraUtil {
             @CameraSelector.LensFacing int lensFacing) {
         @SupportedLensFacingInt
         int lensFacingInteger = getLensFacingIntFromEnum(lensFacing);
-        for (String cameraId : getCameraIdListOrThrow()) {
+        for (String cameraId : getBackwardCompatibleCameraIdListOrThrow()) {
             CameraCharacteristics characteristics = getCameraCharacteristicsOrThrow(cameraId);
             Integer cameraLensFacing = characteristics.get(CameraCharacteristics.LENS_FACING);
             if (cameraLensFacing != null && cameraLensFacing.intValue() == lensFacingInteger) {
@@ -497,7 +554,7 @@ public final class CameraUtil {
     public static Integer getSensorOrientation(@CameraSelector.LensFacing int lensFacing) {
         @SupportedLensFacingInt
         int lensFacingInteger = getLensFacingIntFromEnum(lensFacing);
-        for (String cameraId : getCameraIdListOrThrow()) {
+        for (String cameraId : getBackwardCompatibleCameraIdListOrThrow()) {
             CameraCharacteristics characteristics = getCameraCharacteristicsOrThrow(cameraId);
             Integer cameraLensFacing = characteristics.get(CameraCharacteristics.LENS_FACING);
             if (cameraLensFacing == null || cameraLensFacing.intValue() != lensFacingInteger) {
@@ -506,6 +563,39 @@ public final class CameraUtil {
             return characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
         }
         return null;
+    }
+
+    /**
+     * Gets the camera id list or throw exception if the CAMERA permission is not currently granted.
+     *
+     * @return the camera id list
+     * @throws IllegalStateException if the CAMERA permission is not currently granted.
+     */
+    @NonNull
+    public static List<String> getBackwardCompatibleCameraIdListOrThrow() {
+        try {
+            List<String> backwardCompatibleCameraIdList = new ArrayList<>();
+
+            for (String cameraId : getCameraManager().getCameraIdList()) {
+                int[] capabilities = getCameraCharacteristicsOrThrow(cameraId).get(
+                        CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
+
+                if (capabilities == null) {
+                    continue;
+                }
+
+                for (int capability : capabilities) {
+                    if (capability == REQUEST_AVAILABLE_CAPABILITIES_BACKWARD_COMPATIBLE) {
+                        backwardCompatibleCameraIdList.add(cameraId);
+                        break;
+                    }
+                }
+            }
+
+            return backwardCompatibleCameraIdList;
+        } catch (CameraAccessException e) {
+            throw new IllegalStateException("Unable to retrieve list of cameras on device.", e);
+        }
     }
 
     /**
@@ -527,20 +617,6 @@ public final class CameraUtil {
     }
 
     /**
-     * Gets the camera id list or throw exception if the CAMERA permission is not currently granted.
-     *
-     * @return the camera id list
-     * @throws IllegalStateException if the CAMERA permission is not currently granted.
-     */
-    private static List<String> getCameraIdListOrThrow() {
-        try {
-            return Arrays.asList(getCameraManager().getCameraIdList());
-        } catch (CameraAccessException e) {
-            throw new IllegalStateException("Unable to retrieve list of cameras on device.", e);
-        }
-    }
-
-    /**
      * Gets the {@link CameraCharacteristics} by specified camera id or throw exception if the
      * CAMERA permission is not currently granted.
      *
@@ -558,61 +634,143 @@ public final class CameraUtil {
     }
 
     /**
-     * Create a chained rule for the test cases that need to use the camera.
-     *
-     * <p>It will
-     * (1) Grant the camera permission.
-     * (2) Check if there is at least one camera on the device.
-     * (3) Test the camera can be opened successfully.
-     *
-     * <p>This method will set {@link PreTestCamera} to throw an exception when the camera is
-     * unavailable if PRETEST_CAMERA_TAG is loggable at the debug level (see Log#isLoggable).
+     * Check if the resource sufficient to recording a video.
      */
     @NonNull
-    public static RuleChain grantCameraPermissionAndPreTest() {
-        RuleChain rule =
-                RuleChain.outerRule(GrantPermissionRule.grant(Manifest.permission.CAMERA)).around(
-                (base, description) -> new Statement() {
-                    @Override
-                    public void evaluate() throws Throwable {
-                        dumpCameraLensFacingInfo();
-                        assumeTrue(deviceHasCamera());
-                        base.evaluate();
-                    }
-                });
-        if (shouldRunPreTest()) {
-            rule = rule.around(
-                    new CameraUtil.PreTestCamera(Log.isLoggable(PRETEST_CAMERA_TAG, Log.DEBUG)));
-        }
+    public static TestRule checkVideoRecordingResource() {
+        RuleChain rule = RuleChain.outerRule((base, description) -> new Statement() {
+            @RequiresApi(api = Build.VERSION_CODES.M)
+            @Override
+            public void evaluate() throws Throwable {
+                // The default resolution in VideoCapture is 1080P.
+                assumeTrue(checkVideoRecordingResource(CamcorderProfile.QUALITY_1080P));
+                base.evaluate();
+            }
+        });
+
         return rule;
     }
 
-    private static boolean shouldRunPreTest() {
-        if (Build.MODEL.contains("pixel 2") && Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
-            // TODO(b/170070248) Pixel 2 HAL died easily if the pretest and CameraX open the
-            //  camera device at the same time. Remove the code after the pixel 2 issue fixed.
-            Logger.d(LOG_TAG, "Skip camera pretest (b/170070248)");
-            return false;
+    /**
+     * Check resource for video recording.
+     *
+     * <p> Tries to configure an video encoder to ensure current resource is sufficient to
+     * recording a video.
+     */
+    @SuppressWarnings("deprecation")
+    public static boolean checkVideoRecordingResource(int quality) {
+        String videoMimeType = "video/avc";
+        // Assume the device resource is sufficient.
+        boolean checkResult = true;
+
+        if (CamcorderProfile.hasProfile(quality)) {
+            CamcorderProfile profile = CamcorderProfile.get(quality);
+            MediaFormat format =
+                    MediaFormat.createVideoFormat(
+                            videoMimeType, profile.videoFrameWidth, profile.videoFrameHeight);
+            format.setInteger(MediaFormat.KEY_COLOR_FORMAT,
+                    MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+            format.setInteger(MediaFormat.KEY_BIT_RATE, profile.videoBitRate);
+            format.setInteger(MediaFormat.KEY_FRAME_RATE, profile.videoFrameRate);
+            format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
+
+            MediaCodec codec = null;
+
+            try {
+                codec = MediaCodec.createEncoderByType(videoMimeType);
+                codec.configure(
+                        format, /*surface*/
+                        null, /*crypto*/
+                        null,
+                        MediaCodec.CONFIGURE_FLAG_ENCODE);
+            } catch (MediaCodec.CodecException e) {
+                Logger.i(LOG_TAG,
+                        "Video encoder pre-test configured fail CodecException: " + e.getMessage());
+                // Skip tests if a video encoder cannot be configured successfully.
+                checkResult = false;
+            } catch (IOException | IllegalArgumentException | IllegalStateException e) {
+                Logger.i(LOG_TAG, "Video encoder pre-test configured fail: " + e.getMessage());
+                checkResult = false;
+            } finally {
+                Logger.i(LOG_TAG, "codec.release()");
+                codec.release();
+            }
         }
 
-        return true;
+        return checkResult;
     }
 
     /**
-     * Pretest the camera device
+     * Grant the camera permission and test the camera.
      *
-     * <p>Try to open the camera with the front and back lensFacing. It throws exception when
-     * camera is unavailable and mThrowOnError is true.
-     *
-     * <p>Passing false into the constructor {@link #PreTestCamera(boolean)}
-     * will never throw the exception when the camera is unavailable.
+     * <p>It will
+     * (1) Grant the camera permission.
+     * (2) Check if there is at least one camera on the device alive. If not, it will ignore
+     * the test.
+     * (3) Ensure the camera can be opened successfully before the test. If not, it will ignore
+     * the test.
      */
-    public static class PreTestCamera implements TestRule {
-        final boolean mThrowOnError;
+    @NonNull
+    public static TestRule grantCameraPermissionAndPreTest() {
+        return grantCameraPermissionAndPreTest(new PreTestCamera(), new PreTestCameraIdList());
+    }
 
-        public PreTestCamera(boolean throwOnError) {
-            mThrowOnError = throwOnError;
+    /**
+     * Grant the camera permission and test the camera.
+     *
+     * <p>This method is mainly required to be used when running the test with
+     * Camera2Config/CameraPipeConfig. Please create a PreTestCameraIdList with the CameraXConfig
+     * that is used in the test.
+     * If the test uses fake CameraXConfig or doesn't initialize CameraX, i.e. doesn't uses
+     * {@link androidx.camera.lifecycle.ProcessCameraProvider} or {@link CameraXUtil#initialize} to
+     * initialize CameraX for testing, you can use
+     * {@link CameraUtil#grantCameraPermissionAndPreTest()} instead.
+     */
+    @NonNull
+    public static TestRule grantCameraPermissionAndPreTest(
+            @Nullable PreTestCameraIdList cameraIdListTestRule) {
+        return grantCameraPermissionAndPreTest(new PreTestCamera(), cameraIdListTestRule);
+    }
+
+    /**
+     * Grant the camera permission and test the camera.
+     *
+     * @param cameraTestRule       to check if camera can be opened.
+     * @param cameraIdListTestRule to check if camera characteristic reports correct information
+     *                             that includes the supported camera devices that shows in the
+     *                             system.
+     */
+    @NonNull
+    public static TestRule grantCameraPermissionAndPreTest(@Nullable PreTestCamera cameraTestRule,
+            @Nullable PreTestCameraIdList cameraIdListTestRule) {
+        RuleChain rule = RuleChain.outerRule(GrantPermissionRule.grant(Manifest.permission.CAMERA));
+        if (cameraIdListTestRule != null) {
+            rule = rule.around(cameraIdListTestRule);
         }
+        if (cameraTestRule != null) {
+            rule = rule.around(cameraTestRule);
+        }
+        rule = rule.around((base, description) -> new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                assumeTrue(deviceHasCamera());
+                base.evaluate();
+            }
+        });
+
+        return rule;
+    }
+
+    /**
+     * Test the camera device
+     *
+     * <p>Try to open the camera with the front and back lensFacing. It throws an exception when
+     * the test is running in the CameraX lab, or ignore the test otherwise.
+     */
+    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+    public static class PreTestCamera implements TestRule {
+        final boolean mThrowOnError = Log.isLoggable(PRETEST_CAMERA_TAG, Log.DEBUG);
+        final AtomicReference<Boolean> mCanOpenCamera = new AtomicReference<>();
 
         @NonNull
         @Override
@@ -620,26 +778,28 @@ public final class CameraUtil {
             return new Statement() {
                 @Override
                 public void evaluate() throws Throwable {
-                    boolean backStatus = true;
-                    if (hasCameraWithLensFacing(CameraSelector.LENS_FACING_BACK)) {
-                        RetryCameraOpener opener =
-                                new RetryCameraOpener(CameraSelector.LENS_FACING_BACK);
-                        backStatus = opener.openWithRetry(5, 5000);
-                        opener.shutdown();
+                    if (mCanOpenCamera.get() == null) {
+                        boolean backStatus = true;
+                        if (hasCameraWithLensFacing(CameraSelector.LENS_FACING_BACK)) {
+                            RetryCameraOpener opener =
+                                    new RetryCameraOpener(CameraSelector.LENS_FACING_BACK);
+                            backStatus = opener.openWithRetry(5, 5000);
+                            opener.shutdown();
+                        }
+
+                        boolean frontStatus = true;
+                        if (hasCameraWithLensFacing(CameraSelector.LENS_FACING_FRONT)) {
+                            RetryCameraOpener opener =
+                                    new RetryCameraOpener(CameraSelector.LENS_FACING_FRONT);
+                            frontStatus = opener.openWithRetry(5, 5000);
+                            opener.shutdown();
+                        }
+                        Logger.d(LOG_TAG,
+                                "PreTest Open camera result " + backStatus + " " + frontStatus);
+                        mCanOpenCamera.set(backStatus && frontStatus);
                     }
 
-                    boolean frontStatus = true;
-                    if (hasCameraWithLensFacing(CameraSelector.LENS_FACING_FRONT)) {
-                        RetryCameraOpener opener =
-                                new RetryCameraOpener(CameraSelector.LENS_FACING_FRONT);
-                        frontStatus = opener.openWithRetry(5, 5000);
-                        opener.shutdown();
-                    }
-                    boolean canOpenCamera = backStatus && frontStatus;
-                    Logger.d(LOG_TAG,
-                            "PreTest Open camera result " + backStatus + " " + frontStatus);
-
-                    if (canOpenCamera) {
+                    if (Boolean.TRUE.equals(mCanOpenCamera.get())) {
                         base.evaluate();
                     } else {
                         if (mThrowOnError) {
@@ -693,6 +853,7 @@ public final class CameraUtil {
      *
      * <p>Call {@link #shutdown()} after finish the test.
      */
+    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     public static class RetryCameraOpener {
         private static final int RETRY_DELAY_MS = 1000;
         private CameraAvailability mCameraAvailability;
@@ -837,16 +998,92 @@ public final class CameraUtil {
     }
 
     /**
-     * Log the camera lensFacing info for b/167201193 debug.
-     * Throw exception with a specific message if the Camera doesn't have both front/back lens
-     * facing in the daily testing.
+     * Check the camera lensFacing info is reported correctly
+     *
+     * <p>For b/167201193
+     *
+     * <P>Try to use the CameraXConfig to initialize CameraX when it fails to detect the valid
+     * lens facing info from camera characteristics. It throws an exception if it cannot
+     * successfully init CameraX (or throws AssumptionViolatedException when it is not in the
+     * CameraX lab).
      */
-    static void dumpCameraLensFacingInfo() {
-        boolean error = false;
+    public static class PreTestCameraIdList implements TestRule {
+        final boolean mThrowOnError = Log.isLoggable("CameraXDumpIdList", Log.DEBUG);
+        final AtomicReference<Boolean> mCameraIdListCorrect = new AtomicReference<>();
 
-        CameraManager manager =
-                (CameraManager) ApplicationProvider.getApplicationContext().getSystemService(
-                        Context.CAMERA_SERVICE);
+        @Nullable
+        final CameraXConfig mCameraXConfig;
+
+        public PreTestCameraIdList() {
+            mCameraXConfig = null;
+        }
+
+        /**
+         * Try to use the {@link CameraXConfig} to initialize CameraX when it fails to detect the
+         * valid lens facing info from camera characteristics.
+         */
+        public PreTestCameraIdList(@NonNull CameraXConfig config) {
+            mCameraXConfig = config;
+        }
+
+        @NonNull
+        @Override
+        public Statement apply(@NonNull Statement base, @NonNull Description description) {
+            return new Statement() {
+                @Override
+                public void evaluate() throws Throwable {
+                    if (mCameraIdListCorrect.get() == null) {
+                        if (isCameraLensFacingInfoAvailable()) {
+                            mCameraIdListCorrect.set(true);
+                        } else if (mCameraXConfig != null) {
+                            try {
+                                CameraXUtil.initialize(ApplicationProvider.getApplicationContext(),
+                                        mCameraXConfig).get(10, TimeUnit.SECONDS);
+                                Logger.i(LOG_TAG, "Successfully init CameraX");
+                                mCameraIdListCorrect.set(true);
+                            } catch (Exception e) {
+                                Logger.w(LOG_TAG, "CameraX init fail");
+                                mCameraIdListCorrect.set(false);
+                            } finally {
+                                try {
+                                    CameraXUtil.shutdown().get(10, TimeUnit.SECONDS);
+                                } catch (Exception e) {
+                                    // Ignore all exceptions in the shutdown process.
+                                }
+                            }
+                        } else {
+                            mCameraIdListCorrect.set(false);
+                        }
+                    }
+
+                    if (Boolean.TRUE.equals(mCameraIdListCorrect.get())) {
+                        base.evaluate();
+                    } else {
+                        if (mThrowOnError) {
+                            throw new IllegalArgumentException(
+                                    "CameraIdList_incorrect:" + Build.MODEL);
+                        }
+
+                        // Ignore the test, throw the AssumptionViolatedException.
+                        throw new AssumptionViolatedException("Ignore the test since the camera "
+                                + "id list failed, on test " + description.getDisplayName());
+                    }
+                }
+            };
+        }
+    }
+
+    /**
+     * Check the camera lensFacing info for b/167201193 debug.
+     *
+     * @return true if the front and main camera info exists in the camera characteristic.
+     */
+    @SuppressWarnings("ObjectToString")
+    static boolean isCameraLensFacingInfoAvailable() {
+        boolean error = false;
+        Context context = ApplicationProvider.getApplicationContext();
+        CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+
         String[] cameraIds = new String[0];
         try {
             cameraIds = manager.getCameraIdList();
@@ -857,7 +1094,6 @@ public final class CameraUtil {
         }
 
         if (cameraIds != null && cameraIds.length > 0) {
-            List<String> ids = Arrays.asList(cameraIds);
             boolean hasFront = false;
             boolean hasBack = false;
             for (String id : cameraIds) {
@@ -881,25 +1117,27 @@ public final class CameraUtil {
                 Logger.d(LOG_TAG, "-- Camera id: " + id);
             }
 
-            if (!ids.contains("0") || !ids.contains("1")) {
+            PackageManager pm = context.getPackageManager();
+            boolean backFeature = pm.hasSystemFeature(PackageManager.FEATURE_CAMERA);
+            boolean frontFeature = pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT);
+
+            // Pass when no such feature or it gets the camera from the camera characteristic.
+            boolean backPass = !backFeature || hasBack;
+            boolean frontPass = !frontFeature || hasFront;
+
+            if (!backPass || !frontPass) {
                 error = true;
                 Logger.e(LOG_TAG,
-                        "Camera Id 0 or 1 is missing,  ids: " + Arrays.toString(cameraIds));
-            }
-
-            if (!hasFront || !hasBack) {
-                Logger.e(LOG_TAG,
                         "Missing front or back camera, has front camera: " + hasFront + ", has "
-                                + "back camera: " + hasBack);
+                                + "back camera: " + hasBack + " has main camera feature:"
+                                + backFeature + " has front camera feature:" + frontFeature
+                                + " ids: " + Arrays.toString(cameraIds));
             }
         } else {
             error = true;
             Logger.e(LOG_TAG, "cameraIds.length is zero");
         }
 
-        if (error && Log.isLoggable("CameraXDumpIdList", Log.DEBUG)) {
-            throw new IllegalArgumentException("CameraIdList_incorrect:" + Build.MODEL);
-        }
-
+        return !error;
     }
 }

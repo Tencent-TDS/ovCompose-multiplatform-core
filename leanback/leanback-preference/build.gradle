@@ -1,5 +1,3 @@
-import androidx.build.LibraryGroups
-import androidx.build.LibraryVersions
 import androidx.build.Publish
 
 plugins {
@@ -23,9 +21,10 @@ android {
 
     sourceSets {
         main.java.srcDirs += [
-                'api21'
+                "api21"
         ]
     }
+    namespace "androidx.leanback.preference"
 }
 
 androidx {

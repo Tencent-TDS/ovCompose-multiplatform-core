@@ -27,6 +27,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 /**
@@ -34,7 +35,7 @@ import androidx.appcompat.app.AppCompatActivity;
  */
 public class FullscreenActivity extends AppCompatActivity {
 
-    // Use YouTube as an example website, but any site with a video player should sufice to
+    // Use YouTube as an example website, but any site with a video player should suffice to
     // demonstrate fullscreen usage.
     private static final String EXAMPLE_SITE_WITH_VIDEO_PLAYER = "https://m.youtube.com/";
 
@@ -95,7 +96,7 @@ public class FullscreenActivity extends AppCompatActivity {
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_fullscreen);
         setTitle(R.string.fullscreen_activity_title);

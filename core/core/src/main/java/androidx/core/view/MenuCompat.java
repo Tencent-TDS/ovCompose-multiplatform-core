@@ -16,15 +16,17 @@
 
 package androidx.core.view;
 
-import android.annotation.SuppressLint;
 import android.os.Build;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import androidx.annotation.DoNotInline;
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.internal.view.SupportMenu;
 
 /**
- * Helper for accessing features in {@link android.view.Menu}.
+ * Helper for accessing features in {@link Menu}.
  */
 public final class MenuCompat {
     /**
@@ -43,14 +45,28 @@ public final class MenuCompat {
      * @param menu Menu to enable/disable dividers on.
      * @param enabled True if enabled
      */
-    @SuppressLint("NewApi")
-    public static void setGroupDividerEnabled(Menu menu, boolean enabled) {
+    @SuppressWarnings("RedundantCast")
+    public static void setGroupDividerEnabled(@NonNull Menu menu, boolean enabled) {
         if (menu instanceof SupportMenu) {
+            // Cast required to target SupportMenu method declaration.
             ((SupportMenu) menu).setGroupDividerEnabled(enabled);
         } else if (Build.VERSION.SDK_INT >= 28) {
-            menu.setGroupDividerEnabled(enabled);
+            Api28Impl.setGroupDividerEnabled(menu, enabled);
         }
     }
 
-    private MenuCompat() {}
+    private MenuCompat() {
+    }
+
+    @RequiresApi(28)
+    static class Api28Impl {
+        private Api28Impl() {
+            // This class is not instantiable.
+        }
+
+        @DoNotInline
+        static void setGroupDividerEnabled(Menu menu, boolean groupDividerEnabled) {
+            menu.setGroupDividerEnabled(groupDividerEnabled);
+        }
+    }
 }

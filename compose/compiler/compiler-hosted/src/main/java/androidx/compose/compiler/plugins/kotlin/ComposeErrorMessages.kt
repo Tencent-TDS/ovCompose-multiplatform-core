@@ -16,6 +16,7 @@
 
 package androidx.compose.compiler.plugins.kotlin
 
+import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
 import org.jetbrains.kotlin.diagnostics.rendering.DefaultErrorMessages
 import org.jetbrains.kotlin.diagnostics.rendering.DiagnosticFactoryToRendererMap
 import org.jetbrains.kotlin.diagnostics.rendering.Renderers
@@ -53,6 +54,21 @@ class ComposeErrorMessages : DefaultErrorMessages.Extension {
         )
 
         MAP.put(
+            ComposeErrors.MISSING_DISALLOW_COMPOSABLE_CALLS_ANNOTATION,
+            "Parameter {0} cannot be inlined inside of lambda argument {1} of {2} " +
+                "without also being annotated with @DisallowComposableCalls",
+            Renderers.NAME,
+            Renderers.NAME,
+            Renderers.NAME
+        )
+
+        MAP.put(
+            ComposeErrors.NONREADONLY_CALL_IN_READONLY_COMPOSABLE,
+            "Composables marked with @ReadOnlyComposable can only call other @ReadOnlyComposable " +
+                "composables"
+        )
+
+        MAP.put(
             ComposeErrors.COMPOSABLE_PROPERTY_BACKING_FIELD,
             "Composable properties are not able to have backing fields"
         )
@@ -60,7 +76,7 @@ class ComposeErrorMessages : DefaultErrorMessages.Extension {
         MAP.put(
             ComposeErrors.CONFLICTING_OVERLOADS,
             "Conflicting overloads: {0}",
-            Renderers.commaSeparated(
+            CommonRenderers.commaSeparated(
                 Renderers.FQ_NAMES_IN_TYPES_WITH_ANNOTATIONS
             )
         )
@@ -74,10 +90,12 @@ class ComposeErrorMessages : DefaultErrorMessages.Extension {
             "Composable properties are not able to have backing fields"
         )
         MAP.put(
-            ComposeErrors.ILLEGAL_ASSIGN_TO_UNIONTYPE,
-            "Value of type {0} can't be assigned to union type {1}.",
-            Renderers.RENDER_COLLECTION_OF_TYPES,
-            Renderers.RENDER_COLLECTION_OF_TYPES
+            ComposeErrors.ABSTRACT_COMPOSABLE_DEFAULT_PARAMETER_VALUE,
+            "Abstract Composable functions cannot have parameters with default values"
+        )
+        MAP.put(
+            ComposeErrors.COMPOSABLE_FUN_MAIN,
+            "Composable main functions are not currently supported"
         )
         MAP.put(
             ComposeErrors.ILLEGAL_TRY_CATCH_AROUND_COMPOSABLE,
@@ -89,6 +107,18 @@ class ComposeErrorMessages : DefaultErrorMessages.Extension {
                 " was expected",
             RENDER_TYPE_WITH_ANNOTATIONS,
             RENDER_TYPE_WITH_ANNOTATIONS
+        )
+        MAP.put(
+            ComposeErrors.COMPOSE_APPLIER_CALL_MISMATCH,
+            "Calling a {0} composable function where a {1} composable was expected",
+            Renderers.TO_STRING,
+            Renderers.TO_STRING
+        )
+        MAP.put(
+            ComposeErrors.COMPOSE_APPLIER_PARAMETER_MISMATCH,
+            "A {0} composable parameter was provided where a {1} composable was expected",
+            Renderers.TO_STRING,
+            Renderers.TO_STRING
         )
     }
 }

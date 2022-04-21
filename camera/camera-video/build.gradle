@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import static androidx.build.dependencies.DependenciesKt.*
-import androidx.build.LibraryVersions
-import androidx.build.LibraryGroups
+
 import androidx.build.Publish
+import androidx.build.RunApiTasks
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
@@ -26,52 +26,67 @@ plugins {
 }
 
 dependencies {
+    api("androidx.annotation:annotation:1.2.0")
     api(project(":camera:camera-core"))
     implementation("androidx.core:core:1.1.0")
     implementation("androidx.concurrent:concurrent-futures:1.0.0")
-    implementation(AUTO_VALUE_ANNOTATIONS)
+    implementation(libs.autoValueAnnotations)
 
-    annotationProcessor(AUTO_VALUE)
+    annotationProcessor(libs.autoValue)
 
-    testImplementation 'junit:junit:4.12'
-    testImplementation(KOTLIN_STDLIB)
-    testImplementation(ANDROIDX_TEST_CORE)
-    testImplementation(ANDROIDX_TEST_RUNNER)
-    testImplementation(JUNIT)
-    testImplementation(TRUTH)
-    testImplementation(ROBOLECTRIC)
-    testImplementation(MOCKITO_CORE)
-    testImplementation project(":camera:camera-testing"), {
+    // TODO(leohuang): We need this for assertThrows. Point back to the AndroidX shared version if
+    //  it is ever upgraded.
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinStdlib)
+    testImplementation(libs.testCore)
+    testImplementation(libs.testRunner)
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.mockitoCore)
+    testImplementation("androidx.core:core-ktx:1.1.0")
+    testImplementation(project(":camera:camera-testing"), {
         exclude group: "androidx.camera", module: "camera-core"
-    }
+    })
 
-    androidTestImplementation(ANDROIDX_TEST_EXT_JUNIT)
-    androidTestImplementation(ANDROIDX_TEST_CORE)
-    androidTestImplementation(ANDROIDX_TEST_RUNNER)
-    androidTestImplementation(ANDROIDX_TEST_RULES)
-    androidTestImplementation(TRUTH)
-    androidTestImplementation(MOCKITO_CORE, libs.exclude_bytebuddy) // DexMaker has it's own MockMaker
-    androidTestImplementation(DEXMAKER_MOCKITO, libs.exclude_bytebuddy) // DexMaker has it's own MockMaker
+    androidTestImplementation(libs.multidex)
+    androidTestImplementation(project(path: ":camera:camera-camera2"))
+    androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.testCore)
+    androidTestImplementation(libs.testRunner)
+    androidTestImplementation(libs.testRules)
+    androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has it's own MockMaker
+    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has it's own MockMaker
+    androidTestImplementation(project(":camera:camera-lifecycle"))
     androidTestImplementation(project(":camera:camera-testing"))
-    androidTestImplementation(KOTLIN_STDLIB)
-    androidTestImplementation(KOTLIN_COROUTINES_ANDROID)
+    androidTestImplementation(libs.kotlinStdlib)
+    androidTestImplementation(libs.kotlinCoroutinesAndroid)
     androidTestImplementation(project(":concurrent:concurrent-futures-ktx"))
     androidTestImplementation(project(":internal-testutils-truth"))
+    androidTestImplementation libs.mockitoKotlin, {
+        exclude group: 'org.mockito' // to keep control on the mockito version
+    }
 }
 
 android {
     defaultConfig {
-        minSdkVersion 21
+        multiDexEnabled = true
+    }
+
+    lintOptions {
+        enable 'CameraXQuirksClassDetector'
     }
 
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
+    namespace "androidx.camera.video"
 }
 
 androidx {
     name = "Jetpack Camera Video Library"
-    publish = Publish.NONE
-    mavenVersion = LibraryVersions.CAMERA_VIDEO
+    publish = Publish.SNAPSHOT_AND_RELEASE
+    runApiTasks = new RunApiTasks.Yes("Need to track API surface before moving to publish")
     mavenGroup = LibraryGroups.CAMERA
     inceptionYear = "2020"
     description = "Video components for the Jetpack Camera Library, a library providing a " +
@@ -79,3 +94,9 @@ androidx {
             "experiences across all of Android."
 }
 
+// Allow usage of Kotlin's @OptIn.
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
+    }
+}

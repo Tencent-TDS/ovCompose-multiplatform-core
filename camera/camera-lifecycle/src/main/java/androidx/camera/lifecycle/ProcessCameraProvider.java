@@ -20,19 +20,20 @@ import android.app.Application;
 import android.content.Context;
 import android.os.Handler;
 
+import androidx.annotation.GuardedBy;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraFilter;
+import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraInfoUnavailableException;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.CameraX;
 import androidx.camera.core.CameraXConfig;
-import androidx.camera.core.ExperimentalCameraFilter;
-import androidx.camera.core.ExperimentalUseCaseGroup;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.InitializationException;
@@ -40,21 +41,29 @@ import androidx.camera.core.Preview;
 import androidx.camera.core.UseCase;
 import androidx.camera.core.UseCaseGroup;
 import androidx.camera.core.ViewPort;
+import androidx.camera.core.impl.CameraConfig;
 import androidx.camera.core.impl.CameraInternal;
+import androidx.camera.core.impl.ExtendedCameraConfigProviderStore;
+import androidx.camera.core.impl.utils.ContextUtil;
 import androidx.camera.core.impl.utils.Threads;
 import androidx.camera.core.impl.utils.executor.CameraXExecutors;
+import androidx.camera.core.impl.utils.futures.FutureCallback;
+import androidx.camera.core.impl.utils.futures.FutureChain;
 import androidx.camera.core.impl.utils.futures.Futures;
 import androidx.camera.core.internal.CameraUseCaseAdapter;
+import androidx.concurrent.futures.CallbackToFutureAdapter;
 import androidx.core.util.Preconditions;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 /**
@@ -72,13 +81,23 @@ import java.util.concurrent.Executor;
  *
  * <p>This is the standard provider for applications to use.
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class ProcessCameraProvider implements LifecycleCameraProvider {
 
     private static final ProcessCameraProvider sAppInstance = new ProcessCameraProvider();
 
-    private final LifecycleCameraRepository
-            mLifecycleCameraRepository = new LifecycleCameraRepository();
+    private final Object mLock = new Object();
+    @GuardedBy("mLock")
+    private CameraXConfig.Provider mCameraXConfigProvider = null;
+    @GuardedBy("mLock")
+    private ListenableFuture<CameraX> mCameraXInitializeFuture;
+    @GuardedBy("mLock")
+    private ListenableFuture<Void> mCameraXShutdownFuture = Futures.immediateFuture(null);
+
+    private final LifecycleCameraRepository mLifecycleCameraRepository =
+            new LifecycleCameraRepository();
     private CameraX mCameraX;
+    private Context mContext;
 
     /**
      * Retrieves the {@link ProcessCameraProvider} associated with the current process.
@@ -135,7 +154,7 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
      *
      * @return A future which will contain the {@link ProcessCameraProvider}. Cancellation of
      * this future is a no-op. This future may fail with an {@link InitializationException} and
-     * associated cause that can be retrieved by {@link Throwable#getCause()). The cause will be
+     * associated cause that can be retrieved by {@link Throwable#getCause()}. The cause will be
      * a {@link androidx.camera.core.CameraUnavailableException} if it fails to access any camera
      * during initialization.
      * @throws IllegalStateException if CameraX fails to initialize via a default provider or a
@@ -143,13 +162,49 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
      * @see #configureInstance(CameraXConfig)
      */
     @NonNull
-    public static ListenableFuture<ProcessCameraProvider> getInstance(
-            @NonNull Context context) {
+    public static ListenableFuture<ProcessCameraProvider> getInstance(@NonNull Context context) {
         Preconditions.checkNotNull(context);
-        return Futures.transform(CameraX.getOrCreateInstance(context), cameraX ->  {
-            sAppInstance.setCameraX(cameraX);
-            return sAppInstance;
-        }, CameraXExecutors.directExecutor());
+        return Futures.transform(sAppInstance.getOrCreateCameraXInstance(context),
+                cameraX -> {
+                    sAppInstance.setCameraX(cameraX);
+                    sAppInstance.setContext(ContextUtil.getApplicationContext(context));
+                    return sAppInstance;
+                }, CameraXExecutors.directExecutor());
+    }
+
+    private ListenableFuture<CameraX> getOrCreateCameraXInstance(@NonNull Context context) {
+        synchronized (mLock) {
+            if (mCameraXInitializeFuture != null) {
+                return mCameraXInitializeFuture;
+            }
+
+            CameraX cameraX = new CameraX(context, mCameraXConfigProvider);
+
+            mCameraXInitializeFuture = CallbackToFutureAdapter.getFuture(completer -> {
+                synchronized (mLock) {
+                    ListenableFuture<Void> future =
+                            FutureChain.from(mCameraXShutdownFuture).transformAsync(
+                                    input -> cameraX.getInitializeFuture(),
+                                    CameraXExecutors.directExecutor());
+
+                    Futures.addCallback(future, new FutureCallback<Void>() {
+                        @Override
+                        public void onSuccess(@Nullable Void result) {
+                            completer.set(cameraX);
+                        }
+
+                        @Override
+                        public void onFailure(Throwable t) {
+                            completer.setException(t);
+                        }
+                    }, CameraXExecutors.directExecutor());
+                }
+
+                return "ProcessCameraProvider-initializeCameraX";
+            });
+
+            return mCameraXInitializeFuture;
+        }
     }
 
     /**
@@ -162,13 +217,19 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
      * {@link CameraXConfig.Builder#setCameraExecutor(Executor)}, or by an internally defined
      * executor if none is provided.
      *
-     * <p>Once this method is called, the instance can be retrieved with
-     * {@link #getInstance(Context)} without the need for implementing
-     * {@link CameraXConfig.Provider} in {@link Application}.
+     * <p>This method is not required for every application. If the method is not called and
+     * {@link CameraXConfig.Provider} is not implemented in {@link Application}, default
+     * configuration will be used.
+     *
+     * <p>Once this method is called, the instance configured by the given {@link CameraXConfig} can
+     *  be retrieved with {@link #getInstance(Context)}. {@link CameraXConfig.Provider}
+     *  implemented in {@link Application} will be ignored.
      *
      * <p>Configuration can only occur once. Once the ProcessCameraProvider has been configured with
      * {@code configureInstance()} or {@link #getInstance(Context)}, this method will throw
-     * an {@link IllegalStateException}.
+     * an {@link IllegalStateException}. Because configuration can only occur once, <b>usage of this
+     * method from library code is not recommended</b> as the application owner should ultimately
+     * be in control of singleton configuration.
      *
      * @param cameraXConfig configuration options for the singleton process camera provider
      *                      instance.
@@ -178,7 +239,18 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
      */
     @ExperimentalCameraProviderConfiguration
     public static void configureInstance(@NonNull CameraXConfig cameraXConfig) {
-        CameraX.configureInstance(cameraXConfig);
+        sAppInstance.configureInstanceInternal(cameraXConfig);
+    }
+
+    private void configureInstanceInternal(@NonNull CameraXConfig cameraXConfig) {
+        synchronized (mLock) {
+            Preconditions.checkNotNull(cameraXConfig);
+            Preconditions.checkState(mCameraXConfigProvider == null, "CameraX has "
+                    + "already been configured. To use a different configuration, shutdown() must"
+                    + " be called.");
+
+            mCameraXConfigProvider = () -> cameraXConfig;
+        }
     }
 
     /**
@@ -200,11 +272,26 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
     @NonNull
     public ListenableFuture<Void> shutdown() {
         mLifecycleCameraRepository.clear();
-        return CameraX.shutdown();
+
+        ListenableFuture<Void> shutdownFuture = mCameraX != null ? mCameraX.shutdown() :
+                Futures.immediateFuture(null);
+
+        synchronized (mLock) {
+            mCameraXConfigProvider = null;
+            mCameraXInitializeFuture = null;
+            mCameraXShutdownFuture = shutdownFuture;
+        }
+        mCameraX = null;
+        mContext = null;
+        return shutdownFuture;
     }
 
     private void setCameraX(CameraX cameraX) {
         mCameraX = cameraX;
+    }
+
+    private void setContext(Context context) {
+        mContext = context;
     }
 
     /**
@@ -264,10 +351,9 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
      * @throws IllegalArgumentException If the provided camera selector is unable to resolve a
      *                                  camera to be used for the given use cases.
      */
-    @SuppressWarnings({"lambdaLast", "deprecation"})
+    @SuppressWarnings({"lambdaLast"})
     @MainThread
     @NonNull
-    @androidx.annotation.experimental.UseExperimental(markerClass = ExperimentalUseCaseGroup.class)
     public Camera bindToLifecycle(@NonNull LifecycleOwner lifecycleOwner,
             @NonNull CameraSelector cameraSelector,
             @NonNull UseCase... useCases) {
@@ -286,11 +372,9 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
      * the {@link UseCaseGroup} in the latest
      * {@link #bindToLifecycle(LifecycleOwner, CameraSelector, UseCaseGroup)} call.
      */
-    @ExperimentalUseCaseGroupLifecycle
-    @SuppressWarnings({"lambdaLast", "deprecation"})
+    @SuppressWarnings({"lambdaLast"})
     @MainThread
     @NonNull
-    @androidx.annotation.experimental.UseExperimental(markerClass = ExperimentalUseCaseGroup.class)
     public Camera bindToLifecycle(@NonNull LifecycleOwner lifecycleOwner,
             @NonNull CameraSelector cameraSelector,
             @NonNull UseCaseGroup useCaseGroup) {
@@ -354,14 +438,10 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
      *                                  or method is not called on main thread.
      * @throws IllegalArgumentException If the provided camera selector is unable to resolve a
      *                                  camera to be used for the given use cases.
-     * @hide
      */
-    @SuppressWarnings({"lambdaLast", "unused", "deprecation"})
-    @RestrictTo(Scope.LIBRARY_GROUP)
-    @ExperimentalUseCaseGroup
-    @androidx.annotation.experimental.UseExperimental(markerClass = ExperimentalCameraFilter.class)
+    @SuppressWarnings({"lambdaLast", "unused"})
     @NonNull
-    public Camera bindToLifecycle(
+    Camera bindToLifecycle(
             @NonNull LifecycleOwner lifecycleOwner,
             @NonNull CameraSelector cameraSelector,
             @Nullable ViewPort viewPort,
@@ -386,6 +466,10 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
 
         LinkedHashSet<CameraInternal> cameraInternals =
                 modifiedSelector.filter(mCameraX.getCameraRepository().getCameras());
+        if (cameraInternals.isEmpty()) {
+            throw new IllegalArgumentException("Provided camera selector unable to resolve a "
+                    + "camera for the given use case");
+        }
         CameraUseCaseAdapter.CameraId cameraId =
                 CameraUseCaseAdapter.generateCameraId(cameraInternals);
 
@@ -415,6 +499,31 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
                                     mCameraX.getCameraDeviceSurfaceManager(),
                                     mCameraX.getDefaultConfigFactory()));
         }
+
+        CameraConfig cameraConfig = null;
+
+        // Retrieves extended camera configs from ExtendedCameraConfigProviderStore
+        for (CameraFilter cameraFilter : cameraSelector.getCameraFilterSet()) {
+            if (cameraFilter.getIdentifier() != CameraFilter.DEFAULT_ID) {
+                CameraConfig extendedCameraConfig =
+                        ExtendedCameraConfigProviderStore.getConfigProvider(
+                                cameraFilter.getIdentifier()).getConfig(
+                                lifecycleCameraToBind.getCameraInfo(), mContext);
+                if (extendedCameraConfig == null) { // ignore IDs unrelated to camera configs.
+                    continue;
+                }
+
+                // Only allows one camera config now.
+                if (cameraConfig != null) {
+                    throw new IllegalArgumentException(
+                            "Cannot apply multiple extended camera configs at the same time.");
+                }
+                cameraConfig = extendedCameraConfig;
+            }
+        }
+
+        // Applies extended camera configs to the camera
+        lifecycleCameraToBind.setExtendedConfig(cameraConfig);
 
         if (useCases.length == 0) {
             return lifecycleCameraToBind;
@@ -480,6 +589,7 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
         mLifecycleCameraRepository.unbindAll();
     }
 
+    /** {@inheritDoc} */
     @Override
     public boolean hasCamera(@NonNull CameraSelector cameraSelector)
             throws CameraInfoUnavailableException {
@@ -490,6 +600,31 @@ public final class ProcessCameraProvider implements LifecycleCameraProvider {
         }
 
         return true;
+    }
+
+    /**
+     * Returns {@link CameraInfo} instances of the available cameras.
+     *
+     * <p>The available cameras include all the available cameras on the device, or only those
+     * selected through
+     * {@link androidx.camera.core.CameraXConfig.Builder#setAvailableCamerasLimiter(CameraSelector)}
+     *
+     * <p>While iterating through all the available {@link CameraInfo}, if one of them meets some
+     * predefined requirements, a {@link CameraSelector} that uniquely identifies its camera
+     * can be retrieved using {@link CameraInfo#getCameraSelector()}, which can then be used to bind
+     * {@linkplain UseCase use cases} to that camera.
+     *
+     * @return A list of {@link CameraInfo} instances for the available cameras.
+     */
+    @NonNull
+    @Override
+    public List<CameraInfo> getAvailableCameraInfos() {
+        final List<CameraInfo> availableCameraInfos = new ArrayList<>();
+        final Set<CameraInternal> cameras = mCameraX.getCameraRepository().getCameras();
+        for (final CameraInternal camera : cameras) {
+            availableCameraInfos.add(camera.getCameraInfo());
+        }
+        return availableCameraInfos;
     }
 
     private ProcessCameraProvider() {

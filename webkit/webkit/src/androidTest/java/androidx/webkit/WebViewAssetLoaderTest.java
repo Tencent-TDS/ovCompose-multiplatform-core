@@ -17,20 +17,18 @@
 package androidx.webkit;
 
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.net.Uri;
 import android.webkit.WebResourceResponse;
-
-import static androidx.webkit.WebViewAssetLoader.AssetsPathHandler;
-import static androidx.webkit.WebViewAssetLoader.InternalStoragePathHandler;
-import static androidx.webkit.WebViewAssetLoader.PathHandler;
-import static androidx.webkit.WebViewAssetLoader.ResourcesPathHandler;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
+import androidx.webkit.WebViewAssetLoader.AssetsPathHandler;
+import androidx.webkit.WebViewAssetLoader.InternalStoragePathHandler;
+import androidx.webkit.WebViewAssetLoader.PathHandler;
+import androidx.webkit.WebViewAssetLoader.ResourcesPathHandler;
 import androidx.webkit.internal.AssetHelper;
 
 import org.junit.Assert;
@@ -59,28 +57,6 @@ public class WebViewAssetLoaderTest {
             os.write(buffer, 0, len);
         }
         return new String(os.toByteArray(), encoding);
-    }
-
-    private static class MockAssetHelper extends AssetHelper {
-        MockAssetHelper() {
-            super(null);
-        }
-
-        @Override
-        public InputStream openAsset(String path) {
-            return null;
-        }
-
-        @Override
-        public InputStream openResource(String path) {
-            return null;
-        }
-    }
-
-    private static class MockContext extends ContextWrapper {
-        MockContext() {
-            super(ApplicationProvider.getApplicationContext());
-        }
     }
 
     private static class TestPathHandler implements PathHandler {
@@ -169,22 +145,20 @@ public class WebViewAssetLoaderTest {
     public void testHostAssets() throws Throwable {
         final String testHtmlContents = "<body><div>test</div></body>";
 
-        PathHandler assetsPathHandler = new AssetsPathHandler(new MockAssetHelper() {
+        AssetHelper mockAssetHelper = new AssetHelper(ApplicationProvider.getApplicationContext()) {
             @Override
-            public InputStream openAsset(String path) {
+            @NonNull
+            public InputStream openAsset(String path) throws IOException {
                 if (path.equals("www/test.html")) {
-                    try {
-                        return new ByteArrayInputStream(testHtmlContents.getBytes(ENCODING));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+                    return new ByteArrayInputStream(testHtmlContents.getBytes(ENCODING));
                 }
-                return null;
+                throw new IOException("Unexpected path: " + path);
             }
-        });
-        WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
-                                                      .addPathHandler("/assets/", assetsPathHandler)
-                                                      .build();
+        };
+        WebViewAssetLoader assetLoader =
+                new WebViewAssetLoader.Builder()
+                        .addPathHandler("/assets/", new AssetsPathHandler(mockAssetHelper))
+                        .build();
 
         WebResourceResponse response = assetLoader.shouldInterceptRequest(
                 Uri.parse("https://appassets.androidplatform.net/assets/www/test.html"));
@@ -196,22 +170,20 @@ public class WebViewAssetLoaderTest {
     public void testHostResources() throws Throwable {
         final String testHtmlContents = "<body><div>test</div></body>";
 
-        PathHandler resourcesPathHandler = new ResourcesPathHandler(new MockAssetHelper() {
+        AssetHelper mockAssetHelper = new AssetHelper(ApplicationProvider.getApplicationContext()) {
             @Override
-            public InputStream openResource(String path) {
+            @NonNull
+            public InputStream openResource(String path) throws IOException {
                 if (path.equals("raw/test.html")) {
-                    try {
-                        return new ByteArrayInputStream(testHtmlContents.getBytes(ENCODING));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+                    return new ByteArrayInputStream(testHtmlContents.getBytes(ENCODING));
                 }
-                return null;
+                throw new IOException("Unexpected path: " + path);
             }
-        });
-        WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
-                                                      .addPathHandler("/res/", resourcesPathHandler)
-                                                      .build();
+        };
+        WebViewAssetLoader assetLoader =
+                new WebViewAssetLoader.Builder()
+                        .addPathHandler("/res/", new ResourcesPathHandler(mockAssetHelper))
+                        .build();
 
         WebResourceResponse response = assetLoader.shouldInterceptRequest(
                 Uri.parse("https://appassets.androidplatform.net/res/raw/test.html"));
@@ -302,15 +274,12 @@ public class WebViewAssetLoaderTest {
         WebViewAssetLoader.Builder builder = new WebViewAssetLoader.Builder();
         for (int i = 1; i <= 5; ++i) {
             final String testContent = CONTENTS + Integer.toString(i);
-            builder.addPathHandler("/test_path_" + Integer.toString(i) + "/", new PathHandler() {
-                @Override
-                public WebResourceResponse handle(@NonNull String path) {
-                    try {
-                        InputStream is = new ByteArrayInputStream(testContent.getBytes(ENCODING));
-                        return new WebResourceResponse(null, null, is);
-                    } catch (UnsupportedEncodingException e) {
-                        throw new RuntimeException(e);
-                    }
+            builder.addPathHandler("/test_path_" + Integer.toString(i) + "/", path -> {
+                try {
+                    InputStream is = new ByteArrayInputStream(testContent.getBytes(ENCODING));
+                    return new WebResourceResponse(null, null, is);
+                } catch (UnsupportedEncodingException e) {
+                    throw new RuntimeException(e);
                 }
             });
         }
@@ -345,12 +314,21 @@ public class WebViewAssetLoaderTest {
     // Fake PathHandler for files ending with .txt
     static class FakeTextPathHandler implements PathHandler {
         static final String CONTENTS = "This is txt";
+        private @NonNull String mContents;
+
+        FakeTextPathHandler() {
+            this(CONTENTS);
+        }
+
+        FakeTextPathHandler(@NonNull String contents) {
+            mContents = contents;
+        }
 
         @Override
         public WebResourceResponse handle(@NonNull String path) {
             try {
                 if (path.endsWith(".txt")) {
-                    InputStream is = new ByteArrayInputStream(CONTENTS.getBytes(ENCODING));
+                    InputStream is = new ByteArrayInputStream(mContents.getBytes(ENCODING));
                     return new WebResourceResponse(null, null, is);
                 }
             } catch (UnsupportedEncodingException e) {
@@ -397,17 +375,44 @@ public class WebViewAssetLoaderTest {
 
     @Test
     @SmallTest
+    public void testMultiplePathHandlersOnTheSamePath_orderMatters() throws Throwable {
+        WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/test_path/", new FakeTextPathHandler("contents1"))
+                .addPathHandler("/test_path/", new FakeTextPathHandler("contents2"))
+                .build();
+
+        // This should prefer the first matching PathHandler
+        WebResourceResponse response = assetLoader.shouldInterceptRequest(
+                Uri.parse("https://appassets.androidplatform.net/test_path/file.txt"));
+        assertResponse(response, "contents1");
+
+        // Register in reverse order and make sure we get "contents2" now
+        assetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/test_path/", new FakeTextPathHandler("contents2"))
+                .addPathHandler("/test_path/", new FakeTextPathHandler("contents1"))
+                .build();
+
+        response = assetLoader.shouldInterceptRequest(
+                Uri.parse("https://appassets.androidplatform.net/test_path/file.txt"));
+        assertResponse(response, "contents2");
+    }
+
+    @Test
+    @SmallTest
     public void testMimeTypeInPathHandlers() throws Throwable {
         final String testHtmlContents = "<body><div>test</div></body>";
 
-        AssetHelper mockAssetHelper = new MockAssetHelper() {
+        AssetHelper mockAssetHelper = new AssetHelper(ApplicationProvider.getApplicationContext()) {
             @Override
-            public InputStream openResource(String path) {
-                try {
-                    return new ByteArrayInputStream(testHtmlContents.getBytes(ENCODING));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+            @NonNull
+            public InputStream openAsset(String path) throws IOException {
+                return new ByteArrayInputStream(testHtmlContents.getBytes(ENCODING));
+            }
+
+            @Override
+            @NonNull
+            public InputStream openResource(String path) throws IOException {
+                return new ByteArrayInputStream(testHtmlContents.getBytes(ENCODING));
             }
         };
 
@@ -435,6 +440,50 @@ public class WebViewAssetLoaderTest {
                 Uri.parse("https://appassets.androidplatform.net/assets/images/test.png"));
         Assert.assertEquals(".png file should have mime type image/png regardless of its content",
                 "image/png", response.getMimeType());
+    }
+
+    @Test
+    @SmallTest
+    public void testOrderDoesNotMatter_domain() throws Throwable {
+        PathHandler pathHandler = new TestPathHandler();
+        WebViewAssetLoader assetLoader1 = new WebViewAssetLoader.Builder()
+                                                .setDomain("test.myDomain.net")
+                                                .addPathHandler("/test/", pathHandler)
+                                                .build();
+
+        WebViewAssetLoader assetLoader2 = new WebViewAssetLoader.Builder()
+                                                .addPathHandler("/test/", pathHandler)
+                                                .setDomain("test.myDomain.net")
+                                                .build();
+
+        WebResourceResponse response1 = assetLoader1.shouldInterceptRequest(
+                Uri.parse("https://test.myDomain.net/test/"));
+        WebResourceResponse response2 = assetLoader2.shouldInterceptRequest(
+                Uri.parse("https://test.myDomain.net/test/"));
+        assertResponse(response1, CONTENTS);
+        assertResponse(response2, CONTENTS);
+    }
+
+    @Test
+    @SmallTest
+    public void testOrderDoesNotMatter_httpAllowed() throws Throwable {
+        PathHandler pathHandler = new TestPathHandler();
+        WebViewAssetLoader assetLoader1 = new WebViewAssetLoader.Builder()
+                                                .setHttpAllowed(true)
+                                                .addPathHandler("/test/", pathHandler)
+                                                .build();
+
+        WebViewAssetLoader assetLoader2 = new WebViewAssetLoader.Builder()
+                                                .addPathHandler("/test/", pathHandler)
+                                                .setHttpAllowed(true)
+                                                .build();
+
+        WebResourceResponse response1 = assetLoader1.shouldInterceptRequest(
+                Uri.parse("http://appassets.androidplatform.net/test/"));
+        WebResourceResponse response2 = assetLoader2.shouldInterceptRequest(
+                Uri.parse("http://appassets.androidplatform.net/test/"));
+        assertResponse(response1, CONTENTS);
+        assertResponse(response2, CONTENTS);
     }
 
     private static void assertResponse(@Nullable WebResourceResponse response,

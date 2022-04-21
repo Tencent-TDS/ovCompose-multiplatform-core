@@ -16,92 +16,49 @@
 
 package androidx.compose.ui.node
 
-import androidx.compose.ui.focus.ExperimentalFocus
-import androidx.compose.ui.focus.FocusState
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
-import androidx.compose.ui.input.pointer.PointerInputFilter
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 
-@OptIn(ExperimentalLayoutNodeApi::class)
 internal class InnerPlaceable(
     layoutNode: LayoutNode
 ) : LayoutNodeWrapper(layoutNode), Density by layoutNode.measureScope {
 
-    override val providedAlignmentLines: Set<AlignmentLine>
-        get() = layoutNode.providedAlignmentLines.keys
-
     override val measureScope get() = layoutNode.measureScope
 
-    override fun performMeasure(constraints: Constraints): Placeable {
-        val measureResult = layoutNode.measureBlocks.measure(
-            layoutNode.measureScope,
-            layoutNode.children,
-            constraints
-        )
+    override fun measure(constraints: Constraints): Placeable = performingMeasure(constraints) {
+        // before rerunning the user's measure block reset previous measuredByParent for children
+        layoutNode._children.forEach {
+            it.measuredByParent = LayoutNode.UsageByParent.NotUsed
+        }
+        val measureResult = with(layoutNode.measurePolicy) {
+            layoutNode.measureScope.measure(layoutNode.children, constraints)
+        }
         layoutNode.handleMeasureResult(measureResult)
+        onMeasured()
         return this
     }
 
-    override val parentData: Any?
-        get() = null
+    override fun minIntrinsicWidth(height: Int) =
+        layoutNode.intrinsicsPolicy.minIntrinsicWidth(height)
 
-    override fun findPreviousFocusWrapper() = wrappedBy?.findPreviousFocusWrapper()
+    override fun minIntrinsicHeight(width: Int) =
+        layoutNode.intrinsicsPolicy.minIntrinsicHeight(width)
 
-    override fun findNextFocusWrapper(): ModifiedFocusNode? = null
+    override fun maxIntrinsicWidth(height: Int) =
+        layoutNode.intrinsicsPolicy.maxIntrinsicWidth(height)
 
-    override fun findLastFocusWrapper(): ModifiedFocusNode? = findPreviousFocusWrapper()
-
-    @OptIn(ExperimentalFocus::class)
-    override fun propagateFocusStateChange(focusState: FocusState) {
-        wrappedBy?.propagateFocusStateChange(focusState)
-    }
-
-    override fun findPreviousKeyInputWrapper() = wrappedBy?.findPreviousKeyInputWrapper()
-
-    override fun findNextKeyInputWrapper(): ModifiedKeyInputNode? = null
-
-    override fun findLastKeyInputWrapper(): ModifiedKeyInputNode? = findPreviousKeyInputWrapper()
-
-    override fun minIntrinsicWidth(height: Int): Int {
-        return layoutNode.measureBlocks.minIntrinsicWidth(
-            measureScope,
-            layoutNode.children,
-            height
-        )
-    }
-
-    override fun minIntrinsicHeight(width: Int): Int {
-        return layoutNode.measureBlocks.minIntrinsicHeight(
-            measureScope,
-            layoutNode.children,
-            width
-        )
-    }
-
-    override fun maxIntrinsicWidth(height: Int): Int {
-        return layoutNode.measureBlocks.maxIntrinsicWidth(
-            measureScope,
-            layoutNode.children,
-            height
-        )
-    }
-
-    override fun maxIntrinsicHeight(width: Int): Int {
-        return layoutNode.measureBlocks.maxIntrinsicHeight(
-            measureScope,
-            layoutNode.children,
-            width
-        )
-    }
+    override fun maxIntrinsicHeight(width: Int) =
+        layoutNode.intrinsicsPolicy.maxIntrinsicHeight(width)
 
     override fun placeAt(
         position: IntOffset,
@@ -117,20 +74,19 @@ internal class InnerPlaceable(
         // our position in order ot know how to offset the value we provided).
         if (wrappedBy?.isShallowPlacing == true) return
 
+        onPlaced()
+
         layoutNode.onNodePlaced()
     }
 
-    override operator fun get(line: AlignmentLine): Int {
-        return layoutNode.calculateAlignmentLines()[line] ?: AlignmentLine.Unspecified
+    override fun calculateAlignmentLine(alignmentLine: AlignmentLine): Int {
+        return layoutNode.calculateAlignmentLines()[alignmentLine] ?: AlignmentLine.Unspecified
     }
 
     override fun performDraw(canvas: Canvas) {
         val owner = layoutNode.requireOwner()
         layoutNode.zSortedChildren.forEach { child ->
             if (child.isPlaced) {
-                require(child.layoutState == LayoutNode.LayoutState.Ready) {
-                    "$child is not ready. layoutState is ${child.layoutState}"
-                }
                 child.draw(canvas)
             }
         }
@@ -139,17 +95,57 @@ internal class InnerPlaceable(
         }
     }
 
-    override fun hitTest(
-        pointerPositionRelativeToScreen: Offset,
-        hitPointerInputFilters: MutableList<PointerInputFilter>
+    override fun <T : LayoutNodeEntity<T, M>, C, M : Modifier> hitTestChild(
+        hitTestSource: HitTestSource<T, C, M>,
+        pointerPosition: Offset,
+        hitTestResult: HitTestResult<C>,
+        isTouchEvent: Boolean,
+        isInLayer: Boolean
     ) {
-        if (withinLayerBounds(pointerPositionRelativeToScreen)) {
-            // Any because as soon as true is returned, we know we have found a hit path and we must
-            // not add PointerInputFilters on different paths so we should not even go looking.
-            val originalSize = hitPointerInputFilters.size
-            layoutNode.zSortedChildren.reversedAny { child ->
-                callHitTest(child, pointerPositionRelativeToScreen, hitPointerInputFilters)
-                hitPointerInputFilters.size > originalSize
+        var inLayer = isInLayer
+        var hitTestChildren = false
+
+        if (hitTestSource.shouldHitTestChildren(layoutNode)) {
+            if (withinLayerBounds(pointerPosition)) {
+                hitTestChildren = true
+            } else if (isTouchEvent &&
+                distanceInMinimumTouchTarget(pointerPosition, minimumTouchTargetSize).isFinite()
+            ) {
+                inLayer = false
+                hitTestChildren = true
+            }
+        }
+
+        if (hitTestChildren) {
+            hitTestResult.siblingHits {
+                // Any because as soon as true is returned, we know we have found a hit path and we must
+                // not add hit results on different paths so we should not even go looking.
+                layoutNode.zSortedChildren.reversedAny { child ->
+                    if (child.isPlaced) {
+                        hitTestSource.childHitTest(
+                            child,
+                            pointerPosition,
+                            hitTestResult,
+                            isTouchEvent,
+                            inLayer
+                        )
+                        val wasHit = hitTestResult.hasHit()
+                        val continueHitTest: Boolean
+                        if (!wasHit) {
+                            continueHitTest = true
+                        } else if (
+                            child.outerLayoutNodeWrapper.shouldSharePointerInputWithSiblings()
+                        ) {
+                            hitTestResult.acceptHits()
+                            continueHitTest = true
+                        } else {
+                            continueHitTest = false
+                        }
+                        !continueHitTest
+                    } else {
+                        false
+                    }
+                }
             }
         }
     }
@@ -159,14 +155,6 @@ internal class InnerPlaceable(
             paint.color = Color.Red
             paint.strokeWidth = 1f
             paint.style = PaintingStyle.Stroke
-        }
-
-        private fun callHitTest(
-            node: LayoutNode,
-            globalPoint: Offset,
-            hitPointerInputFilters: MutableList<PointerInputFilter>
-        ) {
-            node.hitTest(globalPoint, hitPointerInputFilters)
         }
     }
 }

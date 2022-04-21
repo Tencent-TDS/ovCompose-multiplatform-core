@@ -18,6 +18,7 @@ package androidx.camera.core.impl;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.List;
  * Wraps a list of {@link Quirk}s, allowing to easily retrieve a {@link Quirk} instance by its
  * class.
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class Quirks {
 
     @NonNull
@@ -39,6 +41,10 @@ public class Quirks {
     /**
      * Retrieves a {@link Quirk} instance given its type.
      *
+     * <p>Unlike {@link #contains(Class)}, a quirk can only be retrieved by the exact class. If a
+     * superclass or superinterface is provided, {@code null} will be returned, even if a quirk
+     * with the provided superclass or superinterface exists in this collection.
+     *
      * @param quirkClass The type of quirk to retrieve.
      * @return A {@link Quirk} instance of the provided type, or {@code null} if it isn't found.
      */
@@ -51,5 +57,24 @@ public class Quirks {
             }
         }
         return null;
+    }
+
+    /**
+     * Returns whether this collection of quirks contains a quirk with the provided type.
+     *
+     * <p>This checks whether the provided quirk type is the exact class, a superclass, or a
+     * superinterface of any of the contained quirks, and will return true in all cases.
+     * @param quirkClass The type of quirk to check for existence in this container.
+     * @return {@code true} if this container contains a quirk with the given type, {@code false}
+     * otherwise.
+     */
+    public boolean contains(@NonNull Class<? extends Quirk> quirkClass) {
+        for (Quirk quirk : mQuirks) {
+            if (quirkClass.isAssignableFrom(quirk.getClass())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

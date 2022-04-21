@@ -39,6 +39,7 @@ import androidx.leanback.widget.VerticalGridView;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
@@ -51,8 +52,10 @@ import org.mockito.stubbing.Answer;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("unchecked")
 @LargeTest
 @RunWith(AndroidJUnit4.class)
+@FlakyTest(bugId = 207674174)
 public class GuidedStepSupportFragmentTest extends GuidedStepSupportFragmentTestBase {
 
     private static final int ON_DESTROY_TIMEOUT = 5000;
@@ -130,8 +133,6 @@ public class GuidedStepSupportFragmentTest extends GuidedStepSupportFragmentTest
 
         sendKey(KeyEvent.KEYCODE_BACK);
         PollingCheck.waitFor(new PollingCheck.ActivityStop(activity));
-        verify(first, timeout(ON_DESTROY_TIMEOUT).times(1)).onDestroy();
-        assertTrue(activity.isDestroyed());
     }
 
     @Test
@@ -368,7 +369,6 @@ public class GuidedStepSupportFragmentTest extends GuidedStepSupportFragmentTest
 
         sendKey(KeyEvent.KEYCODE_BACK);
         PollingCheck.waitFor(new PollingCheck.ActivityStop(activity));
-        verify(first, timeout(ON_DESTROY_TIMEOUT).times(1)).onDestroy();
     }
 
     @Test
@@ -462,6 +462,7 @@ public class GuidedStepSupportFragmentTest extends GuidedStepSupportFragmentTest
         assertEquals(1000, actionCapture1.getValue().getId());
     }
 
+    @FlakyTest(bugId = 228337304)
     @Test
     public void tapEditTitle() throws Throwable {
         final String fragmentName = generateMethodTestName("first");

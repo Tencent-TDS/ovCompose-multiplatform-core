@@ -16,33 +16,26 @@
 
 package androidx.compose.ui.focus
 
-import androidx.compose.ui.FocusModifier
-import androidx.compose.ui.focus.FocusState.Active
-import androidx.compose.ui.focus.FocusState.ActiveParent
-import androidx.compose.ui.focus.FocusState.Captured
-import androidx.compose.ui.focus.FocusState.Disabled
-import androidx.compose.ui.focus.FocusState.Inactive
-import androidx.compose.ui.node.ExperimentalLayoutNodeApi
+import androidx.compose.ui.focus.FocusStateImpl.Active
+import androidx.compose.ui.focus.FocusStateImpl.ActiveParent
+import androidx.compose.ui.focus.FocusStateImpl.Captured
+import androidx.compose.ui.focus.FocusStateImpl.Deactivated
+import androidx.compose.ui.focus.FocusStateImpl.DeactivatedParent
+import androidx.compose.ui.focus.FocusStateImpl.Inactive
 import androidx.compose.ui.node.InnerPlaceable
 import androidx.compose.ui.node.LayoutNode
-import androidx.compose.ui.node.ModifiedFocusNode
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
-import kotlin.jvm.JvmStatic
 
-@OptIn(
-    ExperimentalFocus::class,
-    ExperimentalLayoutNodeApi::class
-)
 @RunWith(Parameterized::class)
 class FocusManagerTest(private val initialFocusState: FocusState) {
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "rootInitialFocus = {0}")
-        fun initParameters() = FocusState.values()
+        fun initParameters(): List<FocusState> = FocusStateImpl.values().asList()
     }
 
     private val focusModifier = FocusModifier(Inactive)
@@ -51,7 +44,7 @@ class FocusManagerTest(private val initialFocusState: FocusState) {
     @Before
     fun setup() {
         val innerPlaceable = InnerPlaceable(LayoutNode())
-        focusModifier.focusNode = ModifiedFocusNode(innerPlaceable, focusModifier)
+        focusModifier.layoutNodeWrapper = innerPlaceable
     }
 
     @Test
@@ -62,7 +55,7 @@ class FocusManagerTest(private val initialFocusState: FocusState) {
     @Test
     fun takeFocus_onlyInactiveChangesState() {
         // Arrange.
-        focusModifier.focusState = initialFocusState
+        focusModifier.focusState = initialFocusState as FocusStateImpl
 
         // Act.
         focusManager.takeFocus()
@@ -71,19 +64,21 @@ class FocusManagerTest(private val initialFocusState: FocusState) {
         assertThat(focusModifier.focusState).isEqualTo(
             when (initialFocusState) {
                 Inactive -> Active
-                Active, ActiveParent, Captured, Disabled -> initialFocusState
+                Active, ActiveParent, Captured, Deactivated, DeactivatedParent -> initialFocusState
             }
         )
     }
 
     @Test
-    fun clearFocus_changesStateToInactive() {
+    fun releaseFocus_changesStateToInactive() {
         // Arrange.
-        focusModifier.focusState = initialFocusState
-        if (initialFocusState == ActiveParent) {
+        focusModifier.focusState = initialFocusState as FocusStateImpl
+        if (initialFocusState == ActiveParent || initialFocusState == DeactivatedParent) {
             val childLayoutNode = LayoutNode()
-            val child = ModifiedFocusNode(InnerPlaceable(childLayoutNode), FocusModifier(Active))
-            focusModifier.focusNode.layoutNode._children.add(childLayoutNode)
+            val child = FocusModifier(Active).apply {
+                layoutNodeWrapper = InnerPlaceable(childLayoutNode)
+            }
+            focusModifier.layoutNodeWrapper!!.layoutNode._children.add(childLayoutNode)
             focusModifier.focusedChild = child
         }
 
@@ -94,24 +89,85 @@ class FocusManagerTest(private val initialFocusState: FocusState) {
         assertThat(focusModifier.focusState).isEqualTo(
             when (initialFocusState) {
                 Active, ActiveParent, Captured, Inactive -> Inactive
-                Disabled -> initialFocusState
+                Deactivated, DeactivatedParent -> Deactivated
+            }
+        )
+    }
+
+    @Test
+    fun clearFocus_forced() {
+        // Arrange.
+        focusModifier.focusState = initialFocusState as FocusStateImpl
+        if (initialFocusState == ActiveParent || initialFocusState == DeactivatedParent) {
+            val childLayoutNode = LayoutNode()
+            val child = FocusModifier(Active).apply {
+                layoutNodeWrapper = InnerPlaceable(childLayoutNode)
+            }
+            focusModifier.layoutNodeWrapper!!.layoutNode._children.add(childLayoutNode)
+            focusModifier.focusedChild = child
+        }
+
+        // Act.
+        focusManager.clearFocus(force = true)
+
+        // Assert.
+        assertThat(focusModifier.focusState).isEqualTo(
+            when (initialFocusState) {
+                // If the initial state was focused, assert that after clearing the hierarchy,
+                // the root is set to Active.
+                Active, ActiveParent, Captured -> Active
+                Deactivated, DeactivatedParent -> Deactivated
+                Inactive -> Inactive
+            }
+        )
+    }
+
+    @Test
+    fun clearFocus_notForced() {
+        // Arrange.
+        focusModifier.focusState = initialFocusState as FocusStateImpl
+        if (initialFocusState == ActiveParent || initialFocusState == DeactivatedParent) {
+            val childLayoutNode = LayoutNode()
+            val child = FocusModifier(Active).apply {
+                layoutNodeWrapper = InnerPlaceable(childLayoutNode)
+            }
+            focusModifier.layoutNodeWrapper!!.layoutNode._children.add(childLayoutNode)
+            focusModifier.focusedChild = child
+        }
+
+        // Act.
+        focusManager.clearFocus(force = false)
+
+        // Assert.
+        assertThat(focusModifier.focusState).isEqualTo(
+            when (initialFocusState) {
+                // If the initial state was focused, assert that after clearing the hierarchy,
+                // the root is set to Active.
+                Active, ActiveParent -> Active
+                Deactivated, DeactivatedParent -> Deactivated
+                Captured -> Captured
+                Inactive -> Inactive
             }
         )
     }
 
     @Test
     fun clearFocus_childIsCaptured() {
-        // Arrange.
-        focusModifier.focusState = ActiveParent
-        val childLayoutNode = LayoutNode()
-        val child = ModifiedFocusNode(InnerPlaceable(childLayoutNode), FocusModifier(Captured))
-        focusModifier.focusNode.layoutNode._children.add(childLayoutNode)
-        focusModifier.focusedChild = child
+        if (initialFocusState == ActiveParent || initialFocusState == DeactivatedParent) {
+            // Arrange.
+            focusModifier.focusState = initialFocusState as FocusStateImpl
+            val childLayoutNode = LayoutNode()
+            val child = FocusModifier(Captured).apply {
+                layoutNodeWrapper = InnerPlaceable(childLayoutNode)
+            }
+            focusModifier.layoutNodeWrapper!!.layoutNode._children.add(childLayoutNode)
+            focusModifier.focusedChild = child
 
-        // Act.
-        focusManager.clearFocus()
+            // Act.
+            focusManager.clearFocus()
 
-        // Assert.
-        assertThat(focusModifier.focusState).isEqualTo(ActiveParent)
+            // Assert.
+            assertThat(focusModifier.focusState).isEqualTo(initialFocusState)
+        }
     }
 }

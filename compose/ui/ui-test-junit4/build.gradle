@@ -14,125 +14,145 @@
  * limitations under the License.
  */
 
-
-import androidx.build.AndroidXUiPlugin
-import androidx.build.LibraryGroups
-import androidx.build.LibraryVersions
-import androidx.build.Publish
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-import static androidx.build.dependencies.DependenciesKt.*
+import androidx.build.AndroidXComposePlugin
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("AndroidXUiPlugin")
+    id("AndroidXComposePlugin")
 }
 
-AndroidXUiPlugin.applyAndConfigureKotlinPlugin(project)
+AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
+
+android {
+    lintOptions {
+        disable("InvalidPackage")
+    }
+    namespace "androidx.compose.ui.test.junit4"
+}
 
 dependencies {
-    kotlinPlugin project(":compose:compiler:compiler")
+    kotlinPlugin(project(":compose:compiler:compiler"))
 
-    if(!AndroidXUiPlugin.isMultiplatformEnabled(project)) {
-        api project(":compose:ui:ui-test")
-        api "androidx.activity:activity:1.2.0-alpha02"
-        api(ANDROIDX_TEST_EXT_JUNIT)
-        api(JUNIT)
+    if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
+        api(project(":compose:ui:ui-test"))
+        api("androidx.activity:activity:1.2.0")
+        api(libs.junit)
+        api(libs.kotlinStdlib)
+        api(libs.kotlinStdlibCommon)
+        api(libs.testExtJunit)
 
-        implementation(KOTLIN_STDLIB)
-        implementation(ANDROIDX_TEST_RULES)
-        implementation(ANDROIDX_TEST_RUNNER)
-        implementation(ESPRESSO_CORE)
-        implementation project(":compose:animation:animation")
-        implementation project(":compose:foundation:foundation")
+        implementation("androidx.compose.runtime:runtime-saveable:1.1.1")
+        implementation("androidx.activity:activity-compose:1.3.0")
+        implementation("androidx.annotation:annotation:1.1.0")
+        implementation("androidx.lifecycle:lifecycle-common:2.3.0")
+        implementation("androidx.lifecycle:lifecycle-runtime:2.3.0")
+        implementation(libs.testCore)
+        implementation(libs.testMonitor)
+        implementation(libs.espressoCore)
+        implementation(libs.espressoIdlingResource)
+        implementation(libs.kotlinCoroutinesCore)
+        implementation(libs.kotlinCoroutinesTest)
 
-        testImplementation(TRUTH)
+        testImplementation(project(":compose:animation:animation-core"))
+        testImplementation(project(":compose:material:material"))
+        testImplementation(project(":compose:test-utils"))
+        testImplementation(libs.truth)
+        testImplementation(libs.robolectric)
 
-        androidTestImplementation project(':compose:test-utils')
-        androidTestImplementation project(':compose:material:material')
-        androidTestImplementation project(':compose:foundation:foundation')
-        androidTestImplementation(TRUTH)
-        androidTestImplementation(MOCKITO_CORE, libs.exclude_bytebuddy) // DexMaker has it"s own MockMaker
-        androidTestImplementation(DEXMAKER_MOCKITO, libs.exclude_bytebuddy) // DexMaker has it"s own MockMaker
-        androidTestImplementation MOCKITO_KOTLIN, {
-            exclude group: 'org.mockito' // to keep control on the mockito version
-        }
+        androidTestImplementation(project(":compose:test-utils"))
+        androidTestImplementation(project(":compose:material:material"))
+        androidTestImplementation("androidx.fragment:fragment-testing:1.4.1")
+        androidTestImplementation(libs.testRules)
+        androidTestImplementation(libs.testRunner)
+        androidTestImplementation(libs.truth)
+        androidTestImplementation(libs.mockitoCore)
+        androidTestImplementation(libs.dexmakerMockito)
+        androidTestImplementation(libs.mockitoKotlin)
     }
 }
 
 
-if(AndroidXUiPlugin.isMultiplatformEnabled(project)) {
-    kotlin {
+if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
+    androidXComposeMultiplatform {
         android()
-        jvm("desktop")
+        desktop()
+    }
 
+    kotlin {
         sourceSets {
             commonMain.dependencies {
-                api project(":compose:ui:ui-test")
-                implementation project(":compose:animation:animation")
-                implementation project(":compose:foundation:foundation")
-
-                implementation(KOTLIN_STDLIB_COMMON)
+                api(project(":compose:ui:ui-test"))
+                implementation(libs.kotlinStdlib)
+                implementation(libs.kotlinCoroutinesCore)
+                implementation(libs.kotlinCoroutinesTest)
             }
 
             jvmMain.dependencies {
-                implementation "androidx.collection:collection:1.1.0"
-                implementation(JUNIT)
+                api(libs.junit)
+                api(libs.kotlinStdlib)
+                api(libs.kotlinStdlibCommon)
+
+                compileOnly("androidx.annotation:annotation:1.1.0")
             }
 
             androidMain.dependencies {
-                api(JUNIT)
-                api(ANDROIDX_TEST_EXT_JUNIT)
-                api "androidx.activity:activity:1.2.0-alpha02"
+                api("androidx.activity:activity:1.2.0")
+                implementation "androidx.activity:activity-compose:1.3.0"
+                api(libs.testExtJunit)
+                implementation("androidx.annotation:annotation:1.1.0")
 
-                implementation(ANDROIDX_TEST_RULES)
-                implementation(ANDROIDX_TEST_RUNNER)
-                implementation(ESPRESSO_CORE)
+                implementation(project(":compose:runtime:runtime-saveable"))
+                implementation("androidx.lifecycle:lifecycle-common:2.3.0")
+                implementation("androidx.lifecycle:lifecycle-runtime:2.3.0")
+                implementation(libs.testCore)
+                implementation(libs.testMonitor)
+                implementation(libs.espressoCore)
+                implementation(libs.espressoIdlingResource)
             }
 
-            test.dependencies {
-                implementation(TRUTH)
+            // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you
+            //  need to add Robolectric (which must be kept out of androidAndroidTest), use a top
+            //  level dependencies block instead:
+            //  `dependencies { testImplementation(libs.robolectric) }`
+            androidTest.dependencies {
+                implementation(project(":compose:animation:animation-core"))
+                implementation(project(":compose:material:material"))
+                implementation(project(":compose:test-utils"))
+                implementation(libs.truth)
             }
 
             androidAndroidTest.dependencies {
-                implementation(TRUTH)
-                implementation project(':compose:test-utils')
-                implementation project(':compose:foundation:foundation')
-                implementation project(':compose:material:material')
-
-                implementation(MOCKITO_CORE, libs.exclude_bytebuddy) // DexMaker has it"s own MockMaker
-                implementation(DEXMAKER_MOCKITO, libs.exclude_bytebuddy) // DexMaker has it"s own MockMaker
-                implementation MOCKITO_KOTLIN, {
-                    exclude group: 'org.mockito' // to keep control on the mockito version
-                }
+                implementation(project(":compose:test-utils"))
+                implementation(project(":compose:material:material"))
+                implementation("androidx.fragment:fragment-testing:1.4.1")
+                implementation(libs.testRules)
+                implementation(libs.testRunner)
+                implementation(libs.truth)
+                implementation(libs.mockitoCore)
+                implementation(libs.dexmakerMockito)
+                implementation(libs.mockitoKotlin)
             }
 
             desktopMain.dependencies {
-                implementation(JUNIT)
-                implementation(TRUTH)
-                implementation(SKIKO)
+                implementation(libs.truth)
+                implementation(libs.skiko)
             }
-
-            desktopMain.dependsOn jvmMain
-            jvmMain.dependsOn commonMain
         }
     }
-}
 
-android {
-    tasks.withType(KotlinCompile).configureEach {
-        kotlinOptions {
-            freeCompilerArgs += ["-XXLanguage:-NewInference"]
-            useIR = true
-        }
+    dependencies {
+        // Can't declare this in kotlin { sourceSets { androidTest.dependencies { .. } } } as that
+        // leaks into instrumented tests (b/214407011)
+        testImplementation(libs.robolectric)
     }
 }
 
 androidx {
     name = "Compose Testing for JUnit4"
-    publish = Publish.SNAPSHOT_AND_RELEASE
-    mavenGroup = LibraryGroups.Compose.UI
+    type = LibraryType.PUBLISHED_TEST_LIBRARY
+    mavenGroup = LibraryGroups.COMPOSE_UI
     inceptionYear = "2020"
     description = "Compose testing integration with JUnit4"
     legacyDisableKotlinStrictApiMode = true

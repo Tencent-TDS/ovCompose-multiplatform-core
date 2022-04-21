@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-import static androidx.build.dependencies.DependenciesKt.*
-import androidx.build.LibraryGroups
-import androidx.build.LibraryVersions
-import androidx.build.AndroidXExtension
 import androidx.build.Publish
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
@@ -26,35 +23,51 @@ plugins {
     id("kotlin-android")
 }
 
+android {
+    buildTypes.all {
+        consumerProguardFiles "proguard-rules.pro"
+    }
+    namespace "androidx.navigation.common"
+}
+
 dependencies {
     api("androidx.annotation:annotation:1.1.0")
-    implementation("androidx.core:core:1.1.0")
-    implementation("androidx.collection:collection:1.1.0")
+    api(projectOrArtifact(":lifecycle:lifecycle-runtime-ktx"))
+    api(projectOrArtifact(":lifecycle:lifecycle-viewmodel-ktx"))
+    api(projectOrArtifact(":savedstate:savedstate-ktx"))
+    api(projectOrArtifact(":lifecycle:lifecycle-viewmodel-savedstate"))
+    implementation("androidx.core:core-ktx:1.1.0")
+    implementation("androidx.collection:collection-ktx:1.1.0")
 
-    api(KOTLIN_STDLIB)
-    testImplementation(JUNIT)
-    testImplementation(MOCKITO_CORE)
-    testImplementation(TRUTH)
-    testImplementation(KOTLIN_STDLIB)
+    api(libs.kotlinStdlib)
+    testImplementation(project(":navigation:navigation-testing"))
+    testImplementation("androidx.arch.core:core-testing:2.1.0")
+    testImplementation(libs.junit)
+    testImplementation(libs.mockitoCore)
+    testImplementation(libs.truth)
+    testImplementation(libs.kotlinStdlib)
+    testImplementation(libs.kotlinCoroutinesTest)
 
-    androidTestImplementation(ANDROIDX_TEST_EXT_JUNIT)
-    androidTestImplementation(ANDROIDX_TEST_CORE)
-    androidTestImplementation(ANDROIDX_TEST_RUNNER)
-    androidTestImplementation(ESPRESSO_CORE)
-    androidTestImplementation(TRUTH)
-    androidTestImplementation(MOCKITO_CORE, libs.exclude_bytebuddy)
-    androidTestImplementation(DEXMAKER_MOCKITO, libs.exclude_bytebuddy)
-    androidTestImplementation(KOTLIN_STDLIB)
+    androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.testCore)
+    androidTestImplementation(libs.testRunner)
+    androidTestImplementation(libs.espressoCore)
+    androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy)
+    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy)
+    androidTestImplementation(libs.kotlinStdlib)
 }
 
 //used by testImplementation safe-args-generator
 android.libraryVariants.all { variant ->
     def name = variant.name
     def suffix = name.capitalize()
-    project.tasks.create(name: "jar${suffix}", type: Jar){
-        dependsOn variant.javaCompileProvider.get()
-        from variant.javaCompileProvider.get().destinationDir
-        destinationDir new File(project.buildDir, "libJar")
+    project.tasks.register("jar${suffix}", Copy).configure {
+        dependsOn("assemble$suffix")
+        from(zipTree("${project.buildDir}/outputs/aar/navigation-common-${name}.aar")) {
+            include("classes.jar")
+        }
+        destinationDir(new File(project.buildDir, "libJar"))
     }
 }
 
@@ -64,4 +77,10 @@ androidx {
     mavenGroup = LibraryGroups.NAVIGATION
     inceptionYear = "2017"
     description = "Android Navigation-Common"
+}
+
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn"
+    }
 }

@@ -17,6 +17,7 @@ package androidx.core.content.pm;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -24,11 +25,14 @@ import android.content.pm.PackageManager;
 import android.content.pm.ShortcutInfo;
 import android.content.pm.ShortcutManager;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.UserHandle;
 import android.text.TextUtils;
 
+import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -37,11 +41,17 @@ import androidx.annotation.VisibleForTesting;
 import androidx.core.app.Person;
 import androidx.core.content.LocusIdCompat;
 import androidx.core.graphics.drawable.IconCompat;
+import androidx.core.net.UriCompat;
+import androidx.core.util.Preconditions;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -53,6 +63,19 @@ public class ShortcutInfoCompat {
     private static final String EXTRA_PERSON_ = "extraPerson_";
     private static final String EXTRA_LOCUS_ID = "extraLocusId";
     private static final String EXTRA_LONG_LIVED = "extraLongLived";
+
+    private static final String EXTRA_SLICE_URI = "extraSliceUri";
+
+    /** @hide */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @IntDef(flag = true, value = {SURFACE_LAUNCHER})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface Surface {}
+
+    /**
+     * Indicates system surfaces managed by a launcher app. e.g. Long-Press Menu.
+     */
+    public static final int SURFACE_LAUNCHER = 1 << 0;
 
     Context mContext;
     String mId;
@@ -78,6 +101,7 @@ public class ShortcutInfoCompat {
     int mRank;
 
     PersistableBundle mExtras;
+    Bundle mTransientExtras;
 
     // Read-Only fields
     long mLastChangedTimestamp;
@@ -90,6 +114,7 @@ public class ShortcutInfoCompat {
     boolean mIsEnabled = true;
     boolean mHasKeyFieldsOnly;
     int mDisabledReason;
+    int mExcludedSurfaces;
 
     ShortcutInfoCompat() { }
 
@@ -373,6 +398,17 @@ public class ShortcutInfoCompat {
     }
 
     /**
+     * Get additional extras from the shortcut, which will not be persisted anywhere once the
+     * shortcut is published.
+     * @hide
+     */
+    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @Nullable
+    public Bundle getTransientExtras() {
+        return mTransientExtras;
+    }
+
+    /**
      * {@link UserHandle} on which the publisher created this shortcut.
      */
     @Nullable
@@ -472,6 +508,23 @@ public class ShortcutInfoCompat {
     }
 
     /**
+     * Return true if the shortcut is excluded from specified surface.
+     */
+    public boolean isExcludedFromSurfaces(@Surface int surface) {
+        return (mExcludedSurfaces & surface) != 0;
+    }
+
+    /**
+     * Returns a bitmask of all surfaces this shortcut is excluded from.
+     *
+     * @see ShortcutInfo.Builder#setExcludedFromSurfaces(int)
+     */
+    @Surface
+    public int getExcludedFromSurfaces() {
+        return mExcludedSurfaces;
+    }
+
+    /**
      * @hide
      */
     @RequiresApi(25)
@@ -490,6 +543,9 @@ public class ShortcutInfoCompat {
 
         private final ShortcutInfoCompat mInfo;
         private boolean mIsConversation;
+        private Set<String> mCapabilityBindings;
+        private Map<String, Map<String, List<String>>> mCapabilityBindingParams;
+        private Uri mSliceUri;
 
         public Builder(@NonNull Context context, @NonNull String id) {
             mInfo = new ShortcutInfoCompat();
@@ -535,6 +591,7 @@ public class ShortcutInfoCompat {
             if (shortcutInfo.mExtras != null) {
                 mInfo.mExtras = shortcutInfo.mExtras;
             }
+            mInfo.mExcludedSurfaces = shortcutInfo.mExcludedSurfaces;
         }
 
         /**
@@ -744,7 +801,7 @@ public class ShortcutInfoCompat {
          * <li> Used by the system to associate a published Sharing Shortcut with supported
          * mimeTypes. Required for published Sharing Shortcuts with a matching category
          * declared in share targets, defined in the app's manifest linked shortcuts xml file.
-         * </ul>         
+         * </ul>
          *
          * @see ShortcutInfo#getCategories()
          */
@@ -776,6 +833,26 @@ public class ShortcutInfoCompat {
         }
 
         /**
+         * Sets which surfaces a shortcut will be excluded from.
+         *
+         * If the shortcut is set to be excluded from {@link #SURFACE_LAUNCHER}, shortcuts will be
+         * excluded from the search result of {@link android.content.pm.LauncherApps#getShortcuts(
+         * android.content.pm.LauncherApps.ShortcutQuery, UserHandle)} and
+         * {@link android.content.pm.ShortcutManager#getShortcuts(int)}. This generally means the
+         * shortcut would not be displayed by a launcher app (e.g. in Long-Press menu), while
+         * remain visible in other surfaces such as assistant or on-device-intelligence.
+         *
+         * <p>On API <= 31, shortcuts that are excluded from {@link #SURFACE_LAUNCHER} are not
+         * actually sent to {@link ShortcutManager}. These shortcuts might still be made
+         * available to other surfaces via alternative means.
+         */
+        @NonNull
+        public Builder setExcludedFromSurfaces(final int surfaces) {
+            mInfo.mExcludedSurfaces = surfaces;
+            return this;
+        }
+
+        /**
          * Sets rank of a shortcut, which is a non-negative value that's used by the system to sort
          * shortcuts. Lower value means higher importance.
          *
@@ -802,6 +879,81 @@ public class ShortcutInfoCompat {
         }
 
         /**
+         * @hide
+         */
+        @RestrictTo(LIBRARY_GROUP_PREFIX)
+        @NonNull
+        public Builder setTransientExtras(@NonNull final Bundle transientExtras) {
+            mInfo.mTransientExtras = Preconditions.checkNotNull(transientExtras);
+            return this;
+        }
+
+        /**
+         * Associates a shortcut with a capability without any parameters. Used when the shortcut is
+         * an instance of a capability.
+         *
+         * <P>This method can be called multiple times to associate multiple capabilities with
+         * this shortcut.
+         *
+         * @param capability capability associated with the shortcut. e.g. actions.intent
+         *                   .START_EXERCISE.
+         */
+        @SuppressLint("MissingGetterMatchingBuilder")
+        @NonNull
+        public Builder addCapabilityBinding(@NonNull String capability) {
+            if (mCapabilityBindings == null) {
+                mCapabilityBindings = new HashSet<>();
+            }
+            mCapabilityBindings.add(capability);
+            return this;
+        }
+
+        /**
+         * Associates a shortcut with a capability, and a parameter of that capability. Used when
+         * the shortcut is an instance of a capability.
+         *
+         * <P>This method can be called multiple times to associate multiple capabilities with
+         * this shortcut, or add multiple parameters to the same capability.
+         *
+         * @param capability capability associated with the shortcut. e.g. actions.intent
+         *                   .START_EXERCISE.
+         * @param parameter the parameter associated with the capability. e.g. exercise.name.
+         * @param parameterValues a list of values for that parameters. The first value will be
+         *                        the primary name, while the rest will be alternative names. If
+         *                        the values are empty, then the parameter will not be saved in
+         *                        the shortcut.
+         */
+        @SuppressLint("MissingGetterMatchingBuilder")
+        @NonNull
+        public Builder addCapabilityBinding(@NonNull String capability,
+                @NonNull String parameter, @NonNull List<String> parameterValues) {
+            addCapabilityBinding(capability);
+
+            if (!parameterValues.isEmpty()) {
+                if (mCapabilityBindingParams == null) {
+                    mCapabilityBindingParams = new HashMap<>();
+                }
+                if (mCapabilityBindingParams.get(capability) == null) {
+                    mCapabilityBindingParams.put(capability, new HashMap<String, List<String>>());
+                }
+
+                mCapabilityBindingParams.get(capability).put(parameter, parameterValues);
+            }
+            return this;
+        }
+
+        /**
+         * Sets the slice uri for a shortcut. The uri will be used if this shortcuts represents a
+         * slice, instead of an intent.
+         */
+        @SuppressLint("MissingGetterMatchingBuilder")
+        @NonNull
+        public Builder setSliceUri(@NonNull Uri sliceUri) {
+            mSliceUri = sliceUri;
+            return this;
+        }
+
+        /**
          * Creates a {@link ShortcutInfoCompat} instance.
          */
         @NonNull
@@ -818,6 +970,41 @@ public class ShortcutInfoCompat {
                     mInfo.mLocusId = new LocusIdCompat(mInfo.mId);
                 }
                 mInfo.mIsLongLived = true;
+            }
+
+            if (mCapabilityBindings != null) {
+                if (mInfo.mCategories == null) {
+                    mInfo.mCategories = new HashSet<>();
+                }
+                mInfo.mCategories.addAll(mCapabilityBindings);
+            }
+            if (Build.VERSION.SDK_INT >= 21) {
+                if (mCapabilityBindingParams != null) {
+                    if (mInfo.mExtras == null) {
+                        mInfo.mExtras = new PersistableBundle();
+                    }
+                    for (String capability : mCapabilityBindingParams.keySet()) {
+                        final Map<String, List<String>> params =
+                                mCapabilityBindingParams.get(capability);
+                        final Set<String> paramNames = params.keySet();
+                        // Persist the mapping of <Capability1> -> [<Param1>, <Param2> ... ]
+                        mInfo.mExtras.putStringArray(
+                                capability, paramNames.toArray(new String[0]));
+                        // Persist the capability param in respect to capability
+                        // i.e. <Capability1/Param1> -> [<Value1>, <Value2> ... ]
+                        for (String paramName : params.keySet()) {
+                            final List<String> value = params.get(paramName);
+                            mInfo.mExtras.putStringArray(capability + "/" + paramName,
+                                    value == null ? new String[0] : value.toArray(new String[0]));
+                        }
+                    }
+                }
+                if (mSliceUri != null) {
+                    if (mInfo.mExtras == null) {
+                        mInfo.mExtras = new PersistableBundle();
+                    }
+                    mInfo.mExtras.putString(EXTRA_SLICE_URI, UriCompat.toSafeString(mSliceUri));
+                }
             }
             return mInfo;
         }

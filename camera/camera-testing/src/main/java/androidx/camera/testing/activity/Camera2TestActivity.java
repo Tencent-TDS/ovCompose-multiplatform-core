@@ -30,26 +30,31 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.text.TextUtils;
+import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.Logger;
 import androidx.camera.testing.R;
+import androidx.core.util.Preconditions;
 import androidx.test.espresso.idling.CountingIdlingResource;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 /** An activity which opens the camera via Camera2 API for testing. */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class Camera2TestActivity extends Activity {
 
     private static final String TAG = "Camera2TestActivity";
     private static final int FRAMES_UNTIL_VIEW_IS_READY = 5;
+    private static final Size GUARANTEED_RESOLUTION = new Size(640, 480);
     public static final String EXTRA_CAMERA_ID = "androidx.camera.cameraId";
 
     /**
@@ -101,36 +106,8 @@ public class Camera2TestActivity extends Activity {
 
             };
 
-    private final CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
-
-        @Override
-        public void onOpened(@NonNull CameraDevice cameraDevice) {
-            Logger.d(TAG, "Camera onOpened: " + cameraDevice);
-            // This method is called when the camera is opened.  We start camera preview here.
-            mCameraOpenCloseLock.release();
-            mCameraDevice = cameraDevice;
-            createCameraPreviewSession();
-        }
-
-        @Override
-        public void onDisconnected(@NonNull CameraDevice cameraDevice) {
-            Logger.d(TAG, "Camera onDisconnected: " + cameraDevice);
-            mCameraOpenCloseLock.release();
-            cameraDevice.close();
-            mCameraDevice = null;
-            finish();
-        }
-
-        @Override
-        public void onError(@NonNull CameraDevice cameraDevice, int error) {
-            Logger.d(TAG, "Camera onError: " + cameraDevice);
-            mCameraOpenCloseLock.release();
-            cameraDevice.close();
-            mCameraDevice = null;
-            finish();
-        }
-
-    };
+    private final CameraDevice.StateCallback mDeviceStateCallback =
+            new DeviceStateCallbackImpl();
 
     @VisibleForTesting
     public final CountingIdlingResource mPreviewReady = new CountingIdlingResource("PreviewReady");
@@ -186,6 +163,7 @@ public class Camera2TestActivity extends Activity {
     }
 
     @RequiresPermission(Manifest.permission.CAMERA)
+    @SuppressWarnings("CatchAndPrintStackTrace")
     void openCamera() {
         if (TextUtils.isEmpty(mCameraId)) {
             Logger.d(TAG, "Cannot open the camera");
@@ -198,7 +176,7 @@ public class Camera2TestActivity extends Activity {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            manager.openCamera(mCameraId, mStateCallback, mBackgroundHandler);
+            manager.openCamera(mCameraId, mDeviceStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -230,13 +208,17 @@ public class Camera2TestActivity extends Activity {
     /**
      * Creates a new {@link CameraCaptureSession} for camera preview.
      */
-    @SuppressWarnings("deprecation") /* createCaptureSession */
+    /* createCaptureSession */
+    @SuppressWarnings({"deprecation", "CatchAndPrintStackTrace"})
     void createCameraPreviewSession() {
+        Preconditions.checkNotNull(mCameraDevice);
         try {
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
 
-            // We configure the size of default buffer to be the size of camera preview we want.
-            texture.setDefaultBufferSize(mTextureView.getWidth(), mTextureView.getHeight());
+            // We configure the size of default buffer to be the size of the guaranteed supported
+            // resolution, which is 640x480.
+            texture.setDefaultBufferSize(GUARANTEED_RESOLUTION.getWidth(),
+                    GUARANTEED_RESOLUTION.getHeight());
 
             // This is the output Surface we need to start preview.
             Surface surface = new Surface(texture);
@@ -247,41 +229,8 @@ public class Camera2TestActivity extends Activity {
             mPreviewRequestBuilder.addTarget(surface);
 
             // Here, we create a CameraCaptureSession for camera preview.
-            mCameraDevice.createCaptureSession(Arrays.asList(surface),
-                    new CameraCaptureSession.StateCallback() {
-
-                        @Override
-                        public void onConfigured(
-                                @NonNull CameraCaptureSession cameraCaptureSession) {
-                            // The camera is already closed
-                            if (null == mCameraDevice) {
-                                return;
-                            }
-
-                            // When the session is ready, we start displaying the preview.
-                            mCaptureSession = cameraCaptureSession;
-                            try {
-                                // Auto focus should be continuous for camera preview.
-                                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
-                                        CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-
-                                // Finally, we start displaying the camera preview.
-                                mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(),
-                                        new CameraCaptureSession.CaptureCallback() {
-
-                                        },
-                                        mBackgroundHandler);
-                            } catch (CameraAccessException e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        @Override
-                        public void onConfigureFailed(
-                                @NonNull CameraCaptureSession cameraCaptureSession) {
-                        }
-                    }, null
-            );
+            mCameraDevice.createCaptureSession(Collections.singletonList(surface),
+                    new SessionStateCallbackImpl(), null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -299,14 +248,84 @@ public class Camera2TestActivity extends Activity {
     /**
      * Stops the background thread and its {@link Handler}.
      */
+    @SuppressWarnings("CatchAndPrintStackTrace")
     private void stopBackgroundThread() {
-        mBackgroundThread.quitSafely();
+        if (mBackgroundThread != null) {
+            mBackgroundThread.quitSafely();
+        }
         try {
             mBackgroundThread.join();
             mBackgroundThread = null;
             mBackgroundHandler = null;
         } catch (InterruptedException e) {
             e.printStackTrace();
+        }
+    }
+
+    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+    final class DeviceStateCallbackImpl extends CameraDevice.StateCallback {
+
+        @Override
+        public void onOpened(@NonNull CameraDevice cameraDevice) {
+            Logger.d(TAG, "Camera onOpened: " + cameraDevice);
+            // This method is called when the camera is opened.  We start camera preview here.
+            mCameraOpenCloseLock.release();
+            mCameraDevice = cameraDevice;
+            createCameraPreviewSession();
+        }
+
+        @Override
+        public void onDisconnected(@NonNull CameraDevice cameraDevice) {
+            Logger.d(TAG, "Camera onDisconnected: " + cameraDevice);
+            mCameraOpenCloseLock.release();
+            cameraDevice.close();
+            mCameraDevice = null;
+            finish();
+        }
+
+        @Override
+        public void onError(@NonNull CameraDevice cameraDevice, int error) {
+            Logger.d(TAG, "Camera onError: " + cameraDevice);
+            mCameraOpenCloseLock.release();
+            cameraDevice.close();
+            mCameraDevice = null;
+            finish();
+        }
+    }
+
+    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+    final class SessionStateCallbackImpl extends CameraCaptureSession.StateCallback {
+
+        @Override
+        @SuppressWarnings("CatchAndPrintStackTrace")
+        public void onConfigured(
+                @NonNull CameraCaptureSession cameraCaptureSession) {
+            // The camera is already closed
+            if (null == mCameraDevice) {
+                return;
+            }
+
+            // When the session is ready, we start displaying the preview.
+            mCaptureSession = cameraCaptureSession;
+            try {
+                // Auto focus should be continuous for camera preview.
+                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
+                        CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+
+                // Finally, we start displaying the camera preview.
+                mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(),
+                        new CameraCaptureSession.CaptureCallback() {
+
+                        },
+                        mBackgroundHandler);
+            } catch (CameraAccessException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void onConfigureFailed(
+                @NonNull CameraCaptureSession cameraCaptureSession) {
         }
     }
 }

@@ -18,12 +18,18 @@ package androidx.core.widget;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Parcelable;
+import android.view.InputDevice;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -301,6 +307,224 @@ public class NestedScrollViewTest {
         mNestedScrollView.scrollTo(0, 100);
 
         assertThat(mNestedScrollView.getScrollY(), is(100));
+    }
+
+    @Test
+    public void testTopEdgeEffectReversal() {
+        setup(200);
+        mNestedScrollView.mEdgeGlowTop = new EdgeEffectSubstitute(mNestedScrollView.getContext());
+        setChildMargins(0, 0);
+        measureAndLayout(100);
+        swipeDown(false);
+        assertEquals(0, mNestedScrollView.getScrollY());
+        swipeUp(true);
+        if (Build.VERSION.SDK_INT >= 31) {
+            // This should just reverse the overscroll effect
+            assertEquals(0, mNestedScrollView.getScrollY());
+        } else {
+            // Can't catch the overscroll effect for R and earlier
+            assertNotEquals(0, mNestedScrollView.getScrollY());
+        }
+    }
+
+    @Test
+    public void testBottomEdgeEffectReversal() {
+        setup(200);
+        mNestedScrollView.mEdgeGlowBottom =
+                new EdgeEffectSubstitute(mNestedScrollView.getContext());
+        setChildMargins(0, 0);
+        measureAndLayout(100);
+        int scrollRange = mNestedScrollView.getScrollRange();
+        mNestedScrollView.scrollTo(0, scrollRange);
+        assertEquals(scrollRange, mNestedScrollView.getScrollY());
+        swipeUp(false);
+        assertEquals(scrollRange, mNestedScrollView.getScrollY());
+        swipeDown(true);
+        if (Build.VERSION.SDK_INT >= 31) {
+            // This should just reverse the overscroll effect
+            assertEquals(scrollRange, mNestedScrollView.getScrollY());
+        } else {
+            // Can't catch the overscroll effect for R and earlier
+            assertNotEquals(scrollRange, mNestedScrollView.getScrollY());
+        }
+    }
+
+    @Test
+    public void testFlingWhileStretchedAtTop() {
+        setup(200);
+        setChildMargins(0, 0);
+        measureAndLayout(100);
+        EdgeEffectSubstitute edgeEffect = new EdgeEffectSubstitute(mNestedScrollView.getContext());
+        mNestedScrollView.mEdgeGlowTop = edgeEffect;
+        flingDown();
+        assertTrue(edgeEffect.getDistance() > 0);
+
+        if (Build.VERSION.SDK_INT >= 31) {
+            assertTrue(edgeEffect.getAbsorbed() > 0);
+        } else {
+            assertEquals(0, edgeEffect.getAbsorbed());
+            flingUp();
+            assertNotEquals(0, mNestedScrollView.getScrollY());
+        }
+    }
+
+    @Test
+    public void testFlingWhileStretchedAtBottom() {
+        setup(200);
+        setChildMargins(0, 0);
+        measureAndLayout(100);
+        EdgeEffectSubstitute edgeEffect = new EdgeEffectSubstitute(mNestedScrollView.getContext());
+        mNestedScrollView.mEdgeGlowBottom = edgeEffect;
+
+        int scrollRange = mNestedScrollView.getScrollRange();
+        mNestedScrollView.scrollTo(0, scrollRange);
+        assertEquals(scrollRange, mNestedScrollView.getScrollY());
+        flingUp();
+        assertTrue(edgeEffect.getDistance() > 0);
+        assertEquals(scrollRange, mNestedScrollView.getScrollY());
+
+        if (Build.VERSION.SDK_INT >= 31) {
+            assertTrue(edgeEffect.getAbsorbed() > 0);
+        } else {
+            assertEquals(0, edgeEffect.getAbsorbed());
+            flingDown();
+            assertNotEquals(scrollRange, mNestedScrollView.getScrollY());
+        }
+    }
+
+    @Test
+    public void scrollFromRotaryStretchesTop() {
+        setup(200);
+        setChildMargins(0, 0);
+        measureAndLayout(100);
+        EdgeEffectSubstitute edgeEffect = new EdgeEffectSubstitute(mNestedScrollView.getContext());
+        mNestedScrollView.mEdgeGlowTop = edgeEffect;
+
+        sendScroll(2f, InputDevice.SOURCE_ROTARY_ENCODER);
+
+        // Should be pulled and retracting
+        assertTrue(edgeEffect.getDistance() > 0);
+        assertEquals(EdgeEffectSubstitute.State.Animating, edgeEffect.getState());
+    }
+
+    @Test
+    public void scrollFromRotaryStretchesBottom() {
+        setup(200);
+        setChildMargins(0, 0);
+        measureAndLayout(100);
+        EdgeEffectSubstitute edgeEffect = new EdgeEffectSubstitute(mNestedScrollView.getContext());
+        mNestedScrollView.mEdgeGlowBottom = edgeEffect;
+        int scrollRange = mNestedScrollView.getScrollRange();
+        mNestedScrollView.scrollTo(0, scrollRange);
+
+        sendScroll(-2f, InputDevice.SOURCE_ROTARY_ENCODER);
+
+        // Should be pulled and retracting
+        assertTrue(edgeEffect.getDistance() > 0);
+        assertEquals(EdgeEffectSubstitute.State.Animating, edgeEffect.getState());
+    }
+
+    @Test
+    public void scrollFromMouseDoesNotStretchTop() {
+        setup(200);
+        setChildMargins(0, 0);
+        measureAndLayout(100);
+        EdgeEffectSubstitute edgeEffect = new EdgeEffectSubstitute(mNestedScrollView.getContext());
+        mNestedScrollView.mEdgeGlowTop = edgeEffect;
+
+        sendScroll(2f, InputDevice.SOURCE_MOUSE);
+
+        // Should not be pulled. It should be Idle at 0
+        assertEquals(0f, edgeEffect.getDistance(), 0f);
+        assertEquals(EdgeEffectSubstitute.State.Idle, edgeEffect.getState());
+    }
+
+    @Test
+    public void scrollFromMouseDoesNotStretchBottom() {
+        setup(200);
+        setChildMargins(0, 0);
+        measureAndLayout(100);
+        EdgeEffectSubstitute edgeEffect = new EdgeEffectSubstitute(mNestedScrollView.getContext());
+        mNestedScrollView.mEdgeGlowBottom = edgeEffect;
+        int scrollRange = mNestedScrollView.getScrollRange();
+        mNestedScrollView.scrollTo(0, scrollRange);
+
+        sendScroll(-2f, InputDevice.SOURCE_MOUSE);
+
+        // Should not be pulled. It should be Idle at 0
+        assertEquals(0f, edgeEffect.getDistance(), 0f);
+        assertEquals(EdgeEffectSubstitute.State.Idle, edgeEffect.getState());
+    }
+
+    private void swipeDown(boolean shortSwipe) {
+        float endY = shortSwipe ? mNestedScrollView.getHeight() / 2f :
+                mNestedScrollView.getHeight() - 1;
+        swipe(0, endY);
+    }
+
+    private void swipeUp(boolean shortSwipe) {
+        float endY = shortSwipe ? mNestedScrollView.getHeight() / 2f : 0;
+        swipe(mNestedScrollView.getHeight() - 1, endY);
+    }
+
+    private void swipe(float startY, float endY) {
+        float x = mNestedScrollView.getWidth() / 2f;
+        MotionEvent down = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, x, startY, 0);
+        mNestedScrollView.dispatchTouchEvent(down);
+        MotionEvent move = MotionEvent.obtain(0, 10, MotionEvent.ACTION_MOVE, x, endY, 0);
+        mNestedScrollView.dispatchTouchEvent(move);
+        MotionEvent up = MotionEvent.obtain(0, 1000, MotionEvent.ACTION_UP, x, endY, 0);
+        mNestedScrollView.dispatchTouchEvent(up);
+    }
+
+    private void flingDown() {
+        fling(0, mNestedScrollView.getHeight() - 1);
+    }
+
+    private void flingUp() {
+        fling(mNestedScrollView.getHeight() - 1, 0);
+    }
+
+    private void fling(float startY, float endY) {
+        float x = mNestedScrollView.getWidth() / 2f;
+        MotionEvent down = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, x, startY, 0);
+        mNestedScrollView.dispatchTouchEvent(down);
+        MotionEvent move = MotionEvent.obtain(0, 10, MotionEvent.ACTION_MOVE, x, endY, 0);
+        mNestedScrollView.dispatchTouchEvent(move);
+        MotionEvent up = MotionEvent.obtain(0, 11, MotionEvent.ACTION_UP, x, endY, 0);
+        mNestedScrollView.dispatchTouchEvent(up);
+    }
+
+    private void sendScroll(float scrollAmount, int source) {
+        float x = mNestedScrollView.getWidth() / 2f;
+        float y = mNestedScrollView.getHeight() / 2f;
+        MotionEvent.PointerProperties pointerProperties = new MotionEvent.PointerProperties();
+        pointerProperties.toolType = MotionEvent.TOOL_TYPE_MOUSE;
+        MotionEvent.PointerCoords pointerCoords = new MotionEvent.PointerCoords();
+        pointerCoords.x = x;
+        pointerCoords.y = y;
+        int axis = source == InputDevice.SOURCE_ROTARY_ENCODER ? MotionEvent.AXIS_SCROLL
+                : MotionEvent.AXIS_VSCROLL;
+        pointerCoords.setAxisValue(axis, scrollAmount);
+
+        MotionEvent scroll = MotionEvent.obtain(
+                0, /* downTime */
+                0, /* eventTime */
+                MotionEvent.ACTION_SCROLL, /* action */
+                1, /* pointerCount */
+                new MotionEvent.PointerProperties[] { pointerProperties },
+                new MotionEvent.PointerCoords[] { pointerCoords },
+                0, /* metaState */
+                0, /* buttonState */
+                0f, /* xPrecision */
+                0f, /* yPrecision */
+                0, /* deviceId */
+                0, /* edgeFlags */
+                source, /* source */
+                0 /* flags */
+        );
+
+        mNestedScrollView.dispatchGenericMotionEvent(scroll);
     }
 
     private void setup(int childHeight) {

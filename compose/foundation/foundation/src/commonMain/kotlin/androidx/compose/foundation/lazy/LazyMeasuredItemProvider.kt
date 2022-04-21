@@ -16,24 +16,24 @@
 
 package androidx.compose.foundation.lazy
 
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.lazy.layout.LazyLayoutMeasureScope
 import androidx.compose.ui.layout.Placeable
-import androidx.compose.ui.layout.SubcomposeMeasureScope
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.util.fastMap
 
 /**
  * Abstracts away the subcomposition from the measuring logic.
  */
-internal class LazyMeasuredItemProvider(
+@OptIn(ExperimentalFoundationApi::class)
+internal class LazyMeasuredItemProvider @ExperimentalFoundationApi constructor(
     constraints: Constraints,
     isVertical: Boolean,
-    private val scope: SubcomposeMeasureScope,
-    private val itemContentFactory: (Int) -> @Composable () -> Unit,
-    private val measuredItemFactory: (List<Placeable>) -> LazyMeasuredItem
+    private val itemsProvider: LazyListItemsProvider,
+    private val measureScope: LazyLayoutMeasureScope,
+    private val measuredItemFactory: MeasuredItemFactory
 ) {
     // the constraints we will measure child with. the main axis is not restricted
-    private val childConstraints = Constraints(
+    val childConstraints = Constraints(
         maxWidth = if (isVertical) constraints.maxWidth else Constraints.Infinity,
         maxHeight = if (!isVertical) constraints.maxHeight else Constraints.Infinity
     )
@@ -41,12 +41,25 @@ internal class LazyMeasuredItemProvider(
     /**
      * Used to subcompose items of lazy lists. Composed placeables will be measured with the
      * correct constraints and wrapped into [LazyMeasuredItem].
-     * This method can be called only once with each [index] per the measure pass.
      */
     fun getAndMeasure(index: DataIndex): LazyMeasuredItem {
-        val placeables = scope.subcompose(index, itemContentFactory(index.value)).fastMap {
-            it.measure(childConstraints)
-        }
-        return measuredItemFactory(placeables)
+        val key = itemsProvider.getKey(index.value)
+        val placeables = measureScope.measure(index.value, childConstraints)
+        return measuredItemFactory.createItem(index, key, placeables)
     }
+
+    /**
+     * Contains the mapping between the key and the index. It could contain not all the items of
+     * the list as an optimization.
+     **/
+    val keyToIndexMap: Map<Any, Int> get() = itemsProvider.keyToIndexMap
+}
+
+// This interface allows to avoid autoboxing on index param
+internal fun interface MeasuredItemFactory {
+    fun createItem(
+        index: DataIndex,
+        key: Any,
+        placeables: Array<Placeable>
+    ): LazyMeasuredItem
 }

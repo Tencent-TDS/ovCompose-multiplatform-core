@@ -162,6 +162,7 @@ class MutableVector<T> @PublishedApi internal constructor(
             destination = content,
             destinationOffset = size
         )
+        size += elements.size
         return true
     }
 
@@ -201,8 +202,14 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun any(predicate: (T) -> Boolean): Boolean {
         contract { callsInPlace(predicate) }
-        for (i in 0..lastIndex) {
-            if (predicate(get(i))) return true
+        val size = size
+        if (size > 0) {
+            var i = 0
+            val content = content as Array<T>
+            do {
+                if (predicate(content[i])) return true
+                i++
+            } while (i < size)
         }
         return false
     }
@@ -213,8 +220,14 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun reversedAny(predicate: (T) -> Boolean): Boolean {
         contract { callsInPlace(predicate) }
-        for (i in lastIndex downTo 0) {
-            if (predicate(get(i))) return true
+        val size = size
+        if (size > 0) {
+            var i = size - 1
+            val content = content as Array<T>
+            do {
+                if (predicate(content[i])) return true
+                i--
+            } while (i >= 0)
         }
         return false
     }
@@ -327,11 +340,15 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun first(predicate: (T) -> Boolean): T {
         contract { callsInPlace(predicate) }
-        for (i in 0..lastIndex) {
-            val item = get(i)
-            if (predicate(item)) {
-                return item
-            }
+        val size = size
+        if (size > 0) {
+            var i = 0
+            val content = content as Array<T>
+            do {
+                val item = content[i]
+                if (predicate(item)) return item
+                i++
+            } while (i < size)
         }
         throwNoSuchElementException()
     }
@@ -347,11 +364,15 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun firstOrNull(predicate: (T) -> Boolean): T? {
         contract { callsInPlace(predicate) }
-        for (i in 0..lastIndex) {
-            val item = get(i)
-            if (predicate(item)) {
-                return item
-            }
+        val size = size
+        if (size > 0) {
+            var i = 0
+            val content = content as Array<T>
+            do {
+                val item = content[i]
+                if (predicate(item)) return item
+                i++
+            } while (i < size)
         }
         return null
     }
@@ -363,8 +384,14 @@ class MutableVector<T> @PublishedApi internal constructor(
     inline fun <R> fold(initial: R, operation: (acc: R, T) -> R): R {
         contract { callsInPlace(operation) }
         var acc = initial
-        for (i in 0..lastIndex) {
-            acc = operation(acc, get(i))
+        val size = size
+        if (size > 0) {
+            var i = 0
+            val content = content as Array<T>
+            do {
+                acc = operation(acc, content[i])
+                i++
+            } while (i < size)
         }
         return acc
     }
@@ -376,8 +403,14 @@ class MutableVector<T> @PublishedApi internal constructor(
     inline fun <R> foldIndexed(initial: R, operation: (index: Int, acc: R, T) -> R): R {
         contract { callsInPlace(operation) }
         var acc = initial
-        for (i in 0..lastIndex) {
-            acc = operation(i, acc, get(i))
+        val size = size
+        if (size > 0) {
+            var i = 0
+            val content = content as Array<T>
+            do {
+                acc = operation(i, acc, content[i])
+                i++
+            } while (i < size)
         }
         return acc
     }
@@ -389,8 +422,14 @@ class MutableVector<T> @PublishedApi internal constructor(
     inline fun <R> foldRight(initial: R, operation: (T, acc: R) -> R): R {
         contract { callsInPlace(operation) }
         var acc = initial
-        for (i in lastIndex downTo 0) {
-            acc = operation(get(i), acc)
+        val size = size
+        if (size > 0) {
+            var i = size - 1
+            val content = content as Array<T>
+            do {
+                acc = operation(content[i], acc)
+                i--
+            } while (i >= 0)
         }
         return acc
     }
@@ -402,8 +441,14 @@ class MutableVector<T> @PublishedApi internal constructor(
     inline fun <R> foldRightIndexed(initial: R, operation: (index: Int, T, acc: R) -> R): R {
         contract { callsInPlace(operation) }
         var acc = initial
-        for (i in lastIndex downTo 0) {
-            acc = operation(i, get(i), acc)
+        val size = size
+        if (size > 0) {
+            var i = size - 1
+            val content = content as Array<T>
+            do {
+                acc = operation(i, content[i], acc)
+                i--
+            } while (i >= 0)
         }
         return acc
     }
@@ -413,8 +458,14 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun forEach(block: (T) -> Unit) {
         contract { callsInPlace(block) }
-        for (i in 0..lastIndex) {
-            block(get(i))
+        val size = size
+        if (size > 0) {
+            var i = 0
+            val content = content as Array<T>
+            do {
+                block(content[i])
+                i++
+            } while (i < size)
         }
     }
 
@@ -423,8 +474,14 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun forEachIndexed(block: (Int, T) -> Unit) {
         contract { callsInPlace(block) }
-        for (i in 0 until size) {
-            block(i, get(i))
+        val size = size
+        if (size > 0) {
+            var i = 0
+            val content = content as Array<T>
+            do {
+                block(i, content[i])
+                i++
+            } while (i < size)
         }
     }
 
@@ -433,8 +490,14 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun forEachReversed(block: (T) -> Unit) {
         contract { callsInPlace(block) }
-        for (i in lastIndex downTo 0) {
-            block(get(i))
+        val size = size
+        if (size > 0) {
+            var i = size - 1
+            val content = content as Array<T>
+            do {
+                block(content[i])
+                i--
+            } while (i >= 0)
         }
     }
 
@@ -444,8 +507,13 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun forEachReversedIndexed(block: (Int, T) -> Unit) {
         contract { callsInPlace(block) }
-        for (i in lastIndex downTo 0) {
-            block(i, get(i))
+        if (size > 0) {
+            var i = size - 1
+            val content = content as Array<T>
+            do {
+                block(i, content[i])
+                i--
+            } while (i >= 0)
         }
     }
 
@@ -458,8 +526,14 @@ class MutableVector<T> @PublishedApi internal constructor(
      * Returns the index of [element] in the [MutableVector] or `-1` if [element] is not there.
      */
     fun indexOf(element: T): Int {
-        for (i in 0..lastIndex) {
-            if (element == get(i)) return i
+        val size = size
+        if (size > 0) {
+            var i = 0
+            val content = content as Array<T>
+            do {
+                if (element == content[i]) return i
+                i++
+            } while (i < size)
         }
         return -1
     }
@@ -470,10 +544,14 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun indexOfFirst(predicate: (T) -> Boolean): Int {
         contract { callsInPlace(predicate) }
-        for (i in 0..lastIndex) {
-            if (predicate(get(i))) {
-                return i
-            }
+        val size = size
+        if (size > 0) {
+            var i = 0
+            val content = content as Array<T>
+            do {
+                if (predicate(content[i])) return i
+                i++
+            } while (i < size)
         }
         return -1
     }
@@ -484,10 +562,14 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun indexOfLast(predicate: (T) -> Boolean): Int {
         contract { callsInPlace(predicate) }
-        for (i in lastIndex downTo 0) {
-            if (predicate(get(i))) {
-                return i
-            }
+        val size = size
+        if (size > 0) {
+            var i = size - 1
+            val content = content as Array<T>
+            do {
+                if (predicate(content[i])) return i
+                i--
+            } while (i >= 0)
         }
         return -1
     }
@@ -519,11 +601,15 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun last(predicate: (T) -> Boolean): T {
         contract { callsInPlace(predicate) }
-        for (i in lastIndex downTo 0) {
-            val item = get(i)
-            if (predicate(item)) {
-                return item
-            }
+        val size = size
+        if (size > 0) {
+            var i = size - 1
+            val content = content as Array<T>
+            do {
+                val item = content[i]
+                if (predicate(item)) return item
+                i--
+            } while (i >= 0)
         }
         throwNoSuchElementException()
     }
@@ -533,8 +619,14 @@ class MutableVector<T> @PublishedApi internal constructor(
      * [element] or `-1` if no elements match.
      */
     fun lastIndexOf(element: T): Int {
-        for (i in lastIndex downTo 0) {
-            if (element == get(i)) return i
+        val size = size
+        if (size > 0) {
+            var i = size - 1
+            val content = content as Array<T>
+            do {
+                if (element == content[i]) return i
+                i--
+            } while (i >= 0)
         }
         return -1
     }
@@ -550,11 +642,15 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun lastOrNull(predicate: (T) -> Boolean): T? {
         contract { callsInPlace(predicate) }
-        for (i in lastIndex downTo 0) {
-            val item = get(i)
-            if (predicate(item)) {
-                return item
-            }
+        val size = size
+        if (size > 0) {
+            var i = size - 1
+            val content = content as Array<T>
+            do {
+                val item = content[i]
+                if (predicate(item)) return item
+                i--
+            } while (i >= 0)
         }
         return null
     }
@@ -585,13 +681,19 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun <reified R> mapIndexedNotNull(transform: (index: Int, T) -> R?): MutableVector<R> {
         contract { callsInPlace(transform) }
+        val size = size
         val arr = arrayOfNulls<R>(size)
         var targetSize = 0
-        for (i in 0..lastIndex) {
-            val target = transform(i, get(i))
-            if (target != null) {
-                arr[targetSize++] = target
-            }
+        if (size > 0) {
+            val content = content as Array<T>
+            var i = 0
+            do {
+                val target = transform(i, content[i])
+                if (target != null) {
+                    arr[targetSize++] = target
+                }
+                i++
+            } while (i < size)
         }
         return MutableVector(arr, targetSize)
     }
@@ -602,13 +704,19 @@ class MutableVector<T> @PublishedApi internal constructor(
      */
     inline fun <reified R> mapNotNull(transform: (T) -> R?): MutableVector<R> {
         contract { callsInPlace(transform) }
+        val size = size
         val arr = arrayOfNulls<R>(size)
         var targetSize = 0
-        for (i in 0..lastIndex) {
-            val target = transform(get(i))
-            if (target != null) {
-                arr[targetSize++] = target
-            }
+        if (size > 0) {
+            val content = content as Array<T>
+            var i = 0
+            do {
+                val target = transform(content[i])
+                if (target != null) {
+                    arr[targetSize++] = target
+                }
+                i++
+            } while (i < size)
         }
         return MutableVector(arr, targetSize)
     }
@@ -755,8 +863,14 @@ class MutableVector<T> @PublishedApi internal constructor(
     inline fun sumBy(selector: (T) -> Int): Int {
         contract { callsInPlace(selector) }
         var sum = 0
-        for (i in 0..lastIndex) {
-            sum += selector(get(i))
+        val size = size
+        if (size > 0) {
+            val content = content as Array<T>
+            var i = 0
+            do {
+                sum += selector(content[i])
+                i++
+            } while (i < size)
         }
         return sum
     }
@@ -822,7 +936,10 @@ class MutableVector<T> @PublishedApi internal constructor(
 
         override fun containsAll(elements: Collection<T>): Boolean = vector.containsAll(elements)
 
-        override fun get(index: Int): T = vector[index]
+        override fun get(index: Int): T {
+            checkIndex(index)
+            return vector[index]
+        }
 
         override fun indexOf(element: T): Int = vector.indexOf(element)
 
@@ -852,14 +969,22 @@ class MutableVector<T> @PublishedApi internal constructor(
 
         override fun removeAll(elements: Collection<T>): Boolean = vector.removeAll(elements)
 
-        override fun removeAt(index: Int): T = vector.removeAt(index)
+        override fun removeAt(index: Int): T {
+            checkIndex(index)
+            return vector.removeAt(index)
+        }
 
         override fun retainAll(elements: Collection<T>): Boolean = vector.retainAll(elements)
 
-        override fun set(index: Int, element: T): T = vector.set(index, element)
+        override fun set(index: Int, element: T): T {
+            checkIndex(index)
+            return vector.set(index, element)
+        }
 
-        override fun subList(fromIndex: Int, toIndex: Int): MutableList<T> =
-            SubList(this, fromIndex, toIndex)
+        override fun subList(fromIndex: Int, toIndex: Int): MutableList<T> {
+            checkSubIndex(fromIndex, toIndex)
+            return SubList(this, fromIndex, toIndex)
+        }
     }
 
     /**
@@ -893,7 +1018,10 @@ class MutableVector<T> @PublishedApi internal constructor(
             return true
         }
 
-        override fun get(index: Int): T = list[index + start]
+        override fun get(index: Int): T {
+            checkIndex(index)
+            return list[index + start]
+        }
 
         override fun indexOf(element: T): Int {
             for (i in start until end) {
@@ -971,6 +1099,7 @@ class MutableVector<T> @PublishedApi internal constructor(
         }
 
         override fun removeAt(index: Int): T {
+            checkIndex(index)
             val item = list.removeAt(index + start)
             end--
             return item
@@ -988,10 +1117,39 @@ class MutableVector<T> @PublishedApi internal constructor(
             return originalEnd != end
         }
 
-        override fun set(index: Int, element: T): T = list.set(index + start, element)
+        override fun set(index: Int, element: T): T {
+            checkIndex(index)
+            return list.set(index + start, element)
+        }
 
-        override fun subList(fromIndex: Int, toIndex: Int): MutableList<T> =
-            SubList(this, fromIndex, toIndex)
+        override fun subList(fromIndex: Int, toIndex: Int): MutableList<T> {
+            checkSubIndex(fromIndex, toIndex)
+            return SubList(this, fromIndex, toIndex)
+        }
+    }
+}
+
+private fun List<*>.checkIndex(index: Int) {
+    val size = size
+    if (index < 0 || index >= size) {
+        throw IndexOutOfBoundsException("Index $index is out of bounds. " +
+            "The list has $size elements.")
+    }
+}
+
+private fun List<*>.checkSubIndex(fromIndex: Int, toIndex: Int) {
+    val size = size
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("Indices are out of order. fromIndex ($fromIndex) is " +
+            "greater than toIndex ($toIndex).")
+    }
+    if (fromIndex < 0) {
+        throw IndexOutOfBoundsException("fromIndex ($fromIndex) is less than 0.")
+    }
+    if (toIndex > size) {
+        throw IndexOutOfBoundsException(
+            "toIndex ($toIndex) is more than than the list size ($size)"
+        )
     }
 }
 
@@ -1004,7 +1162,7 @@ inline fun <reified T> MutableVector(capacity: Int = 16) =
     MutableVector<T>(arrayOfNulls<T>(capacity), 0)
 
 /**
- * Create a [MutableVector] with a given [size], initialiing each element using the [init]
+ * Create a [MutableVector] with a given [size], initializing each element using the [init]
  * function.
  *
  * [init] is called for each element in the [MutableVector], starting from the first one and should

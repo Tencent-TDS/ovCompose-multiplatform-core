@@ -18,11 +18,12 @@ package androidx.car.app.model;
 
 import static java.util.Objects.requireNonNull;
 
-import android.annotation.SuppressLint;
-
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.car.app.annotations.CarProtocol;
+import androidx.car.app.annotations.RequiresCarApi;
+import androidx.car.app.utils.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,42 +34,50 @@ import java.util.Objects;
  * Represents a list of rows used for displaying informational content and a set of {@link Action}s
  * that users can perform based on such content.
  */
+@CarProtocol
 public final class Pane {
     @Keep
-    @Nullable
-    private final ActionList mActionList;
+    private final List<Action> mActionList;
     @Keep
-    private final List<Object> mRows;
+    private final List<Row> mRows;
     @Keep
     private final boolean mIsLoading;
+    @Keep
+    @Nullable
+    private final CarIcon mImage;
 
-    /** Constructs a new builder of {@link Pane}. */
-    @NonNull
-    public static Builder builder() {
-        return new Builder();
+    /**
+     * Returns whether the pane is in a loading state.
+     *
+     * @see Builder#setLoading(boolean)
+     */
+    public boolean isLoading() {
+        return mIsLoading;
     }
 
     /**
      * Returns the list of {@link Action}s displayed alongside the {@link Row}s in this pane.
      */
-    @Nullable
-    public ActionList getActionList() {
-        return mActionList;
+    @NonNull
+    public List<Action> getActions() {
+        return CollectionUtils.emptyIfNull(mActionList);
     }
 
     /**
      * Returns the list of {@link Row} objects that make up the {@link Pane}.
      */
     @NonNull
-    public List<Object> getRows() {
-        return mRows;
+    public List<Row> getRows() {
+        return CollectionUtils.emptyIfNull(mRows);
     }
 
     /**
-     * Returns the {@code true} if the {@link Pane} is loading.*
+     * Returns the optional image to display in this pane.
      */
-    public boolean isLoading() {
-        return mIsLoading;
+    @RequiresCarApi(4)
+    @Nullable
+    public CarIcon getImage() {
+        return mImage;
     }
 
     @Override
@@ -83,7 +92,7 @@ public final class Pane {
 
     @Override
     public int hashCode() {
-        return Objects.hash(mRows, mActionList, mIsLoading);
+        return Objects.hash(mRows, mActionList, mIsLoading, mImage);
     }
 
     @Override
@@ -98,28 +107,32 @@ public final class Pane {
 
         return mIsLoading == otherPane.mIsLoading
                 && Objects.equals(mActionList, otherPane.mActionList)
-                && Objects.equals(mRows, otherPane.mRows);
+                && Objects.equals(mRows, otherPane.mRows)
+                && Objects.equals(mImage, otherPane.mImage);
     }
 
-    private Pane(Builder builder) {
-        mRows = new ArrayList<>(builder.mRows);
-        mActionList = builder.mActionList;
+    Pane(Builder builder) {
+        mRows = CollectionUtils.unmodifiableCopy(builder.mRows);
+        mActionList = CollectionUtils.unmodifiableCopy(builder.mActionList);
+        mImage = builder.mImage;
         mIsLoading = builder.mIsLoading;
     }
 
     /** Constructs an empty instance, used by serialization code. */
     private Pane() {
         mRows = Collections.emptyList();
-        mActionList = null;
+        mActionList = Collections.emptyList();
         mIsLoading = false;
+        mImage = null;
     }
 
     /** A builder of {@link Pane}. */
     public static final class Builder {
-        private final List<Object> mRows = new ArrayList<>();
+        final List<Row> mRows = new ArrayList<>();
+        List<Action> mActionList = new ArrayList<>();
+        boolean mIsLoading;
         @Nullable
-        private ActionList mActionList;
-        private boolean mIsLoading;
+        CarIcon mImage;
 
         /**
          * Sets whether the {@link Pane} is in a loading state.
@@ -134,14 +147,14 @@ public final class Pane {
          */
         @NonNull
         public Builder setLoading(boolean isLoading) {
-            this.mIsLoading = isLoading;
+            mIsLoading = isLoading;
             return this;
         }
 
         /**
          * Adds a row to display in the list.
          *
-         * @throws NullPointerException if {@code row} is {@code null}.
+         * @throws NullPointerException if {@code row} is {@code null}
          */
         @NonNull
         public Builder addRow(@NonNull Row row) {
@@ -149,25 +162,36 @@ public final class Pane {
             return this;
         }
 
-        /** Clears any rows that may have been added with {@link #addRow(Row)} up to this point. */
+        /**
+         * Adds an {@link Action} to display alongside the rows in the pane.
+         *
+         * <p>By default, no actions are displayed.
+         *
+         * @throws NullPointerException     if {@code action} is {@code null}
+         */
         @NonNull
-        public Builder clearRows() {
-            mRows.clear();
+        public Builder addAction(@NonNull Action action) {
+            requireNonNull(action);
+            mActionList.add(action);
             return this;
         }
 
         /**
-         * Sets multiple {@link Action}s to display alongside the rows in the pane.
+         * Sets an {@link CarIcon} to display alongside the rows in the pane.
          *
-         * <p>By default, no actions are displayed.
+         * <h4>Image Sizing Guidance</h4>
          *
-         * @throws NullPointerException if {@code actions} is {@code null}.
+         * To minimize scaling artifacts across a wide range of car screens, apps should provide
+         * images targeting a 480 x 480 dp bounding box. If the image exceeds this maximum size
+         * in either one of the dimensions, it will be scaled down to be centered inside the
+         * bounding box while preserving its aspect ratio.
+         *
+         * @throws NullPointerException if {@code image} is {@code null}
          */
+        @RequiresCarApi(4)
         @NonNull
-        // TODO(shiufai): consider rename to match getter's name (e.g. setActionList or getActions).
-        @SuppressLint("MissingGetterMatchingBuilder")
-        public Builder setActions(@NonNull List<Action> actions) {
-            mActionList = ActionList.create(requireNonNull(actions));
+        public Builder setImage(@NonNull CarIcon image) {
+            mImage = requireNonNull(image);
             return this;
         }
 
@@ -175,7 +199,7 @@ public final class Pane {
          * Constructs the row list defined by this builder.
          *
          * @throws IllegalStateException if the pane is in loading state and also contains rows, or
-         *                               vice-versa.
+         *                               vice versa
          */
         @NonNull
         public Pane build() {
@@ -190,6 +214,10 @@ public final class Pane {
 
         private int size() {
             return mRows.size();
+        }
+
+        /** Returns an empty {@link Builder} instance. */
+        public Builder() {
         }
     }
 }

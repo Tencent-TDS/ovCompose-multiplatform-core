@@ -19,12 +19,12 @@ package androidx.compose.material
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Providers
-import androidx.compose.runtime.ambientOf
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.useOrElse
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Paragraph
 import androidx.compose.ui.text.TextLayoutResult
@@ -40,8 +40,8 @@ import androidx.compose.ui.unit.TextUnit
 /**
  * High level element that displays text and provides semantics / accessibility information.
  *
- * The default [style] uses the [AmbientTextStyle] provided by the [MaterialTheme] / components. If
- * you are setting your own style, you may want to consider first retrieving [AmbientTextStyle],
+ * The default [style] uses the [LocalTextStyle] provided by the [MaterialTheme] / components. If
+ * you are setting your own style, you may want to consider first retrieving [LocalTextStyle],
  * and using [TextStyle.copy] to keep any theme defined attributes, only modifying the specific
  * attributes you want to override.
  *
@@ -53,14 +53,14 @@ import androidx.compose.ui.unit.TextUnit
  * from [style] will be used instead.
  *
  * Additionally, for [color], if [color] is not set, and [style] does not have a color, then
- * [AmbientContentColor] will be used with an alpha of [AmbientContentAlpha]- this allows this
+ * [LocalContentColor] will be used with an alpha of [LocalContentAlpha]- this allows this
  * [Text] or element containing this [Text] to adapt to different background colors and still
  * maintain contrast and accessibility.
  *
  * @param text The text to be displayed.
  * @param modifier [Modifier] to apply to this layout node.
  * @param color [Color] to apply to the text. If [Color.Unspecified], and [style] has no color set,
- * this will be [AmbientContentColor].
+ * this will be [LocalContentColor].
  * @param fontSize The size of glyphs to use when painting the text. See [TextStyle.fontSize].
  * @param fontStyle The typeface variant to use when drawing the letters (e.g., italic).
  * See [TextStyle.fontStyle].
@@ -81,7 +81,10 @@ import androidx.compose.ui.unit.TextUnit
  * @param maxLines An optional maximum number of lines for the text to span, wrapping if
  * necessary. If the text exceeds the given number of lines, it will be truncated according to
  * [overflow] and [softWrap]. If it is not null, then it must be greater than zero.
- * @param onTextLayout Callback that is executed when a new text layout is calculated.
+ * @param onTextLayout Callback that is executed when a new text layout is calculated. A
+ * [TextLayoutResult] object that callback provides contains paragraph information, size of the
+ * text, baselines and other details. The callback can be used to add additional decoration or
+ * functionality to the text. For example, to draw selection around the text.
  * @param style Style configuration for the text such as color, font, line height etc.
  */
 @Composable
@@ -101,34 +104,45 @@ fun Text(
     softWrap: Boolean = true,
     maxLines: Int = Int.MAX_VALUE,
     onTextLayout: (TextLayoutResult) -> Unit = {},
-    style: TextStyle = AmbientTextStyle.current
+    style: TextStyle = LocalTextStyle.current
 ) {
-    Text(
-        AnnotatedString(text),
+
+    val textColor = color.takeOrElse {
+        style.color.takeOrElse {
+            LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
+        }
+    }
+    // NOTE(text-perf-review): It might be worthwhile writing a bespoke merge implementation that
+    // will avoid reallocating if all of the options here are the defaults
+    val mergedStyle = style.merge(
+        TextStyle(
+            color = textColor,
+            fontSize = fontSize,
+            fontWeight = fontWeight,
+            textAlign = textAlign,
+            lineHeight = lineHeight,
+            fontFamily = fontFamily,
+            textDecoration = textDecoration,
+            fontStyle = fontStyle,
+            letterSpacing = letterSpacing
+        )
+    )
+    BasicText(
+        text,
         modifier,
-        color,
-        fontSize,
-        fontStyle,
-        fontWeight,
-        fontFamily,
-        letterSpacing,
-        textDecoration,
-        textAlign,
-        lineHeight,
+        mergedStyle,
+        onTextLayout,
         overflow,
         softWrap,
         maxLines,
-        emptyMap(),
-        onTextLayout,
-        style
     )
 }
 
 /**
  * High level element that displays text and provides semantics / accessibility information.
  *
- * The default [style] uses the [AmbientTextStyle] provided by the [MaterialTheme] / components. If
- * you are setting your own style, you may want to consider first retrieving [AmbientTextStyle],
+ * The default [style] uses the [LocalTextStyle] provided by the [MaterialTheme] / components. If
+ * you are setting your own style, you may want to consider first retrieving [LocalTextStyle],
  * and using [TextStyle.copy] to keep any theme defined attributes, only modifying the specific
  * attributes you want to override.
  *
@@ -140,14 +154,14 @@ fun Text(
  * from [style] will be used instead.
  *
  * Additionally, for [color], if [color] is not set, and [style] does not have a color, then
- * [AmbientContentColor] will be used with an alpha of [AmbientContentAlpha]- this allows this
+ * [LocalContentColor] will be used with an alpha of [LocalContentAlpha]- this allows this
  * [Text] or element containing this [Text] to adapt to different background colors and still
  * maintain contrast and accessibility.
  *
  * @param text The text to be displayed.
  * @param modifier [Modifier] to apply to this layout node.
  * @param color [Color] to apply to the text. If [Color.Unspecified], and [style] has no color set,
- * this will be [AmbientContentColor].
+ * this will be [LocalContentColor].
  * @param fontSize The size of glyphs to use when painting the text. See [TextStyle.fontSize].
  * @param fontStyle The typeface variant to use when drawing the letters (e.g., italic).
  * See [TextStyle.fontStyle].
@@ -170,7 +184,10 @@ fun Text(
  * [overflow] and [softWrap]. If it is not null, then it must be greater than zero.
  * @param inlineContent A map store composables that replaces certain ranges of the text. It's
  * used to insert composables into text layout. Check [InlineTextContent] for more information.
- * @param onTextLayout Callback that is executed when a new text layout is calculated.
+ * @param onTextLayout Callback that is executed when a new text layout is calculated. A
+ * [TextLayoutResult] object that callback provides contains paragraph information, size of the
+ * text, baselines and other details. The callback can be used to add additional decoration or
+ * functionality to the text. For example, to draw selection around the text.
  * @param style Style configuration for the text such as color, font, line height etc.
  */
 @Composable
@@ -191,13 +208,15 @@ fun Text(
     maxLines: Int = Int.MAX_VALUE,
     inlineContent: Map<String, InlineTextContent> = mapOf(),
     onTextLayout: (TextLayoutResult) -> Unit = {},
-    style: TextStyle = AmbientTextStyle.current
+    style: TextStyle = LocalTextStyle.current
 ) {
-    val textColor = color.useOrElse {
-        style.color.useOrElse {
-            AmbientContentColor.current.copy(alpha = AmbientContentAlpha.current)
+    val textColor = color.takeOrElse {
+        style.color.takeOrElse {
+            LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
         }
     }
+    // NOTE(text-perf-review): It might be worthwhile writing a bespoke merge implementation that
+    // will avoid reallocating if all of the options here are the defaults
     val mergedStyle = style.merge(
         TextStyle(
             color = textColor,
@@ -224,24 +243,24 @@ fun Text(
 }
 
 /**
- * Ambient containing the preferred [TextStyle] that will be used by [Text] components by default.
- * To set the value for this ambient, see [ProvideTextStyle] which will merge any missing
- * [TextStyle] properties with the existing [TextStyle] set in this ambient.
+ * CompositionLocal containing the preferred [TextStyle] that will be used by [Text] components by
+ * default. To set the value for this CompositionLocal, see [ProvideTextStyle] which will merge any
+ * missing [TextStyle] properties with the existing [TextStyle] set in this CompositionLocal.
  *
  * @see ProvideTextStyle
  */
-val AmbientTextStyle = ambientOf(structuralEqualityPolicy()) { TextStyle.Default }
+val LocalTextStyle = compositionLocalOf(structuralEqualityPolicy()) { TextStyle.Default }
 
-// TODO: b/156598010 remove this and replace with fold definition on the backing Ambient
+// TODO: b/156598010 remove this and replace with fold definition on the backing CompositionLocal
 /**
- * This function is used to set the current value of [AmbientTextStyle], merging the given style
+ * This function is used to set the current value of [LocalTextStyle], merging the given style
  * with the current style values for any missing attributes. Any [Text] components included in
  * this component's [content] will be styled with this style unless styled explicitly.
  *
- * @see AmbientTextStyle
+ * @see LocalTextStyle
  */
 @Composable
 fun ProvideTextStyle(value: TextStyle, content: @Composable () -> Unit) {
-    val mergedStyle = AmbientTextStyle.current.merge(value)
-    Providers(AmbientTextStyle provides mergedStyle, content = content)
+    val mergedStyle = LocalTextStyle.current.merge(value)
+    CompositionLocalProvider(LocalTextStyle provides mergedStyle, content = content)
 }

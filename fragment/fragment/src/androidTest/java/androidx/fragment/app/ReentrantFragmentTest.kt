@@ -78,6 +78,7 @@ class ReentrantFragmentTest(
                 val savedState: Parcelable?
                 try {
                     fc1.dispatchPause()
+                    @Suppress("DEPRECATION")
                     savedState = fc1.saveAllState()
                     fc1.dispatchStop()
                     fc1.dispatchDestroy()
@@ -141,6 +142,7 @@ class ReentrantFragment : StrictFragment() {
     private var toState = State.DETACHED
     private var isRestored: Boolean = false
 
+    @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
         if (savedInstanceState != null) {
             fromState = savedInstanceState.getSerializable(FROM_STATE) as State

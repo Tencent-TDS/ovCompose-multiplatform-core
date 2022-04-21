@@ -16,17 +16,32 @@
 
 package androidx.compose.foundation.demos.text
 
-import androidx.compose.foundation.ScrollableColumn
+import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -44,9 +59,14 @@ import androidx.compose.ui.text.samples.ParagraphStyleSample
 import androidx.compose.ui.text.samples.TextDecorationCombinedSample
 import androidx.compose.ui.text.samples.TextDecorationLineThroughSample
 import androidx.compose.ui.text.samples.TextDecorationUnderlineSample
+import androidx.compose.ui.text.samples.TextOverflowClipSample
+import androidx.compose.ui.text.samples.TextOverflowEllipsisSample
+import androidx.compose.ui.text.samples.TextOverflowVisibleFixedSizeSample
+import androidx.compose.ui.text.samples.TextOverflowVisibleMinHeightSample
 import androidx.compose.ui.text.samples.TextStyleSample
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
@@ -61,42 +81,83 @@ val fontSize10 = 30.sp
 
 @Composable
 fun TextDemo() {
-    ScrollableColumn {
-        TagLine(tag = "color, fontSize, fontWeight and fontStyle")
-        TextDemoBasic()
-        TagLine(
-            tag = "color, fontSize, fontWeight, fontFamily, fontStyle, letterSpacing, " +
-                "background, decoration"
-        )
-        TextDemoComplexStyling()
-        TagLine(tag = "Chinese, Arabic, and Hindi")
-        TextDemoLanguage()
-        TagLine(tag = "FontFamily generic names")
-        TextDemoFontFamily()
-        TagLine(tag = "FontFamily default values")
-        TextDemoFontFamilyDefaultValues()
-        TagLine(tag = "decoration, decorationColor and decorationStyle")
-        TextDemoTextDecoration()
-        TagLine(tag = "letterSpacing")
-        TextDemoLetterSpacing()
-        TagLine(tag = "baselineShift")
-        TextDemoBaselineShift()
-        TagLine(tag = "lineHeight")
-        TextDemoHeight()
-        TagLine(tag = "background")
-        TextDemoBackground()
-        TagLine(tag = "Locale: Japanese, Simplified and Traditional Chinese")
-        TextDemoLocale()
-        TagLine(tag = "textAlign and textDirection")
-        TextDemoTextAlign()
-        TagLine(tag = "softWrap: on and off")
-        TextDemoSoftWrap()
-        TagLine(tag = "shadow")
-        TextDemoShadowEffect()
-        TagLine(tag = "fontSizeScale")
-        TextDemoFontSizeScale()
-        TagLine(tag = "complex paragraph styling")
-        TextDemoParagraphStyling()
+    LazyColumn {
+        item {
+            TagLine(tag = "color, fontSize, fontWeight and fontStyle")
+            TextDemoBasic()
+        }
+        item {
+            TagLine(
+                tag = "color, fontSize, fontWeight, fontFamily, fontStyle, letterSpacing, " +
+                    "background, decoration"
+            )
+            TextDemoComplexStyling()
+        }
+        item {
+            TagLine(tag = "Chinese, Arabic, and Hindi")
+            TextDemoLanguage()
+        }
+        item {
+            TagLine(tag = "FontFamily generic names")
+            TextDemoFontFamily()
+        }
+        item {
+            TagLine(tag = "FontFamily default values")
+            TextDemoFontFamilyDefaultValues()
+        }
+        item {
+            TagLine(tag = "decoration, decorationColor and decorationStyle")
+            TextDemoTextDecoration()
+        }
+        item {
+            TagLine(tag = "letterSpacing")
+            TextDemoLetterSpacing()
+        }
+        item {
+            TagLine(tag = "baselineShift")
+            TextDemoBaselineShift()
+        }
+        item {
+            TagLine(tag = "lineHeight")
+            TextDemoHeight()
+        }
+        item {
+            TagLine(tag = "background")
+            TextDemoBackground()
+        }
+        item {
+            TagLine(tag = "Locale: Japanese, Simplified and Traditional Chinese")
+            TextDemoLocale()
+        }
+        item {
+            TagLine(tag = "textAlign and textDirection")
+            TextDemoTextAlign()
+        }
+        item {
+            TagLine(tag = "softWrap: on and off")
+            TextDemoSoftWrap()
+        }
+        item {
+            TagLine(tag = "shadow")
+            TextDemoShadowEffect()
+        }
+        item {
+            TagLine(tag = "fontSizeScale")
+            TextDemoFontSizeScale()
+        }
+        item {
+            TagLine(tag = "complex paragraph styling")
+            TextDemoParagraphStyling()
+        }
+
+        item {
+            TagLine(tag = "textOverflow: Clip, Ellipsis, Visible")
+            TextDemoTextOverflow()
+        }
+        item {
+            TagLine(tag = "inline content")
+            TextDemoInlineContent()
+        }
     }
 }
 
@@ -486,4 +547,81 @@ fun TextDemoFontSizeScale() {
 fun TextDemoParagraphStyling() {
     ParagraphStyleSample()
     ParagraphStyleAnnotatedStringsSample()
+}
+
+@Composable
+fun TextDemoTextOverflow() {
+    SecondTagLine(tag = "overflow = TextOverflow.Clip")
+    TextOverflowClipSample()
+    SecondTagLine(tag = "overflow = TextOverflow.Ellipsis")
+    TextOverflowEllipsisSample()
+    SecondTagLine(tag = "overflow = TextOverflow.Visible with fixed size")
+    TextOverflowVisibleFixedSizeSample()
+    SecondTagLine(tag = "overflow = TextOverflow.Visible with fixed width and min height")
+    TextOverflowVisibleMinHeightSample()
+}
+
+@Composable
+fun TextDemoInlineContent() {
+    val inlineContentId = "box"
+    val inlineTextContent = InlineTextContent(
+        placeholder = Placeholder(
+            width = 5.em,
+            height = 1.em,
+            placeholderVerticalAlign = PlaceholderVerticalAlign.AboveBaseline
+        )
+    ) {
+        val colorAnimation = rememberInfiniteTransition()
+        val color by colorAnimation.animateColor(
+            initialValue = Color.Red,
+            targetValue = Color.Blue,
+            animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse)
+        )
+        Box(modifier = Modifier.fillMaxSize().background(color))
+    }
+
+    Text(
+        text = buildAnnotatedString {
+            append("Here is a wide inline composable ")
+            appendInlineContent(inlineContentId)
+            append(" that is repeatedly changing its color.")
+        },
+        inlineContent = mapOf(inlineContentId to inlineTextContent),
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    SecondTagLine(tag = "RTL Layout")
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Text(
+            text = buildAnnotatedString {
+                append("Here is a wide inline composable ")
+                appendInlineContent(inlineContentId)
+                append(" that is repeatedly changing its color.")
+            },
+            inlineContent = mapOf(inlineContentId to inlineTextContent),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    SecondTagLine(tag = "Bidi Text - LTR/RTL")
+    Text(
+        text = buildAnnotatedString {
+            append("$displayText   ")
+            appendInlineContent(inlineContentId)
+            append("$displayTextArabic   ")
+        },
+        inlineContent = mapOf(inlineContentId to inlineTextContent),
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    SecondTagLine(tag = "Bidi Text - RTL/LTR")
+    Text(
+        text = buildAnnotatedString {
+            append("$displayTextArabic   ")
+            appendInlineContent(inlineContentId)
+            append("$displayText   ")
+        },
+        inlineContent = mapOf(inlineContentId to inlineTextContent),
+        modifier = Modifier.fillMaxWidth()
+    )
 }

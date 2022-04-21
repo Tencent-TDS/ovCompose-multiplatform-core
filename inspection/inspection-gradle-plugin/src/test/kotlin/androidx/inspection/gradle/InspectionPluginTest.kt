@@ -27,7 +27,6 @@ import org.junit.runners.JUnit4
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
-import java.util.Properties
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -41,11 +40,7 @@ class InspectionPluginTest {
 
     @Before
     fun setUp() {
-        val stream = File(projectSetup.rootDir, "local.properties").inputStream()
-
-        val properties = Properties()
-        properties.load(stream)
-        val sdkDir = properties.getProperty("sdk.dir")
+        val sdkDir = projectSetup.getSdkDirectory()
         dxExecutable = File(sdkDir, "build-tools/${projectSetup.props.buildToolsVersion}/dx")
             .absolutePath
         File("src/test/test-data", "app-project").copyRecursively(projectSetup.rootDir)
@@ -66,10 +61,18 @@ class InspectionPluginTest {
                     id("androidx.inspection")
                 }
             """.trimIndent(),
-            suffix = ""
+            suffix = """
+                dependencies {
+                    implementation("androidx.inspection:inspection:1.0.0")
+                }
+                android {
+                    defaultConfig {
+                        targetSdkVersion 30
+                    }
+                }
+            """
         )
-
-        val output = gradleRunner.withArguments("dexInspectorRelease").build()
+        val output = gradleRunner.withArguments("dexInspectorRelease", "--stacktrace").build()
         assertEquals(output.task(":dexInspectorRelease")!!.outcome, TaskOutcome.SUCCESS)
         val artifact = File(
             projectSetup.rootDir,

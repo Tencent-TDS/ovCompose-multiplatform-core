@@ -16,44 +16,45 @@
 
 package androidx.camera.view
 
-import android.app.Activity
 import android.content.Context
-import android.view.View
 import androidx.camera.camera2.Camera2Config
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.CameraX
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.testing.CameraUtil
+import androidx.camera.testing.CameraUtil.PreTestCameraIdList
 import androidx.camera.testing.CoreAppTestUtil
 import androidx.camera.testing.fakes.FakeActivity
 import androidx.camera.testing.fakes.FakeLifecycleOwner
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 @LargeTest
 @RunWith(Parameterized::class)
+@SdkSuppress(minSdkVersion = 21)
 class PreviewViewStreamStateTest(private val implMode: PreviewView.ImplementationMode) {
+
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
-        fun data() = arrayOf(
+        fun data(): Array<PreviewView.ImplementationMode> = arrayOf(
             PreviewView.ImplementationMode.COMPATIBLE,
             PreviewView.ImplementationMode.PERFORMANCE
         )
@@ -63,6 +64,8 @@ class PreviewViewStreamStateTest(private val implMode: PreviewView.Implementatio
         fun classSetUp() {
             CoreAppTestUtil.prepareDeviceUI(InstrumentationRegistry.getInstrumentation())
         }
+
+        const val TIMEOUT_SECONDS = 10L
     }
 
     private lateinit var mPreviewView: PreviewView
@@ -72,49 +75,37 @@ class PreviewViewStreamStateTest(private val implMode: PreviewView.Implementatio
     private lateinit var mCameraProvider: ProcessCameraProvider
 
     @get:Rule
-    val mUseCamera: TestRule = CameraUtil.grantCameraPermissionAndPreTest()
-
-    @Suppress("DEPRECATION")
-    @get:Rule
-    var mActivityRule = androidx.test.rule.ActivityTestRule(
-        FakeActivity::class.java
+    val useCamera = CameraUtil.grantCameraPermissionAndPreTest(
+        PreTestCameraIdList(Camera2Config.defaultConfig())
     )
 
-    @Throws(Throwable::class)
-    private fun setContentView(view: View) {
-        val activity: Activity = mActivityRule.activity
-        mActivityRule.runOnUiThread { activity.setContentView(view) }
-    }
+    @get:Rule
+    val mActivityRule: ActivityScenarioRule<FakeActivity> =
+        ActivityScenarioRule(FakeActivity::class.java)
 
     @Before
     fun setUp() {
         Assume.assumeTrue(CameraUtil.hasCameraWithLensFacing(CameraSelector.LENS_FACING_BACK))
         CoreAppTestUtil.assumeCompatibleDevice()
 
-        mIsSetup = true
-
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val config = Camera2Config.defaultConfig()
-        CameraX.initialize(context, config)
-        mLifecycle = FakeLifecycleOwner()
-        mInstrumentation.runOnMainSync {
-            mPreviewView = PreviewView(context)
-        }
-        setContentView(mPreviewView)
-        mInstrumentation.runOnMainSync {
-            mPreviewView.implementationMode = implMode
-        }
 
+        mLifecycle = FakeLifecycleOwner()
+        mActivityRule.scenario.onActivity { activity ->
+            mPreviewView = PreviewView(context)
+            mPreviewView.implementationMode = implMode
+            activity.setContentView(mPreviewView)
+        }
         mCameraProvider = ProcessCameraProvider.getInstance(context).get()
+        mIsSetup = true
     }
 
     @After
     fun tearDown() {
         if (mIsSetup) {
-            mInstrumentation.runOnMainSync {
-                mCameraProvider.unbindAll()
-            }
+            mInstrumentation.runOnMainSync { mCameraProvider.unbindAll() }
             mCameraProvider.shutdown().get()
+            mIsSetup = false
         }
     }
 
@@ -126,7 +117,7 @@ class PreviewViewStreamStateTest(private val implMode: PreviewView.Implementatio
         val preview = Preview.Builder().build()
         val imageAnalysis = ImageAnalysis.Builder().build()
         mInstrumentation.runOnMainSync {
-            preview.setSurfaceProvider(previewView.getSurfaceProvider())
+            preview.setSurfaceProvider(previewView.surfaceProvider)
             mCameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
         }
 
@@ -205,7 +196,7 @@ class PreviewViewStreamStateTest(private val implMode: PreviewView.Implementatio
         }
 
         try {
-            assertThat(latchForState.await(5000, TimeUnit.MILLISECONDS)).isTrue()
+            assertThat(latchForState.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)).isTrue()
         } finally {
             mInstrumentation.runOnMainSync {
                 mPreviewView.previewStreamState.removeObserver(observer)

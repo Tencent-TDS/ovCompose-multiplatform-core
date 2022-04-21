@@ -21,6 +21,7 @@ import android.app.Activity
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
@@ -33,8 +34,11 @@ import android.widget.LinearLayout
 import android.widget.LinearLayout.VERTICAL
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.CaptureVideo
+import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.activity.result.contract.ActivityResultContracts.GetContent
 import androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
@@ -61,19 +65,23 @@ class MainActivity : ComponentActivity() {
         toast("Got picture: $success")
     }
 
-    val getContent = registerForActivityResult(GetContent()) { uri ->
+    val captureVideo: ActivityResultLauncher<Uri> = registerForActivityResult(
+        CaptureVideo()
+    ) { success ->
+        toast("Got video: $success")
+    }
+
+    val getContent: ActivityResultLauncher<String> = registerForActivityResult(
+        GetContent()
+    ) { uri ->
         toast("Got image: $uri")
     }
 
-    val openDocuments = registerForActivityResult(OpenMultipleDocuments()) { uris ->
-        var docs = ""
-        uris.forEach {
-            docs += "uri: $it \n"
-        }
-        toast("Got documents: $docs")
-    }
+    lateinit var createDocument: ActivityResultLauncher<String>
 
-    val intentSender = registerForActivityResult(
+    lateinit var openDocuments: ActivityResultLauncher<Array<String>>
+
+    private val intentSender = registerForActivityResult(
         ActivityResultContracts
             .StartIntentSenderForResult()
     ) {
@@ -82,6 +90,19 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (android.os.Build.VERSION.SDK_INT >= 19) {
+            createDocument = registerForActivityResult(CreateDocument("image/png")) { uri ->
+                toast("Created document: $uri")
+            }
+            openDocuments = registerForActivityResult(OpenMultipleDocuments()) { uris ->
+                var docs = ""
+                uris.forEach {
+                    docs += "uri: $it \n"
+                }
+                toast("Got documents: $docs")
+            }
+        }
 
         setContentView {
             add(::LinearLayout) {
@@ -98,11 +119,21 @@ class MainActivity : ComponentActivity() {
                     val uri = FileProvider.getUriForFile(this@MainActivity, packageName, file)
                     takePicture.launch(uri)
                 }
+                button("Capture video") {
+                    val file = File(filesDir, "video")
+                    val uri = FileProvider.getUriForFile(this@MainActivity, packageName, file)
+                    captureVideo.launch(uri)
+                }
                 button("Pick an image") {
                     getContent.launch("image/*")
                 }
-                button("Open documents") {
-                    openDocuments.launch(arrayOf("*/*"))
+                if (android.os.Build.VERSION.SDK_INT >= 19) {
+                    button("Create document") {
+                        createDocument.launch("Temp")
+                    }
+                    button("Open documents") {
+                        openDocuments.launch(arrayOf("*/*"))
+                    }
                 }
                 button("Start IntentSender") {
                     val request = IntentSenderRequest.Builder(

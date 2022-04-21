@@ -72,7 +72,9 @@ abstract class BasePluginTest {
         File(projectRoot(), "$NAV_RESOURCES/$name")
 
     internal fun gradleBuilder(vararg args: String) = GradleRunner.create()
-        .withProjectDir(projectRoot()).withPluginClasspath().withArguments(*args)
+        .withProjectDir(projectRoot()).withPluginClasspath()
+        // b/175897186 set explicit metaspace size in hopes of fewer crashes
+        .withArguments("-Dorg.gradle.jvmargs=-XX:MaxMetaspaceSize=512m", *args)
 
     internal fun runGradle(vararg args: String) = gradleBuilder(*args).build()
     internal fun runAndFailGradle(vararg args: String) = gradleBuilder(*args).buildAndFail()
@@ -87,8 +89,11 @@ abstract class BasePluginTest {
                 }
             """.trimIndent(),
             suffix = """
+                android {
+                    namespace 'androidx.navigation.testapp'
+                }
                 dependencies {
-                    implementation "${projectSetup.props.navigationCommon}"
+                    implementation "${projectSetup.props.navigationRuntime}"
                 }
             """.trimIndent()
         )
@@ -96,6 +101,13 @@ abstract class BasePluginTest {
 
     internal fun setupMultiModuleBuildGradle() {
         testData("multimodule-project").copyRecursively(projectRoot())
+        val repositoriesBlock = buildString {
+            appendLine("repositories {")
+            projectSetup.allRepositoryPaths.forEach {
+                appendLine("""maven { url "$it" }""")
+            }
+            appendLine("}")
+        }
         val props = projectSetup.props
         projectSetup.buildFile.writeText(
             """
@@ -104,14 +116,11 @@ abstract class BasePluginTest {
                 ext.buildTools = "${props.buildToolsVersion}"
                 ext.minSdk = ${props.minSdkVersion}
                 ext.debugKeystoreFile = "${props.debugKeystore}"
-                ext.navigationCommonDep = "${props.navigationCommon}"
+                ext.navigationCommonDep = "${props.navigationRuntime}"
             }
 
             allprojects {
-                repositories {
-                    maven { url "${props.prebuiltsRoot}/androidx/external" }
-                    maven { url "${props.prebuiltsRoot}/androidx/internal" }
-                }
+                $repositoriesBlock
             }
             """.trimIndent()
         )
@@ -128,9 +137,12 @@ abstract class BasePluginTest {
                 }
             """.trimIndent(),
             suffix = """
+                android {
+                    namespace 'androidx.navigation.testapp'
+                }
                 dependencies {
                     implementation "${projectSetup.props.kotlinStblib}"
-                    implementation "${projectSetup.props.navigationCommon}"
+                    implementation "${projectSetup.props.navigationRuntime}"
                 }
             """.trimIndent()
         )

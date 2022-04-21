@@ -33,30 +33,44 @@ package androidx.compose.ui.text.font
  *
  *  @sample androidx.compose.ui.text.samples.FontFamilySynthesisSample
  **/
-enum class FontSynthesis {
-    /**
-     * Turns off font synthesis. Neither bold nor slanted faces are synthesized if they don't
-     * exist in the [FontFamily]
-     */
-    None,
+@kotlin.jvm.JvmInline
+value class FontSynthesis internal constructor(internal val value: Int) {
 
-    /**
-     * Only a bold font is synthesized, if it is not available in the [FontFamily]. Slanted fonts
-     * will not be synthesized.
-     */
-    Weight,
+    override fun toString(): String {
+        return when (this) {
+            None -> "None"
+            All -> "All"
+            Weight -> "Weight"
+            Style -> "Style"
+            else -> "Invalid"
+        }
+    }
 
-    /**
-     * Only an slanted font is synthesized, if it is not available in the [FontFamily]. Bold fonts
-     * will not be synthesized.
-     */
-    Style,
+    companion object {
+        /**
+         * Turns off font synthesis. Neither bold nor slanted faces are synthesized if they don't
+         * exist in the [FontFamily]
+         */
+        val None = FontSynthesis(0)
 
-    /**
-     * The system synthesizes both bold and slanted fonts if either of them are not available in
-     * the [FontFamily]
-     */
-    All;
+        /**
+         * The system synthesizes both bold and slanted fonts if either of them are not available in
+         * the [FontFamily]
+         */
+        val All = FontSynthesis(1)
+
+        /**
+         * Only a bold font is synthesized, if it is not available in the [FontFamily]. Slanted fonts
+         * will not be synthesized.
+         */
+        val Weight = FontSynthesis(2)
+
+        /**
+         * Only an slanted font is synthesized, if it is not available in the [FontFamily]. Bold fonts
+         * will not be synthesized.
+         */
+        val Style = FontSynthesis(3)
+    }
 
     internal val isWeightOn: Boolean
         get() = this == All || this == Weight
@@ -64,3 +78,24 @@ enum class FontSynthesis {
     internal val isStyleOn: Boolean
         get() = this == All || this == Style
 }
+
+/**
+ * Perform platform-specific font synthesis such as fake bold or fake italic.
+ *
+ * Platforms are not required to support synthesis, in which case they should return [typeface].
+ *
+ * Platforms that support synthesis should check [FontSynthesis.isWeightOn] and
+ * [FontSynthesis.isStyleOn] in this method before synthesizing bold or italic, respectively.
+ *
+ * @param typeface a platform-specific typeface
+ * @param font initial font that generated the typeface via loading
+ * @param requestedWeight app-requested weight (may be different than the font's weight)
+ * @param requestedStyle app-requested style (may be different than the font's style)
+ * @return a synthesized typeface, or the passed [typeface] if synthesis is not needed or supported.
+ */
+internal expect fun FontSynthesis.synthesizeTypeface(
+    typeface: Any,
+    font: Font,
+    requestedWeight: FontWeight,
+    requestedStyle: FontStyle
+): Any

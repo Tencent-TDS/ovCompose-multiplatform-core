@@ -16,7 +16,6 @@
 
 package androidx.camera.view
 
-import android.app.Activity
 import android.content.Context
 import android.util.Size
 import android.view.View
@@ -25,14 +24,15 @@ import androidx.camera.core.SurfaceRequest
 import androidx.camera.testing.CoreAppTestUtil
 import androidx.camera.testing.fakes.FakeActivity
 import androidx.camera.testing.fakes.FakeCamera
+import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import org.junit.After
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.CountDownLatch
@@ -40,37 +40,30 @@ import java.util.concurrent.TimeUnit
 
 @MediumTest
 @RunWith(AndroidJUnit4::class)
+@SdkSuppress(minSdkVersion = 21)
 class SurfaceViewImplementationTest {
 
-    private val ANY_WIDTH = 640
-    private val ANY_HEIGHT = 480
-    private val ANY_SIZE = Size(ANY_WIDTH, ANY_HEIGHT)
+    companion object {
+        private const val ANY_WIDTH = 640
+        private const val ANY_HEIGHT = 480
+        private val ANY_SIZE: Size by lazy { Size(ANY_WIDTH, ANY_HEIGHT) }
+    }
 
     private lateinit var mParent: FrameLayout
     private lateinit var mImplementation: SurfaceViewImplementation
-    private val mInstrumentation =
-        InstrumentationRegistry.getInstrumentation()
+    private val mInstrumentation = InstrumentationRegistry.getInstrumentation()
     private lateinit var mSurfaceRequest: SurfaceRequest
     private lateinit var mContext: Context
 
     // Shows the view in activity so that SurfaceView can work normally
-    @Suppress("DEPRECATION")
-    @get:Rule
-    var mActivityRule = androidx.test.rule.ActivityTestRule(
-        FakeActivity::class.java, false, false
-    )
-
-    @Throws(Throwable::class)
-    private fun setContentView(view: View) {
-        val activity: Activity = mActivityRule.activity
-        mActivityRule.runOnUiThread { activity.setContentView(view) }
-    }
+    private lateinit var mActivityScenario: ActivityScenario<FakeActivity>
 
     @Before
     fun setUp() {
         CoreAppTestUtil.prepareDeviceUI(mInstrumentation)
-        mActivityRule.launchActivity(null)
-        mContext = ApplicationProvider.getApplicationContext<Context>()
+
+        mActivityScenario = ActivityScenario.launch(FakeActivity::class.java)
+        mContext = ApplicationProvider.getApplicationContext()
         mParent = FrameLayout(mContext)
         setContentView(mParent)
 
@@ -99,7 +92,7 @@ class SurfaceViewImplementationTest {
     fun onSurfaceNotInUseListener_isCalledWhenSurfaceIsNotUsedAnyMore() {
         CoreAppTestUtil.checkKeyguard(mContext)
 
-        var listenerLatch = CountDownLatch(1)
+        val listenerLatch = CountDownLatch(1)
         val onSurfaceNotInUseListener = {
             listenerLatch.countDown()
         }
@@ -115,13 +108,13 @@ class SurfaceViewImplementationTest {
 
     @Test
     fun onSurfaceNotInUseListener_isCalledWhenSurfaceRequestIsCancelled() {
-        var listenerLatch = CountDownLatch(1)
+        val listenerLatch = CountDownLatch(1)
         val onSurfaceNotInUseListener = {
             listenerLatch.countDown()
         }
 
         // Not attach the mParent to the window so that the Surface cannot be created.
-        setContentView(View(ApplicationProvider.getApplicationContext()))
+        setContentView(View(mContext))
 
         mInstrumentation.runOnMainSync {
             mImplementation.onSurfaceRequested(mSurfaceRequest, onSurfaceNotInUseListener)
@@ -138,5 +131,10 @@ class SurfaceViewImplementationTest {
     fun waitForNextFrame_futureCompletesImmediately() {
         val future = mImplementation.waitForNextFrame()
         future.get(20, TimeUnit.MILLISECONDS)
+    }
+
+    @Throws(Throwable::class)
+    private fun setContentView(view: View) {
+        mActivityScenario.onActivity { activity -> activity.setContentView(view) }
     }
 }

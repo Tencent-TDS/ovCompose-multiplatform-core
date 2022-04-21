@@ -16,6 +16,7 @@
 
 package androidx.camera.extensions.internal;
 
+import android.graphics.ImageFormat;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.media.Image;
@@ -23,6 +24,7 @@ import android.util.Size;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.impl.Camera2CameraCaptureResultConverter;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageInfo;
@@ -32,7 +34,6 @@ import androidx.camera.core.impl.CameraCaptureResult;
 import androidx.camera.core.impl.CameraCaptureResults;
 import androidx.camera.core.impl.CaptureProcessor;
 import androidx.camera.core.impl.ImageProxyBundle;
-import androidx.camera.extensions.PreviewExtender;
 import androidx.camera.extensions.impl.PreviewImageProcessorImpl;
 import androidx.core.util.Preconditions;
 
@@ -44,8 +45,8 @@ import java.util.concurrent.ExecutionException;
 /**
  * A {@link CaptureProcessor} that calls a vendor provided preview processing implementation.
  */
-public final class AdaptingPreviewProcessor implements CaptureProcessor,
-        PreviewExtender.CloseableProcessor {
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+public final class AdaptingPreviewProcessor implements CaptureProcessor, CloseableProcessor {
     private static final String TAG = "AdaptingPreviewProcesso";
     private final PreviewImageProcessorImpl mImpl;
     private BlockingCloseAccessCounter mAccessCounter = new BlockingCloseAccessCounter();
@@ -62,7 +63,8 @@ public final class AdaptingPreviewProcessor implements CaptureProcessor,
 
         try {
             mImpl.onOutputSurface(surface, imageFormat);
-            mImpl.onImageFormatUpdate(imageFormat);
+            // No input formats other than YUV_420_888 are allowed.
+            mImpl.onImageFormatUpdate(ImageFormat.YUV_420_888);
         } finally {
             mAccessCounter.decrement();
         }

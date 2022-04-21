@@ -17,6 +17,7 @@
 package androidx.camera.core;
 
 import android.annotation.SuppressLint;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.media.ImageReader;
 import android.util.Size;
@@ -27,12 +28,15 @@ import androidx.annotation.GuardedBy;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.camera.core.impl.CameraControlInternal;
+import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.CameraInternal;
 import androidx.camera.core.impl.Config;
 import androidx.camera.core.impl.Config.Option;
+import androidx.camera.core.impl.DeferrableSurface;
 import androidx.camera.core.impl.ImageOutputConfig;
 import androidx.camera.core.impl.MutableOptionsBundle;
 import androidx.camera.core.impl.SessionConfig;
@@ -41,6 +45,7 @@ import androidx.camera.core.impl.UseCaseConfigFactory;
 import androidx.camera.core.internal.TargetConfig;
 import androidx.camera.core.internal.utils.UseCaseConfigUtil;
 import androidx.core.util.Preconditions;
+import androidx.lifecycle.LifecycleOwner;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -53,6 +58,7 @@ import java.util.Set;
  * that are usable by a camera. UseCase also will communicate of the active/inactive state to
  * the Camera.
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public abstract class UseCase {
 
     ////////////////////////////////////////////////////////////////////////////////////////////
@@ -124,6 +130,7 @@ public abstract class UseCase {
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     // The currently attached session config
+    @NonNull
     private SessionConfig mAttachedSessionConfig = SessionConfig.defaultEmptySessionConfig();
 
     /**
@@ -164,6 +171,7 @@ public abstract class UseCase {
     /**
      * Create a merged {@link UseCaseConfig} from the UseCase, camera, and an extended config.
      *
+     * @param cameraInfo          info about the camera which may be used to resolve conflicts.
      * @param extendedConfig      configs that take priority over the UseCase's default config
      * @param cameraDefaultConfig configs that have lower priority than the UseCase's default.
      *                            This Config comes from the camera implementation.
@@ -175,6 +183,7 @@ public abstract class UseCase {
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
     public UseCaseConfig<?> mergeConfigs(
+            @NonNull CameraInfoInternal cameraInfo,
             @Nullable UseCaseConfig<?> extendedConfig,
             @Nullable UseCaseConfig<?> cameraDefaultConfig) {
         MutableOptionsBundle mergedConfig;
@@ -199,8 +208,7 @@ public abstract class UseCase {
 
         if (extendedConfig != null) {
             // If any options need special handling, this is the place to do it. For now we'll
-            // just copy
-            // over all options.
+            // just copy over all options.
             for (Option<?> opt : extendedConfig.listOptions()) {
                 @SuppressWarnings("unchecked") // Options/values are being copied directly
                         Option<Object> objectOpt = (Option<Object>) opt;
@@ -222,7 +230,7 @@ public abstract class UseCase {
             mergedConfig.removeOption(ImageOutputConfig.OPTION_TARGET_ASPECT_RATIO);
         }
 
-        return onMergeConfig(getUseCaseConfigBuilder(mergedConfig));
+        return onMergeConfig(cameraInfo, getUseCaseConfigBuilder(mergedConfig));
     }
 
     /**
@@ -231,8 +239,9 @@ public abstract class UseCase {
      * <p> This can be overridden by a UseCase which need to do additional verification of the
      * configs to make sure there are no conflicting options.
      *
-     * @param builder the builder containing the merged configs requiring addition conflict
-     *                resolution
+     * @param cameraInfo info about the camera which may be used to resolve conflicts.
+     * @param builder    the builder containing the merged configs requiring addition conflict
+     *                   resolution
      * @return the conflict resolved config
      * @throws IllegalArgumentException if there exists conflicts in the merged config that can
      * not be resolved
@@ -240,7 +249,8 @@ public abstract class UseCase {
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
-    UseCaseConfig<?> onMergeConfig(@NonNull UseCaseConfig.Builder<?, ?, ?> builder) {
+    protected UseCaseConfig<?> onMergeConfig(@NonNull CameraInfoInternal cameraInfo,
+            @NonNull UseCaseConfig.Builder<?, ?, ?> builder) {
         return builder.getUseCaseConfig();
     }
 
@@ -263,7 +273,16 @@ public abstract class UseCase {
             UseCaseConfigUtil.updateTargetRotationAndRelatedConfigs(builder, targetRotation);
             mUseCaseConfig = builder.getUseCaseConfig();
 
-            mCurrentConfig = mergeConfigs(mExtendedConfig, mCameraConfig);
+            // Only merge configs if currently attached to a camera. Otherwise, set the current
+            // config to the use case config and mergeConfig() will be called once the use case
+            // is attached to a camera.
+            CameraInternal camera = getCamera();
+            if (camera == null) {
+                mCurrentConfig = mUseCaseConfig;
+            } else {
+                mCurrentConfig = mergeConfigs(camera.getCameraInfoInternal(), mExtendedConfig,
+                        mCameraConfig);
+            }
 
             return true;
         }
@@ -281,6 +300,19 @@ public abstract class UseCase {
     @ImageOutputConfig.RotationValue
     protected int getTargetRotationInternal() {
         return ((ImageOutputConfig) mCurrentConfig).getTargetRotation(Surface.ROTATION_0);
+    }
+
+    /**
+     * Returns the target rotation set by apps explicitly.
+     *
+     * @return The rotation of the intended target.
+     * @hide
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @ImageOutputConfig.OptionalRotationValue
+    protected int getAppTargetRotation() {
+        return ((ImageOutputConfig) mCurrentConfig)
+                .getAppTargetRotation(ImageOutputConfig.ROTATION_NOT_SPECIFIED);
     }
 
     /**
@@ -303,6 +335,11 @@ public abstract class UseCase {
     @RestrictTo(Scope.LIBRARY_GROUP)
     protected void updateSessionConfig(@NonNull SessionConfig sessionConfig) {
         mAttachedSessionConfig = sessionConfig;
+        for (DeferrableSurface surface : sessionConfig.getSurfaces()) {
+            if (surface.getContainerClass() == null) {
+                surface.setContainerClass(this.getClass());
+            }
+        }
     }
 
     /**
@@ -329,7 +366,7 @@ public abstract class UseCase {
      * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
-    @Nullable
+    @NonNull
     public SessionConfig getSessionConfig() {
         return mAttachedSessionConfig;
     }
@@ -531,7 +568,8 @@ public abstract class UseCase {
 
         mExtendedConfig = extendedConfig;
         mCameraConfig = cameraConfig;
-        mCurrentConfig = mergeConfigs(mExtendedConfig, mCameraConfig);
+        mCurrentConfig = mergeConfigs(camera.getCameraInfoInternal(), mExtendedConfig,
+                mCameraConfig);
 
         EventCallback eventCallback = mCurrentConfig.getUseCaseEventCallback(null);
         if (eventCallback != null) {
@@ -638,7 +676,7 @@ public abstract class UseCase {
      *
      * @hide
      */
-    @RestrictTo(Scope.LIBRARY)
+    @RestrictTo(Scope.LIBRARY_GROUP)
     public void setViewPortCropRect(@NonNull Rect viewPortCropRect) {
         mViewPortCropRect = viewPortCropRect;
     }
@@ -648,11 +686,19 @@ public abstract class UseCase {
      *
      * @hide
      */
-    @RestrictTo(Scope.LIBRARY)
+    @RestrictTo(Scope.LIBRARY_GROUP)
     @Nullable
     public Rect getViewPortCropRect() {
         return mViewPortCropRect;
     }
+
+    /**
+     * Sets the sensor to image buffer transform matrix.
+     *
+     * @hide
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    public void setSensorToBufferTransformMatrix(@NonNull Matrix sensorToBufferTransformMatrix) {}
 
     /**
      * Get image format for the use case.
@@ -663,6 +709,54 @@ public abstract class UseCase {
     @RestrictTo(Scope.LIBRARY_GROUP)
     public int getImageFormat() {
         return mCurrentConfig.getInputFormat();
+    }
+
+    /**
+     * Returns {@link ResolutionInfo} of the use case.
+     *
+     * <p>The resolution information might change if the use case is unbound and then rebound or
+     * the target rotation setting is changed. The application needs to call
+     * {@link #getResolutionInfo()} again to get the latest {@link ResolutionInfo} for the changes.
+     *
+     * @return the resolution information if the use case has been bound by the
+     * {@link androidx.camera.lifecycle.ProcessCameraProvider#bindToLifecycle(LifecycleOwner
+     * , CameraSelector, UseCase...)} API, or null if the use case is not bound yet.
+     * @hide
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @Nullable
+    public ResolutionInfo getResolutionInfo() {
+        return getResolutionInfoInternal();
+    }
+
+    /**
+     * Returns a new {@link ResolutionInfo} according to the latest settings of the use case, or
+     * null if the use case is not bound yet.
+     *
+     * <p>This allows the subclasses to return different {@link ResolutionInfo} according to its
+     * different design.
+     *
+     * @hide
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @Nullable
+    protected ResolutionInfo getResolutionInfoInternal() {
+        CameraInternal camera = getCamera();
+        Size resolution = getAttachedSurfaceResolution();
+
+        if (camera == null || resolution == null) {
+            return null;
+        }
+
+        Rect cropRect = getViewPortCropRect();
+
+        if (cropRect == null) {
+            cropRect = new Rect(0, 0, resolution.getWidth(), resolution.getHeight());
+        }
+
+        int rotationDegrees = getRelativeRotation(camera);
+
+        return ResolutionInfo.create(resolution, cropRect, rotationDegrees);
     }
 
     enum State {

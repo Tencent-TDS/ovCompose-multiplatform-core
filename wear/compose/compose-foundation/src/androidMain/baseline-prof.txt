@@ -1,0 +1,16 @@
+SPLandroidx/wear/compose/foundation/AnchorType;->**(**)**
+HSPLandroidx/wear/compose/foundation/ArcPaddingPx;->**(**)**
+Landroidx/wear/compose/foundation/ArcPaddingValues;
+SPLandroidx/wear/compose/foundation/ArcPaddingValuesImpl;->**(**)**
+HSPLandroidx/wear/compose/foundation/BasicCurvedTextKt**->**(**)**
+HSPLandroidx/wear/compose/foundation/ContainerChild;->**(**)**
+HSPLandroidx/wear/compose/foundation/CurvedChild;->**(**)**
+HSPLandroidx/wear/compose/foundation/CurvedLayoutInfo;->**(**)**
+HSPLandroidx/wear/compose/foundation/CurvedLayoutKt**->**(**)**
+HSPLandroidx/wear/compose/foundation/CurvedRowChild;->**(**)**
+SPLandroidx/wear/compose/foundation/CurvedScope;->**(**)**
+HSPLandroidx/wear/compose/foundation/CurvedTextChild;->**(**)**
+HSPLandroidx/wear/compose/foundation/CurvedTextDelegate;->**(**)**
+HSPLandroidx/wear/compose/foundation/CurvedTextStyle;->**(**)**
+SPLandroidx/wear/compose/foundation/CurvedTextStyleKt**->**(**)**
+HSPLandroidx/wear/compose/foundation/PartialLayoutInfo;->**(**)**

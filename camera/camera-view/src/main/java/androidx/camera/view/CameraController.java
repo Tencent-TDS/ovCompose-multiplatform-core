@@ -16,28 +16,38 @@
 
 package androidx.camera.view;
 
+import static androidx.camera.core.impl.utils.Threads.checkMainThread;
+import static androidx.camera.core.impl.utils.executor.CameraXExecutors.mainThreadExecutor;
+import static androidx.camera.view.CameraController.OutputSize.UNASSIGNED_ASPECT_RATIO;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.hardware.display.DisplayManager;
-import android.os.Handler;
-import android.os.Looper;
+import android.graphics.Matrix;
+import android.hardware.camera2.CaptureResult;
+import android.os.Build;
+import android.util.Size;
 import android.view.Display;
 
+import androidx.annotation.DoNotInline;
+import androidx.annotation.FloatRange;
 import androidx.annotation.IntDef;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
-import androidx.annotation.experimental.UseExperimental;
+import androidx.camera.core.AspectRatio;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraControl;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraInfoUnavailableException;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.CameraUnavailableException;
-import androidx.camera.core.ExperimentalUseCaseGroup;
+import androidx.camera.core.ExperimentalAnalyzer;
 import androidx.camera.core.FocusMeteringAction;
+import androidx.camera.core.FocusMeteringResult;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageProxy;
@@ -52,21 +62,25 @@ import androidx.camera.core.UseCaseGroup;
 import androidx.camera.core.VideoCapture;
 import androidx.camera.core.ViewPort;
 import androidx.camera.core.ZoomState;
-import androidx.camera.core.impl.utils.Threads;
+import androidx.camera.core.impl.ImageOutputConfig;
 import androidx.camera.core.impl.utils.executor.CameraXExecutors;
+import androidx.camera.core.impl.utils.futures.FutureCallback;
 import androidx.camera.core.impl.utils.futures.Futures;
 import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.camera.view.transform.OutputTransform;
 import androidx.camera.view.video.ExperimentalVideo;
 import androidx.camera.view.video.OnVideoSavedCallback;
 import androidx.camera.view.video.OutputFileOptions;
 import androidx.camera.view.video.OutputFileResults;
 import androidx.core.util.Preconditions;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -92,13 +106,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * {@link UseCase}s freezes the preview for a short period of time. To avoid the glitch, the
  * {@link UseCase}s need to be enabled/disabled before the controller is set on {@link PreviewView}.
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public abstract class CameraController {
 
     private static final String TAG = "CameraController";
 
     // Externally visible error messages.
     private static final String CAMERA_NOT_INITIALIZED = "Camera not initialized.";
-    private static final String PREVIEW_VIEW_NOT_ATTACHED = "PreviewView not attached.";
+    private static final String PREVIEW_VIEW_NOT_ATTACHED =
+            "PreviewView not attached to CameraController.";
     private static final String CAMERA_NOT_ATTACHED = "Use cases not attached to camera.";
     private static final String IMAGE_CAPTURE_DISABLED = "ImageCapture disabled.";
     private static final String VIDEO_CAPTURE_DISABLED = "VideoCapture disabled.";
@@ -108,11 +124,70 @@ public abstract class CameraController {
     private static final float AE_SIZE = AF_SIZE * 1.5f;
 
     /**
+     * {@link ImageAnalysis.Analyzer} option for returning {@link PreviewView} coordinates.
+     *
+     * <p>When the {@link ImageAnalysis.Analyzer} is configured with this option, it will receive a
+     * {@link Matrix} that will receive a value that represents the transformation from camera
+     * sensor to the {@link PreviewView}, which can be used for highlighting detected result in
+     * {@link PreviewView}. For example, laying over a bounding box on top of the detected face.
+     *
+     * <p>Note this option only works if the {@link ImageAnalysis.Analyzer} is set via
+     * {@link CameraController#setImageAnalysisAnalyzer}. It will not be effective when used with
+     * camera-core directly.
+     *
+     * @see ImageAnalysis.Analyzer
+     */
+    @ExperimentalAnalyzer
+    public static final int COORDINATE_SYSTEM_VIEW_REFERENCED = 1;
+
+    /**
+     * States for tap-to-focus feature.
+     *
+     * @hide
+     */
+    @Retention(RetentionPolicy.SOURCE)
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @IntDef(value = {TAP_TO_FOCUS_NOT_STARTED, TAP_TO_FOCUS_STARTED, TAP_TO_FOCUS_FOCUSED,
+            TAP_TO_FOCUS_NOT_FOCUSED, TAP_TO_FOCUS_FAILED})
+    public @interface TapToFocusStates {
+    }
+
+    /**
+     * No tap-to-focus action has been started by the end user.
+     */
+    public static final int TAP_TO_FOCUS_NOT_STARTED = 0;
+
+    /**
+     * A tap-to-focus action has started but not completed. The app also gets notified with this
+     * state if a new action happens before the previous one could finish.
+     */
+    public static final int TAP_TO_FOCUS_STARTED = 1;
+
+    /**
+     * The previous tap-to-focus action was completed successfully and the camera is focused.
+     */
+    public static final int TAP_TO_FOCUS_FOCUSED = 2;
+
+    /**
+     * The previous tap-to-focus action was completed successfully but the camera is still
+     * unfocused, similar to the {@link CaptureResult#CONTROL_AF_STATE_NOT_FOCUSED_LOCKED} state.
+     * The end user might be able to get a better result by trying again with different camera
+     * distances and/or lighting.
+     */
+    public static final int TAP_TO_FOCUS_NOT_FOCUSED = 3;
+
+    /**
+     * The previous tap-to-focus action was failed to complete. This is usually due to device
+     * limitations.
+     */
+    public static final int TAP_TO_FOCUS_FAILED = 4;
+
+    /**
      * Bitmask options to enable/disable use cases.
      *
      * @hide
      */
-    @UseExperimental(markerClass = ExperimentalVideo.class)
+    @OptIn(markerClass = ExperimentalVideo.class)
     @Retention(RetentionPolicy.SOURCE)
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef(flag = true, value = {IMAGE_CAPTURE, IMAGE_ANALYSIS, VIDEO_CAPTURE})
@@ -146,31 +221,49 @@ public abstract class CameraController {
     // Synthetic access
     @SuppressWarnings("WeakerAccess")
     @NonNull
-    final Preview mPreview;
+    Preview mPreview;
+
+    @Nullable
+    OutputSize mPreviewTargetSize;
 
     // Synthetic access
     @SuppressWarnings("WeakerAccess")
     @NonNull
-    final ImageCapture mImageCapture;
+    ImageCapture mImageCapture;
+
+    @Nullable
+    OutputSize mImageCaptureTargetSize;
+
+    @Nullable
+    Executor mImageCaptureIoExecutor;
 
     @Nullable
     private Executor mAnalysisExecutor;
 
     @Nullable
+    private Executor mAnalysisBackgroundExecutor;
+
+    @Nullable
     private ImageAnalysis.Analyzer mAnalysisAnalyzer;
 
     @NonNull
-    private ImageAnalysis mImageAnalysis;
+    ImageAnalysis mImageAnalysis;
+
+    @Nullable
+    OutputSize mImageAnalysisTargetSize;
 
     // Synthetic access
     @SuppressWarnings("WeakerAccess")
     @NonNull
-    final VideoCapture mVideoCapture;
+    VideoCapture mVideoCapture;
 
     // Synthetic access
     @SuppressWarnings("WeakerAccess")
     @NonNull
     final AtomicBoolean mVideoIsRecording = new AtomicBoolean(false);
+
+    @Nullable
+    OutputSize mVideoCaptureOutputSize;
 
     // The latest bound camera.
     // Synthetic access
@@ -198,19 +291,21 @@ public abstract class CameraController {
     @Nullable
     Display mPreviewDisplay;
 
-    // Synthetic access
-    @SuppressWarnings("WeakerAccess")
-    @NonNull
-    final SensorRotationListener mSensorRotationListener;
+    private final RotationProvider mRotationProvider;
 
-    @Nullable
-    private final DisplayRotationListener mDisplayRotationListener;
+    @VisibleForTesting
+    @NonNull
+    final RotationProvider.Listener mDeviceRotationListener;
 
     private boolean mPinchToZoomEnabled = true;
     private boolean mTapToFocusEnabled = true;
 
     private final ForwardingLiveData<ZoomState> mZoomState = new ForwardingLiveData<>();
     private final ForwardingLiveData<Integer> mTorchState = new ForwardingLiveData<>();
+    // Synthetic access
+    @SuppressWarnings("WeakerAccess")
+    final MutableLiveData<Integer> mTapToFocusState = new MutableLiveData<>(
+            TAP_TO_FOCUS_NOT_STARTED);
 
     private final Context mAppContext;
 
@@ -218,7 +313,7 @@ public abstract class CameraController {
     private final ListenableFuture<Void> mInitializationFuture;
 
     CameraController(@NonNull Context context) {
-        mAppContext = context.getApplicationContext();
+        mAppContext = getApplicationContext(context);
         mPreview = new Preview.Builder().build();
         mImageCapture = new ImageCapture.Builder().build();
         mImageAnalysis = new ImageAnalysis.Builder().build();
@@ -231,27 +326,43 @@ public abstract class CameraController {
                     mCameraProvider = provider;
                     startCameraAndTrackStates();
                     return null;
-                }, CameraXExecutors.mainThreadExecutor());
+                }, mainThreadExecutor());
 
-        // Listen to display rotation and set target rotation for Preview.
-        mDisplayRotationListener = new DisplayRotationListener();
-
-        // Listen to motion sensor reading and set target rotation for ImageCapture and
-        // VideoCapture.
-        mSensorRotationListener = new SensorRotationListener(mAppContext) {
-            @Override
-            public void onRotationChanged(int rotation) {
-                mImageCapture.setTargetRotation(rotation);
-                mVideoCapture.setTargetRotation(rotation);
-            }
+        // Listen for device rotation changes and set target rotation for non-preview use cases.
+        // The output of non-preview use cases need to be corrected in fixed landscape/portrait
+        // mode.
+        mRotationProvider = new RotationProvider(mAppContext);
+        mDeviceRotationListener = rotation -> {
+            mImageAnalysis.setTargetRotation(rotation);
+            mImageCapture.setTargetRotation(rotation);
+            mVideoCapture.setTargetRotation(rotation);
         };
+    }
+
+    /**
+     * Gets the application context and preserves the attribution tag.
+     *
+     * TODO(b/185272953): instrument test getting attribution tag once the view artifact depends
+     * on a core version that has the fix.
+     */
+    private static Context getApplicationContext(@NonNull Context context) {
+        Context applicationContext = context.getApplicationContext();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            String attributeTag = Api30Impl.getAttributionTag(context);
+
+            if (attributeTag != null) {
+                return Api30Impl.createAttributionContext(applicationContext, attributeTag);
+            }
+        }
+
+        return applicationContext;
     }
 
     /**
      * Gets a {@link ListenableFuture} that completes when camera initialization completes.
      *
      * <p> This future may fail with an {@link InitializationException} and associated cause that
-     * can be retrieved by {@link Throwable#getCause()). The cause will be a
+     * can be retrieved by {@link Throwable#getCause()}. The cause will be a
      * {@link CameraUnavailableException} if it fails to access any camera during initialization.
      *
      * <p> In the rare case that the future fails with {@link CameraUnavailableException}, the
@@ -329,9 +440,9 @@ public abstract class CameraController {
      * @see ImageAnalysis
      */
     @MainThread
-    @UseExperimental(markerClass = ExperimentalVideo.class)
+    @OptIn(markerClass = ExperimentalVideo.class)
     public void setEnabledUseCases(@UseCases int enabledUseCases) {
-        Threads.checkMainThread();
+        checkMainThread();
         if (enabledUseCases == mEnabledUseCases) {
             return;
         }
@@ -355,14 +466,32 @@ public abstract class CameraController {
     }
 
     /**
-     * Same as {@link #isVideoCaptureEnabled()}.
-     *
-     * <p> This wrapper method is to workaround the limitation that currently only one
-     * {@link UseExperimental} mark class is allowed per method.
+     * Sets the target aspect ratio or target resolution based on {@link OutputSize}.
      */
-    @UseExperimental(markerClass = ExperimentalVideo.class)
-    private boolean isVideoCaptureEnabledInternal() {
-        return isVideoCaptureEnabled();
+    private void setTargetOutputSize(@NonNull ImageOutputConfig.Builder<?> builder,
+            @Nullable OutputSize outputSize) {
+        if (outputSize == null) {
+            return;
+        }
+        if (outputSize.getResolution() != null) {
+            builder.setTargetResolution(outputSize.getResolution());
+        } else if (outputSize.getAspectRatio() != UNASSIGNED_ASPECT_RATIO) {
+            builder.setTargetAspectRatio(outputSize.getAspectRatio());
+        } else {
+            Logger.e(TAG, "Invalid target surface size. " + outputSize);
+        }
+    }
+
+    /**
+     * Checks if two {@link OutputSize} are equal.
+     */
+    private boolean isOutputSizeEqual(
+            @Nullable OutputSize currentSize,
+            @Nullable OutputSize newSize) {
+        if (currentSize == newSize) {
+            return true;
+        }
+        return currentSize != null && currentSize.equals(newSize);
     }
 
     // ------------------
@@ -374,10 +503,9 @@ public abstract class CameraController {
      */
     @SuppressLint({"MissingPermission", "WrongConstant"})
     @MainThread
-    @UseExperimental(markerClass = ExperimentalUseCaseGroup.class)
     void attachPreviewSurface(@NonNull Preview.SurfaceProvider surfaceProvider,
             @NonNull ViewPort viewPort, @NonNull Display display) {
-        Threads.checkMainThread();
+        checkMainThread();
         if (mSurfaceProvider != surfaceProvider) {
             mSurfaceProvider = surfaceProvider;
             mPreview.setSurfaceProvider(surfaceProvider);
@@ -393,10 +521,10 @@ public abstract class CameraController {
      */
     @MainThread
     void clearPreviewSurface() {
-        Threads.checkMainThread();
+        checkMainThread();
         if (mCameraProvider != null) {
             // Preview is required. Unbind everything if Preview is down.
-            mCameraProvider.unbindAll();
+            mCameraProvider.unbind(mPreview, mImageCapture, mImageAnalysis, mVideoCapture);
         }
         mPreview.setSurfaceProvider(null);
         mCamera = null;
@@ -407,20 +535,61 @@ public abstract class CameraController {
     }
 
     private void startListeningToRotationEvents() {
-        getDisplayManager().registerDisplayListener(mDisplayRotationListener,
-                new Handler(Looper.getMainLooper()));
-        if (mSensorRotationListener.canDetectOrientation()) {
-            mSensorRotationListener.enable();
-        }
+        mRotationProvider.addListener(mainThreadExecutor(),
+                mDeviceRotationListener);
     }
 
     private void stopListeningToRotationEvents() {
-        getDisplayManager().unregisterDisplayListener(mDisplayRotationListener);
-        mSensorRotationListener.disable();
+        mRotationProvider.removeListener(mDeviceRotationListener);
     }
 
-    private DisplayManager getDisplayManager() {
-        return (DisplayManager) mAppContext.getSystemService(Context.DISPLAY_SERVICE);
+    /**
+     * Sets the intended output size for {@link Preview}.
+     *
+     * <p> The value is used as a hint when determining the resolution and aspect ratio of the
+     * preview. The actual output may differ from the requested value due to device constraints.
+     *
+     * <p> When set to null, the output will be based on the default config of {@link Preview}.
+     *
+     * <p> Changing the value will reconfigure the camera which will cause additional latency.
+     * To avoid this, set the value before controller is bound to lifecycle.
+     *
+     * @param targetSize the intended output size for {@link Preview}.
+     * @see Preview.Builder#setTargetAspectRatio(int)
+     * @see Preview.Builder#setTargetResolution(Size)
+     */
+    @MainThread
+    public void setPreviewTargetSize(@Nullable OutputSize targetSize) {
+        checkMainThread();
+        if (isOutputSizeEqual(mPreviewTargetSize, targetSize)) {
+            return;
+        }
+        mPreviewTargetSize = targetSize;
+        unbindPreviewAndRecreate();
+        startCameraAndTrackStates();
+    }
+
+    /**
+     * Returns the intended output size for {@link Preview} set by
+     * {@link #setPreviewTargetSize(OutputSize)}, or null if not set.
+     */
+    @MainThread
+    @Nullable
+    public OutputSize getPreviewTargetSize() {
+        checkMainThread();
+        return mPreviewTargetSize;
+    }
+
+    /**
+     * Unbinds {@link Preview} and recreates with the latest parameters.
+     */
+    private void unbindPreviewAndRecreate() {
+        if (isCameraInitialized()) {
+            mCameraProvider.unbind(mPreview);
+        }
+        Preview.Builder builder = new Preview.Builder();
+        setTargetOutputSize(builder, mPreviewTargetSize);
+        mPreview = builder.build();
     }
 
     // ----------------------
@@ -437,7 +606,7 @@ public abstract class CameraController {
      */
     @MainThread
     public boolean isImageCaptureEnabled() {
-        Threads.checkMainThread();
+        checkMainThread();
         return isUseCaseEnabled(IMAGE_CAPTURE);
     }
 
@@ -451,7 +620,7 @@ public abstract class CameraController {
     @MainThread
     @ImageCapture.FlashMode
     public int getImageCaptureFlashMode() {
-        Threads.checkMainThread();
+        checkMainThread();
         return mImageCapture.getFlashMode();
     }
 
@@ -464,7 +633,7 @@ public abstract class CameraController {
      */
     @MainThread
     public void setImageCaptureFlashMode(@ImageCapture.FlashMode int flashMode) {
-        Threads.checkMainThread();
+        checkMainThread();
         mImageCapture.setFlashMode(flashMode);
     }
 
@@ -489,7 +658,7 @@ public abstract class CameraController {
             @NonNull ImageCapture.OutputFileOptions outputFileOptions,
             @NonNull Executor executor,
             @NonNull ImageCapture.OnImageSavedCallback imageSavedCallback) {
-        Threads.checkMainThread();
+        checkMainThread();
         Preconditions.checkState(isCameraInitialized(), CAMERA_NOT_INITIALIZED);
         Preconditions.checkState(isImageCaptureEnabled(), IMAGE_CAPTURE_DISABLED);
 
@@ -529,11 +698,130 @@ public abstract class CameraController {
     public void takePicture(
             @NonNull Executor executor,
             @NonNull ImageCapture.OnImageCapturedCallback callback) {
-        Threads.checkMainThread();
+        checkMainThread();
         Preconditions.checkState(isCameraInitialized(), CAMERA_NOT_INITIALIZED);
         Preconditions.checkState(isImageCaptureEnabled(), IMAGE_CAPTURE_DISABLED);
 
         mImageCapture.takePicture(executor, callback);
+    }
+
+    /**
+     * Sets the image capture mode.
+     *
+     * <p>Valid capture modes are {@link ImageCapture.CaptureMode#CAPTURE_MODE_MINIMIZE_LATENCY},
+     * which prioritizes latency over image quality, or
+     * {@link ImageCapture.CaptureMode#CAPTURE_MODE_MAXIMIZE_QUALITY},
+     * which prioritizes image quality over latency.
+     *
+     * <p> Changing the value will reconfigure the camera which will cause additional latency.
+     * To avoid this, set the value before controller is bound to lifecycle.
+     *
+     * @param captureMode the requested image capture mode.
+     */
+    @MainThread
+    public void setImageCaptureMode(@ImageCapture.CaptureMode int captureMode) {
+        checkMainThread();
+        if (mImageCapture.getCaptureMode() == captureMode) {
+            return;
+        }
+        unbindImageCaptureAndRecreate(captureMode);
+        startCameraAndTrackStates();
+    }
+
+    /**
+     * Returns the image capture mode.
+     *
+     * @see ImageCapture#getCaptureMode()
+     */
+    @MainThread
+    public int getImageCaptureMode() {
+        checkMainThread();
+        return mImageCapture.getCaptureMode();
+    }
+
+    /**
+     * Sets the intended image size for {@link ImageCapture}.
+     *
+     * <p> The value is used as a hint when determining the resolution and aspect ratio of
+     * the captured image. The actual output may differ from the requested value due to device
+     * constraints.
+     *
+     * <p> When set to null, the output will be based on the default config of {@link ImageCapture}.
+     *
+     * <p> Changing the value will reconfigure the camera which will cause additional latency.
+     * To avoid this, set the value before controller is bound to lifecycle.
+     *
+     * @param targetSize the intended image size for {@link ImageCapture}.
+     */
+    @MainThread
+    public void setImageCaptureTargetSize(@Nullable OutputSize targetSize) {
+        checkMainThread();
+        if (isOutputSizeEqual(mImageCaptureTargetSize, targetSize)) {
+            return;
+        }
+        mImageCaptureTargetSize = targetSize;
+        unbindImageCaptureAndRecreate(getImageCaptureMode());
+        startCameraAndTrackStates();
+    }
+
+    /**
+     * Returns the intended output size for {@link ImageCapture} set by
+     * {@link #setImageCaptureTargetSize(OutputSize)}, or null if not set.
+     */
+    @MainThread
+    @Nullable
+    public OutputSize getImageCaptureTargetSize() {
+        checkMainThread();
+        return mImageCaptureTargetSize;
+    }
+
+    /**
+     * Sets the default executor that will be used for {@link ImageCapture} IO tasks.
+     *
+     * <p> This executor will be used for any IO tasks specifically for {@link ImageCapture},
+     * such as {@link #takePicture(ImageCapture.OutputFileOptions, Executor,
+     * ImageCapture.OnImageSavedCallback)}. If no executor is set, then a default Executor
+     * specifically for IO will be used instead.
+     *
+     * <p> Changing the value will reconfigure the camera which will cause additional latency.
+     * To avoid this, set the value before controller is bound to lifecycle.
+     *
+     * @param executor The executor which will be used for IO tasks.
+     */
+    @MainThread
+    public void setImageCaptureIoExecutor(@Nullable Executor executor) {
+        checkMainThread();
+        if (mImageCaptureIoExecutor == executor) {
+            return;
+        }
+        mImageCaptureIoExecutor = executor;
+        unbindImageCaptureAndRecreate(mImageCapture.getCaptureMode());
+        startCameraAndTrackStates();
+    }
+
+    /**
+     * Gets the default executor for {@link ImageCapture} IO tasks.
+     */
+    @MainThread
+    @Nullable
+    public Executor getImageCaptureIoExecutor() {
+        checkMainThread();
+        return mImageCaptureIoExecutor;
+    }
+
+    /**
+     * Unbinds {@link ImageCapture} and recreates with the latest parameters.
+     */
+    private void unbindImageCaptureAndRecreate(int imageCaptureMode) {
+        if (isCameraInitialized()) {
+            mCameraProvider.unbind(mImageCapture);
+        }
+        ImageCapture.Builder builder = new ImageCapture.Builder().setCaptureMode(imageCaptureMode);
+        setTargetOutputSize(builder, mImageCaptureTargetSize);
+        if (mImageCaptureIoExecutor != null) {
+            builder.setIoExecutor(mImageCaptureIoExecutor);
+        }
+        mImageCapture = builder.build();
     }
 
     // -----------------
@@ -547,7 +835,7 @@ public abstract class CameraController {
      */
     @MainThread
     public boolean isImageAnalysisEnabled() {
-        Threads.checkMainThread();
+        checkMainThread();
         return isUseCaseEnabled(IMAGE_ANALYSIS);
     }
 
@@ -561,6 +849,10 @@ public abstract class CameraController {
      * <p>Setting an analyzer function replaces any previous analyzer. Only one analyzer can be
      * set at any time.
      *
+     * <p> If the {@link ImageAnalysis.Analyzer#getTargetResolutionOverride()} returns a non-null
+     * value, calling this method will reconfigure the camera which might cause additional
+     * latency. To avoid this, set the value before controller is bound to the lifecycle.
+     *
      * @param executor The executor in which the
      *                 {@link ImageAnalysis.Analyzer#analyze(ImageProxy)} will be run.
      * @param analyzer of the images.
@@ -569,13 +861,15 @@ public abstract class CameraController {
     @MainThread
     public void setImageAnalysisAnalyzer(@NonNull Executor executor,
             @NonNull ImageAnalysis.Analyzer analyzer) {
-        Threads.checkMainThread();
+        checkMainThread();
         if (mAnalysisAnalyzer == analyzer && mAnalysisExecutor == executor) {
             return;
         }
+        ImageAnalysis.Analyzer oldAnalyzer = mAnalysisAnalyzer;
         mAnalysisExecutor = executor;
         mAnalysisAnalyzer = analyzer;
         mImageAnalysis.setAnalyzer(executor, analyzer);
+        restartCameraIfAnalyzerResolutionChanged(oldAnalyzer, analyzer);
     }
 
     /**
@@ -583,14 +877,36 @@ public abstract class CameraController {
      *
      * <p>This will stop data from streaming to the {@link ImageAnalysis}.
      *
+     * <p> If the current {@link ImageAnalysis.Analyzer#getTargetResolutionOverride()} returns
+     * non-null value, calling this method will reconfigure the camera which might cause additional
+     * latency. To avoid this, call this method when the lifecycle is not active.
+     *
      * @see ImageAnalysis#clearAnalyzer().
      */
     @MainThread
     public void clearImageAnalysisAnalyzer() {
-        Threads.checkMainThread();
+        checkMainThread();
+        ImageAnalysis.Analyzer oldAnalyzer = mAnalysisAnalyzer;
         mAnalysisExecutor = null;
         mAnalysisAnalyzer = null;
         mImageAnalysis.clearAnalyzer();
+        restartCameraIfAnalyzerResolutionChanged(oldAnalyzer, null);
+    }
+
+    @OptIn(markerClass = ExperimentalAnalyzer.class)
+    private void restartCameraIfAnalyzerResolutionChanged(
+            @Nullable ImageAnalysis.Analyzer oldAnalyzer,
+            @Nullable ImageAnalysis.Analyzer newAnalyzer) {
+        Size oldResolution = oldAnalyzer == null ? null :
+                oldAnalyzer.getTargetResolutionOverride();
+        Size newResolution = newAnalyzer == null ? null :
+                newAnalyzer.getTargetResolutionOverride();
+        if (!Objects.equals(oldResolution, newResolution)) {
+            // Rebind ImageAnalysis to reconfigure target resolution.
+            unbindImageAnalysisAndRecreate(mImageAnalysis.getBackpressureStrategy(),
+                    mImageAnalysis.getImageQueueDepth());
+            startCameraAndTrackStates();
+        }
     }
 
     /**
@@ -604,7 +920,7 @@ public abstract class CameraController {
     @MainThread
     @ImageAnalysis.BackpressureStrategy
     public int getImageAnalysisBackpressureStrategy() {
-        Threads.checkMainThread();
+        checkMainThread();
         return mImageAnalysis.getBackpressureStrategy();
     }
 
@@ -616,13 +932,16 @@ public abstract class CameraController {
      * {@link ImageAnalysis#STRATEGY_KEEP_ONLY_LATEST}. If not set, the backpressure strategy
      * will default to {@link ImageAnalysis#STRATEGY_KEEP_ONLY_LATEST}.
      *
+     * <p> Changing the value will reconfigure the camera which will cause additional latency. To
+     * avoid this, set the value before controller is bound to lifecycle.
+     *
      * @param strategy The strategy to use.
      * @see ImageAnalysis.Builder#setBackpressureStrategy(int)
      */
     @MainThread
     public void setImageAnalysisBackpressureStrategy(
             @ImageAnalysis.BackpressureStrategy int strategy) {
-        Threads.checkMainThread();
+        checkMainThread();
         if (mImageAnalysis.getBackpressureStrategy() == strategy) {
             return;
         }
@@ -638,12 +957,15 @@ public abstract class CameraController {
      * . The value is only used if the backpressure strategy is
      * {@link ImageAnalysis.BackpressureStrategy#STRATEGY_BLOCK_PRODUCER}.
      *
+     * <p> Changing the value will reconfigure the camera which will cause additional latency. To
+     * avoid this, set the value before controller is bound to lifecycle.
+     *
      * @param depth The total number of images available.
      * @see ImageAnalysis.Builder#setImageQueueDepth(int)
      */
     @MainThread
     public void setImageAnalysisImageQueueDepth(int depth) {
-        Threads.checkMainThread();
+        checkMainThread();
         if (mImageAnalysis.getImageQueueDepth() == depth) {
             return;
         }
@@ -658,26 +980,122 @@ public abstract class CameraController {
      */
     @MainThread
     public int getImageAnalysisImageQueueDepth() {
-        Threads.checkMainThread();
+        checkMainThread();
         return mImageAnalysis.getImageQueueDepth();
     }
 
     /**
-     * Unbinds {@link ImageAnalysis} and recreates with the given parameters.
+     * Sets the intended output size for {@link ImageAnalysis}.
      *
-     * <p> This is necessary because unlike other use cases, {@link ImageAnalysis}'s parameters
-     * cannot be updated without recreating the use case.
+     * <p> The value is used as a hint when determining the resolution and aspect ratio of
+     * the output buffer. The actual output may differ from the requested value due to device
+     * constraints.
+     *
+     * <p> When set to null, the output will be based on the default config of
+     * {@link ImageAnalysis}.
+     *
+     * <p> Changing the value will reconfigure the camera which will cause additional latency.
+     * To avoid this, set the value before controller is bound to lifecycle.
+     *
+     * @param targetSize the intended output size for {@link ImageAnalysis}.
+     * @see ImageAnalysis.Builder#setTargetAspectRatio(int)
+     * @see ImageAnalysis.Builder#setTargetResolution(Size)
      */
+    @MainThread
+    public void setImageAnalysisTargetSize(@Nullable OutputSize targetSize) {
+        checkMainThread();
+        if (isOutputSizeEqual(mImageAnalysisTargetSize, targetSize)) {
+            return;
+        }
+        mImageAnalysisTargetSize = targetSize;
+        unbindImageAnalysisAndRecreate(
+                mImageAnalysis.getBackpressureStrategy(),
+                mImageAnalysis.getImageQueueDepth());
+        startCameraAndTrackStates();
+    }
+
+    /**
+     * Returns the intended output size for {@link ImageAnalysis} set by
+     * {@link #setImageAnalysisTargetSize(OutputSize)}, or null if not set.
+     */
+    @MainThread
+    @Nullable
+    public OutputSize getImageAnalysisTargetSize() {
+        checkMainThread();
+        return mImageAnalysisTargetSize;
+    }
+
+    /**
+     * Sets the executor that will be used for {@link ImageAnalysis} background tasks.
+     *
+     * <p>If not set, the background executor will default to an automatically generated
+     * {@link Executor}.
+     *
+     * <p> Changing the value will reconfigure the camera, which will cause additional latency. To
+     * avoid this, set the value before controller is bound to lifecycle.
+     *
+     * @param executor the executor for {@link ImageAnalysis} background tasks.
+     * @see ImageAnalysis.Builder#setBackgroundExecutor(Executor)
+     */
+    @MainThread
+    public void setImageAnalysisBackgroundExecutor(@Nullable Executor executor) {
+        checkMainThread();
+        if (mAnalysisBackgroundExecutor == executor) {
+            return;
+        }
+        mAnalysisBackgroundExecutor = executor;
+        unbindImageAnalysisAndRecreate(mImageAnalysis.getBackpressureStrategy(),
+                mImageAnalysis.getImageQueueDepth());
+        startCameraAndTrackStates();
+    }
+
+    /**
+     * Gets the default executor for {@link ImageAnalysis} background tasks.
+     *
+     * @see ImageAnalysis.Builder#setBackgroundExecutor(Executor)
+     */
+    @MainThread
+    @Nullable
+    public Executor getImageAnalysisBackgroundExecutor() {
+        checkMainThread();
+        return mAnalysisBackgroundExecutor;
+    }
+
+    /**
+     * Unbinds {@link ImageAnalysis} and recreates with the latest parameters.
+     */
+    @MainThread
     private void unbindImageAnalysisAndRecreate(int strategy, int imageQueueDepth) {
+        checkMainThread();
         if (isCameraInitialized()) {
             mCameraProvider.unbind(mImageAnalysis);
         }
-        mImageAnalysis = new ImageAnalysis.Builder()
+        ImageAnalysis.Builder builder = new ImageAnalysis.Builder()
                 .setBackpressureStrategy(strategy)
-                .setImageQueueDepth(imageQueueDepth)
-                .build();
+                .setImageQueueDepth(imageQueueDepth);
+        setTargetOutputSize(builder, mImageAnalysisTargetSize);
+        if (mAnalysisBackgroundExecutor != null) {
+            builder.setBackgroundExecutor(mAnalysisBackgroundExecutor);
+        }
+        mImageAnalysis = builder.build();
         if (mAnalysisExecutor != null && mAnalysisAnalyzer != null) {
             mImageAnalysis.setAnalyzer(mAnalysisExecutor, mAnalysisAnalyzer);
+        }
+    }
+
+    @OptIn(markerClass = {TransformExperimental.class, ExperimentalAnalyzer.class})
+    @MainThread
+    void updatePreviewViewTransform(@Nullable OutputTransform outputTransform) {
+        checkMainThread();
+        if (mAnalysisAnalyzer == null) {
+            return;
+        }
+        if (outputTransform == null) {
+            mAnalysisAnalyzer.updateTransform(null);
+
+        } else if (mAnalysisAnalyzer.getTargetCoordinateSystem()
+                == COORDINATE_SYSTEM_VIEW_REFERENCED) {
+            mAnalysisAnalyzer.updateTransform(outputTransform.getMatrix());
         }
     }
 
@@ -694,7 +1112,7 @@ public abstract class CameraController {
     @ExperimentalVideo
     @MainThread
     public boolean isVideoCaptureEnabled() {
-        Threads.checkMainThread();
+        checkMainThread();
         return isUseCaseEnabled(VIDEO_CAPTURE);
     }
 
@@ -705,11 +1123,12 @@ public abstract class CameraController {
      * @param executor          The executor in which the callback methods will be run.
      * @param callback          Callback which will receive success or failure.
      */
+    @SuppressLint("MissingPermission")
     @ExperimentalVideo
     @MainThread
     public void startRecording(@NonNull OutputFileOptions outputFileOptions,
             @NonNull Executor executor, final @NonNull OnVideoSavedCallback callback) {
-        Threads.checkMainThread();
+        checkMainThread();
         Preconditions.checkState(isCameraInitialized(), CAMERA_NOT_INITIALIZED);
         Preconditions.checkState(isVideoCaptureEnabled(), VIDEO_CAPTURE_DISABLED);
 
@@ -739,7 +1158,7 @@ public abstract class CameraController {
     @ExperimentalVideo
     @MainThread
     public void stopRecording() {
-        Threads.checkMainThread();
+        checkMainThread();
         if (mVideoIsRecording.get()) {
             mVideoCapture.stopRecording();
         }
@@ -751,8 +1170,57 @@ public abstract class CameraController {
     @ExperimentalVideo
     @MainThread
     public boolean isRecording() {
-        Threads.checkMainThread();
+        checkMainThread();
         return mVideoIsRecording.get();
+    }
+
+    /**
+     * Sets the intended video size for {@code VideoCapture}.
+     *
+     * <p> The value is used as a hint when determining the resolution and aspect ratio of
+     * the video. The actual output may differ from the requested value due to device constraints.
+     *
+     * <p> When set to null, the output will be based on the default config of {@code VideoCapture}.
+     *
+     * <p> Changing the value will reconfigure the camera which will cause video capture to stop.
+     * To avoid this, set the value before controller is bound to lifecycle.
+     *
+     * @param targetSize the intended video size for {@code VideoCapture}.
+     */
+    @ExperimentalVideo
+    @MainThread
+    public void setVideoCaptureTargetSize(@Nullable OutputSize targetSize) {
+        checkMainThread();
+        if (isOutputSizeEqual(mVideoCaptureOutputSize, targetSize)) {
+            return;
+        }
+        mVideoCaptureOutputSize = targetSize;
+        unbindVideoAndRecreate();
+        startCameraAndTrackStates();
+    }
+
+    /**
+     * Returns the intended output size for {@code VideoCapture} set by
+     * {@link #setVideoCaptureTargetSize(OutputSize)}, or null if not set.
+     */
+    @ExperimentalVideo
+    @MainThread
+    @Nullable
+    public OutputSize getVideoCaptureTargetSize() {
+        checkMainThread();
+        return mVideoCaptureOutputSize;
+    }
+
+    /**
+     * Unbinds VideoCapture and recreate with the latest parameters.
+     */
+    private void unbindVideoAndRecreate() {
+        if (isCameraInitialized()) {
+            mCameraProvider.unbind(mVideoCapture);
+        }
+        VideoCapture.Builder builder = new VideoCapture.Builder();
+        setTargetOutputSize(builder, mVideoCaptureOutputSize);
+        mVideoCapture = builder.build();
     }
 
     // -----------------
@@ -763,7 +1231,9 @@ public abstract class CameraController {
      * Sets the {@link CameraSelector}.
      *
      * <p> Calling this method with a {@link CameraSelector} that resolves to a different camera
-     * will change the camera being used by the controller.
+     * will change the camera being used by the controller. If camera initialization is complete,
+     * the controller will immediately rebind use cases with the new {@link CameraSelector};
+     * otherwise, the new {@link CameraSelector} will be used when the camera becomes ready.
      *
      * <p>The default value is {@link CameraSelector#DEFAULT_BACK_CAMERA}.
      *
@@ -773,18 +1243,18 @@ public abstract class CameraController {
      */
     @MainThread
     public void setCameraSelector(@NonNull CameraSelector cameraSelector) {
-        Threads.checkMainThread();
+        checkMainThread();
         if (mCameraSelector == cameraSelector) {
             return;
         }
 
+        CameraSelector oldCameraSelector = mCameraSelector;
+        mCameraSelector = cameraSelector;
+
         if (mCameraProvider == null) {
             return;
         }
-        mCameraProvider.unbindAll();
-
-        CameraSelector oldCameraSelector = mCameraSelector;
-        mCameraSelector = cameraSelector;
+        mCameraProvider.unbind(mPreview, mImageCapture, mImageAnalysis, mVideoCapture);
         startCameraAndTrackStates(() -> mCameraSelector = oldCameraSelector);
     }
 
@@ -814,7 +1284,7 @@ public abstract class CameraController {
      */
     @MainThread
     public boolean hasCamera(@NonNull CameraSelector cameraSelector) {
-        Threads.checkMainThread();
+        checkMainThread();
         Preconditions.checkNotNull(cameraSelector);
 
         if (mCameraProvider == null) {
@@ -840,7 +1310,7 @@ public abstract class CameraController {
     @NonNull
     @MainThread
     public CameraSelector getCameraSelector() {
-        Threads.checkMainThread();
+        checkMainThread();
         return mCameraSelector;
     }
 
@@ -853,7 +1323,7 @@ public abstract class CameraController {
      */
     @MainThread
     public boolean isPinchToZoomEnabled() {
-        Threads.checkMainThread();
+        checkMainThread();
         return mPinchToZoomEnabled;
     }
 
@@ -867,7 +1337,7 @@ public abstract class CameraController {
      */
     @MainThread
     public void setPinchToZoomEnabled(boolean enabled) {
-        Threads.checkMainThread();
+        checkMainThread();
         mPinchToZoomEnabled = enabled;
     }
 
@@ -918,13 +1388,37 @@ public abstract class CameraController {
             Logger.d(TAG, "Tap to focus disabled. ");
             return;
         }
-        Logger.d(TAG, "Tap to focus: " + x + ", " + y);
+        Logger.d(TAG, "Tap to focus started: " + x + ", " + y);
+        mTapToFocusState.postValue(TAP_TO_FOCUS_STARTED);
         MeteringPoint afPoint = meteringPointFactory.createPoint(x, y, AF_SIZE);
         MeteringPoint aePoint = meteringPointFactory.createPoint(x, y, AE_SIZE);
-        mCamera.getCameraControl().startFocusAndMetering(new FocusMeteringAction
+        FocusMeteringAction focusMeteringAction = new FocusMeteringAction
                 .Builder(afPoint, FocusMeteringAction.FLAG_AF)
                 .addPoint(aePoint, FocusMeteringAction.FLAG_AE)
-                .build());
+                .build();
+        Futures.addCallback(mCamera.getCameraControl().startFocusAndMetering(focusMeteringAction),
+                new FutureCallback<FocusMeteringResult>() {
+
+                    @Override
+                    public void onSuccess(@Nullable FocusMeteringResult result) {
+                        if (result == null) {
+                            return;
+                        }
+                        Logger.d(TAG, "Tap to focus onSuccess: " + result.isFocusSuccessful());
+                        mTapToFocusState.postValue(result.isFocusSuccessful()
+                                ? TAP_TO_FOCUS_FOCUSED : TAP_TO_FOCUS_NOT_FOCUSED);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        if (t instanceof CameraControl.OperationCanceledException) {
+                            Logger.d(TAG, "Tap-to-focus is canceled by new action.");
+                            return;
+                        }
+                        Logger.d(TAG, "Tap to focus failed.", t);
+                        mTapToFocusState.postValue(TAP_TO_FOCUS_FAILED);
+                    }
+                }, CameraXExecutors.directExecutor());
     }
 
     /**
@@ -936,7 +1430,7 @@ public abstract class CameraController {
      */
     @MainThread
     public boolean isTapToFocusEnabled() {
-        Threads.checkMainThread();
+        checkMainThread();
         return mTapToFocusEnabled;
     }
 
@@ -949,8 +1443,68 @@ public abstract class CameraController {
      */
     @MainThread
     public void setTapToFocusEnabled(boolean enabled) {
-        Threads.checkMainThread();
+        checkMainThread();
         mTapToFocusEnabled = enabled;
+    }
+
+    /**
+     * Returns a {@link LiveData} with the latest tap-to-focus state.
+     *
+     * <p> When tap-to-focus feature is enabled, the {@link LiveData} will receive updates of
+     * focusing states. This happens when the end user taps on {@link PreviewView}, and then again
+     * when focusing is finished either successfully or unsuccessfully. The following table
+     * displays the states the {@link LiveData} can be in, and the possible transitions between
+     * them.
+     *
+     * <table>
+     * <tr>
+     *     <th>State</th>
+     *     <th>Transition cause</th>
+     *     <th>New State</th>
+     * </tr>
+     * <tr>
+     *     <td>TAP_TO_FOCUS_NOT_STARTED</td>
+     *     <td>User taps on {@link PreviewView}</td>
+     *     <td>TAP_TO_FOCUS_STARTED</td>
+     * </tr>
+     * <tr>
+     *     <td>TAP_TO_FOCUS_SUCCESSFUL</td>
+     *     <td>User taps on {@link PreviewView}</td>
+     *     <td>TAP_TO_FOCUS_STARTED</td>
+     * </tr>
+     * <tr>
+     *     <td>TAP_TO_FOCUS_UNSUCCESSFUL</td>
+     *     <td>User taps on {@link PreviewView}</td>
+     *     <td>TAP_TO_FOCUS_STARTED</td>
+     * </tr>
+     * <tr>
+     *     <td>TAP_TO_FOCUS_FAILED</td>
+     *     <td>User taps on {@link PreviewView}</td>
+     *     <td>TAP_TO_FOCUS_STARTED</td>
+     * </tr>
+     * <tr>
+     *     <td rowspan="3">TAP_TO_FOCUS_STARTED</td>
+     *     <td>Focusing succeeded</td>
+     *     <td>TAP_TO_FOCUS_SUCCESSFUL</td>
+     * </tr>
+     * <tr>
+     *     <td>Focusing failed due to lighting and/or camera distance</td>
+     *     <td>TAP_TO_FOCUS_UNSUCCESSFUL</td>
+     * </tr>
+     * <tr>
+     *     <td>Focusing failed due to device constraints</td>
+     *     <td>TAP_TO_FOCUS_FAILED</td>
+     * </tr>
+     * </table>
+     *
+     * @see #setTapToFocusEnabled(boolean)
+     * @see CameraControl#startFocusAndMetering(FocusMeteringAction)
+     */
+    @MainThread
+    @NonNull
+    public LiveData<Integer> getTapToFocusState() {
+        checkMainThread();
+        return mTapToFocusState;
     }
 
     /**
@@ -966,8 +1520,46 @@ public abstract class CameraController {
     @NonNull
     @MainThread
     public LiveData<ZoomState> getZoomState() {
-        Threads.checkMainThread();
+        checkMainThread();
         return mZoomState;
+    }
+
+    /**
+     * Gets the {@link CameraInfo} of the currently attached camera.
+     *
+     * <p> For info available directly through CameraController as well as {@link CameraInfo},
+     * it's recommended to use the ones with CameraController, e.g. {@link #getTorchState()} v.s.
+     * {@link CameraInfo#getTorchState()}. {@link CameraInfo} is a lower-layer API and may
+     * require more steps to achieve the same effect, and will not maintain values when switching
+     * between cameras.
+     *
+     * @return the {@link CameraInfo} of the current camera. Returns null if camera is not ready.
+     * @see Camera#getCameraInfo()
+     */
+    @Nullable
+    @MainThread
+    public CameraInfo getCameraInfo() {
+        checkMainThread();
+        return mCamera == null ? null : mCamera.getCameraInfo();
+    }
+
+    /**
+     * Gets the {@link CameraControl} of the currently attached camera.
+     *
+     * <p> For controls available directly through CameraController as well as
+     * {@link CameraControl}, it's recommended to use the ones with CameraController, e.g.
+     * {@link #setLinearZoom(float)} v.s. {@link CameraControl#setLinearZoom(float)}.
+     * CameraControl is a lower-layer API and may require more steps to achieve the same effect,
+     * and will not maintain control values when switching between cameras.
+     *
+     * @return the {@link CameraControl} of the current camera. Returns null if camera is not ready.
+     * @see Camera#getCameraControl()
+     */
+    @Nullable
+    @MainThread
+    public CameraControl getCameraControl() {
+        checkMainThread();
+        return mCamera == null ? null : mCamera.getCameraControl();
     }
 
     /**
@@ -990,7 +1582,7 @@ public abstract class CameraController {
     @NonNull
     @MainThread
     public ListenableFuture<Void> setZoomRatio(float zoomRatio) {
-        Threads.checkMainThread();
+        checkMainThread();
         if (!isCameraAttached()) {
             Logger.w(TAG, CAMERA_NOT_ATTACHED);
             return Futures.immediateFuture(null);
@@ -1017,8 +1609,8 @@ public abstract class CameraController {
      */
     @NonNull
     @MainThread
-    public ListenableFuture<Void> setLinearZoom(float linearZoom) {
-        Threads.checkMainThread();
+    public ListenableFuture<Void> setLinearZoom(@FloatRange(from = 0f, to = 1f) float linearZoom) {
+        checkMainThread();
         if (!isCameraAttached()) {
             Logger.w(TAG, CAMERA_NOT_ATTACHED);
             return Futures.immediateFuture(null);
@@ -1038,7 +1630,7 @@ public abstract class CameraController {
     @NonNull
     @MainThread
     public LiveData<Integer> getTorchState() {
-        Threads.checkMainThread();
+        checkMainThread();
         return mTorchState;
     }
 
@@ -1057,7 +1649,7 @@ public abstract class CameraController {
     @NonNull
     @MainThread
     public ListenableFuture<Void> enableTorch(boolean torchEnabled) {
-        Threads.checkMainThread();
+        checkMainThread();
         if (!isCameraAttached()) {
             Logger.w(TAG, CAMERA_NOT_ATTACHED);
             return Futures.immediateFuture(null);
@@ -1109,7 +1701,7 @@ public abstract class CameraController {
      */
     @Nullable
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @UseExperimental(markerClass = ExperimentalUseCaseGroup.class)
+    @OptIn(markerClass = {ExperimentalVideo.class})
     protected UseCaseGroup createUseCaseGroup() {
         if (!isCameraInitialized()) {
             Logger.d(TAG, CAMERA_NOT_INITIALIZED);
@@ -1135,7 +1727,7 @@ public abstract class CameraController {
             mCameraProvider.unbind(mImageAnalysis);
         }
 
-        if (isVideoCaptureEnabledInternal()) {
+        if (isVideoCaptureEnabled()) {
             builder.addUseCase(mVideoCapture);
         } else {
             mCameraProvider.unbind(mVideoCapture);
@@ -1146,31 +1738,112 @@ public abstract class CameraController {
     }
 
     /**
-     * Listener for display rotation changes.
-     *
-     * <p> When the device is rotated 180° from side to side, the activity is not
-     * destroyed and recreated, thus {@link #attachPreviewSurface} will not be invoked. This
-     * class is necessary to make sure preview's target rotation gets updated when that happens.
+     * Nested class to avoid verification errors for methods introduced in Android 11 (API 30).
      */
-    // Synthetic access
-    @SuppressWarnings("WeakerAccess")
-    class DisplayRotationListener implements DisplayManager.DisplayListener {
+    @RequiresApi(30)
+    private static class Api30Impl {
 
-        @Override
-        public void onDisplayAdded(int displayId) {
+        private Api30Impl() {
         }
 
-        @Override
-        public void onDisplayRemoved(int displayId) {
+        @DoNotInline
+        @NonNull
+        static Context createAttributionContext(@NonNull Context context,
+                @Nullable String attributeTag) {
+            return context.createAttributionContext(attributeTag);
         }
 
-        @SuppressLint("WrongConstant")
+        @DoNotInline
+        @Nullable
+        static String getAttributionTag(@NonNull Context context) {
+            return context.getAttributionTag();
+        }
+    }
+
+    /**
+     * Represents the output size of a {@link UseCase}.
+     *
+     * <p> This class is a preferred output size to be used with {@link CameraController}. The
+     * preferred output size can be based on either resolution or aspect ratio, but not both.
+     *
+     * @see #setImageAnalysisTargetSize(OutputSize)
+     * @see #setPreviewTargetSize(OutputSize)
+     * @see #setImageCaptureTargetSize(OutputSize)
+     * @see #setVideoCaptureTargetSize(OutputSize)
+     */
+    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+    public static final class OutputSize {
+
+        /**
+         * A value that represents the aspect ratio is not assigned.
+         */
+        public static final int UNASSIGNED_ASPECT_RATIO = -1;
+
+        /**
+         * Possible value for {@link #getAspectRatio()}
+         *
+         * @hide
+         */
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @Retention(RetentionPolicy.SOURCE)
+        @IntDef(value = {UNASSIGNED_ASPECT_RATIO, AspectRatio.RATIO_4_3, AspectRatio.RATIO_16_9})
+        public @interface OutputAspectRatio {
+        }
+
+        @OutputAspectRatio
+        private final int mAspectRatio;
+
+        @Nullable
+        private final Size mResolution;
+
+        /**
+         * Creates a {@link OutputSize} that is based on aspect ratio.
+         *
+         * @see Preview.Builder#setTargetAspectRatio(int)
+         * @see ImageAnalysis.Builder#setTargetAspectRatio(int)
+         */
+        public OutputSize(@AspectRatio.Ratio int aspectRatio) {
+            Preconditions.checkArgument(aspectRatio != UNASSIGNED_ASPECT_RATIO);
+            mAspectRatio = aspectRatio;
+            mResolution = null;
+        }
+
+        /**
+         * Creates a {@link OutputSize} that is based on resolution.
+         *
+         * @see Preview.Builder#setTargetResolution(Size)
+         * @see ImageAnalysis.Builder#setTargetResolution(Size)
+         */
+        public OutputSize(@NonNull Size resolution) {
+            Preconditions.checkNotNull(resolution);
+            mAspectRatio = UNASSIGNED_ASPECT_RATIO;
+            mResolution = resolution;
+        }
+
+        /**
+         * Gets the value of aspect ratio.
+         *
+         * @return {@link #UNASSIGNED_ASPECT_RATIO} if the size is not based on aspect ratio.
+         */
+        @OutputAspectRatio
+        public int getAspectRatio() {
+            return mAspectRatio;
+        }
+
+        /**
+         * Gets the value of resolution.
+         *
+         * @return null if the size is not based on resolution.
+         */
+        @Nullable
+        public Size getResolution() {
+            return mResolution;
+        }
+
+        @NonNull
         @Override
-        @UseExperimental(markerClass = ExperimentalUseCaseGroup.class)
-        public void onDisplayChanged(int displayId) {
-            if (mPreviewDisplay != null && mPreviewDisplay.getDisplayId() == displayId) {
-                mPreview.setTargetRotation(mPreviewDisplay.getRotation());
-            }
+        public String toString() {
+            return "aspect ratio: " + mAspectRatio + " resolution: " + mResolution;
         }
     }
 }

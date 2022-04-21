@@ -16,16 +16,33 @@
 
 package androidx.inspection.gradle
 
-import com.android.build.gradle.api.BaseVariant
-import org.gradle.api.Project
+import com.android.build.api.variant.Variant
 import java.io.File
 import java.util.Locale
+import org.gradle.api.Project
 
-// String.capitalize(Locale) is currently experimental.
-@ExperimentalStdlibApi
-internal fun BaseVariant.taskName(baseName: String) = "$baseName${name.capitalize(Locale.ENGLISH)}"
+internal fun Variant.taskName(baseName: String) =
+    "$baseName${name.replaceFirstChar(Char::titlecase)}"
 
-internal fun Project.taskWorkingDir(variant: BaseVariant, baseName: String): File {
+internal fun Project.taskWorkingDir(
+    variant: Variant,
+    baseName: String
+): File {
+    val inspectionDir = File(project.buildDir, "androidx_inspection")
+    return File(File(inspectionDir, baseName), variant.name)
+}
+
+// Functions below will be removed once registerGenerateProguardDetectionFileTask is migrated
+// that needs newly added function "addGeneratedSourceDirectory"
+@Suppress("DEPRECATION") // BaseVariant
+internal fun com.android.build.gradle.api.BaseVariant.taskName(baseName: String) =
+    "$baseName${name.capitalize(Locale.ENGLISH)}"
+
+@Suppress("DEPRECATION") // BaseVariant
+internal fun Project.taskWorkingDir(
+    variant: com.android.build.gradle.api.BaseVariant,
+    baseName: String
+): File {
     val inspectionDir = File(project.buildDir, "androidx_inspection")
     return File(File(inspectionDir, baseName), variant.dirName)
 }

@@ -15,11 +15,13 @@
  */
 package androidx.compose.ui.text.font
 
+import androidx.compose.ui.text.ExperimentalTextApi
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
+@ExperimentalTextApi
 @RunWith(JUnit4::class)
 class FontTest {
 
@@ -27,20 +29,20 @@ class FontTest {
 
     @Test
     fun `default values`() {
-        val font = font(resId = resourceId)
+        val font = Font(resId = resourceId)
         assertThat(font.weight).isEqualTo(FontWeight.Normal)
         assertThat(font.style).isEqualTo(FontStyle.Normal)
     }
 
     @Test
     fun `two equal font declarations are equal`() {
-        val font = font(
+        val font = Font(
             resId = resourceId,
             weight = FontWeight.W900,
             style = FontStyle.Italic
         )
 
-        val otherFont = font(
+        val otherFont = Font(
             resId = resourceId,
             weight = FontWeight.W900,
             style = FontStyle.Italic
@@ -51,13 +53,13 @@ class FontTest {
 
     @Test
     fun `two non equal font declarations are not equal`() {
-        val font = font(
+        val font = Font(
             resId = resourceId,
             weight = FontWeight.W900,
             style = FontStyle.Italic
         )
 
-        val otherFont = font(
+        val otherFont = Font(
             resId = resourceId,
             weight = FontWeight.W800,
             style = FontStyle.Italic
@@ -68,13 +70,13 @@ class FontTest {
 
     @Test
     fun `asFontFamilyList returns a FontFamily`() {
-        val font = font(
+        val font = Font(
             resId = resourceId,
             weight = FontWeight.W900,
             style = FontStyle.Italic
         )
 
-        val fontFamily = font.asFontFamily()
+        val fontFamily = font.toFontFamily() as FontListFontFamily
 
         assertThat(fontFamily).isNotNull()
         assertThat(fontFamily).isNotEmpty()

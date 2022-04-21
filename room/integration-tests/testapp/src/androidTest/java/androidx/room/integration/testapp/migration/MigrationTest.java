@@ -38,6 +38,7 @@ import androidx.room.testing.MigrationTestHelper;
 import androidx.room.util.TableInfo;
 import androidx.room.util.ViewInfo;
 import androidx.sqlite.db.SupportSQLiteDatabase;
+import androidx.sqlite.db.SupportSQLiteOpenHelper;
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -296,6 +297,29 @@ public class MigrationTest {
     }
 
     @Test
+    public void validateDefaultValueWithSurroundingParenthesis() throws IOException {
+        SupportSQLiteDatabase database = helper.createDatabase(TEST_DB, 12);
+        database.close();
+        Context targetContext = ApplicationProvider.getApplicationContext();
+        MigrationDb db = Room.databaseBuilder(targetContext, MigrationDb.class, TEST_DB)
+                .addMigrations(MIGRATION_12_13)
+                .build();
+
+        assertThat(db.dao().loadAllEntity1s(), is(notNullValue()));
+        helper.closeWhenFinished(db);
+
+        // Confirm if this is also works with the Migration Test Helper.
+        Throwable throwable = null;
+        try {
+            helper.runMigrationsAndValidate(TEST_DB, 13, true,
+                    MIGRATION_12_13);
+        } catch (Throwable t) {
+            throwable = t;
+        }
+        assertThat(throwable, is(nullValue()));
+    }
+
+    @Test
     public void missingMigration_onUpgrade() throws IOException {
         SupportSQLiteDatabase database = helper.createDatabase(TEST_DB, 1);
         database.close();
@@ -510,7 +534,7 @@ public class MigrationTest {
         database.close();
         Context targetContext = ApplicationProvider.getApplicationContext();
         MigrationDb db = Room.databaseBuilder(targetContext, MigrationDb.class, TEST_DB)
-                .addMigrations(new EmptyMigration(11, 12))
+                .addMigrations(new EmptyMigration(11, MIGRATION_MAX_LATEST.endVersion))
                 .build();
         try {
             db.dao().loadAllEntity1s();
@@ -539,6 +563,62 @@ public class MigrationTest {
         }
     }
 
+    // Verifies that even with allowDataLossOnRecovery, bad migrations are propagated and the DB
+    // is not silently deleted.
+    @Test
+    public void badMigration_allowDataLossOnRecovery() throws IOException {
+        // Create DB at version 1
+        helper.createDatabase(TEST_DB, 1).close();
+
+        // Create DB at latest version, but no migrations and with allowDataLossOnRecovery, it
+        // should fail to open.
+        Context targetContext = ApplicationProvider.getApplicationContext();
+        MigrationDb db = Room.databaseBuilder(targetContext, MigrationDb.class, TEST_DB)
+                .openHelperFactory(configuration -> {
+                    SupportSQLiteOpenHelper.Configuration config =
+                            SupportSQLiteOpenHelper.Configuration.builder(targetContext)
+                                    .name(configuration.name)
+                                    .callback(configuration.callback)
+                                    .allowDataLossOnRecovery(true)
+                                    .build();
+                    return new FrameworkSQLiteOpenHelperFactory().create(config);
+                })
+                .build();
+        try {
+            db.getOpenHelper().getWritableDatabase();
+            Assert.fail("Expected a missing migration exception");
+        } catch (IllegalStateException ex) {
+            // Verifies exception is not wrapped
+            Truth.assertThat(ex).hasMessageThat()
+                    .containsMatch("A migration from \\d+ to \\d+ was required but not found.");
+        }
+    }
+
+    @Test
+    public void invalid_hash() throws IOException {
+        // Create DB at version 1
+        SupportSQLiteDatabase db = helper.createDatabase(TEST_DB, 1);
+        // Set its version to 2
+        db.setVersion(2);
+        db.close();
+
+        // Open the database again at version 2 and it should fail identity, replicating the
+        // scenario of 1. bumping version code without schema changes, 2. making schema changes and
+        // 3. opening the DB again.
+        try {
+            helper.runMigrationsAndValidate(TEST_DB, 2, false);
+            Assert.fail("Expected a room cannot verify the data integrity exception");
+        } catch (IllegalStateException ex) {
+            Truth.assertThat(ex).hasMessageThat().contains(
+                    "Room cannot verify the data integrity"
+            );
+            Truth.assertThat(ex).hasMessageThat().contains(
+                    "Expected identity hash: aee9a6eed720c059df0f2ee0d6e96d89, "
+                            + "found: 2f3557e56d7f665363f3e20d14787a59"
+            );
+        }
+    }
+
     private void testFailure(int startVersion, int endVersion) throws IOException {
         final SupportSQLiteDatabase db = helper.createDatabase(TEST_DB, startVersion);
         db.close();
@@ -556,7 +636,7 @@ public class MigrationTest {
 
     private static final Migration MIGRATION_1_2 = new Migration(1, 2) {
         @Override
-        public void migrate(SupportSQLiteDatabase database) {
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
             database.execSQL("CREATE TABLE IF NOT EXISTS `Entity2` ("
                     + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
                     + " `name` TEXT)");
@@ -565,7 +645,7 @@ public class MigrationTest {
 
     private static final Migration MIGRATION_2_3 = new Migration(2, 3) {
         @Override
-        public void migrate(SupportSQLiteDatabase database) {
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
             database.execSQL("ALTER TABLE " + MigrationDb.Entity2.TABLE_NAME
                     + " ADD COLUMN addedInV3 TEXT");
         }
@@ -573,7 +653,7 @@ public class MigrationTest {
 
     private static final Migration MIGRATION_3_4 = new Migration(3, 4) {
         @Override
-        public void migrate(SupportSQLiteDatabase database) {
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
             database.execSQL("CREATE TABLE IF NOT EXISTS `Entity3` (`id` INTEGER NOT NULL,"
                     + " `removedInV5` TEXT, `name` TEXT, PRIMARY KEY(`id`))");
         }
@@ -581,7 +661,7 @@ public class MigrationTest {
 
     private static final Migration MIGRATION_4_5 = new Migration(4, 5) {
         @Override
-        public void migrate(SupportSQLiteDatabase database) {
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
             database.execSQL("CREATE TABLE IF NOT EXISTS `Entity3_New` (`id` INTEGER NOT NULL,"
                     + " `name` TEXT, PRIMARY KEY(`id`))");
             database.execSQL("INSERT INTO Entity3_New(`id`, `name`) "
@@ -593,14 +673,14 @@ public class MigrationTest {
 
     private static final Migration MIGRATION_5_6 = new Migration(5, 6) {
         @Override
-        public void migrate(SupportSQLiteDatabase database) {
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
             database.execSQL("DROP TABLE " + MigrationDb.Entity3.TABLE_NAME);
         }
     };
 
     private static final Migration MIGRATION_6_7 = new Migration(6, 7) {
         @Override
-        public void migrate(SupportSQLiteDatabase database) {
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
             database.execSQL("CREATE TABLE IF NOT EXISTS " + MigrationDb.Entity4.TABLE_NAME
                     + " (`id` INTEGER NOT NULL, `name` TEXT COLLATE NOCASE, PRIMARY KEY(`id`),"
                     + " FOREIGN KEY(`name`) REFERENCES `Entity1`(`name`)"
@@ -612,7 +692,7 @@ public class MigrationTest {
 
     private static final Migration MIGRATION_7_8 = new Migration(7, 8) {
         @Override
-        public void migrate(SupportSQLiteDatabase database) {
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
             database.execSQL("CREATE VIEW IF NOT EXISTS `" + MigrationDb.View1.VIEW_NAME
                     + "` AS SELECT Entity4.id, Entity4.name, Entity1.id AS entity1Id"
                     + " FROM Entity4 INNER JOIN Entity1 ON Entity4.name = Entity1.name");
@@ -657,6 +737,14 @@ public class MigrationTest {
         }
     };
 
+    private static final Migration MIGRATION_12_13 = new Migration(12, 13) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE Entity1 "
+                    + "ADD COLUMN added1InV13 INTEGER NOT NULL DEFAULT (0)");
+        }
+    };
+
     /**
      * Downgrade migration from {@link MigrationDb#MAX_VERSION} to
      * {@link MigrationDb#LATEST_VERSION} that uses the schema file and re-creates the tables such
@@ -671,7 +759,7 @@ public class MigrationTest {
     private static final Migration MIGRATION_MAX_LATEST = new Migration(
             MigrationDb.MAX_VERSION, MigrationDb.LATEST_VERSION) {
         @Override
-        public void migrate(SupportSQLiteDatabase database) {
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
             // Drop Entity1 since its possible that LATEST_VERSION schema defines it differently.
             database.execSQL("DROP TABLE IF EXISTS " + MigrationDb.Entity1.TABLE_NAME);
 
@@ -697,7 +785,8 @@ public class MigrationTest {
 
     private static final Migration[] ALL_MIGRATIONS = new Migration[]{MIGRATION_1_2,
             MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
-            MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12};
+            MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
+            MIGRATION_12_13};
 
     static final class EmptyMigration extends Migration {
         EmptyMigration(int startVersion, int endVersion) {

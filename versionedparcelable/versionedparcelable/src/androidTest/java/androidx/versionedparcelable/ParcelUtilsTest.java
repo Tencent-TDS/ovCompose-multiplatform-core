@@ -37,6 +37,7 @@ import org.junit.runner.RunWith;
 @SmallTest
 public class ParcelUtilsTest {
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testBundlingWithoutCrash() {
         Bundle b = new Bundle();
@@ -54,19 +55,19 @@ public class ParcelUtilsTest {
         assertNotNull(ParcelUtils.getVersionedParcelable(after, "myKey"));
     }
 
+    @SuppressWarnings("deprecation")
     @Test(expected = BadParcelableException.class)
     public void testBundlingExpectedCrash() {
-        Bundle b = new Bundle();
-        b.putString("pre_existing_arg", "my_string");
-        b.putParcelable("myKey", toParcelable(new ParcelUtilsParcelable()));
+        Bundle before = new Bundle();
+        before.putParcelable("myKey", toParcelable(new ParcelUtilsParcelable()));
 
-        Parcel p = Parcel.obtain();
-        p.writeParcelable(b, 0);
-        p.setDataPosition(0);
+        Parcel parcel = Parcel.obtain();
+        parcel.writeParcelable(before, 0);
+        parcel.setDataPosition(0);
 
-        Bundle after = p.readParcelable(Bundle.class.getClassLoader());
+        Bundle after = parcel.readParcelable(Bundle.class.getClassLoader());
         after.setClassLoader(null);
-        after.getString("pre_existing_arg");
+        after.get("myKey");
     }
 
     @Test
@@ -77,6 +78,17 @@ public class ParcelUtilsTest {
         VersionedParcelable result = ParcelUtils.getVersionedParcelable(bundle, "key");
 
         assertThat(result).isNull();
+    }
+
+    @Test
+    public void putVersionedParcelableNullClearsKey() {
+        Bundle bundle = new Bundle();
+
+        ParcelUtils.putVersionedParcelable(bundle, "key", new ParcelUtilsParcelable());
+        assertThat(bundle.getBundle("key")).isNotNull();
+
+        ParcelUtils.putVersionedParcelable(bundle, "key", null);
+        assertThat(bundle.getBundle("key")).isNull();
     }
 
     @VersionedParcelize

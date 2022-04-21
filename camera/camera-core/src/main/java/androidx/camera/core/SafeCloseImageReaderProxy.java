@@ -21,6 +21,8 @@ import android.view.Surface;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.annotation.RestrictTo;
 import androidx.camera.core.impl.ImageReaderProxy;
 
 import java.util.concurrent.Executor;
@@ -28,15 +30,19 @@ import java.util.concurrent.Executor;
 /**
  * An {@link ImageReaderProxy} that wraps another ImageReaderProxy to safely wait until all
  * produced {@link ImageProxy} are closed before closing the ImageReaderProxy.
+ *
+ * @hide
  */
-class SafeCloseImageReaderProxy implements ImageReaderProxy {
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+public class SafeCloseImageReaderProxy implements ImageReaderProxy {
     // Lock to synchronize acquired ImageProxys and close.
     private final Object mLock = new Object();
 
     @GuardedBy("mLock")
-    private volatile int mOutstandingImages = 0;
+    private int mOutstandingImages = 0;
     @GuardedBy("mLock")
-    private volatile boolean mIsClosed = false;
+    private boolean mIsClosed = false;
 
     // The wrapped instance of ImageReaderProxy
     @GuardedBy("mLock")
@@ -46,7 +52,7 @@ class SafeCloseImageReaderProxy implements ImageReaderProxy {
     private final Surface mSurface;
 
     // Called after images are closed to check if the ImageReaderProxy should be closed
-    private ForwardingImageProxy.OnImageCloseListener mImageCloseListener = (image) -> {
+    private final ForwardingImageProxy.OnImageCloseListener mImageCloseListener = (image) -> {
         synchronized (mLock) {
             mOutstandingImages--;
             if (mIsClosed && mOutstandingImages == 0) {
@@ -55,7 +61,7 @@ class SafeCloseImageReaderProxy implements ImageReaderProxy {
         }
     };
 
-    SafeCloseImageReaderProxy(@NonNull ImageReaderProxy imageReaderProxy) {
+    public SafeCloseImageReaderProxy(@NonNull ImageReaderProxy imageReaderProxy) {
         mImageReaderProxy = imageReaderProxy;
         mSurface = imageReaderProxy.getSurface();
     }
@@ -97,16 +103,14 @@ class SafeCloseImageReaderProxy implements ImageReaderProxy {
     @GuardedBy("mLock")
     @Nullable
     private ImageProxy wrapImageProxy(@Nullable ImageProxy imageProxy) {
-        synchronized (mLock) {
-            if (imageProxy != null) {
-                mOutstandingImages++;
-                SingleCloseImageProxy singleCloseImageProxy =
-                        new SingleCloseImageProxy(imageProxy);
-                singleCloseImageProxy.addOnImageCloseListener(mImageCloseListener);
-                return singleCloseImageProxy;
-            } else {
-                return null;
-            }
+        if (imageProxy != null) {
+            mOutstandingImages++;
+            SingleCloseImageProxy singleCloseImageProxy =
+                    new SingleCloseImageProxy(imageProxy);
+            singleCloseImageProxy.addOnImageCloseListener(mImageCloseListener);
+            return singleCloseImageProxy;
+        } else {
+            return null;
         }
     }
 
@@ -117,8 +121,7 @@ class SafeCloseImageReaderProxy implements ImageReaderProxy {
      * <p>Once this has been called, no more additional ImageProxy can be acquired from the
      * {@link SafeCloseImageReaderProxy}.
      */
-    @GuardedBy("mLock")
-    void safeClose() {
+    public void safeClose() {
         synchronized (mLock) {
             mIsClosed = true;
             mImageReaderProxy.clearOnImageAvailableListener();

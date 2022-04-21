@@ -16,18 +16,22 @@
 
 package androidx.navigation.safeargs.gradle
 
+import com.android.build.api.variant.AndroidComponentsExtension
+import com.android.build.api.variant.DynamicFeatureVariant
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.BaseExtension
 import com.android.build.gradle.LibraryExtension
-import com.android.build.gradle.api.BaseVariant
-import groovy.util.XmlSlurper
+import groovy.xml.XmlSlurper
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.file.FileCollection
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
 import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 import java.io.File
+import java.io.FileNotFoundException
+import java.util.Locale
 import javax.inject.Inject
 
 private const val PLUGIN_DIRNAME = "navigation-args"
@@ -40,7 +44,11 @@ abstract class SafeArgsPlugin protected constructor(
 
     abstract val generateKotlin: Boolean
 
-    private fun forEachVariant(extension: BaseExtension, action: (BaseVariant) -> Unit) {
+    @Suppress("DEPRECATION") // For BaseVariant should be replaced in later studio versions
+    private fun forEachVariant(
+        extension: BaseExtension,
+        action: (com.android.build.gradle.api.BaseVariant) -> Unit
+    ) {
         when {
             extension is AppExtension -> extension.applicationVariants.all(action)
             extension is LibraryExtension -> {
@@ -63,52 +71,93 @@ abstract class SafeArgsPlugin protected constructor(
                 "androidx.navigation.safeargs.kotlin plugin must be used with kotlin plugin"
             )
         }
+        val applicationIds = mutableMapOf<String, Provider<String>>()
+        val variantExtension =
+            project.extensions.findByType(AndroidComponentsExtension::class.java)
+                ?: throw GradleException("safeargs plugin must be used with android plugin")
+        variantExtension.onVariants { variant ->
+            @Suppress("DEPRECATION") // For ApplicationVariant
+            when (variant) {
+                is com.android.build.gradle.api.ApplicationVariant ->
+                    applicationIds.getOrPut(variant.name) {
+                        variant.namespace
+                    }
+                is DynamicFeatureVariant ->
+                    applicationIds.getOrPut(variant.name) {
+                        variant.applicationId
+                    }
+            }
+        }
+
         forEachVariant(extension) { variant ->
             val task = project.tasks.create(
-                "generateSafeArgs${variant.name.capitalize()}",
+                "generateSafeArgs${variant.name.replaceFirstChar {
+                    if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString()
+                }}",
                 ArgumentsGenerationTask::class.java
             ) { task ->
-                setApplicationId(task, variant)
-                task.rFilePackage = variant.rFilePackage()
-                task.navigationFiles = navigationFiles(variant, project)
-                task.outputDir = File(project.buildDir, "$GENERATED_PATH/${variant.dirName}")
-                task.incrementalFolder = File(project.buildDir, "$INCREMENTAL_PATH/${task.name}")
-                task.useAndroidX = (project.findProperty("android.useAndroidX") == "true").also {
-                    if (!it) {
-                        throw GradleException(
-                            "androidx.navigation.safeargs can only be used with an androidx project"
-                        )
+                task.applicationId.set(
+                    // this will only put in the case where the extension is a Library module
+                    // and should be superseded by `getNamespace()` in agp 7.0+
+                    applicationIds.getOrPut(variant.name) {
+                        providerFactory.provider { variant.applicationId }
                     }
-                }
-                task.generateKotlin = generateKotlin
+                )
+                val rPackage = variant.rFilePackage(project)
+                task.rFilePackage.set(
+                    // If a package name is available we use that by default to ensure we
+                    // continue to support different productFlavors
+                    if (rPackage.get().isNotEmpty()) {
+                        rPackage
+                    } else {
+                        // otherwise, we fall back to the applicationId set on the task to ensure
+                        // we support namespaces as well.
+                        task.applicationId
+                    }
+                )
+                task.navigationFiles.setFrom(navigationFiles(variant, project))
+                task.outputDir.set(File(project.buildDir, "$GENERATED_PATH/${variant.dirName}"))
+                task.incrementalFolder.set(File(project.buildDir, "$INCREMENTAL_PATH/${task.name}"))
+                task.useAndroidX.set(
+                    (project.findProperty("android.useAndroidX") == "true").also {
+                        if (!it) {
+                            throw GradleException(
+                                "androidx.navigation.safeargs can only be used with an androidx " +
+                                    "project"
+                            )
+                        }
+                    }
+                )
+                task.generateKotlin.set(generateKotlin)
             }
-            task.applicationIdResource?.let { task.dependsOn(it) }
-            variant.registerJavaGeneratingTask(task, task.outputDir)
+            @Suppress("DEPRECATION") // For BaseVariant should be replaced in later studio versions
+            variant.registerJavaGeneratingTask(task, task.outputDir.asFile.get())
         }
     }
 
-    /**
-     * Sets the android project application id into the task.
-     */
-    private fun setApplicationId(task: ArgumentsGenerationTask, variant: BaseVariant) {
-        val appIdTextResource = variant.applicationIdTextResource
-        if (appIdTextResource != null) {
-            task.applicationIdResource = appIdTextResource
-        } else {
-            // getApplicationIdTextResource() returned null, fallback to getApplicationId()
-            task.applicationId = variant.applicationId
-        }
-    }
-
-    private fun BaseVariant.rFilePackage() = providerFactory.provider {
+    @Suppress("DEPRECATION") // For BaseVariant should be replaced in later studio versions
+    private fun com.android.build.gradle.api.BaseVariant.rFilePackage(
+        project: Project
+    ): Provider<String> = project.objects.property(String::class.java).apply {
         val mainSourceSet = sourceSets.find { it.name == "main" }
         val sourceSet = mainSourceSet ?: sourceSets[0]
         val manifest = sourceSet.manifestFile
-        val parsed = XmlSlurper(false, false).parse(manifest)
-        parsed.getProperty("@package").toString()
+        try {
+            val parsed = XmlSlurper(false, false).parse(manifest)
+            set(parsed.getProperty("@package").toString())
+        } catch (e: FileNotFoundException) {
+            // If manifest does not exist we should fall back to namespace
+            set("")
+        }
+        disallowChanges()
+        finalizeValueOnRead()
     }
 
-    private fun navigationFiles(variant: BaseVariant, project: Project): FileCollection {
+    @Suppress("DEPRECATION") // For BaseVariant should be replaced in later studio versions
+    private fun navigationFiles(
+        variant: com.android.build.gradle.api.BaseVariant,
+        project: Project
+    ): ConfigurableFileCollection {
         val fileProvider = providerFactory.provider {
             variant.sourceSets
                 .flatMap { it.resDirectories }

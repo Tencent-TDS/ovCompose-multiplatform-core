@@ -26,11 +26,12 @@ import org.jetbrains.kotlin.config.JVMConfigurationKeys
 import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
 import java.net.URLClassLoader
 
-@RunWith(ComposeRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 @Config(
     manifest = Config.NONE,
     minSdk = 23,
@@ -39,7 +40,6 @@ import java.net.URLClassLoader
 class KtxCrossModuleTests : AbstractCodegenTest() {
 
     @Test
-    @Ignore("b/165674304")
     fun testInlineFunctionDefaultArgument(): Unit = ensureSetup {
         compile(
             mapOf(
@@ -75,7 +75,6 @@ class KtxCrossModuleTests : AbstractCodegenTest() {
     }
 
     @Test
-    @Ignore("b/165674304")
     fun testInlineFunctionDefaultArgument2(): Unit = ensureSetup {
         compile(
             mapOf(
@@ -226,17 +225,48 @@ class KtxCrossModuleTests : AbstractCodegenTest() {
             // Check that the composable functions were properly mangled
             assert(
                 it.contains(
-                    "public final static foo-s0xCT_s(ILandroidx/compose/runtime/Composer;I)V"
+                    "public final static foo-4e73Vzs(ILandroidx/compose/runtime/Composer;I)V"
                 )
             )
             assert(
                 it.contains(
-                    "public final static foo-N8p8aEo(ILandroidx/compose/runtime/Composer;I)V"
+                    "public final static foo-YK1ovzU(ILandroidx/compose/runtime/Composer;I)V"
                 )
             )
             // Check that we didn't leave any references to the original name, which probably
             // leads to a compile error.
             assert(!it.contains("foo("))
+        }
+    }
+
+    @Test
+    fun testFunInterfaceWithInlineClass(): Unit = ensureSetup {
+        compile(
+            mapOf(
+                "library module" to mapOf(
+                    "x/A.kt" to """
+                        package x
+
+                        inline class A(val value: Int)
+                        fun interface B {
+                          fun method(a: A)
+                        }
+                    """.trimIndent()
+                ),
+                "Main" to mapOf(
+                    "y/B.kt" to """
+                        package y
+
+                        import x.*
+
+                        val b = B { }
+                    """
+                )
+            )
+        ) {
+            assert(it.contains("public abstract method-C8LvVsQ(I)V"))
+            assert(it.contains("public final method-C8LvVsQ(I)V"))
+            assert(!it.contains("public final method(I)V"))
         }
     }
 
@@ -447,7 +477,7 @@ class KtxCrossModuleTests : AbstractCodegenTest() {
                     import androidx.compose.runtime.Composable
 
                     class Foo {
-                      @Composable val value: Int get() = 123
+                      val value: Int @Composable get() = 123
                     }
                  """
                 ),
@@ -687,7 +717,7 @@ class KtxCrossModuleTests : AbstractCodegenTest() {
 
                     import androidx.compose.runtime.*
 
-                    @Composable val foo: Int get() { return 123 }
+                    val foo: Int @Composable get() { return 123 }
                  """
                 ),
                 "Main" to mapOf(
@@ -732,6 +762,35 @@ class KtxCrossModuleTests : AbstractCodegenTest() {
                     @Composable fun Example(inst: Foo) {
                         B().foo()
                         inst.foo()
+                    }
+                """
+                )
+            )
+        )
+    }
+
+    @Test
+    fun testXModuleComposableProperty(): Unit = ensureSetup {
+        compile(
+            mapOf(
+                "library module" to mapOf(
+                    "a/Foo.kt" to """
+                    package a
+
+                    import androidx.compose.runtime.*
+
+                    val foo: () -> Unit
+                        @Composable get() = {}
+                 """
+                ),
+                "Main" to mapOf(
+                    "B.kt" to """
+                    import a.foo
+                    import androidx.compose.runtime.*
+
+                    @Composable fun Example() {
+                        val bar = foo
+                        bar()
                     }
                 """
                 )
@@ -795,18 +854,18 @@ class KtxCrossModuleTests : AbstractCodegenTest() {
                    import my.test.lib.*
 
                    var bar = 0
-                   var doRecompose: () -> Unit = {}
+                   var scope: RecomposeScope? = null
 
                    class TestF {
                        @Composable
                        fun compose() {
-                         doRecompose = invalidate
+                         scope = currentRecomposeScope
                          Foo(bar)
                        }
 
                        fun advance() {
                          bar++
-                         doRecompose()
+                         scope?.invalidate()
                        }
                    }
 
@@ -865,6 +924,96 @@ class KtxCrossModuleTests : AbstractCodegenTest() {
                         override fun apply(value: InlineClass) {}
                     }
                     """.trimIndent()
+                )
+            )
+        )
+    }
+
+    @Test
+    fun testAnnotationInferenceAcrossModules() = ensureSetup {
+        compile(
+            mapOf(
+                "Base" to mapOf(
+                    "base/Library.kt" to """
+                    package base
+
+                    import androidx.compose.runtime.*
+
+                    @Composable
+                    @ComposableTarget("UI")
+                    fun Text(text: String) { }
+
+                    @Composable
+                    @ComposableTarget("UI")
+                    fun Row(content: @Composable @ComposableTarget("UI") () -> Unit) {
+                      content()
+                    }
+                    """
+                ),
+                "Client" to mapOf(
+                    "client/Library.kt" to """
+                    package client
+
+                    import androidx.compose.runtime.*
+                    import base.*
+
+                    @Composable
+                    fun Labeled(text: String, content: @Composable () -> Unit) {
+                      Text(text)
+                      Row { content() }
+                    }
+                    """
+                ),
+                "Main" to mapOf(
+                    "Main.kt" to """
+                    package main
+
+                    import androidx.compose.runtime.*
+                    import client.*
+
+                    @Composable
+                    fun Main() {
+                      Labeled("test") { }
+                    }
+                    """
+                )
+            )
+        ) {
+            assert(it.contains("[UI[UI]]", false)) {
+                "Layered composable didn't store the inferred composable target"
+            }
+        }
+    }
+
+    /**
+     * Test for b/221280935
+     */
+    @Test
+    fun testOverriddenSymbolParentsInDefaultParameters() = ensureSetup {
+        compile(
+            mapOf(
+                "Base" to mapOf(
+                    "base/Base.kt" to """
+                    package base
+
+                    import androidx.compose.runtime.Composable
+
+                    open class Base {
+                      fun f(block: (@Composable () -> Unit)? = null) {}
+                    }
+                    """
+                ),
+                "Main" to mapOf(
+                    "Main.kt" to """
+                    package main
+
+                    import androidx.compose.runtime.Composable
+                    import base.Base
+
+                    class Child : Base() {
+                      init { f {} }
+                    }
+                    """
                 )
             )
         )
@@ -997,7 +1146,3 @@ fun OutputFile.writeToDir(directory: File) =
     FileUtil.writeToFile(File(directory, relativePath), asByteArray())
 
 fun Collection<OutputFile>.writeToDir(directory: File) = forEach { it.writeToDir(directory) }
-
-fun tmpDir(name: String): File {
-    return FileUtil.createTempDirectory(name, "", false).canonicalFile
-}

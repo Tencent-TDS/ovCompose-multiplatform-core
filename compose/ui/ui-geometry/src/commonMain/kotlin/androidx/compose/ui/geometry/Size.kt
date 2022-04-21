@@ -20,7 +20,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.util.packFloats
-import androidx.compose.ui.util.toStringAsFixed
 import androidx.compose.ui.util.unpackFloat1
 import androidx.compose.ui.util.unpackFloat2
 import kotlin.math.absoluteValue
@@ -38,9 +37,9 @@ fun Size(width: Float, height: Float) = Size(packFloats(width, height))
  *
  * You can think of this as an [Offset] from the origin.
  */
-@Suppress("EXPERIMENTAL_FEATURE_WARNING")
 @Immutable
-inline class Size(@PublishedApi internal val packedValue: Long) {
+@kotlin.jvm.JvmInline
+value class Size internal constructor(@PublishedApi internal val packedValue: Long) {
 
     @Stable
     val width: Float
@@ -87,7 +86,7 @@ inline class Size(@PublishedApi internal val packedValue: Long) {
         /**
          * A size whose [width] and [height] are unspecified. This is a sentinel
          * value used to initialize a non-null parameter.
-         * Access to width or height on an unspecified size is not allowed
+         * Access to width or height on an unspecified size is not allowed.
          */
         @Stable
         val Unspecified = Size(Float.NaN, Float.NaN)
@@ -135,8 +134,36 @@ inline class Size(@PublishedApi internal val packedValue: Long) {
     val maxDimension: Float
         get() = max(width.absoluteValue, height.absoluteValue)
 
-    override fun toString() = "Size(${width.toStringAsFixed(1)}, ${height.toStringAsFixed(1)})"
+    override fun toString() =
+        if (isSpecified) {
+            "Size(${width.toStringAsFixed(1)}, ${height.toStringAsFixed(1)})"
+        } else {
+            // In this case reading the width or height properties will throw, and they don't
+            // contain meaningful values as strings anyway.
+            "Size.Unspecified"
+        }
 }
+
+/**
+ * `false` when this is [Size.Unspecified].
+ */
+@Stable
+inline val Size.isSpecified: Boolean
+    get() = packedValue != Size.Unspecified.packedValue
+
+/**
+ * `true` when this is [Size.Unspecified].
+ */
+@Stable
+inline val Size.isUnspecified: Boolean
+    get() = packedValue == Size.Unspecified.packedValue
+
+/**
+ * If this [Size]&nbsp;[isSpecified] then this is returned, otherwise [block] is executed
+ * and its result is returned.
+ */
+inline fun Size.takeOrElse(block: () -> Size): Size =
+    if (isSpecified) this else block()
 
 /**
  * Linearly interpolate between two sizes
@@ -189,3 +216,10 @@ fun Size.toRect(): Rect {
 @Suppress("NOTHING_TO_INLINE")
 @Stable
 inline operator fun Float.times(size: Size) = size * this
+
+/**
+ * Returns the [Offset] of the center of the rect from the point of [0, 0]
+ * with this [Size].
+ */
+@Stable
+val Size.center: Offset get() = Offset(width / 2f, height / 2f)

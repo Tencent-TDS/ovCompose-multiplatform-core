@@ -16,52 +16,51 @@
 
 package androidx.compose.animation.demos
 
-import android.util.Log
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.preferredHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.savedinstancestate.ExperimentalRestorableStateHolder
-import androidx.compose.runtime.savedinstancestate.rememberRestorableStateHolder
-import androidx.compose.runtime.savedinstancestate.rememberSavedInstanceState
-import androidx.compose.runtime.savedinstancestate.savedInstanceState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.gesture.tapGestureFilter
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import kotlin.random.Random
 
-@OptIn(ExperimentalRestorableStateHolder::class)
 @Composable
 fun CrossfadeDemo() {
-    var current by savedInstanceState { 0 }
+    var current by rememberSaveable { mutableStateOf(0) }
     Column {
         Row {
             tabs.forEachIndexed { index, tab ->
                 Box(
-                    Modifier.tapGestureFilter(
-                        onTap = {
-                            Log.e("Crossfade", "Switch to $tab")
+                    Modifier.pointerInput(Unit) {
+                        detectTapGestures {
                             current = index
                         }
-                    )
+                    }
                         .weight(1f, true)
-                        .preferredHeight(48.dp)
+                        .height(48.dp)
                         .background(tab.color)
                 )
             }
         }
-        val restorableStateHolder = rememberRestorableStateHolder<Int>()
-        Crossfade(current = current) { current ->
-            restorableStateHolder.RestorableStateProvider(current) {
+        val saveableStateHolder = rememberSaveableStateHolder()
+        Crossfade(targetState = current, animationSpec = tween(1000)) { current ->
+            saveableStateHolder.SaveableStateProvider(current) {
                 val tab = tabs[current]
-                tab.lastInt = rememberSavedInstanceState { Random.nextInt() }
+                arrayOf<Any?>()
+                tab.lastInt = rememberSaveable { Random.nextInt() }
                 Box(Modifier.fillMaxSize().background(tab.color))
             }
         }
@@ -78,7 +77,6 @@ private data class Tab(val color: Color) {
     var lastInt: Int = 0
         set(value) {
             if (value != field) {
-                Log.e("Crossfade", "State recreated for $color")
                 field = value
             }
         }

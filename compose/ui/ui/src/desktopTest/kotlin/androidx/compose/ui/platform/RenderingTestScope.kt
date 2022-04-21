@@ -17,67 +17,79 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Providers
+import androidx.compose.ui.ComposeScene
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.yield
-import org.jetbrains.skija.Canvas
-import org.jetbrains.skija.Surface
+import org.jetbrains.skia.Canvas
+import org.jetbrains.skia.Surface
+import org.jetbrains.skiko.FrameDispatcher
+import kotlin.coroutines.CoroutineContext
 
 internal fun renderingTest(
     width: Int,
     height: Int,
-    platform: DesktopPlatform = DesktopPlatform.Linux,
+    context: CoroutineContext = Dispatchers.Swing,
     block: suspend RenderingTestScope.() -> Unit
-) = runBlocking(Dispatchers.Main) {
-    val scope = RenderingTestScope(width, height, platform)
+) = runBlocking(Dispatchers.Swing) {
+    val scope = RenderingTestScope(width, height, context)
     try {
         scope.block()
     } finally {
-        scope.owner?.dispose()
-        scope.frameDispatcher.cancel()
+        scope.dispose()
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 internal class RenderingTestScope(
-    private val width: Int,
-    private val height: Int,
-    private val platform: DesktopPlatform
+    val width: Int,
+    val height: Int,
+    coroutineContext: CoroutineContext
 ) {
     var currentTimeMillis = 0L
 
-    val frameDispatcher = FrameDispatcher(
-        onFrame = { onRender(it) },
-        framesPerSecond = { Float.POSITIVE_INFINITY },
-        nanoTime = { currentTimeMillis * 1_000_000 }
-    )
+    private val frameDispatcher = FrameDispatcher(coroutineContext) {
+        onRender(currentTimeMillis * 1_000_000)
+    }
 
     val surface: Surface = Surface.makeRasterN32Premul(width, height)
     val canvas: Canvas = surface.canvas
-    val owners = DesktopOwners(
+    val scene = ComposeScene(
+        coroutineContext = coroutineContext,
         invalidate = frameDispatcher::scheduleFrame
-    )
-    var owner: DesktopOwner? = null
+    ).apply {
+        constraints = Constraints(maxWidth = width, maxHeight = height)
+    }
+
+    var density: Float
+        get() = scene.density.density
+        set(value) {
+            scene.density = Density(value, scene.density.fontScale)
+        }
+
+    fun dispose() {
+        scene.close()
+        frameDispatcher.cancel()
+    }
 
     private var onRender = CompletableDeferred<Unit>()
 
     fun setContent(content: @Composable () -> Unit) {
-        owner?.dispose()
-        val owner = DesktopOwner(owners)
-        owner.setContent {
-            Providers(DesktopPlatformAmbient provides platform) {
-                content()
-            }
+        scene.setContent {
+            content()
         }
-        this.owner = owner
     }
 
-    private suspend fun onRender(timeNanos: Long) {
+    private fun onRender(timeNanos: Long) {
         canvas.clear(Color.Transparent.toArgb())
-        owners.onFrame(canvas, width, height, timeNanos)
+        scene.render(canvas, timeNanos)
         onRender.complete(Unit)
     }
 

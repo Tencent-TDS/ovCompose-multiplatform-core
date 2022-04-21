@@ -16,17 +16,16 @@
 
 package androidx.compose.integration.demos.test
 
-import androidx.compose.androidview.demos.ComposeInAndroidDialogDismissDialogDuringDispatch
 import androidx.compose.integration.demos.AllDemosCategory
 import androidx.compose.integration.demos.DemoActivity
 import androidx.compose.integration.demos.Tags
-import androidx.compose.integration.demos.common.ActivityDemo
 import androidx.compose.integration.demos.common.ComposableDemo
 import androidx.compose.integration.demos.common.Demo
 import androidx.compose.integration.demos.common.DemoCategory
 import androidx.compose.integration.demos.common.allDemos
 import androidx.compose.integration.demos.common.allLaunchableDemos
-import androidx.compose.ui.test.ExperimentalTesting
+import androidx.compose.material3.demos.Material3Demos
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteractionCollection
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasClickAction
@@ -39,24 +38,25 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.FlakyTest
 import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-private val demosWithInifinateAnimations = listOf("Material > Progress Indicators")
-
-private val ignoredDemos = listOf(
-    // TODO(b/168695905, fresen): We don't have a way to pause suspend animations yet.
-    "Animation > Suspend Animation Demos > Infinitely Animating",
+private val ignoredDemos = listOf<String>(
+    // Not ignoring any of them \o/
 )
 
+@FlakyTest(bugId = 204322457)
 @LargeTest
 @RunWith(AndroidJUnit4::class)
-@OptIn(ExperimentalTesting::class)
+@OptIn(ExperimentalTestApi::class)
 class DemoTest {
+    // We need to provide the recompose factory first to use new clock.
     @get:Rule
     val rule = createAndroidComposeRule<DemoActivity>()
 
@@ -67,18 +67,22 @@ class DemoTest {
         rule.onNodeWithTag(Tags.FilterButton).performClick()
 
         // TODO: use keyboard input APIs when available to actually filter the list
-        val testDemo = AllDemosWithoutInfiniteAnimations.allLaunchableDemos()
+        val testDemo = AllButIgnoredDemos.allLaunchableDemos()
             // ActivityDemos don't set the title in the AppBar, so we can't verify if we've
             // opened the right one. So, only use ComposableDemos
             .filterIsInstance<ComposableDemo>()
             .sortedBy { it.title }
             .first()
-        // Click on the first demo
+
+        // Click on the first demo.
         val demoTitle = testDemo.title
         rule.onNodeWithText(demoTitle).performScrollTo().performClick()
-
         assertAppBarHasTitle(demoTitle)
+
+        // Navigate back to root screen.
+        Espresso.closeSoftKeyboard()
         Espresso.pressBack()
+        rule.waitForIdle()
         assertIsOnRootScreen()
     }
 
@@ -86,8 +90,7 @@ class DemoTest {
     @MediumTest
     fun testAllDemosAreBeingTested() {
         assertThat(
-            SplitDemoCategories.sumBy { it.allLaunchableDemos().size } +
-                AllDemosWithInfiniteAnimations.allLaunchableDemos().size
+            SplitDemoCategories.sumOf { it.allLaunchableDemos().size }
         ).isEqualTo(AllButIgnoredDemos.allLaunchableDemos().size)
     }
 
@@ -106,16 +109,22 @@ class DemoTest {
         navigateThroughAllDemos(SplitDemoCategories[2])
     }
 
+    // Broken: b/206811195
+    @Ignore
     @Test
     fun navigateThroughAllDemos_4() {
         navigateThroughAllDemos(SplitDemoCategories[3])
     }
 
     @Test
-    fun navigateThroughAllDemos_withInfiniteAnimations() {
-        // Pause the clock in these tests and forward it manually
-        rule.clockTestRule.pauseClock()
-        navigateThroughAllDemos(AllDemosWithInfiniteAnimations, fastForwardClock = true)
+    fun navigateThroughMaterial3Demos() {
+        val material3Demos = DemoCategory(
+            "Jetpack Compose Demos",
+            listOf(
+                Material3Demos,
+            )
+        )
+        navigateThroughAllDemos(material3Demos)
     }
 
     private fun navigateThroughAllDemos(root: DemoCategory, fastForwardClock: Boolean = false) {
@@ -185,27 +194,29 @@ class DemoTest {
             fastForwardClock()
         }
 
-        // TODO: b/165693257 demos without a compose view crash as onAllNodes will fail to
-        // find the semantic nodes.
-        val hasComposeView: Boolean = (this as? ActivityDemo<*>)
-            ?.activityClass != ComposeInAndroidDialogDismissDialogDuringDispatch::class
-
-        if (hasComposeView) {
-            while (rule.onAllNodes(isDialog()).isNotEmpty()) {
-                rule.waitForIdle()
-                Espresso.pressBack()
-            }
+        rule.waitForIdle()
+        while (rule.onAllNodes(isDialog()).isNotEmpty()) {
+            Espresso.pressBack()
+            rule.waitForIdle()
         }
 
+        clearFocusFromDemo()
         rule.waitForIdle()
+
         Espresso.pressBack()
+        rule.waitForIdle()
+
+        if (fastForwardClock) {
+            // Pump press back
+            fastForwardClock(2000)
+        }
 
         assertAppBarHasTitle(navigationTitle)
     }
 
-    private fun fastForwardClock() {
+    private fun fastForwardClock(millis: Long = 5000) {
         rule.waitForIdle()
-        rule.clockTestRule.advanceClock(5000)
+        rule.mainClock.advanceTimeBy(millis)
     }
 
     /**
@@ -220,7 +231,24 @@ class DemoTest {
         rule.onNodeWithTag(Tags.AppBarTitle).assertTextEquals(title)
 
     private fun SemanticsNodeInteractionCollection.isNotEmpty(): Boolean {
-        return fetchSemanticsNodes().isNotEmpty()
+        return fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty()
+    }
+
+    private fun clearFocusFromDemo() {
+        with(rule.activity) {
+            if (hostView.hasFocus()) {
+                if (hostView.isFocused) {
+                    // One of the Compose components has focus.
+                    focusManager.clearFocus(force = true)
+                } else {
+                    // A child view has focus. (View interop scenario).
+                    // We could also use hostViewGroup.focusedChild?.clearFocus(), but the
+                    // interop views might end up being focused if one of them is marked as
+                    // focusedByDefault. So we clear focus by requesting focus on the owner.
+                    rule.runOnUiThread { hostView.requestFocus() }
+                }
+            }
+        }
     }
 }
 
@@ -229,17 +257,7 @@ private val AllButIgnoredDemos =
         demo.navigationTitle(path) !in ignoredDemos
     }
 
-private val AllDemosWithoutInfiniteAnimations =
-    AllButIgnoredDemos.filter { path, demo ->
-        demo.navigationTitle(path) !in demosWithInifinateAnimations
-    }
-
-private val AllDemosWithInfiniteAnimations =
-    AllButIgnoredDemos.filter { path, demo ->
-        demo.navigationTitle(path) in demosWithInifinateAnimations
-    }
-
-private val SplitDemoCategories = AllDemosWithoutInfiniteAnimations.let { root ->
+private val SplitDemoCategories = AllButIgnoredDemos.let { root ->
     root.allLaunchableDemos().let { leaves ->
         val size = leaves.size
         leaves.withIndex()

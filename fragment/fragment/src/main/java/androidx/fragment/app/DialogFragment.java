@@ -34,6 +34,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
+import androidx.activity.ComponentDialog;
 import androidx.annotation.IntDef;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.MainThread;
@@ -43,6 +44,9 @@ import androidx.annotation.RestrictTo;
 import androidx.annotation.StyleRes;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewTreeLifecycleOwner;
+import androidx.lifecycle.ViewTreeViewModelStoreOwner;
+import androidx.savedstate.ViewTreeSavedStateRegistryOwner;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -95,6 +99,10 @@ public class DialogFragment extends Fragment
     private static final String SAVED_CANCELABLE = "android:cancelable";
     private static final String SAVED_SHOWS_DIALOG = "android:showsDialog";
     private static final String SAVED_BACK_STACK_ID = "android:backStackId";
+    /**
+     * Copied from {@link Dialog}.
+     */
+    private static final String SAVED_INTERNAL_DIALOG_SHOWING = "android:dialogShowing";
 
     private Handler mHandler;
     private Runnable mDismissRunnable = new Runnable() {
@@ -249,6 +257,7 @@ public class DialogFragment extends Fragment
         mDismissed = false;
         mShownByMe = true;
         FragmentTransaction ft = manager.beginTransaction();
+        ft.setReorderingAllowed(true);
         ft.add(this, tag);
         ft.commit();
     }
@@ -286,6 +295,7 @@ public class DialogFragment extends Fragment
         mDismissed = false;
         mShownByMe = true;
         FragmentTransaction ft = manager.beginTransaction();
+        ft.setReorderingAllowed(true);
         ft.add(this, tag);
         ft.commitNow();
     }
@@ -297,7 +307,16 @@ public class DialogFragment extends Fragment
      * the fragment.
      */
     public void dismiss() {
-        dismissInternal(false, false);
+        dismissInternal(false, false, false);
+    }
+
+    /**
+     * Version of {@link #dismiss()} that uses {@link FragmentTransaction#commitNow()}.
+     * See linked documentation for further details.
+     */
+    @MainThread
+    public void dismissNow() {
+        dismissInternal(false, false, true);
     }
 
     /**
@@ -307,10 +326,10 @@ public class DialogFragment extends Fragment
      * documentation for further details.
      */
     public void dismissAllowingStateLoss() {
-        dismissInternal(true, false);
+        dismissInternal(true, false, false);
     }
 
-    private void dismissInternal(boolean allowStateLoss, boolean fromOnDismiss) {
+    private void dismissInternal(boolean allowStateLoss, boolean fromOnDismiss, boolean immediate) {
         if (mDismissed) {
             return;
         }
@@ -336,13 +355,22 @@ public class DialogFragment extends Fragment
         }
         mViewDestroyed = true;
         if (mBackStackId >= 0) {
-            getParentFragmentManager().popBackStack(mBackStackId,
-                    FragmentManager.POP_BACK_STACK_INCLUSIVE);
+            if (immediate) {
+                getParentFragmentManager().popBackStackImmediate(mBackStackId,
+                        FragmentManager.POP_BACK_STACK_INCLUSIVE);
+            } else {
+                getParentFragmentManager().popBackStack(mBackStackId,
+                        FragmentManager.POP_BACK_STACK_INCLUSIVE, allowStateLoss);
+            }
             mBackStackId = -1;
         } else {
             FragmentTransaction ft = getParentFragmentManager().beginTransaction();
+            ft.setReorderingAllowed(true);
             ft.remove(this);
-            if (allowStateLoss) {
+            // allowStateLoss and immediate should not both be true
+            if (immediate) {
+                ft.commitNow();
+            } else if (allowStateLoss) {
                 ft.commitAllowingStateLoss();
             } else {
                 ft.commit();
@@ -500,19 +528,15 @@ public class DialogFragment extends Fragment
             @Nullable
             @Override
             public View onFindViewById(int id) {
-                View dialogView = DialogFragment.this.onFindViewById(id);
-                if (dialogView != null) {
-                    return dialogView;
-                }
                 if (fragmentContainer.onHasView()) {
                     return fragmentContainer.onFindViewById(id);
                 }
-                return null;
+                return DialogFragment.this.onFindViewById(id);
             }
 
             @Override
             public boolean onHasView() {
-                return DialogFragment.this.onHasView() || fragmentContainer.onHasView();
+                return  fragmentContainer.onHasView() || DialogFragment.this.onHasView();
             }
         };
     }
@@ -609,7 +633,7 @@ public class DialogFragment extends Fragment
         if (FragmentManager.isLoggingEnabled(Log.DEBUG)) {
             Log.d(TAG, "onCreateDialog called for DialogFragment " + this);
         }
-        return new Dialog(requireContext(), getTheme());
+        return new ComponentDialog(requireContext(), getTheme());
     }
 
     @Override
@@ -626,7 +650,7 @@ public class DialogFragment extends Fragment
             if (FragmentManager.isLoggingEnabled(Log.DEBUG)) {
                 Log.d(TAG, "onDismiss called for DialogFragment " + this);
             }
-            dismissInternal(true, true);
+            dismissInternal(true, true, false);
         }
     }
 
@@ -674,6 +698,26 @@ public class DialogFragment extends Fragment
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated use {@link #onCreateDialog} for code touching the dialog created by
+     * {@link #onCreateDialog}, {@link #onViewCreated(View, Bundle)} for code touching the
+     * view created by {@link #onCreateView} and {@link #onCreate(Bundle)} for other initialization.
+     * To get a callback specifically when a Fragment activity's
+     * {@link Activity#onCreate(Bundle)} is called, register a
+     * {@link androidx.lifecycle.LifecycleObserver} on the Activity's
+     * {@link Lifecycle} in {@link #onAttach(Context)}, removing it when it receives the
+     * {@link Lifecycle.State#CREATED} callback.
+     */
+    @SuppressWarnings("deprecation")
+    @MainThread
+    @Override
+    @Deprecated
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+    }
+
     @MainThread
     @Override
     public void onStart() {
@@ -682,6 +726,11 @@ public class DialogFragment extends Fragment
         if (mDialog != null) {
             mViewDestroyed = false;
             mDialog.show();
+            // Only after we show does the dialog window actually return a decor view.
+            View decorView = mDialog.getWindow().getDecorView();
+            ViewTreeLifecycleOwner.set(decorView, this);
+            ViewTreeViewModelStoreOwner.set(decorView, this);
+            ViewTreeSavedStateRegistryOwner.set(decorView, this);
         }
     }
 
@@ -691,6 +740,7 @@ public class DialogFragment extends Fragment
         super.onSaveInstanceState(outState);
         if (mDialog != null) {
             Bundle dialogState = mDialog.onSaveInstanceState();
+            dialogState.putBoolean(SAVED_INTERNAL_DIALOG_SHOWING, false);
             outState.putBundle(SAVED_DIALOG_STATE_TAG, dialogState);
         }
         if (mStyle != STYLE_NORMAL) {

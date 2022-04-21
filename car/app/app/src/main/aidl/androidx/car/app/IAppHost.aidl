@@ -16,7 +16,8 @@
 
 package androidx.car.app;
 
-import androidx.car.app.ISurfaceListener;
+import androidx.car.app.ISurfaceCallback;
+import androidx.car.app.serialization.Bundleable;
 
 /** @hide */
 interface IAppHost {
@@ -26,8 +27,20 @@ interface IAppHost {
   /** Shows a toast on the car screen. */
   void showToast(CharSequence text, int duration) = 2;
 
+  /** Registers the callback to get surface events. */
+  void setSurfaceCallback(@nullable ISurfaceCallback callback) = 3;
+
+  /** Sends the last known location to the host. */
+  void sendLocation(in Location location) = 4;
+
+  /** Shows an alert to the car screen. */
+  void showAlert(in Bundleable alert) = 5;
+
+  /** Dismisses the alert if active. */
+  void dismissAlert(int alertId) = 6;
+
   /**
-   * Registers the listener to get callbacks for surface events.
+   * Requests microphone input bytes.
    */
-  void setSurfaceListener(@nullable ISurfaceListener listener) = 3;
+  Bundleable openMicrophone(in Bundleable openMicrophoneRequest) = 7;
 }

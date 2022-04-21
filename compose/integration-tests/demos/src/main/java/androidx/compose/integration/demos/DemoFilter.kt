@@ -17,35 +17,36 @@
 package androidx.compose.integration.demos
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.ScrollableColumn
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.preferredHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.integration.demos.common.Demo
-import androidx.compose.material.AmbientContentColor
-import androidx.compose.material.AmbientTextStyle
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.ListItem
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SmallTopAppBar
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.key
-import androidx.compose.runtime.onCommit
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.ExperimentalFocus
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focusRequester
-import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 
 /**
@@ -56,7 +57,8 @@ fun DemoFilter(launchableDemos: List<Demo>, filterText: String, onNavigate: (Dem
     val filteredDemos = launchableDemos
         .filter { it.title.contains(filterText, ignoreCase = true) }
         .sortedBy { it.title }
-    ScrollableColumn {
+    // TODO: migrate to LazyColumn after b/175671850
+    Column(Modifier.verticalScroll(rememberScrollState())) {
         filteredDemos.forEach { demo ->
             FilteredDemoListItem(
                 demo,
@@ -68,58 +70,55 @@ fun DemoFilter(launchableDemos: List<Demo>, filterText: String, onNavigate: (Dem
 }
 
 /**
- * [TopAppBar] with a text field allowing filtering all the demos.
+ * [SmallTopAppBar] with a text field allowing filtering all the demos.
  */
 @Composable
 fun FilterAppBar(
     filterText: String,
     onFilter: (String) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    scrollBehavior: TopAppBarScrollBehavior
 ) {
-    with(MaterialTheme.colors) {
-        val appBarColor = if (isLight) {
-            surface
-        } else {
-            // Blending primary over surface according to Material design guidance for brand
-            // surfaces in dark theme
-            primary.copy(alpha = 0.08f).compositeOver(surface)
-        }
-        TopAppBar(backgroundColor = appBarColor, contentColor = onSurface) {
-            IconButton(modifier = Modifier.align(Alignment.CenterVertically), onClick = onClose) {
-                Icon(Icons.Filled.Close)
+    SmallTopAppBar(
+        navigationIcon = {
+            IconButton(onClick = onClose) {
+                Icon(Icons.Filled.Close, null)
             }
+        },
+        title = {
             FilterField(
                 filterText,
                 onFilter,
-                Modifier.fillMaxWidth().align(Alignment.CenterVertically)
+                Modifier.fillMaxWidth()
             )
-        }
-    }
+        },
+        scrollBehavior = scrollBehavior
+    )
 }
 
 /**
  * [BasicTextField] that edits the current [filterText], providing [onFilter] when edited.
  */
 @Composable
-@OptIn(
-    ExperimentalFocus::class,
-    ExperimentalFoundationApi::class
-)
+@OptIn(ExperimentalFoundationApi::class)
 private fun FilterField(
     filterText: String,
     onFilter: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val focusRequester = FocusRequester()
+    val focusRequester = remember { FocusRequester() }
     // TODO: replace with Material text field when available
     BasicTextField(
         modifier = modifier.focusRequester(focusRequester),
         value = filterText,
         onValueChange = onFilter,
-        textStyle = AmbientTextStyle.current,
-        cursorColor = AmbientContentColor.current
+        textStyle = LocalTextStyle.current,
+        cursorBrush = SolidColor(LocalContentColor.current)
     )
-    onCommit { focusRequester.requestFocus() }
+    DisposableEffect(focusRequester) {
+        focusRequester.requestFocus()
+        onDispose { }
+    }
 }
 
 /**
@@ -131,7 +130,7 @@ private fun FilteredDemoListItem(
     filterText: String,
     onNavigate: (Demo) -> Unit
 ) {
-    val primary = MaterialTheme.colors.primary
+    val primary = MaterialTheme.colorScheme.primary
     val annotatedString = buildAnnotatedString {
         val title = demo.title
         var currentIndex = 0
@@ -153,13 +152,11 @@ private fun FilteredDemoListItem(
     }
     key(demo.title) {
         ListItem(
-            text = {
-                Text(
-                    modifier = Modifier.preferredHeight(56.dp).wrapContentSize(Alignment.Center),
-                    text = annotatedString
-                )
-            },
-            modifier = Modifier.clickable { onNavigate(demo) }
-        )
+            onClick = { onNavigate(demo) }) {
+            Text(
+                modifier = Modifier.height(56.dp).wrapContentSize(Alignment.Center),
+                text = annotatedString
+            )
+        }
     }
 }

@@ -16,33 +16,29 @@
 
 package androidx.compose.runtime.benchmark
 
-import android.app.Activity
 import android.view.View
-import android.view.ViewGroup
+import androidx.activity.compose.setContent
 import androidx.benchmark.junit4.BenchmarkRule
-import androidx.benchmark.junit4.measureRepeated
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Composer
-import androidx.compose.runtime.Composition
-import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.ControlledComposition
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.Recomposer
-import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.snapshots.Snapshot
-import androidx.compose.runtime.snapshots.SnapshotReadObserver
-import androidx.compose.runtime.snapshots.SnapshotWriteObserver
-import androidx.compose.runtime.snapshots.takeMutableSnapshot
-import androidx.compose.ui.platform.AndroidOwner
-import androidx.compose.ui.platform.setContent
+import androidx.compose.ui.test.TestMonotonicFrameClock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.DelayController
-import org.junit.Assert.assertTrue
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
-@OptIn(ExperimentalComposeApi::class, InternalComposeApi::class)
+@OptIn(InternalComposeApi::class)
 abstract class ComposeBenchmarkBase {
     @get:Rule
     val benchmarkRule = BenchmarkRule()
@@ -51,71 +47,45 @@ abstract class ComposeBenchmarkBase {
     @get:Rule
     val activityRule = androidx.test.rule.ActivityTestRule(ComposeActivity::class.java)
 
-    fun measureCompose(block: @Composable () -> Unit) {
+    @ExperimentalCoroutinesApi
+    suspend fun TestScope.measureCompose(block: @Composable () -> Unit) = coroutineScope {
         val activity = activityRule.activity
-        var composition: Composition? = null
-        benchmarkRule.measureRepeated {
-            composition = activity.setContent(Recomposer.current(), block)
+        val recomposer = Recomposer(coroutineContext)
+        val emptyView = View(activity)
 
-            runWithTimingDisabled {
-                composition?.dispose()
-            }
-        }
-        composition?.dispose()
-    }
-
-    fun measureRecompose(block: RecomposeReceiver.() -> Unit) {
-        val receiver = RecomposeReceiver()
-        receiver.block()
-        var activeComposer: Composer<*>? = null
-
-        val activity = activityRule.activity
-
-        val composition = activity.setContent {
-            activeComposer = currentComposer
-            receiver.composeCb()
-        }
-
-        val composer = activeComposer
-        require(composer != null) { "Composer was null" }
-        val readObserver: SnapshotReadObserver = { composer.recordReadOf(it) }
-        val writeObserver: SnapshotWriteObserver = { composer.recordWriteOf(it) }
-        val unregisterApplyObserver = Snapshot.registerApplyObserver { changed, _ ->
-            composer.recordModificationsOf(changed)
-        }
         try {
-            benchmarkRule.measureRepeated {
-                runWithTimingDisabled {
-                    receiver.updateModelCb()
-                    Snapshot.sendApplyNotifications()
+            benchmarkRule.measureRepeatedSuspendable {
+                activity.setContent(recomposer) {
+                    block()
                 }
-                val didSomething = composer.performRecompose(readObserver, writeObserver)
-                assertTrue(didSomething)
+
                 runWithTimingDisabled {
-                    receiver.resetCb()
-                    Snapshot.sendApplyNotifications()
-                    composer.performRecompose(readObserver, writeObserver)
+                    activity.setContentView(emptyView)
+                    testScheduler.advanceUntilIdle()
+                    Runtime.getRuntime().gc()
                 }
             }
         } finally {
-            unregisterApplyObserver()
-            composition.dispose()
+            activity.setContentView(emptyView)
+            testScheduler.advanceUntilIdle()
+            recomposer.cancel()
         }
     }
 
     @ExperimentalCoroutinesApi
-    suspend fun DelayController.measureRecomposeSuspending(
+    suspend fun TestScope.measureRecomposeSuspending(
         block: RecomposeReceiver.() -> Unit
     ) = coroutineScope {
         val receiver = RecomposeReceiver()
         receiver.block()
 
         val activity = activityRule.activity
+        val emptyView = View(activity)
 
         val recomposer = Recomposer(coroutineContext)
         launch { recomposer.runRecomposeAndApplyChanges() }
 
-        val composition = activity.setContent(recomposer) {
+        activity.setContent(recomposer) {
             receiver.composeCb()
         }
 
@@ -127,23 +97,33 @@ abstract class ComposeBenchmarkBase {
             }
             assertTrue(
                 "recomposer does not have invalidations for frame",
-                recomposer.hasInvalidations()
+                recomposer.hasPendingWork
             )
-            advanceUntilIdle()
+            testScheduler.advanceUntilIdle()
             assertFalse(
                 "recomposer has invalidations for frame",
-                recomposer.hasInvalidations()
+                recomposer.hasPendingWork
             )
             runWithTimingDisabled {
                 receiver.resetCb()
                 Snapshot.sendApplyNotifications()
-                advanceUntilIdle()
+                testScheduler.advanceUntilIdle()
             }
             iterations++
         }
 
-        composition.dispose()
-        recomposer.shutDown()
+        activity.setContentView(emptyView)
+        recomposer.cancel()
+    }
+}
+
+@ExperimentalCoroutinesApi
+fun runBlockingTestWithFrameClock(
+    context: CoroutineContext = EmptyCoroutineContext,
+    testBody: suspend TestScope.() -> Unit
+): Unit = runTest(UnconfinedTestDispatcher() + context) {
+    withContext(TestMonotonicFrameClock(this)) {
+        testBody()
     }
 }
 
@@ -159,12 +139,11 @@ inline fun BenchmarkRule.measureRepeatedSuspendable(block: BenchmarkRule.Scope.(
     }
 }
 
-@OptIn(ExperimentalComposeApi::class, InternalComposeApi::class)
-fun Composer<*>.performRecompose(
-    readObserver: SnapshotReadObserver,
-    writeObserver: SnapshotWriteObserver
+fun ControlledComposition.performRecompose(
+    readObserver: (Any) -> Unit,
+    writeObserver: (Any) -> Unit
 ): Boolean {
-    val snapshot = takeMutableSnapshot(readObserver, writeObserver)
+    val snapshot = Snapshot.takeMutableSnapshot(readObserver, writeObserver)
     val result = snapshot.enter {
         recompose().also { applyChanges() }
     }
@@ -188,26 +167,4 @@ class RecomposeReceiver {
     fun update(block: () -> Unit) {
         updateModelCb = block
     }
-}
-
-// TODO(chuckj): Consider refacgtoring to use AndroidTestCaseRunner from UI
-// This code is copied from AndroidTestCaseRunner.kt
-private fun findComposeView(activity: Activity): AndroidOwner? {
-    return findComposeView(activity.findViewById(android.R.id.content) as ViewGroup)
-}
-
-private fun findComposeView(view: View): AndroidOwner? {
-    if (view is AndroidOwner) {
-        return view
-    }
-
-    if (view is ViewGroup) {
-        for (i in 0 until view.childCount) {
-            val composeView = findComposeView(view.getChildAt(i))
-            if (composeView != null) {
-                return composeView
-            }
-        }
-    }
-    return null
 }

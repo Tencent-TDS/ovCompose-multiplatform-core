@@ -13,12 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:Suppress("UnstableApiUsage")
+
 package androidx.build.lint
 
 import com.android.tools.lint.client.api.UElementHandler
 import com.android.tools.lint.detector.api.Category
 import com.android.tools.lint.detector.api.Detector
 import com.android.tools.lint.detector.api.Implementation
+import com.android.tools.lint.detector.api.Incident
 import com.android.tools.lint.detector.api.Issue
 import com.android.tools.lint.detector.api.JavaContext
 import com.android.tools.lint.detector.api.Scope
@@ -33,7 +36,7 @@ import org.jetbrains.uast.USimpleNameReferenceExpression
 
 class BanConcurrentHashMap : Detector(), Detector.UastScanner {
 
-    override fun getApplicableUastTypes(): List<Class<out UElement>>? = listOf(
+    override fun getApplicableUastTypes(): List<Class<out UElement>> = listOf(
         UImportStatement::class.java,
         UQualifiedReferenceExpression::class.java
     )
@@ -45,12 +48,13 @@ class BanConcurrentHashMap : Detector(), Detector.UastScanner {
         override fun visitQualifiedReferenceExpression(node: UQualifiedReferenceExpression) {
             if (node.selector is USimpleNameReferenceExpression) {
                 val name = node.selector as USimpleNameReferenceExpression
-                if (CONCURRENT_HASHMAP.equals(name.identifier)) {
-                    context.report(
-                        ISSUE, node, context.getLocation(node),
-                        "Detected " +
-                            "ConcurrentHashMap usage."
-                    )
+                if (CONCURRENT_HASHMAP == name.identifier) {
+                    val incident = Incident(context)
+                        .issue(ISSUE)
+                        .location(context.getLocation(node))
+                        .message("Detected ConcurrentHashMap usage.")
+                        .scope(node)
+                    context.report(incident)
                 }
             }
         }
@@ -64,14 +68,15 @@ class BanConcurrentHashMap : Detector(), Detector.UastScanner {
                 } else if (resolved is PsiMethod) {
                     resolved = resolved.containingClass
                 }
-                if (resolved is PsiClass && CONCURRENT_HASHMAP_QUALIFIED_NAME
-                    .equals(resolved.qualifiedName)
+                if (resolved is PsiClass &&
+                    CONCURRENT_HASHMAP_QUALIFIED_NAME == resolved.qualifiedName
                 ) {
-                    context.report(
-                        ISSUE, node, context.getLocation(node),
-                        "Detected " +
-                            "ConcurrentHashMap usage."
-                    )
+                    val incident = Incident(context)
+                        .issue(ISSUE)
+                        .location(context.getLocation(node))
+                        .message("Detected ConcurrentHashMap usage.")
+                        .scope(node)
+                    context.report(incident)
                 }
             }
         }
@@ -89,7 +94,7 @@ class BanConcurrentHashMap : Detector(), Detector.UastScanner {
                 Scope.JAVA_FILE_SCOPE
             )
         )
-        val CONCURRENT_HASHMAP_QUALIFIED_NAME = "java.util.concurrent.ConcurrentHashMap"
-        val CONCURRENT_HASHMAP = "ConcurrentHashMap"
+        const val CONCURRENT_HASHMAP_QUALIFIED_NAME = "java.util.concurrent.ConcurrentHashMap"
+        const val CONCURRENT_HASHMAP = "ConcurrentHashMap"
     }
 }

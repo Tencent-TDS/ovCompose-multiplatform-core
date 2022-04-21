@@ -21,7 +21,6 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
 import java.io.File
-import java.lang.IllegalStateException
 import java.util.Properties
 
 /**
@@ -32,7 +31,7 @@ import java.util.Properties
 class ProjectSetupRule : ExternalResource() {
     val testProjectDir = TemporaryFolder()
 
-    lateinit var props: ProjectProps
+    val props: ProjectProps by lazy { ProjectProps.load() }
 
     val rootDir: File
         get() = testProjectDir.root
@@ -43,13 +42,31 @@ class ProjectSetupRule : ExternalResource() {
     val gradlePropertiesFile: File
         get() = File(rootDir, "gradle.properties")
 
-    private val repositories: String
-        get() = """
-            repositories {
-                maven { url "${props.prebuiltsRoot}/androidx/external" }
-                maven { url "${props.prebuiltsRoot}/androidx/internal" }
+    /**
+     * Combined list of local build repo and remote repositories (prebuilts etc).
+     * Local build repo is the first in line to ensure it is prioritized.
+     */
+    val allRepositoryPaths: List<String> by lazy {
+        listOf(props.tipOfTreeMavenRepoPath) + props.repositoryUrls
+    }
+
+    /**
+     * A `repositories {}` gradle block that contains all default repositories, for inclusion
+     * in gradle configurations.
+     */
+    val repositories: String
+        get() = buildString {
+            appendLine("repositories {")
+            append(defaultRepoLines)
+            appendLine("}")
+        }
+
+    val defaultRepoLines
+        get() = buildString {
+            props.repositoryUrls.forEach {
+                appendLine("    maven { url '$it' }")
             }
-        """.trimIndent()
+        }
 
     val androidProject: String
         get() = """
@@ -83,18 +100,57 @@ class ProjectSetupRule : ExternalResource() {
     }
 
     override fun before() {
-        props = ProjectProps.load()
         buildFile.createNewFile()
         copyLocalProperties()
         writeGradleProperties()
     }
 
+    fun getSdkDirectory(): String {
+        val localProperties = File(props.rootProjectPath, "local.properties")
+        when {
+            localProperties.exists() -> {
+                val stream = localProperties.inputStream()
+                val properties = Properties()
+                properties.load(stream)
+                return properties.getProperty("sdk.dir")
+            }
+            System.getenv("ANDROID_HOME") != null -> {
+                return System.getenv("ANDROID_HOME")
+            }
+            System.getenv("ANDROID_SDK_ROOT") != null -> {
+                return System.getenv("ANDROID_SDK_ROOT")
+            }
+            else -> {
+                throw IllegalStateException(
+                    "ProjectSetupRule did find local.properties at: $localProperties and " +
+                        "neither ANDROID_HOME or ANDROID_SDK_ROOT was set."
+                )
+            }
+        }
+    }
+
     private fun copyLocalProperties() {
+        var foundSdk = false
+
         val localProperties = File(props.rootProjectPath, "local.properties")
         if (localProperties.exists()) {
             localProperties.copyTo(File(rootDir, "local.properties"), overwrite = true)
-        } else {
-            throw IllegalStateException("local.properties doesn't exist at: $localProperties")
+            foundSdk = true
+        }
+
+        if (System.getenv("ANDROID_HOME") != null) {
+            foundSdk = true
+        }
+
+        if (System.getenv("ANDROID_SDK_ROOT") != null) {
+            foundSdk = true
+        }
+
+        if (!foundSdk) {
+            throw IllegalStateException(
+                "ProjectSetupRule was unable to copy local.properties at: $localProperties and " +
+                    "neither ANDROID_HOME or ANDROID_SDK_ROOT was set."
+            )
         }
     }
 
@@ -108,33 +164,56 @@ class ProjectSetupRule : ExternalResource() {
 }
 
 data class ProjectProps(
-    val prebuiltsRoot: String,
     val compileSdkVersion: String,
     val buildToolsVersion: String,
     val minSdkVersion: String,
     val debugKeystore: String,
-    var navigationCommon: String,
+    var navigationRuntime: String,
     val kotlinStblib: String,
+    val kotlinVersion: String,
+    val kspVersion: String,
     val rootProjectPath: String,
-    val localSupportRepo: String,
-    val agpDependency: String
+    val tipOfTreeMavenRepoPath: String,
+    val agpDependency: String,
+    val repositoryUrls: List<String>
 ) {
     companion object {
+        private fun Properties.getCanonicalPath(key: String): String {
+            return File(getProperty(key)).canonicalPath
+        }
         fun load(): ProjectProps {
             val stream = ProjectSetupRule::class.java.classLoader.getResourceAsStream("sdk.prop")
+                ?: throw IllegalStateException("No sdk.prop file found. " +
+                    "(you probably need to call SdkResourceGenerator.generateForHostTest " +
+                    "in build.gradle)")
             val properties = Properties()
             properties.load(stream)
             return ProjectProps(
-                prebuiltsRoot = properties.getProperty("prebuiltsRoot"),
-                compileSdkVersion = properties.getProperty("compileSdkVersion"),
+                debugKeystore = properties.getCanonicalPath("debugKeystoreRelativePath"),
+                rootProjectPath = properties.getCanonicalPath("rootProjectRelativePath"),
+                tipOfTreeMavenRepoPath = properties.getCanonicalPath(
+                    "tipOfTreeMavenRepoRelativePath"
+                ),
+                repositoryUrls = properties.getProperty("repositoryUrls").split(",").map {
+                    if (it.startsWith("http")) {
+                        it
+                    } else {
+                        // Convert relative paths back to canonical paths
+                        File(it).canonicalPath
+                    }
+                },
+                compileSdkVersion = properties.getProperty("compileSdkVersion").let {
+                    // Add quotes around preview SDK string so that we call
+                    // compileSdkVersion(String) instead of compileSdkVersion(int)
+                    return@let if (it.startsWith("android-")) "\"$it\"" else it
+                },
                 buildToolsVersion = properties.getProperty("buildToolsVersion"),
                 minSdkVersion = properties.getProperty("minSdkVersion"),
-                debugKeystore = properties.getProperty("debugKeystore"),
-                navigationCommon = properties.getProperty("navigationCommon"),
+                navigationRuntime = properties.getProperty("navigationRuntime"),
                 kotlinStblib = properties.getProperty("kotlinStdlib"),
-                rootProjectPath = properties.getProperty("rootProjectPath"),
-                localSupportRepo = properties.getProperty("localSupportRepo"),
-                agpDependency = properties.getProperty("agpDependency")
+                kotlinVersion = properties.getProperty("kotlinVersion"),
+                kspVersion = properties.getProperty("kspVersion"),
+                agpDependency = properties.getProperty("agpDependency"),
             )
         }
     }

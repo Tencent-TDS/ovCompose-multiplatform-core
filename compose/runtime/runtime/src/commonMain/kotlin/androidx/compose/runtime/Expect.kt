@@ -22,14 +22,43 @@ package androidx.compose.runtime
 internal expect open class ThreadLocal<T>(initialValue: () -> T) {
     fun get(): T
     fun set(value: T)
+    fun remove()
 }
 
 internal fun <T> ThreadLocal() = ThreadLocal<T?> { null }
 
-expect class WeakHashMap<K, V>() : MutableMap<K, V>
+/**
+ * This is similar to a [ThreadLocal] but has lower overhead because it avoids a weak reference.
+ * This should only be used when the writes are delimited by a try...finally call that will clean
+ * up the reference such as [androidx.compose.runtime.snapshots.Snapshot.enter] else the reference
+ * could get pinned by the thread local causing a leak.
+ *
+ * [ThreadLocal] can be used to implement the actual for platforms that do not exhibit the same
+ * overhead for thread locals as the JVM and ART.
+ */
+internal expect class SnapshotThreadLocal<T>() {
+    fun get(): T?
+    fun set(value: T?)
+}
 
+/**
+ * Returns the hash code for the given object that is unique across all currently allocated objects.
+ * The hash code for the null reference is zero.
+ *
+ * Can be negative, and near Int.MAX_VALUE, so it can overflow if used as part of calculations.
+ * For example, don't use this:
+ * ```
+ * val comparison = identityHashCode(midVal) - identityHashCode(leftVal)
+ * if (comparison < 0) ...
+ * ```
+ * Use this instead:
+ * ```
+ * if (identityHashCode(midVal) < identityHashCode(leftVal)) ...
+ * ```
+ */
 internal expect fun identityHashCode(instance: Any?): Int
 
+@PublishedApi
 internal expect inline fun <R> synchronized(lock: Any, block: () -> R): R
 
 expect class AtomicReference<V>(value: V) {
@@ -39,13 +68,15 @@ expect class AtomicReference<V>(value: V) {
     fun compareAndSet(expect: V, newValue: V): Boolean
 }
 
-@MustBeDocumented
-@Retention(AnnotationRetention.BINARY)
-@Target(
-    AnnotationTarget.FUNCTION,
-    AnnotationTarget.CONSTRUCTOR
-)
-expect annotation class MainThread()
+internal expect class AtomicInt(value: Int) {
+    fun get(): Int
+    fun set(value: Int)
+    fun add(amount: Int): Int
+}
+
+internal fun AtomicInt.postIncrement(): Int = add(1) - 1
+
+internal expect fun ensureMutable(it: Any)
 
 @MustBeDocumented
 @Retention(AnnotationRetention.SOURCE)
@@ -67,3 +98,22 @@ expect annotation class TestOnly()
 expect annotation class CheckResult(
     val suggest: String
 )
+
+/**
+ * The [MonotonicFrameClock] used by [withFrameNanos] and [withFrameMillis] if one is not present
+ * in the calling [kotlin.coroutines.CoroutineContext].
+ *
+ * This value is no longer used by compose runtime.
+ */
+@Deprecated(
+    "MonotonicFrameClocks are not globally applicable across platforms. " +
+        "Use an appropriate local clock."
+)
+expect val DefaultMonotonicFrameClock: MonotonicFrameClock
+
+internal expect fun invokeComposable(composer: Composer, composable: @Composable () -> Unit)
+
+internal expect fun <T> invokeComposableForResult(
+    composer: Composer,
+    composable: @Composable () -> T
+): T

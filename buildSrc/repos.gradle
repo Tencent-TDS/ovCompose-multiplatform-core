@@ -30,8 +30,16 @@ ext.repos.prebuiltsRoot = new File(checkoutRoot, "prebuilts").absolutePath
  * Adds maven repositories to the given repository handler.
  */
 def addMavenRepositories(RepositoryHandler handler) {
+    def metalavaRepoOverride = System.getenv("METALAVA_REPO")
+    if (metalavaRepoOverride != null) {
+        for(extraRepo in metalavaRepoOverride.split(File.pathSeparator)) {
+            handler.maven {
+                url extraRepo
+            }
+        }
+    }
     handler.maven {
-        url "${repos.prebuiltsRoot}/androidx/internal"
+        url("${repos.prebuiltsRoot}/androidx/internal")
         metadataSources {
             mavenPom()
             artifact()
@@ -45,7 +53,7 @@ def addMavenRepositories(RepositoryHandler handler) {
     handler.ivy {
         // TODO: maybe we can move this no-group ivy repo directly into prebuilts/androidx/external
         // once https://youtrack.jetbrains.com/issue/KT-35049 gets resolved */
-        url "${repos.prebuiltsRoot}/androidx/external/no-group"
+        url("${repos.prebuiltsRoot}/androidx/external/no-group")
         patternLayout {
             artifact("[artifact]/[revision]/[artifact]-[revision].[ext]")
         }
@@ -53,39 +61,26 @@ def addMavenRepositories(RepositoryHandler handler) {
             it.artifact()
         }
         content {
-            includeGroup ""
+            includeGroup("")
         }
     }
-    def buildDokka = System.getenv("BUILD_DOKKA") != null
     handler.maven {
-        url "${repos.prebuiltsRoot}/androidx/external"
+        url("${repos.prebuiltsRoot}/androidx/external")
         metadataSources {
             mavenPom()
             artifact()
         }
-        if (buildDokka) {
-            content {
-                excludeGroup "org.jetbrains.dokka"
-            }
-        }
     }
-    if (buildDokka) {
-        handler.maven {
-            url "${repos.checkoutRoot}/external/dokka/build/dist-maven"
-            content {
-                includeGroup "org.jetbrains.dokka"
-            }
-        }
-    }
-    if (System.getenv("ALLOW_PUBLIC_REPOS") != null) {
+    if (System.getenv("ALLOW_PUBLIC_REPOS") != null || System.getProperty("ALLOW_PUBLIC_REPOS") != null) {
         handler.mavenCentral()
-        handler.jcenter()
         handler.google()
+        handler.gradlePluginPortal()
         handler.maven {
-            url "https://plugins.gradle.org/m2/"
+               url("https://maven.pkg.jetbrains.space/public/p/compose/dev")
         }
         handler.mavenLocal()
     }
+    // Ordering appears to be important: b/229733266
     def androidPluginRepoOverride = System.getenv("GRADLE_PLUGIN_REPO")
     if (androidPluginRepoOverride != null) {
         for(extraRepo in androidPluginRepoOverride.split(File.pathSeparator)) {

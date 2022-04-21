@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-import static androidx.build.dependencies.DependenciesKt.getKOTLIN_STDLIB
-import static androidx.build.dependencies.DependenciesKt.getKOTLIN_TEST
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -26,14 +23,19 @@ plugins {
 }
 
 dependencies {
-    api(KOTLIN_STDLIB)
+    api(libs.kotlinStdlib)
     implementation(project(":paging:paging-common"))
-    implementation(KOTLIN_TEST)
+    implementation(project(":internal-testutils-ktx"))
+    implementation(libs.kotlinTest)
 }
 
 // Allow usage of Kotlin's @OptIn.
 tasks.withType(KotlinCompile).configureEach {
     kotlinOptions {
-        freeCompilerArgs += ["-Xopt-in=kotlin.RequiresOptIn"]
+        freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
     }
+}
+
+androidx {
+    type = LibraryType.INTERNAL_TEST_LIBRARY
 }

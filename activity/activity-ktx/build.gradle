@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-import static androidx.build.dependencies.DependenciesKt.*
-import androidx.build.LibraryGroups
-import androidx.build.LibraryVersions
 import androidx.build.Publish
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
@@ -28,7 +26,7 @@ plugins {
 dependencies {
     api(project(":activity:activity"))
     api("androidx.core:core-ktx:1.1.0") {
-        because 'Mirror activity dependency graph for -ktx artifacts'
+        because "Mirror activity dependency graph for -ktx artifacts"
     }
     api(projectOrArtifact(":lifecycle:lifecycle-runtime-ktx")) {
         because 'Mirror activity dependency graph for -ktx artifacts'
@@ -37,18 +35,18 @@ dependencies {
     api(projectOrArtifact(":savedstate:savedstate-ktx")) {
         because 'Mirror activity dependency graph for -ktx artifacts'
     }
-    api(KOTLIN_STDLIB)
+    api(libs.kotlinStdlib)
 
     androidTestImplementation(projectOrArtifact(":lifecycle:lifecycle-runtime-testing"))
-    androidTestImplementation(JUNIT)
-    androidTestImplementation(TRUTH)
-    androidTestImplementation(ANDROIDX_TEST_EXT_JUNIT)
-    androidTestImplementation(ANDROIDX_TEST_CORE)
-    androidTestImplementation(ANDROIDX_TEST_RUNNER)
-    androidTestImplementation(ANDROIDX_TEST_RULES)
-    androidTestImplementation project(':internal-testutils-runtime'), {
-        exclude group: 'androidx.activity', module: 'activity'
-    }
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.testCore)
+    androidTestImplementation(libs.testRunner)
+    androidTestImplementation(libs.testRules)
+    androidTestImplementation(project(":internal-testutils-runtime"), {
+        exclude group: "androidx.activity", module: "activity"
+    })
 }
 
 androidx {
@@ -57,4 +55,8 @@ androidx {
     mavenGroup = LibraryGroups.ACTIVITY
     inceptionYear = "2018"
     description = "Kotlin extensions for 'activity' artifact"
+}
+
+android {
+    namespace "androidx.activity.ktx"
 }

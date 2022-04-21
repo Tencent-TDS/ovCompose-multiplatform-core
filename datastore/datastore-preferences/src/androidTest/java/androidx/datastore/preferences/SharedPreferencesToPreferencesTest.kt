@@ -22,12 +22,18 @@ import androidx.datastore.core.DataMigration
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.preferencesKey
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.MediumTest
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.TestCoroutineScope
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -36,6 +42,15 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
+private val sharedPrefsName = "shared_prefs_name"
+
+private val Context.dsWithSpMigration by preferencesDataStore(
+    "ds_with_sp_migration",
+    produceMigrations = { applicationContext ->
+        listOf(SharedPreferencesMigration(applicationContext, sharedPrefsName))
+    }
+)
 
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 @kotlinx.coroutines.ObsoleteCoroutinesApi
@@ -62,8 +77,8 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun existingKey_isMigrated() = runBlockingTest {
-        val stringKey = preferencesKey<String>("string_key")
+    fun existingKey_isMigrated() = runTest {
+        val stringKey = stringPreferencesKey("string_key")
         val stringValue = "string value"
 
         assertTrue { sharedPrefs.edit().putString(stringKey.name, stringValue).commit() }
@@ -82,8 +97,8 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun existingKey_isRemovedFromSharedPrefs() = runBlockingTest {
-        val stringKey = preferencesKey<String>("string_key")
+    fun existingKey_isRemovedFromSharedPrefs() = runTest {
+        val stringKey = stringPreferencesKey("string_key")
         val stringValue = "string value"
 
         assertTrue { sharedPrefs.edit().putString(stringKey.name, stringValue).commit() }
@@ -102,8 +117,8 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun supportsStringKey() = runBlockingTest {
-        val stringKey = preferencesKey<String>("string_key")
+    fun supportsStringKey() = runTest {
+        val stringKey = stringPreferencesKey("string_key")
         val stringValue = "string_value"
 
         assertTrue { sharedPrefs.edit().putString(stringKey.name, stringValue).commit() }
@@ -120,8 +135,8 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun supportsIntegerKey() = runBlockingTest {
-        val integerKey = preferencesKey<Int>("integer_key")
+    fun supportsIntegerKey() = runTest {
+        val integerKey = intPreferencesKey("integer_key")
         val integerValue = 123
 
         assertTrue { sharedPrefs.edit().putInt(integerKey.name, integerValue).commit() }
@@ -138,8 +153,8 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun supportsFloatKey() = runBlockingTest {
-        val floatKey = preferencesKey<Float>("float_key")
+    fun supportsFloatKey() = runTest {
+        val floatKey = floatPreferencesKey("float_key")
         val floatValue = 123.0f
 
         assertTrue { sharedPrefs.edit().putFloat(floatKey.name, floatValue).commit() }
@@ -156,8 +171,8 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun supportsBooleanKey() = runBlockingTest {
-        val booleanKey = preferencesKey<Boolean>("boolean_key")
+    fun supportsBooleanKey() = runTest {
+        val booleanKey = booleanPreferencesKey("boolean_key")
         val booleanValue = true
 
         assertTrue { sharedPrefs.edit().putBoolean(booleanKey.name, booleanValue).commit() }
@@ -174,8 +189,8 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun supportsLongKey() = runBlockingTest {
-        val longKey = preferencesKey<Long>("long_key")
+    fun supportsLongKey() = runTest {
+        val longKey = longPreferencesKey("long_key")
         val longValue = 1L shr 50
 
         assertTrue { sharedPrefs.edit().putLong(longKey.name, longValue).commit() }
@@ -192,9 +207,9 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun supportsStringSetKey() = runBlockingTest {
+    fun supportsStringSetKey() = runTest {
         val stringSetKey =
-            androidx.datastore.preferences.core.preferencesSetKey<String>("stringSet_key")
+            androidx.datastore.preferences.core.stringSetPreferencesKey("stringSet_key")
         val stringSetValue = setOf("a", "b", "c")
 
         assertTrue { sharedPrefs.edit().putStringSet(stringSetKey.name, stringSetValue).commit() }
@@ -211,10 +226,12 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun migratedStringSetNotMutable() = runBlockingTest {
+    fun migratedStringSetNotMutable() = runTest {
         val stringSetKey =
-            androidx.datastore.preferences.core.preferencesSetKey<String>("stringSet_key")
-        val stringSetValue = setOf("a", "b", "c")
+            androidx.datastore.preferences.core.stringSetPreferencesKey("stringSet_key")
+
+        val originalStringSetValue = setOf("a", "b", "c")
+        val stringSetValue = originalStringSetValue.toSet()
 
         assertTrue { sharedPrefs.edit().putStringSet(stringSetKey.name, stringSetValue).commit() }
         val sharedPrefsSet = sharedPrefs.getStringSet(stringSetKey.name, mutableSetOf())!!
@@ -232,13 +249,13 @@ class SharedPreferencesToPreferencesTest {
         // Modify the sharedPrefs string set:
         sharedPrefsSet.add("d")
 
-        assertEquals(stringSetValue, prefs[stringSetKey])
+        assertEquals(originalStringSetValue, prefs[stringSetKey])
         assertEquals(1, prefs.asMap().size)
     }
 
     @Test
-    fun sharedPreferencesFileDeletedIfPrefsEmpty() = runBlockingTest {
-        val integerKey = preferencesKey<Int>("integer_key")
+    fun sharedPreferencesFileDeletedIfPrefsEmpty() = runTest {
+        val integerKey = intPreferencesKey("integer_key")
 
         assertTrue { sharedPrefs.edit().putInt(integerKey.name, 123).commit() }
 
@@ -246,7 +263,6 @@ class SharedPreferencesToPreferencesTest {
             context = context,
             sharedPreferencesName = sharedPrefsName,
             keysToMigrate = setOf(integerKey.name),
-            deleteEmptyPreferences = true
         )
 
         val preferenceStore = getDataStoreWithMigrations(listOf(migration))
@@ -256,30 +272,9 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun sharedPreferencesFileNotDeletedIfDisabled() = runBlockingTest {
-        val integerKey = preferencesKey<Int>("integer_key")
-
-        assertTrue { sharedPrefs.edit().putInt(integerKey.name, 123).commit() }
-
-        val migration = SharedPreferencesMigration(
-            context = context,
-            sharedPreferencesName = sharedPrefsName,
-            keysToMigrate = setOf(integerKey.name),
-            deleteEmptyPreferences = false
-        )
-
-        val preferenceStore = getDataStoreWithMigrations(listOf(migration))
-        preferenceStore.data.first()
-
-        assertTrue {
-            getSharedPrefsFile(context, sharedPrefsName).exists()
-        }
-    }
-
-    @Test
-    fun sharedPreferencesFileNotDeletedIfPrefsNotEmpty() = runBlockingTest {
-        val integerKey1 = preferencesKey<Int>("integer_key1")
-        val integerKey2 = preferencesKey<Int>("integer_key2")
+    fun sharedPreferencesFileNotDeletedIfPrefsNotEmpty() = runTest {
+        val integerKey1 = intPreferencesKey("integer_key1")
+        val integerKey2 = intPreferencesKey("integer_key2")
 
         assertTrue {
             sharedPrefs.edit().putInt(integerKey1.name, 123).putInt(integerKey2.name, 123).commit()
@@ -289,7 +284,6 @@ class SharedPreferencesToPreferencesTest {
             context = context,
             sharedPreferencesName = sharedPrefsName,
             keysToMigrate = setOf(integerKey1.name),
-            deleteEmptyPreferences = true
         )
 
         val preferenceStore = getDataStoreWithMigrations(listOf(migration))
@@ -299,8 +293,8 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun sharedPreferencesBackupFileDeleted() = runBlockingTest {
-        val integerKey = preferencesKey<Int>("integer_key")
+    fun sharedPreferencesBackupFileDeleted() = runTest {
+        val integerKey = intPreferencesKey("integer_key")
 
         // Write to shared preferences then create the backup file
         val sharedPrefsFile = getSharedPrefsFile(context, sharedPrefsName)
@@ -313,7 +307,6 @@ class SharedPreferencesToPreferencesTest {
             context = context,
             sharedPreferencesName = sharedPrefsName,
             keysToMigrate = setOf(integerKey.name),
-            deleteEmptyPreferences = true
         )
 
         val preferenceStore = getDataStoreWithMigrations(listOf(migration))
@@ -323,9 +316,9 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun canSpecifyMultipleKeys() = runBlockingTest {
-        val stringKey = preferencesKey<String>("string_key")
-        val integerKey = preferencesKey<Int>("integer_key")
+    fun canSpecifyMultipleKeys() = runTest {
+        val stringKey = stringPreferencesKey("string_key")
+        val integerKey = intPreferencesKey("integer_key")
         val keyNotMigrated = "dont_migrate_this_key"
 
         val stringValue = "string_value"
@@ -358,8 +351,8 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun missingSpecifiedKeyIsNotMigrated() = runBlockingTest {
-        val missingKey = preferencesKey<Int>("missing_key")
+    fun missingSpecifiedKeyIsNotMigrated() = runTest {
+        val missingKey = intPreferencesKey("missing_key")
 
         val migration = SharedPreferencesMigration(
             context = context,
@@ -375,9 +368,9 @@ class SharedPreferencesToPreferencesTest {
     }
 
     @Test
-    fun runsIfAnySpecifiedKeyExists() = runBlockingTest {
-        val integerKey = preferencesKey<Int>("integer_key")
-        val missingKey = preferencesKey<Int>("missing_key")
+    fun runsIfAnySpecifiedKeyExists() = runTest {
+        val integerKey = intPreferencesKey("integer_key")
+        val missingKey = intPreferencesKey("missing_key")
 
         val integerValue = 123
 
@@ -395,12 +388,53 @@ class SharedPreferencesToPreferencesTest {
         assertEquals(1, prefs.asMap().size)
     }
 
+    @Test
+    fun noKeysSpecifiedMigratesNoKeys() = runTest {
+        assertTrue { sharedPrefs.edit().putInt("some_key", 123).commit() }
+
+        val migration = SharedPreferencesMigration(
+            context = context,
+            sharedPreferencesName = sharedPrefsName,
+            keysToMigrate = setOf()
+        )
+
+        val preferencesStore = getDataStoreWithMigrations(listOf(migration))
+        val prefs = preferencesStore.data.first()
+        assertEquals(0, prefs.asMap().size)
+    }
+
+    @Test
+    fun producedSharedPreferencesIsUsed() = runTest {
+        val integerKey = intPreferencesKey("integer_key")
+        val integerValue = 123
+
+        assertTrue { sharedPrefs.edit().putInt(integerKey.name, integerValue).commit() }
+
+        val migration = SharedPreferencesMigration(produceSharedPreferences = { sharedPrefs })
+
+        val preferencesStore = getDataStoreWithMigrations(listOf(migration))
+        val prefs = preferencesStore.data.first()
+        assertEquals(integerValue, prefs[integerKey])
+        assertEquals(1, prefs.asMap().size)
+    }
+
+    @Test
+    fun testWithTopLevelDataStoreDelegate() = runBlocking<Unit> {
+        File(context.filesDir, "/datastore").deleteRecursively()
+        assertTrue { sharedPrefs.edit().putInt("integer_key", 123).commit() }
+
+        assertEquals(
+            123,
+            context.dsWithSpMigration.data.first()[intPreferencesKey("integer_key")]
+        )
+    }
+
     private fun getDataStoreWithMigrations(
         migrations: List<DataMigration<Preferences>>
     ): DataStore<Preferences> {
         return PreferenceDataStoreFactory.create(
             migrations = migrations,
-            scope = TestCoroutineScope()
+            scope = TestScope(UnconfinedTestDispatcher())
         ) { datastoreFile }
     }
 

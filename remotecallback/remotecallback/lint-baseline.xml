@@ -1,26 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="5" by="lint 4.2.0-alpha15" client="gradle" variant="debug" version="4.2.0-alpha15">
+<issues format="6" by="lint 7.3.0-alpha07" type="baseline" client="gradle" dependencies="false" name="AGP (7.3.0-alpha07)" variant="all" version="7.3.0-alpha07">
 
     <issue
-        id="InlinedApi"
-        message="Field requires API level 16 (current min is 14): `android.content.Intent#FLAG_RECEIVER_FOREGROUND`"
-        errorLine1="        mIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);"
-        errorLine2="                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/remotecallback/RemoteCallback.java"
-            line="121"
-            column="26"/>
-    </issue>
-
-    <issue
-        id="StaticFieldLeak"
-        message="Do not place Android context classes in static fields (static reference to `RemoteCallback` which has field `mContext` pointing to `Context`); this is a memory leak"
+        id="WrongConstant"
+        message="Must be one of: RemoteCallback.TYPE_RECEIVER, RemoteCallback.TYPE_PROVIDER"
         errorLine1="    public static final RemoteCallback LOCAL = new RemoteCallback(null, -1, null, null, null) {"
-        errorLine2="           ~~~~~~">
+        errorLine2="                                                                        ~~">
         <location
             file="src/main/java/androidx/remotecallback/RemoteCallback.java"
-            line="151"
-            column="12"/>
+            line="152"
+            column="73"/>
     </issue>
 
     <issue
@@ -36,227 +25,161 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public void onReceive(Context context, Intent intent) {"
-        errorLine2="                          ~~~~~~~">
-        <location
-            file="src/main/java/androidx/remotecallback/AppWidgetProviderWithCallbacks.java"
-            line="40"
-            column="27"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public void onReceive(Context context, Intent intent) {"
-        errorLine2="                                           ~~~~~~">
-        <location
-            file="src/main/java/androidx/remotecallback/AppWidgetProviderWithCallbacks.java"
-            line="40"
-            column="44"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public T createRemoteCallback(Context context) {"
-        errorLine2="           ~">
-        <location
-            file="src/main/java/androidx/remotecallback/AppWidgetProviderWithCallbacks.java"
-            line="49"
-            column="12"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public T createRemoteCallback(Context context) {"
         errorLine2="                                  ~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/AppWidgetProviderWithCallbacks.java"
-            line="49"
+            line="50"
             column="35"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="           ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/AppWidgetProviderWithCallbacks.java"
-            line="58"
+            line="59"
             column="12"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="                                           ~~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/AppWidgetProviderWithCallbacks.java"
-            line="58"
+            line="59"
             column="44"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="                                                         ~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/AppWidgetProviderWithCallbacks.java"
-            line="58"
+            line="59"
             column="58"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="                                                                          ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/AppWidgetProviderWithCallbacks.java"
-            line="58"
+            line="59"
             column="75"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Bundle args, String method) {"
         errorLine2="            ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/AppWidgetProviderWithCallbacks.java"
-            line="59"
+            line="60"
             column="13"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Bundle args, String method) {"
         errorLine2="                         ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/AppWidgetProviderWithCallbacks.java"
-            line="59"
+            line="60"
             column="26"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public void onReceive(Context context, Intent intent) {"
-        errorLine2="                          ~~~~~~~">
-        <location
-            file="src/main/java/androidx/remotecallback/BroadcastReceiverWithCallbacks.java"
-            line="48"
-            column="27"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public void onReceive(Context context, Intent intent) {"
-        errorLine2="                                           ~~~~~~">
-        <location
-            file="src/main/java/androidx/remotecallback/BroadcastReceiverWithCallbacks.java"
-            line="48"
-            column="44"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public T createRemoteCallback(Context context) {"
-        errorLine2="           ~">
-        <location
-            file="src/main/java/androidx/remotecallback/BroadcastReceiverWithCallbacks.java"
-            line="55"
-            column="12"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public T createRemoteCallback(Context context) {"
         errorLine2="                                  ~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/BroadcastReceiverWithCallbacks.java"
-            line="55"
+            line="56"
             column="35"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="           ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/BroadcastReceiverWithCallbacks.java"
-            line="64"
+            line="65"
             column="12"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="                                           ~~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/BroadcastReceiverWithCallbacks.java"
-            line="64"
+            line="65"
             column="44"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="                                                         ~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/BroadcastReceiverWithCallbacks.java"
-            line="64"
+            line="65"
             column="58"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="                                                                          ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/BroadcastReceiverWithCallbacks.java"
-            line="64"
+            line="65"
             column="75"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Bundle args, String method) {"
         errorLine2="            ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/BroadcastReceiverWithCallbacks.java"
-            line="65"
+            line="66"
             column="13"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Bundle args, String method) {"
         errorLine2="                         ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/BroadcastReceiverWithCallbacks.java"
-            line="65"
+            line="66"
             column="26"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority, Bundle args,"
         errorLine2="    ~~~~~~~~~~~~~~">
         <location
@@ -267,7 +190,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority, Bundle args,"
         errorLine2="                                    ~~~~~~~~">
         <location
@@ -278,7 +201,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority, Bundle args,"
         errorLine2="                                                  ~~~~~~~">
         <location
@@ -289,7 +212,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority, Bundle args,"
         errorLine2="                                                                   ~~~~~~">
         <location
@@ -300,7 +223,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority, Bundle args,"
         errorLine2="                                                                                     ~~~~~~">
         <location
@@ -311,7 +234,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            String method);"
         errorLine2="            ~~~~~~">
         <location
@@ -322,51 +245,40 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public &lt;T extends CallbackReceiver> T getAndResetStub(Class&lt;? extends CallbackReceiver> cls,"
-        errorLine2="                                        ~">
-        <location
-            file="src/main/java/androidx/remotecallback/CallbackHandlerRegistry.java"
-            line="56"
-            column="41"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public &lt;T extends CallbackReceiver> T getAndResetStub(Class&lt;? extends CallbackReceiver> cls,"
         errorLine2="                                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/CallbackHandlerRegistry.java"
-            line="56"
+            line="55"
             column="59"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Context context, String authority) {"
         errorLine2="            ~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/CallbackHandlerRegistry.java"
-            line="57"
+            line="56"
             column="13"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Context context, String authority) {"
         errorLine2="                             ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/CallbackHandlerRegistry.java"
-            line="57"
+            line="56"
             column="30"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public &lt;T extends CallbackReceiver> void invokeCallback(Context context, T receiver,"
         errorLine2="                                                            ~~~~~~~">
         <location
@@ -377,18 +289,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public &lt;T extends CallbackReceiver> void invokeCallback(Context context, T receiver,"
-        errorLine2="                                                                             ~">
-        <location
-            file="src/main/java/androidx/remotecallback/CallbackHandlerRegistry.java"
-            line="102"
-            column="78"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Intent intent) {"
         errorLine2="            ~~~~~~">
         <location
@@ -399,7 +300,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public &lt;T extends CallbackReceiver> void invokeCallback(Context context, T receiver,"
         errorLine2="                                                            ~~~~~~~">
         <location
@@ -410,18 +311,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public &lt;T extends CallbackReceiver> void invokeCallback(Context context, T receiver,"
-        errorLine2="                                                                             ~">
-        <location
-            file="src/main/java/androidx/remotecallback/CallbackHandlerRegistry.java"
-            line="111"
-            column="78"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Bundle bundle) {"
         errorLine2="            ~~~~~~">
         <location
@@ -432,7 +322,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public static &lt;T extends CallbackReceiver> void registerCallbackHandler(Class&lt;T> cls,"
         errorLine2="                                                                            ~~~~~~~~">
         <location
@@ -443,7 +333,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            String method, CallbackHandler&lt;T> handler) {"
         errorLine2="            ~~~~~~">
         <location
@@ -454,7 +344,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            String method, CallbackHandler&lt;T> handler) {"
         errorLine2="                           ~~~~~~~~~~~~~~~~~~">
         <location
@@ -465,7 +355,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public static RemoteCallback stubToRemoteCallback(CallbackReceiver receiver,"
         errorLine2="                  ~~~~~~~~~~~~~~">
         <location
@@ -476,7 +366,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public static RemoteCallback stubToRemoteCallback(CallbackReceiver receiver,"
         errorLine2="                                                      ~~~~~~~~~~~~~~~~">
         <location
@@ -487,7 +377,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Class&lt;? extends CallbackReceiver> cls, Bundle args, String method) {"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -498,7 +388,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Class&lt;? extends CallbackReceiver> cls, Bundle args, String method) {"
         errorLine2="                                                   ~~~~~~">
         <location
@@ -509,7 +399,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Class&lt;? extends CallbackReceiver> cls, Bundle args, String method) {"
         errorLine2="                                                                ~~~~~~">
         <location
@@ -520,7 +410,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="        void executeCallback(Context context, T receiver, Bundle arguments);"
         errorLine2="                             ~~~~~~~">
         <location
@@ -531,18 +421,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="        void executeCallback(Context context, T receiver, Bundle arguments);"
-        errorLine2="                                              ~">
-        <location
-            file="src/main/java/androidx/remotecallback/CallbackHandlerRegistry.java"
-            line="235"
-            column="47"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="        void executeCallback(Context context, T receiver, Bundle arguments);"
         errorLine2="                                                          ~~~~~~">
         <location
@@ -553,18 +432,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    T createRemoteCallback(Context context);"
-        errorLine2="    ~">
-        <location
-            file="src/main/java/androidx/remotecallback/CallbackReceiver.java"
-            line="107"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    T createRemoteCallback(Context context);"
         errorLine2="                           ~~~~~~~">
         <location
@@ -575,183 +443,128 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public void attachInfo(Context context, ProviderInfo info) {"
-        errorLine2="                           ~~~~~~~">
-        <location
-            file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="47"
-            column="28"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public void attachInfo(Context context, ProviderInfo info) {"
-        errorLine2="                                            ~~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="47"
-            column="45"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public Bundle call(String method, String arg, Bundle extras) {"
         errorLine2="           ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="53"
+            line="54"
             column="12"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public Bundle call(String method, String arg, Bundle extras) {"
         errorLine2="                       ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="53"
+            line="54"
             column="24"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public Bundle call(String method, String arg, Bundle extras) {"
         errorLine2="                                      ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="53"
+            line="54"
             column="39"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public Bundle call(String method, String arg, Bundle extras) {"
         errorLine2="                                                  ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="53"
+            line="54"
             column="51"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public T createRemoteCallback(Context context) {"
-        errorLine2="           ~">
-        <location
-            file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="62"
-            column="12"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public T createRemoteCallback(Context context) {"
         errorLine2="                                  ~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="62"
+            line="63"
             column="35"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="           ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="71"
+            line="72"
             column="12"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="                                           ~~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="71"
+            line="72"
             column="44"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="                                                         ~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="71"
+            line="72"
             column="58"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public RemoteCallback toRemoteCallback(Class&lt;T> cls, Context context, String authority,"
         errorLine2="                                                                          ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="71"
+            line="72"
             column="75"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Bundle args, String method) {"
         errorLine2="            ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="72"
+            line="73"
             column="13"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="            Bundle args, String method) {"
         errorLine2="                         ~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/ContentProviderWithCallbacks.java"
-            line="72"
+            line="73"
             column="26"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public void onReceive(Context context, Intent intent) {"
-        errorLine2="                          ~~~~~~~">
-        <location
-            file="src/main/java/androidx/remotecallback/ProviderRelayReceiver.java"
-            line="45"
-            column="27"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public void onReceive(Context context, Intent intent) {"
-        errorLine2="                                           ~~~~~~">
-        <location
-            file="src/main/java/androidx/remotecallback/ProviderRelayReceiver.java"
-            line="45"
-            column="44"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public String getMethodName() {"
         errorLine2="           ~~~~~~">
         <location
@@ -762,7 +575,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public Bundle getArgumentBundle() {"
         errorLine2="           ~~~~~~">
         <location
@@ -773,7 +586,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public PendingIntent toPendingIntent() {"
         errorLine2="           ~~~~~~~~~~~~~">
         <location
@@ -784,34 +597,23 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
-        errorLine1="    public static &lt;T extends CallbackReceiver> T create(Class&lt;T> cls, Context context) {"
-        errorLine2="                                               ~">
-        <location
-            file="src/main/java/androidx/remotecallback/RemoteCallback.java"
-            line="144"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public static &lt;T extends CallbackReceiver> T create(Class&lt;T> cls, Context context) {"
         errorLine2="                                                        ~~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/RemoteCallback.java"
-            line="144"
+            line="145"
             column="57"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public static &lt;T extends CallbackReceiver> T create(Class&lt;T> cls, Context context) {"
         errorLine2="                                                                      ~~~~~~~">
         <location
             file="src/main/java/androidx/remotecallback/RemoteCallback.java"
-            line="144"
+            line="145"
             column="71"/>
     </issue>
 

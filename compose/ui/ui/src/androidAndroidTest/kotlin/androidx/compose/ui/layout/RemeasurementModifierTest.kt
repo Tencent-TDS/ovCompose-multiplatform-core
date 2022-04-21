@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.layout
 
-import androidx.compose.ui.node.ExperimentalLayoutNodeApi
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.google.common.truth.Truth.assertThat
@@ -27,7 +26,6 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class RemeasurementModifierTest {
     @Test
-    @OptIn(ExperimentalLayoutNodeApi::class)
     fun nodeIsRemeasuredAfterForceRemeasureBlocking() {
         var remeasurementObj: Remeasurement? = null
         val root = root {
@@ -49,7 +47,36 @@ class RemeasurementModifierTest {
         assertMeasuredAndLaidOut(root.first)
         // but still remeasured
         assertRemeasured(root.first) {
-            remeasurementObj!!.forceRemeasure()
+            assertRelaidOut(root.first) {
+                remeasurementObj!!.forceRemeasure()
+            }
+        }
+    }
+
+    @Test
+    fun otherNodesAreNotRemeasured() {
+        var remeasurementObj: Remeasurement? = null
+        val root = root {
+            add(
+                node {
+                    modifier = object : RemeasurementModifier {
+                        override fun onRemeasurementAvailable(remeasurement: Remeasurement) {
+                            remeasurementObj = remeasurement
+                        }
+                    }
+                }
+            )
+            add(node())
+        }
+
+        createDelegate(root)
+
+        assertThat(remeasurementObj).isNotNull()
+        root.second.requestRemeasure()
+        assertNotRemeasured(root.second) {
+            assertNotRelaidOut(root.second) {
+                remeasurementObj!!.forceRemeasure()
+            }
         }
     }
 }
