@@ -16,6 +16,7 @@
 
 package androidx.appcompat.view.menu;
 
+import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.content.Context;
@@ -27,11 +28,14 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ListView;
+import android.widget.PopupWindow;
 import android.widget.PopupWindow.OnDismissListener;
 
 import androidx.annotation.AttrRes;
+import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.StyleRes;
 import androidx.appcompat.R;
@@ -151,6 +155,10 @@ public class MenuPopupHelper implements MenuHelper {
         }
     }
 
+    /**
+     * @hide
+     */
+    @RestrictTo(LIBRARY)
     @NonNull
     public MenuPopup getPopup() {
         if (mPopup == null) {
@@ -183,7 +191,7 @@ public class MenuPopupHelper implements MenuHelper {
      * specified (x,y) coordinate relative to the anchor view.
      * <p>
      * Additionally, the popup's transition epicenter (see
-     * {@link android.widget.PopupWindow#setEpicenterBounds(Rect)} will be
+     * {@link PopupWindow#setEpicenterBounds(Rect)} will be
      * centered on the specified coordinate, rather than using the bounds of
      * the anchor view.
      * <p>
@@ -228,7 +236,7 @@ public class MenuPopupHelper implements MenuHelper {
         final Point displaySize = new Point();
 
         if (Build.VERSION.SDK_INT >= 17) {
-            display.getRealSize(displaySize);
+            Api17Impl.getRealSize(display, displaySize);
         } else {
             display.getSize(displaySize);
         }
@@ -344,5 +352,17 @@ public class MenuPopupHelper implements MenuHelper {
      */
     public ListView getListView() {
         return getPopup().getListView();
+    }
+
+    @RequiresApi(17)
+    static class Api17Impl {
+        private Api17Impl() {
+            // This class is not instantiable.
+        }
+
+        @DoNotInline
+        static void getRealSize(Display display, Point outSize) {
+            display.getRealSize(outSize);
+        }
     }
 }

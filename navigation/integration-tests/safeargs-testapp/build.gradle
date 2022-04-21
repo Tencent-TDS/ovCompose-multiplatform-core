@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-import static androidx.build.dependencies.DependenciesKt.*
-import androidx.build.LibraryGroups
-import androidx.build.LibraryVersions
 
 buildscript {
     ext.supportRootFolder = new File("../../../")
@@ -28,7 +25,7 @@ buildscript {
 
     repositories {
         maven {
-            url "$buildDir/localMaven/"
+            url("$buildDir/localMaven/")
         }
     }
     dependencies {
@@ -42,12 +39,12 @@ plugins {
     id("com.android.application")
 }
 
-apply plugin: 'androidx.navigation.safeargs'
+apply plugin: "androidx.navigation.safeargs"
 apply from: "${supportRootFolder}/buildSrc/repos.gradle"
 repos.addMavenRepositories(repositories)
 repositories {
     maven {
-        url "$buildDir/localMaven/"
+        url("$buildDir/localMaven/")
     }
 }
 
@@ -66,6 +63,6 @@ android {
 
 dependencies {
     implementation "${LibraryGroups.NAVIGATION}:navigation-runtime:${LibraryVersions.NAVIGATION}"
-    testImplementation(JUNIT)
-    testImplementation(MOCKITO_CORE)
+    testImplementation(libs.junit)
+    testImplementation(libs.mockitoCore)
 }

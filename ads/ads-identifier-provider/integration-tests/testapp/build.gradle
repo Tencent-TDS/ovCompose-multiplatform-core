@@ -13,9 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import static androidx.build.dependencies.DependenciesKt.*
-
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
@@ -26,10 +23,11 @@ android {
         applicationId "androidx.ads.identifier.provider.testapp"
         minSdkVersion 14
     }
+    namespace "androidx.ads.identifier.provider.testapp"
 }
 
 dependencies {
-    implementation(project(":ads-identifier-provider"))
+    implementation(project(":ads:ads-identifier-provider"))
     implementation("androidx.recyclerview:recyclerview:1.0.0")
     api("androidx.annotation:annotation:1.1.0")
 }

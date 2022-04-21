@@ -48,6 +48,7 @@ import androidx.test.espresso.UiController;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.rule.ActivityTestRule;
+import androidx.testutils.PollingCheck;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -81,6 +82,9 @@ public abstract class AppCompatBaseViewTest<A extends BaseTestActivity, T extend
         mActivity = mActivityTestRule.getActivity();
         mContainer = mActivity.findViewById(R.id.container);
         mResources = mActivity.getResources();
+
+        // Wait until the Activity is interactive to prevent flakiness.
+        PollingCheck.waitFor(() -> mActivity.hasWindowFocus());
     }
 
     /**
@@ -110,7 +114,7 @@ public abstract class AppCompatBaseViewTest<A extends BaseTestActivity, T extend
         }
 
         final @IdRes int viewId = R.id.view_tinted_no_background;
-        final T view = (T) mContainer.findViewById(viewId);
+        final T view = mContainer.findViewById(viewId);
 
         // Note that all the asserts in this test check that the view background
         // is null. This is because the matching child in the activity doesn't define any
@@ -153,7 +157,7 @@ public abstract class AppCompatBaseViewTest<A extends BaseTestActivity, T extend
         }
 
         final @IdRes int viewId = R.id.view_tinted_no_background;
-        final T view = (T) mContainer.findViewById(viewId);
+        final T view = mContainer.findViewById(viewId);
 
         // Note that all the asserts in this test check that the view background
         // is null. This is because the matching child in the activity doesn't define any
@@ -192,7 +196,7 @@ public abstract class AppCompatBaseViewTest<A extends BaseTestActivity, T extend
     @Test
     public void testBackgroundTintingAcrossStateChange() {
         final @IdRes int viewId = R.id.view_tinted_background;
-        final T view = (T) mContainer.findViewById(viewId);
+        final T view = mContainer.findViewById(viewId);
 
         final @ColorInt int lilacDefault = ResourcesCompat.getColor(
                 mResources, R.color.lilac_default, null);
@@ -272,7 +276,7 @@ public abstract class AppCompatBaseViewTest<A extends BaseTestActivity, T extend
     @Test
     public void testBackgroundTintingViewCompatAcrossStateChange() {
         final @IdRes int viewId = R.id.view_tinted_background;
-        final T view = (T) mContainer.findViewById(viewId);
+        final T view = mContainer.findViewById(viewId);
 
         final @ColorInt int lilacDefault = ResourcesCompat.getColor(
                 mResources, R.color.lilac_default, null);
@@ -353,7 +357,7 @@ public abstract class AppCompatBaseViewTest<A extends BaseTestActivity, T extend
     @Test
     public void testBackgroundTintingAcrossModeChange() {
         final @IdRes int viewId = R.id.view_untinted_background;
-        final T view = (T) mContainer.findViewById(viewId);
+        final T view = mContainer.findViewById(viewId);
 
         final @ColorInt int emeraldDefault = ResourcesCompat.getColor(
                 mResources, R.color.emerald_translucent_default, null);
@@ -421,7 +425,7 @@ public abstract class AppCompatBaseViewTest<A extends BaseTestActivity, T extend
     @Test
     public void testBackgroundTintingViewCompatAcrossModeChange() {
         final @IdRes int viewId = R.id.view_untinted_background;
-        final T view = (T) mContainer.findViewById(viewId);
+        final T view = mContainer.findViewById(viewId);
 
         final @ColorInt int emeraldDefault = ResourcesCompat.getColor(
                 mResources, R.color.emerald_translucent_default, null);
@@ -488,7 +492,7 @@ public abstract class AppCompatBaseViewTest<A extends BaseTestActivity, T extend
     @Test
     public void testBackgroundOpaqueTintingAcrossBackgroundChange() {
         final @IdRes int viewId = R.id.view_tinted_no_background;
-        final T view = (T) mContainer.findViewById(viewId);
+        final T view = mContainer.findViewById(viewId);
 
         final @ColorInt int lilacDefault = ResourcesCompat.getColor(
                 mResources, R.color.lilac_default, null);
@@ -546,7 +550,7 @@ public abstract class AppCompatBaseViewTest<A extends BaseTestActivity, T extend
     @Test
     public void testBackgroundTranslucentTintingAcrossBackgroundChange() {
         final @IdRes int viewId = R.id.view_untinted_no_background;
-        final T view = (T) mContainer.findViewById(viewId);
+        final T view = mContainer.findViewById(viewId);
 
         final @ColorInt int emeraldDefault = ResourcesCompat.getColor(
                 mResources, R.color.emerald_translucent_default, null);
@@ -628,7 +632,7 @@ public abstract class AppCompatBaseViewTest<A extends BaseTestActivity, T extend
     }
 
     protected void testUntintedBackgroundTintingViewCompatAcrossStateChange(@IdRes int viewId) {
-        final T view = (T) mContainer.findViewById(viewId);
+        final T view = mContainer.findViewById(viewId);
 
         final @ColorInt int oceanDefault = ResourcesCompat.getColor(
                 mResources, R.color.ocean_default, null);

@@ -16,6 +16,7 @@
 
 package androidx.webkit;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
@@ -93,6 +94,10 @@ public class WebViewFeature {
             FORCE_DARK_STRATEGY,
             WEB_MESSAGE_LISTENER,
             DOCUMENT_START_SCRIPT,
+            PROXY_OVERRIDE_REVERSE_BYPASS,
+            GET_VARIATIONS_HEADER,
+            ALGORITHMIC_DARKENING,
+            REQUESTED_WITH_HEADER_CONTROL,
     })
     @Retention(RetentionPolicy.SOURCE)
     @Target({ElementType.PARAMETER, ElementType.METHOD})
@@ -130,6 +135,7 @@ public class WebViewFeature {
      * {@link androidx.webkit.WebSettingsCompat#getDisabledActionModeMenuItems(WebSettings)}, and
      * {@link androidx.webkit.WebSettingsCompat#setDisabledActionModeMenuItems(WebSettings, int)}.
      */
+    @SuppressLint("IntentName") // False positive: this constant is not to be used for Intents.
     public static final String DISABLED_ACTION_MODE_MENU_ITEMS =
             "DISABLED_ACTION_MODE_MENU_ITEMS";
 
@@ -153,7 +159,7 @@ public class WebViewFeature {
      * {@link androidx.webkit.WebViewCompat#setSafeBrowsingWhitelist(List, ValueCallback)}.
      *
      * <p>This is functionally equivalent to {@link #SAFE_BROWSING_ALLOWLIST}: both constants
-     * represent the same range of compatiblity across Android OS versions and WebView versions.
+     * represent the same range of compatibility across Android OS versions and WebView versions.
      *
      * @deprecated Please use {@link #SAFE_BROWSING_ALLOWLIST} and {@link
      * androidx.webkit.WebViewCompat#setSafeBrowsingAllowlist(Set, ValueCallback)} instead.
@@ -436,6 +442,14 @@ public class WebViewFeature {
 
     /**
      * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers
+     * {@link WebSettingsCompat#setAlgorithmicDarkeningAllowed(WebSettings, boolean)} and
+     * {@link WebSettingsCompat#isAlgorithmicDarkeningAllowed(WebSettings)}.
+     */
+    public static final String ALGORITHMIC_DARKENING = "ALGORITHMIC_DARKENING";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
      * This feature covers {@link WebViewCompat#addWebMessageListener(android.webkit.WebView,
      * String, Set, WebViewCompat.WebMessageListener)} and {@link
      * WebViewCompat#removeWebMessageListener(android.webkit.WebView, String)}.
@@ -446,12 +460,32 @@ public class WebViewFeature {
      * Feature for {@link #isFeatureSupported(String)}.
      * This feature covers {@link WebViewCompat#addDocumentStartJavaScript(android.webkit.WebView,
      * String, Set)}.
-     *
-     * TODO(ctzsm): unhide when ready.
+     */
+    public static final String DOCUMENT_START_SCRIPT = "DOCUMENT_START_SCRIPT";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers
+     * {@link androidx.webkit.ProxyConfig.Builder#setReverseBypassEnabled(boolean)}
+     */
+    public static final String PROXY_OVERRIDE_REVERSE_BYPASS = "PROXY_OVERRIDE_REVERSE_BYPASS";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers {@link WebViewCompat#getVariationsHeader()}.
+     */
+    public static final String GET_VARIATIONS_HEADER = "GET_VARIATIONS_HEADER";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers {@link WebSettingsCompat#setRequestedWithHeaderMode(WebSettings, int)},
+     * {@link WebSettingsCompat#getRequestedWithHeaderMode(WebSettings)},
+     * {@link ServiceWorkerWebSettingsCompat#setRequestedWithHeaderMode(int)},
+     * and {@link ServiceWorkerWebSettingsCompat#getRequestedWithHeaderMode()}.
      * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public static final String DOCUMENT_START_SCRIPT = "DOCUMENT_START_SCRIPT";
+    public static final String REQUESTED_WITH_HEADER_CONTROL = "REQUESTED_WITH_HEADER_CONTROL";
 
     /**
      * Return whether a feature is supported at run-time. On devices running Android version {@link

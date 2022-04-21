@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.text.style.lerp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.unit.sp
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -380,6 +381,17 @@ class SpanStyleTest {
         assertThat(newSpanStyle.localeList).isEqualTo(otherStyle.localeList)
     }
 
+    @OptIn(ExperimentalTextApi::class)
+    @Test
+    fun `merge with null platformStyles has null platformStyle`() {
+        val style = SpanStyle(platformStyle = null)
+        val otherStyle = SpanStyle(platformStyle = null)
+
+        val mergedStyle = style.merge(otherStyle)
+
+        assertThat(mergedStyle.platformStyle).isNull()
+    }
+
     @Test
     fun `plus operator merges`() {
         val style = SpanStyle(
@@ -715,5 +727,16 @@ class SpanStyleTest {
         val newSpanStyle = lerp(start = style1, stop = style2, fraction = t)
 
         assertThat(newSpanStyle.textDecoration).isEqualTo(decoration2)
+    }
+
+    @OptIn(ExperimentalTextApi::class)
+    @Test
+    fun `lerp with null platformStyles have null platformStyle`() {
+        val style = SpanStyle(platformStyle = null)
+        val otherStyle = SpanStyle(platformStyle = null)
+
+        val lerpedStyle = lerp(start = style, stop = otherStyle, fraction = 0.5f)
+
+        assertThat(lerpedStyle.platformStyle).isNull()
     }
 }

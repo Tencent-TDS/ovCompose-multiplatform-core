@@ -20,6 +20,7 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.CameraUnavailableException;
 import androidx.camera.core.InitializationException;
@@ -29,6 +30,7 @@ import java.util.Set;
 /**
  * The factory class that creates {@link CameraInternal} instances.
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface CameraFactory {
 
     /**
@@ -40,14 +42,14 @@ public interface CameraFactory {
          *
          * @param context the android context
          * @param threadConfig the thread config to run the camera operations
-         * @param availableCamerasSelector a CameraSelector used to specify which cameras will be
+         * @param availableCamerasLimiter a CameraSelector used to specify which cameras will be
          *                                 loaded and available to CameraX.
          * @return the factory instance
          * @throws InitializationException if it fails to create the factory.
          */
         @NonNull CameraFactory newInstance(@NonNull Context context,
                 @NonNull CameraThreadConfig threadConfig,
-                @Nullable CameraSelector availableCamerasSelector) throws InitializationException;
+                @Nullable CameraSelector availableCamerasLimiter) throws InitializationException;
     }
 
     /**

@@ -15,6 +15,22 @@
   See the License for the specific language governing permissions and
   limitations under the License.
   -->
-<manifest package="androidx.car.app">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
+    <application>
+        <activity
+            android:name=".CarAppPermissionActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="false"/>
+        <receiver
+            android:name=".notification.CarAppNotificationBroadcastReceiver"
+            android:exported="false"/>
+    </application>
+    <queries>
+        <provider
+            android:name="androidx.car.app.connection.provider"
+            android:authorities="androidx.car.app.connection"
+            tools:ignore="MissingClass" />
+    </queries>
 </manifest>

@@ -21,6 +21,7 @@ import android.content.Intent
 import android.graphics.SurfaceTexture
 import android.view.TextureView
 import android.view.View
+import androidx.camera.camera2.Camera2Config
 import androidx.camera.core.CameraSelector
 import androidx.camera.integration.uiwidgets.R
 import androidx.camera.testing.CameraUtil
@@ -39,6 +40,8 @@ import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.google.common.truth.Truth.assertThat
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
@@ -46,11 +49,8 @@ import org.junit.Assume
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 @RunWith(Parameterized::class)
 @LargeTest
@@ -64,10 +64,15 @@ class ViewPagerActivityTest(private val lensFacing: Int) {
             CameraSelector.LENS_FACING_FRONT,
             CameraSelector.LENS_FACING_BACK
         )
+
+        @JvmField
+        val testCameraRule = CameraUtil.PreTestCamera()
     }
 
     @get:Rule
-    val mUseCamera: TestRule = CameraUtil.grantCameraPermissionAndPreTest()
+    val useCamera = CameraUtil.grantCameraPermissionAndPreTest(
+        testCameraRule, CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
+    )
 
     private val mDevice =
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
@@ -110,6 +115,7 @@ class ViewPagerActivityTest(private val lensFacing: Int) {
             onView(withId(R.id.blank_textview)).check(matches(isDisplayed()))
 
             onView(withId(R.id.viewPager)).perform(swipeRight())
+            onView(withId(R.id.preview_textureview)).check(matches(isDisplayed()))
             // Check if the surface texture of TextureView continues getting updates after
             // detaching from window and then attaching to window.
             assertSurfaceTextureFramesUpdate(scenario)
@@ -132,6 +138,7 @@ class ViewPagerActivityTest(private val lensFacing: Int) {
 
             // After resume, swipe in CameraFragment to check Preview in stream state
             onView(withId(R.id.viewPager)).perform(swipeRight())
+            onView(withId(R.id.preview_textureview)).check(matches(isDisplayed()))
             assertStreamState(scenario, PreviewView.StreamState.STREAMING)
 
             // The test covers pause/resume and ViewPager2 swipe out/in behaviors. Hence, need to

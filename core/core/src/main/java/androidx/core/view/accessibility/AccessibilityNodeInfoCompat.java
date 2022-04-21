@@ -20,6 +20,8 @@ import static android.view.View.NO_ID;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
+import static java.util.Collections.emptyList;
+
 import android.annotation.SuppressLint;
 import android.graphics.Rect;
 import android.graphics.Region;
@@ -3069,7 +3071,7 @@ public class AccessibilityNodeInfoCompat {
      *     <li>API &lt; 21: Always returns {@code null}</li>
      * </ul>
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "MixedMutabilityReturnType"})
     public List<AccessibilityActionCompat> getActionList() {
         List<Object> actions = null;
         if (Build.VERSION.SDK_INT >= 21) {
@@ -3374,6 +3376,7 @@ public class AccessibilityNodeInfoCompat {
      * @param viewId The fully qualified resource name of the view id to find.
      * @return A list of node info.
      */
+    @SuppressWarnings("MixedMutabilityReturnType")
     public List<AccessibilityNodeInfoCompat> findAccessibilityNodeInfosByViewId(String viewId) {
         if (Build.VERSION.SDK_INT >= 18) {
             List<AccessibilityNodeInfo> nodes = mInfo.findAccessibilityNodeInfosByViewId(viewId);
@@ -3437,6 +3440,48 @@ public class AccessibilityNodeInfoCompat {
     public void setInputType(int inputType) {
         if (Build.VERSION.SDK_INT >= 19) {
             mInfo.setInputType(inputType);
+        }
+    }
+
+    /**
+     * Get the extra data available for this node.
+     * <p>
+     * Some data that is useful for some accessibility services is expensive to compute, and would
+     * place undue overhead on apps to compute all the time. That data can be requested with
+     * {@link #refreshWithExtraData(String, Bundle)}.
+     *
+     * @return An unmodifiable list of keys corresponding to extra data that can be requested.
+     * @see #EXTRA_DATA_RENDERING_INFO_KEY
+     * @see #EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY
+     */
+    @NonNull
+    public List<String> getAvailableExtraData() {
+        if (Build.VERSION.SDK_INT >= 26) {
+            return mInfo.getAvailableExtraData();
+        } else {
+            return emptyList();
+        }
+    }
+
+    /**
+     * Set the extra data available for this node.
+     * <p>
+     * <strong>Note:</strong> When a {@code View} passes in a non-empty list, it promises that
+     * it will populate the node's extras with corresponding pieces of information in
+     * {@link View#addExtraDataToAccessibilityNodeInfo(AccessibilityNodeInfo, String, Bundle)}.
+     * <p>
+     * <strong>Note:</strong> Cannot be called from an
+     * {@link android.accessibilityservice.AccessibilityService}.
+     * This class is made immutable before being delivered to an AccessibilityService.
+     *
+     * @param extraDataKeys A list of types of extra data that are available.
+     * @see #getAvailableExtraData()
+     *
+     * @throws IllegalStateException If called from an AccessibilityService.
+     */
+    public void setAvailableExtraData(@NonNull List<String> extraDataKeys) {
+        if (Build.VERSION.SDK_INT >= 26) {
+            mInfo.setAvailableExtraData(extraDataKeys);
         }
     }
 

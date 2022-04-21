@@ -20,18 +20,23 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.text.font.toFontFamily
+import androidx.compose.ui.text.platform.SynchronizedObject
+import androidx.compose.ui.text.platform.createSynchronizedObject
+import androidx.compose.ui.text.platform.synchronized
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.util.annotation.VisibleForTesting
 
 /**
  * The data class which holds the set of parameters of the text layout computation.
  */
-data class TextLayoutInput(
+class TextLayoutInput private constructor(
     /**
      * The text used for computing text layout.
      */
@@ -80,19 +85,226 @@ data class TextLayoutInput(
 
     /**
      * The font resource loader used for computing this text layout.
+     *
+     * This is no longer used.
+     *
+     * @see fontFamilyResolver
      */
-    val resourceLoader: Font.ResourceLoader,
+
+    @Suppress("DEPRECATION") resourceLoader: Font.ResourceLoader?,
+
+    /**
+     * The font resolver used for computing this text layout.
+     */
+    val fontFamilyResolver: FontFamily.Resolver,
 
     /**
      * The minimum width provided while calculating this text layout.
      */
     val constraints: Constraints
-)
+) {
+
+    private var _developerSuppliedResourceLoader = resourceLoader
+    @Deprecated("Replaced with FontFamily.Resolver",
+        replaceWith = ReplaceWith("fontFamilyResolver"),
+    )
+    @Suppress("DEPRECATION")
+    val resourceLoader: Font.ResourceLoader
+        get() {
+            return _developerSuppliedResourceLoader
+                ?: DeprecatedBridgeFontResourceLoader.from(fontFamilyResolver)
+        }
+
+    @Deprecated(
+        "Font.ResourceLoader is replaced with FontFamily.Resolver",
+        replaceWith = ReplaceWith("TextLayoutInput(text, style, placeholders, " +
+            "maxLines, softWrap, overflow, density, layoutDirection, fontFamilyResolver, " +
+            "constraints")
+    )
+    @Suppress("DEPRECATION")
+    constructor(
+        text: AnnotatedString,
+        style: TextStyle,
+        placeholders: List<AnnotatedString.Range<Placeholder>>,
+        maxLines: Int,
+        softWrap: Boolean,
+        overflow: TextOverflow,
+        density: Density,
+        layoutDirection: LayoutDirection,
+        resourceLoader: Font.ResourceLoader,
+        constraints: Constraints
+    ) : this(
+        text,
+        style,
+        placeholders,
+        maxLines,
+        softWrap,
+        overflow,
+        density,
+        layoutDirection,
+        resourceLoader,
+        createFontFamilyResolver(resourceLoader),
+        constraints
+    )
+
+    constructor(
+        text: AnnotatedString,
+        style: TextStyle,
+        placeholders: List<AnnotatedString.Range<Placeholder>>,
+        maxLines: Int,
+        softWrap: Boolean,
+        overflow: TextOverflow,
+        density: Density,
+        layoutDirection: LayoutDirection,
+        fontFamilyResolver: FontFamily.Resolver,
+        constraints: Constraints
+    ) : this(
+        text,
+        style,
+        placeholders,
+        maxLines,
+        softWrap,
+        overflow,
+        density,
+        layoutDirection,
+        @Suppress("DEPRECATION") null,
+        fontFamilyResolver,
+        constraints
+    )
+
+    @Deprecated("Font.ResourceLoader is deprecated",
+        replaceWith = ReplaceWith("TextLayoutInput(text, style, placeholders," +
+            " maxLines, softWrap, overFlow, density, layoutDirection, fontFamilyResolver, " +
+            "constraints)")
+    )
+    // Unfortunately, there's no way to deprecate and add a parameter to a copy chain such that the
+    // resolution is valid.
+    //
+    // However, as this was never intended to be a public function we will not replace it. There is
+    // no use case for calling this method directly.
+    fun copy(
+        text: AnnotatedString = this.text,
+        style: TextStyle = this.style,
+        placeholders: List<AnnotatedString.Range<Placeholder>> = this.placeholders,
+        maxLines: Int = this.maxLines,
+        softWrap: Boolean = this.softWrap,
+        overflow: TextOverflow = this.overflow,
+        density: Density = this.density,
+        layoutDirection: LayoutDirection = this.layoutDirection,
+        @Suppress("DEPRECATION") resourceLoader: Font.ResourceLoader = this.resourceLoader,
+        constraints: Constraints = this.constraints
+    ): TextLayoutInput {
+        return TextLayoutInput(
+            text = text,
+            style = style,
+            placeholders = placeholders,
+            maxLines = maxLines,
+            softWrap = softWrap,
+            overflow = overflow,
+            density = density,
+            layoutDirection = layoutDirection,
+            resourceLoader = resourceLoader,
+            fontFamilyResolver = fontFamilyResolver,
+            constraints = constraints
+        )
+    }
+
+    override operator fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TextLayoutInput) return false
+
+        if (text != other.text) return false
+        if (style != other.style) return false
+        if (placeholders != other.placeholders) return false
+        if (maxLines != other.maxLines) return false
+        if (softWrap != other.softWrap) return false
+        if (overflow != other.overflow) return false
+        if (density != other.density) return false
+        if (layoutDirection != other.layoutDirection) return false
+        if (fontFamilyResolver != other.fontFamilyResolver) return false
+        if (constraints != other.constraints) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = text.hashCode()
+        result = 31 * result + style.hashCode()
+        result = 31 * result + placeholders.hashCode()
+        result = 31 * result + maxLines
+        result = 31 * result + softWrap.hashCode()
+        result = 31 * result + overflow.hashCode()
+        result = 31 * result + density.hashCode()
+        result = 31 * result + layoutDirection.hashCode()
+        result = 31 * result + fontFamilyResolver.hashCode()
+        result = 31 * result + constraints.hashCode()
+        return result
+    }
+
+    override fun toString(): String {
+        return "TextLayoutInput(" +
+            "text=$text, " +
+            "style=$style, " +
+            "placeholders=$placeholders, " +
+            "maxLines=$maxLines, " +
+            "softWrap=$softWrap, " +
+            "overflow=$overflow, " +
+            "density=$density, " +
+            "layoutDirection=$layoutDirection, " +
+            "fontFamilyResolver=$fontFamilyResolver, " +
+            "constraints=$constraints" +
+            ")"
+    }
+}
+
+@Suppress("DEPRECATION")
+private class DeprecatedBridgeFontResourceLoader private constructor(
+    private val fontFamilyResolver: FontFamily.Resolver
+) : Font.ResourceLoader {
+    @Deprecated(
+        "Replaced by FontFamily.Resolver, this method should not be called",
+        ReplaceWith("FontFamily.Resolver.resolve(font, )"),
+    )
+    override fun load(font: Font): Any {
+        return fontFamilyResolver.resolve(
+            font.toFontFamily(),
+            font.weight,
+            font.style
+        ).value
+    }
+
+    companion object {
+        // In normal usage will  be a map of size 1.
+        //
+        // To fill this map with a large number of entries an app must:
+        //
+        // 1. Repeatedly change FontFamily.Resolver
+        // 2. Call the deprecated method getFontResourceLoader on TextLayoutInput
+        //
+        // If this map is found to be large in profiling of an app, please modify your code to not
+        // call getFontResourceLoader, and evaluate if FontFamily.Resolver is being correctly cached
+        // (via e.g. remember)
+        var cache = mutableMapOf<FontFamily.Resolver, Font.ResourceLoader>()
+        val lock: SynchronizedObject = createSynchronizedObject()
+        fun from(fontFamilyResolver: FontFamily.Resolver): Font.ResourceLoader {
+            synchronized(lock) {
+                // the same resolver to return the same ResourceLoader
+                cache[fontFamilyResolver]?.let { return it }
+
+                val deprecatedBridgeFontResourceLoader = DeprecatedBridgeFontResourceLoader(
+                    fontFamilyResolver
+                )
+                cache[fontFamilyResolver] = deprecatedBridgeFontResourceLoader
+                return deprecatedBridgeFontResourceLoader
+            }
+        }
+    }
+}
 
 /**
  * The data class which holds text layout result.
  */
-data class TextLayoutResult internal constructor(
+class TextLayoutResult constructor(
     /**
      * The parameters used for computing this text layout result.
      */
@@ -102,9 +314,8 @@ data class TextLayoutResult internal constructor(
      * The multi paragraph object.
      *
      * This is the result of the text layout computation.
-     * This is expected to be used only for drawing from TextDelegate class.
      */
-    internal val multiParagraph: MultiParagraph,
+    val multiParagraph: MultiParagraph,
 
     /**
      * The amount of space required to paint this text in Int.
@@ -176,23 +387,6 @@ data class TextLayoutResult internal constructor(
      */
     fun getLineEnd(lineIndex: Int, visibleEnd: Boolean = false): Int =
         multiParagraph.getLineEnd(lineIndex, visibleEnd)
-
-    /**
-     * Returns the end of visible offset of the given line.
-     *
-     * If no ellipsis happens on the given line, this returns the line end offset with excluding
-     * trailing whitespaces.
-     * If ellipsis happens on the given line, this returns the offset that ellipsis started, i.e.
-     * the exclusive not ellipsized last character.
-     * @param lineIndex a 0 based line index
-     * @return an exclusive line end offset that is visible on the display
-     * @see getLineEnd
-     */
-    @Deprecated(
-        "This function will be removed.",
-        replaceWith = ReplaceWith("getLineEnd(lineIndex, true)", "androidx.compose.ui.text")
-    )
-    fun getLineVisibleEnd(lineIndex: Int): Int = multiParagraph.getLineEnd(lineIndex, true)
 
     /**
      * Returns true if ellipsis happens on the given line, otherwise returns false
@@ -342,35 +536,50 @@ data class TextLayoutResult internal constructor(
      * @return a drawing path
      */
     fun getPathForRange(start: Int, end: Int): Path = multiParagraph.getPathForRange(start, end)
-}
 
-@VisibleForTesting
-fun createTextLayoutResult(
-    layoutInput: TextLayoutInput =
-        TextLayoutInput(
-            text = AnnotatedString(""),
-            style = TextStyle(),
-            placeholders = emptyList(),
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Clip,
-            density = Density(1f),
-            layoutDirection = LayoutDirection.Ltr,
-            resourceLoader = object : Font.ResourceLoader {
-                override fun load(font: Font): Any {
-                    return false
-                }
-            },
-            constraints = Constraints()
-        ),
-    multiParagraph: MultiParagraph = MultiParagraph(
-        annotatedString = layoutInput.text,
-        style = layoutInput.style,
-        width = 0f,
-        density = layoutInput.density,
-        resourceLoader = layoutInput.resourceLoader
-    ),
-    size: IntSize = IntSize.Zero
-): TextLayoutResult = TextLayoutResult(
-    layoutInput, multiParagraph, size
-)
+    fun copy(
+        layoutInput: TextLayoutInput = this.layoutInput,
+        size: IntSize = this.size
+    ): TextLayoutResult {
+        return TextLayoutResult(
+            layoutInput = layoutInput,
+            multiParagraph = multiParagraph,
+            size = size
+        )
+    }
+
+    override operator fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TextLayoutResult) return false
+
+        if (layoutInput != other.layoutInput) return false
+        if (multiParagraph != other.multiParagraph) return false
+        if (size != other.size) return false
+        if (firstBaseline != other.firstBaseline) return false
+        if (lastBaseline != other.lastBaseline) return false
+        if (placeholderRects != other.placeholderRects) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = layoutInput.hashCode()
+        result = 31 * result + multiParagraph.hashCode()
+        result = 31 * result + size.hashCode()
+        result = 31 * result + firstBaseline.hashCode()
+        result = 31 * result + lastBaseline.hashCode()
+        result = 31 * result + placeholderRects.hashCode()
+        return result
+    }
+
+    override fun toString(): String {
+        return "TextLayoutResult(" +
+            "layoutInput=$layoutInput, " +
+            "multiParagraph=$multiParagraph, " +
+            "size=$size, " +
+            "firstBaseline=$firstBaseline, " +
+            "lastBaseline=$lastBaseline, " +
+            "placeholderRects=$placeholderRects" +
+            ")"
+    }
+}

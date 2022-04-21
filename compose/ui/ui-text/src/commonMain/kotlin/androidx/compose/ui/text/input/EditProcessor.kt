@@ -16,32 +16,38 @@
 
 package androidx.compose.ui.text.input
 
-import androidx.compose.ui.text.InternalTextApi
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.util.annotation.VisibleForTesting
+import androidx.compose.ui.text.emptyAnnotatedString
+import androidx.compose.ui.util.fastForEach
 
 /**
- * The core editing implementation
+ * Helper class to apply [EditCommand]s on an internal buffer. Used by TextField Composable
+ * to combine TextFieldValue lifecycle with the editing operations.
  *
- * This class accepts latest text edit state from developer and also receives edit operations from
- * IME.
- *
- * @suppress
+ * * When a [TextFieldValue] is suggested by the developer, [reset] should be called.
+ * * When [TextInputService] provides [EditCommand]s, they should be applied to the internal
+ * buffer using [apply].
  */
-@InternalTextApi
 class EditProcessor {
 
-    // The last known state of the EditingBuffer
-    @VisibleForTesting
-    var mBufferState: TextFieldValue = TextFieldValue("", TextRange.Zero, null)
+    /**
+     * The current state of the internal editing buffer as a [TextFieldValue].
+     */
+    /*@VisibleForTesting*/
+    internal var mBufferState: TextFieldValue = TextFieldValue(
+        emptyAnnotatedString(),
+        TextRange.Zero,
+        null
+    )
         private set
 
     // The editing buffer used for applying editor commands from IME.
-    @VisibleForTesting
+    /*@VisibleForTesting*/
     internal var mBuffer: EditingBuffer = EditingBuffer(
-        initialText = "",
-        initialSelection = TextRange.Zero
+        text = mBufferState.annotatedString,
+        selection = mBufferState.selection
     )
+        private set
 
     /**
      * Must be called whenever new editor model arrives.
@@ -49,18 +55,23 @@ class EditProcessor {
      * This method updates the internal editing buffer with the given editor model.
      * This method may tell the IME about the selection offset changes or extracted text changes.
      */
-    fun onNewState(
+    fun reset(
         value: TextFieldValue,
-        textInputService: TextInputService?,
-        token: InputSessionToken
+        textInputSession: TextInputSession?,
     ) {
-        if (mBufferState.text != value.text) {
+        var textChanged = false
+        var selectionChanged = false
+        val compositionChanged = value.composition != mBuffer.composition
+
+        if (mBufferState.annotatedString != value.annotatedString) {
             mBuffer = EditingBuffer(
-                initialText = value.text,
-                initialSelection = value.selection
+                text = value.annotatedString,
+                selection = value.selection
             )
+            textChanged = true
         } else if (mBufferState.selection != value.selection) {
             mBuffer.setSelection(value.selection.min, value.selection.max)
+            selectionChanged = true
         }
 
         if (value.composition == null) {
@@ -69,31 +80,47 @@ class EditProcessor {
             mBuffer.setComposition(value.composition.min, value.composition.max)
         }
 
+        // this is the same code as in TextInputServiceAndroid class where restartInput is decided
+        // if restartInput is going to be called the composition has to be cleared otherwise it
+        // results in keyboards behaving strangely.
+        val newValue = if (textChanged || (!selectionChanged && compositionChanged)) {
+            mBuffer.commitComposition()
+            value.copy(composition = null)
+        } else {
+            value
+        }
+
         val oldValue = mBufferState
-        mBufferState = value
-        textInputService?.onStateUpdated(token, oldValue, value)
+        mBufferState = newValue
+
+        textInputSession?.updateState(oldValue, newValue)
     }
 
     /**
-     * Must be called whenever new edit operations sent from IMEs arrives.
+     * Applies a set of [editCommands] to the internal text editing buffer.
      *
-     * This method updates internal editing buffer with the given edit operations and returns the
-     * latest editor state representation of the editing buffer.
+     * After applying the changes, returns the final state of the editing buffer as a
+     * [TextFieldValue]
+     *
+     * @param editCommands [EditCommand]s to be applied to the editing buffer.
+     *
+     * @return the [TextFieldValue] representation of the final buffer state.
      */
-    fun onEditCommands(ops: List<EditOperation>): TextFieldValue {
-        ops.forEach { it.process(mBuffer) }
+    fun apply(editCommands: List<EditCommand>): TextFieldValue {
+        editCommands.fastForEach { it.applyTo(mBuffer) }
 
         val newState = TextFieldValue(
-            text = mBuffer.toString(),
-            selection = TextRange(mBuffer.selectionStart, mBuffer.selectionEnd),
-            composition = if (mBuffer.hasComposition()) {
-                TextRange(mBuffer.compositionStart, mBuffer.compositionEnd)
-            } else {
-                null
-            }
+            annotatedString = mBuffer.toAnnotatedString(),
+            selection = mBuffer.selection,
+            composition = mBuffer.composition
         )
 
         mBufferState = newState
         return newState
     }
+
+    /**
+     * Returns the current state of the internal editing buffer as a [TextFieldValue].
+     */
+    fun toTextFieldValue(): TextFieldValue = mBufferState
 }

@@ -44,9 +44,17 @@ val MaterialDemos = DemoCategory(
         ),
         ComposableDemo("App Bars") { AppBarDemo() },
         ComposableDemo("Backdrop") { BackdropScaffoldSample() },
+        ComposableDemo("Badge") { BadgeDemo() },
         ComposableDemo("Bottom Navigation") { BottomNavigationDemo() },
-        ComposableDemo("Bottom Sheet") { BottomSheetScaffoldSample() },
+        DemoCategory(
+            "Bottom Sheets",
+            listOf(
+                ComposableDemo("Bottom Sheet") { BottomSheetScaffoldSample() },
+                ComposableDemo("Modal Bottom Sheet") { ModalBottomSheetSample() },
+            )
+        ),
         ComposableDemo("Buttons & FABs") { ButtonDemo() },
+        ComposableDemo("Chips") { ChipDemo() },
         DemoCategory(
             "Navigation drawer",
             listOf(
@@ -64,7 +72,14 @@ val MaterialDemos = DemoCategory(
             )
         ),
         ComposableDemo("Material Theme") { MaterialThemeDemo() },
-        ComposableDemo("Menus") { MenuDemo() },
+        DemoCategory(
+            "Menus",
+            listOf(
+                ComposableDemo("Dropdown Menu positioning") { MenuDemo() },
+                ComposableDemo("ExposedDropdownMenu") { ExposedDropdownMenuDemo() }
+            )
+        ),
+        ComposableDemo("Navigation Rail") { NavigationRailDemo() },
         DemoCategory(
             "Playground",
             listOf(
@@ -72,7 +87,6 @@ val MaterialDemos = DemoCategory(
                 ActivityDemo("Dynamic Theme", DynamicThemeActivity::class)
             )
         ),
-        ComposableDemo("Modal bottom sheet") { ModalBottomSheetSample() },
         ComposableDemo("Progress Indicators") { ProgressIndicatorDemo() },
         DemoCategory(
             "Scaffold",
@@ -91,7 +105,9 @@ val MaterialDemos = DemoCategory(
             "TextFields",
             listOf(
                 ComposableDemo("FilledTextField/OutlinedTextField") { MaterialTextFieldDemo() },
-                ComposableDemo("Multiple text fields") { TextFieldsDemo() }
+                ComposableDemo("Multiple text fields") { TextFieldsDemo() },
+                ComposableDemo("Textfield decoration box") { DecorationBoxDemos() },
+                ComposableDemo("Alignment inside text fields") { VerticalAlignmentsInTextField() }
             )
         )
     )

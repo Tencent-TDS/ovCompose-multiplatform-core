@@ -15,14 +15,14 @@
  */
 
 plugins {
-    id('com.android.dynamic-feature')
-    id('androidx.navigation.safeargs')
+    id("com.android.dynamic-feature")
+    id("androidx.navigation.safeargs")
 }
 android {
-    buildToolsVersion buildTools
-    compileSdkVersion compileSdk
+    buildToolsVersion rootProject.ext.buildTools
+    compileSdkVersion rootProject.ext.compileSdk
     defaultConfig {
-        minSdkVersion minSdk
+        minSdkVersion rootProject.ext.minSdk
     }
     signingConfigs {
         debug {
@@ -44,7 +44,7 @@ android {
 }
 
 dependencies {
-    implementation project(':base')
-    implementation project(':app')
-    implementation "$navigationCommonDep"
+    implementation(project(":base"))
+    implementation(project(":app"))
+    implementation("$navigationCommonDep")
 }

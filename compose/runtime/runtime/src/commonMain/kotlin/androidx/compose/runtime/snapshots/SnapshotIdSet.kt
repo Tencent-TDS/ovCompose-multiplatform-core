@@ -50,7 +50,7 @@ internal class SnapshotIdSet private constructor(
 ) : Iterable<Int> {
 
     /**
-     * The the value of the bit at index [bit]
+     * The value of the bit at index [bit]
      */
     fun get(bit: Int): Boolean {
         val offset = bit - lowerBound
@@ -237,6 +237,33 @@ internal class SnapshotIdSet private constructor(
         }
     }
 
+    fun and(bits: SnapshotIdSet): SnapshotIdSet {
+        if (bits == EMPTY) return EMPTY
+        if (this == EMPTY) return EMPTY
+        return if (bits.lowerBound == this.lowerBound && bits.belowBound === this.belowBound) {
+            val newUpper = this.upperSet and bits.upperSet
+            val newLower = this.lowerSet and bits.lowerSet
+            if (newUpper == 0L && newLower == 0L && this.belowBound == null)
+                EMPTY
+            else
+                SnapshotIdSet(
+                    this.upperSet and bits.upperSet,
+                    this.lowerSet and bits.lowerSet,
+                    this.lowerBound,
+                    this.belowBound
+                )
+        } else {
+            if (this.belowBound == null)
+                this.fold(EMPTY) { previous, index ->
+                    if (bits.get(index)) previous.set(index) else previous
+                }
+            else
+                bits.fold(EMPTY) { previous, index ->
+                    if (this.get(index)) previous.set(index) else previous
+                }
+        }
+    }
+
     /**
      * Produce a set that if the value is set in this set or [bits] (`a | b`)
      */
@@ -283,6 +310,28 @@ internal class SnapshotIdSet private constructor(
         }
     }.iterator()
 
+    inline fun fastForEach(block: (Int) -> Unit) {
+        val belowBound = belowBound
+        if (belowBound != null)
+            for (element in belowBound) {
+                block(element)
+            }
+        if (lowerSet != 0L) {
+            for (index in 0 until Long.SIZE_BITS) {
+                if (lowerSet and (1L shl index) != 0L) {
+                    block(index + lowerBound)
+                }
+            }
+        }
+        if (upperSet != 0L) {
+            for (index in 0 until Long.SIZE_BITS) {
+                if (upperSet and (1L shl index) != 0L) {
+                    block(index + Long.SIZE_BITS + lowerBound)
+                }
+            }
+        }
+    }
+
     fun lowest(default: Int): Int {
         val belowBound = belowBound
         if (belowBound != null) return belowBound[0]
@@ -293,7 +342,7 @@ internal class SnapshotIdSet private constructor(
 
     override fun toString(): String = "${super.toString()} [${this.map {
         it.toString()
-    }.joinToString()}]"
+    }.fastJoinToString()}]"
 
     companion object {
         /**
@@ -310,15 +359,15 @@ private fun lowestBitOf(bits: Long): Int {
         base += 32
         b = b shr 32
     }
-    if (bits and 0xFFFF == 0L) {
+    if (b and 0xFFFF == 0L) {
         base += 16
         b = b shr 16
     }
-    if (bits and 0xFF == 0L) {
+    if (b and 0xFF == 0L) {
         base += 8
         b = b shr 8
     }
-    if (bits and 0xF == 0L) {
+    if (b and 0xF == 0L) {
         base += 4
         b = b shr 4
     }

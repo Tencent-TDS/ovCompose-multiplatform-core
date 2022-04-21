@@ -14,14 +14,15 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="androidx.transition.test">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:supportsRtl="true">
         <activity android:name="androidx.transition.FragmentTransitionTestActivity"/>
         <activity
             android:name="androidx.transition.TransitionActivity"/>
+        <activity
+            android:name="androidx.transition.AddTransitionFragmentInActivity"/>
     </application>
 
 </manifest>

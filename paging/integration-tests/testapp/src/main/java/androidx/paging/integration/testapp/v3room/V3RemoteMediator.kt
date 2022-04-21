@@ -22,6 +22,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.paging.integration.testapp.room.Customer
+import androidx.paging.integration.testapp.room.RemoteKey
 import androidx.paging.integration.testapp.room.SampleDatabase
 import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
@@ -30,13 +31,31 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalPagingApi::class)
 internal class V3RemoteMediator(
     private val database: SampleDatabase,
-    private val networkSource: NetworkCustomerPagingSource
+    private val networkSourceFactory: () -> NetworkCustomerPagingSource
 ) : RemoteMediator<Int, Customer>() {
+
+    private var networkSource: NetworkCustomerPagingSource
+    private val callBack = { newNetworkSource() }
+
+    init {
+        networkSource = networkSourceFactory.invoke()
+        networkSource.registerInvalidatedCallback(callBack)
+    }
+
     override suspend fun load(
         loadType: LoadType,
         state: PagingState<Int, Customer>
     ): MediatorResult {
-        if (loadType == LoadType.PREPEND) return MediatorResult.Success(false)
+        if (loadType == LoadType.PREPEND) {
+            return MediatorResult.Success(endOfPaginationReached = true)
+        }
+
+        // Fetch latest remote key from db. We cannot rely on PagingState because the
+        // invalidate + load loop in paging may race with the actual load + insert happening in
+        // RemoteMediator.
+        val remoteKey = withContext(Dispatchers.IO) {
+            database.remoteKeyDao.queryRemoteKey() ?: RemoteKey(-1, 0)
+        }
 
         // TODO: Move this to be a more fully featured sample which demonstrated key translation
         //  between two types of PagingSources where the keys do not map 1:1.
@@ -48,7 +67,7 @@ internal class V3RemoteMediator(
             )
             LoadType.PREPEND -> throw IllegalStateException()
             LoadType.APPEND -> PagingSource.LoadParams.Append(
-                key = state.pages.lastOrNull()?.nextKey ?: 0,
+                key = remoteKey.nextKey,
                 loadSize = 10,
                 placeholdersEnabled = false
             )
@@ -59,9 +78,13 @@ internal class V3RemoteMediator(
                 withContext(Dispatchers.IO) {
                     database.withTransaction {
                         if (loadType == LoadType.REFRESH) {
+                            database.remoteKeyDao.delete()
                             database.customerDao.removeAll()
                         }
 
+                        database.remoteKeyDao.insert(
+                            RemoteKey(remoteKey.prevKey, remoteKey.nextKey + result.data.size)
+                        )
                         database.customerDao.insertAll(result.data.toTypedArray())
                     }
                 }
@@ -71,6 +94,18 @@ internal class V3RemoteMediator(
             is PagingSource.LoadResult.Error -> {
                 MediatorResult.Error(result.throwable)
             }
+            is PagingSource.LoadResult.Invalid -> {
+                networkSource.invalidate()
+                load(loadType, state)
+            }
         }
+    }
+
+    private fun newNetworkSource() {
+        val newNetworkSource = networkSourceFactory.invoke()
+        newNetworkSource.registerInvalidatedCallback { callBack }
+        networkSource.unregisterInvalidatedCallback { callBack }
+
+        networkSource = newNetworkSource
     }
 }

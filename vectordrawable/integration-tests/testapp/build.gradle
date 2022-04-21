@@ -24,12 +24,13 @@ dependencies {
     implementation(project(":vectordrawable:vectordrawable-animated"))
     implementation(project(":vectordrawable:vectordrawable-seekable"))
     implementation(project(":appcompat:appcompat"))
-    implementation(project(":lifecycle:lifecycle-viewmodel"))
+    implementation("androidx.lifecycle:lifecycle-viewmodel:2.3.1")
 }
 
 android {
     defaultConfig {
         vectorDrawables.useSupportLibrary = true
     }
+    namespace "com.example.android.support.vectordrawable"
 }
 

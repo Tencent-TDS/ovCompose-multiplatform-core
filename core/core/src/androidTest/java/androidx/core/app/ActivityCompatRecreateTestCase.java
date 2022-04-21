@@ -25,24 +25,44 @@ import android.app.Instrumentation;
 import android.content.Intent;
 
 import androidx.lifecycle.Lifecycle;
+import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
-import androidx.test.rule.ActivityTestRule;
 import androidx.testutils.PollingCheck;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@SuppressWarnings("deprecation")
 @LargeTest
 @RunWith(AndroidJUnit4.class)
 public class ActivityCompatRecreateTestCase {
     @Rule
-    public final ActivityTestRule<TestActivityWithLifecycle> mActivityTestRule;
+    public final androidx.test.rule.ActivityTestRule<TestActivityWithLifecycle> mActivityTestRule;
 
     public ActivityCompatRecreateTestCase() {
-        mActivityTestRule = new ActivityTestRule<>(TestActivityWithLifecycle.class);
+        mActivityTestRule = new androidx.test.rule.ActivityTestRule<>(
+                TestActivityWithLifecycle.class);
+    }
+
+    @Test
+    public void testRecreateFromStarted() {
+        final ActivityScenario<TestActivityRecreate> scenario =
+                ActivityScenario.launch(TestActivityRecreate.class)
+                        .moveToState(Lifecycle.State.STARTED);
+        scenario.recreate();
+        scenario.close();
+    }
+
+    @Test
+    public void testRecreateFromCreated() {
+        final ActivityScenario<TestActivityRecreate> scenario =
+                ActivityScenario.launch(TestActivityRecreate.class)
+                        .moveToState(Lifecycle.State.CREATED);
+        scenario.recreate();
+        scenario.close();
     }
 
     @Test

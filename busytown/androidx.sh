@@ -5,20 +5,25 @@ echo "Starting $0 at $(date)"
 
 cd "$(dirname $0)"
 
-# Run Gradle
-impl/build.sh --no-daemon listTaskOutputs -Pandroidx.validateNoUnrecognizedMessages "$@"
-impl/build.sh allProperties "$@" >/dev/null
-subsets="MAIN COMPOSE FLAN"
-for subset in $subsets; do
-  ANDROIDX_PROJECTS=$subset impl/build.sh tasks >/dev/null
-done
-impl/build.sh --no-daemon buildOnServer -Pandroidx.validateNoUnrecognizedMessages checkExternalLicenses \
-    -PverifyUpToDate \
-    -Pandroidx.coverageEnabled=true \
-    -Pandroidx.enableAffectedModuleDetection \
-    -Pandroidx.allWarningsAsErrors --profile --offline "$@"
+EXIT_VALUE=0
 
-# Parse performance profile reports (generated with the --profile option above) and re-export the metrics in an easily machine-readable format for tracking
-impl/parse_profile_htmls.sh
+# Validate translation exports, if present
+if ! impl/check_translations.sh; then
+  EXIT_VALUE=1
+else
+  # Run Gradle
+  if ! impl/build.sh buildOnServer checkExternalLicenses listTaskOutputs validateProperties \
+      -Pandroidx.enableComposeCompilerMetrics=true \
+      -Pandroidx.enableComposeCompilerReports=true \
+      --profile "$@"; then
+    EXIT_VALUE=1
+  fi
 
-echo "Completing $0 at $(date)"
+  # Parse performance profile reports (generated with the --profile option above) and re-export
+  # the metrics in an easily machine-readable format for tracking
+  impl/parse_profile_htmls.sh
+fi
+
+echo "Completing $0 at $(date) with exit value $EXIT_VALUE"
+
+exit "$EXIT_VALUE"

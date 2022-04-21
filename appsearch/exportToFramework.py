@@ -16,10 +16,36 @@
 # Exports AppSearch Androidx code to Framework
 #
 # NOTE: This will remove and replace all files in the
-# frameworks/base/apex/appsearch path.
+# packages/modules/AppSearch path.
 #
 # Example usage (from root dir of androidx workspace):
-# $ ./frameworks/support/appsearch/exportToFramework.py "$HOME/android/master" "<jetpack changeid>"
+# $ ./frameworks/support/appsearch/exportToFramework.py "$HOME/android/master" "<jetpack git sha>"
+
+# Special directives supported by this script:
+#
+# Causes the file where it appears to not be copied at all:
+#   @exportToFramework:skipFile()
+#
+# Causes the text appearing between startStrip() and endStrip() to be removed during export:
+#   // @exportToFramework:startStrip() ... // @exportToFramework:endStrip()
+#
+# Replaced with @hide:
+#   <!--@exportToFramework:hide-->
+#
+# Replaced with @CurrentTimeMillisLong:
+#   /*@exportToFramework:CurrentTimeMillisLong*/
+#
+# Removes the text appearing between ifJetpack() and else(), and causes the text appearing between
+# else() and --> to become uncommented, to support framework-only Javadocs:
+#   <!--@exportToFramework:ifJetpack()-->
+#   Jetpack-only Javadoc
+#   <!--@exportToFramework:else()
+#   Framework-only Javadoc
+#   -->
+# Note: Using the above pattern, you can hide a method in Jetpack but unhide it in Framework like
+# this:
+#   <!--@exportToFramework:ifJetpack()-->@hide<!--@exportToFramework:else()-->
+
 import os
 import re
 import subprocess
@@ -28,20 +54,21 @@ import sys
 # Jetpack paths relative to frameworks/support/appsearch
 JETPACK_API_ROOT = 'appsearch/src/main/java/androidx/appsearch'
 JETPACK_API_TEST_ROOT = 'appsearch/src/androidTest/java/androidx/appsearch'
-JETPACK_IMPL_ROOT = 'local-storage/src/main/java/androidx/appsearch'
-JETPACK_IMPL_TEST_ROOT = 'local-storage/src/androidTest/java/androidx/appsearch'
+JETPACK_IMPL_ROOT = 'appsearch-local-storage/src/main/java/androidx/appsearch'
+JETPACK_IMPL_TEST_ROOT = 'appsearch-local-storage/src/androidTest/java/androidx/appsearch'
+JETPACK_TEST_UTIL_ROOT = 'appsearch-test-util/src/main/java/androidx/appsearch'
+JETPACK_TEST_UTIL_TEST_ROOT = 'appsearch-test-util/src/androidTest/java/androidx/appsearch'
 
-# Framework paths relative to frameworks/base/apex/appsearch
-FRAMEWORK_API_ROOT = 'framework/java/android/app/appsearch'
-FRAMEWORK_API_TEST_ROOT = (
-        '../../core/tests/coretests/src/'
-        'android/app/appsearch/external')
+# Framework paths relative to packages/modules/AppSearch
+FRAMEWORK_API_ROOT = 'framework/java/external/android/app/appsearch'
+FRAMEWORK_API_TEST_ROOT = 'testing/coretests/src/android/app/appsearch/external'
 FRAMEWORK_IMPL_ROOT = 'service/java/com/android/server/appsearch/external'
-FRAMEWORK_IMPL_TEST_ROOT = (
-        '../../services/tests/servicestests/src/'
-        'com/android/server/appsearch/external')
+FRAMEWORK_IMPL_TEST_ROOT = 'testing/servicestests/src/com/android/server/appsearch/external'
+FRAMEWORK_TEST_UTIL_ROOT = 'testing/testutils/src/android/app/appsearch/testutil/external'
+FRAMEWORK_TEST_UTIL_TEST_ROOT = 'testing/servicestests/src/android/app/appsearch/testutil/external'
+FRAMEWORK_CTS_TEST_ROOT = '../../../cts/tests/appsearch/src/com/android/cts/appsearch/external'
 GOOGLE_JAVA_FORMAT = (
-        '../../../../prebuilts/tools/common/google-java-format/google-java-format')
+        '../../../prebuilts/tools/common/google-java-format/google-java-format')
 
 # Miscellaneous constants
 CHANGEID_FILE_NAME = 'synced_jetpack_changeid.txt'
@@ -51,27 +78,21 @@ class ExportToFramework:
     def __init__(self, jetpack_appsearch_root, framework_appsearch_root):
         self._jetpack_appsearch_root = jetpack_appsearch_root
         self._framework_appsearch_root = framework_appsearch_root
+        self._written_files = []
 
-    def _PruneDir(self, dir_to_prune, allow_list=None):
-        all_files = []
+    def _PruneDir(self, dir_to_prune):
         for walk_path, walk_folders, walk_files in os.walk(dir_to_prune):
             for walk_filename in walk_files:
                 abs_path = os.path.join(walk_path, walk_filename)
-                all_files.append(abs_path)
-
-        for abs_path in all_files:
-            rel_path = os.path.relpath(abs_path, dir_to_prune)
-            if allow_list and rel_path in allow_list:
-                print('Prune: skip "%s"' % abs_path)
-            else:
                 print('Prune: remove "%s"' % abs_path)
                 os.remove(abs_path)
 
-    def _TransformAndCopyFile(self, source_path, dest_path, transform_func=None):
+    def _TransformAndCopyFile(
+            self, source_path, dest_path, transform_func=None, ignore_skips=False):
         with open(source_path, 'r') as fh:
             contents = fh.read()
 
-        if '@exportToFramework:skipFile()' in contents:
+        if not ignore_skips and '@exportToFramework:skipFile()' in contents:
             print('Skipping: "%s" -> "%s"' % (source_path, dest_path), file=sys.stderr)
             return
 
@@ -82,12 +103,36 @@ class ExportToFramework:
         with open(dest_path, 'w') as fh:
             fh.write(contents)
 
-        # Run formatter
-        google_java_format_cmd = [GOOGLE_JAVA_FORMAT, '--aosp', '-i', dest_path]
-        print('$ ' + ' '.join(google_java_format_cmd))
-        subprocess.check_call(google_java_format_cmd, cwd=self._framework_appsearch_root)
+        # Save file for future formatting
+        self._written_files.append(dest_path)
 
     def _TransformCommonCode(self, contents):
+        # Apply stripping
+        contents = re.sub(
+            r'\/\/ @exportToFramework:startStrip\(\).*?\/\/ @exportToFramework:endStrip\(\)',
+            '',
+            contents,
+            flags=re.DOTALL)
+
+        # Apply if/elses in javadocs
+        contents = re.sub(
+            r'<!--@exportToFramework:ifJetpack\(\)-->.*?<!--@exportToFramework:else\(\)(.*?)-->',
+            r'\1',
+            contents,
+            flags=re.DOTALL)
+
+        # Add additional imports if required
+        imports_to_add = []
+        if '@exportToFramework:CurrentTimeMillisLong' in contents:
+            imports_to_add.append('android.annotation.CurrentTimeMillisLong')
+        if '@exportToFramework:UnsupportedAppUsage' in contents:
+            imports_to_add.append('android.compat.annotation.UnsupportedAppUsage')
+        for import_to_add in imports_to_add:
+            contents = re.sub(
+                    r'^(\s*package [^;]+;\s*)$', r'\1\nimport %s;\n' % import_to_add, contents,
+                    flags=re.MULTILINE)
+
+        # Apply in-place replacements
         return (contents
             .replace('androidx.appsearch.app', 'android.app.appsearch')
             .replace(
@@ -100,26 +145,41 @@ class ExportToFramework:
             .replace(
                     'androidx.annotation.VisibleForTesting',
                     'com.android.internal.annotations.VisibleForTesting')
+            .replace('androidx.annotation.', 'android.annotation.')
             .replace('androidx.collection.ArrayMap', 'android.util.ArrayMap')
             .replace('androidx.collection.ArraySet', 'android.util.ArraySet')
             .replace(
                     'androidx.core.util.ObjectsCompat',
                     'java.util.Objects')
+            # Preconditions.checkNotNull is replaced with Objects.requireNonNull. We add both
+            # imports and let google-java-format sort out which one is unused.
             .replace(
-                    'androidx.core.util.Preconditions',
-                    'com.android.internal.util.Preconditions')
+                    'import androidx.core.util.Preconditions;',
+                    'import java.util.Objects; import com.android.internal.util.Preconditions;')
             .replace('import androidx.annotation.RestrictTo;', '')
+            .replace('@RestrictTo(RestrictTo.Scope.LIBRARY)', '')
             .replace('@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)', '')
+            .replace('Preconditions.checkNotNull(', 'Objects.requireNonNull(')
             .replace('ObjectsCompat.', 'Objects.')
-            .replace('androidx.', 'android.')
+            .replace('/*@exportToFramework:CurrentTimeMillisLong*/', '@CurrentTimeMillisLong')
+            .replace('/*@exportToFramework:UnsupportedAppUsage*/', '@UnsupportedAppUsage')
+            .replace('<!--@exportToFramework:hide-->', '@hide')
+            .replace('// @exportToFramework:skipFile()', '')
         )
 
     def _TransformTestCode(self, contents):
         contents = (contents
-            .replace('org.junit.Assert.assertThrows',
-                    'org.testng.Assert.expectThrows')
-            .replace('assertThrows(', 'expectThrows(')
+            .replace('androidx.appsearch.testutil.', 'android.app.appsearch.testutil.')
+            .replace(
+                    'package androidx.appsearch.testutil;',
+                    'package android.app.appsearch.testutil;')
+            .replace(
+                    'androidx.appsearch.localstorage.LocalStorage',
+                    'android.app.appsearch.AppSearchManager')
+            .replace('LocalStorage.', 'AppSearchManager.')
         )
+        for shim in ['AppSearchSession', 'GlobalSearchSession', 'SearchResults']:
+            contents = re.sub(r"([^a-zA-Z])(%s)([^a-zA-Z0-9])" % shim, r'\1\2Shim\3', contents)
         return self._TransformCommonCode(contents)
 
     def _TransformAndCopyFolder(self, source_dir, dest_dir, transform_func=None):
@@ -131,24 +191,31 @@ class ExportToFramework:
                 self._TransformAndCopyFile(source_abs_path, dest_path, transform_func)
 
     def _ExportApiCode(self):
+        # Prod source
         api_source_dir = os.path.join(self._jetpack_appsearch_root, JETPACK_API_ROOT)
-        api_test_source_dir = os.path.join(self._jetpack_appsearch_root, JETPACK_API_TEST_ROOT)
         api_dest_dir = os.path.join(self._framework_appsearch_root, FRAMEWORK_API_ROOT)
+
+        # Unit tests
+        api_test_source_dir = os.path.join(self._jetpack_appsearch_root, JETPACK_API_TEST_ROOT)
         api_test_dest_dir = os.path.join(self._framework_appsearch_root, FRAMEWORK_API_TEST_ROOT)
 
+        # CTS tests
+        cts_test_source_dir = os.path.join(api_test_source_dir, 'cts')
+        cts_test_dest_dir = os.path.join(self._framework_appsearch_root, FRAMEWORK_CTS_TEST_ROOT)
+
+        # Test utils
+        test_util_source_dir = os.path.join(self._jetpack_appsearch_root, JETPACK_TEST_UTIL_ROOT)
+        test_util_dest_dir = os.path.join(self._framework_appsearch_root, FRAMEWORK_TEST_UTIL_ROOT)
+
         # Prune existing files
-        self._PruneDir(api_dest_dir, allow_list=[
-            'AppSearchBatchResult.java',
-            'AppSearchManager.java',
-            'AppSearchManagerFrameworkInitializer.java',
-            'AppSearchResult.java',
-            'IAppSearchManager.aidl',
-            'SearchResults.java',
-        ])
+        self._PruneDir(api_dest_dir)
         self._PruneDir(api_test_dest_dir)
+        self._PruneDir(cts_test_dest_dir)
+        self._PruneDir(test_util_dest_dir)
 
         # Copy api classes. We can't use _TransformAndCopyFolder here because we
         # need to specially handle the 'app' package.
+        print('~~~ Copying API classes ~~~')
         def _TransformApiCode(contents):
             contents = contents.replace(
                     'package androidx.appsearch.app;',
@@ -166,19 +233,51 @@ class ExportToFramework:
                     dest_path = os.path.join(api_dest_dir, dir_rel_to_root, filename)
                 self._TransformAndCopyFile(source_abs_path, dest_path, _TransformApiCode)
 
-        # Copy api test classes.
+        # Copy api unit tests. We can't use _TransformAndCopyFolder here because we need to skip the
+        # 'util' and 'cts' subfolders.
+        print('~~~ Copying API unit tests ~~~')
+        for currentpath, folders, files in os.walk(api_test_source_dir):
+            if (currentpath.startswith(cts_test_source_dir) or
+                    currentpath.startswith(test_util_source_dir)):
+                continue
+            dir_rel_to_root = os.path.relpath(currentpath, api_test_source_dir)
+            for filename in files:
+                source_abs_path = os.path.join(currentpath, filename)
+                dest_path = os.path.join(api_test_dest_dir, dir_rel_to_root, filename)
+                self._TransformAndCopyFile(source_abs_path, dest_path, self._TransformTestCode)
+
+        # Copy CTS tests
+        print('~~~ Copying CTS tests ~~~')
         self._TransformAndCopyFolder(
-                api_test_source_dir, api_test_dest_dir, transform_func=self._TransformTestCode)
+                cts_test_source_dir, cts_test_dest_dir, transform_func=self._TransformTestCode)
+
+        # Copy test utils
+        print('~~~ Copying test utils ~~~')
+        self._TransformAndCopyFolder(
+                test_util_source_dir, test_util_dest_dir, transform_func=self._TransformTestCode)
+        for iface_file in (
+                'AppSearchSession.java', 'GlobalSearchSession.java', 'SearchResults.java'):
+            dest_file_name = os.path.splitext(iface_file)[0] + 'Shim.java'
+            self._TransformAndCopyFile(
+                    os.path.join(api_source_dir, 'app/' + iface_file),
+                    os.path.join(test_util_dest_dir, dest_file_name),
+                    transform_func=self._TransformTestCode,
+                    ignore_skips=True)
 
     def _ExportImplCode(self):
         impl_source_dir = os.path.join(self._jetpack_appsearch_root, JETPACK_IMPL_ROOT)
         impl_test_source_dir = os.path.join(self._jetpack_appsearch_root, JETPACK_IMPL_TEST_ROOT)
         impl_dest_dir = os.path.join(self._framework_appsearch_root, FRAMEWORK_IMPL_ROOT)
         impl_test_dest_dir = os.path.join(self._framework_appsearch_root, FRAMEWORK_IMPL_TEST_ROOT)
+        test_util_test_source_dir = os.path.join(
+                self._jetpack_appsearch_root, JETPACK_TEST_UTIL_TEST_ROOT)
+        test_util_test_dest_dir = os.path.join(
+                self._framework_appsearch_root, FRAMEWORK_TEST_UTIL_TEST_ROOT)
 
         # Prune
         self._PruneDir(impl_dest_dir)
         self._PruneDir(impl_test_dest_dir)
+        self._PruneDir(test_util_test_dest_dir)
 
         # Copy impl classes
         def _TransformImplCode(contents):
@@ -197,17 +296,27 @@ class ExportToFramework:
                     .replace('package androidx.appsearch',
                             'package com.android.server.appsearch.external')
                     .replace('com.google.android.icing.proto.',
-                            'com.android.server.appsearch.proto.')
+                            'com.android.server.appsearch.icing.proto.')
                     .replace('com.google.android.icing.protobuf.',
                             'com.android.server.appsearch.protobuf.')
             )
             return self._TransformTestCode(contents)
         self._TransformAndCopyFolder(
                 impl_test_source_dir, impl_test_dest_dir, transform_func=_TransformImplTestCode)
+        self._TransformAndCopyFolder(
+                test_util_test_source_dir,
+                test_util_test_dest_dir,
+                transform_func=self._TransformTestCode)
+
+    def _FormatWrittenFiles(self):
+        google_java_format_cmd = [GOOGLE_JAVA_FORMAT, '--aosp', '-i'] + self._written_files
+        print('$ ' + ' '.join(google_java_format_cmd))
+        subprocess.check_call(google_java_format_cmd, cwd=self._framework_appsearch_root)
 
     def ExportCode(self):
         self._ExportApiCode()
         self._ExportImplCode()
+        self._FormatWrittenFiles()
 
     def WriteChangeIdFile(self, changeid):
         """Copies the changeid of the most recent public CL into a file on the framework side.
@@ -226,20 +335,16 @@ class ExportToFramework:
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
-        print('Usage: %s <path/to/frameworks/base> <changeId of head jetpack commit>' % sys.argv[0],
+        print('Usage: %s <path/to/framework/checkout> <git sha of head jetpack commit>' % (
+                  sys.argv[0]),
               file=sys.stderr)
         sys.exit(1)
     source_dir = os.path.normpath(os.path.dirname(sys.argv[0]))
     dest_dir = os.path.normpath(sys.argv[1])
-    if os.path.basename(dest_dir) == 'appsearch':
-        pass
-    elif os.path.basename(dest_dir) == 'base':
-        dest_dir = os.path.join(dest_dir, 'apex/appsearch')
-    else:
-        dest_dir = os.path.join(dest_dir, 'frameworks/base/apex/appsearch')
+    dest_dir = os.path.join(dest_dir, 'packages/modules/AppSearch')
     if not os.path.isdir(dest_dir):
         print('Destination path "%s" does not exist or is not a directory' % (
-                dest_dir),
+                  dest_dir),
               file=sys.stderr)
         sys.exit(1)
     exporter = ExportToFramework(source_dir, dest_dir)

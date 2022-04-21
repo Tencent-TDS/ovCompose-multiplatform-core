@@ -1,353 +1,713 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="5" by="lint 4.2.0-alpha15" client="gradle" variant="debug" version="4.2.0-alpha15">
+<issues format="6" by="lint 7.3.0-alpha07" type="baseline" client="gradle" dependencies="false" name="AGP (7.3.0-alpha07)" variant="all" version="7.3.0-alpha07">
 
     <issue
-        id="ObsoleteLintCustomCheck"
-        message="Lint found an issue registry (`androidx.annotation.experimental.lint.ExperimentalIssueRegistry`) which did not specify the Lint API version it was compiled with.&#xA;&#xA;**This means that the lint checks are likely not compatible.**&#xA;&#xA;If you are the author of this lint check, make your lint `IssueRegistry` class contain&#xA;  override val api: Int = com.android.tools.lint.detector.api.CURRENT_API&#xA;or from Java,&#xA;  @Override public int getApi() { return com.android.tools.lint.detector.api.ApiKt.CURRENT_API; }&#xA;&#xA;If you are just using lint checks from a third party library you have no control over, you can disable these lint checks (if they misbehave) like this:&#xA;&#xA;    android {&#xA;        lintOptions {&#xA;            disable &quot;UnsafeExperimentalUsageError&quot;,&#xA;                    &quot;UnsafeExperimentalUsageWarning&quot;&#xA;        }&#xA;    }&#xA;">
+        id="NewApi"
+        message="Field requires API level 30 (current min is 21): `android.hardware.camera2.CaptureRequest#CONTROL_ZOOM_RATIO`"
+        errorLine1="                CaptureRequest.CONTROL_ZOOM_RATIO, null);"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="../../../../../../home/jeffrygaston/.gradle/caches/transforms-2/files-2.1/7ae453d98f1dd49cba0e6a30280a6bcf/annotation-experimental-1.0.0-rc01/jars/lint.jar"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
-        errorLine1="        return String.format(&quot;%s (%d): %s&quot;, problemString, problem, message);"
-        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/CameraAccessExceptionCompat.java"
-            line="255"
-            column="16"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `toLowerCase(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`."
-        errorLine1="        return new AutoValue_CameraDeviceId(brand.toLowerCase(), device.toLowerCase(),"
-        errorLine2="                                                  ~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/CameraDeviceId.java"
-            line="39"
-            column="51"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `toLowerCase(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`."
-        errorLine1="        return new AutoValue_CameraDeviceId(brand.toLowerCase(), device.toLowerCase(),"
-        errorLine2="                                                                        ~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/CameraDeviceId.java"
-            line="39"
-            column="73"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `toLowerCase(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`."
-        errorLine1="                model.toLowerCase(), cameraId.toLowerCase());"
-        errorLine2="                      ~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/CameraDeviceId.java"
-            line="40"
-            column="23"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `toLowerCase(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`."
-        errorLine1="                model.toLowerCase(), cameraId.toLowerCase());"
-        errorLine2="                                              ~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/CameraDeviceId.java"
-            line="40"
-            column="47"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `toUpperCase(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`."
-        errorLine1="        return &quot;SAMSUNG&quot;.equals(Build.MANUFACTURER.toUpperCase())"
-        errorLine2="                                                   ~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/quirk/CrashWhenTakingPhotoWithAutoFlashAEModeQuirk.java"
-            line="31"
-            column="52"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `toUpperCase(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`."
-        errorLine1="                &amp;&amp; android.os.Build.MODEL.toUpperCase().startsWith(&quot;SM-A300&quot;);"
-        errorLine2="                                          ~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/quirk/CrashWhenTakingPhotoWithAutoFlashAEModeQuirk.java"
-            line="33"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `toUpperCase(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`."
-        errorLine1="        return &quot;GOOGLE&quot;.equals(Build.BRAND.toUpperCase()) &amp;&amp; Build.VERSION.SDK_INT &lt; 23"
-        errorLine2="                                           ~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/quirk/Nexus4AndroidLTargetAspectRatioQuirk.java"
-            line="41"
-            column="44"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `toUpperCase(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`."
-        errorLine1="                &amp;&amp; DEVICE_MODELS.contains(android.os.Build.MODEL.toUpperCase());"
-        errorLine2="                                                                 ~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/quirk/Nexus4AndroidLTargetAspectRatioQuirk.java"
-            line="42"
-            column="66"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `toUpperCase(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`."
-        errorLine1="        return &quot;SAMSUNG&quot;.equals(Build.BRAND.toUpperCase())"
-        errorLine2="                                            ~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/quirk/SamsungPreviewTargetAspectRatioQuirk.java"
-            line="44"
-            column="45"/>
-    </issue>
-
-    <issue
-        id="DefaultLocale"
-        message="Implicitly using the default locale is a common source of bugs: Use `toUpperCase(Locale)` instead. For strings meant to be internal use `Locale.ROOT`, otherwise `Locale.getDefault()`."
-        errorLine1="                &amp;&amp; DEVICE_MODELS.contains(android.os.Build.MODEL.toUpperCase());"
-        errorLine2="                                                                 ~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/quirk/SamsungPreviewTargetAspectRatioQuirk.java"
-            line="45"
-            column="66"/>
-    </issue>
-
-    <issue
-        id="PrivateApi"
-        message="Accessing internal APIs via reflection is not supported and may not work on all devices or in the future"
-        errorLine1="                Class&lt;?> legacyCameraDeviceClass = Class.forName(LEGACY_CAMERA_DEVICE_CLASS);"
-        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/params/OutputConfigurationCompatBaseImpl.java"
-            line="232"
-            column="52"/>
-    </issue>
-
-    <issue
-        id="PrivateApi"
-        message="Accessing internal APIs via reflection is not supported and may not work on all devices or in the future"
-        errorLine1="                Class&lt;?> legacyCameraDeviceClass = Class.forName(LEGACY_CAMERA_DEVICE_CLASS);"
-        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/params/OutputConfigurationCompatBaseImpl.java"
-            line="249"
-            column="52"/>
+            file="src/androidTest/java/androidx/camera/camera2/internal/ZoomControlDeviceTest.java"
+            line="271"
+            column="17"/>
     </issue>
 
     <issue
         id="BanUncheckedReflection"
-        message="Calling Method.invoke without an SDK check"
+        message="Calling `Method.invoke` without an SDK check"
         errorLine1="                return (Size) getSurfaceSize.invoke(null, surface);"
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/androidx/camera/camera2/internal/compat/params/OutputConfigurationCompatBaseImpl.java"
-            line="236"
+            line="237"
             column="31"/>
     </issue>
 
     <issue
         id="BanUncheckedReflection"
-        message="Calling Method.invoke without an SDK check"
+        message="Calling `Method.invoke` without an SDK check"
         errorLine1="                return (int) detectSurfaceType.invoke(null, surface);"
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/androidx/camera/camera2/internal/compat/params/OutputConfigurationCompatBaseImpl.java"
-            line="256"
+            line="257"
             column="30"/>
     </issue>
 
     <issue
         id="BanUncheckedReflection"
-        message="Calling Method.invoke without an SDK check"
+        message="Calling `Method.invoke` without an SDK check"
         errorLine1="                return (int) getGenerationId.invoke(surface);"
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/androidx/camera/camera2/internal/compat/params/OutputConfigurationCompatBaseImpl.java"
-            line="272"
+            line="273"
             column="30"/>
     </issue>
 
     <issue
-        id="UnsafeNewApiCall"
-        message="This call is to a method from API 24, the call containing class androidx.camera.camera2.internal.Camera2CaptureCallbacks.ComboSessionCaptureCallback is not annotated with @RequiresApi(x) where x is at least 24. Either annotate the containing class with at least @RequiresApi(24) or move the call to a static method in a wrapper class annotated with at least @RequiresApi(24)."
-        errorLine1="                callback.onCaptureBufferLost(session, request, surface, frame);"
-        errorLine2="                         ~~~~~~~~~~~~~~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,"
+        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/Camera2CaptureCallbacks.java"
-            line="125"
-            column="26"/>
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/AeFpsRange.java"
+            line="56"
+            column="27"/>
     </issue>
 
     <issue
-        id="UnsafeNewApiCall"
-        message="This call is to a method from API 24, the call containing class androidx.camera.camera2.internal.CameraBurstCaptureCallback is not annotated with @RequiresApi(x) where x is at least 24. Either annotate the containing class with at least @RequiresApi(24) or move the call to a static method in a wrapper class annotated with at least @RequiresApi(24)."
-        errorLine1="            callback.onCaptureBufferLost(session, request, surface, frame);"
-        errorLine2="                     ~~~~~~~~~~~~~~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/CameraBurstCaptureCallback.java"
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/AeFpsRange.java"
+            line="56"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                    mAeTargetFpsRange);"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/AeFpsRange.java"
             line="57"
-            column="22"/>
+            column="21"/>
     </issue>
 
     <issue
-        id="UnsafeNewApiCall"
-        message="This call is to a method from API 24, the call containing class null is not annotated with @RequiresApi(x) where x is at least 24. Either annotate the containing class with at least @RequiresApi(24) or move the call to a static method in a wrapper class annotated with at least @RequiresApi(24)."
-        errorLine1="                    mWrappedCallback.onCaptureBufferLost(session, request, target, frameNumber);"
-        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        builder.setCaptureRequestOption(CaptureRequest.CONTROL_ZOOM_RATIO, mCurrentZoomRatio);"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/CameraCaptureSessionCompat.java"
-            line="400"
-            column="38"/>
+            file="src/main/java/androidx/camera/camera2/internal/AndroidRZoomImpl.java"
+            line="60"
+            column="17"/>
     </issue>
 
     <issue
-        id="UnsafeNewApiCall"
-        message="This call is to a method from API 26, the call containing class null is not annotated with @RequiresApi(x) where x is at least 26. Either annotate the containing class with at least @RequiresApi(26) or move the call to a static method in a wrapper class annotated with at least @RequiresApi(26)."
-        errorLine1="                    mWrappedCallback.onCaptureQueueEmpty(session);"
-        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        builder.setCaptureRequestOption(CaptureRequest.CONTROL_ZOOM_RATIO, mCurrentZoomRatio);"
+        errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/CameraCaptureSessionCompat.java"
-            line="468"
-            column="38"/>
+            file="src/main/java/androidx/camera/camera2/internal/AndroidRZoomImpl.java"
+            line="60"
+            column="41"/>
     </issue>
 
     <issue
-        id="UnsafeNewApiCall"
-        message="This call is to a method from API 23, the call containing class null is not annotated with @RequiresApi(x) where x is at least 23. Either annotate the containing class with at least @RequiresApi(23) or move the call to a static method in a wrapper class annotated with at least @RequiresApi(23)."
-        errorLine1="                    mWrappedCallback.onSurfacePrepared(session, surface);"
-        errorLine2="                                     ~~~~~~~~~~~~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        builder.setCaptureRequestOption(CaptureRequest.CONTROL_ZOOM_RATIO, mCurrentZoomRatio);"
+        errorLine2="                                                                           ~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/CameraCaptureSessionCompat.java"
-            line="493"
-            column="38"/>
+            file="src/main/java/androidx/camera/camera2/internal/AndroidRZoomImpl.java"
+            line="60"
+            column="76"/>
     </issue>
 
     <issue
-        id="UnsafeNewApiCall"
-        message="This call is to a method from API 26, the call containing class androidx.camera.camera2.internal.CameraCaptureSessionStateCallbacks.ComboSessionStateCallback is not annotated with @RequiresApi(x) where x is at least 26. Either annotate the containing class with at least @RequiresApi(26) or move the call to a static method in a wrapper class annotated with at least @RequiresApi(26)."
-        errorLine1="                callback.onCaptureQueueEmpty(session);"
-        errorLine2="                         ~~~~~~~~~~~~~~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            builder.setCaptureRequestOption(CaptureRequest.SCALER_CROP_REGION,"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/CameraCaptureSessionStateCallbacks.java"
-            line="144"
-            column="26"/>
+            file="src/main/java/androidx/camera/camera2/internal/CropRegionZoomImpl.java"
+            line="67"
+            column="21"/>
     </issue>
 
     <issue
-        id="UnsafeNewApiCall"
-        message="This call is to a method from API 23, the call containing class androidx.camera.camera2.internal.CameraCaptureSessionStateCallbacks.ComboSessionStateCallback is not annotated with @RequiresApi(x) where x is at least 23. Either annotate the containing class with at least @RequiresApi(23) or move the call to a static method in a wrapper class annotated with at least @RequiresApi(23)."
-        errorLine1="                callback.onSurfacePrepared(session, surface);"
-        errorLine2="                         ~~~~~~~~~~~~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            builder.setCaptureRequestOption(CaptureRequest.SCALER_CROP_REGION,"
+        errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/CameraCaptureSessionStateCallbacks.java"
-            line="153"
-            column="26"/>
+            file="src/main/java/androidx/camera/camera2/internal/CropRegionZoomImpl.java"
+            line="67"
+            column="45"/>
     </issue>
 
     <issue
-        id="UnsafeNewApiCall"
-        message="This call is to a method from API 29, the call containing class null is not annotated with @RequiresApi(x) where x is at least 29. Either annotate the containing class with at least @RequiresApi(29) or move the call to a static method in a wrapper class annotated with at least @RequiresApi(29)."
-        errorLine1="                            mWrappedCallback.onCameraAccessPrioritiesChanged();"
-        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                    mCurrentCropRect);"
+        errorLine2="                    ~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/CameraManagerCompat.java"
-            line="272"
-            column="46"/>
+            file="src/main/java/androidx/camera/camera2/internal/CropRegionZoomImpl.java"
+            line="68"
+            column="21"/>
     </issue>
 
     <issue
-        id="UnsafeNewApiCall"
-        message="This call is to a method from API 26, the call containing class androidx.camera.camera2.internal.compat.params.OutputConfigurationCompat is not annotated with @RequiresApi(x) where x is at least 26. Either annotate the containing class with at least @RequiresApi(26) or move the call to a static method in a wrapper class annotated with at least @RequiresApi(26)."
-        errorLine1="        OutputConfiguration deferredConfig = new OutputConfiguration(surfaceSize, klass);"
-        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION,"
+        errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/compat/params/OutputConfigurationCompat.java"
-            line="94"
-            column="46"/>
+            file="src/main/java/androidx/camera/camera2/internal/ExposureControl.java"
+            line="129"
+            column="23"/>
     </issue>
 
     <issue
-        id="UnsafeNewApiCall"
-        message="This call is to a method from API 23, the call containing class androidx.camera.camera2.internal.SynchronizedCaptureSessionStateCallbacks.Adapter is not annotated with @RequiresApi(x) where x is at least 23. Either annotate the containing class with at least @RequiresApi(23) or move the call to a static method in a wrapper class annotated with at least @RequiresApi(23)."
-        errorLine1="            mCameraCaptureSessionStateCallback.onSurfacePrepared("
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION,"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/SynchronizedCaptureSessionStateCallbacks.java"
-            line="117"
-            column="48"/>
+            file="src/main/java/androidx/camera/camera2/internal/ExposureControl.java"
+            line="129"
+            column="47"/>
     </issue>
 
     <issue
-        id="UnsafeNewApiCall"
-        message="This call is to a method from API 26, the call containing class androidx.camera.camera2.internal.SynchronizedCaptureSessionStateCallbacks.Adapter is not annotated with @RequiresApi(x) where x is at least 26. Either annotate the containing class with at least @RequiresApi(26) or move the call to a static method in a wrapper class annotated with at least @RequiresApi(26)."
-        errorLine1="            mCameraCaptureSessionStateCallback.onCaptureQueueEmpty("
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                mExposureStateImpl.getExposureCompensationIndex());"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/SynchronizedCaptureSessionStateCallbacks.java"
-            line="136"
-            column="48"/>
+            file="src/main/java/androidx/camera/camera2/internal/ExposureControl.java"
+            line="130"
+            column="17"/>
     </issue>
 
     <issue
-        id="SwitchIntDef"
-        message="Switch statement on an `int` with known associated constant missing case `ImageCapture.FLASH_MODE_UNKNOWN`"
-        errorLine1="            switch (mFlashMode) {"
-        errorLine2="            ~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        configBuilder.setCaptureRequestOption("
+        errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/Camera2CameraControlImpl.java"
-            line="513"
-            column="13"/>
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="188"
+            column="23"/>
     </issue>
 
     <issue
-        id="SwitchIntDef"
-        message="Switch statement on an `int` with known associated constant missing case `CameraAccessExceptionCompat.CAMERA_CHARACTERISTICS_CREATION_ERROR`, `CameraAccessExceptionCompat.CAMERA_DISABLED`, `CameraAccessExceptionCompat.CAMERA_DISCONNECTED`, `CameraAccessExceptionCompat.CAMERA_ERROR`, `CameraAccessExceptionCompat.CAMERA_IN_USE`, `CameraAccessExceptionCompat.MAX_CAMERAS_IN_USE`"
-        errorLine1="            switch (e.getReason()) {"
-        errorLine2="            ~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                CaptureRequest.CONTROL_AF_MODE, mCameraControl.getSupportedAfMode(afMode));"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/Camera2CameraImpl.java"
-            line="910"
-            column="13"/>
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="189"
+            column="17"/>
     </issue>
 
     <issue
-        id="SwitchIntDef"
-        message="Switch statement on an `int` with known associated constant missing case `CameraAccessExceptionCompat.CAMERA_CHARACTERISTICS_CREATION_ERROR`"
-        errorLine1="        switch (e.getReason()) {"
-        errorLine2="        ~~~~~~">
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                CaptureRequest.CONTROL_AF_MODE, mCameraControl.getSupportedAfMode(afMode));"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/androidx/camera/camera2/internal/CameraUnavailableExceptionHelper.java"
-            line="39"
-            column="9"/>
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="189"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            configBuilder.setCaptureRequestOption("
+        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="192"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                    CaptureRequest.CONTROL_AF_REGIONS, mAfRects);"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="193"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                    CaptureRequest.CONTROL_AF_REGIONS, mAfRects);"
+        errorLine2="                                                       ~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="193"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            configBuilder.setCaptureRequestOption("
+        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="196"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                    CaptureRequest.CONTROL_AE_REGIONS, mAeRects);"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="197"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                    CaptureRequest.CONTROL_AE_REGIONS, mAeRects);"
+        errorLine2="                                                       ~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="197"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            configBuilder.setCaptureRequestOption("
+        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="200"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                    CaptureRequest.CONTROL_AWB_REGIONS, mAwbRects);"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="201"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                    CaptureRequest.CONTROL_AWB_REGIONS, mAwbRects);"
+        errorLine2="                                                        ~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="201"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        Camera2ImplConfig.Builder configBuilder = new Camera2ImplConfig.Builder();"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="376"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AF_TRIGGER,"
+        errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="377"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AF_TRIGGER,"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="377"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                CaptureRequest.CONTROL_AF_TRIGGER_START);"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="378"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_MODE,"
+        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="385"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_MODE,"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="385"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                    mCameraControl.getSupportedAeMode(CaptureRequest.CONTROL_AE_MODE_ON));"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="386"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        builder.addImplementationOptions(configBuilder.build());"
+        errorLine2="                                                       ~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="388"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        Camera2ImplConfig.Builder configBuilder = new Camera2ImplConfig.Builder();"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="436"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,"
+        errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="437"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="437"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="438"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        builder.addImplementationOptions(configBuilder.build());"
+        errorLine2="                                                       ~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="439"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        Camera2ImplConfig.Builder configBuilder = new Camera2ImplConfig.Builder();"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="478"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AF_TRIGGER,"
+        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="480"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AF_TRIGGER,"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="480"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                    CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="481"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,"
+        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="484"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="            configBuilder.setCaptureRequestOption(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,"
+        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="484"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                    CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="485"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        builder.addImplementationOptions(configBuilder.build());"
+        errorLine2="                                                       ~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/FocusMeteringControl.java"
+            line="487"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        Camera2ImplConfig.Builder camera2ConfigBuilder = new Camera2ImplConfig.Builder();"
+        errorLine2="                                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/ImageCaptureOptionUnpacker.java"
+            line="54"
+            column="58"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        builder.addImplementationOptions(camera2ConfigBuilder.build());"
+        errorLine2="                                                              ~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/ImageCaptureOptionUnpacker.java"
+            line="61"
+            column="63"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                builder.setCaptureRequestOption(CaptureRequest.CONTROL_ENABLE_ZSL, true);"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/ImageCapturePixelHDRPlus.java"
+            line="55"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                builder.setCaptureRequestOption(CaptureRequest.CONTROL_ENABLE_ZSL, true);"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/ImageCapturePixelHDRPlus.java"
+            line="55"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                builder.setCaptureRequestOption(CaptureRequest.CONTROL_ENABLE_ZSL, true);"
+        errorLine2="                                                                                   ~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/ImageCapturePixelHDRPlus.java"
+            line="55"
+            column="84"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                builder.setCaptureRequestOption(CaptureRequest.CONTROL_ENABLE_ZSL, false);"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/ImageCapturePixelHDRPlus.java"
+            line="59"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                builder.setCaptureRequestOption(CaptureRequest.CONTROL_ENABLE_ZSL, false);"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/ImageCapturePixelHDRPlus.java"
+            line="59"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                builder.setCaptureRequestOption(CaptureRequest.CONTROL_ENABLE_ZSL, false);"
+        errorLine2="                                                                                   ~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/ImageCapturePixelHDRPlus.java"
+            line="59"
+            column="84"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        Camera2ImplConfig.Builder camera2ConfigBuilder = new Camera2ImplConfig.Builder();"
+        errorLine2="                                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/PreviewPixelHDRnet.java"
+            line="48"
+            column="58"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        camera2ConfigBuilder.setCaptureRequestOption(CaptureRequest.TONEMAP_MODE,"
+        errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/PreviewPixelHDRnet.java"
+            line="49"
+            column="30"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        camera2ConfigBuilder.setCaptureRequestOption(CaptureRequest.TONEMAP_MODE,"
+        errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/PreviewPixelHDRnet.java"
+            line="49"
+            column="54"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="                CaptureRequest.TONEMAP_MODE_HIGH_QUALITY);"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/PreviewPixelHDRnet.java"
+            line="50"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with&#xA;&apos;@androidx.camera.camera2.interop.ExperimentalCamera2Interop&apos; or &apos;@OptIn(markerClass = androidx.camera.camera2.interop.ExperimentalCamera2Interop.class)&apos;"
+        errorLine1="        sessionBuilder.addImplementationOptions(camera2ConfigBuilder.build());"
+        errorLine2="                                                                     ~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/workaround/PreviewPixelHDRnet.java"
+            line="51"
+            column="70"/>
     </issue>
 
     <issue
         id="ObsoleteSdkInt"
-        message="This folder configuration (`v21`) is unnecessary; `minSdkVersion` is 21. Merge all the resources in this folder into `values`.">
+        message="Unnecessary; SDK_INT is always >= 24 from outer annotation (`@RequiresApi(24)`)"
+        errorLine1="    @RequiresApi(21)"
+        errorLine2="    ~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/res/values-v21"/>
+            file="src/main/java/androidx/camera/camera2/internal/compat/params/OutputConfigurationCompatApi24Impl.java"
+            line="102"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; SDK_INT is always >= 26 from outer annotation (`@RequiresApi(26)`)"
+        errorLine1="    @RequiresApi(21)"
+        errorLine2="    ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/androidx/camera/camera2/internal/compat/params/OutputConfigurationCompatApi26Impl.java"
+            line="167"
+            column="5"/>
     </issue>
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public static List&lt;OutputConfiguration> transformFromCompat("
         errorLine2="                  ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -358,7 +718,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public List&lt;OutputConfigurationCompat> getOutputConfigurations() {"
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -369,7 +729,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public CameraCaptureSession.StateCallback getStateCallback() {"
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -380,7 +740,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public Executor getExecutor() {"
         errorLine2="           ~~~~~~~~">
         <location
@@ -391,7 +751,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public InputConfigurationCompat getInputConfiguration() {"
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -402,7 +762,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public CaptureRequest getSessionParameters() {"
         errorLine2="           ~~~~~~~~~~~~~~">
         <location
@@ -413,7 +773,7 @@
 
     <issue
         id="UnknownNullness"
-        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://android.github.io/kotlin-guides/interop.html#nullability-annotations"
+        message="Unknown nullability; explicitly declare as `@Nullable` or `@NonNull` to improve Kotlin interoperability; see https://developer.android.com/kotlin/interop#nullability_annotations"
         errorLine1="    public void setSessionParameters(CaptureRequest params) {"
         errorLine2="                                     ~~~~~~~~~~~~~~">
         <location

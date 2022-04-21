@@ -17,7 +17,10 @@ package androidx.core.util;
 
 import android.os.Build;
 
+import androidx.annotation.DoNotInline;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -46,9 +49,10 @@ public class ObjectsCompat {
      *         and {@code false} otherwise
      * @see Object#equals(Object)
      */
+    @SuppressWarnings("EqualsReplaceableByObjectsCall")
     public static boolean equals(@Nullable Object a, @Nullable Object b) {
         if (Build.VERSION.SDK_INT >= 19) {
-            return Objects.equals(a, b);
+            return Api19Impl.equals(a, b);
         } else {
             return (a == b) || (a != null && a.equals(b));
         }
@@ -90,7 +94,7 @@ public class ObjectsCompat {
      */
     public static int hash(@Nullable Object... values) {
         if (Build.VERSION.SDK_INT >= 19) {
-            return Objects.hash(values);
+            return Api19Impl.hash(values);
         } else {
             return Arrays.hashCode(values);
         }
@@ -108,5 +112,68 @@ public class ObjectsCompat {
     @Nullable
     public static String toString(@Nullable Object o, @Nullable String nullDefault) {
         return (o != null) ? o.toString() : nullDefault;
+    }
+
+    /**
+     * Checks that the specified object reference is not {@code null}. This
+     * method is designed primarily for doing parameter validation in methods
+     * and constructors, as demonstrated below:
+     * <blockquote><pre>
+     * public Foo(Bar bar) {
+     *     this.bar = Objects.requireNonNull(bar);
+     * }
+     * </pre></blockquote>
+     *
+     * @param obj the object reference to check for nullity
+     * @param <T> the type of the reference
+     * @return {@code obj} if not {@code null}
+     * @throws NullPointerException if {@code obj} is {@code null}
+     */
+    @NonNull
+    public static <T> T requireNonNull(@Nullable T obj) {
+        if (obj == null) throw new NullPointerException();
+        return obj;
+    }
+
+    /**
+     * Checks that the specified object reference is not {@code null} and
+     * throws a customized {@link NullPointerException} if it is. This method
+     * is designed primarily for doing parameter validation in methods and
+     * constructors with multiple parameters, as demonstrated below:
+     * <blockquote><pre>
+     * public Foo(Bar bar, Baz baz) {
+     *     this.bar = Objects.requireNonNull(bar, "bar must not be null");
+     *     this.baz = Objects.requireNonNull(baz, "baz must not be null");
+     * }
+     * </pre></blockquote>
+     *
+     * @param obj     the object reference to check for nullity
+     * @param message detail message to be used in the event that a {@code
+     *                NullPointerException} is thrown
+     * @param <T> the type of the reference
+     * @return {@code obj} if not {@code null}
+     * @throws NullPointerException if {@code obj} is {@code null}
+     */
+    @NonNull
+    public static <T> T requireNonNull(@Nullable T obj, @NonNull String message) {
+        if (obj == null) throw new NullPointerException(message);
+        return obj;
+    }
+
+    @RequiresApi(19)
+    static class Api19Impl {
+        private Api19Impl() {
+            // This class is not instantiable.
+        }
+
+        @DoNotInline
+        static boolean equals(Object a, Object b) {
+            return Objects.equals(a, b);
+        }
+
+        @DoNotInline
+        static int hash(Object... values) {
+            return Objects.hash(values);
+        }
     }
 }

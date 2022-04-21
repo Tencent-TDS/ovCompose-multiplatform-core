@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
+@file:Suppress("UnstableApiUsage")
+
 package androidx.build.lint
 
 import com.android.tools.lint.client.api.UElementHandler
 import com.android.tools.lint.detector.api.Category
 import com.android.tools.lint.detector.api.Detector
 import com.android.tools.lint.detector.api.Implementation
+import com.android.tools.lint.detector.api.Incident
 import com.android.tools.lint.detector.api.Issue
 import com.android.tools.lint.detector.api.JavaContext
 import com.android.tools.lint.detector.api.Scope
@@ -34,23 +37,25 @@ class BanSynchronizedMethods : Detector(), Detector.UastScanner {
     override fun createUastHandler(context: JavaContext) = object : UElementHandler() {
         override fun visitMethod(node: UMethod) {
             if (node.hasModifier(JvmModifier.SYNCHRONIZED)) {
-                context.report(
-                    BanSynchronizedMethods.ISSUE, node,
-                    context.getLocation(node),
-                    "Use of synchronized methods is not recommended",
-                    null
-                )
+                val incident = Incident(context)
+                    .fix(null)
+                    .issue(ISSUE)
+                    .location(context.getLocation(node))
+                    .message("Use of synchronized methods is not recommended")
+                    .scope(node)
+                context.report(incident)
             }
         }
     }
 
     companion object {
+        @SuppressWarnings("LintImplUnexpectedDomain")
         val ISSUE = Issue.create(
             "BanSynchronizedMethods",
             "Method is synchronized",
             "Use of synchronized methods is not recommended," +
-                " please refer to https://g3doc.corp.google.com/company/teams/androidx/" +
-                "api_guidelines.md#avoid-synchronized-methods",
+                " please refer to https://android.googlesource.com/platform/frameworks/" +
+                "support/+/androidx-main/docs/api_guidelines.md",
             Category.CORRECTNESS, 5, Severity.ERROR,
             Implementation(BanSynchronizedMethods::class.java, Scope.JAVA_FILE_SCOPE)
         )

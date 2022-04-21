@@ -17,11 +17,13 @@
 package androidx.compose.compiler.plugins.kotlin
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.text.StringUtilRt
 import com.intellij.openapi.vfs.CharsetToolkit
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.PsiFileFactoryImpl
 import com.intellij.testFramework.LightVirtualFile
+import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoots
@@ -67,6 +69,7 @@ abstract class AbstractCodegenTest : AbstractCompilerTest() {
     }
 
     protected fun validateBytecode(
+        @Language("kotlin")
         src: String,
         dumpClasses: Boolean = false,
         validate: (String) -> Unit
@@ -77,15 +80,15 @@ abstract class AbstractCodegenTest : AbstractCompilerTest() {
         val loader = classLoader(
             """
            @file:OptIn(
-             ExperimentalComposeApi::class,
              InternalComposeApi::class,
-             ComposeCompilerApi::class
            )
            package test
 
            import androidx.compose.runtime.*
 
            $src
+
+            fun used(x: Any?) {}
         """,
             fileName, dumpClasses
         )
@@ -101,6 +104,7 @@ abstract class AbstractCodegenTest : AbstractCompilerTest() {
     }
 
     protected fun classLoader(
+        @Language("kotlin")
         source: String,
         fileName: String,
         dumpClasses: Boolean = false
@@ -159,7 +163,6 @@ abstract class AbstractCodegenTest : AbstractCompilerTest() {
         import android.view.Gravity
         import android.widget.LinearLayout
         import androidx.compose.runtime.Composable
-        import androidx.compose.ui.viewinterop.emitView
     """.trimIndent()
 
     protected val COMPOSE_VIEW_STUBS = """
@@ -262,4 +265,8 @@ fun createFile(name: String, text: String, project: Project): KtFile {
     val factory = PsiFileFactory.getInstance(project) as PsiFileFactoryImpl
 
     return factory.trySetupPsiForFile(virtualFile, KotlinLanguage.INSTANCE, true, false) as KtFile
+}
+
+fun tmpDir(name: String): File {
+    return FileUtil.createTempDirectory(name, "", false).canonicalFile
 }

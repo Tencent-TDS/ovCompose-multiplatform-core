@@ -20,7 +20,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.BitmapRegionDecoder;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.YuvImage;
 import android.util.Rational;
 import android.util.Size;
@@ -28,6 +30,7 @@ import android.util.Size;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Logger;
 
@@ -38,6 +41,7 @@ import java.nio.ByteBuffer;
 /**
  * Utility class for image related operations.
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class ImageUtil {
     private static final String TAG = "ImageUtil";
 
@@ -74,30 +78,127 @@ public final class ImageUtil {
         return new Rational(aspectRatio.getNumerator(), aspectRatio.getDenominator());
     }
 
-    /** {@link android.media.Image} to JPEG byte array. */
-    @Nullable
-    public static byte[] imageToJpegByteArray(@NonNull ImageProxy image)
-            throws CodecFailedException {
-        byte[] data = null;
-        if (image.getFormat() == ImageFormat.JPEG) {
-            data = jpegImageToJpegByteArray(image);
-        } else if (image.getFormat() == ImageFormat.YUV_420_888) {
-            data = yuvImageToJpegByteArray(image);
-        } else {
-            Logger.w(TAG, "Unrecognized image format: " + image.getFormat());
+    /**
+     * Converts JPEG {@link ImageProxy} to JPEG byte array.
+     */
+    @NonNull
+    public static byte[] jpegImageToJpegByteArray(@NonNull ImageProxy image) {
+        if (image.getFormat() != ImageFormat.JPEG) {
+            throw new IllegalArgumentException(
+                    "Incorrect image format of the input image proxy: " + image.getFormat());
         }
+
+        ImageProxy.PlaneProxy[] planes = image.getPlanes();
+        ByteBuffer buffer = planes[0].getBuffer();
+        byte[] data = new byte[buffer.capacity()];
+        buffer.rewind();
+        buffer.get(data);
+
         return data;
     }
 
-    /** Crops byte array with given {@link android.graphics.Rect}. */
+    /**
+     * Converts JPEG {@link ImageProxy} to JPEG byte array. The input JPEG image will be cropped
+     * by the specified crop rectangle and compressed by the specified quality value.
+     */
     @NonNull
-    public static byte[] cropByteArray(@NonNull byte[] data, @Nullable Rect cropRect)
+    public static byte[] jpegImageToJpegByteArray(@NonNull ImageProxy image,
+            @NonNull Rect cropRect, @IntRange(from = 1, to = 100) int jpegQuality)
             throws CodecFailedException {
-        if (cropRect == null) {
-            return data;
+        if (image.getFormat() != ImageFormat.JPEG) {
+            throw new IllegalArgumentException(
+                    "Incorrect image format of the input image proxy: " + image.getFormat());
         }
 
-        Bitmap bitmap = null;
+        byte[] data = jpegImageToJpegByteArray(image);
+        data = cropJpegByteArray(data, cropRect, jpegQuality);
+
+        return data;
+    }
+
+    /**
+     * Converts YUV_420_888 {@link ImageProxy} to JPEG byte array. The input YUV_420_888 image
+     * will be cropped if a non-null crop rectangle is specified. The output JPEG byte array will
+     * be compressed by the specified quality value.
+     */
+    @NonNull
+    public static byte[] yuvImageToJpegByteArray(@NonNull ImageProxy image,
+            @Nullable Rect cropRect, @IntRange(from = 1, to = 100) int jpegQuality)
+            throws CodecFailedException {
+        if (image.getFormat() != ImageFormat.YUV_420_888) {
+            throw new IllegalArgumentException(
+                    "Incorrect image format of the input image proxy: " + image.getFormat());
+        }
+
+        return ImageUtil.nv21ToJpeg(
+                ImageUtil.yuv_420_888toNv21(image),
+                image.getWidth(),
+                image.getHeight(),
+                cropRect,
+                jpegQuality);
+    }
+
+    /** {@link android.media.Image} to NV21 byte array. */
+    @NonNull
+    public static byte[] yuv_420_888toNv21(@NonNull ImageProxy image) {
+        ImageProxy.PlaneProxy yPlane = image.getPlanes()[0];
+        ImageProxy.PlaneProxy uPlane = image.getPlanes()[1];
+        ImageProxy.PlaneProxy vPlane = image.getPlanes()[2];
+
+        ByteBuffer yBuffer = yPlane.getBuffer();
+        ByteBuffer uBuffer = uPlane.getBuffer();
+        ByteBuffer vBuffer = vPlane.getBuffer();
+        yBuffer.rewind();
+        uBuffer.rewind();
+        vBuffer.rewind();
+
+        int ySize = yBuffer.remaining();
+
+        int position = 0;
+        // TODO(b/115743986): Pull these bytes from a pool instead of allocating for every image.
+        byte[] nv21 = new byte[ySize + (image.getWidth() * image.getHeight() / 2)];
+
+        // Add the full y buffer to the array. If rowStride > 1, some padding may be skipped.
+        for (int row = 0; row < image.getHeight(); row++) {
+            yBuffer.get(nv21, position, image.getWidth());
+            position += image.getWidth();
+            yBuffer.position(
+                    Math.min(ySize, yBuffer.position() - image.getWidth() + yPlane.getRowStride()));
+        }
+
+        int chromaHeight = image.getHeight() / 2;
+        int chromaWidth = image.getWidth() / 2;
+        int vRowStride = vPlane.getRowStride();
+        int uRowStride = uPlane.getRowStride();
+        int vPixelStride = vPlane.getPixelStride();
+        int uPixelStride = uPlane.getPixelStride();
+
+        // Interleave the u and v frames, filling up the rest of the buffer. Use two line buffers to
+        // perform faster bulk gets from the byte buffers.
+        byte[] vLineBuffer = new byte[vRowStride];
+        byte[] uLineBuffer = new byte[uRowStride];
+        for (int row = 0; row < chromaHeight; row++) {
+            vBuffer.get(vLineBuffer, 0, Math.min(vRowStride, vBuffer.remaining()));
+            uBuffer.get(uLineBuffer, 0, Math.min(uRowStride, uBuffer.remaining()));
+            int vLineBufferPosition = 0;
+            int uLineBufferPosition = 0;
+            for (int col = 0; col < chromaWidth; col++) {
+                nv21[position++] = vLineBuffer[vLineBufferPosition];
+                nv21[position++] = uLineBuffer[uLineBufferPosition];
+                vLineBufferPosition += vPixelStride;
+                uLineBufferPosition += uPixelStride;
+            }
+        }
+
+        return nv21;
+    }
+
+    /** Crops JPEG byte array with given {@link android.graphics.Rect}. */
+    @NonNull
+    @SuppressWarnings("deprecation")
+    private static byte[] cropJpegByteArray(@NonNull byte[] data, @NonNull Rect cropRect,
+            @IntRange(from = 1, to = 100) int jpegQuality) throws CodecFailedException {
+        Bitmap bitmap;
         try {
             BitmapRegionDecoder decoder = BitmapRegionDecoder.newInstance(data, 0, data.length,
                     false);
@@ -117,7 +218,7 @@ public final class ImageUtil {
         }
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        boolean success = bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+        boolean success = bitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality, out);
         if (!success) {
             throw new CodecFailedException("Encode bitmap failed.",
                     CodecFailedException.FailureType.ENCODE_FAILED);
@@ -174,13 +275,59 @@ public final class ImageUtil {
         return new Rect(cropLeft, cropTop, cropLeft + outputWidth, cropTop + outputHeight);
     }
 
-    private static byte[] nv21ToJpeg(byte[] nv21, int width, int height, @Nullable Rect cropRect)
+    /**
+     * Calculates crop rect based on the dispatch resolution and rotation degrees info.
+     *
+     * <p> The original crop rect is calculated based on camera sensor buffer. On some devices,
+     * the buffer is rotated before being passed to users, in which case the crop rect also
+     * needs additional transformations.
+     *
+     * <p> There are two most common scenarios: 1) exif rotation is 0, or 2) exif rotation
+     * equals output rotation. 1) means the HAL rotated the buffer based on target
+     * rotation. 2) means HAL no-oped on the rotation. Theoretically only 1) needs
+     * additional transformations, but this method is also generic enough to handle all possible
+     * HAL rotations.
+     */
+    @NonNull
+    public static Rect computeCropRectFromDispatchInfo(@NonNull Rect surfaceCropRect,
+            int surfaceToOutputDegrees, @NonNull Size dispatchResolution,
+            int dispatchToOutputDegrees) {
+        // There are 3 coordinate systems: surface, dispatch and output. Surface is where
+        // the original crop rect is defined. We need to figure out what HAL
+        // has done to the buffer (the surface->dispatch mapping) and apply the same
+        // transformation to the crop rect.
+        // The surface->dispatch mapping is calculated by inverting a dispatch->surface mapping.
+
+        Matrix matrix = new Matrix();
+        // Apply the dispatch->surface rotation.
+        matrix.setRotate(dispatchToOutputDegrees - surfaceToOutputDegrees);
+        // Apply the dispatch->surface translation. The translation is calculated by
+        // compensating for the offset caused by the dispatch->surface rotation.
+        float[] vertexes = sizeToVertexes(dispatchResolution);
+        matrix.mapPoints(vertexes);
+        float left = min(vertexes[0], vertexes[2], vertexes[4], vertexes[6]);
+        float top = min(vertexes[1], vertexes[3], vertexes[5], vertexes[7]);
+        matrix.postTranslate(-left, -top);
+        // Inverting the dispatch->surface mapping to get the surface->dispatch mapping.
+        matrix.invert(matrix);
+
+        // Apply the surface->dispatch mapping to surface crop rect.
+        RectF dispatchCropRectF = new RectF();
+        matrix.mapRect(dispatchCropRectF, new RectF(surfaceCropRect));
+        dispatchCropRectF.sort();
+        Rect dispatchCropRect = new Rect();
+        dispatchCropRectF.round(dispatchCropRect);
+        return dispatchCropRect;
+    }
+
+    private static byte[] nv21ToJpeg(@NonNull byte[] nv21, int width, int height,
+            @Nullable Rect cropRect, @IntRange(from = 1, to = 100) int jpegQuality)
             throws CodecFailedException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         YuvImage yuv = new YuvImage(nv21, ImageFormat.NV21, width, height, null);
         boolean success =
-                yuv.compressToJpeg(
-                        cropRect == null ? new Rect(0, 0, width, height) : cropRect, 100, out);
+                yuv.compressToJpeg(cropRect == null ? new Rect(0, 0, width, height) : cropRect,
+                        jpegQuality, out);
         if (!success) {
             throw new CodecFailedException("YuvImage failed to encode jpeg.",
                     CodecFailedException.FailureType.ENCODE_FAILED);
@@ -188,60 +335,8 @@ public final class ImageUtil {
         return out.toByteArray();
     }
 
-    private static byte[] yuv_420_888toNv21(ImageProxy image) {
-        ImageProxy.PlaneProxy yPlane = image.getPlanes()[0];
-        ImageProxy.PlaneProxy uPlane = image.getPlanes()[1];
-        ImageProxy.PlaneProxy vPlane = image.getPlanes()[2];
-
-        ByteBuffer yBuffer = yPlane.getBuffer();
-        ByteBuffer uBuffer = uPlane.getBuffer();
-        ByteBuffer vBuffer = vPlane.getBuffer();
-        yBuffer.rewind();
-        uBuffer.rewind();
-        vBuffer.rewind();
-
-        int ySize = yBuffer.remaining();
-
-        int position = 0;
-        // TODO(b/115743986): Pull these bytes from a pool instead of allocating for every image.
-        byte[] nv21 = new byte[ySize + (image.getWidth() * image.getHeight() / 2)];
-
-        // Add the full y buffer to the array. If rowStride > 1, some padding may be skipped.
-        for (int row = 0; row < image.getHeight(); row++) {
-            yBuffer.get(nv21, position, image.getWidth());
-            position += image.getWidth();
-            yBuffer.position(
-                    Math.min(ySize, yBuffer.position() - image.getWidth() + yPlane.getRowStride()));
-        }
-
-        int chromaHeight = image.getHeight() / 2;
-        int chromaWidth = image.getWidth() / 2;
-        int vRowStride = vPlane.getRowStride();
-        int uRowStride = uPlane.getRowStride();
-        int vPixelStride = vPlane.getPixelStride();
-        int uPixelStride = uPlane.getPixelStride();
-
-        // Interleave the u and v frames, filling up the rest of the buffer. Use two line buffers to
-        // perform faster bulk gets from the byte buffers.
-        byte[] vLineBuffer = new byte[vRowStride];
-        byte[] uLineBuffer = new byte[uRowStride];
-        for (int row = 0; row < chromaHeight; row++) {
-            vBuffer.get(vLineBuffer, 0, Math.min(vRowStride, vBuffer.remaining()));
-            uBuffer.get(uLineBuffer, 0, Math.min(uRowStride, uBuffer.remaining()));
-            int vLineBufferPosition = 0;
-            int uLineBufferPosition = 0;
-            for (int col = 0; col < chromaWidth; col++) {
-                nv21[position++] = vLineBuffer[vLineBufferPosition];
-                nv21[position++] = uLineBuffer[uLineBufferPosition];
-                vLineBufferPosition += vPixelStride;
-                uLineBufferPosition += uPixelStride;
-            }
-        }
-
-        return nv21;
-    }
-
-    private static boolean isCropAspectRatioHasEffect(Size sourceSize, Rational aspectRatio) {
+    private static boolean isCropAspectRatioHasEffect(@NonNull Size sourceSize,
+            @NonNull Rational aspectRatio) {
         int sourceWidth = sourceSize.getWidth();
         int sourceHeight = sourceSize.getHeight();
         int numerator = aspectRatio.getNumerator();
@@ -251,7 +346,7 @@ public final class ImageUtil {
                 || sourceWidth != Math.round((sourceHeight / (float) denominator) * numerator);
     }
 
-    private static Rational inverseRational(Rational rational) {
+    private static Rational inverseRational(@Nullable Rational rational) {
         if (rational == null) {
             return rational;
         }
@@ -260,32 +355,20 @@ public final class ImageUtil {
                 /*denominator=*/ rational.getNumerator());
     }
 
-    private static boolean shouldCropImage(ImageProxy image) {
-        Size sourceSize = new Size(image.getWidth(), image.getHeight());
-        Size targetSize = new Size(image.getCropRect().width(), image.getCropRect().height());
-
-        return !targetSize.equals(sourceSize);
+    /**
+     * Checks whether the image's crop rectangle is the same as the source image size.
+     */
+    public static boolean shouldCropImage(@NonNull ImageProxy image) {
+        return shouldCropImage(image.getWidth(), image.getHeight(), image.getCropRect().width(),
+                image.getCropRect().height());
     }
 
-    private static byte[] jpegImageToJpegByteArray(ImageProxy image) throws CodecFailedException {
-        ImageProxy.PlaneProxy[] planes = image.getPlanes();
-        ByteBuffer buffer = planes[0].getBuffer();
-        byte[] data = new byte[buffer.capacity()];
-        buffer.rewind();
-        buffer.get(data);
-        if (shouldCropImage(image)) {
-            data = cropByteArray(data, image.getCropRect());
-        }
-        return data;
-    }
-
-    private static byte[] yuvImageToJpegByteArray(ImageProxy image)
-            throws CodecFailedException {
-        return ImageUtil.nv21ToJpeg(
-                ImageUtil.yuv_420_888toNv21(image),
-                image.getWidth(),
-                image.getHeight(),
-                shouldCropImage(image) ? image.getCropRect() : null);
+    /**
+     * Checks whether the image's crop rectangle is the same as the source image size.
+     */
+    public static boolean shouldCropImage(int sourceWidth, int sourceHeight, int cropRectWidth,
+            int cropRectHeight) {
+        return sourceWidth != cropRectWidth || sourceHeight != cropRectHeight;
     }
 
     /** Exception for error during transcoding image. */
@@ -298,12 +381,12 @@ public final class ImageUtil {
 
         private FailureType mFailureType;
 
-        CodecFailedException(String message) {
+        CodecFailedException(@NonNull String message) {
             super(message);
             mFailureType = FailureType.UNKNOWN;
         }
 
-        CodecFailedException(String message, FailureType failureType) {
+        CodecFailedException(@NonNull String message, @NonNull FailureType failureType) {
             super(message);
             mFailureType = failureType;
         }

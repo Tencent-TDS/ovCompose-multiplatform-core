@@ -16,8 +16,9 @@
 
 package androidx.compose.ui.res
 
-import androidx.compose.runtime.Providers
-import androidx.compose.ui.platform.AmbientContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.R
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -53,7 +54,7 @@ class StringResourcesTest {
     fun stringResource_not_localized_defaultLocale() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         rule.setContent {
-            Providers(AmbientContext provides context) {
+            CompositionLocalProvider(LocalContext provides context) {
                 assertThat(stringResource(R.string.not_localized)).isEqualTo(NotLocalizedText)
             }
         }
@@ -70,7 +71,7 @@ class StringResourcesTest {
         )
 
         rule.setContent {
-            Providers(AmbientContext provides spanishContext) {
+            CompositionLocalProvider(LocalContext provides spanishContext) {
                 assertThat(stringResource(R.string.not_localized)).isEqualTo(NotLocalizedText)
             }
         }
@@ -80,7 +81,7 @@ class StringResourcesTest {
     fun stringResource_localized_defaultLocale() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         rule.setContent {
-            Providers(AmbientContext provides context) {
+            CompositionLocalProvider(LocalContext provides context) {
                 assertThat(stringResource(R.string.localized))
                     .isEqualTo(DefaultLocalizedText)
             }
@@ -98,7 +99,7 @@ class StringResourcesTest {
         )
 
         rule.setContent {
-            Providers(AmbientContext provides spanishContext) {
+            CompositionLocalProvider(LocalContext provides spanishContext) {
                 assertThat(stringResource(R.string.localized))
                     .isEqualTo(SpanishLocalizedText)
             }
@@ -109,7 +110,7 @@ class StringResourcesTest {
     fun stringResource_not_localized_format_defaultLocale() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         rule.setContent {
-            Providers(AmbientContext provides context) {
+            CompositionLocalProvider(LocalContext provides context) {
                 assertThat(stringResource(R.string.not_localized_format, FormatValue))
                     .isEqualTo(NotLocalizedFormatText)
             }
@@ -127,7 +128,7 @@ class StringResourcesTest {
         )
 
         rule.setContent {
-            Providers(AmbientContext provides spanishContext) {
+            CompositionLocalProvider(LocalContext provides spanishContext) {
                 assertThat(stringResource(R.string.not_localized_format, FormatValue))
                     .isEqualTo(NotLocalizedFormatText)
             }
@@ -138,7 +139,7 @@ class StringResourcesTest {
     fun stringResource_localized_format_defaultLocale() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         rule.setContent {
-            Providers(AmbientContext provides context) {
+            CompositionLocalProvider(LocalContext provides context) {
                 assertThat(stringResource(R.string.localized_format, FormatValue))
                     .isEqualTo(DefaultLocalizedFormatText)
             }
@@ -156,7 +157,7 @@ class StringResourcesTest {
         )
 
         rule.setContent {
-            Providers(AmbientContext provides spanishContext) {
+            CompositionLocalProvider(LocalContext provides spanishContext) {
                 assertThat(stringResource(R.string.localized_format, FormatValue))
                     .isEqualTo(SpanishLocalizedFormatText)
             }
@@ -168,9 +169,39 @@ class StringResourcesTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
 
         rule.setContent {
-            Providers(AmbientContext provides context) {
+            CompositionLocalProvider(LocalContext provides context) {
                 assertThat(stringArrayResource(R.array.string_array))
                     .isEqualTo(arrayOf("string1", "string2"))
+            }
+        }
+    }
+
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Test
+    fun pluralStringResource_withoutArguments() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        rule.setContent {
+            CompositionLocalProvider(LocalContext provides context) {
+                assertThat(pluralStringResource(R.plurals.plurals_without_arguments, 1))
+                    .isEqualTo("There is one Android here")
+                assertThat(pluralStringResource(R.plurals.plurals_without_arguments, 42))
+                    .isEqualTo("There are a number of Androids here")
+            }
+        }
+    }
+
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Test
+    fun pluralStringResource_withArguments() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        rule.setContent {
+            CompositionLocalProvider(LocalContext provides context) {
+                assertThat(pluralStringResource(R.plurals.plurals_with_arguments, 1, 1))
+                    .isEqualTo("There is 1 Android here")
+                assertThat(pluralStringResource(R.plurals.plurals_with_arguments, 42, 42))
+                    .isEqualTo("There are 42 Androids here")
             }
         }
     }

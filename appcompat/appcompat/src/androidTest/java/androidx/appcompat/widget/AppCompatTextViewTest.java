@@ -41,6 +41,9 @@ import android.graphics.drawable.VectorDrawable;
 import android.os.Build;
 import android.os.LocaleList;
 import android.text.Layout;
+import android.view.ActionMode;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.textclassifier.TextClassificationManager;
@@ -388,6 +391,18 @@ public class AppCompatTextViewTest
             assertEquals(LocaleList.forLanguageTags("ja-JP,zh-CN"), textView.getTextLocales());
         } else {
             assertEquals(Locale.forLanguageTag("ja-JP"), textView.getTextLocale());
+        }
+    }
+
+    @SdkSuppress(minSdkVersion = 21)
+    @Test
+    public void testTextLocale_setInXml_singleLocale() {
+        final AppCompatTextView textView = mActivity.findViewById(
+                R.id.textview_textLocale_textView_singleLocale);
+        if (Build.VERSION.SDK_INT >= 24) {
+            assertEquals(LocaleList.forLanguageTags("zh-CN"), textView.getTextLocales());
+        } else {
+            assertEquals(Locale.forLanguageTag("zh-CN"), textView.getTextLocale());
         }
     }
 
@@ -1216,5 +1231,41 @@ public class AppCompatTextViewTest
                 tint,
                 0,
                 true);
+    }
+
+    @UiThreadTest
+    public void testSetCustomSelectionActionModeCallback() {
+        final AppCompatTextView view = new AppCompatTextView(mActivity);
+        final ActionMode.Callback callback = new ActionMode.Callback() {
+            @Override
+            public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+                return false;
+            }
+
+            @Override
+            public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+                return false;
+            }
+
+            @Override
+            public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+                return false;
+            }
+
+            @Override
+            public void onDestroyActionMode(ActionMode mode) {
+            }
+        };
+
+        // Default value is documented as null.
+        assertNull(view.getCustomSelectionActionModeCallback());
+
+        // Setter and getter should be symmetric.
+        view.setCustomSelectionActionModeCallback(callback);
+        assertEquals(callback, view.getCustomSelectionActionModeCallback());
+
+        // Argument is nullable.
+        view.setCustomSelectionActionModeCallback(null);
+        assertNull(view.getCustomSelectionActionModeCallback());
     }
 }

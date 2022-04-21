@@ -22,6 +22,7 @@ import android.media.Image;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageInfo;
 import androidx.camera.core.ImageProxy;
@@ -33,6 +34,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 /**
  * A fake implementation of {@link ImageProxy} where the values are settable.
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class FakeImageProxy implements ImageProxy {
     private Rect mCropRect = new Rect();
     private int mFormat = 0;
@@ -138,6 +140,16 @@ public final class FakeImageProxy implements ImageProxy {
         return mImage;
     }
 
+    /**
+     * Checks the image close status.
+     * @return true if image closed, false otherwise.
+     */
+    public boolean isClosed() {
+        synchronized (mReleaseLock) {
+            return mClosed;
+        }
+    }
+
     public void setFormat(int format) {
         mFormat = format;
     }
@@ -166,6 +178,7 @@ public final class FakeImageProxy implements ImageProxy {
      * Returns ListenableFuture that completes when the {@link FakeImageProxy} has closed.
      */
     @NonNull
+    @SuppressWarnings("ObjectToString")
     public ListenableFuture<Void> getCloseFuture() {
         synchronized (mReleaseLock) {
             if (mReleaseFuture == null) {

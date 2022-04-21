@@ -83,7 +83,8 @@ package androidx.compose.ui.graphics
  *
  * This table shows that numbers higher than 1024 lose all fractional precision.
  */
-internal inline class Float16(val halfValue: Short) : Comparable<Float16> {
+@kotlin.jvm.JvmInline
+internal value class Float16(val halfValue: Short) : Comparable<Float16> {
 
     /**
      * Constructs a newly allocated `Float16` object that represents the

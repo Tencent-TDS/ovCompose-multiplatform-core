@@ -17,12 +17,16 @@
 package androidx.lifecycle;
 
 import androidx.annotation.MainThread;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * ViewModel is a class that is responsible for preparing and managing the data for
@@ -40,7 +44,7 @@ import java.util.Map;
  * The purpose of the ViewModel is to acquire and keep the information that is necessary for an
  * Activity or a Fragment. The Activity or the Fragment should be able to observe changes in the
  * ViewModel. ViewModels usually expose this information via {@link LiveData} or Android Data
- * Binding. You can also use any observability construct from you favorite framework.
+ * Binding. You can also use any observability construct from your favorite framework.
  * <p>
  * ViewModel's only responsibility is to manage the data for the UI. It <b>should never</b> access
  * your view hierarchy or hold a reference back to the Activity or the Fragment.
@@ -108,7 +112,47 @@ public abstract class ViewModel {
     // Can't use ConcurrentHashMap, because it can lose values on old apis (see b/37042460)
     @Nullable
     private final Map<String, Object> mBagOfTags = new HashMap<>();
+    @Nullable
+    private final Set<Closeable> mCloseables = new LinkedHashSet<>();
     private volatile boolean mCleared = false;
+
+    /**
+     * Construct a new ViewModel instance.
+     * <p>
+     * You should <strong>never</strong> manually construct a ViewModel outside of a
+     * {@link ViewModelProvider.Factory}.
+     */
+    public ViewModel() {
+    }
+
+    /**
+     * Construct a new ViewModel instance. Any {@link Closeable} objects provided here
+     * will be closed directly before {@link #onCleared()} is called.
+     * <p>
+     * You should <strong>never</strong> manually construct a ViewModel outside of a
+     * {@link ViewModelProvider.Factory}.
+     */
+    public ViewModel(@NonNull Closeable... closeables) {
+        mCloseables.addAll(Arrays.asList(closeables));
+    }
+
+    /**
+     * Add a new {@link Closeable} object that will be closed directly before
+     * {@link #onCleared()} is called.
+     *
+     * @param closeable The object that should be {@link Closeable#close() closed} directly before
+     *                  {@link #onCleared()} is called.
+     */
+    public void addCloseable(@NonNull Closeable closeable) {
+        // As this method is final, it will still be called on mock objects even
+        // though mCloseables won't actually be created...we'll just not do anything
+        // in that case.
+        if (mCloseables != null) {
+            synchronized (mCloseables) {
+                mCloseables.add(closeable);
+            }
+        }
+    }
 
     /**
      * This method will be called when this ViewModel is no longer used and will be destroyed.
@@ -135,6 +179,14 @@ public abstract class ViewModel {
                 }
             }
         }
+        // We need the same null check here
+        if (mCloseables != null) {
+            synchronized (mCloseables) {
+                for (Closeable closeable : mCloseables) {
+                    closeWithRuntimeException(closeable);
+                }
+            }
+        }
         onCleared();
     }
 
@@ -143,7 +195,7 @@ public abstract class ViewModel {
      * If the given {@code newValue} is {@link Closeable},
      * it will be closed once {@link #clear()}.
      * <p>
-     * If a value was already set for the given key, this calls do nothing and
+     * If a value was already set for the given key, this call does nothing and
      * returns currently associated value, the given {@code newValue} would be ignored
      * <p>
      * If the ViewModel was already cleared then close() would be called on the returned object if

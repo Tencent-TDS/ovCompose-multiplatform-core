@@ -17,24 +17,36 @@
 package androidx.compose.foundation.layout
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.emptyContent
+import androidx.compose.runtime.NonRestartableComposable
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.hasFixedHeight
-import androidx.compose.ui.unit.hasFixedWidth
 
 /**
- * Component that represents an empty space layout, whose size can be defined using the [LayoutWidth],
- * [LayoutHeight] and [LayoutSize] modifiers.
+ * Component that represents an empty space layout, whose size can be defined using
+ * [Modifier.width], [Modifier.height] and [Modifier.size] modifiers.
  *
  * @sample androidx.compose.foundation.layout.samples.SpacerExample
  *
  * @param modifier modifiers to set to this spacer
  */
 @Composable
+@NonRestartableComposable
 fun Spacer(modifier: Modifier) {
-    Layout(emptyContent(), modifier) { _, constraints ->
-        with(constraints) {
+    Layout({}, measurePolicy = SpacerMeasurePolicy, modifier = modifier)
+}
+
+private object SpacerMeasurePolicy : MeasurePolicy {
+
+    override fun MeasureScope.measure(
+        measurables: List<Measurable>,
+        constraints: Constraints
+    ): MeasureResult {
+        return with(constraints) {
             val width = if (hasFixedWidth) maxWidth else 0
             val height = if (hasFixedHeight) maxHeight else 0
             layout(width, height) {}

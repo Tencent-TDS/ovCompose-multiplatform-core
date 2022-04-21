@@ -19,12 +19,12 @@ import static androidx.core.view.accessibility.AccessibilityNodeInfoCompat.ACTIO
 import static androidx.core.view.accessibility.AccessibilityNodeInfoCompat.AccessibilityActionCompat;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -280,12 +280,8 @@ public class ViewCompatTest extends BaseInstrumentationTestCase<ViewCompatActivi
         final View view = mActivityTestRule.getActivity().findViewById(R.id.container);
 
         // Set an OnApplyWindowInsetsListener which returns consumed insets
-        ViewCompat.setOnApplyWindowInsetsListener(view, new OnApplyWindowInsetsListener() {
-            @Override
-            public WindowInsetsCompat onApplyWindowInsets(View v, WindowInsetsCompat insets) {
-                return insets.consumeSystemWindowInsets();
-            }
-        });
+        ViewCompat.setOnApplyWindowInsetsListener(view,
+                (v, insets) -> insets.consumeSystemWindowInsets());
 
         // Now create an inset instance and dispatch it to the view
         final WindowInsetsCompat insets = new WindowInsetsCompat.Builder()

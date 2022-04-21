@@ -37,6 +37,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import static kotlinx.coroutines.test.TestCoroutineDispatchersKt.UnconfinedTestDispatcher;
+
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.arch.core.executor.ArchTaskExecutor;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
@@ -56,8 +59,6 @@ import org.mockito.Mockito;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import kotlinx.coroutines.test.TestCoroutineDispatcher;
 
 @SuppressWarnings({"unchecked"})
 @RunWith(JUnit4.class)
@@ -91,10 +92,10 @@ public class LiveDataTest {
         mLiveData.activeObserversChanged = mActiveObserversChanged;
 
         mOwner = new TestLifecycleOwner(Lifecycle.State.INITIALIZED,
-                new TestCoroutineDispatcher());
+                UnconfinedTestDispatcher(null, null));
 
         mOwner2 = new TestLifecycleOwner(Lifecycle.State.INITIALIZED,
-                new TestCoroutineDispatcher());
+                UnconfinedTestDispatcher(null, null));
 
         mInObserver = false;
     }
@@ -232,6 +233,7 @@ public class LiveDataTest {
     @Test
     public void testInactiveRegistry() {
         Observer<String> observer = (Observer<String>) mock(Observer.class);
+        mOwner.handleLifecycleEvent(ON_CREATE);
         mOwner.handleLifecycleEvent(ON_DESTROY);
         mLiveData.observe(mOwner, observer);
         assertThat(mLiveData.hasObservers(), is(false));
@@ -424,9 +426,9 @@ public class LiveDataTest {
     @Test
     public void testDataChangeDuringStateChange() {
         mOwner.handleLifecycleEvent(ON_START);
-        mOwner.getLifecycle().addObserver(new LifecycleObserver() {
-            @OnLifecycleEvent(ON_STOP)
-            public void onStop() {
+        mOwner.getLifecycle().addObserver(new DefaultLifecycleObserver() {
+            @Override
+            public void onStop(@NonNull LifecycleOwner owner) {
                 // change data in onStop, observer should not be called!
                 mLiveData.setValue("b");
             }

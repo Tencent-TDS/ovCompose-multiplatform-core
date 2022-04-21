@@ -53,7 +53,7 @@ class IconProcessorTest {
         val generatedApiFile = temporaryFolder.newFile("generated-api.txt")
 
         val processor = IconProcessor(
-            iconDirectory = iconDirectory,
+            iconDirectories = iconDirectory.listFiles()!!.toList(),
             expectedApiFile = expectedApiFile,
             generatedApiFile = generatedApiFile
         )
@@ -91,7 +91,7 @@ class IconProcessorTest {
         val generatedApiFile = temporaryFolder.newFile("generated-api.txt")
 
         val processor = IconProcessor(
-            iconDirectory = iconDirectory,
+            iconDirectories = iconDirectory.listFiles()!!.toList(),
             expectedApiFile = expectedApiFile,
             generatedApiFile = generatedApiFile
         )
@@ -123,7 +123,7 @@ class IconProcessorTest {
         val generatedApiFile = temporaryFolder.newFile("generated-api.txt")
 
         val processor = IconProcessor(
-            iconDirectory = iconDirectory,
+            iconDirectories = iconDirectory.listFiles()!!.toList(),
             expectedApiFile = expectedApiFile,
             generatedApiFile = generatedApiFile
         )
@@ -157,13 +157,41 @@ class IconProcessorTest {
         val generatedApiFile = temporaryFolder.newFile("generated-api.txt")
 
         val processor = IconProcessor(
-            iconDirectory = iconDirectory,
+            iconDirectories = iconDirectory.listFiles()!!.toList(),
             expectedApiFile = expectedApiFile,
             generatedApiFile = generatedApiFile
         )
 
         // Not all icons exist in all themes, so we should throw here
         assertIllegalStateContainingMessage("Not all icons were found") {
+            processor.process()
+        }
+    }
+
+    /**
+     * Tests that an exception is thrown, failing the build, if there are multiple icons that will
+     * have the same name on case insensitive filesystems
+     */
+    @Test
+    fun iconProcessor_duplicateIconNames() {
+        val iconDirectory = temporaryFolder.createIconDirectory()
+
+        iconDirectory.listFiles()!!.forEach { themeDirectory ->
+            themeDirectory.resolve("testicon.xml").writeText(TestIconFile)
+            themeDirectory.resolve("test_icon.xml").writeText(TestIconFile)
+        }
+
+        val processor = IconProcessor(
+            iconDirectories = iconDirectory.listFiles()!!.toList(),
+            // Should crash before reaching this point, so just use an empty file
+            expectedApiFile = temporaryFolder.root,
+            generatedApiFile = temporaryFolder.root
+        )
+
+        // Duplicate icon names, so we should throw here
+        assertIllegalStateContainingMessage(
+            "Found multiple icons with the same case-insensitive filename"
+        ) {
             processor.process()
         }
     }

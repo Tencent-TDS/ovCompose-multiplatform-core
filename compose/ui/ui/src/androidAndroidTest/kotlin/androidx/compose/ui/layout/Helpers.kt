@@ -16,44 +16,45 @@
 
 package androidx.compose.ui.layout
 
-import androidx.compose.ui.node.ExperimentalLayoutNodeApi
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.autofill.Autofill
+import androidx.compose.ui.autofill.AutofillTree
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.input.InputModeManager
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.pointer.PointerIconService
+import androidx.compose.ui.node.InternalCoreApi
 import androidx.compose.ui.node.LayoutNode
+import androidx.compose.ui.node.LayoutNodeDrawScope
 import androidx.compose.ui.node.MeasureAndLayoutDelegate
+import androidx.compose.ui.node.Owner
 import androidx.compose.ui.node.OwnerSnapshotObserver
+import androidx.compose.ui.node.RootForTest
+import androidx.compose.ui.platform.AccessibilityManager
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.TextToolbar
+import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.TextInputService
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import com.google.common.truth.Truth
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.doAnswer
-import com.nhaarman.mockitokotlin2.mock
 import kotlin.math.max
 import kotlin.math.min
 
 @Suppress("UNCHECKED_CAST")
-@ExperimentalLayoutNodeApi
 internal fun createDelegate(
     root: LayoutNode,
     firstMeasureCompleted: Boolean = true
 ): MeasureAndLayoutDelegate {
     val delegate = MeasureAndLayoutDelegate(root)
-    root.attach(
-        mock {
-            on { measureIteration } doAnswer {
-                delegate.measureIteration
-            }
-            on { onRequestMeasure(any()) } doAnswer {
-                delegate.requestRemeasure(it.arguments[0] as LayoutNode)
-                Unit
-            }
-            on { measureAndLayout() } doAnswer {
-                delegate.measureAndLayout()
-                Unit
-            }
-            on { snapshotObserver } doAnswer {
-                OwnerSnapshotObserver { it.invoke() }
-            }
-        }
-    )
+    root.attach(FakeOwner(delegate))
     if (firstMeasureCompleted) {
         delegate.updateRootConstraints(
             defaultRootConstraints()
@@ -63,17 +64,116 @@ internal fun createDelegate(
     return delegate
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
+private class FakeOwner(
+    val delegate: MeasureAndLayoutDelegate
+) : Owner {
+    override val measureIteration: Long
+        get() = delegate.measureIteration
+
+    override fun onRequestMeasure(layoutNode: LayoutNode, forceRequest: Boolean) {
+        delegate.requestRemeasure(layoutNode)
+    }
+
+    override fun measureAndLayout(sendPointerUpdate: Boolean) {
+        delegate.measureAndLayout()
+    }
+
+    override fun measureAndLayout(layoutNode: LayoutNode, constraints: Constraints) {
+        delegate.measureAndLayout(layoutNode, constraints)
+    }
+
+    override fun forceMeasureTheSubtree(layoutNode: LayoutNode) {
+        delegate.forceMeasureTheSubtree(layoutNode)
+    }
+
+    override val snapshotObserver: OwnerSnapshotObserver = OwnerSnapshotObserver { it.invoke() }
+    override fun registerOnEndApplyChangesListener(listener: () -> Unit) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onEndApplyChanges() {
+        TODO("Not yet implemented")
+    }
+
+    override fun registerOnLayoutCompletedListener(listener: Owner.OnLayoutCompletedListener) {
+        TODO("Not yet implemented")
+    }
+
+    override fun onLayoutChange(layoutNode: LayoutNode) {}
+
+    @OptIn(InternalCoreApi::class)
+    override var showLayoutBounds: Boolean = false
+
+    override fun onAttach(node: LayoutNode) {}
+    override fun onDetach(node: LayoutNode) {}
+
+    override val root: LayoutNode
+        get() = TODO("Not yet implemented")
+    override val sharedDrawScope: LayoutNodeDrawScope
+        get() = TODO("Not yet implemented")
+    override val rootForTest: RootForTest
+        get() = TODO("Not yet implemented")
+    override val hapticFeedBack: HapticFeedback
+        get() = TODO("Not yet implemented")
+    override val inputModeManager: InputModeManager
+        get() = TODO("Not yet implemented")
+    override val clipboardManager: ClipboardManager
+        get() = TODO("Not yet implemented")
+    override val accessibilityManager: AccessibilityManager
+        get() = TODO("Not yet implemented")
+    override val textToolbar: TextToolbar
+        get() = TODO("Not yet implemented")
+    override val density: Density
+        get() = TODO("Not yet implemented")
+    override val textInputService: TextInputService
+        get() = TODO("Not yet implemented")
+    override val pointerIconService: PointerIconService
+        get() = TODO("Not yet implemented")
+    override val focusManager: FocusManager
+        get() = TODO("Not yet implemented")
+    override val windowInfo: WindowInfo
+        get() = TODO("Not yet implemented")
+
+    @Deprecated(
+        "fontLoader is deprecated, use fontFamilyResolver",
+        replaceWith = ReplaceWith("fontFamilyResolver")
+    )
+    @Suppress("OverridingDeprecatedMember", "DEPRECATION")
+    override val fontLoader: Font.ResourceLoader
+        get() = TODO("Not yet implemented")
+    override val fontFamilyResolver: FontFamily.Resolver
+        get() = TODO("Not yet implemented")
+    override val layoutDirection: LayoutDirection
+        get() = TODO("Not yet implemented")
+    override val viewConfiguration: ViewConfiguration
+        get() = TODO("Not yet implemented")
+    override val autofillTree: AutofillTree
+        get() = TODO("Not yet implemented")
+    override val autofill: Autofill
+        get() = TODO("Not yet implemented")
+
+    override fun createLayer(drawBlock: (Canvas) -> Unit, invalidateParentLayer: () -> Unit) =
+        TODO("Not yet implemented")
+
+    override fun onRequestRelayout(layoutNode: LayoutNode, forceRequest: Boolean) =
+        TODO("Not yet implemented")
+
+    override fun calculatePositionInWindow(localPosition: Offset) = TODO("Not yet implemented")
+    override fun calculateLocalPosition(positionInWindow: Offset) = TODO("Not yet implemented")
+    override fun requestFocus() = TODO("Not yet implemented")
+    override fun onSemanticsChange() = TODO("Not yet implemented")
+    override fun getFocusDirection(keyEvent: KeyEvent) = TODO("Not yet implemented")
+}
+
 internal fun defaultRootConstraints() = Constraints(maxWidth = 100, maxHeight = 100)
 
-@ExperimentalLayoutNodeApi
 internal fun assertNotRemeasured(node: LayoutNode, block: (LayoutNode) -> Unit) {
     val measuresCountBefore = node.measuresCount
     block(node)
     Truth.assertThat(node.measuresCount).isEqualTo(measuresCountBefore)
-    assertMeasuredAndLaidOut(node)
 }
 
-@ExperimentalLayoutNodeApi
 internal fun assertRemeasured(
     node: LayoutNode,
     times: Int = 1,
@@ -89,7 +189,6 @@ internal fun assertRemeasured(
     assertMeasuredAndLaidOut(node)
 }
 
-@ExperimentalLayoutNodeApi
 internal fun assertRelaidOut(node: LayoutNode, times: Int = 1, block: (LayoutNode) -> Unit) {
     val layoutsCountBefore = node.layoutsCount
     block(node)
@@ -97,27 +196,24 @@ internal fun assertRelaidOut(node: LayoutNode, times: Int = 1, block: (LayoutNod
     assertMeasuredAndLaidOut(node)
 }
 
-@ExperimentalLayoutNodeApi
 internal fun assertNotRelaidOut(node: LayoutNode, block: (LayoutNode) -> Unit) {
     val layoutsCountBefore = node.layoutsCount
     block(node)
     Truth.assertThat(node.layoutsCount).isEqualTo(layoutsCountBefore)
-    assertMeasuredAndLaidOut(node)
 }
 
-@ExperimentalLayoutNodeApi
 internal fun assertMeasureRequired(node: LayoutNode) {
-    Truth.assertThat(node.layoutState).isEqualTo(LayoutNode.LayoutState.NeedsRemeasure)
+    Truth.assertThat(node.measurePending).isTrue()
 }
 
-@ExperimentalLayoutNodeApi
 internal fun assertMeasuredAndLaidOut(node: LayoutNode) {
-    Truth.assertThat(node.layoutState).isEqualTo(LayoutNode.LayoutState.Ready)
+    Truth.assertThat(node.layoutState).isEqualTo(LayoutNode.LayoutState.Idle)
+    Truth.assertThat(node.layoutPending).isFalse()
+    Truth.assertThat(node.measurePending).isFalse()
 }
 
-@ExperimentalLayoutNodeApi
 internal fun assertLayoutRequired(node: LayoutNode) {
-    Truth.assertThat(node.layoutState).isEqualTo(LayoutNode.LayoutState.NeedsRelayout)
+    Truth.assertThat(node.layoutPending).isTrue()
 }
 
 internal fun assertRemeasured(
@@ -147,89 +243,71 @@ internal fun assertRelaidOut(
     Truth.assertThat(modifier.layoutsCount).isEqualTo(layoutsCountBefore + 1)
 }
 
-@ExperimentalLayoutNodeApi
 internal fun root(block: LayoutNode.() -> Unit = {}): LayoutNode {
     return node(block)
 }
 
-@ExperimentalLayoutNodeApi
 internal fun node(block: LayoutNode.() -> Unit = {}): LayoutNode {
     return LayoutNode().apply {
-        measureBlocks = MeasureInMeasureBlock()
+        measurePolicy = MeasureInMeasureBlock()
         block.invoke(this)
     }
 }
 
-@ExperimentalLayoutNodeApi
 internal fun LayoutNode.add(child: LayoutNode) = insertAt(children.count(), child)
 
-@ExperimentalLayoutNodeApi
 internal fun LayoutNode.measureInLayoutBlock() {
-    measureBlocks = MeasureInLayoutBlock()
+    measurePolicy = MeasureInLayoutBlock()
 }
 
-@ExperimentalLayoutNodeApi
 internal fun LayoutNode.doNotMeasure() {
-    measureBlocks = NoMeasureBlock()
+    measurePolicy = NoMeasure()
 }
 
-@ExperimentalLayoutNodeApi
 internal fun LayoutNode.queryAlignmentLineDuringMeasure() {
-    (measureBlocks as SmartMeasureBlock).queryAlignmentLinesDuringMeasure = true
+    (measurePolicy as SmartMeasurePolicy).queryAlignmentLinesDuringMeasure = true
 }
 
-@ExperimentalLayoutNodeApi
 internal fun LayoutNode.runDuringMeasure(block: () -> Unit) {
-    (measureBlocks as SmartMeasureBlock).preMeasureCallback = block
+    (measurePolicy as SmartMeasurePolicy).preMeasureCallback = block
 }
 
-@ExperimentalLayoutNodeApi
 internal fun LayoutNode.runDuringLayout(block: () -> Unit) {
-    (measureBlocks as SmartMeasureBlock).preLayoutCallback = block
+    (measurePolicy as SmartMeasurePolicy).preLayoutCallback = block
 }
 
-@ExperimentalLayoutNodeApi
 internal val LayoutNode.first: LayoutNode get() = children.first()
-@ExperimentalLayoutNodeApi
 internal val LayoutNode.second: LayoutNode get() = children[1]
-@ExperimentalLayoutNodeApi
 internal val LayoutNode.measuresCount: Int
-    get() = (measureBlocks as SmartMeasureBlock).measuresCount
-@ExperimentalLayoutNodeApi
+    get() = (measurePolicy as SmartMeasurePolicy).measuresCount
 internal val LayoutNode.layoutsCount: Int
-    get() = (measureBlocks as SmartMeasureBlock).layoutsCount
-@ExperimentalLayoutNodeApi
+    get() = (measurePolicy as SmartMeasurePolicy).layoutsCount
 internal var LayoutNode.wrapChildren: Boolean
-    get() = (measureBlocks as SmartMeasureBlock).wrapChildren
+    get() = (measurePolicy as SmartMeasurePolicy).wrapChildren
     set(value) {
-        (measureBlocks as SmartMeasureBlock).wrapChildren = value
+        (measurePolicy as SmartMeasurePolicy).wrapChildren = value
     }
-@ExperimentalLayoutNodeApi
 internal val LayoutNode.measuredWithLayoutDirection: LayoutDirection
-    get() = (measureBlocks as SmartMeasureBlock).measuredLayoutDirection!!
-@ExperimentalLayoutNodeApi
+    get() = (measurePolicy as SmartMeasurePolicy).measuredLayoutDirection!!
 internal var LayoutNode.size: Int?
-    get() = (measureBlocks as SmartMeasureBlock).size
+    get() = (measurePolicy as SmartMeasurePolicy).size
     set(value) {
-        (measureBlocks as SmartMeasureBlock).size = value
+        (measurePolicy as SmartMeasurePolicy).size = value
     }
-@ExperimentalLayoutNodeApi
 internal var LayoutNode.childrenDirection: LayoutDirection?
-    get() = (measureBlocks as SmartMeasureBlock).childrenLayoutDirection
+    get() = (measurePolicy as SmartMeasurePolicy).childrenLayoutDirection
     set(value) {
-        (measureBlocks as SmartMeasureBlock).childrenLayoutDirection = value
+        (measurePolicy as SmartMeasurePolicy).childrenLayoutDirection = value
     }
-@ExperimentalLayoutNodeApi
 internal var LayoutNode.shouldPlaceChildren: Boolean
-    get() = (measureBlocks as SmartMeasureBlock).shouldPlaceChildren
+    get() = (measurePolicy as SmartMeasurePolicy).shouldPlaceChildren
     set(value) {
-        (measureBlocks as SmartMeasureBlock).shouldPlaceChildren = value
+        (measurePolicy as SmartMeasurePolicy).shouldPlaceChildren = value
     }
 
 internal val TestAlignmentLine = HorizontalAlignmentLine(::min)
 
-@ExperimentalLayoutNodeApi
-internal abstract class SmartMeasureBlock : LayoutNode.NoIntrinsicsMeasureBlocks("") {
+internal abstract class SmartMeasurePolicy : LayoutNode.NoIntrinsicsMeasurePolicy("") {
     var measuresCount = 0
         protected set
     var layoutsCount = 0
@@ -241,15 +319,14 @@ internal abstract class SmartMeasureBlock : LayoutNode.NoIntrinsicsMeasureBlocks
     var measuredLayoutDirection: LayoutDirection? = null
         protected set
     var childrenLayoutDirection: LayoutDirection? = null
+
     // child size is used when null
     var size: Int? = null
     var shouldPlaceChildren = true
 }
 
-@OptIn(ExperimentalLayoutNodeApi::class)
-internal class MeasureInMeasureBlock : SmartMeasureBlock() {
-    override fun measure(
-        measureScope: MeasureScope,
+internal class MeasureInMeasureBlock : SmartMeasurePolicy() {
+    override fun MeasureScope.measure(
         measurables: List<Measurable>,
         constraints: Constraints
     ): MeasureResult {
@@ -279,7 +356,7 @@ internal class MeasureInMeasureBlock : SmartMeasureBlock() {
                 maxHeight = max(placeable.height, maxHeight)
             }
         }
-        return measureScope.layout(maxWidth, maxHeight) {
+        return layout(maxWidth, maxHeight) {
             layoutsCount++
             preLayoutCallback?.invoke()
             preLayoutCallback = null
@@ -292,8 +369,7 @@ internal class MeasureInMeasureBlock : SmartMeasureBlock() {
     }
 }
 
-@OptIn(ExperimentalLayoutNodeApi::class)
-internal class MeasureInLayoutBlock : SmartMeasureBlock() {
+internal class MeasureInLayoutBlock : SmartMeasurePolicy() {
 
     override var wrapChildren: Boolean
         get() = false
@@ -314,8 +390,7 @@ internal class MeasureInLayoutBlock : SmartMeasureBlock() {
             }
         }
 
-    override fun measure(
-        measureScope: MeasureScope,
+    override fun MeasureScope.measure(
         measurables: List<Measurable>,
         constraints: Constraints
     ): MeasureResult {
@@ -328,7 +403,7 @@ internal class MeasureInLayoutBlock : SmartMeasureBlock() {
             val size = size!!
             constraints.copy(maxWidth = size, maxHeight = size)
         }
-        return measureScope.layout(childConstraints.maxWidth, childConstraints.maxHeight) {
+        return layout(childConstraints.maxWidth, childConstraints.maxHeight) {
             preLayoutCallback?.invoke()
             preLayoutCallback = null
             layoutsCount++
@@ -342,8 +417,7 @@ internal class MeasureInLayoutBlock : SmartMeasureBlock() {
     }
 }
 
-@OptIn(ExperimentalLayoutNodeApi::class)
-internal class NoMeasureBlock : SmartMeasureBlock() {
+internal class NoMeasure : SmartMeasurePolicy() {
 
     override var queryAlignmentLinesDuringMeasure: Boolean
         get() = false
@@ -356,8 +430,7 @@ internal class NoMeasureBlock : SmartMeasureBlock() {
             }
         }
 
-    override fun measure(
-        measureScope: MeasureScope,
+    override fun MeasureScope.measure(
         measurables: List<Measurable>,
         constraints: Constraints
     ): MeasureResult {
@@ -367,7 +440,7 @@ internal class NoMeasureBlock : SmartMeasureBlock() {
 
         val width = size ?: if (!wrapChildren) constraints.maxWidth else constraints.minWidth
         val height = size ?: if (!wrapChildren) constraints.maxHeight else constraints.minHeight
-        return measureScope.layout(width, height) {
+        return layout(width, height) {
             layoutsCount++
             preLayoutCallback?.invoke()
             preLayoutCallback = null

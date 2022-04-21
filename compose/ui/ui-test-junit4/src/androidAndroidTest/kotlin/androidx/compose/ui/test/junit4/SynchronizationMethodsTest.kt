@@ -18,10 +18,9 @@ package androidx.compose.ui.test.junit4
 
 import androidx.activity.ComponentActivity
 import androidx.compose.testutils.expectError
-import androidx.compose.ui.platform.AndroidOwner
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
+import androidx.compose.ui.platform.ViewRootForTest
+import androidx.compose.ui.test.AndroidComposeTest
+import androidx.compose.ui.test.hasTestTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
@@ -31,109 +30,103 @@ import com.nhaarman.mockitokotlin2.whenever
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
+import org.junit.runners.model.Statement
 
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class SynchronizationMethodsTest {
 
-    // Note: don't add `@get:Rule` to avoid the Rule from being applied. Except for the
-    // AndroidOwnerRegistry, it doesn't need to be initialized in these tests.
-    private val rule = createAndroidComposeRule<ComponentActivity>()
-    private val androidOwnerRegistry = rule.composeIdlingResource.androidOwnerRegistry
+    private val test = AndroidComposeTest<ComponentActivity> {
+        throw NotImplementedError("This test shouldn't use the Activity")
+    }
+    private val composeRootRegistry = test.composeRootRegistry
 
     @get:Rule
-    val registryRule: TestRule = RuleChain.outerRule { base, _ ->
-        androidOwnerRegistry.getStatementFor(base)
+    val registryRule: TestRule = TestRule { base, _ ->
+        object : Statement() {
+            override fun evaluate() {
+                composeRootRegistry.withRegistry {
+                    base.evaluate()
+                }
+            }
+        }
     }
 
     @Before
-    fun addMockResumedOwner() {
-        androidOwnerRegistry.registerOwner(mockResumedAndroidOwner())
+    fun addResumedComposeRootMock() {
+        composeRootRegistry.registerComposeRoot(mockResumedComposeRoot())
     }
 
     @Test
     fun runOnUiThread() {
-        val result = rule.runOnUiThread { "Hello" }
+        val result = test.runOnUiThread { "Hello" }
         assertThat(result).isEqualTo("Hello")
     }
 
     @Test
     fun runOnUiThread_void() {
         var called = false
-        rule.runOnUiThread { called = true }
+        test.runOnUiThread { called = true }
         assertThat(called).isTrue()
     }
 
     @Test
     fun runOnUiThread_nullable() {
-        val result: String? = rule.runOnUiThread { null }
+        val result: String? = test.runOnUiThread { null }
         assertThat(result).isEqualTo(null)
     }
 
     @Test
     fun runOnIdle() {
-        val result = rule.runOnIdle { "Hello" }
+        val result = test.runOnIdle { "Hello" }
         assertThat(result).isEqualTo("Hello")
     }
 
     @Test
     fun runOnIdle_void() {
         var called = false
-        rule.runOnIdle { called = true }
+        test.runOnIdle { called = true }
         assertThat(called).isTrue()
     }
 
     @Test
     fun runOnIdle_nullable() {
-        val result: String? = rule.runOnIdle { null }
+        val result: String? = test.runOnIdle { null }
         assertThat(result).isEqualTo(null)
     }
 
     @Test
     fun runOnIdle_assert_fails() {
-        rule.runOnIdle {
+        test.runOnIdle {
             expectError<IllegalStateException> {
-                rule.onNodeWithTag("dummy").assertExists()
+                test.onNode(hasTestTag("placeholder")).assertExists()
             }
         }
     }
 
     @Test
     fun runOnIdle_waitForIdle_fails() {
-        rule.runOnIdle {
+        test.runOnIdle {
             expectError<IllegalStateException> {
-                rule.waitForIdle()
+                test.waitForIdle()
             }
         }
     }
 
     @Test
     fun runOnIdle_runOnIdle_fails() {
-        rule.runOnIdle {
+        test.runOnIdle {
             expectError<IllegalStateException> {
-                rule.runOnIdle {}
+                test.runOnIdle {}
             }
         }
     }
 
-    private fun mockResumedAndroidOwner(): AndroidOwner {
-        val lifecycle = mock<Lifecycle>()
-        doReturn(Lifecycle.State.RESUMED).whenever(lifecycle).currentState
-
-        val lifecycleOwner = mock<LifecycleOwner>()
-        doReturn(lifecycle).whenever(lifecycleOwner).lifecycle
-
-        val viewTreeOwners = AndroidOwner.ViewTreeOwners(
-            lifecycleOwner = lifecycleOwner,
-            viewModelStoreOwner = mock(),
-            savedStateRegistryOwner = mock()
-        )
-        val owner = mock<AndroidOwner>()
-        doReturn(viewTreeOwners).whenever(owner).viewTreeOwners
-
-        return owner
+    private fun mockResumedComposeRoot(): ViewRootForTest {
+        val composeRoot = mock<ViewRootForTest>()
+        doReturn(true).whenever(composeRoot).isLifecycleInResumedState
+        return composeRoot
     }
 }

@@ -19,10 +19,14 @@ package androidx.camera.video.internal.encoder;
 import android.media.MediaFormat;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 
 import com.google.auto.value.AutoValue;
 
+import java.util.Objects;
+
 /** {@inheritDoc} */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @AutoValue
 public abstract class AudioEncoderConfig implements EncoderConfig {
 
@@ -33,7 +37,8 @@ public abstract class AudioEncoderConfig implements EncoderConfig {
     /** Returns a build for this config. */
     @NonNull
     public static Builder builder() {
-        return new AutoValue_AudioEncoderConfig.Builder();
+        return new AutoValue_AudioEncoderConfig.Builder()
+                .setProfile(EncoderConfig.CODEC_PROFILE_NONE);
     }
 
     /** {@inheritDoc} */
@@ -41,14 +46,19 @@ public abstract class AudioEncoderConfig implements EncoderConfig {
     @NonNull
     public abstract String getMimeType();
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Default is {@link EncoderConfig#CODEC_PROFILE_NONE}.
+     */
+    @Override
+    public abstract int getProfile();
+
     /** Gets the bitrate. */
     public abstract int getBitrate();
 
     /** Gets the sample bitrate. */
     public abstract int getSampleRate();
-
-    /** Gets the channel mask. */
-    public abstract int getChannelMask();
 
     /** Gets the channel count. */
     public abstract int getChannelCount();
@@ -60,7 +70,14 @@ public abstract class AudioEncoderConfig implements EncoderConfig {
         MediaFormat mediaFormat = MediaFormat.createAudioFormat(getMimeType(), getSampleRate(),
                 getChannelCount());
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, getBitrate());
-        mediaFormat.setInteger(MediaFormat.KEY_CHANNEL_MASK, getChannelMask());
+        if (getProfile() != CODEC_PROFILE_NONE) {
+            if (getMimeType().equals(MediaFormat.MIMETYPE_AUDIO_AAC)) {
+                mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, getProfile());
+            } else {
+                mediaFormat.setInteger(MediaFormat.KEY_PROFILE, getProfile());
+            }
+        }
+
         return mediaFormat;
     }
 
@@ -71,9 +88,20 @@ public abstract class AudioEncoderConfig implements EncoderConfig {
         Builder() {
         }
 
-        /** Sets the mime type. */
+        /**
+         * Sets the mime type.
+         *
+         * <p>If the mime type is set to AAC, i.e. {@link MediaFormat#MIMETYPE_AUDIO_AAC}, then a
+         * profile must be set with {@link #setProfile(int)}. If a profile isn't set or is set to
+         * {@link EncoderConfig#CODEC_PROFILE_NONE}, an IllegalArgumentException will be thrown by
+         * {@link #build()}.
+         */
         @NonNull
         public abstract Builder setMimeType(@NonNull String mimeType);
+
+        /** Sets (optional) profile for the mime type specified by {@link #setMimeType(String)}. */
+        @NonNull
+        public abstract Builder setProfile(int profile);
 
         /** Sets the bitrate. */
         @NonNull
@@ -83,16 +111,24 @@ public abstract class AudioEncoderConfig implements EncoderConfig {
         @NonNull
         public abstract Builder setSampleRate(int sampleRate);
 
-        /** Sets the channel mask. */
-        @NonNull
-        public abstract Builder setChannelMask(int channelMask);
-
         /** Sets the channel count. */
         @NonNull
         public abstract Builder setChannelCount(int channelCount);
 
+        @NonNull
+        abstract AudioEncoderConfig autoBuild();
+
         /** Builds the config instance. */
         @NonNull
-        public abstract AudioEncoderConfig build();
+        public AudioEncoderConfig build() {
+            AudioEncoderConfig config = autoBuild();
+            if (Objects.equals(config.getMimeType(), MediaFormat.MIMETYPE_AUDIO_AAC)
+                    && config.getProfile() == CODEC_PROFILE_NONE) {
+                throw new IllegalArgumentException("Encoder mime set to AAC, but no AAC profile "
+                        + "was provided.");
+            }
+
+            return config;
+        }
     }
 }

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-import androidx.build.LibraryGroups
 import androidx.build.LibraryType
-import androidx.build.LibraryVersions
-
-import static androidx.build.dependencies.DependenciesKt.*
 
 plugins {
     id("AndroidXPlugin")
@@ -26,7 +22,7 @@ plugins {
 }
 
 dependencies {
-    implementation(JAVAPOET)
+    implementation(libs.javapoet)
 }
 
 androidx {

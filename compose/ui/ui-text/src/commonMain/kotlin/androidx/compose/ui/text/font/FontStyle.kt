@@ -21,11 +21,26 @@ package androidx.compose.ui.text.font
  *  @see Font
  *  @see FontFamily
  */
-enum class FontStyle {
+// TODO(b/205312869) This constructor should not be public as it leads to FontStyle([cursor]) in AS
+@kotlin.jvm.JvmInline
+value class FontStyle(val value: Int) {
 
-    /** Use the upright glyphs */
-    Normal,
+    override fun toString(): String {
+        return when (this) {
+            Normal -> "Normal"
+            Italic -> "Italic"
+            else -> "Invalid"
+        }
+    }
 
-    /** Use glyphs designed for slanting */
-    Italic
+    companion object {
+        /** Use the upright glyphs */
+        val Normal = FontStyle(0)
+
+        /** Use glyphs designed for slanting */
+        val Italic = FontStyle(1)
+
+        /** Returns a list of possible values of [FontStyle]. */
+        fun values(): List<FontStyle> = listOf(Normal, Italic)
+    }
 }

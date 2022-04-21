@@ -45,6 +45,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.testutils.LocaleTestUtils
 import androidx.testutils.recreate
+import androidx.testutils.setSystemExclusionRectsForEspressoSwipes
 import androidx.testutils.waitForExecution
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.test.R
@@ -68,7 +69,7 @@ import org.hamcrest.Matchers.greaterThanOrEqualTo
 import org.hamcrest.Matchers.lessThan
 import org.hamcrest.Matchers.lessThanOrEqualTo
 import org.junit.After
-import org.junit.Assert.assertThat
+import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Before
 import org.junit.Rule
 import java.util.concurrent.CountDownLatch
@@ -117,7 +118,10 @@ open class BaseTest {
         onView(withId(R.id.view_pager)).perform(waitForInjectMotionEvents())
 
         val viewPager: ViewPager2 = activityTestRule.activity.findViewById(R.id.view_pager)
-        activityTestRule.runOnUiThread { viewPager.orientation = orientation }
+        activityTestRule.runOnUiThread {
+            viewPager.orientation = orientation
+            viewPager.setSystemExclusionRectsForEspressoSwipes()
+        }
         onView(withId(R.id.view_pager)).check(matches(isDisplayed()))
 
         // animations getting in the way on API < 16
@@ -143,6 +147,7 @@ open class BaseTest {
                 viewPager.orientation = orientation
                 viewPager.isUserInputEnabled = isUserInputEnabled
                 viewPager.adapter = adapterProvider(activity)
+                viewPager.setSystemExclusionRectsForEspressoSwipes()
                 onCreateCallback(viewPager)
             }
             activity = activityTestRule.recreate()
@@ -328,7 +333,7 @@ open class BaseTest {
                 equalTo(expectPageDownAction)
             )
 
-            var node = AccessibilityNodeInfo.obtain()
+            @Suppress("DEPRECATION") var node = AccessibilityNodeInfo.obtain()
             runOnUiThreadSync { viewPager.onInitializeAccessibilityNodeInfo(node) }
             @Suppress("DEPRECATION") var standardActions = node.actions
 

@@ -18,24 +18,29 @@ package androidx.compose.foundation.demos
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.preferredHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.samples.DraggableSample
 import androidx.compose.foundation.samples.FocusableSample
+import androidx.compose.foundation.samples.HoverableSample
 import androidx.compose.foundation.samples.ScrollableSample
-import androidx.compose.foundation.samples.ZoomableSample
+import androidx.compose.foundation.samples.TransformableSample
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun HighLevelGesturesDemo() {
-    Column {
+    Column(Modifier.verticalScroll(rememberScrollState())) {
         DraggableSample()
-        Spacer(Modifier.preferredHeight(50.dp))
+        Spacer(Modifier.height(50.dp))
         ScrollableSample()
-        Spacer(Modifier.preferredHeight(50.dp))
-        ZoomableSample()
-        Spacer(Modifier.preferredHeight(50.dp))
+        Spacer(Modifier.height(50.dp))
+        TransformableSample()
+        Spacer(Modifier.height(50.dp))
         FocusableSample()
+        Spacer(Modifier.height(50.dp))
+        HoverableSample()
     }
 }

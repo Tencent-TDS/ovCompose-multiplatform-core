@@ -14,111 +14,126 @@
  * limitations under the License.
  */
 
-
-import androidx.build.AndroidXUiPlugin
-import androidx.build.LibraryGroups
-import androidx.build.LibraryVersions
-import androidx.build.Publish
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-import static androidx.build.dependencies.DependenciesKt.*
+import androidx.build.AndroidXComposePlugin
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("AndroidXUiPlugin")
+    id("AndroidXComposePlugin")
 }
 
-AndroidXUiPlugin.applyAndConfigureKotlinPlugin(project)
+AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
 
 dependencies {
-    kotlinPlugin project(":compose:compiler:compiler")
+    kotlinPlugin(project(":compose:compiler:compiler"))
 
-    if(!AndroidXUiPlugin.isMultiplatformEnabled(project)) {
+    if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         /*
          * When updating dependencies, make sure to make the an an analogous update in the
          * corresponding block below
          */
 
-        api "androidx.annotation:annotation:1.1.0"
-        api project(":compose:ui:ui")
+        api("androidx.annotation:annotation:1.1.0")
+        api(project(":compose:ui:ui"))
+        api("androidx.compose.ui:ui-unit:1.1.1")
 
-        implementation project(":compose:runtime:runtime")
-        implementation project(":compose:ui:ui-util")
-        implementation(CONSTRAINT_LAYOUT_CORE)
-        implementation(KOTLIN_STDLIB_COMMON)
+        implementation(project(":compose:runtime:runtime"))
+        implementation("androidx.compose.ui:ui-util:1.0.0")
+        implementation("androidx.core:core:1.7.0")
+        implementation(libs.kotlinStdlibCommon)
 
-        testImplementation(ANDROIDX_TEST_RULES)
-        testImplementation(ANDROIDX_TEST_RUNNER)
-        testImplementation(JUNIT)
+        testImplementation(libs.testRules)
+        testImplementation(libs.testRunner)
+        testImplementation(libs.junit)
+        testImplementation(libs.truth)
 
-        androidTestImplementation project(":compose:foundation:foundation")
-        androidTestImplementation project(":compose:ui:ui-test-junit4")
-        androidTestImplementation(ANDROIDX_TEST_RULES)
-        androidTestImplementation(ANDROIDX_TEST_RUNNER)
-        androidTestImplementation(JUNIT)
-        androidTestImplementation(TRUTH)
+        androidTestImplementation(project(":compose:foundation:foundation"))
+        androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.0.0")
+        androidTestImplementation(project(":compose:test-utils"))
+        androidTestImplementation("androidx.activity:activity-compose:1.3.1")
+        // old version of common-java8 conflicts with newer version, because both have
+        // DefaultLifecycleEventObserver.
+        // Outside of androidx this is resolved via constraint added to lifecycle-common,
+        // but it doesn't work in androidx.
+        // See aosp/1804059
+        androidTestImplementation(project(":lifecycle:lifecycle-common-java8"))
+        androidTestImplementation(libs.testRules)
+        androidTestImplementation(libs.testRunner)
+        androidTestImplementation(libs.junit)
+        androidTestImplementation(libs.truth)
+
+        samples(project(":compose:foundation:foundation-layout:foundation-layout-samples"))
     }
 }
 
-if(AndroidXUiPlugin.isMultiplatformEnabled(project)) {
-    kotlin {
+if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
+    androidXComposeMultiplatform {
         android()
-        jvm("desktop")
+        desktop()
+    }
 
+    kotlin {
         /*
          * When updating dependencies, make sure to make the an an analogous update in the
          * corresponding block above
          */
         sourceSets {
             commonMain.dependencies {
-                implementation(KOTLIN_STDLIB_COMMON)
+                implementation(libs.kotlinStdlibCommon)
 
-                api project(":compose:ui:ui")
-                implementation project(":compose:runtime:runtime")
-                implementation project(":compose:ui:ui-util")
+                api(project(":compose:ui:ui"))
+                implementation(project(":compose:runtime:runtime"))
+                implementation(project(":compose:ui:ui-util"))
             }
 
             androidMain.dependencies {
-                api "androidx.annotation:annotation:1.1.0"
-                implementation(CONSTRAINT_LAYOUT_CORE)
+                api("androidx.annotation:annotation:1.1.0")
+                implementation("androidx.core:core:1.7.0")
             }
 
             desktopMain.dependencies {
-                implementation(KOTLIN_STDLIB)
+                implementation(libs.kotlinStdlib)
             }
 
+            // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you
+            //  need to add Robolectric (which must be kept out of androidAndroidTest), use a top
+            //  level dependencies block instead:
+            //  `dependencies { testImplementation(libs.robolectric) }`
             androidTest.dependencies {
-                implementation(ANDROIDX_TEST_RULES)
-                implementation(ANDROIDX_TEST_RUNNER)
-                implementation(JUNIT)
+                implementation(libs.testRules)
+                implementation(libs.testRunner)
+                implementation(libs.junit)
+                implementation(libs.truth)
             }
 
             androidAndroidTest.dependencies {
-                implementation project(":compose:foundation:foundation")
-                implementation project(":compose:ui:ui-test-junit4")
+                implementation(project(":compose:foundation:foundation"))
+                implementation(project(":compose:ui:ui-test-junit4"))
+                implementation(project(":compose:test-utils"))
+                implementation("androidx.activity:activity-compose:1.3.1")
 
-                implementation(ANDROIDX_TEST_RULES)
-                implementation(ANDROIDX_TEST_RUNNER)
-                implementation(JUNIT)
-                implementation(TRUTH)
+                implementation(libs.testRules)
+                implementation(libs.testRunner)
+                implementation(libs.junit)
+                implementation(libs.truth)
             }
         }
+    }
+    dependencies {
+        samples(project(":compose:foundation:foundation-layout:foundation-layout-samples"))
     }
 }
 
 androidx {
     name = "Compose Layouts"
-    publish = Publish.SNAPSHOT_AND_RELEASE
-    mavenGroup = LibraryGroups.Compose.FOUNDATION
+    type = LibraryType.PUBLISHED_LIBRARY
+    mavenGroup = LibraryGroups.COMPOSE_FOUNDATION
     inceptionYear = "2019"
     description = "Compose layout implementations"
     legacyDisableKotlinStrictApiMode = true
 }
 
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions {
-        freeCompilerArgs += ["-XXLanguage:-NewInference"]
-        useIR = true
-    }
+android {
+    namespace "androidx.compose.foundation.layout"
 }

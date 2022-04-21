@@ -1,9 +1,9 @@
 // Baseline format: 1.0
-MissingNullability: androidx.compose.ui.test.junit4.AndroidComposeTestRuleKt#createAndroidComposeRule():
-    Missing nullability on method `createAndroidComposeRule` return
-MissingNullability: androidx.compose.ui.test.junit4.android.AndroidComposeTestRuleKt#createAndroidComposeRule(boolean, boolean):
-    Missing nullability on method `createAndroidComposeRule` return
-MissingNullability: androidx.ui.test.AndroidComposeTestRuleKt#createAndroidComposeRule():
-    Missing nullability on method `createAndroidComposeRule` return
-MissingNullability: androidx.ui.test.android.AndroidComposeTestRuleKt#createAndroidComposeRule(boolean, boolean):
+InvalidNullabilityOverride: androidx.compose.ui.test.junit4.AndroidComposeTestRule#apply(org.junit.runners.model.Statement, org.junit.runner.Description) parameter #0:
+    Invalid nullability on parameter `base` in method `apply`. Parameters of overrides cannot be NonNull if the super parameter is unannotated.
+InvalidNullabilityOverride: androidx.compose.ui.test.junit4.AndroidComposeTestRule#apply(org.junit.runners.model.Statement, org.junit.runner.Description) parameter #1:
+    Invalid nullability on parameter `description` in method `apply`. Parameters of overrides cannot be NonNull if the super parameter is unannotated.
+
+
+MissingNullability: androidx.compose.ui.test.junit4.AndroidComposeTestRule_androidKt#createAndroidComposeRule():
     Missing nullability on method `createAndroidComposeRule` return

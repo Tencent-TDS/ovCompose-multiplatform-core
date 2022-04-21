@@ -120,10 +120,11 @@ public class RemoteCallback {
         mIntent.setData(generateUri(mIntent));
         mIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         PendingIntent intent = PendingIntent.getBroadcast(mContext, 0, mIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         return intent;
     }
 
+    @SuppressWarnings("deprecation")
     private static Uri generateUri(Intent intent) {
         if (intent.getData() != null) {
             return intent.getData();

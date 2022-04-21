@@ -22,6 +22,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.LinearLayout;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
@@ -47,7 +48,7 @@ public class MediumInterstitialActivity extends AppCompatActivity {
     private static final int MARGIN_DP = 5;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         // Decide whether to show the WebViews side-by-side ("tall") or stacked on top of each
@@ -64,7 +65,7 @@ public class MediumInterstitialActivity extends AppCompatActivity {
 
         WebkitHelpers.appendWebViewVersionToTitle(this);
 
-        Map<Integer, String> map = new ImmutableMap.Builder()
+        Map<Integer, String> map = new ImmutableMap.Builder<Integer, String>()
                 .put(R.id.malware_webview, SafeBrowsingHelpers.MALWARE_URL)
                 .put(R.id.phishing_webview, SafeBrowsingHelpers.PHISHING_URL)
                 .put(R.id.unwanted_software_webview, SafeBrowsingHelpers.UNWANTED_SOFTWARE_URL)

@@ -17,46 +17,44 @@
 package androidx.compose.ui.text.platform
 
 import android.content.Context
-import android.graphics.Typeface
 import android.os.Build
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.FontTestData
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontListFontFamily
+import androidx.compose.ui.text.font.FontLoadingStrategy
 import androidx.compose.ui.text.font.FontMatcher
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.font.asFontFamily
-import androidx.compose.ui.text.font.font
-import androidx.compose.ui.text.font.fontFamily
-import androidx.compose.ui.text.font.typeface
+import androidx.compose.ui.text.font.Typeface
+import androidx.compose.ui.text.font.getAndroidTypefaceStyle
+import androidx.compose.ui.text.font.toFontFamily
 import androidx.compose.ui.text.matchers.assertThat
-import androidx.compose.ui.text.test.R
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.eq
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.times
-import com.nhaarman.mockitokotlin2.verify
-import com.nhaarman.mockitokotlin2.whenever
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito
 
+@Suppress("DEPRECATION")
 @RunWith(AndroidJUnit4::class)
 @SmallTest
 class AndroidTypefaceTest {
 
-    val context = InstrumentationRegistry.getInstrumentation().targetContext
+    val context = InstrumentationRegistry.getInstrumentation().targetContext!!
 
+    @Suppress("DEPRECATION")
     private fun androidTypefaceFromFontFamily(
         context: Context,
         fontFamily: FontFamily
     ): AndroidTypeface {
-        return typeface(context, fontFamily) as AndroidTypeface
+        return Typeface(context, fontFamily) as AndroidTypeface
     }
 
     @Test
@@ -69,7 +67,9 @@ class AndroidTypefaceTest {
         assertThat(nativeTypeface).isNotNull()
         assertThat(nativeTypeface.isBold).isFalse()
         assertThat(nativeTypeface.isItalic).isFalse()
-        assertThat(nativeTypeface.bitmap()).isEqualToBitmap(Typeface.DEFAULT.bitmap())
+        assertThat(nativeTypeface.bitmap()).isEqualToBitmap(
+            android.graphics.Typeface.DEFAULT.bitmap()
+        )
     }
 
     @Test
@@ -83,7 +83,8 @@ class AndroidTypefaceTest {
         assertThat(nativeTypeface.isBold).isFalse()
         assertThat(nativeTypeface.isItalic).isTrue()
         assertThat(nativeTypeface.bitmap()).isEqualToBitmap(
-            Typeface.defaultFromStyle(Typeface.ITALIC).bitmap()
+            android.graphics.Typeface.defaultFromStyle(android.graphics.Typeface.ITALIC)
+                .bitmap()
         )
     }
 
@@ -98,7 +99,7 @@ class AndroidTypefaceTest {
         assertThat(nativeTypeface.isBold).isTrue()
         assertThat(nativeTypeface.isItalic).isFalse()
         assertThat(nativeTypeface.bitmap()).isEqualToBitmap(
-            Typeface.defaultFromStyle(Typeface.BOLD).bitmap()
+            android.graphics.Typeface.defaultFromStyle(android.graphics.Typeface.BOLD).bitmap()
         )
     }
 
@@ -113,7 +114,8 @@ class AndroidTypefaceTest {
         assertThat(nativeTypeface.isBold).isTrue()
         assertThat(nativeTypeface.isItalic).isTrue()
         assertThat(nativeTypeface.bitmap()).isEqualToBitmap(
-            Typeface.defaultFromStyle(Typeface.BOLD_ITALIC).bitmap()
+            android.graphics.Typeface.defaultFromStyle(android.graphics.Typeface.BOLD_ITALIC)
+                .bitmap()
         )
     }
 
@@ -143,15 +145,15 @@ class AndroidTypefaceTest {
 
         for (fontWeight in fontWeights) {
             for (fontStyle in FontStyle.values()) {
-                val typefaceStyle = TypefaceAdapter.getTypefaceStyle(
+                val typefaceStyle = getAndroidTypefaceStyle(
                     fontWeight = fontWeight,
                     fontStyle = fontStyle
                 )
 
                 if (fontStyle == FontStyle.Normal) {
-                    assertThat(typefaceStyle).isEqualTo(Typeface.NORMAL)
+                    assertThat(typefaceStyle).isEqualTo(android.graphics.Typeface.NORMAL)
                 } else {
-                    assertThat(typefaceStyle).isEqualTo(Typeface.ITALIC)
+                    assertThat(typefaceStyle).isEqualTo(android.graphics.Typeface.ITALIC)
                 }
             }
         }
@@ -170,15 +172,15 @@ class AndroidTypefaceTest {
 
         for (fontWeight in fontWeights) {
             for (fontStyle in FontStyle.values()) {
-                val typefaceStyle = TypefaceAdapter.getTypefaceStyle(
+                val typefaceStyle = getAndroidTypefaceStyle(
                     fontWeight = fontWeight,
                     fontStyle = fontStyle
                 )
 
                 if (fontStyle == FontStyle.Normal) {
-                    assertThat(typefaceStyle).isEqualTo(Typeface.BOLD)
+                    assertThat(typefaceStyle).isEqualTo(android.graphics.Typeface.BOLD)
                 } else {
-                    assertThat(typefaceStyle).isEqualTo(Typeface.BOLD_ITALIC)
+                    assertThat(typefaceStyle).isEqualTo(android.graphics.Typeface.BOLD_ITALIC)
                 }
             }
         }
@@ -249,7 +251,7 @@ class AndroidTypefaceTest {
         val defaultTypeface = androidTypefaceFromFontFamily(context, FontFamily.Default)
             .getNativeTypeface(FontWeight.Normal, FontStyle.Normal, FontSynthesis.None)
 
-        val fontFamily = FontTestData.FONT_100_REGULAR.asFontFamily()
+        val fontFamily = FontTestData.FONT_100_REGULAR.toFontFamily()
 
         val typeface = androidTypefaceFromFontFamily(context, fontFamily)
             .getNativeTypeface(FontWeight.Normal, FontStyle.Normal, FontSynthesis.None)
@@ -265,7 +267,7 @@ class AndroidTypefaceTest {
         val defaultTypeface = androidTypefaceFromFontFamily(context, FontFamily.Default)
             .getNativeTypeface(FontWeight.Normal, FontStyle.Normal, FontSynthesis.None)
 
-        val fontFamily = FontTestData.FONT_100_REGULAR.asFontFamily()
+        val fontFamily = FontTestData.FONT_100_REGULAR.toFontFamily()
 
         val typeface = androidTypefaceFromFontFamily(context, fontFamily)
             .getNativeTypeface(FontWeight.Bold, FontStyle.Italic, FontSynthesis.All)
@@ -279,7 +281,7 @@ class AndroidTypefaceTest {
     @Test
     @MediumTest
     fun customSinglefontFamilyExactMatch() {
-        val fontFamily = fontFamily(
+        val fontFamily = FontFamily(
             FontTestData.FONT_100_REGULAR,
             FontTestData.FONT_100_ITALIC,
             FontTestData.FONT_200_REGULAR,
@@ -313,31 +315,73 @@ class AndroidTypefaceTest {
 
     @Test
     @MediumTest
-    fun fontMatcherCalledForCustomFont() {
+    @Suppress("DEPRECATION")
+    fun androidFontListTypefaceForCustomFont() {
         // customSinglefontFamilyExactMatch tests all the possible outcomes that FontMatcher
         // might return. Therefore for the best effort matching we just make sure that FontMatcher
         // is called.
         val fontWeight = FontWeight.W300
         val fontStyle = FontStyle.Italic
-        val fontFamily = fontFamily(FontTestData.FONT_200_ITALIC)
+        val fontFamily = FontFamily(
+            FontTestData.FONT_200_ITALIC,
+            FontTestData.FONT_200_ITALIC_FALLBACK,
+            FontTestData.FONT_200_REGULAR
+        ) as FontListFontFamily
 
-        val fontMatcher = mock<FontMatcher>()
-        whenever(fontMatcher.matchFont(any(), any(), any()))
-            .thenReturn(FontTestData.FONT_200_ITALIC)
+        val typeface = AndroidFontListTypeface(
+            context = context,
+            fontFamily = fontFamily,
+            necessaryStyles = null,
+            fontMatcher = FontMatcher()
+        ).getNativeTypeface(fontWeight, fontStyle, FontSynthesis.None)
+
+        /* Match will find 200 weight font, synthesis disabled */
+        assertThat(typeface).isTypefaceOf(fontWeight = FontWeight.W200, fontStyle = fontStyle)
+    }
+
+    @Test(expected = IllegalStateException::class)
+    @MediumTest
+    fun noEagerFonts_throws() {
+        val asyncFont = object : Font {
+            override val weight: FontWeight = FontWeight.W100
+            override val style: FontStyle = FontStyle.Italic
+            @ExperimentalTextApi
+            override val loadingStrategy: FontLoadingStrategy = FontLoadingStrategy.Async
+        }
+
+        val fontFamily = FontFamily(
+            asyncFont
+        ) as FontListFontFamily
 
         AndroidFontListTypeface(
             context = context,
             fontFamily = fontFamily,
-            necessaryStyles = null,
-            fontMatcher = fontMatcher
+            necessaryStyles = null
         )
-            .getNativeTypeface(fontWeight, fontStyle, FontSynthesis.All)
+    }
 
-        verify(fontMatcher, times(1)).matchFont(
-            any(),
-            eq(fontWeight),
-            eq(fontStyle)
-        )
+    @Test
+    @MediumTest
+    fun eagerAndAsyncFont_alwaysChoosesEagerFont_evenIfAsyncIsBetterMatch() {
+        val asyncFont = object : Font {
+            override val weight: FontWeight = FontWeight.W800
+            override val style: FontStyle = FontStyle.Italic
+            @ExperimentalTextApi
+            override val loadingStrategy: FontLoadingStrategy = FontLoadingStrategy.Async
+        }
+
+        val fontFamily = FontFamily(
+            asyncFont,
+            FontTestData.FONT_100_REGULAR
+        ) as FontListFontFamily
+
+        // (100, Normal, Blocking) matches for (800, Italic, Blocking)
+        val typeface = AndroidFontListTypeface(
+            context = context,
+            fontFamily = fontFamily,
+            necessaryStyles = null
+        ).getNativeTypeface(FontWeight.W800, FontStyle.Italic, FontSynthesis.None)
+        assertThat(typeface).isTypefaceOf(FontWeight.W100, FontStyle.Normal)
     }
 
     @Test
@@ -420,20 +464,21 @@ class AndroidTypefaceTest {
     }
 
     @Test(expected = IllegalStateException::class)
+    @OptIn(ExperimentalTextApi::class)
     fun throwsExceptionIfFontIsNotIncludedInTheApp() {
-        val fontFamily = fontFamily(font(-1))
+        val fontFamily = FontFamily(Font(-1))
         androidTypefaceFromFontFamily(context, fontFamily)
     }
 
     @Test(expected = IllegalStateException::class)
     fun throwsExceptionIfFontIsNotReadable() {
-        val fontFamily = fontFamily(font(R.font.invalid_font))
+        val fontFamily = FontFamily(FontTestData.FONT_INVALID)
         androidTypefaceFromFontFamily(context, fontFamily)
     }
 
     @Test
     fun fontSynthesisDefault_synthesizeTheFontToItalicBold() {
-        val fontFamily = FontTestData.FONT_100_REGULAR.asFontFamily()
+        val fontFamily = FontTestData.FONT_100_REGULAR.toFontFamily()
 
         val typeface = androidTypefaceFromFontFamily(context, fontFamily)
             .getNativeTypeface(FontWeight.Bold, FontStyle.Italic, FontSynthesis.All)
@@ -446,7 +491,7 @@ class AndroidTypefaceTest {
 
     @Test
     fun fontSynthesisStyle_synthesizeTheFontToItalic() {
-        val fontFamily = FontTestData.FONT_100_REGULAR.asFontFamily()
+        val fontFamily = FontTestData.FONT_100_REGULAR.toFontFamily()
 
         val typeface = androidTypefaceFromFontFamily(context, fontFamily)
             .getNativeTypeface(FontWeight.Bold, FontStyle.Italic, FontSynthesis.Style)
@@ -459,7 +504,7 @@ class AndroidTypefaceTest {
 
     @Test
     fun fontSynthesisWeight_synthesizeTheFontToBold() {
-        val fontFamily = FontTestData.FONT_100_REGULAR.asFontFamily()
+        val fontFamily = FontTestData.FONT_100_REGULAR.toFontFamily()
 
         val typeface = androidTypefaceFromFontFamily(context, fontFamily)
             .getNativeTypeface(FontWeight.Bold, FontStyle.Italic, FontSynthesis.Weight)
@@ -472,7 +517,7 @@ class AndroidTypefaceTest {
 
     @Test
     fun fontSynthesisStyle_forMatchingItalicDoesNotSynthesize() {
-        val fontFamily = FontTestData.FONT_100_ITALIC.asFontFamily()
+        val fontFamily = FontTestData.FONT_100_ITALIC.toFontFamily()
 
         val typeface = androidTypefaceFromFontFamily(context, fontFamily)
             .getNativeTypeface(FontWeight.W700, FontStyle.Italic, FontSynthesis.Style)
@@ -483,7 +528,7 @@ class AndroidTypefaceTest {
 
     @Test
     fun fontSynthesisAll_doesNotSynthesizeIfFontIsTheSame_beforeApi28() {
-        val fontFamily = FontTestData.FONT_700_ITALIC.asFontFamily()
+        val fontFamily = FontTestData.FONT_700_ITALIC.toFontFamily()
 
         val typeface = androidTypefaceFromFontFamily(context, fontFamily)
             .getNativeTypeface(FontWeight.W700, FontStyle.Italic, FontSynthesis.All)
@@ -501,7 +546,7 @@ class AndroidTypefaceTest {
 
     @Test
     fun fontSynthesisNone_doesNotSynthesize() {
-        val fontFamily = FontTestData.FONT_100_REGULAR.asFontFamily()
+        val fontFamily = FontTestData.FONT_100_REGULAR.toFontFamily()
 
         val typeface = androidTypefaceFromFontFamily(context, fontFamily)
             .getNativeTypeface(FontWeight.Bold, FontStyle.Italic, FontSynthesis.None)
@@ -512,7 +557,7 @@ class AndroidTypefaceTest {
 
     @Test
     fun fontSynthesisWeight_doesNotSynthesizeIfRequestedWeightIsLessThan600() {
-        val fontFamily = FontTestData.FONT_100_REGULAR.asFontFamily()
+        val fontFamily = FontTestData.FONT_100_REGULAR.toFontFamily()
 
         // Less than 600 is not synthesized
         val typeface500 = androidTypefaceFromFontFamily(context, fontFamily)
@@ -528,13 +573,19 @@ class AndroidTypefaceTest {
 
     @Test
     fun typefaceWrapper_returnsExactSameInstance() {
-        val typeface = typeface(Typeface.MONOSPACE) as AndroidTypefaceWrapper
+        val typeface = Typeface(android.graphics.Typeface.MONOSPACE) as AndroidTypefaceWrapper
         assertThat(
             typeface.getNativeTypeface(
                 FontWeight.Light,
                 FontStyle.Italic,
                 FontSynthesis.None
             )
-        ).isEqualTo(Typeface.MONOSPACE)
+        ).isEqualTo(android.graphics.Typeface.MONOSPACE)
     }
+}
+
+internal fun anyFontStyle(): FontStyle {
+    return Mockito.argThat { arg: Any ->
+        arg is Int || arg is FontStyle
+    } as FontStyle? ?: FontStyle.Normal
 }

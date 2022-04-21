@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-import androidx.build.LibraryGroups
-import androidx.build.LibraryVersions
 import androidx.build.Publish
-
-import static androidx.build.dependencies.DependenciesKt.getKOTLIN_STDLIB
 
 plugins {
     id("AndroidXPlugin")
@@ -27,20 +23,8 @@ plugins {
 }
 
 dependencies {
-    compileOnly KOTLIN_STDLIB
-
+    api(libs.kotlinStdlib)
     lintPublish(project(":annotation:annotation-experimental-lint"))
-}
-
-android {
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
-    }
-
-    buildTypes.all {
-        consumerProguardFiles("proguard-rules.pro")
-    }
 }
 
 androidx {
@@ -52,4 +36,8 @@ androidx {
     description = "Java annotation for use on unstable Android API surfaces. When used in " +
             "conjunction with the Experimental annotation lint checks, this annotation provides " +
             "functional parity with Kotlin's Experimental annotation."
+}
+
+android {
+    namespace "androidx.annotation.experimental"
 }

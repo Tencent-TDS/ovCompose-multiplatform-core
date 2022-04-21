@@ -16,7 +16,6 @@
 
 package androidx.webkit.internal;
 
-import android.annotation.SuppressLint;
 import android.webkit.ServiceWorkerController;
 
 import androidx.annotation.NonNull;
@@ -39,7 +38,6 @@ public class ServiceWorkerControllerImpl extends ServiceWorkerControllerCompat {
     private ServiceWorkerControllerBoundaryInterface mBoundaryInterface;
     private final ServiceWorkerWebSettingsCompat mWebSettings;
 
-    @SuppressLint("NewApi")
     public ServiceWorkerControllerImpl() {
         final WebViewFeatureInternal feature = WebViewFeatureInternal.SERVICE_WORKER_BASIC_USAGE;
         if (feature.isSupportedByFramework()) {
@@ -80,16 +78,24 @@ public class ServiceWorkerControllerImpl extends ServiceWorkerControllerCompat {
         return mWebSettings;
     }
 
-    @SuppressLint("NewApi")
     @Override
     public void setServiceWorkerClient(@Nullable ServiceWorkerClientCompat client)  {
         final WebViewFeatureInternal feature = WebViewFeatureInternal.SERVICE_WORKER_BASIC_USAGE;
         if (feature.isSupportedByFramework()) {
-            getFrameworksImpl().setServiceWorkerClient(new FrameworkServiceWorkerClient(client));
+            if (client == null) {
+                getFrameworksImpl().setServiceWorkerClient(null);
+            } else {
+                getFrameworksImpl().setServiceWorkerClient(
+                        new FrameworkServiceWorkerClient(client));
+            }
         } else if (feature.isSupportedByWebView()) {
-            getBoundaryInterface().setServiceWorkerClient(
-                    BoundaryInterfaceReflectionUtil.createInvocationHandlerFor(
-                            new ServiceWorkerClientAdapter(client)));
+            if (client == null) {
+                getBoundaryInterface().setServiceWorkerClient(null);
+            } else {
+                getBoundaryInterface().setServiceWorkerClient(
+                        BoundaryInterfaceReflectionUtil.createInvocationHandlerFor(
+                                new ServiceWorkerClientAdapter(client)));
+            }
         } else {
             throw WebViewFeatureInternal.getUnsupportedOperationException();
         }

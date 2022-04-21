@@ -14,21 +14,26 @@
  * limitations under the License.
  */
 
+@file:RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+
 package androidx.camera.camera2.pipe.integration.adapter
 
 import android.annotation.SuppressLint
 import android.hardware.camera2.CameraCharacteristics
 import android.util.Range
 import android.util.Rational
+import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraMetadata
+import androidx.camera.camera2.pipe.integration.impl.CameraProperties
 import androidx.camera.core.ExposureState
 
-internal val EMPTY_RANGE = Range(0, 0)
+internal val EMPTY_RANGE: Range<Int> = Range(0, 0)
 
 /** Adapt [ExposureState] to a [CameraMetadata] instance. */
-@SuppressLint("UnsafeExperimentalUsageError")
+@SuppressLint("UnsafeOptInUsageError")
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 class ExposureStateAdapter(
-    private val cameraMetadata: CameraMetadata,
+    private val cameraProperties: CameraProperties,
     private val exposureCompensation: Int
 ) : ExposureState {
     override fun isExposureCompensationSupported(): Boolean {
@@ -41,11 +46,11 @@ class ExposureStateAdapter(
         if (!isExposureCompensationSupported) {
             return Rational.ZERO
         }
-        return cameraMetadata[CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP]!!
+        return cameraProperties.metadata[CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP]!!
     }
 
     override fun getExposureCompensationRange(): Range<Int> {
-        return cameraMetadata[CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE]
+        return cameraProperties.metadata[CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE]
             ?: EMPTY_RANGE
     }
 }

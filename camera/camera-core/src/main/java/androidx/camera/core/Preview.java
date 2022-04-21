@@ -17,6 +17,7 @@
 package androidx.camera.core;
 
 import static androidx.camera.core.impl.ImageInputConfig.OPTION_INPUT_FORMAT;
+import static androidx.camera.core.impl.ImageOutputConfig.OPTION_APP_TARGET_ROTATION;
 import static androidx.camera.core.impl.PreviewConfig.IMAGE_INFO_PROCESSOR;
 import static androidx.camera.core.impl.PreviewConfig.OPTION_BACKGROUND_EXECUTOR;
 import static androidx.camera.core.impl.PreviewConfig.OPTION_CAPTURE_CONFIG_UNPACKER;
@@ -25,6 +26,7 @@ import static androidx.camera.core.impl.PreviewConfig.OPTION_DEFAULT_RESOLUTION;
 import static androidx.camera.core.impl.PreviewConfig.OPTION_DEFAULT_SESSION_CONFIG;
 import static androidx.camera.core.impl.PreviewConfig.OPTION_MAX_RESOLUTION;
 import static androidx.camera.core.impl.PreviewConfig.OPTION_PREVIEW_CAPTURE_PROCESSOR;
+import static androidx.camera.core.impl.PreviewConfig.OPTION_RGBA8888_SURFACE_REQUIRED;
 import static androidx.camera.core.impl.PreviewConfig.OPTION_SESSION_CONFIG_UNPACKER;
 import static androidx.camera.core.impl.PreviewConfig.OPTION_SUPPORTED_RESOLUTIONS;
 import static androidx.camera.core.impl.PreviewConfig.OPTION_SURFACE_OCCUPANCY_PRIORITY;
@@ -53,13 +55,14 @@ import android.view.TextureView;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.annotation.UiThread;
 import androidx.annotation.VisibleForTesting;
-import androidx.annotation.experimental.UseExperimental;
 import androidx.camera.core.impl.CameraCaptureCallback;
 import androidx.camera.core.impl.CameraCaptureResult;
+import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.CameraInternal;
 import androidx.camera.core.impl.CaptureConfig;
 import androidx.camera.core.impl.CaptureProcessor;
@@ -83,6 +86,7 @@ import androidx.camera.core.internal.CameraCaptureResultImageInfo;
 import androidx.camera.core.internal.TargetConfig;
 import androidx.camera.core.internal.ThreadConfig;
 import androidx.core.util.Consumer;
+import androidx.lifecycle.LifecycleOwner;
 
 import java.util.List;
 import java.util.UUID;
@@ -131,6 +135,7 @@ import java.util.concurrent.Executor;
  *     </code>
  * </pre>
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class Preview extends UseCase {
 
     ////////////////////////////////////////////////////////////////////////////////////////////
@@ -189,7 +194,6 @@ public final class Preview extends UseCase {
     }
 
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
-    @UseExperimental(markerClass = ExperimentalUseCaseGroup.class)
     SessionConfig.Builder createPipeline(@NonNull String cameraId, @NonNull PreviewConfig config,
             @NonNull Size resolution) {
         Threads.checkMainThread();
@@ -201,8 +205,9 @@ public final class Preview extends UseCase {
             mSessionDeferrableSurface.close();
         }
 
+        boolean isRGBA8888SurfaceRequired = config.isRgba8888SurfaceRequired(false);
         final SurfaceRequest surfaceRequest = new SurfaceRequest(resolution, getCamera(),
-                captureProcessor != null);
+                isRGBA8888SurfaceRequired);
         mCurrentSurfaceRequest = surfaceRequest;
 
         if (sendSurfaceRequestIfReady()) {
@@ -297,14 +302,12 @@ public final class Preview extends UseCase {
      *                       {@link Surface#ROTATION_180}, or {@link Surface#ROTATION_270}.
      * @see Preview.Builder#setTargetRotation(int)
      */
-    @ExperimentalUseCaseGroup
     public void setTargetRotation(@ImageOutputConfig.RotationValue int targetRotation) {
         if (setTargetRotationInternal(targetRotation)) {
             sendTransformationInfoIfReady();
         }
     }
 
-    @ExperimentalUseCaseGroup
     private void sendTransformationInfoIfReady() {
         // TODO(b/159659392): only send transformation after CameraCaptureCallback
         //  .onCaptureCompleted is called.
@@ -314,7 +317,7 @@ public final class Preview extends UseCase {
         SurfaceRequest surfaceRequest = mCurrentSurfaceRequest;
         if (cameraInternal != null && surfaceProvider != null && cropRect != null) {
             surfaceRequest.updateTransformationInfo(SurfaceRequest.TransformationInfo.of(cropRect,
-                    getRelativeRotation(cameraInternal), getTargetRotation()));
+                    getRelativeRotation(cameraInternal), getAppTargetRotation()));
         }
     }
 
@@ -348,7 +351,6 @@ public final class Preview extends UseCase {
      *                        {@link #setSurfaceProvider(SurfaceProvider)}.
      */
     @UiThread
-    @UseExperimental(markerClass = ExperimentalUseCaseGroup.class)
     public void setSurfaceProvider(@NonNull Executor executor,
             @Nullable SurfaceProvider surfaceProvider) {
         Threads.checkMainThread();
@@ -431,6 +433,28 @@ public final class Preview extends UseCase {
         return getTargetRotationInternal();
     }
 
+    /**
+     * Gets selected resolution information of the {@link Preview}.
+     *
+     * <p>The returned {@link ResolutionInfo} will be expressed in the coordinates of the camera
+     * sensor. It will be the same as the resolution inside a {@link SurfaceRequest} to request a
+     * surface for {@link Preview}.
+     *
+     * <p>The resolution information might change if the use case is unbound and then rebound or
+     * {@link #setTargetRotation(int)} is called to change the target rotation setting. The
+     * application needs to call {@link #getResolutionInfo()} again to get the latest
+     * {@link ResolutionInfo} for the changes.
+     *
+     * @return the resolution information if the use case has been bound by the
+     * {@link androidx.camera.lifecycle.ProcessCameraProvider#bindToLifecycle(LifecycleOwner
+     * , CameraSelector, UseCase...)} API, or null if the use case is not bound yet.
+     */
+    @Nullable
+    @Override
+    public ResolutionInfo getResolutionInfo() {
+        return super.getResolutionInfo();
+    }
+
     @NonNull
     @Override
     public String toString() {
@@ -447,7 +471,9 @@ public final class Preview extends UseCase {
     @Nullable
     public UseCaseConfig<?> getDefaultConfig(boolean applyDefaultConfig,
             @NonNull UseCaseConfigFactory factory) {
-        Config captureConfig = factory.getConfig(UseCaseConfigFactory.CaptureType.PREVIEW);
+        Config captureConfig = factory.getConfig(
+                UseCaseConfigFactory.CaptureType.PREVIEW,
+                ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY);
 
         if (applyDefaultConfig) {
             captureConfig = Config.mergeConfigs(captureConfig, DEFAULT_CONFIG.getConfig());
@@ -465,7 +491,8 @@ public final class Preview extends UseCase {
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
     @Override
-    UseCaseConfig<?> onMergeConfig(@NonNull UseCaseConfig.Builder<?, ?, ?> builder) {
+    protected UseCaseConfig<?> onMergeConfig(@NonNull CameraInfoInternal cameraInfo,
+            @NonNull UseCaseConfig.Builder<?, ?, ?> builder) {
         if (builder.getMutableConfig().retrieveOption(OPTION_PREVIEW_CAPTURE_PROCESSOR, null)
                 != null) {
             builder.getMutableConfig().insertOption(OPTION_INPUT_FORMAT, ImageFormat.YUV_420_888);
@@ -524,7 +551,6 @@ public final class Preview extends UseCase {
      * @hide
      */
     @Override
-    @UseExperimental(markerClass = ExperimentalUseCaseGroup.class)
     @RestrictTo(Scope.LIBRARY)
     public void setViewPortCropRect(@NonNull Rect viewPortCropRect) {
         super.setViewPortCropRect(viewPortCropRect);
@@ -551,7 +577,7 @@ public final class Preview extends UseCase {
          * <p>A request is considered active until it is
          *
          * {@linkplain SurfaceRequest#provideSurface(Surface, Executor, androidx.core.util.Consumer)
-         * fulfilled}, {@linkplain SurfaceRequest#willNotProvideSurface()} marked as 'will not
+         * fulfilled}, {@linkplain SurfaceRequest#willNotProvideSurface() marked as 'will not
          * complete'}, or
          * {@linkplain SurfaceRequest#addRequestCancellationListener(Executor, Runnable) cancelled
          * by the camera}. After one of these conditions occurs, a request is considered completed.
@@ -628,6 +654,7 @@ public final class Preview extends UseCase {
     }
 
     /** Builder for a {@link Preview}. */
+    @SuppressWarnings("ObjectToString")
     public static final class Builder
             implements UseCaseConfig.Builder<Preview, PreviewConfig, Builder>,
             ImageOutputConfig.Builder<Builder>,
@@ -832,6 +859,9 @@ public final class Preview extends UseCase {
         @Override
         public Builder setTargetRotation(@ImageOutputConfig.RotationValue int rotation) {
             getMutableConfig().insertOption(OPTION_TARGET_ROTATION, rotation);
+            // This app specific target rotation will be sent to PreviewView (or other
+            // SurfaceProvider) to transform the preview accordingly.
+            getMutableConfig().insertOption(OPTION_APP_TARGET_ROTATION, rotation);
             return this;
         }
 
@@ -861,7 +891,15 @@ public final class Preview extends UseCase {
          * output stream under 1080p.
          *
          * <p>If not set, the default selected resolution will be the best size match to the
-         * device's screen resolution, or to 1080p (1920x1080), whichever is smaller.
+         * device's screen resolution, or to 1080p (1920x1080), whichever is smaller. Note that
+         * due to compatibility reasons, CameraX may select a resolution that is larger than the
+         * default screen resolution on certain devices.
+         *
+         * <p>When using the <code>camera-camera2</code> CameraX implementation, which resolution
+         * will be finally selected will depend on the camera device's hardware level and the
+         * bound use cases combination. For more details see the guaranteed supported
+         * configurations tables in {@link android.hardware.camera2.CameraDevice}'s
+         * <a href="https://developer.android.com/reference/android/hardware/camera2/CameraDevice#regular-capture">Regular capture</a> section.
          *
          * @param resolution The target resolution to choose from supported output sizes list.
          * @return The current Builder.
@@ -992,6 +1030,18 @@ public final class Preview extends UseCase {
         public Builder setUseCaseEventCallback(
                 @NonNull UseCase.EventCallback useCaseEventCallback) {
             getMutableConfig().insertOption(OPTION_USE_CASE_EVENT_CALLBACK, useCaseEventCallback);
+            return this;
+        }
+
+        /**
+         * Sets if the surface requires RGBA8888 format.
+         * @hide
+         */
+        @RestrictTo(Scope.LIBRARY_GROUP)
+        @NonNull
+        public Builder setIsRgba8888SurfaceRequired(boolean isRgba8888SurfaceRequired) {
+            getMutableConfig().insertOption(
+                    OPTION_RGBA8888_SURFACE_REQUIRED, isRgba8888SurfaceRequired);
             return this;
         }
 

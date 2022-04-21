@@ -111,10 +111,10 @@ fun createSingleTestConfig(activity: MainActivity): TestConfig {
             }
         }
 
-        api = CameraAPI.valueOf(PrefHelper.getSingleTestApi(activity).toUpperCase())
-        focusMode = FocusMode.valueOf(PrefHelper.getSingleTestFocus(activity).toUpperCase())
+        api = CameraAPI.valueOf(PrefHelper.getSingleTestApi(activity).uppercase())
+        focusMode = FocusMode.valueOf(PrefHelper.getSingleTestFocus(activity).uppercase())
         imageCaptureSize =
-            ImageCaptureSize.valueOf(PrefHelper.getSingleTestImageSize(activity).toUpperCase())
+            ImageCaptureSize.valueOf(PrefHelper.getSingleTestImageSize(activity).uppercase())
         camera = PrefHelper.getSingleTestCamera(activity)
         config.setupTestResults()
     }
@@ -610,6 +610,7 @@ fun getMainCamera(activity: MainActivity, allTestResults: ArrayList<TestResults>
 /**
  * Return the version name of the Activity
  */
+@Suppress("DEPRECATION")
 fun getVersionName(activity: MainActivity): String {
     val packageInfo = activity.packageManager.getPackageInfo(activity.packageName, 0)
     return packageInfo.versionName

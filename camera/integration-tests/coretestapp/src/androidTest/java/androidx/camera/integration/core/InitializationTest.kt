@@ -17,6 +17,9 @@
 package androidx.camera.integration.core
 
 import android.content.Context
+import android.content.Intent
+import androidx.camera.camera2.Camera2Config
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.testing.CameraUtil
 import androidx.camera.testing.CoreAppTestUtil
 import androidx.concurrent.futures.await
@@ -30,13 +33,14 @@ import androidx.test.rule.GrantPermissionRule
 import androidx.testutils.LocaleTestUtils
 import androidx.testutils.withActivity
 import com.google.common.truth.Truth.assertThat
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.AfterClass
 import org.junit.Assume
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
@@ -44,7 +48,9 @@ import org.junit.runners.Parameterized
 @RunWith(Parameterized::class)
 class InitializationTest(private val config: TestConfig) {
     @get:Rule
-    val useCamera: TestRule = CameraUtil.grantCameraPermissionAndPreTest()
+    val useCamera = CameraUtil.grantCameraPermissionAndPreTest(
+        CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
+    )
     @get:Rule
     val storagePermissionRule: GrantPermissionRule =
         GrantPermissionRule.grant(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -69,6 +75,14 @@ class InitializationTest(private val config: TestConfig) {
                 .map { orientation ->
                     TestConfig(orientation)
                 }
+        }
+
+        @AfterClass
+        @JvmStatic
+        fun shutdownCameraX() {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val cameraProvider = ProcessCameraProvider.getInstance(context)[10, TimeUnit.SECONDS]
+            cameraProvider.shutdown()[10, TimeUnit.SECONDS]
         }
     }
 
@@ -100,10 +114,20 @@ class InitializationTest(private val config: TestConfig) {
     }
 
     // Use auto-initialization in various locales to ensure the CameraXConfig.Provider which is
-    // provided by resources is not translated.
+    // provided by meta-data is not translated.
     @Test
     fun canAutoInitialize() {
-        with(ActivityScenario.launch(CameraXActivity::class.java)) {
+        val intent = Intent(
+            ApplicationProvider.getApplicationContext<Context>(),
+            CameraXActivity::class.java
+        ).apply {
+            putExtra(
+                CameraXActivity.INTENT_EXTRA_CAMERA_IMPLEMENTATION,
+                // Ensure default config provider is used for camera implementation
+                CameraXViewModel.IMPLICIT_IMPLEMENTATION_OPTION
+            )
+        }
+        with(ActivityScenario.launch<CameraXActivity>(intent)) {
             use {
                 val initIdlingResource = withActivity { initializationIdlingResource }
 

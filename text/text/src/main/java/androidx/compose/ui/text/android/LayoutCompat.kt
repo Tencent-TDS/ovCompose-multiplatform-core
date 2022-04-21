@@ -105,7 +105,7 @@ object LayoutCompat {
 
     internal const val DEFAULT_LINESPACING_EXTRA = 0.0f
 
-    internal const val DEFAULT_INCLUDE_PADDING = true
+    internal const val DEFAULT_INCLUDE_PADDING = false
 
     internal const val DEFAULT_MAX_LINES = Integer.MAX_VALUE
 
@@ -152,9 +152,9 @@ fun Layout.getLineForOffset(@IntRange(from = 0) offset: Int, upstream: Boolean):
         return downstreamLineNo
     }
 
-    if (lineStart == offset) {
-        return if (upstream) downstreamLineNo - 1 else downstreamLineNo
+    return if (lineStart == offset) {
+        if (upstream) downstreamLineNo - 1 else downstreamLineNo
     } else { // lineEnd == offset
-        return if (upstream) downstreamLineNo else downstreamLineNo + 1
+        if (upstream) downstreamLineNo else downstreamLineNo + 1
     }
 }

@@ -16,7 +16,7 @@
 
 package androidx.compose.ui.graphics
 
-import androidx.compose.ui.util.annotation.FloatRange
+import androidx.compose.ui.unit.Density
 
 /**
  * Default camera distance for all layers
@@ -24,11 +24,16 @@ import androidx.compose.ui.util.annotation.FloatRange
 const val DefaultCameraDistance = 8.0f
 
 /**
+ * Default ambient shadow color for all layers.
+ */
+val DefaultShadowColor = Color.Black
+
+/**
  * A scope which can be used to define the effects to apply for the content, such as scaling
  * ([scaleX], [scaleY]), rotation ([rotationX], [rotationY], [rotationZ]), opacity ([alpha]), shadow
  * ([shadowElevation], [shape]), and clipping ([clip], [shape]).
  */
-interface GraphicsLayerScope {
+interface GraphicsLayerScope : Density {
     /**
      * The horizontal scale of the drawn area. Default value is `1`.
      */
@@ -42,9 +47,10 @@ interface GraphicsLayerScope {
     /**
      * The alpha of the drawn area. Setting this to something other than `1`
      * will cause the drawn contents to be translucent and setting it to `0` will
-     * cause it to be fully invisible. Default value is `1`.
+     * cause it to be fully invisible. Default value is `1` and the range is between
+     * `0` and `1`.
      */
-    @setparam:FloatRange(from = 0.0, to = 1.0)
+    /*@setparam:FloatRange(from = 0.0, to = 1.0)*/
     var alpha: Float
 
     /**
@@ -59,27 +65,73 @@ interface GraphicsLayerScope {
 
     /**
      * Sets the elevation for the shadow in pixels. With the [shadowElevation] > 0f and
-     * [shape] set, a shadow is produced. Default value is `0
+     * [shape] set, a shadow is produced. Default value is `0` and the value must not be
+     * negative.
+     *
+     * Note that if you provide a non-zero [shadowElevation] and if the passed [shape] is concave the
+     * shadow will not be drawn on Android versions less than 10.
      */
-    @setparam:FloatRange(from = 0.0, to = 3.4e38 /* POSITIVE_INFINITY */)
+    /*@setparam:FloatRange(from = 0.0)*/
     var shadowElevation: Float
 
     /**
-     * The rotation of the contents around the horizontal axis in degrees. Default value is `0
+     * Sets the color of the ambient shadow that is drawn when [shadowElevation] > 0f.
+     *
+     * By default the shadow color is black. Generally, this color will be opaque so the intensity
+     * of the shadow is consistent between different graphics layers with different colors.
+     *
+     * The opacity of the final ambient shadow is a function of the shadow caster height, the
+     * alpha channel of the [ambientShadowColor] (typically opaque), and the
+     * [android.R.attr.ambientShadowAlpha] theme attribute.
+     *
+     * Note that this parameter is only supported on Android 9 (Pie) and above. On older versions,
+     * this property always returns [Color.Black] and setting new values is ignored.
      */
-    @setparam:FloatRange(from = 0.0, to = 360.0)
+    // Add default getter/setter implementation to avoid breaking api changes due to abstract
+    // method additions. ReusableGraphicsLayer is the only implementation anyway.
+    var ambientShadowColor: Color
+        get() = DefaultShadowColor
+        // Keep the parameter name so current.txt maintains it for named parameter usage
+        @Suppress("UNUSED_PARAMETER")
+        set(ambientShadowColor) {}
+
+    /**
+     * Sets the color of the spot shadow that is drawn when [shadowElevation] > 0f.
+     *
+     * By default the shadow color is black. Generally, this color will be opaque so the intensity
+     * of the shadow is consistent between different graphics layers with different colors.
+     *
+     * The opacity of the final spot shadow is a function of the shadow caster height, the
+     * alpha channel of the [spotShadowColor] (typically opaque), and the
+     * [android.R.attr.spotShadowAlpha] theme attribute.
+     *
+     * Note that this parameter is only supported on Android 9 (Pie) and above. On older versions,
+     * this property always returns [Color.Black] and setting new values is ignored.
+     */
+    // Add default getter/setter implementation to avoid breaking api changes due to abstract
+    // method additions. ReusableGraphicsLayer is the only implementation anyway.
+    var spotShadowColor: Color
+        get() = DefaultShadowColor
+        // Keep the parameter name so current.txt maintains it for named parameter usage
+        @Suppress("UNUSED_PARAMETER")
+        set(spotShadowColor) {}
+
+    /**
+     * The rotation, in degrees, of the contents around the horizontal axis in degrees. Default
+     * value is `0`.
+     */
     var rotationX: Float
 
     /**
-     * The rotation of the contents around the vertical axis in degrees. Default value is `0
+     * The rotation, in degrees, of the contents around the vertical axis in degrees. Default
+     * value is `0`.
      */
-    @setparam:FloatRange(from = 0.0, to = 360.0)
     var rotationY: Float
 
     /**
-     * The rotation of the contents around the Z axis in degrees. Default value is `0
+     * The rotation, in degrees, of the contents around the Z axis in degrees. Default value is
+     * `0`.
      */
-    @setparam:FloatRange(from = 0.0, to = 360.0)
     var rotationZ: Float
 
     /**
@@ -103,7 +155,7 @@ interface GraphicsLayerScope {
      * The distance is expressed in pixels and must always be positive.
      * Default value is [DefaultCameraDistance]
      */
-    @setparam:FloatRange(from = 0.0, to = 3.4e38 /* POSITIVE_INFINITY */)
+    /*@setparam:FloatRange(from = 0.0)*/
     var cameraDistance: Float
 
     /**
@@ -126,7 +178,22 @@ interface GraphicsLayerScope {
      * Set to `true` to clip the content to the [shape].
      * Default value is `false`
      */
+    @Suppress("GetterSetterNames")
+    @get:Suppress("GetterSetterNames")
     var clip: Boolean
+
+    /**
+     * Configure the [RenderEffect] to apply to this [GraphicsLayerScope].
+     * This will apply a visual effect to the results of the [GraphicsLayerScope] before it is
+     * drawn. For example if [BlurEffect] is provided, the contents will be drawn in a separate
+     * layer, then this layer will be blurred when this [GraphicsLayerScope] is drawn.
+     *
+     * Note this parameter is only supported on Android 12
+     * and above. Attempts to use this Modifier on older Android versions will be ignored.
+     */
+    var renderEffect: RenderEffect?
+        get() = null
+        set(_) {}
 }
 
 /**
@@ -141,6 +208,8 @@ internal class ReusableGraphicsLayerScope : GraphicsLayerScope {
     override var translationX: Float = 0f
     override var translationY: Float = 0f
     override var shadowElevation: Float = 0f
+    override var ambientShadowColor: Color = DefaultShadowColor
+    override var spotShadowColor: Color = DefaultShadowColor
     override var rotationX: Float = 0f
     override var rotationY: Float = 0f
     override var rotationZ: Float = 0f
@@ -149,6 +218,16 @@ internal class ReusableGraphicsLayerScope : GraphicsLayerScope {
     override var shape: Shape = RectangleShape
     override var clip: Boolean = false
 
+    internal var graphicsDensity: Density = Density(1.0f)
+
+    override val density: Float
+        get() = graphicsDensity.density
+
+    override val fontScale: Float
+        get() = graphicsDensity.fontScale
+
+    override var renderEffect: RenderEffect? = null
+
     fun reset() {
         scaleX = 1f
         scaleY = 1f
@@ -156,6 +235,8 @@ internal class ReusableGraphicsLayerScope : GraphicsLayerScope {
         translationX = 0f
         translationY = 0f
         shadowElevation = 0f
+        ambientShadowColor = DefaultShadowColor
+        spotShadowColor = DefaultShadowColor
         rotationX = 0f
         rotationY = 0f
         rotationZ = 0f
@@ -163,5 +244,6 @@ internal class ReusableGraphicsLayerScope : GraphicsLayerScope {
         transformOrigin = TransformOrigin.Center
         shape = RectangleShape
         clip = false
+        renderEffect = null
     }
 }

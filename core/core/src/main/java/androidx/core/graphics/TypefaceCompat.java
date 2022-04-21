@@ -16,9 +16,9 @@
 
 package androidx.core.graphics;
 
+import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Typeface;
@@ -42,7 +42,6 @@ import androidx.core.provider.FontsContractCompat.FontInfo;
 /**
  * Helper for accessing features in {@link Typeface}.
  */
-@SuppressLint("NewApi")  // TODO: Remove this suppression once Q SDK is released.
 public class TypefaceCompat {
     private static final TypefaceCompatBaseImpl sTypefaceCompatImpl;
     static {
@@ -76,9 +75,24 @@ public class TypefaceCompat {
      * @hide
      */
     @Nullable
+    @RestrictTo(LIBRARY)
+    public static Typeface findFromCache(@NonNull Resources resources, int id,
+            @Nullable String path, int cookie, int style) {
+        return sTypefaceCache.get(createResourceUid(resources, id, path, cookie, style));
+    }
+
+    /**
+     * Find from internal cache.
+     *
+     * @return null if not found.
+     * @hide
+     * @deprecated Use {@link #findFromCache(Resources, int, String, int, int)} method
+     */
+    @Nullable
     @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @Deprecated
     public static Typeface findFromCache(@NonNull Resources resources, int id, int style) {
-        return sTypefaceCache.get(createResourceUid(resources, id, style));
+        return findFromCache(resources, id, null, 0, style);
     }
 
     /**
@@ -89,8 +103,33 @@ public class TypefaceCompat {
      * @param style style to be used for this resource, -1 if not available.
      * @return Unique id for a given resource and id.
      */
-    private static String createResourceUid(final Resources resources, int id, int style) {
-        return resources.getResourcePackageName(id) + "-" + id + "-" + style;
+    private static String createResourceUid(final Resources resources, int id, String path,
+            int cookie, int style) {
+        return new StringBuilder(
+                resources.getResourcePackageName(id))
+                .append('-')
+                .append(path)
+                .append('-')
+                .append(cookie)
+                .append('-')
+                .append(id)
+                .append('-')
+                .append(style)
+                .toString();
+    }
+
+    /**
+     * Returns Typeface if the system has the font family with the name [familyName]. For example
+     * querying with "sans-serif" would check if the "sans-serif" family is defined in the system
+     * and return the Typeface if so.
+     *
+     * @param familyName The name of the font family.
+     */
+    private static Typeface getSystemFontFamily(@Nullable String familyName) {
+        if (familyName == null || familyName.isEmpty()) return null;
+        Typeface typeface = Typeface.create(familyName, Typeface.NORMAL);
+        Typeface defaultTypeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL);
+        return typeface != null && !typeface.equals(defaultTypeface) ? typeface : null;
     }
 
     /**
@@ -100,23 +139,37 @@ public class TypefaceCompat {
      * @hide
      */
     @Nullable
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY)
     public static Typeface createFromResourcesFamilyXml(
             @NonNull Context context, @NonNull FamilyResourceEntry entry,
-            @NonNull Resources resources, int id, int style,
+            @NonNull Resources resources, int id, @Nullable String path,
+            int cookie, int style,
             @Nullable ResourcesCompat.FontCallback fontCallback, @Nullable Handler handler,
             boolean isRequestFromLayoutInflator) {
         Typeface typeface;
         if (entry instanceof ProviderResourceEntry) {
             ProviderResourceEntry providerEntry = (ProviderResourceEntry) entry;
+
+            Typeface fontFamilyTypeface = getSystemFontFamily(
+                    providerEntry.getSystemFontFamilyName());
+            if (fontFamilyTypeface != null) {
+                if (fontCallback != null) {
+                    fontCallback.callbackSuccessAsync(fontFamilyTypeface, handler);
+                }
+                return fontFamilyTypeface;
+            }
+
             final boolean isBlocking = isRequestFromLayoutInflator
                     ? providerEntry.getFetchStrategy()
                     == FontResourcesParserCompat.FETCH_STRATEGY_BLOCKING
                     : fontCallback == null;
             final int timeout = isRequestFromLayoutInflator ? providerEntry.getTimeout()
                     : FontResourcesParserCompat.INFINITE_TIMEOUT_VALUE;
-            typeface = FontsContractCompat.getFontSync(context, providerEntry.getRequest(),
-                    fontCallback, handler, isBlocking, timeout, style);
+
+            Handler newHandler = ResourcesCompat.FontCallback.getHandler(handler);
+            ResourcesCallbackAdapter newCallback = new ResourcesCallbackAdapter(fontCallback);
+            typeface = FontsContractCompat.requestFont(context, providerEntry.getRequest(),
+                    style, isBlocking, timeout, newHandler, newCallback);
         } else {
             typeface = sTypefaceCompatImpl.createFromFontFamilyFilesResourceEntry(
                     context, (FontFamilyFilesResourceEntry) entry, resources, style);
@@ -131,9 +184,29 @@ public class TypefaceCompat {
             }
         }
         if (typeface != null) {
-            sTypefaceCache.put(createResourceUid(resources, id, style), typeface);
+            sTypefaceCache.put(createResourceUid(resources, id, path, cookie, style), typeface);
         }
         return typeface;
+    }
+
+    /**
+     * Create Typeface from XML resource which root node is font-family.
+     *
+     * @return null if failed to create.
+     * @hide
+     * @deprecated Use {@link #createFromResourcesFamilyXml(Context, FamilyResourceEntry,
+     * Resources, int, String, int, int, ResourcesCompat.FontCallback, Handler, boolean)} method
+     */
+    @Nullable
+    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @Deprecated
+    public static Typeface createFromResourcesFamilyXml(
+            @NonNull Context context, @NonNull FamilyResourceEntry entry,
+            @NonNull Resources resources, int id, int style,
+            @Nullable ResourcesCompat.FontCallback fontCallback, @Nullable Handler handler,
+            boolean isRequestFromLayoutInflator) {
+        return createFromResourcesFamilyXml(context, entry, resources, id, null, 0, style,
+                fontCallback, handler, isRequestFromLayoutInflator);
     }
 
     /**
@@ -141,17 +214,32 @@ public class TypefaceCompat {
      * @hide
      */
     @Nullable
-    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @RestrictTo(LIBRARY)
     public static Typeface createFromResourcesFontFile(
-            @NonNull Context context, @NonNull Resources resources, int id, String path,
+            @NonNull Context context, @NonNull Resources resources, int id, String path, int cookie,
             int style) {
         Typeface typeface = sTypefaceCompatImpl.createFromResourcesFontFile(
                 context, resources, id, path, style);
         if (typeface != null) {
-            final String resourceUid = createResourceUid(resources, id, style);
+            final String resourceUid = createResourceUid(resources, id, path, cookie, style);
             sTypefaceCache.put(resourceUid, typeface);
         }
         return typeface;
+    }
+
+    /**
+     * Used by Resources to load a font resource of type font file.
+     * @hide
+     * @deprecated Use {@link #createFromResourcesFontFile(Context, Resources, int, String,
+     * int, int)} method
+     */
+    @Nullable
+    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @Deprecated
+    public static Typeface createFromResourcesFontFile(
+            @NonNull Context context, @NonNull Resources resources, int id, String path,
+            int style) {
+        return createFromResourcesFontFile(context, resources, id, path, 0, style);
     }
 
     /**
@@ -214,5 +302,38 @@ public class TypefaceCompat {
     @VisibleForTesting
     public static void clearCache() {
         sTypefaceCache.evictAll();
+    }
+
+    /**
+     * Converts {@link androidx.core.provider.FontsContractCompat.FontRequestCallback} callback
+     * functions into {@link androidx.core.content.res.ResourcesCompat.FontCallback} equivalents.
+     *
+     * RestrictTo(LIBRARY) since it is used by the deprecated
+     * {@link FontsContractCompat#getFontSync} function.
+     *
+     * @hide
+     */
+    @RestrictTo(LIBRARY)
+    public static class ResourcesCallbackAdapter extends FontsContractCompat.FontRequestCallback {
+        @Nullable
+        private ResourcesCompat.FontCallback mFontCallback;
+
+        public ResourcesCallbackAdapter(@Nullable ResourcesCompat.FontCallback fontCallback) {
+            mFontCallback = fontCallback;
+        }
+
+        @Override
+        public void onTypefaceRetrieved(@NonNull Typeface typeface) {
+            if (mFontCallback != null) {
+                mFontCallback.onFontRetrieved(typeface);
+            }
+        }
+
+        @Override
+        public void onTypefaceRequestFailed(int reason) {
+            if (mFontCallback != null) {
+                mFontCallback.onFontRetrievalFailed(reason);
+            }
+        }
     }
 }

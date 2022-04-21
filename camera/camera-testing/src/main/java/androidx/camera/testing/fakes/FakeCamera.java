@@ -22,6 +22,7 @@ import android.view.Surface;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.camera.core.Logger;
 import androidx.camera.core.UseCase;
 import androidx.camera.core.impl.CameraControlInternal;
@@ -31,8 +32,6 @@ import androidx.camera.core.impl.CaptureConfig;
 import androidx.camera.core.impl.DeferrableSurface;
 import androidx.camera.core.impl.LiveDataObservable;
 import androidx.camera.core.impl.Observable;
-import androidx.camera.core.impl.Quirk;
-import androidx.camera.core.impl.Quirks;
 import androidx.camera.core.impl.SessionConfig;
 import androidx.camera.core.impl.UseCaseAttachState;
 import androidx.camera.core.impl.utils.futures.Futures;
@@ -51,6 +50,7 @@ import java.util.Set;
 /**
  * A fake camera which will not produce any data, but provides a valid Camera implementation.
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class FakeCamera implements CameraInternal {
     private static final String TAG = "FakeCamera";
     private static final String DEFAULT_CAMERA_ID = "0";
@@ -66,14 +66,8 @@ public class FakeCamera implements CameraInternal {
 
     @Nullable
     private SessionConfig mSessionConfig;
-    @SuppressWarnings("WeakerAccess") /* synthetic accessor */
-    @Nullable
-    SessionConfig mCameraControlSessionConfig;
 
     private List<DeferrableSurface> mConfiguredDeferrableSurfaces = Collections.emptyList();
-
-    @NonNull
-    private final List<Quirk> mCameraQuirks = Collections.emptyList();
 
     public FakeCamera() {
         this(DEFAULT_CAMERA_ID, /*cameraControl=*/null,
@@ -97,9 +91,7 @@ public class FakeCamera implements CameraInternal {
         mCameraControlInternal = cameraControl == null ? new FakeCameraControl(
                 new CameraControlInternal.ControlUpdateCallback() {
                     @Override
-                    public void onCameraControlUpdateSessionConfig(
-                            @NonNull SessionConfig sessionConfig) {
-                        mCameraControlSessionConfig = sessionConfig;
+                    public void onCameraControlUpdateSessionConfig() {
                         updateCaptureSessionConfig();
                     }
 
@@ -300,17 +292,6 @@ public class FakeCamera implements CameraInternal {
         return mCameraInfoInternal;
     }
 
-    @NonNull
-    @Override
-    public Quirks getCameraQuirks() {
-        return new Quirks(mCameraQuirks);
-    }
-
-    /** Adds a quirk to the list of this camera's quirks. */
-    public void addCameraQuirk(@NonNull final Quirk quirk) {
-        mCameraQuirks.add(quirk);
-    }
-
     private void checkNotReleased() {
         if (mState == State.RELEASED) {
             throw new IllegalStateException("Camera has been released.");
@@ -342,9 +323,7 @@ public class FakeCamera implements CameraInternal {
         if (validatingBuilder.isValid()) {
             // Apply CameraControlInternal's SessionConfig to let CameraControlInternal be able
             // to control Repeating Request and process results.
-            if (mCameraControlSessionConfig != null) {
-                validatingBuilder.add(mCameraControlSessionConfig);
-            }
+            validatingBuilder.add(mCameraControlInternal.getSessionConfig());
 
             mSessionConfig = validatingBuilder.build();
         }

@@ -56,7 +56,6 @@ import static android.support.mediacompat.testlib.MediaSessionConstants.TEST_QUE
 import static android.support.mediacompat.testlib.MediaSessionConstants.TEST_SESSION_TAG;
 import static android.support.mediacompat.testlib.MediaSessionConstants.TEST_VALUE;
 import static android.support.mediacompat.testlib.VersionConstants.KEY_CLIENT_VERSION;
-import static android.support.mediacompat.testlib.VersionConstants.VERSION_TOT;
 import static android.support.mediacompat.testlib.util.IntentUtil.callMediaControllerMethod;
 import static android.support.mediacompat.testlib.util.IntentUtil.callTransportControlsMethod;
 import static android.support.mediacompat.testlib.util.TestUtil.assertBundleEquals;
@@ -99,7 +98,6 @@ import android.support.v4.media.RatingCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 
@@ -175,6 +173,7 @@ public class MediaSessionCompatCallbackTest {
     /**
      * Tests that a session can be created and that all the fields are initialized correctly.
      */
+    @SuppressWarnings("deprecation")
     @Test
     @SmallTest
     public void testCreateSession() throws Exception {
@@ -222,11 +221,8 @@ public class MediaSessionCompatCallbackTest {
      */
     @Test
     @SmallTest
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.LOLLIPOP)
     public void testFromSession() throws Exception {
-        if (android.os.Build.VERSION.SDK_INT < 21) {
-            // MediaSession was introduced from API level 21.
-            return;
-        }
         mCallback.reset(1);
         mCallback.setExpectedCallerPackageName(getExpectedPackageNameForSelf());
         mSession.setCallback(mCallback, new Handler(Looper.getMainLooper()));
@@ -454,12 +450,6 @@ public class MediaSessionCompatCallbackTest {
     @SmallTest
     public void testSendCommandWithNullResultReceiver() throws Exception {
         mCallback.reset(1);
-        if (Build.VERSION.SDK_INT < 21 && !TextUtils.equals(VERSION_TOT, mClientVersion)) {
-            // In previous version, MediaControllerCompat#sendCommand() cannot send/receive a
-            // null ResultReceiver.
-            return;
-        }
-
         Bundle arguments = new Bundle();
         arguments.putString("command", TEST_COMMAND);
         // No result receiver.
@@ -730,11 +720,6 @@ public class MediaSessionCompatCallbackTest {
     @Test
     @SmallTest
     public void testCallback_onSetPlaybackSpeed() {
-        if (!TextUtils.equals(VERSION_TOT, mClientVersion)) {
-            // In previous versions, MediaControllerCompat#setPlaybackSpeed() does not exist.
-            return;
-        }
-
         mCallback.reset(1);
         final float testSpeed = 2.0f;
         callTransportControlsMethod(
@@ -759,7 +744,7 @@ public class MediaSessionCompatCallbackTest {
                 .setComponent(new ComponentName(getApplicationContext(),
                         getApplicationContext().getClass()));
         PendingIntent pi = PendingIntent.getBroadcast(getApplicationContext(), 0, mediaButtonIntent,
-                0);
+                Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
         mSession.setMediaButtonReceiver(pi);
 
         // Set state to STATE_PLAYING to get higher priority.
@@ -965,6 +950,7 @@ public class MediaSessionCompatCallbackTest {
 
     @Test
     @SmallTest
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O_MR1) // To prevent System UI Exception.
     public void testRemoteVolumeControl() throws Exception {
         if (android.os.Build.VERSION.SDK_INT < 27) {
             // This test causes an Exception on System UI in API < 27.
@@ -1019,6 +1005,7 @@ public class MediaSessionCompatCallbackTest {
 
     @Test
     @SmallTest
+    @SuppressWarnings("deprecation")
     public void testReceivingMediaParcelables() throws Exception {
         mCallback.reset(1);
         final String action = "test-action";
@@ -1072,6 +1059,7 @@ public class MediaSessionCompatCallbackTest {
 
     @Test
     @SmallTest
+    @SuppressWarnings("deprecation")
     public void testMediaDescriptionContainsUserParcelable() {
         mCallback.reset(1);
         mSession.setFlags(MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS);

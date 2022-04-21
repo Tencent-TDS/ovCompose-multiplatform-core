@@ -27,6 +27,7 @@ import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.camera.core.Logger;
 import androidx.camera.core.SurfaceRequest;
 import androidx.camera.core.impl.utils.executor.CameraXExecutors;
@@ -43,6 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * The {@link TextureView} implementation for {@link PreviewView}
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 final class TextureViewImplementation extends PreviewViewImplementation {
 
     private static final String TAG = "TextureViewImpl";
@@ -113,6 +115,7 @@ final class TextureViewImplementation extends PreviewViewImplementation {
     }
 
     @Override
+    @SuppressWarnings("ObjectToString")
     public void initializePreview() {
         Preconditions.checkNotNull(mParent);
         Preconditions.checkNotNull(mResolution);
@@ -205,7 +208,7 @@ final class TextureViewImplementation extends PreviewViewImplementation {
      * {@link SurfaceTexture} is available, and the {@link SurfaceRequest} was received from the
      * camera.
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "ObjectToString"})
     void tryToProvidePreviewSurface() {
         if (mResolution == null || mSurfaceTexture == null || mSurfaceRequest == null) {
             return;

@@ -1,9 +1,15 @@
 // Baseline format: 1.0
-KotlinOperator: androidx.lifecycle.ViewModelProvider#get(Class<T>):
-    Method can be invoked with an indexing operator from Kotlin: `get` (this is usually desirable; just make sure it makes sense for this type of object)
-KotlinOperator: androidx.lifecycle.ViewModelProvider#get(String, Class<T>):
-    Method can be invoked with an indexing operator from Kotlin: `get` (this is usually desirable; just make sure it makes sense for this type of object)
+MissingGetterMatchingBuilder: androidx.lifecycle.viewmodel.InitializerViewModelFactoryBuilder#addInitializer(kotlin.reflect.KClass<T>, kotlin.jvm.functions.Function1<? super androidx.lifecycle.viewmodel.CreationExtras,? extends T>):
+    androidx.lifecycle.ViewModelProvider.Factory does not declare a `getInitializers()` method matching method androidx.lifecycle.viewmodel.InitializerViewModelFactoryBuilder.addInitializer(kotlin.reflect.KClass<T>,kotlin.jvm.functions.Function1<? super androidx.lifecycle.viewmodel.CreationExtras,? extends T>)
 
 
-SingletonConstructor: androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory#AndroidViewModelFactory(android.app.Application):
-    Singleton classes should use `getInstance()` methods: `AndroidViewModelFactory`
+MissingJvmstatic: androidx.lifecycle.ViewModelProvider.NewInstanceFactory#instance:
+    Companion object constants like instance should be using @JvmField, not @JvmStatic; see https://developer.android.com/kotlin/interop#companion_constants
+
+
+SetterReturnsThis: androidx.lifecycle.viewmodel.InitializerViewModelFactoryBuilder#addInitializer(kotlin.reflect.KClass<T>, kotlin.jvm.functions.Function1<? super androidx.lifecycle.viewmodel.CreationExtras,? extends T>):
+    Methods must return the builder object (return type androidx.lifecycle.viewmodel.InitializerViewModelFactoryBuilder instead of void): method androidx.lifecycle.viewmodel.InitializerViewModelFactoryBuilder.addInitializer(kotlin.reflect.KClass<T>,kotlin.jvm.functions.Function1<? super androidx.lifecycle.viewmodel.CreationExtras,? extends T>)
+
+
+TopLevelBuilder: androidx.lifecycle.viewmodel.InitializerViewModelFactoryBuilder:
+    Builder should be defined as inner class: androidx.lifecycle.viewmodel.InitializerViewModelFactoryBuilder

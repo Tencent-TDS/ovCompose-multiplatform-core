@@ -22,10 +22,13 @@ import org.jetbrains.kotlin.descriptors.annotations.Annotated
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationDescriptor
 import org.jetbrains.kotlin.descriptors.annotations.Annotations
 import org.jetbrains.kotlin.descriptors.findClassAcrossModuleDependencies
+import org.jetbrains.kotlin.descriptors.impl.AnonymousFunctionDescriptor
+import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
+import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.resolve.annotations.argumentValue
 import org.jetbrains.kotlin.resolve.constants.ConstantValue
 import org.jetbrains.kotlin.resolve.descriptorUtil.annotationClass
 import org.jetbrains.kotlin.types.KotlinType
@@ -38,12 +41,29 @@ object ComposeFqNames {
     private const val internalRoot = "$root.internal"
     fun fqNameFor(cname: String) = FqName("$root.$cname")
     fun internalFqNameFor(cname: String) = FqName("$internalRoot.$cname")
-
+    fun composablesFqNameFor(cname: String) = fqNameFor("ComposablesKt.$cname")
     val Composable = fqNameFor("Composable")
+    val ComposableTarget = fqNameFor("ComposableTarget")
+    val ComposableTargetMarker = fqNameFor("ComposableTargetMarker")
+    val ComposableTargetMarkerDescription = "description"
+    val ComposableTargetMarkerDescriptionName = Name.identifier("description")
+    val ComposableTargetApplierArgument = Name.identifier("applier")
+    val ComposableOpenTarget = fqNameFor("ComposableOpenTarget")
+    val ComposableOpenTargetIndexArgument = Name.identifier("index")
+    val ComposableInferredTarget = fqNameFor("ComposableInferredTarget")
+    val ComposableInferredTargetSchemeArgument = Name.identifier("scheme")
     val internal = fqNameFor("internal")
     val CurrentComposerIntrinsic = fqNameFor("<get-currentComposer>")
-    val ComposableContract = fqNameFor("ComposableContract")
+    val getCurrentComposerFullName = composablesFqNameFor("<get-currentComposer>")
+    val DisallowComposableCalls = fqNameFor("DisallowComposableCalls")
+    val ReadOnlyComposable = fqNameFor("ReadOnlyComposable")
+    val ExplicitGroupsComposable = fqNameFor("ExplicitGroupsComposable")
+    val NonRestartableComposable = fqNameFor("NonRestartableComposable")
+    val composableLambdaType = internalFqNameFor("ComposableLambda")
     val composableLambda = internalFqNameFor("composableLambda")
+    val composableLambdaFullName =
+        internalFqNameFor("ComposableLambdaKt.composableLambda")
+    val composableLambdaInstance = internalFqNameFor("composableLambdaInstance")
     val remember = fqNameFor("remember")
     val key = fqNameFor("key")
     val StableMarker = fqNameFor("StableMarker")
@@ -70,41 +90,61 @@ fun KotlinType.makeComposable(module: ModuleDescriptor): KotlinType {
     return replaceAnnotations(Annotations.create(annotations + annotation))
 }
 
+fun AnonymousFunctionDescriptor.annotateAsComposable(module: ModuleDescriptor) =
+    AnonymousFunctionDescriptor(
+        containingDeclaration,
+        Annotations.create(annotations + ComposeFqNames.makeComposableAnnotation(module)),
+        kind,
+        source,
+        isSuspend
+    )
+
+fun IrType.hasComposableAnnotation(): Boolean =
+    hasAnnotation(ComposeFqNames.Composable)
+
+fun IrAnnotationContainer.hasComposableAnnotation(): Boolean =
+    hasAnnotation(ComposeFqNames.Composable)
+
 fun KotlinType.hasComposableAnnotation(): Boolean =
     !isSpecialType && annotations.findAnnotation(ComposeFqNames.Composable) != null
-fun KotlinType.isMarkedStable(): Boolean =
-    !isSpecialType && (
-        annotations.hasStableMarker() ||
-            (constructor.declarationDescriptor?.annotations?.hasStableMarker() ?: false)
-        )
 fun Annotated.hasComposableAnnotation(): Boolean =
     annotations.findAnnotation(ComposeFqNames.Composable) != null
-fun Annotated.composableRestartableContract(): Boolean? {
-    val contract = annotations.findAnnotation(ComposeFqNames.ComposableContract) ?: return null
-    return contract.argumentValue("restartable")?.value as? Boolean
-}
-fun Annotated.composableReadonlyContract(): Boolean? {
-    val contract = annotations.findAnnotation(ComposeFqNames.ComposableContract) ?: return null
-    return contract.argumentValue("readonly")?.value as? Boolean
-}
-fun Annotated.composableTrackedContract(): Boolean? {
-    val contract = annotations.findAnnotation(ComposeFqNames.ComposableContract) ?: return null
-    return contract.argumentValue("tracked")?.value as? Boolean
-}
+fun Annotated.hasNonRestartableComposableAnnotation(): Boolean =
+    annotations.findAnnotation(ComposeFqNames.NonRestartableComposable) != null
+fun Annotated.hasReadonlyComposableAnnotation(): Boolean =
+    annotations.findAnnotation(ComposeFqNames.ReadOnlyComposable) != null
+fun Annotated.hasExplicitGroupsAnnotation(): Boolean =
+    annotations.findAnnotation(ComposeFqNames.ExplicitGroupsComposable) != null
+fun Annotated.hasDisallowComposableCallsAnnotation(): Boolean =
+    annotations.findAnnotation(ComposeFqNames.DisallowComposableCalls) != null
+fun Annotated.compositionTarget(): String? =
+    annotations.map { it.compositionTarget() }.firstOrNull { it != null }
 
-fun Annotated.composablePreventCaptureContract(): Boolean? {
-    val contract = annotations.findAnnotation(ComposeFqNames.ComposableContract) ?: return null
-    return contract.argumentValue("preventCapture")?.value as? Boolean
-}
+fun Annotated.hasCompositionTargetMarker(): Boolean =
+    annotations.findAnnotation(
+        ComposeFqNames.ComposableTargetMarker
+    ) != null
+
+fun AnnotationDescriptor.compositionTarget(): String? =
+    if (fqName == ComposeFqNames.ComposableTarget)
+        allValueArguments[ComposeFqNames.ComposableTargetApplierArgument]?.value as? String
+    else if (annotationClass?.hasCompositionTargetMarker() == true) this.fqName.toString() else null
+
+fun Annotated.compositionScheme(): String? =
+    annotations.findAnnotation(
+        ComposeFqNames.ComposableInferredTarget
+    )?.allValueArguments?.let {
+        it[ComposeFqNames.ComposableInferredTargetSchemeArgument]?.value as? String
+    }
+
+fun Annotated.compositionOpenTarget(): Int? =
+    annotations.findAnnotation(
+        ComposeFqNames.ComposableOpenTarget
+    )?.allValueArguments?.let {
+        it[ComposeFqNames.ComposableOpenTargetIndexArgument]?.value as Int
+    }
 
 internal val KotlinType.isSpecialType: Boolean get() =
     this === NO_EXPECTED_TYPE || this === UNIT_EXPECTED_TYPE
 
 val AnnotationDescriptor.isComposableAnnotation: Boolean get() = fqName == ComposeFqNames.Composable
-
-fun Annotations.hasStableMarker(): Boolean = any(AnnotationDescriptor::isStableMarker)
-
-fun AnnotationDescriptor.isStableMarker(): Boolean {
-    val classDescriptor = annotationClass ?: return false
-    return classDescriptor.annotations.hasAnnotation(ComposeFqNames.StableMarker)
-}

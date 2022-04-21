@@ -21,6 +21,7 @@ import android.hardware.camera2.CameraMetadata;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.internal.compat.CameraAccessExceptionCompat;
 import androidx.camera.camera2.internal.compat.CameraManagerCompat;
 import androidx.camera.core.CameraInfo;
@@ -30,8 +31,10 @@ import androidx.camera.core.InitializationException;
 import androidx.camera.core.impl.CameraInfoInternal;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 class CameraSelectionOptimizer {
     private CameraSelectionOptimizer() {
     }
@@ -42,7 +45,8 @@ class CameraSelectionOptimizer {
             throws InitializationException {
         try {
             List<String> availableCameraIds = new ArrayList<>();
-            String[] cameraIdList = cameraFactory.getCameraManager().getCameraIdList();
+            List<String> cameraIdList =
+                    Arrays.asList(cameraFactory.getCameraManager().getCameraIdList());
             if (availableCamerasSelector == null) {
                 for (String id : cameraIdList) {
                     availableCameraIds.add(id);
@@ -51,9 +55,16 @@ class CameraSelectionOptimizer {
             }
 
             // Skip camera ID by heuristic: 0 is back lens facing, 1 is front lens facing.
-            Integer lensFacingInteger = availableCamerasSelector.getLensFacing();
-            String skippedCameraId = decideSkippedCameraIdByHeuristic(
-                    cameraFactory.getCameraManager(), lensFacingInteger);
+            String skippedCameraId;
+            try {
+                Integer lensFacingInteger = availableCamerasSelector.getLensFacing();
+                skippedCameraId = decideSkippedCameraIdByHeuristic(
+                        cameraFactory.getCameraManager(), lensFacingInteger, cameraIdList);
+            } catch (IllegalStateException e) {
+                // Don't skip camera if there is any conflict in camera lens facing.
+                skippedCameraId = null;
+            }
+
             List<CameraInfo> cameraInfos = new ArrayList<>();
 
             for (String id : cameraIdList) {
@@ -83,11 +94,20 @@ class CameraSelectionOptimizer {
     // Returns the camera id that can be safely skipped.
     // Returns null if no camera ids can be skipped.
     private static String decideSkippedCameraIdByHeuristic(CameraManagerCompat cameraManager,
-            Integer lensFacingInteger) throws CameraAccessExceptionCompat {
+            Integer lensFacingInteger, List<String> cameraIdList)
+            throws CameraAccessExceptionCompat {
         String skippedCameraId = null;
         if (lensFacingInteger == null) { // Not specifying lens facing,  cannot skip any camera id.
             return null;
-        } else if (lensFacingInteger.intValue() == CameraSelector.LENS_FACING_BACK) {
+        }
+
+        // No skipping camera if camera id "0" or "1" does not exist. Also avoid querying unexisting
+        // camera ids.
+        if (!(cameraIdList.contains("0") && cameraIdList.contains("1"))) {
+            return null;
+        }
+
+        if (lensFacingInteger.intValue() == CameraSelector.LENS_FACING_BACK) {
             if (cameraManager.getCameraCharacteristicsCompat("0").get(
                     CameraCharacteristics.LENS_FACING) == CameraMetadata.LENS_FACING_BACK) {
                 // If apps requires back lens facing,  and "0" is confirmed to be back

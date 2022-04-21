@@ -24,8 +24,6 @@ import android.graphics.Bitmap;
 import androidx.annotation.NonNull;
 import androidx.camera.camera2.Camera2Config;
 import androidx.camera.core.CameraSelector;
-import androidx.camera.core.CameraX;
-import androidx.camera.core.CameraXConfig;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.testing.CameraUtil;
@@ -35,10 +33,11 @@ import androidx.camera.testing.fakes.FakeLifecycleOwner;
 import androidx.camera.view.PreviewView.ImplementationMode;
 import androidx.lifecycle.Observer;
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
-import androidx.test.rule.ActivityTestRule;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -56,13 +55,17 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @LargeTest
 @RunWith(AndroidJUnit4.class)
+@SdkSuppress(minSdkVersion = 21)
 public class PreviewViewBitmapTest {
 
     @Rule
-    public final ActivityTestRule<FakeActivity> mActivityRule =
-            new ActivityTestRule<>(FakeActivity.class);
+    public final ActivityScenarioRule<FakeActivity> mActivityRule = new ActivityScenarioRule<>(
+            FakeActivity.class);
+
     @Rule
-    public final TestRule mUseCamera = CameraUtil.grantCameraPermissionAndPreTest();
+    public TestRule mUseCamera = CameraUtil.grantCameraPermissionAndPreTest(
+            new CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
+    );
 
     private static final int CAMERA_LENS = CameraSelector.LENS_FACING_BACK;
     private ProcessCameraProvider mCameraProvider;
@@ -77,8 +80,6 @@ public class PreviewViewBitmapTest {
         Assume.assumeTrue(CameraUtil.hasCameraWithLensFacing(CAMERA_LENS));
 
         final Context context = ApplicationProvider.getApplicationContext();
-        final CameraXConfig config = Camera2Config.defaultConfig();
-        CameraX.initialize(context, config);
         mCameraProvider = ProcessCameraProvider.getInstance(context).get();
     }
 
@@ -87,6 +88,7 @@ public class PreviewViewBitmapTest {
         if (mCameraProvider != null) {
             runOnMainThread(() -> mCameraProvider.unbindAll());
             mCameraProvider.shutdown().get();
+            mCameraProvider = null;
         }
     }
 
@@ -108,7 +110,6 @@ public class PreviewViewBitmapTest {
                 new CameraSelector.Builder().requireLensFacing(CAMERA_LENS).build();
         final FakeLifecycleOwner lifecycleOwner = new FakeLifecycleOwner();
         lifecycleOwner.startAndResume();
-
 
         runOnMainThread(() -> {
             // Act.
@@ -277,7 +278,8 @@ public class PreviewViewBitmapTest {
             PreviewView previewView = new PreviewView(ApplicationProvider.getApplicationContext());
             previewView.setImplementationMode(mode);
             previewView.setScaleType(scaleType);
-            mActivityRule.getActivity().setContentView(previewView);
+            mActivityRule.getScenario().onActivity(
+                    activity -> activity.setContentView(previewView));
             previewViewAtomicReference.set(previewView);
         });
         return previewViewAtomicReference.get();

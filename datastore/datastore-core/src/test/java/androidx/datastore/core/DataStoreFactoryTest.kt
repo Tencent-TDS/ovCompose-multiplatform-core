@@ -19,33 +19,38 @@ package androidx.datastore.core
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.TestCoroutineScope
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.rules.Timeout
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 @kotlinx.coroutines.ObsoleteCoroutinesApi
 @kotlinx.coroutines.FlowPreview
 class DataStoreFactoryTest {
+    @get:Rule
+    val timeout = Timeout(10, TimeUnit.SECONDS)
 
     @get:Rule
     val tmp = TemporaryFolder()
 
     private lateinit var testFile: File
-    private lateinit var dataStoreScope: TestCoroutineScope
+    private lateinit var dataStoreScope: TestScope
 
     @Before
     fun setUp() {
         testFile = tmp.newFile()
-        dataStoreScope = TestCoroutineScope()
+        dataStoreScope = TestScope(UnconfinedTestDispatcher())
     }
 
     @Test
-    fun testNewInstance() = runBlockingTest {
+    fun testNewInstance() = runTest {
         val store = DataStoreFactory.create(
             serializer = TestingSerializer(),
             scope = dataStoreScope
@@ -62,7 +67,7 @@ class DataStoreFactoryTest {
     }
 
     @Test
-    fun testCorruptionHandlerInstalled() = runBlockingTest {
+    fun testCorruptionHandlerInstalled() = runTest {
         val valueToReplace = 123.toByte()
 
         val store = DataStoreFactory.create(
@@ -77,7 +82,7 @@ class DataStoreFactoryTest {
     }
 
     @Test
-    fun testMigrationsInstalled() = runBlockingTest {
+    fun testMigrationsInstalled() = runTest {
         val migratedByte = 1
 
         val migratePlus2 = object : DataMigration<Byte> {

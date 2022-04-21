@@ -138,6 +138,7 @@ public class CustomTabsClient {
      * @param ignoreDefault If set, the default VIEW handler won't get priority over other browsers.
      * @return The preferred package name for handling Custom Tabs, or <code>null</code>.
      */
+    @SuppressWarnings("deprecation")
     public static @Nullable String getPackageName(
             @NonNull Context context, @Nullable List<String> packages, boolean ignoreDefault) {
         PackageManager pm = context.getPackageManager();
@@ -228,7 +229,8 @@ public class CustomTabsClient {
     private static PendingIntent createSessionId(Context context, int sessionId) {
         // Create a {@link PendingIntent} with empty Action to prevent using it other than
         // a session identifier.
-        return PendingIntent.getActivity(context, sessionId, new Intent(), 0);
+        return PendingIntent.getActivity(
+                context, sessionId, new Intent(), PendingIntent.FLAG_IMMUTABLE);
     }
 
     /**

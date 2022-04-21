@@ -21,7 +21,6 @@ import android.os.StrictMode
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
-import androidx.annotation.Sampled
 import androidx.appcompat.app.AppCompatActivity
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
@@ -51,7 +50,6 @@ class ProtoDataStoreActivity : AppCompatActivity() {
         ) { File(applicationContext.filesDir, PROTO_STORE_FILE_NAME) }
     }
 
-    @Sampled
     override fun onCreate(savedInstanceState: Bundle?) {
         // Strict mode allows us to check that no writes or reads are blocking the UI thread.
         StrictMode.setThreadPolicy(
@@ -68,7 +66,6 @@ class ProtoDataStoreActivity : AppCompatActivity() {
         setUpProtoDataStoreUi()
     }
 
-    @Sampled
     private fun setUpProtoDataStoreUi() {
         findViewById<Button>(R.id.counter_dec).setOnClickListener {
             lifecycleScope.launch {
@@ -109,7 +106,7 @@ class ProtoDataStoreActivity : AppCompatActivity() {
 
         override val defaultValue: Settings = Settings.getDefaultInstance()
 
-        override fun readFrom(input: InputStream): Settings {
+        override suspend fun readFrom(input: InputStream): Settings {
             try {
                 return Settings.parseFrom(input)
             } catch (ipbe: InvalidProtocolBufferException) {
@@ -117,6 +114,6 @@ class ProtoDataStoreActivity : AppCompatActivity() {
             }
         }
 
-        override fun writeTo(t: Settings, output: OutputStream) = t.writeTo(output)
+        override suspend fun writeTo(t: Settings, output: OutputStream) = t.writeTo(output)
     }
 }

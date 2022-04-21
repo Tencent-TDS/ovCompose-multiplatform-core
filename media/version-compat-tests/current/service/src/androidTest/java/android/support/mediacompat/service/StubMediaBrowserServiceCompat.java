@@ -81,6 +81,7 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
     private String mExpectedCallerPackageName;
     private int mExpectedCallerUid;
 
+    @SuppressWarnings("deprecation")
     @Override
     public void onCreate() {
         super.onCreate();
@@ -153,6 +154,7 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaItem>> result,
             @NonNull Bundle options) {
         // Calling getBrowserRootHints()/getCurrentBrowserInfo() should not fail.
@@ -420,6 +422,7 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
             notifyCurrentControllerInfo("onRemoveQueueItem");
         }
 
+        @SuppressWarnings("deprecation")
         @Override
         public void onRemoveQueueItemAt(int index) {
             notifyCurrentControllerInfo("onRemoveQueueItemAt");

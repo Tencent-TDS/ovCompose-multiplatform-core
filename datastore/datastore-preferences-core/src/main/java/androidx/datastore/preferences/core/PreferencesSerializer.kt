@@ -22,6 +22,7 @@ import androidx.datastore.preferences.PreferencesProto.Value
 import androidx.datastore.preferences.PreferencesProto.StringSet
 import androidx.datastore.core.Serializer
 import androidx.datastore.preferences.PreferencesMapCompat
+import androidx.datastore.preferences.protobuf.ByteString
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -42,7 +43,7 @@ internal object PreferencesSerializer : Serializer<Preferences> {
         }
 
     @Throws(IOException::class, CorruptionException::class)
-    override fun readFrom(input: InputStream): Preferences {
+    override suspend fun readFrom(input: InputStream): Preferences {
         val preferencesProto = PreferencesMapCompat.readFrom(input)
 
         val mutablePreferences = mutablePreferencesOf()
@@ -55,7 +56,7 @@ internal object PreferencesSerializer : Serializer<Preferences> {
     }
 
     @Throws(IOException::class, CorruptionException::class)
-    override fun writeTo(t: Preferences, output: OutputStream) {
+    override suspend fun writeTo(t: Preferences, output: OutputStream) {
         val preferences = t.asMap()
         val protoBuilder = PreferenceMap.newBuilder()
 
@@ -79,6 +80,7 @@ internal object PreferencesSerializer : Serializer<Preferences> {
                 Value.newBuilder().setStringSet(
                     StringSet.newBuilder().addAllStrings(value as Set<String>)
                 ).build()
+            is ByteArray -> Value.newBuilder().setBytes(ByteString.copyFrom(value)).build()
             else -> throw IllegalStateException(
                 "PreferencesSerializer does not support type: ${value.javaClass.name}"
             )
@@ -91,15 +93,19 @@ internal object PreferencesSerializer : Serializer<Preferences> {
         mutablePreferences: MutablePreferences
     ) {
         return when (value.valueCase) {
-            Value.ValueCase.BOOLEAN -> mutablePreferences[preferencesKey(name)] = value.boolean
-            Value.ValueCase.FLOAT -> mutablePreferences[preferencesKey(name)] = value.float
-            Value.ValueCase.DOUBLE -> mutablePreferences[preferencesKey(name)] = value.double
-            Value.ValueCase.INTEGER -> mutablePreferences[preferencesKey(name)] = value.integer
-            Value.ValueCase.LONG -> mutablePreferences[preferencesKey(name)] = value.long
-            Value.ValueCase.STRING -> mutablePreferences[preferencesKey(name)] = value.string
+            Value.ValueCase.BOOLEAN ->
+                mutablePreferences[booleanPreferencesKey(name)] =
+                    value.boolean
+            Value.ValueCase.FLOAT -> mutablePreferences[floatPreferencesKey(name)] = value.float
+            Value.ValueCase.DOUBLE -> mutablePreferences[doublePreferencesKey(name)] = value.double
+            Value.ValueCase.INTEGER -> mutablePreferences[intPreferencesKey(name)] = value.integer
+            Value.ValueCase.LONG -> mutablePreferences[longPreferencesKey(name)] = value.long
+            Value.ValueCase.STRING -> mutablePreferences[stringPreferencesKey(name)] = value.string
             Value.ValueCase.STRING_SET ->
-                mutablePreferences[preferencesSetKey<String>(name)] =
+                mutablePreferences[stringSetPreferencesKey(name)] =
                     value.stringSet.stringsList.toSet()
+            Value.ValueCase.BYTES ->
+                mutablePreferences[byteArrayPreferencesKey(name)] = value.bytes.toByteArray()
             Value.ValueCase.VALUE_NOT_SET ->
                 throw CorruptionException("Value not set.")
             null -> throw CorruptionException("Value case is null.")

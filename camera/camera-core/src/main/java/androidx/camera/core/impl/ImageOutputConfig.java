@@ -24,8 +24,8 @@ import android.view.Surface;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.camera.core.AspectRatio;
-import androidx.camera.core.ExperimentalUseCaseGroup;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -34,11 +34,17 @@ import java.util.List;
 /**
  * Configuration containing options for configuring the output image data of a pipeline.
  */
+@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface ImageOutputConfig extends ReadableConfig {
     /**
      * Invalid integer rotation.
      */
     int INVALID_ROTATION = -1;
+
+    /**
+     * Rotation not specified.
+     */
+    int ROTATION_NOT_SPECIFIED = -1;
 
     // Option Declarations:
     // *********************************************************************************************
@@ -54,6 +60,13 @@ public interface ImageOutputConfig extends ReadableConfig {
      */
     Option<Integer> OPTION_TARGET_ROTATION =
             Option.create("camerax.core.imageOutput.targetRotation", int.class);
+
+    /**
+     * Option: camerax.core.imageOutput.appTargetRotation
+     */
+    Option<Integer> OPTION_APP_TARGET_ROTATION =
+            Option.create("camerax.core.imageOutput.appTargetRotation", int.class);
+
     /**
      * Option: camerax.core.imageOutput.targetResolution
      */
@@ -112,6 +125,18 @@ public interface ImageOutputConfig extends ReadableConfig {
     @RotationValue
     default int getTargetRotation(int valueIfMissing) {
         return retrieveOption(OPTION_TARGET_ROTATION, valueIfMissing);
+    }
+
+    /**
+     * Retrieves the target rotation set by app explicitly.
+     *
+     * @param valueIfMissing The value to return if this configuration option has not been set.
+     * @return The stored value or <code>valueIfMissing</code> if the value does not exist in this
+     * configuration.
+     */
+    @RotationValue
+    default int getAppTargetRotation(int valueIfMissing) {
+        return retrieveOption(OPTION_APP_TARGET_ROTATION, valueIfMissing);
     }
 
     /**
@@ -322,11 +347,19 @@ public interface ImageOutputConfig extends ReadableConfig {
     }
 
     /**
+     * Valid integer rotation values including option indicating value not specified.
+     */
+    @IntDef({ROTATION_NOT_SPECIFIED, Surface.ROTATION_0, Surface.ROTATION_90, Surface.ROTATION_180,
+            Surface.ROTATION_270})
+    @Retention(RetentionPolicy.SOURCE)
+    @interface OptionalRotationValue {
+    }
+
+    /**
      * Valid integer rotation degrees values.
      */
     @IntDef({0, 90, 180, 270})
     @Retention(RetentionPolicy.SOURCE)
-    @ExperimentalUseCaseGroup
     @interface RotationDegreesValue {
     }
 }

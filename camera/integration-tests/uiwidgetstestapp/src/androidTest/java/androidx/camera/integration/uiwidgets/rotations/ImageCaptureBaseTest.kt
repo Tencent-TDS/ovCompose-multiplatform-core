@@ -16,13 +16,15 @@
 
 package androidx.camera.integration.uiwidgets.rotations
 
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Environment
 import android.view.View
+import androidx.camera.camera2.Camera2Config
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.CameraX
 import androidx.camera.integration.uiwidgets.R
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.testing.CameraUtil
 import androidx.camera.testing.CoreAppTestUtil
 import androidx.test.core.app.ActivityScenario
@@ -33,11 +35,11 @@ import androidx.test.uiautomator.UiDevice
 import androidx.testutils.withActivity
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import java.util.concurrent.TimeUnit
 import org.junit.Assume.assumeFalse
 import org.junit.Assume.assumeTrue
+import org.junit.BeforeClass
 import org.junit.Rule
-import org.junit.rules.TestRule
-import java.util.concurrent.TimeUnit
 
 /**
  * Base class for rotation image capture tests.
@@ -54,7 +56,9 @@ import java.util.concurrent.TimeUnit
 abstract class ImageCaptureBaseTest<A : CameraActivity> {
 
     @get:Rule
-    val mUseCameraRule: TestRule = CameraUtil.grantCameraPermissionAndPreTest()
+    val useCameraRule = CameraUtil.grantCameraPermissionAndPreTest(
+        testCameraRule, CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
+    )
 
     @get:Rule
     val mCameraActivityRules: GrantPermissionRule =
@@ -70,22 +74,30 @@ abstract class ImageCaptureBaseTest<A : CameraActivity> {
             "Cuttlefish does not correctly handle rotating. Unable to test.",
             Build.MODEL.contains("Cuttlefish")
         )
+        assumeFalse(
+            "Known issue on this device. Please see b/199115443",
+            Build.MODEL.contains("k61v1_basic_ref")
+        )
 
         CoreAppTestUtil.assumeCompatibleDevice()
         assumeTrue(CameraUtil.hasCameraWithLensFacing(lensFacing))
 
+        // Ensure it's in a natural orientation. This change could delay around 1 sec, please
+        // call this earlier before launching the test activity.
+        mDevice.setOrientationNatural()
+
         // Clear the device UI and check if there is no dialog or lock screen on the top of the
         // window before start the test.
         CoreAppTestUtil.prepareDeviceUI(InstrumentationRegistry.getInstrumentation())
-        // Ensure it's in a natural orientation
-        mDevice.setOrientationNatural()
 
         // Create pictures folder if it doesn't exist on the device. If this fails, abort test.
         assumeTrue("Failed to create pictures directory", createPicturesFolder())
     }
 
     protected fun tearDown() {
-        CameraX.shutdown().get()
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val cameraProvider = ProcessCameraProvider.getInstance(context)[10, TimeUnit.SECONDS]
+        cameraProvider.shutdown()[10, TimeUnit.SECONDS]
         mDevice.unfreezeRotation()
     }
 
@@ -174,7 +186,7 @@ abstract class ImageCaptureBaseTest<A : CameraActivity> {
 
     protected inline fun <reified A : CameraActivity> ActivityScenario<A>.waitOnCameraFrames() {
         val analysisRunning = withActivity { mAnalysisRunning }
-        assertWithMessage("Timed out waiting on image analysis frames")
+        assertWithMessage("Timed out waiting on image analysis frames on $analysisRunning")
             .that(analysisRunning.tryAcquire(IMAGES_COUNT, TIMEOUT, TimeUnit.SECONDS))
             .isTrue()
     }
@@ -185,7 +197,7 @@ abstract class ImageCaptureBaseTest<A : CameraActivity> {
 
     companion object {
         protected const val IMAGES_COUNT = 30
-        protected const val TIMEOUT = 5L
+        protected const val TIMEOUT = 20L
         @JvmStatic
         protected val captureModes = arrayOf(
             CameraActivity.IMAGE_CAPTURE_MODE_IN_MEMORY,
@@ -196,5 +208,14 @@ abstract class ImageCaptureBaseTest<A : CameraActivity> {
         @JvmStatic
         protected val lensFacing =
             arrayOf(CameraSelector.LENS_FACING_BACK, CameraSelector.LENS_FACING_FRONT)
+
+        @JvmStatic
+        lateinit var testCameraRule: CameraUtil.PreTestCamera
+
+        @BeforeClass
+        @JvmStatic
+        fun classSetup() {
+            testCameraRule = CameraUtil.PreTestCamera()
+        }
     }
 }

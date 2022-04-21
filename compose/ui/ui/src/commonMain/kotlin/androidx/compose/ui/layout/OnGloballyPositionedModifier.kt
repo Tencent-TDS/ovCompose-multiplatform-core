@@ -16,24 +16,59 @@
 
 package androidx.compose.ui.layout
 
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.platform.InspectorValueInfo
+import androidx.compose.ui.platform.debugInspectorInfo
 
 /**
  * Invoke [onGloballyPositioned] with the [LayoutCoordinates] of the element when the
  * global position of the content may have changed.
  * Note that it will be called **after** a composition when the coordinates are finalized.
  *
+ * This callback will be invoked at least once when the [LayoutCoordinates] are available, and every
+ * time the element's position changes within the window. However, it is not guaranteed to be
+ * invoked every time the position _relative to the screen_ of the modified element changes. For
+ * example, the system may move the contents inside a window around without firing a callback.
+ * If you are using the [LayoutCoordinates] to calculate position on the screen, and not just inside
+ * the window, you may not receive a callback.
+ *
  * Usage example:
  * @sample androidx.compose.ui.samples.OnGloballyPositioned
  */
-@Suppress("ModifierInspectorInfo") // cannot access crossinline parameter
-inline fun Modifier.onGloballyPositioned(
-    crossinline onGloballyPositioned: (LayoutCoordinates) -> Unit
-) = this.then(object : OnGloballyPositionedModifier {
+@Stable
+fun Modifier.onGloballyPositioned(
+    onGloballyPositioned: (LayoutCoordinates) -> Unit
+) = this.then(
+    OnGloballyPositionedModifierImpl(
+        callback = onGloballyPositioned,
+        inspectorInfo = debugInspectorInfo {
+            name = "onGloballyPositioned"
+            properties["onGloballyPositioned"] = onGloballyPositioned
+        }
+    )
+)
+
+private class OnGloballyPositionedModifierImpl(
+    val callback: (LayoutCoordinates) -> Unit,
+    inspectorInfo: InspectorInfo.() -> Unit
+) : OnGloballyPositionedModifier, InspectorValueInfo(inspectorInfo) {
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-        onGloballyPositioned(coordinates)
+        callback(coordinates)
     }
-})
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is OnGloballyPositionedModifierImpl) return false
+
+        return callback == other.callback
+    }
+
+    override fun hashCode(): Int {
+        return callback.hashCode()
+    }
+}
 
 /**
  * A modifier whose [onGloballyPositioned] is called with the final LayoutCoordinates of the

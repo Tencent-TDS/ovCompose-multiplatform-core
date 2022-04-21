@@ -23,10 +23,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastMap
 import kotlin.math.max
 
 /**
@@ -34,16 +38,49 @@ import kotlin.math.max
  * [ParagraphStyle]s in a given text.
  *
  * @param intrinsics previously calculated text intrinsics
+ * @param constraints how wide and tall the text is allowed to be. [Constraints.maxWidth]
+ * will define the width of the Paragraph. Other components of the [Constraints] object are no-op
+ * but will allow additional functionality in the future, e.g. ellipsis based on the limited
+ * [Constraints.maxHeight]
  * @param maxLines the maximum number of lines that the text can have
  * @param ellipsis whether to ellipsize text, applied only when [maxLines] is set
- * @param width how wide the text is allowed to be
  */
 class MultiParagraph(
     val intrinsics: MultiParagraphIntrinsics,
+    constraints: Constraints,
     val maxLines: Int = DefaultMaxLines,
     ellipsis: Boolean = false,
-    width: Float
 ) {
+
+    /**
+     * Lays out and renders multiple paragraphs at once. Unlike [Paragraph], supports multiple
+     * [ParagraphStyle]s in a given text.
+     *
+     * @param intrinsics previously calculated text intrinsics
+     * @param maxLines the maximum number of lines that the text can have
+     * @param ellipsis whether to ellipsize text, applied only when [maxLines] is set
+     * @param width how wide the text is allowed to be
+     */
+    @Deprecated(
+        "MultiParagraph that takes maximum allowed width is deprecated, pass constraints instead.",
+        ReplaceWith(
+            "MultiParagraph(intrinsics, Constraints(maxWidth = ceil(width).toInt()), " +
+                "maxLines, ellipsis)",
+            "kotlin.math.ceil",
+            "androidx.compose.ui.unit.Constraints"
+        )
+    )
+    constructor(
+        intrinsics: MultiParagraphIntrinsics,
+        maxLines: Int = DefaultMaxLines,
+        ellipsis: Boolean = false,
+        width: Float
+    ) : this(
+        intrinsics,
+        Constraints(maxWidth = width.ceilToInt()),
+        maxLines,
+        ellipsis
+    )
 
     /**
      *  Lays out a given [annotatedString] with the given constraints. Unlike a [Paragraph],
@@ -65,6 +102,11 @@ class MultiParagraph(
      * @throws IllegalArgumentException if [ParagraphStyle.textDirection] is not set, or
      * any of the [placeholders] crosses paragraph boundary.
      */
+    @Suppress("DEPRECATION")
+    @Deprecated("Font.ResourceLoader is deprecated, use fontFamilyResolver instead",
+        replaceWith = ReplaceWith("MultiParagraph(annotatedString, style, " +
+            "placeholders, maxLines, ellipsis, width, density, fontFamilyResolver)")
+    )
     constructor(
         annotatedString: AnnotatedString,
         style: TextStyle,
@@ -80,11 +122,107 @@ class MultiParagraph(
             style = style,
             placeholders = placeholders,
             density = density,
-            resourceLoader = resourceLoader
+            fontFamilyResolver = createFontFamilyResolver(resourceLoader)
         ),
         maxLines = maxLines,
         ellipsis = ellipsis,
-        width = width
+        constraints = Constraints(maxWidth = width.ceilToInt())
+    )
+
+    /**
+     *  Lays out a given [annotatedString] with the given constraints. Unlike a [Paragraph],
+     *  [MultiParagraph] can handle a text what has multiple paragraph styles.
+     *
+     * @param annotatedString the text to be laid out
+     * @param style the [TextStyle] to be applied to the whole text
+     * @param width how wide the text is allowed to be
+     * @param density density of the device
+     * @param fontFamilyResolver to be used to load the font given in [SpanStyle]s
+     * @param placeholders a list of [Placeholder]s that specify ranges of text which will be
+     * skipped during layout and replaced with [Placeholder]. It's required that the range of each
+     * [Placeholder] doesn't cross paragraph boundary, otherwise [IllegalArgumentException] is
+     * thrown.
+     * @param maxLines the maximum number of lines that the text can have
+     * @param ellipsis whether to ellipsize text, applied only when [maxLines] is set
+     *
+     * @see Placeholder
+     * @throws IllegalArgumentException if [ParagraphStyle.textDirection] is not set, or
+     * any of the [placeholders] crosses paragraph boundary.
+     */
+    @Deprecated(
+        "MultiParagraph that takes maximum allowed width is deprecated, pass constraints instead.",
+        ReplaceWith(
+            "MultiParagraph(annotatedString, style, Constraints(maxWidth = ceil(width).toInt()), " +
+                "density, fontFamilyResolver, placeholders, maxLines, ellipsis)",
+            "kotlin.math.ceil",
+            "androidx.compose.ui.unit.Constraints"
+        )
+    )
+    constructor(
+        annotatedString: AnnotatedString,
+        style: TextStyle,
+        width: Float,
+        density: Density,
+        fontFamilyResolver: FontFamily.Resolver,
+        placeholders: List<AnnotatedString.Range<Placeholder>> = listOf(),
+        maxLines: Int = Int.MAX_VALUE,
+        ellipsis: Boolean = false
+    ) : this(
+        intrinsics = MultiParagraphIntrinsics(
+            annotatedString = annotatedString,
+            style = style,
+            placeholders = placeholders,
+            density = density,
+            fontFamilyResolver = fontFamilyResolver
+        ),
+        maxLines = maxLines,
+        ellipsis = ellipsis,
+        constraints = Constraints(maxWidth = width.ceilToInt())
+    )
+
+    /**
+     *  Lays out a given [annotatedString] with the given constraints. Unlike a [Paragraph],
+     *  [MultiParagraph] can handle a text what has multiple paragraph styles.
+     *
+     * @param annotatedString the text to be laid out
+     * @param style the [TextStyle] to be applied to the whole text
+     * @param constraints how wide and tall the text is allowed to be. [Constraints.maxWidth]
+     * will define the width of the Paragraph. Other components of the [Constraints] object are no-op
+     * but will allow additional functionality in the future, e.g. ellipsis based on the limited
+     * [Constraints.maxHeight]
+     * @param density density of the device
+     * @param fontFamilyResolver to be used to load the font given in [SpanStyle]s
+     * @param placeholders a list of [Placeholder]s that specify ranges of text which will be
+     * skipped during layout and replaced with [Placeholder]. It's required that the range of each
+     * [Placeholder] doesn't cross paragraph boundary, otherwise [IllegalArgumentException] is
+     * thrown.
+     * @param maxLines the maximum number of lines that the text can have
+     * @param ellipsis whether to ellipsize text, applied only when [maxLines] is set
+     *
+     * @see Placeholder
+     * @throws IllegalArgumentException if [ParagraphStyle.textDirection] is not set, or
+     * any of the [placeholders] crosses paragraph boundary.
+     */
+    constructor(
+        annotatedString: AnnotatedString,
+        style: TextStyle,
+        constraints: Constraints,
+        density: Density,
+        fontFamilyResolver: FontFamily.Resolver,
+        placeholders: List<AnnotatedString.Range<Placeholder>> = listOf(),
+        maxLines: Int = Int.MAX_VALUE,
+        ellipsis: Boolean = false
+    ) : this(
+        intrinsics = MultiParagraphIntrinsics(
+            annotatedString = annotatedString,
+            style = style,
+            placeholders = placeholders,
+            density = density,
+            fontFamilyResolver = fontFamilyResolver
+        ),
+        maxLines = maxLines,
+        ellipsis = ellipsis,
+        constraints = constraints
     )
 
     private val annotatedString get() = intrinsics.annotatedString
@@ -177,9 +315,16 @@ class MultiParagraph(
             val paragraphInfo = infoList[index]
             val paragraph = Paragraph(
                 paragraphInfo.intrinsics,
+                Constraints(
+                    maxWidth = constraints.maxWidth,
+                    maxHeight = if (constraints.hasBoundedHeight) {
+                        constraints.maxHeight - currentHeight.ceilToInt()
+                    } else {
+                        constraints.maxHeight
+                    }
+                ),
                 maxLines - currentLineCount,
                 ellipsis,
-                width
             )
 
             val paragraphTop = currentHeight
@@ -214,10 +359,10 @@ class MultiParagraph(
         this.lineCount = currentLineCount
         this.didExceedMaxLines = didExceedMaxLines
         this.paragraphInfoList = paragraphInfoList
-        this.width = width
-        this.placeholderRects = paragraphInfoList.flatMap { paragraphInfo ->
+        this.width = constraints.maxWidth.toFloat()
+        this.placeholderRects = paragraphInfoList.fastFlatMap { paragraphInfo ->
             with(paragraphInfo) {
-                paragraph.placeholderRects.map { it?.toGlobal() }
+                paragraph.placeholderRects.fastMap { it?.toGlobal() }
             }
         }.let {
             // When paragraphs get ellipsized, the size of this list will be smaller than
@@ -258,19 +403,19 @@ class MultiParagraph(
         val paragraphIndex = findParagraphByIndex(paragraphInfoList, start)
         val path = Path()
 
-        paragraphInfoList.drop(paragraphIndex)
-            .takeWhile { it.startIndex < end }
-            .filterNot { it.startIndex == it.endIndex }
-            .fastForEach {
-                with(it) {
-                    path.addPath(
-                        path = paragraph.getPathForRange(
-                            start = start.toLocalIndex(),
-                            end = end.toLocalIndex()
-                        ).toGlobal()
-                    )
-                }
+        for (i in paragraphIndex until paragraphInfoList.size) {
+            val p = paragraphInfoList[i]
+            if (p.startIndex >= end) break
+            if (p.startIndex == p.endIndex) continue
+            with(p) {
+                path.addPath(
+                    path = paragraph.getPathForRange(
+                        start = start.toLocalIndex(),
+                        end = end.toLocalIndex()
+                    ).toGlobal()
+                )
             }
+        }
         return path
     }
 
@@ -423,9 +568,13 @@ class MultiParagraph(
      * http://www.unicode.org/reports/tr29/#Word_Boundaries
      */
     fun getWordBoundary(offset: Int): TextRange {
-        requireIndexInRange(offset)
+        requireIndexInRangeInclusiveEnd(offset)
 
-        val paragraphIndex = findParagraphByIndex(paragraphInfoList, offset)
+        val paragraphIndex = if (offset == annotatedString.length) {
+            paragraphInfoList.lastIndex
+        } else {
+            findParagraphByIndex(paragraphInfoList, offset)
+        }
 
         return with(paragraphInfoList[paragraphIndex]) {
             paragraph.getWordBoundary(offset.toLocalIndex()).toGlobal()
@@ -565,29 +714,6 @@ class MultiParagraph(
     }
 
     /**
-     * Returns the end of visible offset of the given line.
-     *
-     * If no ellipsis happens on the given line, this returns the line end offset with excluding
-     * trailing whitespaces.
-     * If ellipsis happens on the given line, this returns the offset that ellipsis started, i.e.
-     * the exclusive not ellipsized last character.
-     * @param lineIndex a 0 based line index
-     * @return an exclusive line end offset that is visible on the display
-     * @see getLineEnd
-     */
-    @Deprecated(
-        "This function will be removed.",
-        replaceWith = ReplaceWith("getLineEnd(lineIndex, true)", "androidx.compose.ui.text")
-    )
-    fun getLineVisibleEnd(lineIndex: Int): Int {
-        requireLineIndexInRange(lineIndex)
-        val paragraphIndex = findParagraphByLineIndex(paragraphInfoList, lineIndex)
-        return with(paragraphInfoList[paragraphIndex]) {
-            paragraph.getLineEnd(lineIndex.toLocalLineIndex(), true).toGlobalIndex()
-        }
-    }
-
-    /**
      * Returns true if ellipsis happens on the given line, otherwise returns false
      *
      * @param lineIndex a 0 based line index
@@ -631,7 +757,7 @@ class MultiParagraph(
  * @return The index of the target [ParagraphInfo] in [paragraphInfoList].
  */
 internal fun findParagraphByIndex(paragraphInfoList: List<ParagraphInfo>, index: Int): Int {
-    return paragraphInfoList.binarySearch { paragraphInfo ->
+    return paragraphInfoList.fastBinarySearch { paragraphInfo ->
         when {
             paragraphInfo.startIndex > index -> 1
             paragraphInfo.endIndex <= index -> -1
@@ -651,7 +777,7 @@ internal fun findParagraphByIndex(paragraphInfoList: List<ParagraphInfo>, index:
  * @return The index of the target [ParagraphInfo] in [paragraphInfoList].
  */
 internal fun findParagraphByY(paragraphInfoList: List<ParagraphInfo>, y: Float): Int {
-    return paragraphInfoList.binarySearch { paragraphInfo ->
+    return paragraphInfoList.fastBinarySearch { paragraphInfo ->
         when {
             paragraphInfo.top > y -> 1
             paragraphInfo.bottom <= y -> -1
@@ -671,13 +797,32 @@ internal fun findParagraphByY(paragraphInfoList: List<ParagraphInfo>, y: Float):
  * @return The index of the target [ParagraphInfo] in [paragraphInfoList].
  */
 internal fun findParagraphByLineIndex(paragraphInfoList: List<ParagraphInfo>, lineIndex: Int): Int {
-    return paragraphInfoList.binarySearch { paragraphInfo ->
+    return paragraphInfoList.fastBinarySearch { paragraphInfo ->
         when {
             paragraphInfo.startLineIndex > lineIndex -> 1
             paragraphInfo.endLineIndex <= lineIndex -> -1
             else -> 0
         }
     }
+}
+
+private inline fun <T> List<T>.fastBinarySearch(comparison: (T) -> Int): Int {
+    var low = 0
+    var high = size - 1
+
+    while (low <= high) {
+        val mid = (low + high).ushr(1) // safe from overflows
+        val midVal = get(mid)
+        val cmp = comparison(midVal)
+
+        if (cmp < 0)
+            low = mid + 1
+        else if (cmp > 0)
+            high = mid - 1
+        else
+            return mid // key found
+    }
+    return -(low + 1) // key not found
 }
 
 /**

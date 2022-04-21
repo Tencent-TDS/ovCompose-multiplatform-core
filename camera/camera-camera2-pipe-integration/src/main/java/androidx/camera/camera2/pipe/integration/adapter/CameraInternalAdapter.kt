@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
+@file:RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+
 package androidx.camera.camera2.pipe.integration.adapter
 
+import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraPipe
-import androidx.camera.camera2.pipe.impl.Log.debug
-import androidx.camera.camera2.pipe.impl.Log.warn
+import androidx.camera.camera2.pipe.core.Log.debug
+import androidx.camera.camera2.pipe.core.Log.warn
 import androidx.camera.camera2.pipe.integration.config.CameraConfig
 import androidx.camera.camera2.pipe.integration.config.CameraScope
 import androidx.camera.camera2.pipe.integration.impl.UseCaseManager
@@ -28,13 +31,11 @@ import androidx.camera.core.impl.CameraInfoInternal
 import androidx.camera.core.impl.CameraInternal
 import androidx.camera.core.impl.LiveDataObservable
 import androidx.camera.core.impl.Observable
-import androidx.camera.core.impl.Quirks
 import androidx.camera.core.impl.utils.futures.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.atomicfu.atomic
 import javax.inject.Inject
 
-internal val defaultQuirks = Quirks(emptyList())
 internal val cameraAdapterIds = atomic(0)
 
 /**
@@ -56,11 +57,6 @@ class CameraInternalAdapter @Inject constructor(
 
         debug { "Created $this for $cameraId" }
         // TODO: Consider preloading the list of camera ids and metadata.
-    }
-
-    override fun getCameraQuirks(): Quirks {
-        warn { "TODO: Quirks are not yet supported." }
-        return defaultQuirks
     }
 
     // Load / unload methods
@@ -101,7 +97,7 @@ class CameraInternalAdapter @Inject constructor(
     }
 
     override fun onUseCaseReset(useCase: UseCase) {
-        useCaseManager.update(useCase)
+        useCaseManager.reset(useCase)
     }
 
     override fun onUseCaseInactive(useCase: UseCase) {

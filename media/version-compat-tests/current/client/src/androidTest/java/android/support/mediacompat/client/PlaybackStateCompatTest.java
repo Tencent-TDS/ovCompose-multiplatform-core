@@ -91,6 +91,7 @@ public class PlaybackStateCompatTest {
      */
     @Test
     @SmallTest
+    @SuppressWarnings("deprecation")
     public void testBuilder_setterMethods() {
         Bundle extras = new Bundle();
         extras.putString(EXTRAS_KEY, EXTRAS_VALUE);
@@ -193,6 +194,7 @@ public class PlaybackStateCompatTest {
      */
     @Test
     @SmallTest
+    @SuppressWarnings("deprecation")
     public void testWriteToParcel() {
         Bundle extras = new Bundle();
         extras.putString(EXTRAS_KEY, EXTRAS_VALUE);
@@ -257,6 +259,7 @@ public class PlaybackStateCompatTest {
      */
     @Test
     @SmallTest
+    @SuppressWarnings("deprecation")
     public void testCustomAction() {
         Bundle extras = new Bundle();
         extras.putString(EXTRAS_KEY, EXTRAS_VALUE);
@@ -284,6 +287,43 @@ public class PlaybackStateCompatTest {
         parcel.recycle();
     }
 
+    /**
+     * Tests that each ACTION_* constant does not overlap.
+     */
+    @Test
+    @SmallTest
+    public void testActionConstantDoesNotOverlap() {
+        long[] actionConstants = new long[] {
+                PlaybackStateCompat.ACTION_STOP, PlaybackStateCompat.ACTION_PAUSE,
+                PlaybackStateCompat.ACTION_PLAY, PlaybackStateCompat.ACTION_REWIND,
+                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS,
+                PlaybackStateCompat.ACTION_SKIP_TO_NEXT,
+                PlaybackStateCompat.ACTION_FAST_FORWARD,
+                PlaybackStateCompat.ACTION_SET_RATING,
+                PlaybackStateCompat.ACTION_SEEK_TO,
+                PlaybackStateCompat.ACTION_PLAY_PAUSE,
+                PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID,
+                PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH,
+                PlaybackStateCompat.ACTION_SKIP_TO_QUEUE_ITEM,
+                PlaybackStateCompat.ACTION_PLAY_FROM_URI,
+                PlaybackStateCompat.ACTION_PREPARE,
+                PlaybackStateCompat.ACTION_PREPARE_FROM_MEDIA_ID,
+                PlaybackStateCompat.ACTION_PREPARE_FROM_SEARCH,
+                PlaybackStateCompat.ACTION_PREPARE_FROM_URI,
+                PlaybackStateCompat.ACTION_SET_REPEAT_MODE,
+                PlaybackStateCompat.ACTION_SET_SHUFFLE_MODE,
+                PlaybackStateCompat.ACTION_SET_CAPTIONING_ENABLED,
+                PlaybackStateCompat.ACTION_SET_PLAYBACK_SPEED};
+
+        // Check that the values are not overlapped.
+        for (int i = 0; i < actionConstants.length; i++) {
+            for (int j = i + 1; j < actionConstants.length; j++) {
+                assertEquals(0, actionConstants[i] & actionConstants[j]);
+            }
+        }
+    }
+
+    @SuppressWarnings("deprecation")
     private void assertCustomActionEquals(PlaybackStateCompat.CustomAction action1,
             PlaybackStateCompat.CustomAction action2) {
         assertEquals(action1.getAction(), action2.getAction());

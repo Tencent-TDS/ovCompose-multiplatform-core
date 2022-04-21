@@ -38,6 +38,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ShareActionProvider;
 
+import androidx.annotation.DoNotInline;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -230,7 +231,10 @@ public final class ShareCompat {
      *
      * @param item MenuItem to configure for sharing
      * @param shareIntent IntentBuilder with data about the content to share
+     *
+     * @deprecated Use the system sharesheet. See https://developer.android.com/training/sharing/send
      */
+    @Deprecated
     public static void configureMenuItem(@NonNull MenuItem item,
             @NonNull IntentBuilder shareIntent) {
         ActionProvider itemProvider = item.getActionProvider();
@@ -259,7 +263,11 @@ public final class ShareCompat {
      * @param menuItemId ID of the share item within menu
      * @param shareIntent IntentBuilder with data about the content to share
      * @see #configureMenuItem(MenuItem, IntentBuilder)
+     *
+     * @deprecated Use the system sharesheet. See https://developer.android.com/training/sharing/send
      */
+    @SuppressWarnings("deprecation")
+    @Deprecated
     public static void configureMenuItem(@NonNull Menu menu, @IdRes int menuItemId,
             @NonNull IntentBuilder shareIntent) {
         MenuItem item = menu.findItem(menuItemId);
@@ -423,12 +431,6 @@ public final class ShareCompat {
 
         /**
          * Start a chooser activity for the current share intent.
-         *
-         * <p>Note that under most circumstances you should use
-         * {@link ShareCompat#configureMenuItem(MenuItem, IntentBuilder)
-         *  ShareCompat.configureMenuItem()} to add a Share item to the menu while
-         * presenting a detail view of the content to be shared instead
-         * of invoking this directly.</p>
          */
         public void startChooser() {
             mContext.startActivity(createChooserIntent());
@@ -832,7 +834,7 @@ public final class ShareCompat {
                     result = Html.toHtml((Spanned) text);
                 } else if (text != null) {
                     if (SDK_INT >= 16) {
-                        result = Html.escapeHtml(text);
+                        result = Api16Impl.escapeHtml(text);
                     } else {
                         StringBuilder out = new StringBuilder();
                         withinStyle(out, text, 0, text.length());
@@ -882,7 +884,7 @@ public final class ShareCompat {
          */
         @Nullable
         public Uri getStream() {
-            return (Uri) mIntent.getParcelableExtra(Intent.EXTRA_STREAM);
+            return mIntent.getParcelableExtra(Intent.EXTRA_STREAM);
         }
 
         /**
@@ -1080,9 +1082,11 @@ public final class ShareCompat {
 
     @RequiresApi(16)
     private static class Api16Impl {
-        // Prevent instantiation.
-        private Api16Impl() {}
+        private Api16Impl() {
+            // This class is not instantiable.
+        }
 
+        @DoNotInline
         static void migrateExtraStreamToClipData(@NonNull Intent intent,
                 @NonNull ArrayList<Uri> streams) {
             CharSequence text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
@@ -1101,9 +1105,15 @@ public final class ShareCompat {
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         }
 
+        @DoNotInline
         static void removeClipData(@NonNull Intent intent) {
             intent.setClipData(null);
             intent.setFlags(intent.getFlags() & ~Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        }
+
+        @DoNotInline
+        static String escapeHtml(CharSequence text) {
+            return Html.escapeHtml(text);
         }
     }
 }

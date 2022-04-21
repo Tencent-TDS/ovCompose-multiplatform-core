@@ -22,7 +22,7 @@ package androidx.compose.ui.layout
  */
 interface IntrinsicMeasurable {
     /**
-     * Data provided by the `ParentData`
+     * Data provided by the [ParentDataModifier].
      */
     val parentData: Any?
 
@@ -54,5 +54,8 @@ interface IntrinsicMeasurable {
 /**
  * A function for performing intrinsic measurement.
  */
-typealias IntrinsicMeasureBlock =
+@Deprecated(
+    "IntrinsicMeasureBlock was deprecated. See MeasurePolicy and the new Layout overloads."
+)
+internal typealias IntrinsicMeasureBlock =
     IntrinsicMeasureScope.(List<IntrinsicMeasurable>, Int) -> Int

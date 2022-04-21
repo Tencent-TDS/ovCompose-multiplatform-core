@@ -21,15 +21,17 @@ import androidx.datastore.core.TestingSerializer
 import androidx.testutils.assertThrows
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.TestCoroutineScope
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.rules.Timeout
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 @kotlinx.coroutines.InternalCoroutinesApi
@@ -39,6 +41,9 @@ class ReplaceFileCorruptionHandlerTest {
     @get:Rule
     val tmp = TemporaryFolder()
 
+    @get:Rule
+    val timeout = Timeout(10, TimeUnit.SECONDS)
+
     private lateinit var testFile: File
 
     @Before
@@ -47,42 +52,42 @@ class ReplaceFileCorruptionHandlerTest {
     }
 
     @Test
-    fun testHandledRead() = runBlockingTest {
+    fun testHandledRead() = runTest {
         preSeedData(testFile, 1)
 
         val store = SingleProcessDataStore<Byte>(
             { testFile },
             TestingSerializer(failReadWithCorruptionException = true),
             corruptionHandler = ReplaceFileCorruptionHandler<Byte> { 10 },
-            scope = TestCoroutineScope()
+            scope = this
         )
 
         assertThat(store.data.first()).isEqualTo(10)
     }
 
     @Test
-    fun testHandledWrite() = runBlockingTest {
+    fun testHandledWrite() = runTest {
         preSeedData(testFile, 1)
 
         val store = SingleProcessDataStore<Byte>(
             { testFile },
             TestingSerializer(failReadWithCorruptionException = true),
             corruptionHandler = ReplaceFileCorruptionHandler<Byte> { 10 },
-            scope = TestCoroutineScope()
+            scope = this
         )
 
         assertThat(store.updateData { it.inc() }).isEqualTo(11)
     }
 
     @Test
-    fun testHandlerCalledOnce() = runBlockingTest {
+    fun testHandlerCalledOnce() = runTest {
         preSeedData(testFile, 1)
 
         val store = SingleProcessDataStore<Byte>(
             { testFile },
             TestingSerializer(failReadWithCorruptionException = true),
             corruptionHandler = ReplaceFileCorruptionHandler<Byte> { 10 },
-            scope = TestCoroutineScope()
+            scope = this
         )
 
         val plus1 = async { store.updateData { it.inc() } }
@@ -95,14 +100,15 @@ class ReplaceFileCorruptionHandlerTest {
     }
 
     @Test
-    fun testFailingWritePropagates() = runBlockingTest {
+    fun testFailingWritePropagates() = runTest {
+
         preSeedData(testFile, 1)
 
         val store = SingleProcessDataStore<Byte>(
             { testFile },
             TestingSerializer(failReadWithCorruptionException = true, failingWrite = true),
             corruptionHandler = ReplaceFileCorruptionHandler<Byte> { 10 },
-            scope = TestCoroutineScope()
+            scope = this
         )
 
         assertThrows<IOException> { store.data.first() }
@@ -112,10 +118,12 @@ class ReplaceFileCorruptionHandlerTest {
     }
 
     private suspend fun preSeedData(file: File, byte: Byte) {
-        SingleProcessDataStore(
-            { file },
-            TestingSerializer(),
-            scope = TestCoroutineScope()
-        ).updateData { byte }
+        coroutineScope {
+            SingleProcessDataStore(
+                { file },
+                TestingSerializer(),
+                scope = this
+            ).updateData { byte }
+        }
     }
 }

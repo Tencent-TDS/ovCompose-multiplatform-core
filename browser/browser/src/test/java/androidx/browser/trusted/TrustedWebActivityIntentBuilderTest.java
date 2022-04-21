@@ -29,6 +29,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
+import androidx.annotation.RequiresApi;
 import androidx.browser.customtabs.CustomTabColorSchemeParams;
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.browser.customtabs.CustomTabsSession;
@@ -53,9 +54,11 @@ import java.util.List;
 @RunWith(RobolectricTestRunner.class)
 @DoNotInstrument
 // minSdk For Bundle#getBinder
+@RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 @Config(minSdk = Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class TrustedWebActivityIntentBuilderTest {
 
+    @SuppressWarnings("deprecation")
     @Test
     public void intentIsConstructedCorrectly() {
         Uri url = Uri.parse("https://test.com/page");

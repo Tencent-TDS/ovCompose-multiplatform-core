@@ -17,8 +17,13 @@
 package androidx.compose.ui.text
 
 import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.util.fastAny
+import androidx.compose.ui.util.fastMap
+import androidx.compose.ui.util.fastMaxBy
 
 /**
  * Calculates and provides the intrinsic width and height of text that contains [ParagraphStyle].
@@ -29,7 +34,7 @@ import androidx.compose.ui.unit.Density
  * skipped during layout and replaced with [Placeholder]. It's required that the range of each
  * [Placeholder] doesn't cross paragraph boundary, otherwise [IllegalArgumentException] is thrown.
  * @param density density of the device
- * @param resourceLoader [Font.ResourceLoader] to be used to load the font given in [SpanStyle]s
+ * @param fontFamilyResolver [Font.ResourceLoader] to be used to load the font given in [SpanStyle]s
 
  * @see MultiParagraph
  * @see Placeholder
@@ -42,17 +47,38 @@ class MultiParagraphIntrinsics(
     style: TextStyle,
     val placeholders: List<AnnotatedString.Range<Placeholder>>,
     density: Density,
-    resourceLoader: Font.ResourceLoader
+    fontFamilyResolver: FontFamily.Resolver
 ) : ParagraphIntrinsics {
 
-    override val minIntrinsicWidth: Float by lazy {
-        infoList.maxByOrNull {
+    @Suppress("DEPRECATION")
+    @Deprecated("Font.ResourceLoader is deprecated, call with fontFamilyResolver",
+        replaceWith = ReplaceWith("MultiParagraphIntrinsics(annotatedString, style, " +
+            "placeholders, density, fontFamilyResolver)")
+    )
+    constructor(
+        annotatedString: AnnotatedString,
+        style: TextStyle,
+        placeholders: List<AnnotatedString.Range<Placeholder>>,
+        density: Density,
+        resourceLoader: Font.ResourceLoader
+    ) : this(
+        annotatedString,
+        style,
+        placeholders,
+        density,
+        createFontFamilyResolver(resourceLoader)
+    )
+
+    // NOTE(text-perf-review): why are we using lazy here? Are there cases where these
+    // calculations aren't executed?
+    override val minIntrinsicWidth: Float by lazy(LazyThreadSafetyMode.NONE) {
+        infoList.fastMaxBy {
             it.intrinsics.minIntrinsicWidth
         }?.intrinsics?.minIntrinsicWidth ?: 0f
     }
 
-    override val maxIntrinsicWidth: Float by lazy {
-        infoList.maxByOrNull {
+    override val maxIntrinsicWidth: Float by lazy(LazyThreadSafetyMode.NONE) {
+        infoList.fastMaxBy {
             it.intrinsics.maxIntrinsicWidth
         }?.intrinsics?.maxIntrinsicWidth ?: 0f
     }
@@ -82,13 +108,16 @@ class MultiParagraphIntrinsics(
                             paragraphStyleItem.end
                         ),
                         density = density,
-                        resourceLoader = resourceLoader
+                        fontFamilyResolver = fontFamilyResolver
                     ),
                     startIndex = paragraphStyleItem.start,
                     endIndex = paragraphStyleItem.end
                 )
             }
     }
+
+    override val hasStaleResolvedFonts: Boolean
+        get() = infoList.fastAny { it.intrinsics.hasStaleResolvedFonts }
 
     /**
      * if the [style] does `not` have [TextDirection] set, it will return a new
@@ -109,7 +138,7 @@ class MultiParagraphIntrinsics(
 }
 
 private fun List<AnnotatedString.Range<Placeholder>>.getLocalPlaceholders(start: Int, end: Int) =
-    filter { intersect(start, end, it.start, it.end) }.map {
+    fastFilter { intersect(start, end, it.start, it.end) }.fastMap {
         require(start <= it.start && it.end <= end) {
             "placeholder can not overlap with paragraph."
         }

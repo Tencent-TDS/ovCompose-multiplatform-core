@@ -17,12 +17,12 @@
 package androidx.navigation.dynamicfeatures.fragment.ui
 
 import android.app.Activity
-import android.content.Intent
 import android.content.IntentSender
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import androidx.annotation.RestrictTo
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
@@ -66,6 +66,14 @@ public abstract class AbstractProgressFragment : Fragment {
 
     public constructor(contentLayoutId: Int) : super(contentLayoutId)
 
+    private val intentSenderLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_CANCELED) {
+            onCancelled()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState != null) {
@@ -91,11 +99,8 @@ public abstract class AbstractProgressFragment : Fragment {
     }
     /**
      * Navigates to an installed dynamic feature module or kicks off installation.
-     *
-     * @hide
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
-    protected fun navigate() {
+    internal fun navigate() {
         Log.i(TAG, "navigate: ")
         val installMonitor = DynamicInstallMonitor()
         val extras = DynamicExtras(installMonitor)
@@ -137,20 +142,17 @@ public abstract class AbstractProgressFragment : Fragment {
                             splitInstallManager.startConfirmationDialogForResult(
                                 sessionState,
                                 IntentSenderForResultStarter { intent,
-                                    requestCode,
+                                    _,
                                     fillInIntent,
                                     flagsMask,
                                     flagsValues,
-                                    extraFlags,
-                                    options ->
-                                    startIntentSenderForResult(
-                                        intent,
-                                        requestCode,
-                                        fillInIntent,
-                                        flagsMask,
-                                        flagsValues,
-                                        extraFlags,
-                                        options
+                                    _,
+                                    _ ->
+                                    intentSenderLauncher.launch(
+                                        IntentSenderRequest.Builder(intent)
+                                            .setFillInIntent(fillInIntent)
+                                            .setFlags(flagsValues, flagsMask)
+                                            .build()
                                     )
                                 },
                                 INSTALL_REQUEST_CODE
@@ -174,15 +176,6 @@ public abstract class AbstractProgressFragment : Fragment {
                         )
                     }
                 }
-            }
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == INSTALL_REQUEST_CODE) {
-            if (resultCode == Activity.RESULT_CANCELED) {
-                onCancelled()
             }
         }
     }

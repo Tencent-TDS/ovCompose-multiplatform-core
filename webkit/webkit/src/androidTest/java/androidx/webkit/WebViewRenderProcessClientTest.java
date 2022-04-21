@@ -54,7 +54,7 @@ public class WebViewRenderProcessClientTest {
     }
 
     private static class JSBlocker {
-        // A CoundDownLatch is used here, instead of a Future, because that makes it
+        // A CountDownLatch is used here, instead of a Future, because that makes it
         // easier to support requiring variable numbers of releaseBlock() calls
         // to unblock.
         private CountDownLatch mLatch;
@@ -114,7 +114,14 @@ public class WebViewRenderProcessClientTest {
         WebkitUtils.onMainThreadSync(() -> {
             WebView webView = mWebViewOnUiThread.getWebViewOnCurrentThread();
             webView.evaluateJavascript("blocker.block();", null);
-            blocker.waitForBlocked();
+        });
+        // Wait on the test instrumentation thread not the main thread. Blocking the main thread
+        // may block other async calls such as initializing the GPU service channel that happens on
+        // the UI thread and has to finish before the renderer can execute any javascript,
+        // see https://crbug.com/1269552.
+        blocker.waitForBlocked();
+        WebkitUtils.onMainThreadSync(() -> {
+            WebView webView = mWebViewOnUiThread.getWebViewOnCurrentThread();
             // Sending an input event that does not get acknowledged will cause
             // the unresponsive renderer event to fire.
             webView.dispatchKeyEvent(
@@ -136,9 +143,7 @@ public class WebViewRenderProcessClientTest {
         final ResolvableFuture<Void> rendererUnblocked = ResolvableFuture.create();
 
         WebViewRenderProcessClient client = makeWebViewRenderProcessClient(
-                () -> blocker.releaseBlock(),
-                () -> rendererUnblocked.set(null)
-            );
+                blocker::releaseBlock, () -> rendererUnblocked.set(null));
         if (executor == null) {
             mWebViewOnUiThread.setWebViewRenderProcessClient(client);
         } else {
@@ -159,12 +164,9 @@ public class WebViewRenderProcessClientTest {
     @Test
     public void testWebViewRenderProcessClientWithExecutor() throws Throwable {
         final AtomicInteger executorCount = new AtomicInteger();
-        testWebViewRenderProcessClientOnExecutor(new Executor() {
-            @Override
-            public void execute(Runnable r) {
-                executorCount.incrementAndGet();
-                r.run();
-            }
+        testWebViewRenderProcessClientOnExecutor(r -> {
+            executorCount.incrementAndGet();
+            r.run();
         });
         Assert.assertEquals(2, executorCount.get());
     }

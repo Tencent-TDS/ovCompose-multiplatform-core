@@ -16,29 +16,31 @@
 
 package androidx.compose.foundation.text
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.ExperimentalFocus
-import androidx.compose.ui.focus.isFocused
-import androidx.compose.ui.focusObserver
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalTextInputService
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.text.ExperimentalTextApi
-import androidx.compose.ui.text.InternalTextApi
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.ImeOptions
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TextInputService
-import androidx.compose.ui.text.input.textInputServiceFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.google.common.truth.Truth.assertThat
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.eq
+import com.nhaarman.mockitokotlin2.inOrder
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
@@ -46,11 +48,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@OptIn(
-    ExperimentalTextApi::class,
-    InternalTextApi::class,
-    ExperimentalFocus::class
-)
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class CoreTextFieldInputServiceIntegrationTest {
@@ -58,12 +55,11 @@ class CoreTextFieldInputServiceIntegrationTest {
     @get:Rule
     val rule = createComposeRule()
 
+    private val platformTextInputService = mock<PlatformTextInputService>()
+    private val textInputService = TextInputService(platformTextInputService)
+
     @Test
     fun textField_ImeOptions_isPassedTo_platformTextInputService() {
-        val platformTextInputService = mock<PlatformTextInputService>()
-        @Suppress("DEPRECATION_ERROR")
-        textInputServiceFactory = { TextInputService(platformTextInputService) }
-
         val testTag = "KeyboardOption"
         val value = TextFieldValue("abc")
         val imeOptions = ImeOptions(
@@ -76,13 +72,13 @@ class CoreTextFieldInputServiceIntegrationTest {
 
         var focused = false
 
-        rule.setContent {
+        setContent {
             CoreTextField(
                 value = value,
                 imeOptions = imeOptions,
                 modifier = Modifier
                     .testTag(testTag)
-                    .focusObserver { focused = it.isFocused },
+                    .onFocusChanged { focused = it.isFocused },
                 onValueChange = {}
             )
         }
@@ -97,6 +93,55 @@ class CoreTextFieldInputServiceIntegrationTest {
                 eq(imeOptions),
                 any(), // onEditCommand
                 any() // onImeActionPerformed
+            )
+        }
+    }
+
+    @Test
+    fun textField_stopsThenStartsInput_whenFocusMovesBetweenTextFields() {
+        val value = TextFieldValue("abc")
+        val focusRequester1 = FocusRequester()
+        val focusRequester2 = FocusRequester()
+
+        setContent {
+            Column {
+                CoreTextField(
+                    value = value,
+                    onValueChange = {},
+                    modifier = Modifier.focusRequester(focusRequester1)
+                )
+                CoreTextField(
+                    value = value,
+                    onValueChange = {},
+                    modifier = Modifier.focusRequester(focusRequester2)
+                )
+            }
+        }
+        rule.runOnIdle {
+            focusRequester1.requestFocus()
+        }
+
+        // Focus the other field. The IME connection should restart only once.
+        rule.runOnIdle {
+            focusRequester2.requestFocus()
+        }
+
+        rule.runOnIdle {
+            inOrder(platformTextInputService) {
+                verify(platformTextInputService).startInput(any(), any(), any(), any())
+                // On Android, this stopInput should no-op because of the immediately-following call
+                // to startInput. See b/187746439.
+                verify(platformTextInputService).stopInput()
+                verify(platformTextInputService).startInput(any(), any(), any(), any())
+            }
+        }
+    }
+
+    private fun setContent(content: @Composable () -> Unit) {
+        rule.setContent {
+            CompositionLocalProvider(
+                LocalTextInputService provides textInputService,
+                content = content
             )
         }
     }

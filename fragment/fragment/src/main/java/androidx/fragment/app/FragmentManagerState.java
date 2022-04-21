@@ -17,7 +17,6 @@
 package androidx.fragment.app;
 
 import android.annotation.SuppressLint;
-import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -25,26 +24,28 @@ import java.util.ArrayList;
 
 @SuppressLint("BanParcelableUsage")
 final class FragmentManagerState implements Parcelable {
-    ArrayList<FragmentState> mActive;
+    ArrayList<FragmentState> mSavedState;
+    ArrayList<String> mActive;
     ArrayList<String> mAdded;
-    BackStackState[] mBackStack;
+    BackStackRecordState[] mBackStack;
     int mBackStackIndex;
     String mPrimaryNavActiveWho = null;
-    ArrayList<String> mResultKeys = new ArrayList<>();
-    ArrayList<Bundle> mResults = new ArrayList<>();
+    ArrayList<String> mBackStackStateKeys = new ArrayList<>();
+    ArrayList<BackStackState> mBackStackStates = new ArrayList<>();
     ArrayList<FragmentManager.LaunchedFragmentInfo> mLaunchedFragments;
 
     public FragmentManagerState() {
     }
 
     public FragmentManagerState(Parcel in) {
-        mActive = in.createTypedArrayList(FragmentState.CREATOR);
+        mSavedState = in.createTypedArrayList(FragmentState.CREATOR);
+        mActive = in.createStringArrayList();
         mAdded = in.createStringArrayList();
-        mBackStack = in.createTypedArray(BackStackState.CREATOR);
+        mBackStack = in.createTypedArray(BackStackRecordState.CREATOR);
         mBackStackIndex = in.readInt();
         mPrimaryNavActiveWho = in.readString();
-        mResultKeys = in.createStringArrayList();
-        mResults = in.createTypedArrayList(Bundle.CREATOR);
+        mBackStackStateKeys = in.createStringArrayList();
+        mBackStackStates = in.createTypedArrayList(BackStackState.CREATOR);
         mLaunchedFragments = in.createTypedArrayList(FragmentManager.LaunchedFragmentInfo.CREATOR);
     }
 
@@ -55,13 +56,14 @@ final class FragmentManagerState implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeTypedList(mActive);
+        dest.writeTypedList(mSavedState);
+        dest.writeStringList(mActive);
         dest.writeStringList(mAdded);
         dest.writeTypedArray(mBackStack, flags);
         dest.writeInt(mBackStackIndex);
         dest.writeString(mPrimaryNavActiveWho);
-        dest.writeStringList(mResultKeys);
-        dest.writeTypedList(mResults);
+        dest.writeStringList(mBackStackStateKeys);
+        dest.writeTypedList(mBackStackStates);
         dest.writeTypedList(mLaunchedFragments);
     }
 
