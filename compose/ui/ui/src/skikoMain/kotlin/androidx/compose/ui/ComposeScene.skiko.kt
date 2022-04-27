@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerInputEvent
@@ -422,6 +423,7 @@ class ComposeScene internal constructor(
         buttons: PointerButtons? = null,
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
+        button: PointerButton? = null
     ): Unit = postponeInvalidation {
         defaultPointerStateTracker.onPointerEvent(eventType)
 
@@ -437,7 +439,8 @@ class ComposeScene internal constructor(
             type,
             scrollDelta,
             actualButtons,
-            actualKeyboardModifiers
+            actualKeyboardModifiers,
+            button
         )
         needLayout = false
         forEachOwner { it.measureAndLayout() }
@@ -485,6 +488,7 @@ class ComposeScene internal constructor(
         owner?.processPointerInput(event)
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     private fun processMove(event: PointerInputEvent) {
         val owner = when {
             event.buttons.areAnyPressed -> pressOwner
@@ -580,6 +584,7 @@ private class DefaultPointerStateTracker {
         private set
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 private fun pointerInputEvent(
     eventType: PointerEventType,
     position: Offset,
@@ -588,7 +593,8 @@ private fun pointerInputEvent(
     type: PointerType,
     scrollDelta: Offset,
     buttons: PointerButtons,
-    keyboardModifiers: PointerKeyboardModifiers
+    keyboardModifiers: PointerKeyboardModifiers,
+    changedButton: PointerButton?
 ): PointerInputEvent {
     return PointerInputEvent(
         eventType,
@@ -606,10 +612,12 @@ private fun pointerInputEvent(
         ),
         buttons,
         keyboardModifiers,
-        nativeEvent
+        nativeEvent,
+        changedButton
     )
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 private fun createMoveEvent(
     nativeEvent: Any?,
     sourceEvent: PointerInputEvent,
@@ -622,7 +630,8 @@ private fun createMoveEvent(
     type = sourceEvent.pointers.first().type,
     scrollDelta = Offset(0f, 0f),
     buttons = sourceEvent.buttons,
-    keyboardModifiers = sourceEvent.keyboardModifiers
+    keyboardModifiers = sourceEvent.keyboardModifiers,
+    changedButton = null
 )
 
 internal expect fun createSkiaLayer(): SkiaLayer

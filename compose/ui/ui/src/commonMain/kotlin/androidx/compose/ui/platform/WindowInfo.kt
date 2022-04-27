@@ -22,7 +22,6 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
-import kotlinx.coroutines.flow.collect
 
 /**
  * Provides information about the Window that is hosting this compose hierarchy.

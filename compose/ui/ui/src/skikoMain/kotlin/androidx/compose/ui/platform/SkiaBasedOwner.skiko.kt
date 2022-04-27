@@ -52,7 +52,6 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.PointerIconDefaults
 import androidx.compose.ui.input.pointer.PointerIconService
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.pointer.PointerInputEventProcessor
@@ -357,7 +356,8 @@ internal class SkiaBasedOwner(
                 PointerEventType.Unknown,
                 timeMillis,
                 pointers.map { it.toPointerInputEventData() },
-                if (isPressed) PointerButtons(isPrimaryPressed = true) else PointerButtons()
+                if (isPressed) PointerButtons(isPrimaryPressed = true) else PointerButtons(),
+                button = null
             )
         )
     }
