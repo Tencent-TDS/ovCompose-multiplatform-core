@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+/*
+ATTENTION! Please note that this file has duplicates.
+This is to avoid publishing to a separate library.
+If you need to make changes to the content, then find duplicates on this comment.
+ */
+
 package androidx.compose.ui.text
 
 internal class SynchronizedObject : kotlinx.atomicfu.locks.SynchronizedObject()
