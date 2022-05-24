@@ -37,9 +37,6 @@ dependencies {
 
         api(libs.kotlinCoroutinesAndroid)
 
-        // internal util without publication to maven
-//        compileOnly(project(":compose:util:util"))
-
         implementation("androidx.annotation:annotation:1.1.0")
         implementation(libs.kotlinStdlib)
         implementation(libs.atomicFu)
