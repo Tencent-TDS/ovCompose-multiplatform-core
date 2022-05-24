@@ -19,8 +19,8 @@ package androidx.compose.runtime.snapshots
 import androidx.compose.runtime.TestOnly
 import androidx.compose.runtime.collection.IdentityScopeMap
 import androidx.compose.runtime.collection.mutableVectorOf
-import androidx.compose.util.synchronized
-import androidx.compose.util.createSynchronizedObject
+import androidx.compose.runtime.synchronized
+import androidx.compose.runtime.createSynchronizedObject
 
 @Suppress("NotCloseable") // we can't implement AutoCloseable from commonMain
 class SnapshotStateObserver(private val onChangedExecutor: (callback: () -> Unit) -> Unit) {

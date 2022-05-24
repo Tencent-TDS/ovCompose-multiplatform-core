@@ -25,8 +25,6 @@ import androidx.compose.runtime.collection.IdentityScopeMap
 import androidx.compose.runtime.snapshots.fastAll
 import androidx.compose.runtime.snapshots.fastAny
 import androidx.compose.runtime.snapshots.fastForEach
-import androidx.compose.util.createSynchronizedObject
-import androidx.compose.util.synchronized
 
 /**
  * A composition object is usually constructed for you, and returned from an API that
