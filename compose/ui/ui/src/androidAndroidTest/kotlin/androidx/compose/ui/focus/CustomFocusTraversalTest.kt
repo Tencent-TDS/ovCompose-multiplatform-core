@@ -54,7 +54,7 @@ class CustomFocusTraversalTest(
 
     companion object {
         @JvmStatic
-        @Parameterized.Parameters(name = "moveFocusProgrammatically = {0}, useFocusModifier = {1}")
+        @Parameterized.Parameters(name = "moveFocusProgrammatically = {0}, useFocusOrderModifier = {1}")
         fun initParameters() = listOf(
             arrayOf(true, true),
             arrayOf(true, false),
@@ -643,7 +643,9 @@ class CustomFocusTraversalTest(
         if (useFocusOrderModifier) {
             this.then(ReceiverFocusOrderModifier(block))
         } else {
-            focusProperties(FocusOrderToProperties(block))
+            focusProperties {
+                FocusOrderToProperties(block).invoke(this)
+            }
         }
 
     @Suppress("DEPRECATION")
