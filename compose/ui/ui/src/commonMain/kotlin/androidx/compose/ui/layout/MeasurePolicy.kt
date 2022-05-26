@@ -50,27 +50,8 @@ import androidx.compose.ui.util.fastMap
  *
  * @see Layout
  */
-
-/**
- * TODO: This is a temporary constructor
- * until the SAM conversion of MeasurePolicy interface works again.
- */
-fun MeasurePolicy (block: MeasureScope.(List<Measurable>, Constraints) -> MeasureResult): MeasurePolicy {
-    return object : MeasurePolicy {
-        override  fun MeasureScope.measure(
-            measurables: List<Measurable>,
-            constraints: Constraints
-        ): MeasureResult = this.block(measurables, constraints)
-    }
-}
-
 @Stable
-/**
- * TODO: temporarily disable SAM conversion of MeasurePolicy.
- * Native just crashes upon calls to measure()
- * Remove alternative [Layout] accepting a lambda when the sam conversion works again.
- */
-/* fun */ interface MeasurePolicy {
+fun interface MeasurePolicy {
     /**
      * The function that defines the measurement and layout. Each [Measurable] in the [measurables]
      * list corresponds to a layout child of the layout, and children can be measured using the

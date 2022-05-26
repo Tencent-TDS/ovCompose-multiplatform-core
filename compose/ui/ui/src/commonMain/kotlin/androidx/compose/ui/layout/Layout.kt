@@ -134,16 +134,6 @@ inline fun Layout(
     )
 }
 
-/*
- * TODO: This is a version of Layout not using SAM-converted [MeasurePolicy] interface.
- * Remove me, when SAM conversion for [MeasurePolicy] works again.
- */
-@Composable inline fun Layout(
-    content: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    crossinline measurePolicy: MeasureScope.(List<Measurable>, Constraints) -> MeasureResult
-) = Layout(content, modifier, MeasurePolicy { x, y -> measurePolicy(x, y) })
-
 @Suppress("ComposableLambdaParameterPosition")
 @Composable
 @UiComposable
