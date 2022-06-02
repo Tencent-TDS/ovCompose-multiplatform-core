@@ -24,7 +24,6 @@ import androidx.compose.ui.input.pointer.toCompose
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.currentMillis
 import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.SkiaLayer
