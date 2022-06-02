@@ -68,6 +68,7 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.platform.PlatformInput
 import androidx.compose.ui.semantics.SemanticsOwner
+import java.awt.Cursor
 
 internal class ComposeLayer {
     private var isDisposed = false
@@ -97,9 +98,7 @@ internal class ComposeLayer {
 
     private val platform = object : Platform {
         override fun setPointerIcon(pointerIcon: PointerIcon) {
-            if (pointerIcon is AwtCursor) {
-                _component.cursor = pointerIcon.cursor
-            }
+            _component.cursor = (pointerIcon as? AwtCursor)?.cursor ?: Cursor(Cursor.DEFAULT_CURSOR)
         }
 
         override fun accessibilityController(owner: SemanticsOwner) =
