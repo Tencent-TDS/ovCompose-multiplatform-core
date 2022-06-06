@@ -16,8 +16,8 @@
 
 package androidx.compose.ui.input.pointer
 
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -47,6 +47,8 @@ internal expect val pointerIconHand: PointerIcon
 
 internal interface PointerIconService {
     var current: PointerIcon
+
+    fun requestUpdate() {}
 }
 
 /**
@@ -75,10 +77,10 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
             val rememberIcon = rememberUpdatedState(icon)
             val rememberOverrideDescendants = rememberUpdatedState(overrideDescendants)
 
-            // Create and chain a new instance of a dumbModifier for every new icon.
-            // This forces the LayoutNode to requestRelayout, leading to a synthetic event being dispatched
-            // and then handled here in pointerInput below, and then applying the icon to the pointerIconService.
-            val dumbModifier = remember(icon) { object : Modifier.Element {} }
+            DisposableEffect(icon) {
+                pointerIconService.requestUpdate()
+                onDispose {  }
+            }
 
             this.pointerInput(Unit) {
                 awaitPointerEventScope {
@@ -95,6 +97,6 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
                         }
                     }
                 }
-            }.then(dumbModifier)
+            }
         }
     }
