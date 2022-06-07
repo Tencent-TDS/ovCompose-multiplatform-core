@@ -18,18 +18,34 @@ package androidx.compose.ui.window
 
 import androidx.compose.runtime.Applier
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisallowComposableCalls
+import androidx.compose.runtime.ExplicitGroupsComposable
 import androidx.compose.runtime.ReusableComposeNode
+import androidx.compose.runtime.SkippableUpdater
+import androidx.compose.runtime.Updater
+import androidx.compose.runtime.currentComposer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.UiComposable
+import androidx.compose.ui.layout.DefaultIntrinsicMeasurable
+import androidx.compose.ui.layout.IntrinsicMeasurable
+import androidx.compose.ui.layout.IntrinsicMeasureScope
+import androidx.compose.ui.layout.IntrinsicMinMax
+import androidx.compose.ui.layout.IntrinsicWidthHeight
+import androidx.compose.ui.layout.IntrinsicsMeasureScope
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.Placeable.PlacementScope.Companion.place
 import androidx.compose.ui.layout.materializerOf
 import androidx.compose.ui.node.ComposeUiNode
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.util.fastMap
 import kotlin.system.exitProcess
 
 @UiComposable
@@ -85,7 +101,7 @@ inline fun Layout2(
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
     val viewConfiguration = LocalViewConfiguration.current
-    ReusableComposeNode<ComposeUiNode, Applier<Any>>(
+    ReusableComposeNode2<ComposeUiNode, Applier<Any>>(
         factory = ComposeUiNode.Constructor,
         update = {
             set(measurePolicy, ComposeUiNode.SetMeasurePolicy)
@@ -97,3 +113,27 @@ inline fun Layout2(
         content = content
     )
 }
+
+@Composable @ExplicitGroupsComposable
+inline fun <T, reified E : Applier<*>> ReusableComposeNode2(
+    noinline factory: () -> T,
+    update: @DisallowComposableCalls Updater<T>.() -> Unit,
+    noinline skippableUpdate: @Composable SkippableUpdater<T>.() -> Unit,
+    content: @Composable () -> Unit
+) {
+    currentComposer.startReusableNode()
+    if (currentComposer.inserting) {
+        currentComposer.createNode(factory)
+    } else {
+        currentComposer.useNode()
+    }
+    currentComposer.disableReusing()
+    Updater<T>(currentComposer).update()
+    currentComposer.enableReusing()
+    SkippableUpdater<T>(currentComposer).skippableUpdate()
+    currentComposer.startReplaceableGroup(0x7ab4aae9)
+    content()
+    currentComposer.endReplaceableGroup()
+    currentComposer.endNode()
+}
+
