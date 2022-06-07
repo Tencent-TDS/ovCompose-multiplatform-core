@@ -18,25 +18,23 @@ package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.unit.dp
 import kotlin.system.exitProcess
 
 class UndecoratedWindowResizer2 {
-    var someProperty = 3.dp
+    var someProperty = ValueClass()
 
     @Composable
     fun Content() {
         Layout(
             content = {},
             measurePolicy = { _, _ ->
-                println(someProperty)
+                println(someProperty)//Exception here
+                layout(1, 1) {}
                 exitProcess(0)
             }
         )
     }
 }
 
-inline fun Int.inlineFun():String = this.toString()
-
 @kotlin.jvm.JvmInline
-value class ValueClass(val innerValue: String)
+value class ValueClass(val innerValue: String = "")
