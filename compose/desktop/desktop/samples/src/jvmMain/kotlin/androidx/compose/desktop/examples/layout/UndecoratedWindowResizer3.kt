@@ -14,29 +14,27 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.window
+package androidx.compose.desktop.examples.layout
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.system.exitProcess
 
-class UndecoratedWindowResizer2 {
-    var someProperty = 3.dp
+
+class UndecoratedWindowResizer3 {
+    var borderThickness: Dp = 8.dp
 
     @Composable
     fun Content() {
         Layout(
-            content = {},
+            {},
+            Modifier,
             measurePolicy = { _, _ ->
-                println(someProperty)
-                exitProcess(0)
+                println(borderThickness)
+                layout(1, 1) {}
             }
         )
     }
 }
-
-inline fun Int.inlineFun():String = this.toString()
-
-@kotlin.jvm.JvmInline
-value class ValueClass(val innerValue: String)
