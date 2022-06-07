@@ -139,8 +139,6 @@ fun Dialog(
 
     Dialog(
         visible = visible,
-        onPreviewKeyEvent = onPreviewKeyEvent,
-        onKeyEvent = onKeyEvent,
         create = {
             val dialog = if (owner != null) {
                 ComposeDialog(owner, ModalityType.DOCUMENT_MODAL)

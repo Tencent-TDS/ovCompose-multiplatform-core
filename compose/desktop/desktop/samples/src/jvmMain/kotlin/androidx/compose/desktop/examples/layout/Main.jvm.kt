@@ -16,60 +16,23 @@
 
 package androidx.compose.desktop.examples.layout
 
-import androidx.compose.material.Text
-import androidx.compose.runtime.*
 import androidx.compose.ui.awt.ComposeDialog
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.UndecoratedWindowResizer2
 import androidx.compose.ui.window.launchApplication
 import java.awt.Dimension
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.delay
 
 fun main() {
     MainScope().launchApplication {
         fun createWindow() = ComposeDialog().apply {
             size = Dimension(400, 600)
-            isResizable = true
-            isUndecorated = true
         }
         Dialog(
             create = ::createWindow,
             dispose = ComposeDialog::dispose
         ) {
-            IterateViews(
-                periodMs = 1000,
-                { CustomLayoutUsage() },
-                { AlertDialogUsage() },
-                { BadgeBoxUsage() },
-                { BottomNavigationUsage() },
-                { BottomSheetScaffoldUsage() },
-                { ListItemUsage() },
-                { NavigationRailUsage() },
-                { SnackBarUsage() },
-                { TabRowUsage() },
-                { HorizontalScrollersInVerticalScrollersUsage() },
-                { ImageUsage() },
-                { SelectionContainerUsage() },
-                { TextWithInlineContentUsage() },
-                { VerticalScrollbarUsage() },
-            )
+            UndecoratedWindowResizer2().Content()
         }
-    }
-}
-
-/**
- * Iterate given [views] with [periodMs] delay
- */
-@Composable
-fun IterateViews(periodMs: Long, vararg views: @Composable () -> Unit) {
-    var currentIndex by remember { mutableStateOf(0) }
-    if (currentIndex < views.size) {
-        views[currentIndex]()
-        LaunchedEffect(currentIndex) {
-            delay(periodMs)
-            currentIndex++
-        }
-    } else {
-        Text("Done")
     }
 }
