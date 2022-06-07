@@ -70,7 +70,6 @@ class UndecoratedWindowResizer2 {
             println(someProperty)
         }
         Layout2(
-            content = {},
             measurePolicy = { _, _ ->
                 println(someProperty)
                 layout(1, 1) {}
@@ -94,7 +93,6 @@ value class ValueClass(val innerValue: String = "")
 @UiComposable
 @Composable
 inline fun Layout2(
-    content: @Composable @UiComposable () -> Unit,
     measurePolicy: MeasurePolicy
 ) {
     val density = LocalDensity.current
@@ -107,16 +105,14 @@ inline fun Layout2(
             set(density, ComposeUiNode.SetDensity)
             set(layoutDirection, ComposeUiNode.SetLayoutDirection)
             set(viewConfiguration, ComposeUiNode.SetViewConfiguration)
-        },
-        content = content
+        }
     )
 }
 
 @Composable @ExplicitGroupsComposable
 inline fun <T, reified E : Applier<*>> ReusableComposeNode2(
     noinline factory: () -> T,
-    update: @DisallowComposableCalls Updater<T>.() -> Unit,
-    content: @Composable () -> Unit
+    update: @DisallowComposableCalls Updater<T>.() -> Unit
 ) {
     currentComposer.startReusableNode()
     if (currentComposer.inserting) {
@@ -128,4 +124,3 @@ inline fun <T, reified E : Applier<*>> ReusableComposeNode2(
     Updater<T>(currentComposer).update()
     currentComposer.endNode()
 }
-
