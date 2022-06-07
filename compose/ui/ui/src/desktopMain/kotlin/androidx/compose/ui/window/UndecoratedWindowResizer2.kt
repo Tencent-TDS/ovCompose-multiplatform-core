@@ -89,8 +89,8 @@ class UndecoratedWindowResizer2 {
 @kotlin.jvm.JvmInline
 value class ValueClass(val innerValue: String = "")
 
-@Suppress("ComposableLambdaParameterPosition")
-@UiComposable
+//@Suppress("ComposableLambdaParameterPosition")
+//@UiComposable
 @Composable
 inline fun Layout2(
     measurePolicy: MeasurePolicy
