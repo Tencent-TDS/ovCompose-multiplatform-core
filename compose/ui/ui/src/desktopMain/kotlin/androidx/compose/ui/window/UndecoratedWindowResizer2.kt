@@ -20,8 +20,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.layout.Layout
 import kotlin.system.exitProcess
 
+inline fun fun1(sam1: Sam1) {
+
+}
+
+fun interface Sam1 {
+    fun do1(arg1: String)
+}
+
 class UndecoratedWindowResizer2 {
-    var someProperty = ValueClass()
+    internal /*or public*/ val someProperty = ValueClass()
 
     @Composable
     fun Content() {
