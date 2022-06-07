@@ -95,7 +95,6 @@ value class ValueClass(val innerValue: String = "")
 @Composable
 inline fun Layout2(
     content: @Composable @UiComposable () -> Unit,
-    modifier: Modifier = Modifier,
     measurePolicy: MeasurePolicy
 ) {
     val density = LocalDensity.current
@@ -109,7 +108,6 @@ inline fun Layout2(
             set(layoutDirection, ComposeUiNode.SetLayoutDirection)
             set(viewConfiguration, ComposeUiNode.SetViewConfiguration)
         },
-        skippableUpdate = materializerOf(modifier),
         content = content
     )
 }
@@ -118,7 +116,6 @@ inline fun Layout2(
 inline fun <T, reified E : Applier<*>> ReusableComposeNode2(
     noinline factory: () -> T,
     update: @DisallowComposableCalls Updater<T>.() -> Unit,
-    noinline skippableUpdate: @Composable SkippableUpdater<T>.() -> Unit,
     content: @Composable () -> Unit
 ) {
     currentComposer.startReusableNode()
