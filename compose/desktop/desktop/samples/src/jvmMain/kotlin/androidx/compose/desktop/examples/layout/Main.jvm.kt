@@ -17,35 +17,43 @@
 package androidx.compose.desktop.examples.layout
 
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.WindowState
-import androidx.compose.ui.window.singleWindowApplication
+import androidx.compose.ui.awt.ComposeDialog
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.launchApplication
+import java.awt.Dimension
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 
 fun main() {
-    singleWindowApplication(
-        title = "Use Layout and MeasurePolicy",
-        state = WindowState(width = 600.dp, height = 800.dp)
-    ) {
-        IterateViews(
-            periodMs = 1000,
-            { CustomLayoutUsage() },
-            { AlertDialogUsage() },
-            { BadgeBoxUsage() },
-            { BottomNavigationUsage() },
-            { BottomSheetScaffoldUsage() },
-            { ListItemUsage() },
-            { NavigationRailUsage() },
-            { SnackBarUsage() },
-            { TabRowUsage() },
-            { HorizontalScrollersInVerticalScrollersUsage() },
-            { ImageUsage() },
-            { SelectionContainerUsage() },
-            { TextWithInlineContentUsage() },
-            { VerticalScrollbarUsage() },
-        )
+    MainScope().launchApplication {
+        fun createWindow() = ComposeDialog().apply {
+            size = Dimension(400, 600)
+            isResizable = true
+            isUndecorated = true
+        }
+        Dialog(
+            create = ::createWindow,
+            dispose = ComposeDialog::dispose
+        ) {
+            IterateViews(
+                periodMs = 1000,
+                { CustomLayoutUsage() },
+                { AlertDialogUsage() },
+                { BadgeBoxUsage() },
+                { BottomNavigationUsage() },
+                { BottomSheetScaffoldUsage() },
+                { ListItemUsage() },
+                { NavigationRailUsage() },
+                { SnackBarUsage() },
+                { TabRowUsage() },
+                { HorizontalScrollersInVerticalScrollersUsage() },
+                { ImageUsage() },
+                { SelectionContainerUsage() },
+                { TextWithInlineContentUsage() },
+                { VerticalScrollbarUsage() },
+            )
+        }
     }
 }
 
