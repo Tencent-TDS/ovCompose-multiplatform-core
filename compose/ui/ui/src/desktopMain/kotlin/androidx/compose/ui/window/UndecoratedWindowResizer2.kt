@@ -16,10 +16,7 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.runtime.Applier
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisallowComposableCalls
-import androidx.compose.runtime.ExplicitGroupsComposable
 import androidx.compose.runtime.Updater
 import androidx.compose.runtime.currentComposer
 import androidx.compose.ui.UiComposable
@@ -83,13 +80,17 @@ inline fun Layout2(
     val viewConfiguration = LocalViewConfiguration.current
     currentComposer.startReusableNode()
     if (currentComposer.inserting) {
-        currentComposer.createNode(factory = ComposeUiNode.Constructor)
+        currentComposer.createNode {
+            val result: ComposeUiNode = ComposeUiNode.Constructor()
+            result.measurePolicy = measurePolicy
+            result
+        }
     } else {
         currentComposer.useNode()
     }
     currentComposer.disableReusing()
     val updater = Updater<ComposeUiNode>(currentComposer)
-    updater.set(measurePolicy, ComposeUiNode.SetMeasurePolicy)
+//    updater.set(measurePolicy, ComposeUiNode.SetMeasurePolicy)
     updater.set(density, ComposeUiNode.SetDensity)
     updater.set(layoutDirection, ComposeUiNode.SetLayoutDirection)
     updater.set(viewConfiguration, ComposeUiNode.SetViewConfiguration)
