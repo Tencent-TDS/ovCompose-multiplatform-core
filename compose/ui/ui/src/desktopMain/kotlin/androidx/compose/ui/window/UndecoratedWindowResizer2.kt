@@ -16,27 +16,54 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.runtime.Applier
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReusableComposeNode
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.UiComposable
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.materializerOf
+import androidx.compose.ui.node.ComposeUiNode
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.unit.Constraints
 import kotlin.system.exitProcess
 
+@UiComposable
+@Composable
 inline fun fun1(sam1: Sam1) {
-
+    sam1.do1(listOf(), Constraints(0, 0, 1, 1))
 }
 
 fun interface Sam1 {
-    fun do1(arg1: String)
+    fun do1(
+        measurables: List<Measurable>,
+        constraints: Constraints
+    )
 }
 
 class UndecoratedWindowResizer2 {
     internal /*or public*/ val someProperty = ValueClass()
 
     @Composable
-    fun Content() {
+    fun composableFun() {
+        fun1 { _, _ ->
+            println(someProperty)
+        }
+        Layout2(
+            content = {},
+            measurePolicy = { _, _ ->
+                println(someProperty)
+                layout(1, 1) {}
+            }
+        )
         Layout(
             content = {},
             measurePolicy = { _, _ ->
-                println(someProperty)//Exception here
+//                println(someProperty)//Exception here
                 layout(1, 1) {}
                 exitProcess(0)
             }
@@ -46,3 +73,27 @@ class UndecoratedWindowResizer2 {
 
 @kotlin.jvm.JvmInline
 value class ValueClass(val innerValue: String = "")
+
+@Suppress("ComposableLambdaParameterPosition")
+@UiComposable
+@Composable
+inline fun Layout2(
+    content: @Composable @UiComposable () -> Unit,
+    modifier: Modifier = Modifier,
+    measurePolicy: MeasurePolicy
+) {
+    val density = LocalDensity.current
+    val layoutDirection = LocalLayoutDirection.current
+    val viewConfiguration = LocalViewConfiguration.current
+    ReusableComposeNode<ComposeUiNode, Applier<Any>>(
+        factory = ComposeUiNode.Constructor,
+        update = {
+            set(measurePolicy, ComposeUiNode.SetMeasurePolicy)
+            set(density, ComposeUiNode.SetDensity)
+            set(layoutDirection, ComposeUiNode.SetLayoutDirection)
+            set(viewConfiguration, ComposeUiNode.SetViewConfiguration)
+        },
+        skippableUpdate = materializerOf(modifier),
+        content = content
+    )
+}

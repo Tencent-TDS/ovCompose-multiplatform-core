@@ -32,7 +32,7 @@ fun main() {
             create = ::createWindow,
             dispose = ComposeDialog::dispose
         ) {
-            UndecoratedWindowResizer2().Content()
+            UndecoratedWindowResizer2().composableFun()
         }
     }
 }
