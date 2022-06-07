@@ -126,9 +126,6 @@ inline fun <T, reified E : Applier<*>> ReusableComposeNode2(
     }
     currentComposer.disableReusing()
     Updater<T>(currentComposer).update()
-    currentComposer.startReplaceableGroup(0x7ab4aae9)
-    content()
-    currentComposer.endReplaceableGroup()
     currentComposer.endNode()
 }
 
