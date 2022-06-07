@@ -75,9 +75,6 @@ value class ValueClass(val innerValue: String = "")
 inline fun Layout2(
     measurePolicy: MeasurePolicy
 ) {
-    val density = LocalDensity.current
-    val layoutDirection = LocalLayoutDirection.current
-    val viewConfiguration = LocalViewConfiguration.current
     currentComposer.startReusableNode()
     if (currentComposer.inserting) {
         currentComposer.createNode {
@@ -91,8 +88,5 @@ inline fun Layout2(
     currentComposer.disableReusing()
     val updater = Updater<ComposeUiNode>(currentComposer)
 //    updater.set(measurePolicy, ComposeUiNode.SetMeasurePolicy)
-    updater.set(density, ComposeUiNode.SetDensity)
-    updater.set(layoutDirection, ComposeUiNode.SetLayoutDirection)
-    updater.set(viewConfiguration, ComposeUiNode.SetViewConfiguration)
     currentComposer.endNode()
 }
