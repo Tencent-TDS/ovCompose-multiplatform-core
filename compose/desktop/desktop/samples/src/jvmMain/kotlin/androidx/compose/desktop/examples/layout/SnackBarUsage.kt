@@ -20,6 +20,7 @@ import androidx.compose.material.Snackbar
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 
+@Suppress("SpellCheckingInspection")
 @Composable
 fun SnackBarUsage() {
     Snackbar(action = null) {

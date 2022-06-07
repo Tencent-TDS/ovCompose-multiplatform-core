@@ -23,7 +23,6 @@ import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.ListItem
-import androidx.compose.material.NavigationRailItem
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -35,7 +34,11 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ListItemUsage() {
     Column {
-        ListItem(text = { Text("One line list item with no icon") })
+        ListItem(
+            text = { Text("One line list item with no icon") },
+            overlineText = { Text("overlineText") },
+            trailing = { Text("trailing") }
+        )
         Divider()
         ListItem(
             text = { Text("One line list item with 24x24 icon") },

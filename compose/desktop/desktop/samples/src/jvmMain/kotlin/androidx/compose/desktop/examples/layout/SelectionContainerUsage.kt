@@ -16,23 +16,13 @@
 
 package androidx.compose.desktop.examples.layout
 
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Button
-import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun AlertDialogUsage() {
-    AlertDialog(
-        onDismissRequest = {},
-        title = { Text("AlertDialog") },
-        text = { Text("Apply?") },
-        confirmButton = { Button(onClick = {}) { Text("Apply") } },
-        modifier = Modifier.size(100.dp, 100.dp)
-    )
+fun SelectionContainerUsage() {
+    SelectionContainer {
+        Text("Text inside SelectionContainer")
+    }
 }

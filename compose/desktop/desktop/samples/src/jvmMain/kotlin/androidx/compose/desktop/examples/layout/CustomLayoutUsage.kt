@@ -33,6 +33,7 @@ fun CustomLayoutUsage(modifier: Modifier = Modifier) {
     }
 }
 
+@Suppress("SpellCheckingInspection")
 @Composable
 fun CustomLayout(
     modifier: Modifier = Modifier,
