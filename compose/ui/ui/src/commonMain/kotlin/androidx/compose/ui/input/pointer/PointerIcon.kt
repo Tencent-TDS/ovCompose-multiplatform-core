@@ -18,6 +18,8 @@ package androidx.compose.ui.input.pointer
 
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -76,10 +78,13 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
         } else {
             val rememberIcon = rememberUpdatedState(icon)
             val rememberOverrideDescendants = rememberUpdatedState(overrideDescendants)
+            val hovered = remember { mutableStateOf(false) }
 
-            DisposableEffect(icon) {
-                pointerIconService.requestUpdate()
-                onDispose {  }
+            if (hovered.value) {
+                DisposableEffect(icon) {
+                    pointerIconService.requestUpdate()
+                    onDispose { }
+                }
             }
 
             this.pointerInput(Unit) {
@@ -92,7 +97,10 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
                         val event = awaitPointerEvent(pass)
                         val isOutsideRelease = event.type == PointerEventType.Release &&
                             event.changes[0].isOutOfBounds(size, Size.Zero)
+
+                        hovered.value = false
                         if (event.type != PointerEventType.Exit && !isOutsideRelease) {
+                            hovered.value = true
                             pointerIconService.current = rememberIcon.value
                         }
                     }
