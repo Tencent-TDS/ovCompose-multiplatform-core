@@ -21,16 +21,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.LayoutWithWorkaround
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Measurable
-import androidx.compose.ui.layout.MeasureResult
-import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -178,14 +176,3 @@ internal class UndecoratedWindowResizer(
         val Bottom = 0x1000
     }
 }
-
-/*
- * TODO: This is a version of Layout not using SAM-converted [MeasurePolicy] interface.
- * Remove me, when SAM conversion for [MeasurePolicy] works again in Kotlin 1.7.0
- * Check with Desktop jvm test DesktopAlertDialogTest.alignedToCenter_inPureWindow
- */
-@Composable private inline fun LayoutWithWorkaround(
-    content: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    crossinline measurePolicy: MeasureScope.(List<Measurable>, Constraints) -> MeasureResult
-) = Layout(content, modifier) { x, y -> measurePolicy(x, y) }
