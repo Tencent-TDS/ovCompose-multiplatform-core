@@ -52,6 +52,7 @@ fun main() {
                 { SelectionContainerUsage() },
                 { TextWithInlineContentUsage() },
                 { VerticalScrollbarUsage() },
+                { SwingPanelUsage() },
             )
         }
     }
