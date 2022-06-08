@@ -28,7 +28,7 @@ class UndecoratedWindowResizer2 {
 
     @Composable
     fun composableFun() {
-        Layout2(
+        SimplifyLayout(
             measurePolicy = { _, _ ->
                 println(someProperty)
                 layout(1, 1) {}
@@ -48,8 +48,11 @@ class UndecoratedWindowResizer2 {
 @kotlin.jvm.JvmInline
 value /*or inline*/ class ValueOrInlineClass(val innerValue: String = "")
 
+/**
+ * minimize [Layout] to easily understand bug
+ */
 @Composable
-fun Layout2(
+fun SimplifyLayout(
     measurePolicy: MeasurePolicy
 ) {
     currentComposer.startReusableNode()
