@@ -17,40 +17,17 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Updater
 import androidx.compose.runtime.currentComposer
-import androidx.compose.ui.UiComposable
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.node.ComposeUiNode
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalViewConfiguration
-import androidx.compose.ui.unit.Constraints
 import kotlin.system.exitProcess
 
-@UiComposable
-@Composable
-inline fun fun1(sam1: Sam1) {
-    sam1.do1(listOf(), Constraints(0, 0, 1, 1))
-}
-
-fun interface Sam1 {
-    fun do1(
-        measurables: List<Measurable>,
-        constraints: Constraints
-    )
-}
-
 class UndecoratedWindowResizer2 {
-    internal /*or public*/ val someProperty = ValueClass()
+    internal /*or public*/ val someProperty = ValueOrInlineClass()
 
     @Composable
     fun composableFun() {
-        fun1 { _, _ ->
-            println(someProperty)
-        }
         Layout2(
             measurePolicy = { _, _ ->
                 println(someProperty)
@@ -69,7 +46,7 @@ class UndecoratedWindowResizer2 {
 }
 
 @kotlin.jvm.JvmInline
-value class ValueClass(val innerValue: String = "")
+value /*or inline*/ class ValueOrInlineClass(val innerValue: String = "")
 
 @Composable
 fun Layout2(
@@ -77,9 +54,9 @@ fun Layout2(
 ) {
     currentComposer.startReusableNode()
     currentComposer.createNode {
-        val result: ComposeUiNode = ComposeUiNode.Constructor()
-        result.measurePolicy = measurePolicy
-        result
+        val node = ComposeUiNode.Constructor()
+        node.measurePolicy = measurePolicy
+        node
     }
     currentComposer.disableReusing()
     currentComposer.endNode()
