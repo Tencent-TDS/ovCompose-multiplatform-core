@@ -20,7 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.layout.Layout
 
 class ClassWithProperty1 { // class in module ":compose:ui:ui" reproduce bug
-    internal /*or public*/ val someProperty = ValueClass() // modifier internal or public
+    internal val someProperty = ValueClass() // with internal or public modifier
 
     @Composable
     fun composableFun() {
