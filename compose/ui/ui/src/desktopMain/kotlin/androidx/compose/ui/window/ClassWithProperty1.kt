@@ -22,7 +22,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.node.ComposeUiNode
 
-class UndecoratedWindowResizer2 {
+class ClassWithProperty1 {
     internal /*or public*/ val someProperty = ValueOrInlineClass()
 
     @Composable

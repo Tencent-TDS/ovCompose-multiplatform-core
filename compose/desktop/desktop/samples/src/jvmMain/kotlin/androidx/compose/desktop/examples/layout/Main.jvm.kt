@@ -18,7 +18,7 @@ package androidx.compose.desktop.examples.layout
 
 import androidx.compose.ui.awt.ComposeDialog
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.UndecoratedWindowResizer2
+import androidx.compose.ui.window.ClassWithProperty1
 import androidx.compose.ui.window.launchApplication
 import java.awt.Dimension
 import kotlinx.coroutines.MainScope
@@ -32,7 +32,7 @@ fun main() {
             create = ::createWindow,
             dispose = ComposeDialog::dispose
         ) {
-            UndecoratedWindowResizer2().composableFun()
+            ClassWithProperty1().composableFun()
         }
     }
 }
