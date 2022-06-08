@@ -21,25 +21,16 @@ import androidx.compose.runtime.currentComposer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.node.ComposeUiNode
-import kotlin.system.exitProcess
 
 class UndecoratedWindowResizer2 {
     internal /*or public*/ val someProperty = ValueOrInlineClass()
 
     @Composable
     fun composableFun() {
-        SimplifyLayout(
+        Layout2(
             measurePolicy = { _, _ ->
                 println(someProperty)
                 layout(1, 1) {}
-            }
-        )
-        Layout(
-            content = {},
-            measurePolicy = { _, _ ->
-//                println(someProperty)//Exception here
-                layout(1, 1) {}
-                exitProcess(0)
             }
         )
     }
@@ -52,7 +43,7 @@ value /*or inline*/ class ValueOrInlineClass(val innerValue: String = "")
  * minimize [Layout] to easily understand bug
  */
 @Composable
-fun SimplifyLayout(
+fun Layout2(
     measurePolicy: MeasurePolicy
 ) {
     currentComposer.startReusableNode()

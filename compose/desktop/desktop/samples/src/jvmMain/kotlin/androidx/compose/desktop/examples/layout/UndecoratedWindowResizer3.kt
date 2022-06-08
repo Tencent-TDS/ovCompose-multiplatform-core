@@ -21,18 +21,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Layout2
+import androidx.compose.ui.window.ValueOrInlineClass
 
 
 class UndecoratedWindowResizer3 {
-    var borderThickness: Dp = 8.dp
+    internal /*or public*/ val someProperty = ValueOrInlineClass()
 
     @Composable
-    fun Content() {
-        Layout(
-            {},
-            Modifier,
+    fun composableFun() {
+        Layout2(
             measurePolicy = { _, _ ->
-                println(borderThickness)
+                println(someProperty)
                 layout(1, 1) {}
             }
         )
