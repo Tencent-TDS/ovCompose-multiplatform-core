@@ -76,17 +76,11 @@ inline fun Layout2(
     measurePolicy: MeasurePolicy
 ) {
     currentComposer.startReusableNode()
-    if (currentComposer.inserting) {
-        currentComposer.createNode {
-            val result: ComposeUiNode = ComposeUiNode.Constructor()
-            result.measurePolicy = measurePolicy
-            result
-        }
-    } else {
-        currentComposer.useNode()
+    currentComposer.createNode {
+        val result: ComposeUiNode = ComposeUiNode.Constructor()
+        result.measurePolicy = measurePolicy
+        result
     }
     currentComposer.disableReusing()
-    val updater = Updater<ComposeUiNode>(currentComposer)
-//    updater.set(measurePolicy, ComposeUiNode.SetMeasurePolicy)
     currentComposer.endNode()
 }
