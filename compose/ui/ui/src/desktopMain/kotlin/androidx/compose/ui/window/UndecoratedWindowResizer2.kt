@@ -72,7 +72,7 @@ class UndecoratedWindowResizer2 {
 value class ValueClass(val innerValue: String = "")
 
 @Composable
-inline fun Layout2(
+fun Layout2(
     measurePolicy: MeasurePolicy
 ) {
     currentComposer.startReusableNode()
