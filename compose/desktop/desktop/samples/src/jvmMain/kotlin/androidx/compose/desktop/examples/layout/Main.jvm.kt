@@ -16,25 +16,15 @@
 
 package androidx.compose.desktop.examples.layout
 
-import androidx.compose.ui.awt.ComposeDialog
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.ClassInModuleComposeUiUi
-import androidx.compose.ui.window.launchApplication
-import java.awt.Dimension
-import kotlinx.coroutines.MainScope
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.application
 
 fun main() {
-    MainScope().launchApplication {
-        fun createWindow() = ComposeDialog().apply {
-            size = Dimension(400, 600)
-        }
-        Dialog(
-            create = ::createWindow,
-            dispose = ComposeDialog::dispose
-        ) {
+    application {
+        Window(onCloseRequest = ::exitApplication) {
             ClassInDifferentModule().composableFun() // works good
             ClassInModuleComposeUiUi().composableFun() // reproduce bug
         }
     }
 }
-

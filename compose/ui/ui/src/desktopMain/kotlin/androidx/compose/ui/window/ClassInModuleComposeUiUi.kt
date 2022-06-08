@@ -26,7 +26,7 @@ class ClassInModuleComposeUiUi { // class in module ":compose:ui:ui" reproduce b
     fun composableFun() {
         Layout(
             measurePolicy = { _, _ ->
-                println(someProperty)
+                println(someProperty) // exception thrown here NoSuchMethodError: ClassInModuleComposeUiUi.getSomeProperty
                 layout(1, 1) {}
             }
         )
