@@ -20,7 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.layout.Layout
 
 class ClassWithProperty2 { // class in different module works without bug
-    internal val someProperty = ValueOrInlineClass()
+    internal val someProperty = ValueClass()
 
     @Composable
     fun composableFun() {
@@ -34,4 +34,4 @@ class ClassWithProperty2 { // class in different module works without bug
 }
 
 @kotlin.jvm.JvmInline
-value class ValueOrInlineClass(val innerValue: String = "")
+value class ValueClass(val innerValue: String = "")
