@@ -17,16 +17,14 @@
 package androidx.compose.desktop.examples.layout
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.window.Layout2
-import androidx.compose.ui.window.ValueOrInlineClass
+import androidx.compose.ui.layout.Layout
 
-
-class ClassWithProperty2 {
-    internal /*or public*/ val someProperty = ValueOrInlineClass()
+class ClassWithProperty2 { // class in different module works without bug
+    internal val someProperty = ValueOrInlineClass()
 
     @Composable
     fun composableFun() {
-        Layout2(
+        Layout(
             measurePolicy = { _, _ ->
                 println(someProperty)
                 layout(1, 1) {}
@@ -34,3 +32,6 @@ class ClassWithProperty2 {
         )
     }
 }
+
+@kotlin.jvm.JvmInline
+value class ValueOrInlineClass(val innerValue: String = "")

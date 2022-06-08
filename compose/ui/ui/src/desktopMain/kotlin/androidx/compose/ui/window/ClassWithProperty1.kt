@@ -17,17 +17,14 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.currentComposer
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.MeasurePolicy
-import androidx.compose.ui.node.ComposeUiNode
 
-class ClassWithProperty1 {
-    internal /*or public*/ val someProperty = ValueOrInlineClass()
+class ClassWithProperty1 { // class in module ":compose:ui:ui" reproduce bug
+    internal /*or public*/ val someProperty = ValueClass() // modifier internal or public
 
     @Composable
     fun composableFun() {
-        Layout2(
+        Layout(
             measurePolicy = { _, _ ->
                 println(someProperty)
                 layout(1, 1) {}
@@ -37,21 +34,4 @@ class ClassWithProperty1 {
 }
 
 @kotlin.jvm.JvmInline
-value /*or inline*/ class ValueOrInlineClass(val innerValue: String = "")
-
-/**
- * minimize [Layout] to easily understand bug
- */
-@Composable
-fun Layout2(
-    measurePolicy: MeasurePolicy
-) {
-    currentComposer.startReusableNode()
-    currentComposer.createNode {
-        val node = ComposeUiNode.Constructor()
-        node.measurePolicy = measurePolicy
-        node
-    }
-    currentComposer.disableReusing()
-    currentComposer.endNode()
-}
+value class ValueClass(val someProperty: String = "") // value or inline class
