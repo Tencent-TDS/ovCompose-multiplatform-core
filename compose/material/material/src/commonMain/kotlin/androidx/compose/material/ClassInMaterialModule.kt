@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-package androidx.compose.desktop.examples.layout
+package androidx.compose.material
 
-import androidx.compose.material.ClassInMaterialModule
-import androidx.compose.ui.window.ClassInModuleComposeUiUi
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.application
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.layout.Layout
 
-fun main() {
-    application {
-        Window(onCloseRequest = ::exitApplication) {
-            ClassInAppModule().composableFun() // works good
-            ClassInMaterialModule().composableFun() // works good
-            ClassInModuleComposeUiUi().composableFun() // reproduce bug
-        }
+class ClassInMaterialModule { // class in module ":compose:material:material" works good
+    internal val someProperty = ValueClass()
+
+    @Composable
+    fun composableFun() {
+        Layout(
+            measurePolicy = { _, _ ->
+                println(someProperty)
+                layout(1, 1) {}
+            }
+        )
     }
 }
+
+@kotlin.jvm.JvmInline
+value class ValueClass(val innerValue: String = "")
