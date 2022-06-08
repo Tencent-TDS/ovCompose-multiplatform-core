@@ -19,7 +19,7 @@ package androidx.compose.desktop.examples.layout
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.layout.Layout
 
-class ClassWithProperty2 { // class in different module works without bug
+class ClassInDifferentModule { // class in different module works without bug
     internal val someProperty = ValueClass()
 
     @Composable

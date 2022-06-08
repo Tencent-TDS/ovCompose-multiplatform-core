@@ -19,7 +19,7 @@ package androidx.compose.ui.window
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.layout.Layout
 
-class ClassWithProperty1 { // class in module ":compose:ui:ui" reproduce bug
+class ClassInModuleComposeUiUi { // class in module ":compose:ui:ui" reproduce bug
     internal val someProperty = ValueClass() // with internal or public modifier
 
     @Composable
