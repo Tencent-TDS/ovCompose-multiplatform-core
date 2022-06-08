@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-package androidx.compose.desktop.examples.layout
+package androidx.compose.desktop.examples.bug
 
+import androidx.compose.material.Button
 import androidx.compose.material.ClassInMaterialModule
+import androidx.compose.material.Text
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.ui.window.ClassInModuleComposeUiUi
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -24,9 +28,16 @@ import androidx.compose.ui.window.application
 fun main() {
     application {
         Window(onCloseRequest = ::exitApplication) {
-            ClassInAppModule().composableFun() // works good
-            ClassInMaterialModule().composableFun() // works good
-            ClassInModuleComposeUiUi().composableFun() // reproduce bug
+            var reproduceBug by remember { mutableStateOf(false) } // Set to true if you want to reproduce the bug on application startup
+            if (reproduceBug) {
+                ClassInAppModule().composableFun() // works good
+                ClassInMaterialModule().composableFun() // works good
+                ClassInModuleComposeUiUi().composableFun() // reproduce bug
+            } else {
+                Button(onClick = { reproduceBug = true }) {
+                    Text("Reproduce bug")
+                }
+            }
         }
     }
 }

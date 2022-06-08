@@ -14,15 +14,24 @@
  * limitations under the License.
  */
 
-package androidx.compose.desktop.examples.layout
+package androidx.compose.desktop.examples.bug
 
-import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.layout.Layout
 
-@Composable
-fun SelectionContainerUsage() {
-    SelectionContainer {
-        Text("Text inside SelectionContainer")
+class ClassInAppModule { // class in application module works good
+    internal val someProperty = ValueClass()
+
+    @Composable
+    fun composableFun() {
+        Layout(
+            measurePolicy = { _, _ ->
+                println(someProperty)
+                layout(1, 1) {}
+            }
+        )
     }
 }
+
+@kotlin.jvm.JvmInline
+value class ValueClass(val innerValue: String = "")
