@@ -24,9 +24,9 @@ import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerButton
-import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.isAltPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.DefaultViewConfiguration
@@ -39,9 +39,10 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Test
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
-class CombinedClickTest {
+class OnClickTest {
 
     private fun testClick(
+        pointerInputMatcher: PointerInputMatcher,
         button: PointerButton
     ) = ImageComposeScene(
         width = 100,
@@ -53,11 +54,7 @@ class CombinedClickTest {
         scene.setContent {
             Box(
                 modifier = Modifier
-                    .onCombinedClick(filter = {
-                        mouse {
-                            this.button = button
-                        }
-                    }) {
+                    .onClick(pointerInputMatcher = pointerInputMatcher) {
                         clicksCount++
                     }.size(10.dp, 20.dp)
             )
@@ -75,21 +72,65 @@ class CombinedClickTest {
     }
 
     @Test
-    fun primaryClicks() = testClick(button = PointerButton.Primary)
+    fun primaryClicks() = testClick(
+        button = PointerButton.Primary,
+        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary)
+    )
 
     @Test
-    fun secondaryClicks() = testClick(button = PointerButton.Secondary)
+    fun secondaryClicks() = testClick(
+        button = PointerButton.Secondary,
+        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Secondary)
+    )
 
     @Test
-    fun tertiaryClicks() = testClick(button = PointerButton.Tertiary)
+    fun tertiaryClicks() = testClick(
+        button = PointerButton.Tertiary,
+        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Tertiary)
+    )
 
     @Test
-    fun backClicks() = testClick(button = PointerButton.Back)
+    fun backClicks() = testClick(
+        button = PointerButton.Back,
+        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Back)
+    )
 
     @Test
-    fun forwardClicks() = testClick(button = PointerButton.Forward)
+    fun forwardClicks() = testClick(
+        button = PointerButton.Forward,
+        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Forward)
+    )
+
+    @Test
+    fun clickWithTouch() = ImageComposeScene(
+        width = 100,
+        height = 100,
+        density = Density(1f)
+    ).use { scene ->
+        var clicksCount = 0
+
+        scene.setContent {
+            Box(
+                modifier = Modifier
+                    .onClick(pointerInputMatcher = PointerInputMatcher.touch) {
+                        clicksCount++
+                    }.size(10.dp, 20.dp)
+            )
+        }
+
+        scene.sendPointerEvent(PointerEventType.Move, Offset(0f, 0f), type = PointerType.Touch)
+        scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), type = PointerType.Touch)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), type = PointerType.Touch)
+        assertThat(clicksCount).isEqualTo(1)
+
+        scene.sendPointerEvent(PointerEventType.Move, Offset(5f, 5f), type = PointerType.Touch)
+        scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), type = PointerType.Touch)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(5f, 5f), type = PointerType.Touch)
+        assertThat(clicksCount).isEqualTo(2)
+    }
 
     private fun testDoubleClick(
+        pointerInputMatcher: PointerInputMatcher,
         button: PointerButton
     ) = runBlocking {
         val density = Density(1f)
@@ -105,11 +146,12 @@ class CombinedClickTest {
             scene.setContent {
                 Box(
                     modifier = Modifier
-                        .onCombinedClick(filter = {
-                            mouse { this.button = button }
-                        }, onDoubleClick = {
-                            doubleClickCount++
-                        }) {
+                        .onClick(
+                            pointerInputMatcher = pointerInputMatcher,
+                            onDoubleClick = {
+                                doubleClickCount++
+                            }
+                        ) {
                             clicksCount++
                         }.size(10.dp, 20.dp)
                 )
@@ -134,15 +176,27 @@ class CombinedClickTest {
     }
 
     @Test
-    fun primaryDoubleClick() = testDoubleClick(button = PointerButton.Primary)
+    fun primaryDoubleClick() = testDoubleClick(
+        button = PointerButton.Primary,
+        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary)
+    )
 
     @Test
-    fun secondaryDoubleClick() = testDoubleClick(button = PointerButton.Secondary)
+    fun secondaryDoubleClick() = testDoubleClick(
+        button = PointerButton.Secondary,
+        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Secondary)
+    )
 
     @Test
-    fun tertiaryDoubleClick() = testDoubleClick(button = PointerButton.Tertiary)
+    fun tertiaryDoubleClick() = testDoubleClick(
+        button = PointerButton.Tertiary,
+        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Tertiary)
+    )
 
-    private fun testLongClick(button: PointerButton) = runBlocking {
+    private fun testLongClick(
+        pointerInputMatcher: PointerInputMatcher,
+        button: PointerButton
+    ) = runBlocking {
         val density = Density(1f)
         val viewConfiguration = DefaultViewConfiguration(density)
         ImageComposeScene(
@@ -156,11 +210,11 @@ class CombinedClickTest {
             scene.setContent {
                 Box(
                     modifier = Modifier
-                        .onCombinedClick(filter = {
-                            mouse { this.button = button }
-                        }, onLongClick = {
-                            longClickCount++
-                        }) {
+                        .onClick(
+                            pointerInputMatcher = pointerInputMatcher,
+                            onLongClick = {
+                                longClickCount++
+                            }) {
                             clicksCount++
                         }.size(10.dp, 20.dp)
                 )
@@ -181,13 +235,23 @@ class CombinedClickTest {
     }
 
     @Test
-    fun primaryLongClick() = testLongClick(button = PointerButton.Primary)
+    fun primaryLongClick() = testLongClick(
+        button = PointerButton.Primary,
+        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary)
+    )
 
     @Test
-    fun secondaryLongClick() = testLongClick(button = PointerButton.Secondary)
+    fun secondaryLongClick() = testLongClick(
+        button = PointerButton.Secondary,
+        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Secondary)
+    )
 
     @Test
-    fun tertiaryLongClick() = testLongClick(button = PointerButton.Tertiary)
+    fun tertiaryLongClick() =
+        testLongClick(
+            button = PointerButton.Tertiary,
+            pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Tertiary)
+        )
 
     @Test
     fun `handles primary and secondary clicks`() = ImageComposeScene(
@@ -201,10 +265,10 @@ class CombinedClickTest {
         scene.setContent {
             Box(
                 modifier = Modifier
-                    .onCombinedClick(filter = { mouse { button = PointerButton.Primary } }) {
+                    .onClick(pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary)) {
                         primaryClicks++
                     }
-                    .onCombinedClick(filter = { mouse { button = PointerButton.Secondary } }) {
+                    .onClick(pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Secondary)) {
                         secondaryClicks++
                     }
                     .size(40.dp, 40.dp)
@@ -249,16 +313,12 @@ class CombinedClickTest {
         scene.setContent {
             Box(
                 modifier = Modifier
-                    .combinedClickable {
+                    .onClick(pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary)) {
                         genericClicks++
                     }
-                    .onCombinedClick(
-                        filter = {
-                            mouse {
-                                button = PointerButton.Primary
-                                keyboardModifiers = { isAltPressed }
-                            }
-                        }
+                    .onClick(
+                        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary),
+                        keyboardModifiers = { isAltPressed },
                     ) {
                         withAltClicks++
                     }
@@ -275,8 +335,8 @@ class CombinedClickTest {
         )
         scene.sendPointerEvent(
             PointerEventType.Release, Offset(0f, 0f),
-            button = PointerButton.Primary,
-            keyboardModifiers = PointerKeyboardModifiers(isAltPressed = true)
+            keyboardModifiers = PointerKeyboardModifiers(isAltPressed = true),
+            button = PointerButton.Primary
         )
 
         assertThat(withAltClicks).isEqualTo(1)
@@ -290,8 +350,8 @@ class CombinedClickTest {
         )
         scene.sendPointerEvent(
             PointerEventType.Release, Offset(0f, 0f),
-            button = PointerButton.Primary,
-            keyboardModifiers = PointerKeyboardModifiers(isAltPressed = false)
+            keyboardModifiers = PointerKeyboardModifiers(isAltPressed = false),
+            button = PointerButton.Primary
         )
         assertThat(withAltClicks).isEqualTo(1)
         assertThat(genericClicks).isEqualTo(1)
@@ -309,14 +369,14 @@ class CombinedClickTest {
         scene.setContent {
             Box(
                 modifier = Modifier
-                    .combinedClickable {
+                    .onClick {
                         outerBoxClicks++
                     }
                     .size(40.dp, 40.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .combinedClickable {
+                        .onClick {
                             innerBoxClicks++
                         }
                         .size(10.dp, 20.dp)
@@ -324,17 +384,15 @@ class CombinedClickTest {
             }
         }
 
-        val downButtons = PointerButtons(isPrimaryPressed = true)
-        val upButtons = PointerButtons(isPrimaryPressed = false)
         scene.sendPointerEvent(PointerEventType.Move, Offset(0f, 0f))
-        scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), buttons = downButtons)
-        scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), buttons = upButtons)
+        scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), button = PointerButton.Primary)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), button = PointerButton.Primary)
         assertThat(outerBoxClicks).isEqualTo(0)
         assertThat(innerBoxClicks).isEqualTo(1)
 
         scene.sendPointerEvent(PointerEventType.Move, Offset(30f, 30f))
-        scene.sendPointerEvent(PointerEventType.Press, Offset(30f, 30f), buttons = downButtons)
-        scene.sendPointerEvent(PointerEventType.Release, Offset(30f, 30f), buttons = upButtons)
+        scene.sendPointerEvent(PointerEventType.Press, Offset(30f, 30f), button = PointerButton.Primary)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(30f, 30f), button = PointerButton.Primary)
         assertThat(outerBoxClicks).isEqualTo(1)
         assertThat(innerBoxClicks).isEqualTo(1)
     }
@@ -351,14 +409,14 @@ class CombinedClickTest {
         scene.setContent {
             Box(
                 modifier = Modifier
-                    .combinedClickable {
+                    .onClick {
                         outerBoxClicks++
                     }
                     .size(40.dp, 40.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .combinedClickable {
+                        .onClick {
                             innerBoxClicks++
                         }
                         .size(10.dp, 20.dp)
@@ -366,17 +424,15 @@ class CombinedClickTest {
             }
         }
 
-        val downButtons = PointerButtons(isPrimaryPressed = true)
-        val upButtons = PointerButtons(isPrimaryPressed = false)
         scene.sendPointerEvent(PointerEventType.Move, Offset(0f, 0f))
-        scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), buttons = downButtons)
-        scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), buttons = upButtons)
+        scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), button = PointerButton.Primary)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), button = PointerButton.Primary)
         assertThat(outerBoxClicks).isEqualTo(0)
         assertThat(innerBoxClicks).isEqualTo(1)
 
         scene.sendPointerEvent(PointerEventType.Move, Offset(30f, 30f))
-        scene.sendPointerEvent(PointerEventType.Press, Offset(30f, 30f), buttons = downButtons)
-        scene.sendPointerEvent(PointerEventType.Release, Offset(30f, 30f), buttons = upButtons)
+        scene.sendPointerEvent(PointerEventType.Press, Offset(30f, 30f), button = PointerButton.Primary)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(30f, 30f), button = PointerButton.Primary)
         assertThat(outerBoxClicks).isEqualTo(1)
         assertThat(innerBoxClicks).isEqualTo(1)
     }
@@ -402,7 +458,7 @@ class CombinedClickTest {
             ) {
                 Box(
                     modifier = Modifier
-                        .combinedClickable {
+                        .onClick {
                             innerBoxClicks++
                         }
                         .size(50.dp, 50.dp)
@@ -410,17 +466,15 @@ class CombinedClickTest {
             }
         }
 
-        val downButtons = PointerButtons(isPrimaryPressed = true)
-        val upButtons = PointerButtons(isPrimaryPressed = false)
         scene.sendPointerEvent(PointerEventType.Move, Offset(0f, 0f))
-        scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), buttons = downButtons)
+        scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), button = PointerButton.Primary)
         scene.sendPointerEvent(PointerEventType.Move, Offset(20f, 0f))
-        scene.sendPointerEvent(PointerEventType.Release, Offset(20f, 0f), buttons = upButtons)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(20f, 0f), button = PointerButton.Primary)
         assertThat(outerBoxTotalPan).isEqualTo(Offset(20f, 0f))
         assertThat(innerBoxClicks).isEqualTo(0)
 
-        scene.sendPointerEvent(PointerEventType.Press, Offset(20f, 0f), buttons = downButtons)
-        scene.sendPointerEvent(PointerEventType.Release, Offset(20f, 0f), buttons = upButtons)
+        scene.sendPointerEvent(PointerEventType.Press, Offset(20f, 0f), button = PointerButton.Primary)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(20f, 0f), button = PointerButton.Primary)
         assertThat(outerBoxTotalPan).isEqualTo(Offset(20f, 0f))
         assertThat(innerBoxClicks).isEqualTo(1)
     }

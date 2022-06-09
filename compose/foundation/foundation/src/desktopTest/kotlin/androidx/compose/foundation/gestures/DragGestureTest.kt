@@ -17,6 +17,7 @@
 package androidx.compose.foundation.gestures
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.PointerInputMatcher
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -26,6 +27,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.platform.DefaultViewConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -63,7 +65,7 @@ class DragGestureTest {
                 Box(
                     modifier = Modifier
                         .size(40.dp, 40.dp)
-                        .onDragGesture(
+                        .onDrag(
                             enabled = true,
                             onDragStart = { offset -> dragStartResult = offset },
                             onDragCancel = { dragCanceled = true },
@@ -124,6 +126,93 @@ class DragGestureTest {
     }
 
     @Test
+    fun `draggable by touch`() {
+        val density = Density(1f)
+        val viewConfiguration = DefaultViewConfiguration(density)
+
+        ImageComposeScene(
+            width = 100,
+            height = 100,
+            density = density
+        ).use { scene ->
+
+            var dragStartResult: Offset? = null
+            var dragCanceled = false
+            var dragEnded = false
+            var onDragCounter = 0
+            var dragOffset = Offset.Zero
+
+            scene.setContent {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp, 40.dp)
+                        .onDrag(
+                            enabled = true,
+                            pointerInputMatcher = PointerInputMatcher.touch,
+                            onDragStart = { offset -> dragStartResult = offset },
+                            onDragCancel = { dragCanceled = true },
+                            onDragEnd = { dragEnded = true },
+                            onDrag = {
+                                dragOffset = it
+                                onDragCounter++
+                            }
+                        )
+                )
+            }
+
+            // Note: touch slop is different from mouse slop,
+            // so values a bit different in this test comparing with mouse drag
+            scene.sendPointerEvent(PointerEventType.Move, Offset(5f, 5f), type = PointerType.Touch)
+            scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), type = PointerType.Touch)
+            scene.sendPointerEvent(
+                PointerEventType.Move,
+                Offset(5f + viewConfiguration.touchSlop + 5f, 5f),
+                type = PointerType.Touch
+            )
+
+            assertEquals(Offset(5f, 5f), dragStartResult)
+            assertEquals(5f, ceil(dragOffset.x))
+            assertEquals(1, onDragCounter)
+            assertEquals(0f, 0f)
+            assertFalse(dragCanceled)
+            assertFalse(dragEnded)
+
+            scene.sendPointerEvent(
+                PointerEventType.Move,
+                Offset(10f + viewConfiguration.touchSlop, 15f),
+                type = PointerType.Touch
+            )
+            assertEquals(0f, dragOffset.x)
+            assertEquals(10f, dragOffset.y)
+            assertEquals(2, onDragCounter)
+            assertFalse(dragCanceled)
+            assertFalse(dragEnded)
+
+            scene.sendPointerEvent(
+                PointerEventType.Move,
+                Offset(10f + viewConfiguration.touchSlop, 25f),
+                type = PointerType.Touch
+            )
+            assertEquals(0f, dragOffset.x)
+            assertEquals(10f, dragOffset.y)
+            assertEquals(3, onDragCounter)
+            assertFalse(dragCanceled)
+            assertFalse(dragEnded)
+
+            scene.sendPointerEvent(
+                eventType = PointerEventType.Release,
+                position = Offset(5f + viewConfiguration.touchSlop, 15f),
+                type = PointerType.Touch
+            )
+            assertEquals(-5f, dragOffset.x)
+            assertEquals(-10f, dragOffset.y)
+            assertTrue(dragEnded)
+            assertFalse(dragCanceled)
+            assertEquals(4, onDragCounter)
+        }
+    }
+
+    @Test
     @Ignore // remove Ignore if needed later when startDragOnLongPress mode supported
     fun `draggable by mouse OnLongPress primary button`() = runBlocking {
         val density = Density(1f)
@@ -145,7 +234,7 @@ class DragGestureTest {
                 Box(
                     modifier = Modifier
                         .size(40.dp, 40.dp)
-                        .onDragGesture(
+                        .onDrag(
                             enabled = true,
                             onDragStart = { offset -> dragStartResult = offset },
                             onDragCancel = { dragCanceled = true },

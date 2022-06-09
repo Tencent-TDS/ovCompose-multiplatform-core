@@ -17,9 +17,10 @@
 package androidx.compose.foundation.gestures
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.PointerFilter
+import androidx.compose.foundation.PointerInputMatcher
 import androidx.compose.foundation.awaitPress
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
@@ -42,25 +43,28 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * Gesture detector with [filter] that waits for pointer down matching [filter] and
+ * Gesture detector with [pointerInputMatcher] that waits for pointer down matching [pointerInputMatcher] and
  * touch slop in any direction and then calls [onDrag] for each drag event.
  * It follows the touch slop detection of [awaitTouchSlopOrCancellation]
  * but will consume the position change automatically once the touch slop has been crossed.
  * [onDragStart] will be called when touch slop in passed with the last known pointer position provided.
- * [onDragEnd] is called after pointer matching [filter] gets released,
+ * [onDragEnd] is called after pointer matching [pointerInputMatcher] gets released,
  * and [onDragCancel] is called if another gesture has consumed pointer input, canceling this gesture.
  */
 @ExperimentalFoundationApi
 suspend fun PointerInputScope.detectDragGestures(
-    filter: PointerFilter.() -> Unit,
+    pointerInputMatcher: PointerInputMatcher = PointerInputMatcher.DefaultPointerInputMatcher,
     onDragStart: (Offset) -> Unit = {},
     onDragCancel: () -> Unit = {},
     onDragEnd: () -> Unit = {},
     onDrag: (Offset) -> Unit
 ) {
+    val filter : (PointerEvent) -> Boolean = {
+        pointerInputMatcher.matches(it)
+    }
+
     while (currentCoroutineContext().isActive) {
         coroutineScope {
-            val combinedFilter = PointerFilter().apply(filter).combinedFilter()
             var dragStartedContinuation: Continuation<Boolean>? = null
 
             // Here we launch 2 coroutines:
@@ -73,10 +77,7 @@ suspend fun PointerInputScope.detectDragGestures(
 
             val dragJob = launch {
                 awaitPointerEventScope {
-                    val press = awaitPress(
-                        requireUnconsumed = false,
-                        filterPressEvent = combinedFilter
-                    )
+                    val press = awaitPress(filter = filter, requireUnconsumed = false)
 
                     val overSlop = awaitDragStartOnSlop(press)
                     val pointerId = press.changes[0].id
@@ -95,7 +96,7 @@ suspend fun PointerInputScope.detectDragGestures(
                                 it.consume()
                             }
                         } finally {
-                            if (currentEvent.isReleased() && combinedFilter(currentEvent)) {
+                            if (currentEvent.isReleased() && filter(currentEvent)) {
                                 onDragEnd()
                             } else {
                                 onDragCancel()
@@ -113,7 +114,7 @@ suspend fun PointerInputScope.detectDragGestures(
                     awaitPointerEventScope {
                         while (dragJob.isActive) {
                             val event = awaitPointerEvent()
-                            if (event.isReleased() && combinedFilter(event)) {
+                            if (event.isReleased() && filter(currentEvent)) {
                                 dragJob.cancel()
                             }
                         }
@@ -125,18 +126,18 @@ suspend fun PointerInputScope.detectDragGestures(
 }
 
 /**
- * Adds a gesture detector with [filter] that waits for pointer down matching [filter] and
+ * Adds a gesture detector with [pointerInputMatcher] that waits for pointer down matching [pointerInputMatcher] and
  * touch slop in any direction and then calls [onDrag] for each drag event.
  * It follows the touch slop detection of [awaitTouchSlopOrCancellation]
  * but will consume the position change automatically once the touch slop has been crossed.
  * [onDragStart] will be called when touch slop in passed with the last known pointer position provided.
- * [onDragEnd] is called after pointer matching [filter] gets released,
+ * [onDragEnd] is called after pointer matching [pointerInputMatcher] gets released,
  * and [onDragCancel] is called if another gesture has consumed pointer input, canceling this gesture.
  */
 @ExperimentalFoundationApi
-fun Modifier.onDragGesture(
+fun Modifier.onDrag(
     enabled: Boolean = true,
-    filter: PointerFilter.() -> Unit = PointerFilter.Default,
+    pointerInputMatcher: PointerInputMatcher = PointerInputMatcher.DefaultPointerInputMatcher,
     onDragStart: (Offset) -> Unit = {},
     onDragCancel: () -> Unit = {},
     onDragEnd: () -> Unit = {},
@@ -148,11 +149,10 @@ fun Modifier.onDragGesture(
     val onDragStartState = rememberUpdatedState(onDragStart)
     val onDragEndState = rememberUpdatedState(onDragEnd)
     val onDragCancelState = rememberUpdatedState(onDragCancel)
-    val filterState = rememberUpdatedState(filter)
 
-    Modifier.pointerInput(Unit) {
+    Modifier.pointerInput(pointerInputMatcher) {
         detectDragGestures(
-            filter = { filterState.value(this) },
+            pointerInputMatcher = pointerInputMatcher,
             onDragStart = { onDragStartState.value(it) },
             onDrag = { onDragState.value(it) },
             onDragEnd = { onDragEndState.value() },
