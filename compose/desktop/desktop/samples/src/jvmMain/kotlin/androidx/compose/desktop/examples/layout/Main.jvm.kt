@@ -17,44 +17,42 @@
 package androidx.compose.desktop.examples.layout
 
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.awt.ComposeDialog
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.launchApplication
-import java.awt.Dimension
-import kotlinx.coroutines.MainScope
+import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberDialogState
 import kotlinx.coroutines.delay
 
-fun main() {
-    MainScope().launchApplication {
-        fun createWindow() = ComposeDialog().apply {
-            size = Dimension(400, 600)
-            isResizable = true
-            isUndecorated = true
-        }
-        Dialog(
-            create = ::createWindow,
-            dispose = ComposeDialog::dispose
-        ) {
-            IterateViews(
-                periodMs = 1000,
-                { CustomLayoutUsage() },
-                { AlertDialogUsage() },
-                { BadgeBoxUsage() },
-                { BottomNavigationUsage() },
-                { BottomSheetScaffoldUsage() },
-                { ListItemUsage() },
-                { NavigationRailUsage() },
-                { SnackBarUsage() },
-                { TabRowUsage() },
-                { HorizontalScrollersInVerticalScrollersUsage() },
-                { ImageUsage() },
-                { SelectionContainerUsage() },
-                { TextWithInlineContentUsage() },
-                { VerticalScrollbarUsage() },
-                { SwingPanelUsage() },
-            )
-        }
+fun main() = application {
+    Dialog(
+        onCloseRequest = ::exitApplication,
+        state = rememberDialogState(width = 400.dp, height = 600.dp),
+        undecorated = true,
+    ) {
+        IterateViews(
+            periodMs = 1000,
+            { CustomLayoutUsage() },
+            { AlertDialogUsage() },
+            { BadgeBoxUsage() },
+            { BottomNavigationUsage() },
+            { BottomSheetScaffoldUsage() },
+            { ListItemUsage() },
+            { NavigationRailUsage() },
+            { SnackBarUsage() },
+            { TabRowUsage() },
+            { HorizontalScrollersInVerticalScrollersUsage() },
+            { ImageUsage() },
+            { SelectionContainerUsage() },
+            { TextWithInlineContentUsage() },
+            { VerticalScrollbarUsage() },
+            { SwingPanelUsage() },
+        )
     }
 }
 
