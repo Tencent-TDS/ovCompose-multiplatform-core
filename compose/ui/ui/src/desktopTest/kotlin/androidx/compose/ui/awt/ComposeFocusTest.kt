@@ -44,6 +44,7 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.skiko.MainUIDispatcher
 import org.junit.Assume
 import org.junit.Test
+import org.junit.experimental.categories.Categories
 
 class ComposeFocusTest {
     @Test
@@ -460,7 +461,7 @@ class FocusTestScope {
     }
 }
 
-private fun Any.requestFocus(): Unit {
+private fun Any.requestFocus() {
     when (this) {
         is ComposeButton -> requestFocus()
         is Component -> requestFocusInWindow()
