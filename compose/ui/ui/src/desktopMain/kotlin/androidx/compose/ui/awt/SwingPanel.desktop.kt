@@ -20,6 +20,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
+import androidx.compose.ui.LayoutWithWorkaround
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
@@ -211,7 +212,7 @@ private class FocusSwitcher<T : Component>(
 
 @Composable
 private fun Box(modifier: Modifier, content: @Composable () -> Unit = {}) {
-    Layout(
+    LayoutWithWorkaround(
         content = content,
         modifier = modifier,
         measurePolicy = { measurables, constraints ->
