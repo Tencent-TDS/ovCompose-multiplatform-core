@@ -37,19 +37,14 @@ import androidx.compose.ui.util.fastAll
  * ```
  * mouse(PointerButton.Primary) + touch + stylus + eraser
  * ```
- * See [PrimaryMatcher].
+ * See [Primary].
  */
 @ExperimentalFoundationApi
 @OptIn(ExperimentalComposeUiApi::class)
-sealed interface PointerMatcher {
+interface PointerMatcher {
 
     @ExperimentalFoundationApi
-    val pointerType: PointerType
-
-    @ExperimentalFoundationApi
-    fun matches(event: PointerEvent): Boolean {
-        return event.changes.fastAll { it.type == pointerType }
-    }
+    fun matches(event: PointerEvent): Boolean
 
     @ExperimentalFoundationApi
     operator fun plus(pointerMatcher: PointerMatcher): PointerMatcher {
@@ -70,24 +65,35 @@ sealed interface PointerMatcher {
         fun pointer(
             pointerType: PointerType,
             button: PointerButton? = null
-        ): PointerMatcher = object : PointerMatcherWithButton {
+        ): PointerMatcher = object : PointerTypeAndButtonMatcher {
             override val pointerType = pointerType
             override val button = button
         }
 
         @ExperimentalFoundationApi
         fun mouse(button: PointerButton): PointerMatcher = MousePointerMatcher(button)
+
         @ExperimentalFoundationApi
         fun stylus(button: PointerButton? = null): PointerMatcher = StylusPointerMatcher(button)
 
         @ExperimentalFoundationApi
         val stylus: PointerMatcher = StylusPointerMatcher.Companion
+
         @ExperimentalFoundationApi
         val touch: PointerMatcher = TouchPointerMatcher
+
         @ExperimentalFoundationApi
         val eraser: PointerMatcher = EraserPointerMatcher
 
-        private interface PointerMatcherWithButton : PointerMatcher {
+        private interface PointerTypeMatcher : PointerMatcher {
+            val pointerType: PointerType
+
+            override fun matches(event: PointerEvent): Boolean {
+                return event.changes.fastAll { it.type == pointerType }
+            }
+        }
+
+        private interface PointerTypeAndButtonMatcher : PointerTypeMatcher {
             val button: PointerButton?
 
             override fun matches(event: PointerEvent): Boolean {
@@ -98,30 +104,29 @@ sealed interface PointerMatcher {
 
         private class MousePointerMatcher(
             override val button: PointerButton
-        ) : PointerMatcherWithButton {
+        ) : PointerTypeAndButtonMatcher {
             override val pointerType = PointerType.Mouse
         }
 
         private class StylusPointerMatcher(
             override val button: PointerButton? = null
-        ) : PointerMatcherWithButton {
+        ) : PointerTypeAndButtonMatcher {
             override val pointerType = PointerType.Stylus
 
-            companion object : PointerMatcher {
+            companion object : PointerTypeMatcher {
                 override val pointerType = PointerType.Stylus
             }
         }
 
-        private object TouchPointerMatcher : PointerMatcher {
+        private object TouchPointerMatcher : PointerTypeMatcher {
             override val pointerType = PointerType.Touch
         }
 
-        private object EraserPointerMatcher : PointerMatcher {
+        private object EraserPointerMatcher : PointerTypeMatcher {
             override val pointerType = PointerType.Eraser
         }
 
         private class CombinedPointerMatcher(val sources: MutableList<PointerMatcher>) : PointerMatcher {
-            override val pointerType = PointerType.Unknown
 
             override fun matches(event: PointerEvent): Boolean {
                 return sources.any { it.matches(event) }
@@ -130,13 +135,13 @@ sealed interface PointerMatcher {
 
         /**
          * The Primary [PointerMatcher] covers the most common cases of pointer inputs.
-         * [PrimaryMatcher] will match [PointerEvent]s, which match at least one of the following conditions:
+         * [Primary] will match [PointerEvent]s, which match at least one of the following conditions:
          * - [PointerType] is [PointerType.Mouse] and [PointerEvent.button] is [PointerButton.Primary]
          * - [PointerType] is [PointerType.Touch]
          * - [PointerType] is [PointerType.Stylus], regardless of any buttons pressed
          * - [PointerType] is [PointerType.Eraser]
          */
         @ExperimentalFoundationApi
-        val PrimaryMatcher = mouse(PointerButton.Primary) + touch + stylus + eraser
+        val Primary = mouse(PointerButton.Primary) + touch + stylus + eraser
     }
 }

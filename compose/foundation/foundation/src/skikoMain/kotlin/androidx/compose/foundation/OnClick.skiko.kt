@@ -41,6 +41,7 @@ import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.isOutOfBounds
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastAny
@@ -56,7 +57,7 @@ import kotlinx.coroutines.sync.Mutex
  * within the component's bounds.
  *
  * It allows configuration based on a pointer type via [matcher].
- * By default, pointerInputMatcher uses [PointerMatcher.PrimaryMatcher].
+ * By default, matcher uses [PointerMatcher.Primary].
  * [matcher] should declare supported pointer types (mouse, touch, stylus, eraser) by listing them and
  * declaring required properties for them, such as: required button (primary, secondary, etc.).
  *
@@ -71,7 +72,7 @@ import kotlinx.coroutines.sync.Mutex
 @ExperimentalFoundationApi
 fun Modifier.onClick(
     enabled: Boolean = true,
-    matcher: PointerMatcher = PointerMatcher.PrimaryMatcher,
+    matcher: PointerMatcher = PointerMatcher.Primary,
     keyboardModifiers: PointerKeyboardModifiers.() -> Boolean = { true },
     onDoubleClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
@@ -93,7 +94,7 @@ fun Modifier.onClick(
  * within the component's bounds.
  *
  * It allows configuration based on a pointer type via [matcher].
- * By default, pointerInputMatcher uses [PointerMatcher.PrimaryMatcher].
+ * By default, matcher uses [PointerMatcher.Primary].
  * [matcher] should declare supported pointer types (mouse, touch, stylus, eraser) by listing them and
  * declaring required properties for them, such as: required button (primary, secondary, etc.).
  *
@@ -112,7 +113,7 @@ fun Modifier.onClick(
 fun Modifier.onClick(
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource,
-    matcher: PointerMatcher = PointerMatcher.PrimaryMatcher,
+    matcher: PointerMatcher = PointerMatcher.Primary,
     keyboardModifiers: PointerKeyboardModifiers.() -> Boolean = { true },
     onDoubleClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
@@ -179,9 +180,31 @@ fun Modifier.onClick(
 
 private val EmptyPointerEvent = PointerEvent(emptyList())
 
+/**
+ * Detects tap, double-tap, and long press gestures and calls [onTap], [onDoubleTap], and
+ * [onLongPress], respectively, when detected. [onPress] is called when the press is detected
+ * and the [PressGestureScope.tryAwaitRelease] and [PressGestureScope.awaitRelease] can be
+ * used to detect when pointers have released or the gesture was canceled.
+ * The first pointer down and final pointer up are consumed, and in the
+ * case of long press, all changes after the long press is detected are consumed.
+ *
+ * When [onDoubleTap] is provided, the tap gesture is detected only after
+ * the [ViewConfiguration.doubleTapMinTimeMillis] has passed and [onDoubleTap] is called if the
+ * second tap is started before [ViewConfiguration.doubleTapTimeoutMillis]. If [onDoubleTap] is not
+ * provided, then [onTap] is called when the pointer up has been received.
+ *
+ * If the first down event was consumed, the entire gesture will be skipped, including
+ * [onPress]. If the first down event was not consumed, if any other gesture consumes the down or
+ * up events, the pointer moves out of the input area, or the position change is consumed,
+ * the gestures are considered canceled. [onDoubleTap], [onLongPress], and [onTap] will not be
+ * called after a gesture has been canceled.
+ *
+ * @param matcher defines supported pointer types and required properties
+ * @param keyboardModifiers defines a condition that [PointerEvent.keyboardModifiers] has to match
+ */
 @ExperimentalFoundationApi
 suspend fun PointerInputScope.detectTapGestures(
-    matcher: PointerMatcher = PointerMatcher.PrimaryMatcher,
+    matcher: PointerMatcher = PointerMatcher.Primary,
     keyboardModifiers: PointerKeyboardModifiers.() -> Boolean = { true },
     onDoubleTap: ((Offset) -> Unit)? = null,
     onLongPress: ((Offset) -> Unit)? = null,
@@ -222,7 +245,7 @@ suspend fun PointerInputScope.detectTapGestures(
             // use `cancelled` flag to distinguish between two cases
 
             val firstRelease = withTimeoutOrNull(longPressTimeout) {
-                awaitReleaseOrCancelled(filter).apply {
+                awaitReleaseOrCancelled(filter = filter).apply {
                     this?.changes?.fastForEach { it.consume() }
                     cancelled = this == null
                 }
@@ -237,7 +260,7 @@ suspend fun PointerInputScope.detectTapGestures(
             if (firstRelease == null) {
                 if (onLongPress != null && !cancelled) {
                     onLongPress(down.changes[0].position)
-                    awaitReleaseOrCancelled(filter)
+                    awaitReleaseOrCancelled(consumeUntilRelease = true, filter = filter)
                     pressScope.release()
                 }
             } else if (onDoubleTap == null) {
@@ -258,7 +281,7 @@ suspend fun PointerInputScope.detectTapGestures(
                     cancelled = false
 
                     val secondRelease = withTimeoutOrNull(longPressTimeout) {
-                        awaitReleaseOrCancelled(filter).apply {
+                        awaitReleaseOrCancelled(filter = filter).apply {
                             this?.changes?.fastForEach { it.consume() }
                             cancelled = this == null
                         }
@@ -273,7 +296,7 @@ suspend fun PointerInputScope.detectTapGestures(
                     if (secondRelease == null) {
                         if (onLongPress != null && !cancelled) {
                             onLongPress(secondPress.changes[0].position)
-                            awaitReleaseOrCancelled(filter)
+                            awaitReleaseOrCancelled(consumeUntilRelease = true, filter = filter)
                             pressScope.release()
                         }
                     } else if (!cancelled) {
@@ -319,6 +342,7 @@ private suspend fun AwaitPointerEventScope.awaitSecondPressUnconsumed(
 }
 
 private suspend fun AwaitPointerEventScope.awaitReleaseOrCancelled(
+    consumeUntilRelease: Boolean = false,
     filter: (PointerEvent) -> Boolean
 ): PointerEvent? {
     var event: PointerEvent? = null
@@ -334,6 +358,10 @@ private suspend fun AwaitPointerEventScope.awaitReleaseOrCancelled(
 
         event = event.takeIf {
             it.isAllPressedUp(requireUnconsumed = true) && filter(it)
+        }
+
+        if (consumeUntilRelease) {
+            currentEvent.changes.fastForEach { it.consume() }
         }
 
         // Check for cancel by position consumption. We can look on the Final pass of the

@@ -52,7 +52,7 @@ import kotlinx.coroutines.launch
  */
 @ExperimentalFoundationApi
 suspend fun PointerInputScope.detectDragGestures(
-    matcher: PointerMatcher = PointerMatcher.PrimaryMatcher,
+    matcher: PointerMatcher = PointerMatcher.Primary,
     onDragStart: (Offset) -> Unit = {},
     onDragCancel: () -> Unit = {},
     onDragEnd: () -> Unit = {},
@@ -136,7 +136,7 @@ suspend fun PointerInputScope.detectDragGestures(
 @ExperimentalFoundationApi
 fun Modifier.onDrag(
     enabled: Boolean = true,
-    matcher: PointerMatcher = PointerMatcher.PrimaryMatcher,
+    matcher: PointerMatcher = PointerMatcher.Primary,
     onDragStart: (Offset) -> Unit = {},
     onDragCancel: () -> Unit = {},
     onDragEnd: () -> Unit = {},
