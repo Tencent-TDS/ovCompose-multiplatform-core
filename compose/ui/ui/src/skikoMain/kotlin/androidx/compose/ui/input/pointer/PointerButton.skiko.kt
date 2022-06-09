@@ -24,8 +24,8 @@ import kotlin.jvm.JvmInline
 value class PointerButton(val index: Int) {
     companion object {
         val Primary = PointerButton(0)
-        val Secondary = PointerButton(2)
-        val Tertiary = PointerButton(1)
+        val Secondary = PointerButton(1)
+        val Tertiary = PointerButton(2)
         val Back = PointerButton(3)
         val Forward = PointerButton(4)
     }

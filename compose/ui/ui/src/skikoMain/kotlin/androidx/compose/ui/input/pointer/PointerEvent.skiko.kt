@@ -123,7 +123,7 @@ actual data class PointerEvent internal constructor(
      */
     val nativeEvent: Any?,
 
-    val button: PointerButton?
+    internal val _button: PointerButton?
 ) {
     internal actual constructor(
         changes: List<PointerInputChange>,
@@ -146,8 +146,15 @@ actual data class PointerEvent internal constructor(
         keyboardModifiers = PointerKeyboardModifiers(0),
         _type = PointerEventType.Unknown,
         nativeEvent = null,
-        button = null
+        _button = null
     )
+
+    /**
+     * Specifies the pointer button state of which was changed.
+     * It has value only when event's type is [PointerEventType.Press] or [PointerEventType.Release].
+     */
+    @ExperimentalComposeUiApi
+    val button: PointerButton? = _button
 
     actual var type: PointerEventType = _type
         internal set

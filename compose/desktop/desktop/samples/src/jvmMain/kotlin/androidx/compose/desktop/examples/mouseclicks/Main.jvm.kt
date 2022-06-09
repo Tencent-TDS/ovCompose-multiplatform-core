@@ -20,7 +20,7 @@ package androidx.compose.desktop.examples.mouseclicks
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.PointerInputMatcher
+import androidx.compose.foundation.PointerMatcher
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -50,7 +50,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.isAltPressed
-import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
@@ -93,7 +92,7 @@ fun main() {
                         .onClick(
                             enabled = enabled,
                             interactionSource = interactionSource1,
-                            pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Secondary),
+                            matcher = PointerMatcher.mouse(PointerButton.Secondary),
                             keyboardModifiers = { isAltPressed },
                             onLongClick = {
                                 println("Gray: Alt + Long Right Click")
@@ -114,7 +113,7 @@ fun main() {
                                 .onClick(
                                     enabled = enabled,
                                     interactionSource = interactionSource2,
-                                    pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary),
+                                    matcher = PointerMatcher.mouse(PointerButton.Primary),
                                     keyboardModifiers = { this.isShiftPressed },
                                     onDoubleClick = {
                                         println("Red: Shift + Left DoubleClick")
@@ -125,7 +124,7 @@ fun main() {
                                 .onClick(
                                     enabled = enabled,
                                     interactionSource = interactionSource2,
-                                    pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Secondary)
+                                    matcher = PointerMatcher.mouse(PointerButton.Secondary)
                                 ) {
                                     println("Red: Right Click")
                                 }.indication(interactionSource2, LocalIndication.current)
@@ -148,7 +147,7 @@ fun main() {
                     Box(modifier = Modifier.offset { IntOffset(offset1.x.toInt(), offset1.y.toInt()) }
                         .size(100.dp).background(Color.Blue).pointerInput(Unit) {
                             detectDragGestures(
-                                pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Secondary),
+                                matcher = PointerMatcher.mouse(PointerButton.Secondary),
                                 onDragStart = {
                                     isDragging = true
                                     println("Blue: Start, offset=$it")

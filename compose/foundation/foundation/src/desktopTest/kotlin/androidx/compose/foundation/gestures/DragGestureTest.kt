@@ -17,7 +17,7 @@
 package androidx.compose.foundation.gestures
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.PointerInputMatcher
+import androidx.compose.foundation.PointerMatcher
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -148,7 +148,7 @@ class DragGestureTest {
                         .size(40.dp, 40.dp)
                         .onDrag(
                             enabled = true,
-                            pointerInputMatcher = PointerInputMatcher.touch,
+                            matcher = PointerMatcher.touch,
                             onDragStart = { offset -> dragStartResult = offset },
                             onDragCancel = { dragCanceled = true },
                             onDragEnd = { dragEnded = true },

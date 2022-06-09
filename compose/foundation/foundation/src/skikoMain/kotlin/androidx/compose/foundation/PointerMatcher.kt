@@ -23,7 +23,7 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.util.fastAll
 
 /**
- * [PointerInputMatcher] represents a single condition or a set of conditions which a [PointerEvent] has to match
+ * [PointerMatcher] represents a single condition or a set of conditions which a [PointerEvent] has to match
  * in order to count as an appropriate event for a gesture.
  *
  *  Supported matchers:
@@ -37,11 +37,11 @@ import androidx.compose.ui.util.fastAll
  * ```
  * mouse(PointerButton.Primary) + touch + stylus + eraser
  * ```
- * See [DefaultPointerInputMatcher].
+ * See [PrimaryMatcher].
  */
 @ExperimentalFoundationApi
 @OptIn(ExperimentalComposeUiApi::class)
-sealed interface PointerInputMatcher {
+sealed interface PointerMatcher {
 
     @ExperimentalFoundationApi
     val pointerType: PointerType
@@ -52,15 +52,15 @@ sealed interface PointerInputMatcher {
     }
 
     @ExperimentalFoundationApi
-    operator fun plus(pointerInputMatcher: PointerInputMatcher): PointerInputMatcher {
-        return if (this is CombinedPointerInputMatcher) {
-            this.sources.add(pointerInputMatcher)
+    operator fun plus(pointerMatcher: PointerMatcher): PointerMatcher {
+        return if (this is CombinedPointerMatcher) {
+            this.sources.add(pointerMatcher)
             this
-        } else if (pointerInputMatcher is CombinedPointerInputMatcher) {
-            pointerInputMatcher.sources.add(this)
-            pointerInputMatcher
+        } else if (pointerMatcher is CombinedPointerMatcher) {
+            pointerMatcher.sources.add(this)
+            pointerMatcher
         } else {
-            CombinedPointerInputMatcher(mutableListOf(this, pointerInputMatcher))
+            CombinedPointerMatcher(mutableListOf(this, pointerMatcher))
         }
     }
 
@@ -70,24 +70,24 @@ sealed interface PointerInputMatcher {
         fun pointer(
             pointerType: PointerType,
             button: PointerButton? = null
-        ): PointerInputMatcher = object : PointerInputMatcherWithButton {
+        ): PointerMatcher = object : PointerMatcherWithButton {
             override val pointerType = pointerType
             override val button = button
         }
 
         @ExperimentalFoundationApi
-        fun mouse(button: PointerButton): PointerInputMatcher = MousePointerInputMatcher(button)
+        fun mouse(button: PointerButton): PointerMatcher = MousePointerMatcher(button)
         @ExperimentalFoundationApi
-        fun stylus(button: PointerButton? = null): PointerInputMatcher = StylusPointerInputMatcher(button)
+        fun stylus(button: PointerButton? = null): PointerMatcher = StylusPointerMatcher(button)
 
         @ExperimentalFoundationApi
-        val stylus: PointerInputMatcher = StylusPointerInputMatcher.Companion
+        val stylus: PointerMatcher = StylusPointerMatcher.Companion
         @ExperimentalFoundationApi
-        val touch: PointerInputMatcher = TouchPointerInputMatcher
+        val touch: PointerMatcher = TouchPointerMatcher
         @ExperimentalFoundationApi
-        val eraser: PointerInputMatcher = EraserPointerInputMatcher
+        val eraser: PointerMatcher = EraserPointerMatcher
 
-        private interface PointerInputMatcherWithButton : PointerInputMatcher {
+        private interface PointerMatcherWithButton : PointerMatcher {
             val button: PointerButton?
 
             override fun matches(event: PointerEvent): Boolean {
@@ -96,31 +96,31 @@ sealed interface PointerInputMatcher {
             }
         }
 
-        private class MousePointerInputMatcher(
+        private class MousePointerMatcher(
             override val button: PointerButton
-        ) : PointerInputMatcherWithButton {
+        ) : PointerMatcherWithButton {
             override val pointerType = PointerType.Mouse
         }
 
-        private class StylusPointerInputMatcher(
+        private class StylusPointerMatcher(
             override val button: PointerButton? = null
-        ) : PointerInputMatcherWithButton {
+        ) : PointerMatcherWithButton {
             override val pointerType = PointerType.Stylus
 
-            companion object : PointerInputMatcher {
+            companion object : PointerMatcher {
                 override val pointerType = PointerType.Stylus
             }
         }
 
-        private object TouchPointerInputMatcher : PointerInputMatcher {
+        private object TouchPointerMatcher : PointerMatcher {
             override val pointerType = PointerType.Touch
         }
 
-        private object EraserPointerInputMatcher : PointerInputMatcher {
+        private object EraserPointerMatcher : PointerMatcher {
             override val pointerType = PointerType.Eraser
         }
 
-        private class CombinedPointerInputMatcher(val sources: MutableList<PointerInputMatcher>) : PointerInputMatcher {
+        private class CombinedPointerMatcher(val sources: MutableList<PointerMatcher>) : PointerMatcher {
             override val pointerType = PointerType.Unknown
 
             override fun matches(event: PointerEvent): Boolean {
@@ -129,14 +129,14 @@ sealed interface PointerInputMatcher {
         }
 
         /**
-         * The Default [PointerInputMatcher] which covers the most common cases of pointer inputs.
-         * [DefaultPointerInputMatcher] will match [PointerEvent]s, which match at least one of the following conditions:
+         * The Primary [PointerMatcher] covers the most common cases of pointer inputs.
+         * [PrimaryMatcher] will match [PointerEvent]s, which match at least one of the following conditions:
          * - [PointerType] is [PointerType.Mouse] and [PointerEvent.button] is [PointerButton.Primary]
          * - [PointerType] is [PointerType.Touch]
          * - [PointerType] is [PointerType.Stylus], regardless of any buttons pressed
          * - [PointerType] is [PointerType.Eraser]
          */
         @ExperimentalFoundationApi
-        val DefaultPointerInputMatcher = mouse(PointerButton.Primary) + touch + stylus + eraser
+        val PrimaryMatcher = mouse(PointerButton.Primary) + touch + stylus + eraser
     }
 }

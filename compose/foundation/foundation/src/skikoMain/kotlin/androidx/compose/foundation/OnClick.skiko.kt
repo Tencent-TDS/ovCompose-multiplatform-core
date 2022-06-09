@@ -55,14 +55,14 @@ import kotlinx.coroutines.sync.Mutex
  * Configure component to receive clicks, double clicks and long clicks via input only (no accessibility "click" event)
  * within the component's bounds.
  *
- * It allows configuration based on a pointer type via [pointerInputMatcher].
- * By default, pointerInputMatcher uses [PointerInputMatcher.DefaultPointerInputMatcher].
- * [pointerInputMatcher] should declare supported pointer types (mouse, touch, stylus, eraser) by listing them and
+ * It allows configuration based on a pointer type via [matcher].
+ * By default, pointerInputMatcher uses [PointerMatcher.PrimaryMatcher].
+ * [matcher] should declare supported pointer types (mouse, touch, stylus, eraser) by listing them and
  * declaring required properties for them, such as: required button (primary, secondary, etc.).
  *
  * @param enabled Controls the enabled state. When `false`, [onClick], [onLongClick] or
  * [onDoubleClick] won't be invoked
- * @param pointerInputMatcher defines supported pointer types and required properties
+ * @param matcher defines supported pointer types and required properties
  * @param keyboardModifiers defines a condition that [PointerEvent.keyboardModifiers] has to match
  * @param onLongClick will be called when user long presses on the element
  * @param onDoubleClick will be called when user double clicks on the element
@@ -71,7 +71,7 @@ import kotlinx.coroutines.sync.Mutex
 @ExperimentalFoundationApi
 fun Modifier.onClick(
     enabled: Boolean = true,
-    pointerInputMatcher: PointerInputMatcher = PointerInputMatcher.DefaultPointerInputMatcher,
+    matcher: PointerMatcher = PointerMatcher.PrimaryMatcher,
     keyboardModifiers: PointerKeyboardModifiers.() -> Boolean = { true },
     onDoubleClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
@@ -79,7 +79,7 @@ fun Modifier.onClick(
 ) = composed {
     Modifier.onClick(
         enabled = enabled,
-        pointerInputMatcher = pointerInputMatcher,
+        matcher = matcher,
         keyboardModifiers = keyboardModifiers,
         interactionSource = remember { MutableInteractionSource() },
         onDoubleClick = onDoubleClick,
@@ -92,9 +92,9 @@ fun Modifier.onClick(
  * Configure component to receive clicks, double clicks and long clicks via input only (no accessibility "click" event)
  * within the component's bounds.
  *
- * It allows configuration based on a pointer type via [pointerInputMatcher].
- * By default, pointerInputMatcher uses [PointerInputMatcher.DefaultPointerInputMatcher].
- * [pointerInputMatcher] should declare supported pointer types (mouse, touch, stylus, eraser) by listing them and
+ * It allows configuration based on a pointer type via [matcher].
+ * By default, pointerInputMatcher uses [PointerMatcher.PrimaryMatcher].
+ * [matcher] should declare supported pointer types (mouse, touch, stylus, eraser) by listing them and
  * declaring required properties for them, such as: required button (primary, secondary, etc.).
  *
  * @param interactionSource [MutableInteractionSource] that will be used to emit
@@ -102,7 +102,7 @@ fun Modifier.onClick(
  * recorded and emitted with [MutableInteractionSource].
  * @param enabled Controls the enabled state. When `false`, [onClick], [onLongClick] or
  * [onDoubleClick] won't be invoked
- * @param pointerInputMatcher defines supported pointer types and required properties
+ * @param matcher defines supported pointer types and required properties
  * @param keyboardModifiers defines a condition that [PointerEvent.keyboardModifiers] has to match
  * @param onLongClick will be called when user long presses on the element
  * @param onDoubleClick will be called when user double clicks on the element
@@ -112,7 +112,7 @@ fun Modifier.onClick(
 fun Modifier.onClick(
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource,
-    pointerInputMatcher: PointerInputMatcher = PointerInputMatcher.DefaultPointerInputMatcher,
+    matcher: PointerMatcher = PointerMatcher.PrimaryMatcher,
     keyboardModifiers: PointerKeyboardModifiers.() -> Boolean = { true },
     onDoubleClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
@@ -121,7 +121,7 @@ fun Modifier.onClick(
     inspectorInfo = {
         name = "onCombinedClick"
         properties["enabled"] = enabled
-        properties["trigger"] = pointerInputMatcher
+        properties["trigger"] = matcher
         properties["keyboardModifiers"] = keyboardModifiers
         properties["onDoubleClick"] = onDoubleClick
         properties["onLongClick"] = onLongClick
@@ -140,9 +140,9 @@ fun Modifier.onClick(
             val hasLongClick = onLongClick != null
             val hasDoubleClick = onDoubleClick != null
 
-            Modifier.pointerInput(interactionSource, pointerInputMatcher, hasLongClick, hasDoubleClick) {
+            Modifier.pointerInput(interactionSource, matcher, hasLongClick, hasDoubleClick) {
                 detectTapGestures(
-                    pointerInputMatcher = pointerInputMatcher,
+                    matcher = matcher,
                     keyboardModifiers = {
                         keyboardModifiersState.value(this)
                     },
@@ -178,9 +178,10 @@ fun Modifier.onClick(
 )
 
 private val EmptyPointerEvent = PointerEvent(emptyList())
+
 @ExperimentalFoundationApi
 suspend fun PointerInputScope.detectTapGestures(
-    pointerInputMatcher: PointerInputMatcher = PointerInputMatcher.DefaultPointerInputMatcher,
+    matcher: PointerMatcher = PointerMatcher.PrimaryMatcher,
     keyboardModifiers: PointerKeyboardModifiers.() -> Boolean = { true },
     onDoubleTap: ((Offset) -> Unit)? = null,
     onLongPress: ((Offset) -> Unit)? = null,
@@ -192,7 +193,7 @@ suspend fun PointerInputScope.detectTapGestures(
     val pressScope = PressGestureScopeImpl(this@detectTapGestures)
 
     val filter: (PointerEvent) -> Boolean = {
-        pointerInputMatcher.matches(it) && keyboardModifiers(it.keyboardModifiers)
+        matcher.matches(it) && keyboardModifiers(it.keyboardModifiers)
     }
 
     while (currentCoroutineContext().isActive) {
@@ -201,7 +202,7 @@ suspend fun PointerInputScope.detectTapGestures(
             while (
                 currentEvent != EmptyPointerEvent &&
                 currentEvent.isAllPressedDown(false) &&
-                pointerInputMatcher.matches(currentEvent)
+                matcher.matches(currentEvent)
             ) {
                 // suspend until currentEvent matches the filter for pressed event
                 awaitPointerEvent()

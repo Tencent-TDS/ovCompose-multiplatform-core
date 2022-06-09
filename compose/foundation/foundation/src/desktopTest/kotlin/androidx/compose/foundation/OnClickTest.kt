@@ -42,7 +42,7 @@ import org.junit.Test
 class OnClickTest {
 
     private fun testClick(
-        pointerInputMatcher: PointerInputMatcher,
+        pointerMatcher: PointerMatcher,
         button: PointerButton
     ) = ImageComposeScene(
         width = 100,
@@ -54,7 +54,7 @@ class OnClickTest {
         scene.setContent {
             Box(
                 modifier = Modifier
-                    .onClick(pointerInputMatcher = pointerInputMatcher) {
+                    .onClick(matcher = pointerMatcher) {
                         clicksCount++
                     }.size(10.dp, 20.dp)
             )
@@ -74,31 +74,31 @@ class OnClickTest {
     @Test
     fun primaryClicks() = testClick(
         button = PointerButton.Primary,
-        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary)
+        pointerMatcher = PointerMatcher.mouse(PointerButton.Primary)
     )
 
     @Test
     fun secondaryClicks() = testClick(
         button = PointerButton.Secondary,
-        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Secondary)
+        pointerMatcher = PointerMatcher.mouse(PointerButton.Secondary)
     )
 
     @Test
     fun tertiaryClicks() = testClick(
         button = PointerButton.Tertiary,
-        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Tertiary)
+        pointerMatcher = PointerMatcher.mouse(PointerButton.Tertiary)
     )
 
     @Test
     fun backClicks() = testClick(
         button = PointerButton.Back,
-        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Back)
+        pointerMatcher = PointerMatcher.mouse(PointerButton.Back)
     )
 
     @Test
     fun forwardClicks() = testClick(
         button = PointerButton.Forward,
-        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Forward)
+        pointerMatcher = PointerMatcher.mouse(PointerButton.Forward)
     )
 
     @Test
@@ -112,7 +112,7 @@ class OnClickTest {
         scene.setContent {
             Box(
                 modifier = Modifier
-                    .onClick(pointerInputMatcher = PointerInputMatcher.touch) {
+                    .onClick(matcher = PointerMatcher.touch) {
                         clicksCount++
                     }.size(10.dp, 20.dp)
             )
@@ -130,7 +130,7 @@ class OnClickTest {
     }
 
     private fun testDoubleClick(
-        pointerInputMatcher: PointerInputMatcher,
+        pointerMatcher: PointerMatcher,
         button: PointerButton
     ) = runBlocking {
         val density = Density(1f)
@@ -147,7 +147,7 @@ class OnClickTest {
                 Box(
                     modifier = Modifier
                         .onClick(
-                            pointerInputMatcher = pointerInputMatcher,
+                            matcher = pointerMatcher,
                             onDoubleClick = {
                                 doubleClickCount++
                             }
@@ -178,23 +178,23 @@ class OnClickTest {
     @Test
     fun primaryDoubleClick() = testDoubleClick(
         button = PointerButton.Primary,
-        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary)
+        pointerMatcher = PointerMatcher.mouse(PointerButton.Primary)
     )
 
     @Test
     fun secondaryDoubleClick() = testDoubleClick(
         button = PointerButton.Secondary,
-        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Secondary)
+        pointerMatcher = PointerMatcher.mouse(PointerButton.Secondary)
     )
 
     @Test
     fun tertiaryDoubleClick() = testDoubleClick(
         button = PointerButton.Tertiary,
-        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Tertiary)
+        pointerMatcher = PointerMatcher.mouse(PointerButton.Tertiary)
     )
 
     private fun testLongClick(
-        pointerInputMatcher: PointerInputMatcher,
+        pointerMatcher: PointerMatcher,
         button: PointerButton
     ) = runBlocking {
         val density = Density(1f)
@@ -211,7 +211,7 @@ class OnClickTest {
                 Box(
                     modifier = Modifier
                         .onClick(
-                            pointerInputMatcher = pointerInputMatcher,
+                            matcher = pointerMatcher,
                             onLongClick = {
                                 longClickCount++
                             }) {
@@ -237,20 +237,20 @@ class OnClickTest {
     @Test
     fun primaryLongClick() = testLongClick(
         button = PointerButton.Primary,
-        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary)
+        pointerMatcher = PointerMatcher.mouse(PointerButton.Primary)
     )
 
     @Test
     fun secondaryLongClick() = testLongClick(
         button = PointerButton.Secondary,
-        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Secondary)
+        pointerMatcher = PointerMatcher.mouse(PointerButton.Secondary)
     )
 
     @Test
     fun tertiaryLongClick() =
         testLongClick(
             button = PointerButton.Tertiary,
-            pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Tertiary)
+            pointerMatcher = PointerMatcher.mouse(PointerButton.Tertiary)
         )
 
     @Test
@@ -265,10 +265,10 @@ class OnClickTest {
         scene.setContent {
             Box(
                 modifier = Modifier
-                    .onClick(pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary)) {
+                    .onClick(matcher = PointerMatcher.mouse(PointerButton.Primary)) {
                         primaryClicks++
                     }
-                    .onClick(pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Secondary)) {
+                    .onClick(matcher = PointerMatcher.mouse(PointerButton.Secondary)) {
                         secondaryClicks++
                     }
                     .size(40.dp, 40.dp)
@@ -313,11 +313,11 @@ class OnClickTest {
         scene.setContent {
             Box(
                 modifier = Modifier
-                    .onClick(pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary)) {
+                    .onClick(matcher = PointerMatcher.mouse(PointerButton.Primary)) {
                         genericClicks++
                     }
                     .onClick(
-                        pointerInputMatcher = PointerInputMatcher.mouse(PointerButton.Primary),
+                        matcher = PointerMatcher.mouse(PointerButton.Primary),
                         keyboardModifiers = { isAltPressed },
                     ) {
                         withAltClicks++
