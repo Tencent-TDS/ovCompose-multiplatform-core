@@ -25,6 +25,11 @@ import org.gradle.kotlin.dsl.extra
 const val COMPOSE_MPP_ENABLED = "androidx.compose.multiplatformEnabled"
 
 /**
+ * Setting this property enables experimental uikit demo of Compose
+ */
+const val COMPOSE_EXPERIMENTAL_UIKIT_ENABLED = "androidx.compose.experimental.uikit"
+
+/**
  * Setting this property enables JS compiler tests of Compose
  */
 const val COMPOSE_JS_COMPILER_TESTS_ENABLED = "jetbrains.compose.jsCompilerTestsEnabled"  // TODO don't merge this to aosp
