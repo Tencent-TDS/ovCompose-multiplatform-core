@@ -26,7 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.Application
 
 fun getViewControllerWithCompose() = Application("Compose/Native sample") {
-    var textState by remember { mutableStateOf("text field") }
+    var textState by remember { mutableStateOf("text field state") }
     Column {
         Text(".")
         Text(".")
@@ -36,8 +36,8 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
         Text(".")
         Text(".")
         Text(".")
-        Text("hi iOS")
-        if (false) {
+        Text("Hello, UIKit")
+        if (false) { //in progress
             TextField(value = textState, onValueChange = {
                 textState = it
             })
