@@ -27,7 +27,7 @@ const val COMPOSE_MPP_ENABLED = "androidx.compose.multiplatformEnabled"
 /**
  * Setting this property enables experimental uikit demo of Compose
  */
-const val COMPOSE_EXPERIMENTAL_UIKIT_ENABLED = "androidx.compose.experimental.uikit"
+const val COMPOSE_MPP_DEMO_UIKIT_EXPERIMENTAL_ENABLED = "androidx.compose.demoUikitExperimental"
 
 /**
  * Setting this property enables JS compiler tests of Compose

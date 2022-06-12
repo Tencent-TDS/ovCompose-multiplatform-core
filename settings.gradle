@@ -124,7 +124,7 @@ boolean isMultiplatformEnabled() {
 }
 
 boolean isExperimentalUiKitEnabled() {
-    def mppParameter = properties.get("androidx.compose.experimental.uikit")
+    def mppParameter = properties.get("androidx.compose.demoUikitExperimental")
     if (mppParameter == null) return false
     return Boolean.parseBoolean(mppParameter)
 }
