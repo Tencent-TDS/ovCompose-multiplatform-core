@@ -123,12 +123,6 @@ boolean isMultiplatformEnabled() {
     return Boolean.parseBoolean(mppParameter)
 }
 
-boolean isExperimentalUiKitEnabled() {
-    def mppParameter = properties.get("androidx.compose.demoUikitExperimental")
-    if (mppParameter == null) return false
-    return Boolean.parseBoolean(mppParameter)
-}
-
 /////////////////////////////
 //
 // Buildscript utils
@@ -409,9 +403,7 @@ if (isMultiplatformEnabled()) {
     includeProject(":compose:desktop:desktop:desktop-samples", "compose/desktop/desktop/samples", [BuildType.COMPOSE])
     includeProject(":compose:mpp", [BuildType.COMPOSE])
     includeProject(":compose:mpp:demo", [BuildType.COMPOSE])
-    if (isExperimentalUiKitEnabled()) {
-        includeProject(":compose:mpp:demo-uikit", [BuildType.COMPOSE])
-    }
+    includeProject(":compose:mpp:demo-uikit", [BuildType.COMPOSE])
 }
 includeProject(":compose:foundation", [BuildType.COMPOSE])
 includeProject(":compose:foundation:foundation", [BuildType.COMPOSE])
