@@ -2,7 +2,6 @@ import androidx.build.AndroidXComposePlugin
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("AndroidXPlugin")
     id("AndroidXComposePlugin")
     id("kotlin-multiplatform")
     id("org.jetbrains.gradle.apple.applePlugin") version "222.849-0.15.1"
