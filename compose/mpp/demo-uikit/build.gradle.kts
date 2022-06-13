@@ -71,10 +71,6 @@ kotlin {
     }
 }
 
-enum class Target(val simulator: Boolean, val key: String) {
-    UIKIT_X64(true, "uikitX64"), UIKIT_ARM64(false, "uikitArm64")
-}
-
 apple {
     iosApp {
         println("sourceSet.name: ${sourceSet.name}")
