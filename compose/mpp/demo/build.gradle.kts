@@ -148,8 +148,6 @@ if (System.getProperty("os.name") == "Mac OS X") {
                     Target.UIKIT_X64
                 }
             }
-
-            it.startsWith("iphonesimulator") -> Target.UIKIT_X64
             else -> Target.UIKIT_X64
         }
     }
