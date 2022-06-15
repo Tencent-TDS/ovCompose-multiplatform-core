@@ -32,6 +32,7 @@ import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isLambda
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.platform.js.isJs
+import org.jetbrains.kotlin.platform.konan.isNative
 
 @Suppress("PRE_RELEASE_CLASS")
 class ComposableFunInterfaceLowering(private val context: IrPluginContext) :
@@ -51,7 +52,8 @@ class ComposableFunInterfaceLowering(private val context: IrPluginContext) :
             argument.origin.isLambda &&
             functionClass != null &&
             functionClass.owner.isFun &&
-            !context.platform.isJs()
+            !context.platform.isJs() &&
+            !context.platform.isNative()
         // IMPORTANT(b/178663739):
         // We are transforming not just SAM conversions for composable fun interfaces, but ALL
         // fun interfaces temporarily until KT-44622 gets fixed in the version of kotlin we
