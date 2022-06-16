@@ -126,6 +126,58 @@ class DragGestureTest {
     }
 
     @Test
+    fun `draggable by mouse secondary button, ignores primary button`() {
+        val density = Density(1f)
+        val viewConfiguration = DefaultViewConfiguration(density)
+
+        ImageComposeScene(
+            width = 100,
+            height = 100,
+            density = density
+        ).use { scene ->
+
+            var dragStartResult: Offset? = null
+            var dragCanceled = false
+            var dragEnded = false
+            var onDragCounter = 0
+            var dragOffset = Offset.Zero
+
+            scene.setContent {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp, 40.dp)
+                        .onDrag(
+                            enabled = true,
+                            matcher = PointerMatcher.mouse(PointerButton.Secondary),
+                            onDragStart = { offset -> dragStartResult = offset },
+                            onDragCancel = { dragCanceled = true },
+                            onDragEnd = { dragEnded = true },
+                            onDrag = {
+                                dragOffset = it
+                                onDragCounter++
+                            }
+                        )
+                )
+            }
+
+            scene.sendPointerEvent(PointerEventType.Move, Offset(5f, 5f))
+            scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), button = PointerButton.Primary)
+            scene.sendPointerEvent(
+                PointerEventType.Move,
+                Offset(5f + viewConfiguration.touchSlop, 5f)
+            )
+            assertEquals(null, dragStartResult)
+
+            scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), button = PointerButton.Secondary)
+            scene.sendPointerEvent(
+                PointerEventType.Move,
+                Offset(5f + viewConfiguration.touchSlop, 5f)
+            )
+            assertEquals(Offset(5f, 5f), dragStartResult)
+        }
+    }
+
+    @Test
     fun `draggable by touch`() {
         val density = Density(1f)
         val viewConfiguration = DefaultViewConfiguration(density)
@@ -209,6 +261,62 @@ class DragGestureTest {
             assertTrue(dragEnded)
             assertFalse(dragCanceled)
             assertEquals(4, onDragCounter)
+        }
+    }
+
+    @Test
+    fun `draggable by touch, ignores mouse`() {
+        val density = Density(1f)
+        val viewConfiguration = DefaultViewConfiguration(density)
+
+        ImageComposeScene(
+            width = 100,
+            height = 100,
+            density = density
+        ).use { scene ->
+
+            var dragStartResult: Offset? = null
+            var dragCanceled = false
+            var dragEnded = false
+            var onDragCounter = 0
+            var dragOffset = Offset.Zero
+
+            scene.setContent {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp, 40.dp)
+                        .onDrag(
+                            enabled = true,
+                            matcher = PointerMatcher.touch,
+                            onDragStart = { offset -> dragStartResult = offset },
+                            onDragCancel = { dragCanceled = true },
+                            onDragEnd = { dragEnded = true },
+                            onDrag = {
+                                dragOffset = it
+                                onDragCounter++
+                            }
+                        )
+                )
+            }
+
+            scene.sendPointerEvent(PointerEventType.Move, Offset(5f, 5f), type = PointerType.Mouse)
+            scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), type = PointerType.Mouse)
+            scene.sendPointerEvent(
+                PointerEventType.Move,
+                Offset(5f + viewConfiguration.touchSlop + 5f, 5f),
+                type = PointerType.Mouse
+            )
+            assertEquals(null, dragStartResult)
+            // Now release the button to complete the mouse gesture. Otherwise, the touch gesture won't be started.
+            scene.sendPointerEvent(PointerEventType.Release, Offset(5f, 5f), type = PointerType.Mouse)
+
+            scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), type = PointerType.Touch)
+            scene.sendPointerEvent(
+                PointerEventType.Move,
+                Offset(5f + viewConfiguration.touchSlop + 5f, 5f),
+                type = PointerType.Touch
+            )
+            assertEquals(Offset(5f, 5f), dragStartResult)
         }
     }
 

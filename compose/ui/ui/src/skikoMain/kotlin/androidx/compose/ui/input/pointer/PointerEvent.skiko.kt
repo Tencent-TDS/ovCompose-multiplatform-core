@@ -151,7 +151,8 @@ actual data class PointerEvent internal constructor(
 
     /**
      * Specifies the pointer button state of which was changed.
-     * It has value only when event's type is [PointerEventType.Press] or [PointerEventType.Release].
+     * It has value only when event's type is [PointerEventType.Press] or [PointerEventType.Release] and
+     * when button is applicable (only for Mouse and Stylus events).
      */
     @ExperimentalComposeUiApi
     val button: PointerButton? = _button

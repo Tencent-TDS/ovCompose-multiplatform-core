@@ -58,7 +58,7 @@ suspend fun PointerInputScope.detectDragGestures(
     onDragEnd: () -> Unit = {},
     onDrag: (Offset) -> Unit
 ) {
-    val filter : (PointerEvent) -> Boolean = {
+    val filter: (PointerEvent) -> Boolean = {
         matcher.matches(it)
     }
 
@@ -141,24 +141,35 @@ fun Modifier.onDrag(
     onDragCancel: () -> Unit = {},
     onDragEnd: () -> Unit = {},
     onDrag: (Offset) -> Unit
-): Modifier = composed {
-    if (!enabled) return@composed Modifier
+): Modifier = composed(
+    inspectorInfo = {
+        name = "onDrag"
+        properties["enabled"] = enabled
+        properties["matcher"] = matcher
+        properties["onDragStart"] = onDragStart
+        properties["onDragCancel"] = onDragCancel
+        properties["onDragEnd"] = onDragEnd
+        properties["onDrag"] = onDrag
+    },
+    factory = {
+        if (!enabled) return@composed Modifier
 
-    val onDragState = rememberUpdatedState(onDrag)
-    val onDragStartState = rememberUpdatedState(onDragStart)
-    val onDragEndState = rememberUpdatedState(onDragEnd)
-    val onDragCancelState = rememberUpdatedState(onDragCancel)
+        val onDragState = rememberUpdatedState(onDrag)
+        val onDragStartState = rememberUpdatedState(onDragStart)
+        val onDragEndState = rememberUpdatedState(onDragEnd)
+        val onDragCancelState = rememberUpdatedState(onDragCancel)
 
-    Modifier.pointerInput(matcher) {
-        detectDragGestures(
-            matcher = matcher,
-            onDragStart = { onDragStartState.value(it) },
-            onDrag = { onDragState.value(it) },
-            onDragEnd = { onDragEndState.value() },
-            onDragCancel = { onDragCancelState.value() }
-        )
+        Modifier.pointerInput(matcher) {
+            detectDragGestures(
+                matcher = matcher,
+                onDragStart = { onDragStartState.value(it) },
+                onDrag = { onDragState.value(it) },
+                onDragEnd = { onDragEndState.value() },
+                onDragCancel = { onDragCancelState.value() }
+            )
+        }
     }
-}
+)
 
 private fun PointerEvent.isReleased() = type == PointerEventType.Release &&
     changes.fastAll { it.type == PointerType.Mouse } || changes.fastAll { it.changedToUpIgnoreConsumed() }

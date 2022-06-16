@@ -38,6 +38,9 @@ import androidx.compose.ui.util.fastAll
  * mouse(PointerButton.Primary) + touch + stylus + eraser
  * ```
  * See [Primary].
+ *
+ * Note: Currently, Compose for Desktop receives all event types as Mouse events:
+ * Touch, Stylus and Eraser events are emulated as Mouse events.
  */
 @ExperimentalFoundationApi
 @OptIn(ExperimentalComposeUiApi::class)
@@ -97,7 +100,7 @@ interface PointerMatcher {
             val button: PointerButton?
 
             override fun matches(event: PointerEvent): Boolean {
-                return event.changes.fastAll { it.type == pointerType } &&
+                return super.matches(event) &&
                     if (button != null) event.button == button else true
             }
         }

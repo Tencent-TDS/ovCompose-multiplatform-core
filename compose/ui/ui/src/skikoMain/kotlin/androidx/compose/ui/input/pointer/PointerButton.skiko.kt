@@ -21,6 +21,10 @@ import kotlin.jvm.JvmInline
 
 @JvmInline
 @ExperimentalComposeUiApi
+/**
+ * Represents the index of a pointer button.
+ * See [PointerEvent.button], where [PointerButton] is used.
+ */
 value class PointerButton(val index: Int) {
     companion object {
         val Primary = PointerButton(0)

@@ -20,6 +20,7 @@ import androidx.compose.foundation.gestures.GestureCancellationException
 import androidx.compose.foundation.gestures.PressGestureScope
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -61,6 +62,10 @@ import kotlinx.coroutines.sync.Mutex
  * [matcher] should declare supported pointer types (mouse, touch, stylus, eraser) by listing them and
  * declaring required properties for them, such as: required button (primary, secondary, etc.).
  *
+ * Consider using [clickable] if it's necessary to handle only primary clicks. Unlike [clickable],
+ * [onClick] doesn't add [Modifier.indication], [Modifier.hoverable], click by Enter key, etc.
+ * If necessary, one has to add those manually when using [onClick].
+ *
  * @param enabled Controls the enabled state. When `false`, [onClick], [onLongClick] or
  * [onDoubleClick] won't be invoked
  * @param matcher defines supported pointer types and required properties
@@ -98,6 +103,10 @@ fun Modifier.onClick(
  * [matcher] should declare supported pointer types (mouse, touch, stylus, eraser) by listing them and
  * declaring required properties for them, such as: required button (primary, secondary, etc.).
  *
+ * Consider using [clickable] if it's necessary to handle only primary clicks. Unlike [clickable],
+ * [onClick] doesn't add [Modifier.indication], [Modifier.hoverable], click by Enter key, etc.
+ * If necessary, one has to add those manually when using [onClick].
+ *
  * @param interactionSource [MutableInteractionSource] that will be used to emit
  * [PressInteraction.Press] when this clickable is pressed. Only the initial (first) press will be
  * recorded and emitted with [MutableInteractionSource].
@@ -120,9 +129,9 @@ fun Modifier.onClick(
     onClick: () -> Unit
 ) = composed(
     inspectorInfo = {
-        name = "onCombinedClick"
+        name = "onClick"
         properties["enabled"] = enabled
-        properties["trigger"] = matcher
+        properties["matcher"] = matcher
         properties["keyboardModifiers"] = keyboardModifiers
         properties["onDoubleClick"] = onDoubleClick
         properties["onLongClick"] = onLongClick
@@ -140,6 +149,19 @@ fun Modifier.onClick(
 
             val hasLongClick = onLongClick != null
             val hasDoubleClick = onDoubleClick != null
+
+            DisposableEffect(hasLongClick) {
+                onDispose {
+                    pressedInteraction.value?.let { oldValue ->
+                        val interaction = PressInteraction.Cancel(oldValue)
+                        interactionSource.tryEmit(interaction)
+                        pressedInteraction.value = null
+                    }
+                }
+            }
+            PressedInteractionSourceDisposableEffect(
+                interactionSource = interactionSource, pressedInteraction = pressedInteraction
+            )
 
             Modifier.pointerInput(interactionSource, matcher, hasLongClick, hasDoubleClick) {
                 detectTapGestures(
@@ -431,14 +453,3 @@ private class PressGestureScopeImpl( // copy-pasted from TapGestureDetector. Rem
     }
 }
 
-
-/*
- * Other notes:
- * 1) onPress? - might be useful to select a component, but usually onClick and onPress show no noticeable difference.
- * 2) onDoubleClick. It can be onDoublePress on some OS (e.g. windows). But usually the difference is not noticeable.
- * 3) no indication. users can add it along with interactionSource
- * 4) name = onClick
- *
- * clickable can use "onClick" + add indnication, + hoverable + focusable + onKey(enter) == Click
- * onContextMenuClick can use "onClick" too
- */
