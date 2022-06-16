@@ -244,14 +244,6 @@ suspend fun PointerInputScope.detectTapGestures(
     while (currentCoroutineContext().isActive) {
         awaitPointerEventScope {
             pressScope.reset()
-            while (
-                currentEvent != EmptyPointerEvent &&
-                currentEvent.isAllPressedDown(false) &&
-                matcher.matches(currentEvent)
-            ) {
-                // suspend until currentEvent matches the filter for pressed event
-                awaitPointerEvent()
-            }
 
             val down = awaitPress(filter = filter, requireUnconsumed = true).apply { changes[0].consume() }
 
