@@ -50,6 +50,11 @@ internal actual class ComposeWindow : UIViewController {
         layer.setSize(width.toInt(), height.toInt())
     }
 
+    override fun viewDidLoad() {
+        super.viewDidLoad()
+        (this.view as? SkikoUIView)?.showScreenKeyboard()
+    }
+
     // viewDidUnload() is deprecated and not called.
     override fun viewDidDisappear(animated: Boolean) {
         this.dispose()

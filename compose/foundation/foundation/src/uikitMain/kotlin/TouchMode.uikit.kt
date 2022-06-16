@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,4 @@
 
 package androidx.compose.foundation.text
 
-import androidx.compose.ui.input.key.KeyEvent
-
-actual val KeyEvent.isTypedEvent: Boolean get() = true
-//    get() {
-//        if (nativeKeyEvent.key == SkikoKey.KEY_BACKSPACE) {
-//            return false //todo check all KEY's
-//        }
-//        return nativeKeyEvent.kind == SkikoKeyboardEventKind.DOWN &&
-//            nativeKeyEvent.key.value != 0L
-//    }
+internal actual val isInTouchMode = true

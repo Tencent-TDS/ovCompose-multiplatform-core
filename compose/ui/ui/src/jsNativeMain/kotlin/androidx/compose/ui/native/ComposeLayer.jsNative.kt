@@ -36,13 +36,16 @@ import org.jetbrains.skiko.SkikoTouchEventKind
 import androidx.compose.ui.unit.Constraints
 import org.jetbrains.skiko.currentNanoTime
 import androidx.compose.ui.createSkiaLayer
+import androidx.compose.ui.platform.createPlatform
+
+private const val USE_KEYBOARD_EVENT = true
 
 internal class ComposeLayer {
     private var isDisposed = false
 
     internal val layer = createSkiaLayer()
 
-    inner class ComponentImpl : SkikoView, Platform by Platform.Empty {
+    inner class ComponentImpl : SkikoView, Platform by createPlatform() {
         override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
             val contentScale = layer.contentScale
             canvas.scale(contentScale, contentScale)
@@ -50,11 +53,18 @@ internal class ComposeLayer {
         }
 
         override fun onInputEvent(event: SkikoInputEvent) {
-            TODO("need scene.sendInputEvent")
+            println("DIMA + onInputEvent, event.input: ${event.input}")
+//            scene.sendInputEvent(event)
         }
 
         override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
-            TODO("need scene.sendKeyEvent")
+            if (USE_KEYBOARD_EVENT) {
+                println("DIMA + onKeyboardEvent event: $event")
+                if (isDisposed) return
+//                if (scene.sendKeyEvent(ComposeKeyEvent(event))) {
+////                    event.consume()
+//                }
+            }
         }
 
         override fun onTouchEvent(events: Array<SkikoTouchEvent>) {

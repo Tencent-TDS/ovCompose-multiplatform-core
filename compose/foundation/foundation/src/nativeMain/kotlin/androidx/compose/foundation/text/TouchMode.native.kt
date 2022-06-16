@@ -16,4 +16,4 @@
 
 package androidx.compose.foundation.text
 
-internal actual val isInTouchMode = false
+//internal actual val isInTouchMode = false
