@@ -18,11 +18,5 @@ package androidx.compose.foundation.text
 
 import androidx.compose.ui.input.key.KeyEvent
 
-actual val KeyEvent.isTypedEvent: Boolean get() = true
-//    get() {
-//        if (nativeKeyEvent.key == SkikoKey.KEY_BACKSPACE) {
-//            return false //todo check all KEY's
-//        }
-//        return nativeKeyEvent.kind == SkikoKeyboardEventKind.DOWN &&
-//            nativeKeyEvent.key.value != 0L
-//    }
+actual val KeyEvent.isTypedEvent: Boolean
+    get() = TODO("implement native KeyEvent.isTypedEvent")

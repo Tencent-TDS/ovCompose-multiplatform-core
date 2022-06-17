@@ -43,12 +43,6 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
         Text(".")
         Text(".")
         Text("Hello, UIKit")
-        BasicTextField(value = textState, onValueChange = {
-            textState = it
-        })
-        TextField(value = textState, onValueChange = {
-            textState = it
-        })
         TextField(value = textState, onValueChange = {
             textState = it
         })
