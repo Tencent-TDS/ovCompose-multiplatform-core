@@ -16,37 +16,48 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
 
-internal actual fun createPlatform(): Platform = object : Platform by Platform.Empty {
-    override val textInputService: PlatformTextInputService = object : PlatformTextInputService {
-        override fun startInput(
-            value: TextFieldValue,
-            imeOptions: ImeOptions,
-            onEditCommand: (List<EditCommand>) -> Unit,
-            onImeActionPerformed: (ImeAction) -> Unit
-        ) {
-            println("DIMA + startInput desktop")
+class SkiaTextInputService(private val inputObserver: InputObserver) : PlatformTextInputService {
+
+    var listener: ((String) -> Unit)? = null
+
+    override fun startInput(
+        value: TextFieldValue,
+        imeOptions: ImeOptions,
+        onEditCommand: (List<EditCommand>) -> Unit,
+        onImeActionPerformed: (ImeAction) -> Unit
+    ) {
+        listener = { text: String ->
+            onEditCommand(
+                listOf(CommitTextCommand(text, 1))
+            )
+        }.also {
+            inputObserver.addListener(it)
         }
+    }
 
-        override fun stopInput() {
-            println("DIMA + stopInput desktop")
+    override fun stopInput() {
+        listener?.let {
+            inputObserver.removeListener(it)
         }
+        listener = null
+    }
 
-        override fun showSoftwareKeyboard() {
+    override fun showSoftwareKeyboard() {
 
-        }
+    }
 
-        override fun hideSoftwareKeyboard() {
+    override fun hideSoftwareKeyboard() {
 
-        }
+    }
 
-        override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
+    override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
 
-        }
     }
 }

@@ -18,6 +18,7 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.text.input.PlatformTextInputService
 
-internal actual fun createPlatform(): Platform = object : Platform by Platform.Empty {
-    override val textInputService: PlatformTextInputService = TextInputServiceUiKit()
-}
+internal fun createSkiaPlatform(inputObserver: InputObserver): Platform =
+    object : Platform by Platform.Empty {
+        override val textInputService: PlatformTextInputService = SkiaTextInputService(inputObserver)
+    }

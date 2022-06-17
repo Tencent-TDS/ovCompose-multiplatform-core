@@ -20,4 +20,4 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEvent
 
 internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier =
-    TODO("implement native textFieldMagnifier")
+    this

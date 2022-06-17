@@ -26,7 +26,6 @@ import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.unit.Density
 import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.skia.Canvas
-import org.jetbrains.skiko.SkiaLayer
 import org.jetbrains.skiko.SkikoView
 import org.jetbrains.skiko.SkikoInputEvent
 import org.jetbrains.skiko.SkikoKeyboardEvent
@@ -36,16 +35,16 @@ import org.jetbrains.skiko.SkikoTouchEventKind
 import androidx.compose.ui.unit.Constraints
 import org.jetbrains.skiko.currentNanoTime
 import androidx.compose.ui.createSkiaLayer
-import androidx.compose.ui.platform.createPlatform
-
-private const val USE_KEYBOARD_EVENT = true
+import androidx.compose.ui.platform.InputObserver
+import androidx.compose.ui.platform.createSkiaPlatform
 
 internal class ComposeLayer {
     private var isDisposed = false
 
     internal val layer = createSkiaLayer()
+    private val inputObserver = InputObserver()
 
-    inner class ComponentImpl : SkikoView, Platform by createPlatform() {
+    inner class ComponentImpl : SkikoView, Platform by createSkiaPlatform(inputObserver) {
         override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
             val contentScale = layer.contentScale
             canvas.scale(contentScale, contentScale)
@@ -53,18 +52,15 @@ internal class ComposeLayer {
         }
 
         override fun onInputEvent(event: SkikoInputEvent) {
-            println("DIMA + onInputEvent, event.input: ${event.input}")
-//            scene.sendInputEvent(event)
+            inputObserver.sendInputEvent(event)
         }
 
         override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
-            if (USE_KEYBOARD_EVENT) {
-                println("DIMA + onKeyboardEvent event: $event")
-                if (isDisposed) return
-//                if (scene.sendKeyEvent(ComposeKeyEvent(event))) {
+            println("TODO implement onKeyboardEvent")
+//            if (isDisposed) return
+//            if (scene.sendKeyEvent(ComposeKeyEvent(event))) {
 ////                    event.consume()
-//                }
-            }
+//            }
         }
 
         override fun onTouchEvent(events: Array<SkikoTouchEvent>) {
