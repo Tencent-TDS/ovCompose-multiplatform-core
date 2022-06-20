@@ -140,7 +140,7 @@ interface PointerMatcher {
          * [Primary] will match [PointerEvent]s, which match at least one of the following conditions:
          * - [PointerType] is [PointerType.Mouse] and [PointerEvent.button] is [PointerButton.Primary]
          * - [PointerType] is [PointerType.Touch]
-         * - [PointerType] is [PointerType.Stylus], regardless of any buttons pressed
+         * - [PointerType] is [PointerType.Stylus], no buttons pressed
          * - [PointerType] is [PointerType.Eraser]
          */
         @ExperimentalFoundationApi
