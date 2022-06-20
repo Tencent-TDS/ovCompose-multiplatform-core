@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.ComposeScene
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.toCompose
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.platform.Platform
@@ -66,6 +67,7 @@ internal class ComposeLayer {
 //            }
         }
 
+        @OptIn(ExperimentalComposeUiApi::class)
         override fun onTouchEvent(events: Array<SkikoTouchEvent>) {
             val event = events.first()
             when (event.kind) {
@@ -84,6 +86,7 @@ internal class ComposeLayer {
             }
         }
 
+        @OptIn(ExperimentalComposeUiApi::class)
         override fun onPointerEvent(event: SkikoPointerEvent) {
             scene.sendPointerEvent(
                 eventType = event.kind.toCompose(),
