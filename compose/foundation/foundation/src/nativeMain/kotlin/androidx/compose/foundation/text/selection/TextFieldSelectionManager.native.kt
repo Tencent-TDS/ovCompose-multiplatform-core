@@ -17,7 +17,8 @@
 package androidx.compose.foundation.text.selection
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.PointerEvent
 
-internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier =
-    this
+/**
+ * Magnification is not supported on desktop.
+ */
+internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier = this
