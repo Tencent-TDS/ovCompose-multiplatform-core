@@ -23,7 +23,7 @@ import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
 
-class SkiaTextInputService(private val inputObserver: InputObserver) : PlatformTextInputService {
+class SkiaTextInputService : PlatformTextInputService {
 
     var listener: ((String) -> Unit)? = null
 
@@ -37,15 +37,10 @@ class SkiaTextInputService(private val inputObserver: InputObserver) : PlatformT
             onEditCommand(
                 listOf(CommitTextCommand(text, 1))
             )
-        }.also {
-            inputObserver.addListener(it)
         }
     }
 
     override fun stopInput() {
-        listener?.let {
-            inputObserver.removeListener(it)
-        }
         listener = null
     }
 
@@ -59,5 +54,10 @@ class SkiaTextInputService(private val inputObserver: InputObserver) : PlatformT
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
 
+    }
+
+    fun sendInputEvent(event: org.jetbrains.skiko.SkikoInputEvent) {
+        val inputText: String = event.input
+        listener?.invoke(inputText)
     }
 }

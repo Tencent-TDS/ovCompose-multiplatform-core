@@ -18,7 +18,6 @@ package androidx.compose.mpp.demo
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.getValue
@@ -32,7 +31,8 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.window.Application
 
 fun getViewControllerWithCompose() = Application("Compose/Native sample") {
-    var textState by remember { mutableStateOf("text field state") }
+    var textState1 by remember { mutableStateOf("text field 1") }
+    var textState2 by remember { mutableStateOf("text field 2") }
     Column {
         Text(".")
         Text(".")
@@ -43,8 +43,11 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
         Text(".")
         Text(".")
         Text("Hello, UIKit")
-        TextField(value = textState, onValueChange = {
-            textState = it
+        TextField(value = textState1, onValueChange = {
+            textState1 = it
+        })
+        TextField(value = textState2, onValueChange = {
+            textState2 = it
         })
         Image(
             painter = object : Painter() {
