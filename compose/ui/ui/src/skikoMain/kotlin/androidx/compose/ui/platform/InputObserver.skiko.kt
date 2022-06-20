@@ -20,7 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
-@kotlin.native.concurrent.ThreadLocal
+// todo singleTone, When Kotlin 1.7.0 will available in Compose, then try to move to local field in InputObserver
 private val textInputListeners = mutableSetOf<(String) -> Unit>()
 
 class InputObserver : CoroutineScope by MainScope() {
