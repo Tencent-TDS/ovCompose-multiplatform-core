@@ -100,8 +100,7 @@ interface PointerMatcher {
             val button: PointerButton?
 
             override fun matches(event: PointerEvent): Boolean {
-                return super.matches(event) &&
-                    if (button != null) event.button == button else true
+                return super.matches(event) && event.button == button
             }
         }
 
