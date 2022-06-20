@@ -23,9 +23,9 @@ import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
 
-class SkiaTextInputService : PlatformTextInputService {
+internal class SkiaTextInputService : PlatformTextInputService {
 
-    var listener: ((String) -> Unit)? = null
+    private var listener: ((String) -> Unit)? = null
 
     override fun startInput(
         value: TextFieldValue,
@@ -56,7 +56,7 @@ class SkiaTextInputService : PlatformTextInputService {
 
     }
 
-    fun sendInputEvent(event: org.jetbrains.skiko.SkikoInputEvent) {
+    internal fun sendInputEvent(event: org.jetbrains.skiko.SkikoInputEvent) {
         val inputText: String = event.input
         listener?.invoke(inputText)
     }
