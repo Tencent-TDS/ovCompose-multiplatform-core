@@ -23,7 +23,10 @@ import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
 
-internal class SkiaTextInputService : PlatformTextInputService {
+internal class SkiaTextInputService(
+    private val _showSoftwareKeyboard: () -> Unit,
+    private val _hideSoftwareKeyboard: () -> Unit,
+) : PlatformTextInputService {
 
     private var listener: ((String) -> Unit)? = null
 
@@ -38,6 +41,7 @@ internal class SkiaTextInputService : PlatformTextInputService {
                 listOf(CommitTextCommand(text, 1))
             )
         }
+        showSoftwareKeyboard()
     }
 
     override fun stopInput() {
@@ -45,11 +49,11 @@ internal class SkiaTextInputService : PlatformTextInputService {
     }
 
     override fun showSoftwareKeyboard() {
-
+        _showSoftwareKeyboard()
     }
 
     override fun hideSoftwareKeyboard() {
-
+        _hideSoftwareKeyboard()
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
