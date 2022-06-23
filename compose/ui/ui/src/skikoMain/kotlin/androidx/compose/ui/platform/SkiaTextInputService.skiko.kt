@@ -24,10 +24,12 @@ import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
 
 internal class SkiaTextInputService(
-    private val _showSoftwareKeyboard: () -> Unit,
-    private val _hideSoftwareKeyboard: () -> Unit,
+    showSoftwareKeyboard: () -> Unit,
+    hideSoftwareKeyboard: () -> Unit,
 ) : PlatformTextInputService {
 
+    private val _showSoftwareKeyboard: () -> Unit = showSoftwareKeyboard
+    private val _hideSoftwareKeyboard: () -> Unit = hideSoftwareKeyboard
     private var listener: ((String) -> Unit)? = null
 
     override fun startInput(

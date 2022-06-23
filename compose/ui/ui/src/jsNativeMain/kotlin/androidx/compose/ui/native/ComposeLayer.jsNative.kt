@@ -45,8 +45,8 @@ internal class ComposeLayer(
 ) {
     private var isDisposed = false
     private val inputService = SkiaTextInputService(
-        _showSoftwareKeyboard = showSoftwareKeyboard,
-        _hideSoftwareKeyboard = hideSoftwareKeyboard
+        showSoftwareKeyboard = showSoftwareKeyboard,
+        hideSoftwareKeyboard = hideSoftwareKeyboard
     )
     private val platform = object : Platform by Platform.Empty {
         override val textInputService = inputService
