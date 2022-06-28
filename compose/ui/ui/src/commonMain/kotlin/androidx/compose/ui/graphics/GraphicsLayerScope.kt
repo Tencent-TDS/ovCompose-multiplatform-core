@@ -17,7 +17,7 @@
 package androidx.compose.ui.graphics
 
 import androidx.compose.ui.unit.Density
-import androidx.compose.runtime.JvmDefaultWithCompatibility
+import androidx.compose.ui.internal.JvmDefaultWithCompatibility
 import kotlin.js.JsName
 
 /**

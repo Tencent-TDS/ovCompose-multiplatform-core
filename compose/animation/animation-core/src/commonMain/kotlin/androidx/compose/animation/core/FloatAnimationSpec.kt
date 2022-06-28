@@ -17,7 +17,7 @@
 package androidx.compose.animation.core
 
 import androidx.compose.animation.core.AnimationConstants.DefaultDurationMillis
-import androidx.compose.runtime.JvmDefaultWithCompatibility
+import androidx.compose.animation.core.internal.JvmDefaultWithCompatibility
 
 /**
  * [FloatAnimationSpec] interface is similar to [VectorizedAnimationSpec], except it deals

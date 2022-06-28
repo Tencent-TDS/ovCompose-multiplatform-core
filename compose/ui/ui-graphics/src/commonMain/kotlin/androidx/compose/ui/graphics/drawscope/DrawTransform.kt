@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.degrees
-import androidx.compose.runtime.JvmDefaultWithCompatibility
+import androidx.compose.ui.graphics.internal.JvmDefaultWithCompatibility
 
 /**
  * Convenience method modifies the [DrawTransform] bounds to inset both left and right bounds by

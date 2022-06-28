@@ -17,7 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.JvmDefaultWithCompatibility
+import androidx.compose.ui.internal.JvmDefaultWithCompatibility
 
 /**
  * An empty [InspectorInfo] DSL.

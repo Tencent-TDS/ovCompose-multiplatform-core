@@ -16,6 +16,8 @@
 
 package androidx.compose.runtime
 
+import androidx.compose.runtime.internal.JvmDefaultWithCompatibility
+
 /**
  * An Applier is responsible for applying the tree-based operations that get emitted during a
  * composition. Every [Composer] has an [Applier] which it uses to emit a [ComposeNode].

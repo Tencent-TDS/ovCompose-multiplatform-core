@@ -19,7 +19,7 @@ package androidx.compose.ui.platform
 import androidx.compose.runtime.withFrameNanos
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
-import androidx.compose.runtime.JvmDefaultWithCompatibility
+import androidx.compose.ui.internal.JvmDefaultWithCompatibility
 
 /**
  * Provides a policy that will be applied to animations that get their frame time from

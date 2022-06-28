@@ -18,7 +18,7 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.JvmDefaultWithCompatibility
+import androidx.compose.ui.internal.JvmDefaultWithCompatibility
 
 /**
  * Contains methods to standard constants used in the UI for timeouts, sizes, and distances.
