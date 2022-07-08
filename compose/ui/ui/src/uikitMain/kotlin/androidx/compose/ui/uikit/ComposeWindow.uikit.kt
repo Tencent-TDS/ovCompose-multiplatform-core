@@ -161,8 +161,7 @@ internal actual class ComposeWindow : UIViewController {
                 point = CGPointMake(0.0, 0.0),
                 toCoordinateSpace = UIScreen.mainScreen.coordinateSpace()
             )
-        val offset = topLeftPoint.useContents { Offset(x.toFloat(), y.toFloat()) }
-        return offset
+        return topLeftPoint.useContents { Offset(x.toFloat(), y.toFloat()) }
     }
 
 }
