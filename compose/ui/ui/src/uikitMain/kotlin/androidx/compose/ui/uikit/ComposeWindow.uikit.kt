@@ -85,27 +85,6 @@ internal actual class ComposeWindow : UIViewController {
         }
     }
 
-    init {
-        NSNotificationCenter.defaultCenter.addObserver(
-            observer = keyboardVisibilityListener,
-            selector = NSSelectorFromString("keyboardWillShow:"),
-            name = platform.UIKit.UIKeyboardWillShowNotification,
-            `object` = null
-        )
-        NSNotificationCenter.defaultCenter.addObserver(
-            observer = keyboardVisibilityListener,
-            selector = NSSelectorFromString("keyboardWillHide:"),
-            name = platform.UIKit.UIKeyboardWillHideNotification,
-            `object` = null
-        )
-        NSNotificationCenter.defaultCenter.addObserver(
-            observer = keyboardVisibilityListener,
-            selector = NSSelectorFromString("keyboardDidHide:"),
-            name = platform.UIKit.UIKeyboardDidHideNotification,
-            `object` = null
-        )
-    }
-
     actual fun setTitle(title: String) {
         println("TODO: set title to SkiaWindow")
     }
@@ -131,11 +110,44 @@ internal actual class ComposeWindow : UIViewController {
         super.viewDidAppear(animated)
         val (width, height) = getViewFrameSize()
         layer.setSize(width, height)
+        NSNotificationCenter.defaultCenter.addObserver(
+            observer = keyboardVisibilityListener,
+            selector = NSSelectorFromString("keyboardWillShow:"),
+            name = platform.UIKit.UIKeyboardWillShowNotification,
+            `object` = null
+        )
+        NSNotificationCenter.defaultCenter.addObserver(
+            observer = keyboardVisibilityListener,
+            selector = NSSelectorFromString("keyboardWillHide:"),
+            name = platform.UIKit.UIKeyboardWillHideNotification,
+            `object` = null
+        )
+        NSNotificationCenter.defaultCenter.addObserver(
+            observer = keyboardVisibilityListener,
+            selector = NSSelectorFromString("keyboardDidHide:"),
+            name = platform.UIKit.UIKeyboardDidHideNotification,
+            `object` = null
+        )
     }
 
     // viewDidUnload() is deprecated and not called.
     override fun viewDidDisappear(animated: Boolean) {
         this.dispose()
+        NSNotificationCenter.defaultCenter.removeObserver(
+            observer = keyboardVisibilityListener,
+            name = platform.UIKit.UIKeyboardWillShowNotification,
+            `object` = null
+        )
+        NSNotificationCenter.defaultCenter.removeObserver(
+            observer = keyboardVisibilityListener,
+            name = platform.UIKit.UIKeyboardWillHideNotification,
+            `object` = null
+        )
+        NSNotificationCenter.defaultCenter.removeObserver(
+            observer = keyboardVisibilityListener,
+            name = platform.UIKit.UIKeyboardDidHideNotification,
+            `object` = null
+        )
     }
 
     actual fun setContent(
