@@ -128,11 +128,11 @@ internal class ComposeLayer(
         isDisposed = true
     }
 
-    internal fun setSize(width: Int, height: Int) {
+    fun setSize(width: Int, height: Int) {
         scene.constraints = Constraints(maxWidth = width, maxHeight = height)
     }
 
-    internal fun getActiveFocusRect():Rect? {
+    fun getActiveFocusRect():Rect? {
         return scene.mainOwner?.focusManager?.getActiveFocusModifier()?.focusRect()
     }
 

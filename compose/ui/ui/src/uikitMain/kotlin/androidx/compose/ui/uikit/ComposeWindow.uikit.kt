@@ -128,7 +128,6 @@ internal actual class ComposeWindow : UIViewController {
     }
 
     override fun viewWillAppear(animated: Boolean) {
-        println("traitCollection().displayScale: ${traitCollection().displayScale}")
         super.viewDidAppear(animated)
         val (width, height) = getViewFrameSize()
         layer.setSize(width, height)
