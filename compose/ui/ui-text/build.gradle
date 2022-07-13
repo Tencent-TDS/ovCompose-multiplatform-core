@@ -128,9 +128,11 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(jvmMain)
             }
 
-            jsMain.dependsOn(skikoMain)
+            jsNativeMain.dependsOn(skikoMain)
 
-            nativeMain.dependsOn(skikoMain)
+            jsMain.dependsOn(jsNativeMain)
+
+            nativeMain.dependsOn(jsNativeMain)
 
             androidMain.dependencies {
                 api("androidx.annotation:annotation:1.1.0")

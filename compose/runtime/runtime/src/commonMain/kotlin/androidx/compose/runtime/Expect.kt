@@ -121,8 +121,6 @@ internal expect fun <T> invokeComposableForResult(
     composable: @Composable () -> T
 ): T
 
-expect annotation class JvmDefaultWithCompatibility()
-
 @OptIn(ExperimentalComposeApi::class)
 internal expect class SnapshotContextElementImpl(
     snapshot: Snapshot

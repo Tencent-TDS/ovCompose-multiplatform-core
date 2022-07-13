@@ -95,8 +95,6 @@ internal actual class AtomicInt actual constructor(value: Int) {
 
 internal actual fun ensureMutable(it: Any) { /* NOTHING */ }
 
-actual typealias JvmDefaultWithCompatibility = kotlin.jvm.JvmDefaultWithCompatibility
-
 /**
  * Implementation of [SnapshotContextElement] that enters a single given snapshot when updating
  * the thread context of a resumed coroutine.
