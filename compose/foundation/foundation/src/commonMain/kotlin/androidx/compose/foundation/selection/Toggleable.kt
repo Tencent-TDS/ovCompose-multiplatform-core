@@ -19,6 +19,7 @@ package androidx.compose.foundation.selection
 import androidx.compose.foundation.Indication
 import androidx.compose.foundation.PressedInteractionSourceDisposableEffect
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.focusRequesterForKeyboardMode
 import androidx.compose.foundation.focusableInNonTouchMode
 import androidx.compose.foundation.gestures.ModifierLocalScrollableContainer
 import androidx.compose.foundation.gestures.detectTapAndPress
@@ -266,6 +267,7 @@ private fun Modifier.toggleableImpl(
     val delayPressInteraction = rememberUpdatedState {
         isToggleableInScrollableContainer.value || isRootInScrollableContainer()
     }
+    val (focusRequester, focusRequesterModifier) = focusRequesterForKeyboardMode()
     val gestures = Modifier.pointerInput(interactionSource, enabled) {
         detectTapAndPress(
             onPress = { offset ->
@@ -278,7 +280,12 @@ private fun Modifier.toggleableImpl(
                     )
                 }
             },
-            onTap = { if (enabled) onClickState.value.invoke() }
+            onTap = {
+                if (enabled) {
+                    focusRequester?.requestFocus()
+                    onClickState.value.invoke()
+                }
+            }
         )
     }
     this
@@ -294,7 +301,7 @@ private fun Modifier.toggleableImpl(
                 }
             }
         )
-        .then(semantics)
+        .then(semantics).then(focusRequesterModifier)
         .indication(interactionSource, indication)
         .hoverable(enabled = enabled, interactionSource = interactionSource)
         .focusableInNonTouchMode(enabled = enabled, interactionSource = interactionSource)
