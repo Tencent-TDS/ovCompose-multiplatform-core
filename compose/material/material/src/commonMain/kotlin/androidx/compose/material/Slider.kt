@@ -271,7 +271,8 @@ private fun Modifier.slideOnKeyEvents(
         // When steps == 0, it means that a user is not limited by a step length (delta) when using touch or mouse.
         // But it is not possible to adjust the value continuously when using keyboard buttons -
         // the delta has to be discrete. In this case, 1% of the valueRange seems to make sense.
-        val delta = rangeLength / if (steps > 0) steps + 1 else 100
+        val actualSteps = if (steps > 0) steps + 1 else 100
+        val delta = rangeLength / actualSteps
         when (it.key) {
             Key.DirectionUp -> {
                 onValueChangeState.value((value + delta).coerceIn(valueRange))
@@ -300,11 +301,13 @@ private fun Modifier.slideOnKeyEvents(
                 true
             }
             Key.PageUp -> {
-                onValueChangeState.value((value - 10 * delta).coerceIn(valueRange))
+                val page = (actualSteps / 10).coerceIn(1, 10)
+                onValueChangeState.value((value - page * delta).coerceIn(valueRange))
                 true
             }
             Key.PageDown -> {
-                onValueChangeState.value((value + 10 * delta).coerceIn(valueRange))
+                val page = (actualSteps / 10).coerceIn(1, 10)
+                onValueChangeState.value((value + page * delta).coerceIn(valueRange))
                 true
             }
             else -> false
