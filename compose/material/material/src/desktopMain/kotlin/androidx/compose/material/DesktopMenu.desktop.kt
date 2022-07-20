@@ -23,14 +23,21 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.awtEventOrNull
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -75,6 +82,7 @@ import java.awt.event.KeyEvent
  * tapping outside the menu's bounds
  * @param offset [DpOffset] to be added to the position of the menu
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Suppress("ModifierParameter")
 @Composable
 fun DropdownMenu(
@@ -115,12 +123,31 @@ fun DropdownMenu(
                 }
             },
         ) {
+            val focusManager = LocalFocusManager.current
+
             DropdownMenuContent(
                 expandedStates = expandedStates,
                 transformOriginState = transformOriginState,
-                modifier = modifier,
+                modifier = modifier.onKeyEvent {
+                    if (it.type != KeyEventType.KeyDown) return@onKeyEvent false
+                    when (it.key) {
+                        Key.DirectionDown -> {
+                            focusManager.moveFocus(FocusDirection.Next)
+                            true
+                        }
+                        Key.DirectionUp -> {
+                            focusManager.moveFocus(FocusDirection.Previous)
+                            true
+                        }
+                        else -> false
+                    }
+                },
                 content = content
             )
+
+            LaunchedEffect(Unit) {
+                focusManager.moveFocus(FocusDirection.Next)
+            }
         }
     }
 }
@@ -273,3 +300,4 @@ internal data class DesktopDropdownMenuPositionProvider(
         return IntOffset(x, y)
     }
 }
+
