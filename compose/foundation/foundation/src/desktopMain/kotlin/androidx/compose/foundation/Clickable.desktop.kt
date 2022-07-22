@@ -110,12 +110,12 @@ fun Modifier.mouseClickable(
 ) = composed(
     factory = {
         val onClickState = rememberUpdatedState(onClick)
-        val (focusRequester, focusRequesterModifier) = focusRequesterForKeyboardMode()
+        val (focusRequester, focusRequesterModifier) = focusRequesterAndModifier()
         val gesture = if (enabled) {
             Modifier.pointerInput(Unit) {
                 detectTapWithContext(
                     onTap = { down, _ ->
-                        focusRequester?.requestFocus()
+                        focusRequester.requestFocus()
                         onClickState.value.invoke(
                             MouseClickScope(
                                 down.buttons,
