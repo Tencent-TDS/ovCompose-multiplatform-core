@@ -110,10 +110,12 @@ fun Modifier.mouseClickable(
 ) = composed(
     factory = {
         val onClickState = rememberUpdatedState(onClick)
+        val (focusRequester, focusRequesterModifier) = focusRequesterAndModifier()
         val gesture = if (enabled) {
             Modifier.pointerInput(Unit) {
                 detectTapWithContext(
                     onTap = { down, _ ->
+                        focusRequester.requestFocus()
                         onClickState.value.invoke(
                             MouseClickScope(
                                 down.buttons,
@@ -127,6 +129,7 @@ fun Modifier.mouseClickable(
             Modifier
         }
         Modifier
+            .then(focusRequesterModifier)
             .genericClickableWithoutGesture(
                 gestureModifiers = gesture,
                 enabled = enabled,
