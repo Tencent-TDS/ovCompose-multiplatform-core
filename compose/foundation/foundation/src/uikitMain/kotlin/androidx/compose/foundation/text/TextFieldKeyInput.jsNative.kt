@@ -17,11 +17,6 @@
 package androidx.compose.foundation.text
 
 import androidx.compose.ui.input.key.KeyEvent
-import org.jetbrains.skiko.*
 
 actual val KeyEvent.isTypedEvent: Boolean
-    get() = nativeKeyEvent.kind == SkikoKeyboardEventKind.DOWN &&
-        nativeKeyEvent.platform?.isPrintable() == true
-
-private fun SkikoPlatformKeyboardEvent.isPrintable(): Boolean =
-    charCode != 0
+    get() = false // on UIKit physical keyboard not handled as text input

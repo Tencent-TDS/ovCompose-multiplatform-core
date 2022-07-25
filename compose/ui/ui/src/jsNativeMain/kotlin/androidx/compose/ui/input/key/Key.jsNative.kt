@@ -1031,5 +1031,5 @@ actual value class Key(val keyCode: Long) {
     actual override fun toString() = "Key keyCode: $keyCode"
 }
 
-fun skikoKeyToKey(skikoKey: SkikoKey) = Key(skikoKey.platformKeyCode)
+fun skikoKeyToKey(skikoKey: SkikoKey) = Key(skikoKey.platformKeyCode.toLong())
 
