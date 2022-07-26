@@ -79,6 +79,7 @@ import org.jetbrains.skia.Font as SkFont
 import org.jetbrains.skia.paragraph.DecorationLineStyle as SkDecorationLineStyle
 import org.jetbrains.skia.paragraph.DecorationStyle as SkDecorationStyle
 import org.jetbrains.skia.paragraph.Shadow as SkShadow
+import org.jetbrains.skia.FontFeature
 
 private val DefaultFontSize = 16.sp
 
@@ -485,7 +486,6 @@ internal data class ComputedStyle(
         shadow = spanStyle.shadow
     )
 
-    @OptIn(ExperimentalTextApi::class)
     fun toSkTextStyle(fontFamilyResolver: FontFamily.Resolver): SkTextStyle {
         val res = SkTextStyle()
         if (color != Color.Unspecified) {
@@ -512,6 +512,8 @@ internal data class ComputedStyle(
         letterSpacing?.let {
             res.letterSpacing = it
         }
+
+        res.addFontFeatures(FontFeature.parseW3(fontFeatureSettings.orEmpty()))
 
         res.fontSize = fontSize
         fontFamily?.let {

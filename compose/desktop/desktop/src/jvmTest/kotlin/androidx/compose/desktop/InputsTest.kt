@@ -17,13 +17,32 @@
 package androidx.compose.desktop
 
 import androidx.compose.material.Slider
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.nativeKeyCode
+import androidx.compose.ui.input.key.nativeKeyLocation
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.test.InternalTestApi
 import androidx.compose.ui.test.assertRangeInfoEquals
+import androidx.compose.ui.test.junit4.DesktopComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performKeyPress
+import androidx.compose.ui.unit.LayoutDirection
+import java.awt.Component
+import java.lang.Math.round
+import kotlin.math.roundToInt
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -57,3 +76,4 @@ class InputsTest {
         rule.onNodeWithTag(tag).assertRangeInfoEquals(ProgressBarRangeInfo(0f, 0f..1f, 0))
     }
 }
+
