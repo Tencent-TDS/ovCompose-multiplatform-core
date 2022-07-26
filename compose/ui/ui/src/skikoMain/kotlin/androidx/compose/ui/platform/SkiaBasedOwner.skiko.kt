@@ -22,6 +22,7 @@ import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ComposeScene
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.PointerPositionUpdater
@@ -91,6 +92,7 @@ private typealias Command = () -> Unit
     InternalComposeUiApi::class
 )
 internal class SkiaBasedOwner(
+    override val scene: ComposeScene,
     private val platform: Platform,
     private val pointerPositionUpdater: PointerPositionUpdater,
     density: Density = Density(1f, 1f),
@@ -189,16 +191,6 @@ internal class SkiaBasedOwner(
 
     private val endApplyChangesListeners = mutableVectorOf<(() -> Unit)?>()
 
-    init {
-        snapshotObserver.startObserving()
-        root.attach(this)
-    }
-
-    fun dispose() {
-        snapshotObserver.stopObserving()
-        // we don't need to call root.detach() because root will be garbage collected
-    }
-
     override val textInputService = TextInputService(platform.textInputService)
 
     @Deprecated(
@@ -226,6 +218,16 @@ internal class SkiaBasedOwner(
     override val autofill: Autofill? get() = null
 
     override val viewConfiguration: ViewConfiguration = DefaultViewConfiguration(density)
+
+    init {
+        snapshotObserver.startObserving()
+        root.attach(this)
+    }
+
+    fun dispose() {
+        snapshotObserver.stopObserving()
+        // we don't need to call root.detach() because root will be garbage collected
+    }
 
     override fun sendKeyEvent(keyEvent: KeyEvent): Boolean = keyInputModifier.processKeyInput(keyEvent)
 
@@ -338,11 +340,11 @@ internal class SkiaBasedOwner(
     )
 
     override fun onSemanticsChange() {
-        accessibilityController?.onSemanticsChange()
+        accessibilityController.onSemanticsChange()
     }
 
     override fun onLayoutChange(layoutNode: LayoutNode) {
-        accessibilityController?.onLayoutChange(layoutNode)
+        accessibilityController.onLayoutChange(layoutNode)
     }
 
     override fun getFocusDirection(keyEvent: KeyEvent): FocusDirection? {
@@ -386,6 +388,7 @@ internal class SkiaBasedOwner(
         }
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun processPointerInput(timeMillis: Long, pointers: List<TestPointerInputEventData>) {
         // TODO(https://github.com/JetBrains/compose-jb/issues/1846)
         //  we should route test events through ComposeScene, not through SkiaBasedOwner
