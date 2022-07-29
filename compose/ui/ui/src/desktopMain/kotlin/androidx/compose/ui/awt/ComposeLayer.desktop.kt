@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -47,6 +48,7 @@ import org.jetbrains.skiko.MainUIDispatcher
 import org.jetbrains.skiko.SkiaLayer
 import org.jetbrains.skiko.SkikoView
 import java.awt.Component
+import java.awt.ComponentOrientation
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Point
@@ -110,6 +112,9 @@ internal class ComposeLayer {
         override val windowInfo = WindowInfoImpl()
 
         override val textInputService = PlatformInput(_component)
+
+        override val layoutDirection: LayoutDirection
+            get() = component.locale.layoutDirection
 
         override val focusManager = object : FocusManager {
             override fun clearFocus(force: Boolean) {
@@ -534,3 +539,11 @@ internal class SyntheticMouseEvent(
     x: Int,
     y: Int
 ) : MouseEvent(source, id, `when`, modifiers, x, y, 0, false)
+
+
+internal val java.util.Locale.layoutDirection: LayoutDirection
+    get() = if (ComponentOrientation.getOrientation(this).isLeftToRight) {
+        LayoutDirection.Ltr
+    } else {
+        LayoutDirection.Rtl
+    }
