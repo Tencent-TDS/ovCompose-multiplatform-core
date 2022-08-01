@@ -384,7 +384,12 @@ class ComposeScene internal constructor(
      */
     var constraints: Constraints = Constraints()
         set(value) {
-            field = value
+            field = Constraints(
+                minWidth = value.maxWidth,
+                maxWidth = value.maxWidth,
+                minHeight = value.maxHeight,
+                maxHeight = value.maxHeight
+            )
             forEachOwner {
                 it.constraints = constraints
             }
