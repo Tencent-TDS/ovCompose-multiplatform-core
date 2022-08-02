@@ -177,7 +177,8 @@ private fun PopupLayout(
             onPreviewKeyEvent = onPreviewKeyEvent,
             onKeyEvent = onKeyEvent
         )
-        scene.attach(owner)
+        scene.attach(owner, scene.constraints.copy(minWidth = 0, minHeight = 0))
+
         val composition = owner.setContent(parent = parentComposition) {
             Layout(
                 content = content,

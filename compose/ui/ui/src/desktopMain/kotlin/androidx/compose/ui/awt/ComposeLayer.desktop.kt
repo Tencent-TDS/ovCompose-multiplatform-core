@@ -244,10 +244,9 @@ internal class ComposeLayer {
         }
 
         private fun updateSceneSize() {
-            this@ComposeLayer.scene.constraints = Constraints(
-                maxWidth = (width * density.density).toInt().coerceAtLeast(0),
-                maxHeight = (height * density.density).toInt().coerceAtLeast(0)
-            )
+            val widthExact = (width * density.density).toInt().coerceAtLeast(0)
+            val heightExact = (height * density.density).toInt().coerceAtLeast(0)
+            this@ComposeLayer.scene.constraints = Constraints.fixed(widthExact, heightExact)
         }
 
         override fun getPreferredSize(): Dimension {
