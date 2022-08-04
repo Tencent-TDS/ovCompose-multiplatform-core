@@ -272,13 +272,13 @@ class ComposeScene internal constructor(
         effectDispatcher.hasTasks() ||
         recomposeDispatcher.hasTasks()
 
-    internal fun attach(owner: SkiaBasedOwner, overrideConstraints: Constraints? = null) {
+    internal fun attach(owner: SkiaBasedOwner) {
         check(!isClosed) { "ComposeScene is closed" }
         list.add(owner)
         owner.requestLayout = ::requestLayout
         owner.requestDraw = ::requestDraw
         owner.dispatchSnapshotChanges = snapshotChanges::add
-        owner.constraints = overrideConstraints ?: constraints
+        owner.constraints = constraints
         invalidateIfNeeded()
         if (owner.isFocusable) {
             focusedOwner = owner
