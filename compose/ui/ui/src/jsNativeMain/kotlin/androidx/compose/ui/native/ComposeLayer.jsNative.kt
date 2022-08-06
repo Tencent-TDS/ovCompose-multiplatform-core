@@ -64,8 +64,10 @@ internal class ComposeLayer(
         }
 
         override fun onInputEvent(event: SkikoInputEvent) {
-            inputService.sendInputEvent(event)
+
         }
+
+        override val input = createPlatformInput(inputService)
 
         override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
             if (isDisposed) return

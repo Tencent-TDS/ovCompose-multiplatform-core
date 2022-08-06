@@ -28,9 +28,14 @@ internal class SkiaTextInputService(
     hideSoftwareKeyboard: () -> Unit,
 ) : PlatformTextInputService {
 
+    data class CurrentInput(
+        var value: TextFieldValue,
+        val onEditCommand: ((List<EditCommand>) -> Unit),
+    )
+
     private val _showSoftwareKeyboard: () -> Unit = showSoftwareKeyboard
     private val _hideSoftwareKeyboard: () -> Unit = hideSoftwareKeyboard
-    private var listener: ((String) -> Unit)? = null
+    private var currentInput: CurrentInput? = null
 
     override fun startInput(
         value: TextFieldValue,
@@ -38,16 +43,15 @@ internal class SkiaTextInputService(
         onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
-        listener = { text: String ->
-            onEditCommand(
-                listOf(CommitTextCommand(text, 1))
-            )
-        }
+        currentInput = CurrentInput(
+            value,
+            onEditCommand
+        )
         showSoftwareKeyboard()
     }
 
     override fun stopInput() {
-        listener = null
+        currentInput = null
     }
 
     override fun showSoftwareKeyboard() {
@@ -59,11 +63,19 @@ internal class SkiaTextInputService(
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-
+        currentInput?.let { input ->
+            input.value = newValue
+        }
     }
 
-    internal fun sendInputEvent(event: org.jetbrains.skiko.SkikoInputEvent) {
-        val inputText: String = event.input
-        listener?.invoke(inputText)
+    internal fun sendInputText(text: String) {
+        currentInput?.let { input ->
+            input.onEditCommand(listOf(CommitTextCommand(text, 1)))
+        }
     }
+
+    fun getText(): String {
+        return currentInput?.value?.text ?: "empty"
+    }
+
 }
