@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.native
+package androidx.compose.ui.platform
 
-import androidx.compose.ui.platform.SkikoTextInputService
-import org.jetbrains.skiko.PlatformInput
+import androidx.compose.ui.text.input.PlatformTextInputService
 
-internal expect fun createPlatformInput(inputService: SkikoTextInputService): PlatformInput
+internal expect class SkikoTextInputService: PlatformTextInputService

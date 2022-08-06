@@ -27,31 +27,25 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.toCompose
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.platform.Platform
+import androidx.compose.ui.platform.SkikoTextInputService
 import androidx.compose.ui.unit.Density
 import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.SkiaLayer
 import org.jetbrains.skiko.SkikoView
-import org.jetbrains.skiko.SkikoInputEvent
 import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoPointerEvent
 import org.jetbrains.skiko.SkikoTouchEvent
 import org.jetbrains.skiko.SkikoTouchEventKind
 import androidx.compose.ui.unit.Constraints
 import org.jetbrains.skiko.currentNanoTime
-import androidx.compose.ui.platform.SkiaTextInputService
 
 internal class ComposeLayer(
     internal val layer: SkiaLayer,
-    showSoftwareKeyboard: () -> Unit,
-    hideSoftwareKeyboard: () -> Unit,
+    private val inputService: SkikoTextInputService,
     private val getTopLeftOffset: () -> Offset,
 ) {
     private var isDisposed = false
-    private val inputService = SkiaTextInputService(
-        showSoftwareKeyboard = showSoftwareKeyboard,
-        hideSoftwareKeyboard = hideSoftwareKeyboard
-    )
     private val platform = object : Platform by Platform.Empty {
         override val textInputService = inputService
     }
@@ -61,10 +55,6 @@ internal class ComposeLayer(
             val contentScale = layer.contentScale
             canvas.scale(contentScale, contentScale)
             scene.render(canvas/*, (width / contentScale).toInt(), (height / contentScale).toInt()*/, nanoTime)
-        }
-
-        override fun onInputEvent(event: SkikoInputEvent) {
-
         }
 
         override val input = createPlatformInput(inputService)

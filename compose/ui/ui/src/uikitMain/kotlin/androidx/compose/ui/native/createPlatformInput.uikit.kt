@@ -16,11 +16,11 @@
 
 package androidx.compose.ui.native
 
-import androidx.compose.ui.platform.SkiaTextInputService
+import androidx.compose.ui.platform.SkikoTextInputService
 import org.jetbrains.skiko.PlatformInput
 import platform.UIKit.UITextRange
 
-internal actual fun createPlatformInput(inputService: SkiaTextInputService): PlatformInput {
+internal actual fun createPlatformInput(inputService: SkikoTextInputService): PlatformInput {
     return object : PlatformInput {
         override fun getFocusedText(): String {
             return inputService.getText()

@@ -23,7 +23,7 @@ import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
 
-internal class SkiaTextInputService(
+internal actual class SkikoTextInputService(
     showSoftwareKeyboard: () -> Unit,
     hideSoftwareKeyboard: () -> Unit,
 ) : PlatformTextInputService {

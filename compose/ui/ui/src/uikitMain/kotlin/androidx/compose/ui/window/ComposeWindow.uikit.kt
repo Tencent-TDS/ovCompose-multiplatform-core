@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.native.ComposeLayer
+import androidx.compose.ui.platform.SkikoTextInputService
 import androidx.compose.ui.unit.IntSize
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
@@ -95,12 +96,14 @@ internal actual class ComposeWindow : UIViewController {
         view = skikoUIView
         layer = ComposeLayer(
             layer = skiaLayer,
-            showSoftwareKeyboard = {
-                skikoUIView.showScreenKeyboard()
-            },
-            hideSoftwareKeyboard = {
-                skikoUIView.hideScreenKeyboard()
-            },
+            inputService = SkikoTextInputService(
+                showSoftwareKeyboard = {
+                    skikoUIView.showScreenKeyboard()
+                },
+                hideSoftwareKeyboard = {
+                    skikoUIView.hideScreenKeyboard()
+                },
+            ),
             getTopLeftOffset = ::getTopLeftOffset,
         )
         layer.setContent(content = content)

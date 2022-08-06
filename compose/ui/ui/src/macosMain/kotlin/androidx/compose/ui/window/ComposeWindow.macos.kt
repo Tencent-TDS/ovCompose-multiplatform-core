@@ -21,6 +21,7 @@ import androidx.compose.runtime.CompositionContext
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.native.ComposeLayer
+import androidx.compose.ui.platform.SkikoTextInputService
 
 import platform.AppKit.*
 import platform.Cocoa.*
@@ -31,9 +32,8 @@ import kotlinx.cinterop.*
 internal actual class ComposeWindow actual constructor() {
     val layer = ComposeLayer(
         layer = createSkiaLayer(),
-        showSoftwareKeyboard = {},
-        hideSoftwareKeyboard = {},
         getTopLeftOffset = { Offset.Zero },
+        inputService = SkikoTextInputService(),
     )
 
     val title: String
