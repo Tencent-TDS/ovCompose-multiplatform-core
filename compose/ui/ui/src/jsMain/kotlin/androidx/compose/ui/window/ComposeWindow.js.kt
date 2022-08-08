@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,26 +17,29 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionContext
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.native.ComposeLayer
-import androidx.compose.ui.platform.SkikoTextInputService
+import androidx.compose.ui.platform.JSTextInputService
 import kotlinx.browser.document
 import org.w3c.dom.HTMLCanvasElement
 
 internal actual class ComposeWindow actual constructor(){
-    val layer = ComposeLayer(
+
+    private val textInputService = JSTextInputService(
+        showSoftwareKeyboard = {
+            println("TODO showSoftwareKeyboard in JS")
+        },
+        hideSoftwareKeyboard = {
+            println("TODO hideSoftwareKeyboard in JS")
+        }
+    )
+
+    private val layer = ComposeLayer(
         layer = createSkiaLayer(),
         getTopLeftOffset = { Offset.Zero },
-        inputService = SkikoTextInputService(
-            showSoftwareKeyboard = {
-                println("TODO showSoftwareKeyboard in JS")
-            },
-            hideSoftwareKeyboard = {
-                println("TODO hideSoftwareKeyboard in JS")
-            }
-        )
+        inputService = textInputService,
+        input = textInputService.input
     )
 
     val title: String

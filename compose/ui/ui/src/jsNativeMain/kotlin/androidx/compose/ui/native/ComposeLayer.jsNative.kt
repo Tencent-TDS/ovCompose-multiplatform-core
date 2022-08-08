@@ -27,7 +27,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.toCompose
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.platform.Platform
-import androidx.compose.ui.platform.SkikoTextInputService
+import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
 import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.skia.Canvas
@@ -38,33 +38,31 @@ import org.jetbrains.skiko.SkikoPointerEvent
 import org.jetbrains.skiko.SkikoTouchEvent
 import org.jetbrains.skiko.SkikoTouchEventKind
 import androidx.compose.ui.unit.Constraints
+import org.jetbrains.skiko.SkikoInput
 import org.jetbrains.skiko.currentNanoTime
 
 internal class ComposeLayer(
     internal val layer: SkiaLayer,
-    private val inputService: SkikoTextInputService,
+    private val inputService: PlatformTextInputService,
     private val getTopLeftOffset: () -> Offset,
+    private val input: SkikoInput,
 ) {
     private var isDisposed = false
-    private val platform = object : Platform by Platform.Empty {
-        override val textInputService = inputService
-    }
 
-    inner class ComponentImpl : SkikoView, Platform by platform {
+    inner class ComponentImpl : SkikoView, Platform by Platform.Empty {
+        override val textInputService = inputService
+        override val input = this@ComposeLayer.input
         override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
             val contentScale = layer.contentScale
             canvas.scale(contentScale, contentScale)
             scene.render(canvas/*, (width / contentScale).toInt(), (height / contentScale).toInt()*/, nanoTime)
         }
 
-        override val input = createPlatformInput(inputService)
-
         override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
             if (isDisposed) return
             scene.sendKeyEvent(KeyEvent(event))
         }
 
-        @OptIn(ExperimentalComposeUiApi::class)
         override fun onTouchEvent(events: Array<SkikoTouchEvent>) {
             val event = events.first()
             when (event.kind) {

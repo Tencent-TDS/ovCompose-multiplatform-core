@@ -22,8 +22,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
+import org.jetbrains.skiko.SkikoInput
+import org.jetbrains.skiko.SkikoInputEvent
 
-internal actual class SkikoTextInputService(
+internal class JSTextInputService(
     showSoftwareKeyboard: () -> Unit,
     hideSoftwareKeyboard: () -> Unit,
 ) : PlatformTextInputService {
@@ -68,14 +70,16 @@ internal actual class SkikoTextInputService(
         }
     }
 
-    internal fun sendInputText(text: String) {
+    fun sendInputText(text: String) {
         currentInput?.let { input ->
             input.onEditCommand(listOf(CommitTextCommand(text, 1)))
         }
     }
 
-    fun getText(): String {
-        return currentInput?.value?.text ?: "empty"
+    val input = object : SkikoInput {
+        override fun onInputEvent(event: SkikoInputEvent) {
+            sendInputText(event.input)
+        }
     }
 
 }
