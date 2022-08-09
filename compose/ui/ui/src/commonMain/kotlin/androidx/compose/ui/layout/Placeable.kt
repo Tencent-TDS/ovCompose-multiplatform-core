@@ -299,7 +299,7 @@ abstract class Placeable : Measured {
                 placeApparentToRealOffset(position, zIndex, layerBlock)
             } else {
                 placeApparentToRealOffset(
-                    IntOffset(parentWidth - measuredSize.width - position.x, position.y),
+                    IntOffset((parentWidth - width - position.x), position.y),
                     zIndex,
                     layerBlock
                 )
