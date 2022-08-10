@@ -191,7 +191,13 @@ internal class TextFieldDelegate {
             return textInputService.startInput(
                 value = value,
                 imeOptions = imeOptions,
-                onEditCommand = { onEditCommand(it, editProcessor, onValueChange) },
+                onEditCommand = { ops, onValueChange2 ->
+                    onEditCommand(ops, editProcessor) {
+                        //TODO DIMA Strategy.S2_GOOD
+                        onValueChange2(it)
+                        onValueChange(it)
+                    }
+                },
                 onImeActionPerformed = onImeActionPerformed
             )
         }
