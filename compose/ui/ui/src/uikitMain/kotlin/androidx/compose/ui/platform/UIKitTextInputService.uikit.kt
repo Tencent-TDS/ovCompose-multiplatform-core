@@ -29,12 +29,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import org.jetbrains.skiko.SkikoInput
 import org.jetbrains.skiko.SkikoTextRange
 
-sealed interface Strategy {
-    object S1_BAD:Strategy
-    object S2_GOOD:Strategy
-}
-private val TODO_STRATEGY:Strategy = Strategy.S1_BAD
-
 internal class UIKitTextInputService(
     showSoftwareKeyboard: () -> Unit,
     hideSoftwareKeyboard: () -> Unit,
@@ -42,7 +36,7 @@ internal class UIKitTextInputService(
 
     data class CurrentInput(
         var value: TextFieldValue,
-        val onEditCommand: (List<EditCommand>, (TextFieldValue) -> Unit) -> Unit
+        val onEditCommand: (List<EditCommand>) -> TextFieldValue
     )
 
     private val _showSoftwareKeyboard: () -> Unit = showSoftwareKeyboard
@@ -52,7 +46,7 @@ internal class UIKitTextInputService(
     override fun startInput(
         value: TextFieldValue,
         imeOptions: ImeOptions,
-        onEditCommand: (List<EditCommand>, onUpdateValue: (TextFieldValue) -> Unit) -> Unit,
+        onEditCommand: (List<EditCommand>) -> TextFieldValue,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
         currentInput = CurrentInput(
@@ -75,12 +69,9 @@ internal class UIKitTextInputService(
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        println("DIMA UPDATE STATE Strategy.S1_BAD, newValue: $newValue")
         Exception().printStackTrace()
         currentInput?.let { input ->
-            if (TODO_STRATEGY == Strategy.S1_BAD) {
-                input.value = newValue
-            }
+            input.value = newValue
         }
     }
 
@@ -90,11 +81,7 @@ internal class UIKitTextInputService(
          * A Boolean value that indicates whether the text-entry object has any text.
          * https://developer.apple.com/documentation/uikit/uikeyinput/1614457-hastext
          */
-        override fun hasText(): Boolean {
-            val result = getState()?.text?.isNotEmpty() ?: false
-            log()
-            return result
-        }
+        override fun hasText(): Boolean = getState()?.text?.isNotEmpty() ?: false
 
         /**
          * Inserts a character into the displayed text.
@@ -104,7 +91,6 @@ internal class UIKitTextInputService(
          */
         override fun insertText(text: String) {
             sendEditCommand(CommitTextCommand(text, 1))
-            log("text: $text")
         }
 
         /**
@@ -116,18 +102,13 @@ internal class UIKitTextInputService(
             sendEditCommand(
                 BackspaceCommand()
             )
-            log()
         }
 
         /**
          * The text position for the end of a document.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614555-endofdocument
          */
-        override fun endOfDocument(): Long {
-            val result = getState()?.text?.length?.toLong() ?: 0L
-            log()
-            return result
-        }
+        override fun endOfDocument(): Long = getState()?.text?.length?.toLong() ?: 0L
 
         /**
          * The range of selected text in a document.
@@ -138,13 +119,11 @@ internal class UIKitTextInputService(
          */
         override fun selectedTextRange(): SkikoTextRange? {
             val selection = getState()?.selection
-            val result = if (selection != null) {
+            return if (selection != null) {
                 SkikoTextRange(selection.start, selection.end)
             } else {
                 null
             }
-            log("result: $result")
-            return result
         }
 
         /**
@@ -155,15 +134,12 @@ internal class UIKitTextInputService(
          */
         override fun textInRange(range: SkikoTextRange): String? {
             val text = getState()?.text
-            val result =
-                if (text != null && text.isNotEmpty() && range.start >= 0 && range.end >= 0 && text.length >= range.end) {
-                    val substring = text.substring(range.start, range.end)
-                    substring.replace("\n", "").ifEmpty { null } //todo
-                } else {
-                    null
-                }
-            log("range: $range, result: $result")
-            return result
+            return if (!text.isNullOrEmpty() && range.start >= 0 && range.end >= 0 && text.length >= range.end) {
+                val substring = text.substring(range.start, range.end)
+                substring.replace("\n", "").ifEmpty { null } //todo maybe redundant
+            } else {
+                null
+            }
         }
 
         /**
@@ -178,7 +154,6 @@ internal class UIKitTextInputService(
                 SetComposingTextCommand(text, 1),
                 FinishComposingTextCommand(),
             )
-            log("range: $range, text: $text")
         }
 
         /**
@@ -196,27 +171,6 @@ internal class UIKitTextInputService(
                     SetComposingTextCommand(markedText, 1)
                 )
             }
-            log("markedText: $markedText, selectedRange: $selectedRange")
-//            // [markedText] is text about to confirm by user
-//            // see more: https://developer.apple.com/documentation/uikit/uitextinput?language=objc
-//            val (locationRelative, lengthRelative) = selectedRange.useContents {
-//                location to length
-//            }
-//            val cursor = inputText.lastIndex
-//            val location = cursor + 1
-//            val length = markedText?.length ?: 0
-//
-//            markedText?.let {
-//                _markedTextRange = SkikoTextRange(
-//                    SkikoTextPosition(location.toLong()),
-//                    SkikoTextPosition(location.toLong() + length.toLong())
-//                )
-//                _selectedTextRange = SkikoTextRange(
-//                    SkikoTextPosition(location.toLong()),
-//                    SkikoTextPosition(location.toLong() + length.toLong())
-//                )
-//                _markedText = markedText
-//            }
         }
 
         /**
@@ -229,13 +183,11 @@ internal class UIKitTextInputService(
          */
         override fun markedTextRange(): SkikoTextRange? {
             val composition = getState()?.composition
-            val result = if (composition != null) {
+            return if (composition != null) {
                 SkikoTextRange(composition.start, composition.end)
             } else {
                 null
             }
-            log("result: $result")
-            return result
         }
 
         /**
@@ -245,29 +197,14 @@ internal class UIKitTextInputService(
          */
         override fun unmarkText() {
             sendEditCommand(FinishComposingTextCommand())
-            log()
-        }
-
-        private fun log(vararg messages: Any) {
-            println("/----begin----------${counter++}\\")
-            println(messages.map { it.toString() })
-            println("value: ${getState()}")
-            println(Exception().stackTraceToString().split("\n")[4].split("        ").last())
-            println("\\-----end-----------/")
-            println("")
         }
 
     }
 
     private fun sendEditCommand(vararg commands: EditCommand) {
-        currentInput?.onEditCommand?.invoke(commands.toList()) { value ->
-            println("DIMA UPDATE STATE Strategy.S2_GOOD, value: $value")
-            Exception().printStackTrace()
-            if (TODO_STRATEGY == Strategy.S2_GOOD) {
-                currentInput?.let { input ->
-                    input.value = value
-                }
-            }
+        currentInput?.let { input ->
+            val newValue = input.onEditCommand(commands.toList())
+            input.value = newValue
         }
     }
 

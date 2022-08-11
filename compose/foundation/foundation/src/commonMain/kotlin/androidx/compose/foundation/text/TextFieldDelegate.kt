@@ -135,16 +135,13 @@ internal class TextFieldDelegate {
          *
          * @param ops A list of edit operations.
          * @param editProcessor The edit processor
-         * @param onValueChange The callback called when the new editor state arrives.
+         * @return new changed TextFieldValue
          */
         @JvmStatic
         private fun onEditCommand(
             ops: List<EditCommand>,
-            editProcessor: EditProcessor,
-            onValueChange: (TextFieldValue) -> Unit
-        ) {
-            onValueChange(editProcessor.apply(ops))
-        }
+            editProcessor: EditProcessor
+        ): TextFieldValue = editProcessor.apply(ops)
 
         /**
          * Sets the cursor position. Should be called when TextField has focus.
@@ -191,12 +188,11 @@ internal class TextFieldDelegate {
             return textInputService.startInput(
                 value = value,
                 imeOptions = imeOptions,
-                onEditCommand = { ops, onValueChange2 ->
-                    onEditCommand(ops, editProcessor) {
-                        //TODO DIMA Strategy.S2_GOOD
-                        onValueChange2(it)
-                        onValueChange(it)
-                    }
+                onEditCommand = { ops ->
+                    //TODO DIMA Strategy.S2_GOOD
+                    val newValue = onEditCommand(ops, editProcessor)
+                    onValueChange(newValue)
+                    newValue
                 },
                 onImeActionPerformed = onImeActionPerformed
             )
