@@ -189,7 +189,6 @@ internal class TextFieldDelegate {
                 value = value,
                 imeOptions = imeOptions,
                 onEditCommand = { ops ->
-                    //TODO DIMA Strategy.S2_GOOD
                     val newValue = onEditCommand(ops, editProcessor)
                     onValueChange(newValue)
                     newValue
