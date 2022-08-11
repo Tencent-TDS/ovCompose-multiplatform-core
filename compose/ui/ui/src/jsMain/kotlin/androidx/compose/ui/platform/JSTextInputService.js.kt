@@ -42,7 +42,7 @@ internal class JSTextInputService(
     override fun startInput(
         value: TextFieldValue,
         imeOptions: ImeOptions,
-        onEditCommand: (List<EditCommand>) -> Unit,
+        onEditCommand: (List<EditCommand>) -> TextFieldValue,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
         currentInput = CurrentInput(
