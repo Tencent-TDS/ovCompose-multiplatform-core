@@ -402,10 +402,9 @@ internal fun CoreTextField(
             }
         }
         setText {
-            val v = TextFieldValue(it.text, TextRange(it.text.length))
-            //TODO DIMA Strategy.S1_BAD
-            state.processor.reset(v, state.inputSession)
-            state.onValueChange(v)
+            val newValue = TextFieldValue(it.text, TextRange(it.text.length))
+            state.processor.reset(newValue, state.inputSession)
+            state.onValueChange(newValue)
             true
         }
         setSelection { selectionStart, selectionEnd, traversalMode ->
