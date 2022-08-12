@@ -26,12 +26,15 @@ import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.SetComposingRegionCommand
 import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.TextFieldValue
+import kotlin.system.getTimeMillis
 import org.jetbrains.skiko.SkikoInput
 import org.jetbrains.skiko.SkikoTextRange
 
 internal class UIKitTextInputService(
     showSoftwareKeyboard: () -> Unit,
     hideSoftwareKeyboard: () -> Unit,
+    private val updateView: () -> Unit,
+    private val recomposition: () -> Unit,
 ) : PlatformTextInputService {
 
     data class CurrentInput(
@@ -69,10 +72,16 @@ internal class UIKitTextInputService(
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        Exception().printStackTrace()
+        println("DIMA updateState, time: ${getTimeMillis()}")
+        println("oldValue: $oldValue")
+        println("newValue: $newValue")
+        if (oldValue != null && newValue.text.length > oldValue.text.length + 2) {
+            Exception().printStackTrace()
+        }
         currentInput?.let { input ->
             input.value = newValue
         }
+        updateView()
     }
 
     val skikoInput = object : SkikoInput {
@@ -182,6 +191,8 @@ internal class UIKitTextInputService(
          * https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange
          */
         override fun markedTextRange(): SkikoTextRange? {
+            log()
+//            Exception().printStackTrace()
             val composition = getState()?.composition
             return if (composition != null) {
                 SkikoTextRange(composition.start, composition.end)
@@ -199,12 +210,34 @@ internal class UIKitTextInputService(
             sendEditCommand(FinishComposingTextCommand())
         }
 
+        private fun log(vararg messages: Any) {
+//            println("/----begin----------${counter++}\\")
+//            println("time: ${getTimeMillis()}")
+//            println(messages.map { it.toString() })
+//            println("value: ${getState()}")
+//            println(Exception().stackTraceToString().split("\n")[4].split("        ").last())
+//            println("\\-----end-----------/")
+//            println("")
+        }
+
     }
 
+    var recursion = 0
     private fun sendEditCommand(vararg commands: EditCommand) {
         currentInput?.let { input ->
-            val newValue = input.onEditCommand(commands.toList())
-            input.value = newValue
+            recursion++
+            if (recursion <= 1) {
+                val newValue = input.onEditCommand(commands.toList())
+//                println("DIMA before recomposition ${getTimeMillis()}")
+//                recomposition()
+//                println("DIMA after recomposition ${getTimeMillis()}")
+                if (false) {
+                    input.value = newValue
+                }
+            } else {
+                throw Error("BAD recursion depth: $recursion")
+            }
+            recursion--
         }
     }
 
