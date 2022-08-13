@@ -127,12 +127,14 @@ internal class UIKitTextInputService(
          * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
          */
         override fun selectedTextRange(): SkikoTextRange? {
-            val selection = getState()?.selection
-            return if (selection != null) {
-                SkikoTextRange(selection.start, selection.end)
-            } else {
-                null
-            }
+            return SkikoTextRange(0, 1)
+            //todo implement selection and menu in multistage input
+//            val selection = getState()?.selection
+//            return if (selection != null) {
+//                SkikoTextRange(selection.start, selection.end)
+//            } else {
+//                null
+//            }
         }
 
         /**
