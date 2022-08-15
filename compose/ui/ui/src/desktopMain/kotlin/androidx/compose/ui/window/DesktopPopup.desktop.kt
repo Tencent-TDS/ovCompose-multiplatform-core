@@ -178,7 +178,6 @@ private fun PopupLayout(
             onKeyEvent = onKeyEvent
         )
         scene.attach(owner)
-
         val composition = owner.setContent(parent = parentComposition) {
             Layout(
                 content = content,
