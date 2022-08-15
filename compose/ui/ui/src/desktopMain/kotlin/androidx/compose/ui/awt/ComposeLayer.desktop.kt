@@ -74,6 +74,7 @@ import javax.swing.SwingUtilities
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import java.awt.Cursor
+import org.jetbrains.skiko.SkikoInput
 import org.jetbrains.skiko.hostOs
 
 internal class ComposeLayer {
@@ -298,6 +299,11 @@ internal class ComposeLayer {
 
     init {
         _component.skikoView = object : SkikoView {
+            override val input: SkikoInput
+                get() = object: SkikoInput {
+
+                }
+
             override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
                 catchExceptions {
                     scene.render(canvas, nanoTime)
