@@ -28,7 +28,7 @@ import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.TextFieldValue
 import kotlin.system.getTimeMillis
 import org.jetbrains.skiko.SkikoInput
-import org.jetbrains.skiko.SkikoTextRange
+import org.jetbrains.skiko.data.*
 
 internal class UIKitTextInputService(
     showSoftwareKeyboard: () -> Unit,
@@ -210,6 +210,27 @@ internal class UIKitTextInputService(
          */
         override fun unmarkText() {
             sendEditCommand(FinishComposingTextCommand())
+        }
+
+        override fun caretRectForPosition(position: Long): SkikoRect? {
+            return null
+        }
+
+        override fun closestPositionToPoint(point: SkikoPoint): Int {
+            println("TODO closestPositionToPoint, point: $point")
+            return 0
+        }
+
+        override fun firstRectForRange(range: SkikoTextRange): SkikoRect? {
+            println("TODO firstRectForRange, range: $range")
+            return null
+        }
+
+        override fun selectionRectsForRange(range: SkikoTextRange): List<SkikoRect> {
+            println("TODO selectionRectsForRange range: $range")
+            return listOf(
+                SkikoRect(40.0, 150.0, 20.0, 80.0)
+            )
         }
 
         private fun log(vararg messages: Any) {
