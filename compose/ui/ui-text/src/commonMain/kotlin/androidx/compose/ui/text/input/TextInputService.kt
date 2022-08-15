@@ -50,7 +50,7 @@ open class TextInputService(private val platformTextInputService: PlatformTextIn
     open fun startInput(
         value: TextFieldValue,
         imeOptions: ImeOptions,
-        onEditCommand: (List<EditCommand>) -> TextFieldValue,
+        onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ): TextInputSession {
         platformTextInputService.startInput(
