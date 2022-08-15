@@ -39,7 +39,7 @@ internal class UIKitTextInputService(
 
     data class CurrentInput(
         var value: TextFieldValue,
-        val onEditCommand: (List<EditCommand>) -> TextFieldValue
+        val onEditCommand: (List<EditCommand>) -> Unit
     )
 
     private val _showSoftwareKeyboard: () -> Unit = showSoftwareKeyboard
@@ -228,6 +228,7 @@ internal class UIKitTextInputService(
 
         override fun selectionRectsForRange(range: SkikoTextRange): List<SkikoRect> {
             println("TODO selectionRectsForRange range: $range")
+
             return listOf(
                 SkikoRect(40.0, 150.0, 20.0, 80.0)
             )
