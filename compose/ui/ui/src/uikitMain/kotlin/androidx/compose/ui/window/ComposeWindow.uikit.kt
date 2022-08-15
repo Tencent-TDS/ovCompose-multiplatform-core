@@ -36,7 +36,9 @@ import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSSelectorFromString
 import platform.Foundation.NSValue
 import platform.UIKit.CGRectValue
+import platform.UIKit.reloadInputViews
 import platform.UIKit.setClipsToBounds
+import platform.UIKit.setNeedsDisplay
 import platform.darwin.NSObject
 
 // The only difference with macos' Window is that
@@ -117,6 +119,19 @@ internal actual class ComposeWindow : UIViewController {
             hideSoftwareKeyboard = {
                 skikoUIView.hideScreenKeyboard()
             },
+            updateView = {
+                skikoUIView.setNeedsDisplay()
+                platform.QuartzCore.CATransaction.flush()
+                skikoUIView.reloadInputViews()
+//                skikoUIView.hideScreenKeyboard()
+//                skikoUIView.showScreenKeyboard()
+            },
+            recomposition = {
+//                layer.scene.apply {
+//                    recomposeDispatcher.flush()
+//                    frameClock.sendFrame(getTimeNanos())
+//                }
+            }
         )
         layer = ComposeLayer(
             layer = skiaLayer,
