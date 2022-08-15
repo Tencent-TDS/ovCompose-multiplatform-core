@@ -255,9 +255,9 @@ internal class UIKitTextInputService(
 //                println("DIMA before recomposition ${getTimeMillis()}")
 //                recomposition()
 //                println("DIMA after recomposition ${getTimeMillis()}")
-                if (false) {
-                    input.value = newValue
-                }
+//                if (false) {
+//                    input.value = newValue
+//                }
             } else {
                 throw Error("BAD recursion depth: $recursion")
             }
