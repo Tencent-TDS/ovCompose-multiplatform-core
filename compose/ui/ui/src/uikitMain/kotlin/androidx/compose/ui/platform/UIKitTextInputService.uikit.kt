@@ -214,14 +214,7 @@ internal class UIKitTextInputService(
             sendEditCommand(FinishComposingTextCommand())
         }
 
-        override fun caretRectForPosition(position: Long): SkikoRect? {
-            return null
-        }
-
-        override fun closestPositionToPoint(point: SkikoPoint): Int {
-            println("TODO closestPositionToPoint, point: $point")
-            return 0
-        }
+        //---Working with Geometry and Hit-Testing----------------------------------------------
 
         /**
          * Returns the first rectangle that encloses a range of text in a document.
@@ -237,6 +230,24 @@ internal class UIKitTextInputService(
             return null
         }
 
+        /**
+         * Returns a rectangle to draw the caret at a specified insertion point.
+         * The system uses this value to calculate the length of the beam—the vertical line representing
+         * the pointer—when using a trackpad to interact with a text input area.
+         * You must implement this method even if text never becomes editable, and an insertion point caret never appears.
+         * @param position An object that identifies a location in a text input area.
+         * https://developer.apple.com/documentation/uikit/uitextinput/1614570-firstrect
+         * @return A rectangle that defines the area for drawing the caret.
+         */
+        override fun caretRectForPosition(position: Long): SkikoRect? {
+            return null
+        }
+
+        /**
+         * Returns an array of selection rects corresponding to the range of text.
+         * @param range An object representing a range in a document’s text.
+         * @return An array of UITextSelectionRect objects that encompass the selection.
+         */
         override fun selectionRectsForRange(range: SkikoTextRange): List<SkikoRect> {
             val rect = getActiveFocusedRect()
             return if (rect != null) {
@@ -248,6 +259,17 @@ internal class UIKitTextInputService(
                     SkikoRect(40.0, 150.0, 20.0, 80.0)
                 )
             }
+        }
+
+        /**
+         * Returns the position in a document that is closest to a specified point.
+         * https://developer.apple.com/documentation/uikit/uitextinput/1614523-closestposition
+         * @param point A point in the view that is drawing a document’s text.
+         * @return An object locating a position in a document that is closest to point.
+         */
+        override fun closestPositionToPoint(point: SkikoPoint): Int {
+            println("TODO closestPositionToPoint, point: $point")
+            return 0
         }
 
         private fun log(vararg messages: Any) {
@@ -267,13 +289,8 @@ internal class UIKitTextInputService(
         currentInput?.let { input ->
             recursion++
             if (recursion <= 1) {
-                val newValue = input.onEditCommand(commands.toList())
-//                println("DIMA before recomposition ${getTimeMillis()}")
+                input.onEditCommand(commands.toList())
 //                recomposition()
-//                println("DIMA after recomposition ${getTimeMillis()}")
-//                if (false) {
-//                    input.value = newValue
-//                }
             } else {
                 throw Error("BAD recursion depth: $recursion")
             }
