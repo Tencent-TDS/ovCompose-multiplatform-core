@@ -74,9 +74,6 @@ internal class UIKitTextInputService(
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        println("DIMA updateState, time: ${getTimeMillis()}")
-        println("oldValue: $oldValue")
-        println("newValue: $newValue")
         if (oldValue != null && newValue.text.length > oldValue.text.length + 2) {
             Exception().printStackTrace()
         }
@@ -226,8 +223,8 @@ internal class UIKitTextInputService(
          * when the range encompasses multiple lines of text.
          */
         override fun firstRectForRange(range: SkikoTextRange): SkikoRect? {
-            println("TODO firstRectForRange, range: $range")
-            return null
+//            println("TODO firstRectForRange, range: $range")
+            return SkikoRect(80.0, 100.0, 40.0, 40.0)
         }
 
         /**
@@ -240,7 +237,8 @@ internal class UIKitTextInputService(
          * @return A rectangle that defines the area for drawing the caret.
          */
         override fun caretRectForPosition(position: Long): SkikoRect? {
-            return null
+            //todo
+            return SkikoRect(100.0, 100.0, 40.0, 20.0)
         }
 
         /**
