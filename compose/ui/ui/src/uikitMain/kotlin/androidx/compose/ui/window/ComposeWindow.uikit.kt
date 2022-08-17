@@ -131,6 +131,9 @@ internal actual class ComposeWindow : UIViewController {
 //                    recomposeDispatcher.flush()
 //                    frameClock.sendFrame(getTimeNanos())
 //                }
+            },
+            getActiveFocusedRect = {
+                layer.getActiveFocusRect()
             }
         )
         layer = ComposeLayer(

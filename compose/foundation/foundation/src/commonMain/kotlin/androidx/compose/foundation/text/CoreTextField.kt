@@ -262,6 +262,18 @@ internal fun CoreTextField(
     manager.hapticFeedBack = LocalHapticFeedback.current
     manager.focusRequester = focusRequester
     manager.editable = !readOnly
+//    println("TODO TextFieldSelectionManager manager: $manager")
+//    state.layoutResult?.value
+
+    val getSelectionRect = {
+        if (manager.state?.layoutResult != null) {
+            val start = manager.getHandlePosition(true)
+            val end = manager.getHandlePosition(false)
+            Rect(start.copy(y = start.y - 30f), end)
+        } else {
+            null
+        }
+    }
 
     val coroutineScope = rememberCoroutineScope()
     val bringIntoViewRequester = remember { BringIntoViewRequester() }

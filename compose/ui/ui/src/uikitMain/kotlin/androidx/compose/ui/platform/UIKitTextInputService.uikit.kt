@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.text.input.BackspaceCommand
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.EditCommand
@@ -35,6 +36,7 @@ internal class UIKitTextInputService(
     hideSoftwareKeyboard: () -> Unit,
     private val updateView: () -> Unit,
     private val recomposition: () -> Unit,
+    private val getActiveFocusedRect: () -> Rect?,
 ) : PlatformTextInputService {
 
     data class CurrentInput(
@@ -221,17 +223,31 @@ internal class UIKitTextInputService(
             return 0
         }
 
+        /**
+         * Returns the first rectangle that encloses a range of text in a document.
+         * https://developer.apple.com/documentation/uikit/uitextinput/1614570-firstrect
+         * @param range An object that represents a range of text in a document.
+         * @return The first rectangle in a range of text.
+         * You might use this rectangle to draw a correction rectangle.
+         * The “first” in the name refers the rectangle enclosing the first line
+         * when the range encompasses multiple lines of text.
+         */
         override fun firstRectForRange(range: SkikoTextRange): SkikoRect? {
             println("TODO firstRectForRange, range: $range")
             return null
         }
 
         override fun selectionRectsForRange(range: SkikoTextRange): List<SkikoRect> {
-            println("TODO selectionRectsForRange range: $range")
-
-            return listOf(
-                SkikoRect(40.0, 150.0, 20.0, 80.0)
-            )
+            val rect = getActiveFocusedRect()
+            return if (rect != null) {
+                listOf(
+                    SkikoRect(rect.left.toDouble(), rect.top.toDouble(), rect.width.toDouble(), rect.height.toDouble())
+                )
+            } else {
+                listOf(
+                    SkikoRect(40.0, 150.0, 20.0, 80.0)
+                )
+            }
         }
 
         private fun log(vararg messages: Any) {

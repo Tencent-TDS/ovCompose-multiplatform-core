@@ -17,6 +17,7 @@
 package androidx.compose.foundation.text.selection
 
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.Handle
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 //import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 //import androidx.compose.ui.window.PopupProperties
@@ -235,8 +237,11 @@ internal fun HandlePopup(
         HandlePositionProvider(handleReferencePoint, intOffset)
     }
 
-
-    content()
+    if (false) {
+        Box(modifier = Modifier.size(20.dp)) {
+            content()
+        }
+    }
     //TODO
 //    Popup(
 //        popupPositionProvider = popupPositioner,
