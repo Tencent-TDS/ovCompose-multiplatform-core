@@ -32,7 +32,7 @@ internal class JSTextInputService(
 
     data class CurrentInput(
         var value: TextFieldValue,
-        val onEditCommand: ((List<EditCommand>) -> Unit),
+        val onEditCommand: ((List<EditCommand>) -> TextFieldValue),
     )
 
     private val _showSoftwareKeyboard: () -> Unit = showSoftwareKeyboard
@@ -42,7 +42,7 @@ internal class JSTextInputService(
     override fun startInput(
         value: TextFieldValue,
         imeOptions: ImeOptions,
-        onEditCommand: (List<EditCommand>) -> Unit,
+        onEditCommand: (List<EditCommand>) -> TextFieldValue,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
         currentInput = CurrentInput(

@@ -140,10 +140,9 @@ internal class TextFieldDelegate {
         @JvmStatic
         private fun onEditCommand(
             ops: List<EditCommand>,
-            editProcessor: EditProcessor,
-            onValueChange: (TextFieldValue) -> Unit
-        ) {
-            onValueChange(editProcessor.apply(ops))
+            editProcessor: EditProcessor
+        ): TextFieldValue {
+            return editProcessor.apply(ops)
         }
 
         /**
@@ -191,7 +190,11 @@ internal class TextFieldDelegate {
             return textInputService.startInput(
                 value = value,
                 imeOptions = imeOptions,
-                onEditCommand = { onEditCommand(it, editProcessor, onValueChange) },
+                onEditCommand = {
+                    val result = onEditCommand(it, editProcessor)
+                    onValueChange(result)
+                    result
+                },
                 onImeActionPerformed = onImeActionPerformed
             )
         }

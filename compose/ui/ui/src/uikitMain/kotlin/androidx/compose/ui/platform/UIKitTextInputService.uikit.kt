@@ -41,7 +41,7 @@ internal class UIKitTextInputService(
 
     data class CurrentInput(
         var value: TextFieldValue,
-        val onEditCommand: (List<EditCommand>) -> Unit
+        val onEditCommand: (List<EditCommand>) -> TextFieldValue
     )
 
     private val _showSoftwareKeyboard: () -> Unit = showSoftwareKeyboard
@@ -51,7 +51,7 @@ internal class UIKitTextInputService(
     override fun startInput(
         value: TextFieldValue,
         imeOptions: ImeOptions,
-        onEditCommand: (List<EditCommand>) -> Unit,
+        onEditCommand: (List<EditCommand>) -> TextFieldValue,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
         currentInput = CurrentInput(
@@ -266,8 +266,8 @@ internal class UIKitTextInputService(
          * @return An object locating a position in a document that is closest to point.
          */
         override fun closestPositionToPoint(point: SkikoPoint): Int {
-            println("TODO closestPositionToPoint, point: $point")
-            return 0
+//            println("TODO closestPositionToPoint, point: $point")
+            return getState()?.text?.indices?.random() ?: 0
         }
 
         private fun log(vararg messages: Any) {
@@ -287,8 +287,10 @@ internal class UIKitTextInputService(
         currentInput?.let { input ->
             recursion++
             if (recursion <= 1) {
-                input.onEditCommand(commands.toList())
+                val newValue = input.onEditCommand(commands.toList())
+                input.value = newValue
 //                recomposition()
+//                updateView()
             } else {
                 throw Error("BAD recursion depth: $recursion")
             }
