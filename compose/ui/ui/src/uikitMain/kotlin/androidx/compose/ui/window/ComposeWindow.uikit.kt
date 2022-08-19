@@ -121,7 +121,7 @@ internal actual class ComposeWindow : UIViewController {
             },
             updateView = {
                 skikoUIView.setNeedsDisplay()
-                platform.QuartzCore.CATransaction.flush()
+//                platform.QuartzCore.CATransaction.flush()
                 skikoUIView.reloadInputViews()
 //                skikoUIView.hideScreenKeyboard()
 //                skikoUIView.showScreenKeyboard()
