@@ -68,6 +68,7 @@ internal class ComposeLayer(
             when (event.kind) {
                 SkikoTouchEventKind.STARTED,
                 SkikoTouchEventKind.MOVED,
+                SkikoTouchEventKind.CANCELLED,
                 SkikoTouchEventKind.ENDED -> {
                     scene.sendPointerEvent(
                         eventType = event.kind.toCompose(),
@@ -78,7 +79,9 @@ internal class ComposeLayer(
                         nativeEvent = event
                     )
                 }
-                else -> {}
+                SkikoTouchEventKind.UNKNOWN -> {
+                    TODO("onTouchEvent, event.kind: SkikoTouchEventKind.UNKNOWN")
+                }
             }
         }
 
