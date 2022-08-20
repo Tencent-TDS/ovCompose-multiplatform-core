@@ -238,11 +238,6 @@ internal fun HandlePopup(
         HandlePositionProvider(handleReferencePoint, intOffset)
     }
 
-    if (false) {
-        Box(modifier = Modifier.size(20.dp)) {
-            content()
-        }
-    }
     Popup(
         popupPositionProvider = popupPositioner,
 //        properties = PopupProperties(

@@ -192,9 +192,13 @@ internal class UIKitTextInputService(
          * https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange
          */
         override fun markedTextRange(): SkikoTextRange? {
+            val leadingComposition = leadingValue?.composition
             log()
 //            Exception().printStackTrace()
             val composition = getState()?.composition
+            if (composition != leadingComposition) {
+                println("fun markedTextRange(), composition: $composition, leadingComposition: $leadingComposition")
+            }
             return if (composition != null) {
                 SkikoTextRange(composition.start, composition.end)
             } else {
@@ -288,7 +292,10 @@ internal class UIKitTextInputService(
             recursion++
             if (recursion <= 1) {
                 val newValue = input.onEditCommand(commands.toList())
-                input.value = newValue
+                leadingValue = newValue
+                if (false) {
+                    input.value = newValue
+                }
 //                recomposition()
 //                updateView()
             } else {
@@ -298,6 +305,7 @@ internal class UIKitTextInputService(
         }
     }
 
+    var leadingValue: TextFieldValue? = null//todo temp
     private fun getState():TextFieldValue? {
         return currentInput?.value
     }
