@@ -19,11 +19,16 @@ import SwiftUI
 
 struct UIKitToSwiftUI: UIViewRepresentable {
 
-    func makeUIView(context: Context) -> UISearchBar {
-        return UISearchBar()
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField(frame: CGRect(x: 10.0,y: 10.0,width: 200.0,height: 50.0))
+        textField.text = "qwe"
+        textField.textColor = .blue
+        textField.font = UIFont.preferredFont(forTextStyle: .title2)
+        textField.sizeToFit()
+        return textField
     }
 
-    func updateUIView(_ uiView: UISearchBar, context: Context) {
+    func updateUIView(_ uiView: UITextField, context: Context) {
         // Update the view
     }
 }

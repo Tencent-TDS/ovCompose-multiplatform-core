@@ -34,10 +34,10 @@ struct SwiftUIView: View {
             }, label: {
                 Text("Open Compose screen")
             })
-            UIKitToSwiftUI()
             UIKitViewControllerToSwiftUI {
                 print("do nothing")
             }
+            UIKitToSwiftUI()
             Spacer()
             TextField("User name (email address)",text: $textState).padding()
         }

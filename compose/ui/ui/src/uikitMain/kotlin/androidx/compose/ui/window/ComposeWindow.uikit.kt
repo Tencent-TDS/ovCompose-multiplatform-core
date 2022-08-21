@@ -110,7 +110,7 @@ internal actual class ComposeWindow : UIViewController {
 
     override fun loadView() {
         val skiaLayer = createSkiaLayer()
-        val skikoUIView = SkikoUIView(skiaLayer).load()
+        val skikoUIView = SkikoUIView2(skiaLayer).load()
         view = skikoUIView
         val textInputService = UIKitTextInputService(
             showSoftwareKeyboard = {
