@@ -28,7 +28,7 @@ AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
 
 dependencies {
     kotlinPlugin(projectOrArtifact(":compose:compiler:compiler"))
-    kotlinNativeCompilerPluginClasspath(project(":compose:compiler:compiler"))
+    kotlinNativeCompilerPluginClasspath(project(":compose:compiler:compiler-hosted"))
 
     if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         /*
