@@ -82,7 +82,7 @@ set CMD_LINE_ARGS=%*
 set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
 
 @rem Compose/jb-main specific configuration
-set ANDROID_HOME="%APP_HOME%/jbdeps/android-sdk/windows"
+@rem TODO support download for Windows set ANDROID_HOME="%APP_HOME%/jbdeps/android-sdk/windows"
 set JAVA_TOOLS_JAR="%APP_HOME%/jbdeps/jdk8/tools.jar"
 set STUDIO_GRADLE_JDK=%JAVA_HOME%
 set ALLOW_PUBLIC_REPOS=1
