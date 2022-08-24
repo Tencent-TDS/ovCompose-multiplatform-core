@@ -240,7 +240,7 @@ internal class SkiaParagraph(
 
         val asc = line.ascent.let {
             if (isNewEmptyLine) {
-                val ascent = (-metrics.ascent.toDouble())
+                val ascent = -metrics.ascent.toDouble()
                 it.coerceAtMost(ascent)
             } else {
                 it
