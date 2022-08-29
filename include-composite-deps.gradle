@@ -34,8 +34,10 @@ File getExternalProjectPath() {
     }
 }
 
+def isJBFork = true
+
 // Add included builds. This only works if this is currently the root build, so this script should
 // be applied to several builds and will only enable itself when part of the root build.
-if (currentBuildIsRootBuild) {
+if (!isJBFork && currentBuildIsRootBuild) {
   includeBuild(new File(getExternalProjectPath(), "doclava"))
 }
