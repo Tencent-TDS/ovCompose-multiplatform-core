@@ -27,7 +27,10 @@ import androidx.compose.ui.input.key.key
 import java.awt.event.KeyEvent as AwtKeyEvent
 
 internal actual val platformDefaultKeyMapping: KeyMapping =
-    when (DesktopPlatform.Current) {
+    createPlatformDefaultKeyMapping(DesktopPlatform.Current)
+
+internal fun createPlatformDefaultKeyMapping(platform: DesktopPlatform): KeyMapping {
+    return when (platform) {
         DesktopPlatform.MacOS -> {
             val common = commonKeyMapping(KeyEvent::isMetaPressed)
             object : KeyMapping {
@@ -110,8 +113,8 @@ internal actual val platformDefaultKeyMapping: KeyMapping =
 
                         event.isShiftPressed ->
                             when (event.key) {
-                                MappedKeys.MoveHome -> KeyCommand.SELECT_LINE_START
-                                MappedKeys.MoveEnd -> KeyCommand.SELECT_LINE_END
+                                MappedKeys.MoveHome -> KeyCommand.SELECT_HOME
+                                MappedKeys.MoveEnd -> KeyCommand.SELECT_END
                                 else -> null
                             }
                         event.isAltPressed ->
@@ -132,6 +135,7 @@ internal actual val platformDefaultKeyMapping: KeyMapping =
 
         else -> defaultKeyMapping
     }
+}
 
 internal actual object MappedKeys {
     actual val A: Key = Key(AwtKeyEvent.VK_A)
