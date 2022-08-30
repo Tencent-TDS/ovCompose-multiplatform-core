@@ -216,14 +216,12 @@ internal class SkiaParagraph(
             }
 
     override fun getPathForRange(start: Int, end: Int): Path {
-        println("getPathForRange $start - $end")
         val boxes = para.getRectsForRange(
             start,
             end,
             RectHeightMode.MAX,
             RectWidthMode.TIGHT
         )
-        println("Boxes ${boxes.size} : ${boxes.joinToString { it.rect.toString() }}")
         val path = Path()
         for (b in boxes) {
             path.asSkiaPath().addRect(b.rect)
