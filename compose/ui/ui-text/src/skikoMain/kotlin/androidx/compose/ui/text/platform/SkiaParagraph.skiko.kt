@@ -336,7 +336,7 @@ internal class SkiaParagraph(
             prevBox == null -> nextBox!!.cursorHorizontalPosition(true)
             nextBox == null -> prevBox.cursorHorizontalPosition()
             nextBox.direction == prevBox.direction -> nextBox.cursorHorizontalPosition(true)
-            text[offset - 1] == '\n' -> nextBox.cursorHorizontalPosition(prevBox.direction != nextBox.direction)
+            text[offset - 1] == '\n' -> nextBox.cursorHorizontalPosition(opposite = prevBox.direction != nextBox.direction)
             // BiDi transition offset, we need to resolve ambiguity with usePrimaryDirection
             // for details see comment for MultiParagraph.getHorizontalPosition
             usePrimaryDirection -> prevBox.cursorHorizontalPosition()
