@@ -17,7 +17,12 @@
 package androidx.compose.foundation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 
 @Composable
 internal actual fun isComposeRootInScrollableContainer(): () -> Boolean = { false }
@@ -29,5 +34,9 @@ internal actual val TapIndicationDelay: Long = 0L
  * Whether the specified [KeyEvent] represents a user intent to perform a click.
  * (eg. When you press Enter on a focused button, it should perform a click).
  */
+@OptIn(ExperimentalComposeUiApi::class)
 internal actual val KeyEvent.isClick: Boolean
-    get() = TODO("implement native isClick")
+    get() = type == KeyEventType.KeyUp && when (key) {
+        Key.Enter -> true
+        else -> false
+    }
