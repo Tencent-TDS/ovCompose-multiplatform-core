@@ -325,7 +325,11 @@ internal class SkiaParagraph(
             ?: 0
 
     override fun getLineForVerticalPosition(vertical: Float): Int {
-        return lineMetrics.firstOrNull { vertical < it.baseline + it.descent }?.lineNumber ?: 0
+        return getLineMetricsForVerticalPosition(vertical)?.lineNumber ?: 0
+    }
+
+    private fun getLineMetricsForVerticalPosition(vertical: Float): LineMetrics? {
+        return lineMetrics.firstOrNull { vertical < it.baseline + it.descent }
     }
 
     override fun getHorizontalPosition(offset: Int, usePrimaryDirection: Boolean): Float {
@@ -451,18 +455,38 @@ internal class SkiaParagraph(
     override fun getOffsetForPosition(position: Offset): Int {
         val glyphPosition = para.getGlyphPositionAtCoordinate(position.x, position.y).position
 
-        // It's expected that this method should return the glyph position that lays in the line at `position.y`.
-        // When the `position` is on a line-break, glyphPosition will reference the first glyph on a next line.
-        // This will make cursor go on the next line (not a line that corresponds `position.y` coordinate).
+        // Below we apply a workaround for skiko/skia issue:
+        //
+        // It's expected that this method should return the glyph position that lays on the line at `position.y`.
+        // When the `position` is not within the text line, glyphPosition will reference a wrong glyph (for example, the first glyph on a next line).
+        // This will make the cursor go to the wrong position, not according to the coordinates of a click.
+        //
+        // When position.x lays beyond the left or right side of a text line,
+        // `getGlyphPositionAtCoordinate` returns a wrong value.
+        // This happens:
+        // - in multiline text when a text block has an opposite direction than the primary paragraph direction
+        // - in text with line-breaks, when clicking to the right of a text line
+        //
+        // Therefore, when the position.x is not within the line's left or right side,
+        // we call getGlyphPositionAtCoordinate with `x` value closest to the corresponding side.
+        //
         // TODO: consider fixing it in skiko
 
-        val lineMetrics = lineMetricsForOffset(glyphPosition) ?: return glyphPosition
-        val expectedLine = getLineForVerticalPosition(position.y)
-        return if (expectedLine == lineMetrics.lineNumber) {
-            glyphPosition
-        } else {
-            glyphPosition - 1
+        // expectedLine is the line which lays at position.y
+        val expectedLine = getLineMetricsForVerticalPosition(position.y) ?: return glyphPosition
+        var correctedGlyphPosition = glyphPosition
+
+        if (position.x <= expectedLine.left) { // when clicked to the left of the left side of a text line
+            correctedGlyphPosition = para.getGlyphPositionAtCoordinate(expectedLine.left.toFloat() + 1f, position.y).position
+        } else if (position.x >= expectedLine.right) { // when clicked to the right side of a text line
+            correctedGlyphPosition = para.getGlyphPositionAtCoordinate(expectedLine.right.toFloat() - 1f, position.y).position
+            // For RTL blocks, the position is still not correct, so we have to subtract 1 from the returned result
+            if (getBoxBackwardByOffset(correctedGlyphPosition)?.direction == Direction.RTL) {
+                correctedGlyphPosition -= 1
+            }
         }
+
+        return correctedGlyphPosition
     }
 
     override fun getBoundingBox(offset: Int): Rect {
