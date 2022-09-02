@@ -497,8 +497,6 @@ internal class SkiaParagraph(
         val leftX = rects?.firstOrNull()?.rect?.left ?: expectedLine.left.toFloat()
         val rightX = rects?.lastOrNull()?.rect?.right ?: expectedLine.right.toFloat()
 
-        println("LX = $leftX, RX = $rightX, click = $position")
-
         var correctedGlyphPosition = glyphPosition
 
         if (position.x <= leftX) { // when clicked to the left of a text line
