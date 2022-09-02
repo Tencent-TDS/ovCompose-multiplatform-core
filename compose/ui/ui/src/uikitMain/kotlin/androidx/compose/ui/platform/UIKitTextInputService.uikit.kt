@@ -16,21 +16,19 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.text.input.BackspaceCommand
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.FinishComposingTextCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
-import androidx.compose.ui.text.input.MoveCursorCommand
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.SetComposingRegionCommand
 import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.SetSelectionCommand
 import androidx.compose.ui.text.input.TextFieldValue
+import kotlin.math.min
 import org.jetbrains.skiko.SkikoInput
-import org.jetbrains.skiko.data.*
 
 internal class UIKitTextInputService(
     showSoftwareKeyboard: () -> Unit,
@@ -150,23 +148,23 @@ internal class UIKitTextInputService(
          * If the text-range object is nil, it indicates that there is no current selection.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
          */
-        override fun getSelectedTextRange(): SkikoTextRange? {
+        override fun getSelectedTextRange(): IntRange? {
             val cursorPos = getCursorPos()
             if (cursorPos != null) {
-                return SkikoTextRange(cursorPos, cursorPos)
+                return cursorPos until cursorPos
             }
             val selection = getState()?.selection
             return if (selection != null) {
-                SkikoTextRange(selection.start, selection.end)
+                selection.start until selection.end
             } else {
                 null
             }
         }
 
-        override fun setSelectedTextRange(range: SkikoTextRange?) {
+        override fun setSelectedTextRange(range: IntRange?) {
             if (range != null) {
                 sendEditCommand(
-                    SetSelectionCommand(range.start, range.end)
+                    SetSelectionCommand(range.start, range.endInclusive + 1)
                 )
             }
         }
@@ -183,10 +181,10 @@ internal class UIKitTextInputService(
          * @param range A range of text in a document.
          * @return A substring of a document that falls within the specified range.
          */
-        override fun textInRange(range: SkikoTextRange): String? {
+        override fun textInRange(range: IntRange): String? {
             val text = getState()?.text
-            return if (!text.isNullOrEmpty() && range.start >= 0 && range.end >= 0 && text.length >= range.end) {
-                val substring = text.substring(range.start, range.end)
+            return if (!text.isNullOrEmpty() && range.first >= 0 && range.last >= 0) {
+                val substring = text.substring(range.first, min(range.last + 1, text.length))
                 substring.replace("\n", "").ifEmpty { null } //todo maybe redundant
             } else {
                 null
@@ -199,9 +197,9 @@ internal class UIKitTextInputService(
          * @param range A range of text in a document.
          * @param text A string to replace the text in range.
          */
-        override fun replaceRange(range: SkikoTextRange, text: String) {
+        override fun replaceRange(range: IntRange, text: String) {
             sendEditCommand(
-                SetComposingRegionCommand(range.start, range.end),
+                SetComposingRegionCommand(range.start, range.endInclusive + 1),
                 SetComposingTextCommand(text, 1),
                 FinishComposingTextCommand(),
             )
@@ -216,7 +214,7 @@ internal class UIKitTextInputService(
          * @param selectedRange A range within markedText that indicates the current selection.
          * This range is always relative to markedText.
          */
-        override fun setMarkedText(markedText: String?, selectedRange: SkikoTextRange) {
+        override fun setMarkedText(markedText: String?, selectedRange: IntRange) {
             if (markedText != null) {
                 sendEditCommand(
                     SetComposingTextCommand(markedText, 1)
@@ -232,10 +230,10 @@ internal class UIKitTextInputService(
          * The current selection, which can be a caret or an extended range, always occurs within the marked text.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange
          */
-        override fun markedTextRange(): SkikoTextRange? {
+        override fun markedTextRange(): IntRange? {
             val composition = getState()?.composition
             return if (composition != null) {
-                SkikoTextRange(composition.start, composition.end)
+                composition.start until composition.end
             } else {
                 null
             }
