@@ -80,6 +80,7 @@ import org.jetbrains.skia.paragraph.DecorationLineStyle as SkDecorationLineStyle
 import org.jetbrains.skia.paragraph.DecorationStyle as SkDecorationStyle
 import org.jetbrains.skia.paragraph.Shadow as SkShadow
 import org.jetbrains.skia.FontFeature
+import org.jetbrains.skia.paragraph.Direction
 
 private val DefaultFontSize = 16.sp
 
@@ -331,11 +332,14 @@ internal class SkiaParagraph(
         val prevBox = getBoxBackwardByOffset(offset)
         val nextBox = getBoxForwardByOffset(offset)
         val isRtl = paragraphIntrinsics.textDirection == ResolvedTextDirection.Rtl
+        val isLtr = !isRtl
         return when {
             prevBox == null && nextBox == null -> if (isRtl) width else 0f
             prevBox == null -> nextBox!!.cursorHorizontalPosition(true)
             nextBox == null -> prevBox.cursorHorizontalPosition()
             nextBox.direction == prevBox.direction -> nextBox.cursorHorizontalPosition(true)
+            isLtr && prevBox.direction == Direction.LTR -> nextBox.cursorHorizontalPosition(opposite = true)
+            isRtl && prevBox.direction == Direction.RTL -> nextBox.cursorHorizontalPosition(opposite = true)
             // BiDi transition offset, we need to resolve ambiguity with usePrimaryDirection
             // for details see comment for MultiParagraph.getHorizontalPosition
             usePrimaryDirection -> prevBox.cursorHorizontalPosition()
