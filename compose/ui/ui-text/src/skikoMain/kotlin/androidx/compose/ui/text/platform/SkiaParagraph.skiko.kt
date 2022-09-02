@@ -474,12 +474,37 @@ internal class SkiaParagraph(
 
         // expectedLine is the line which lays at position.y
         val expectedLine = getLineMetricsForVerticalPosition(position.y) ?: return glyphPosition
+        val isNotEmptyLine = expectedLine.startIndex < expectedLine.endIndex // a line with only whitespaces considered to be not empty
+
+        // No need to apply the workaround if the clicked position is within the line bounds (but doesn't include whitespaces)
+        //if (position.x > expectedLine.left && position.x < expectedLine.right || isEmptyLine) {
+        if (position.x > expectedLine.left && position.x < expectedLine.right) {
+            return glyphPosition
+        }
+        
+        val rects = if (isNotEmptyLine) {
+            // expectedLine width doesn't include whitespaces. Therefore we look at the Rectangle representing the line
+            para.getRectsForRange(
+                start = expectedLine.startIndex,
+                end = if (expectedLine.isHardBreak) expectedLine.endIndex else expectedLine.endIndex - 1,
+                rectHeightMode = RectHeightMode.STRUT,
+                rectWidthMode = RectWidthMode.TIGHT
+            )
+        } else { // the array of rects should be empty for an empty line, so no need to call `getRectsForRange`
+            null
+        }
+
+        val leftX = rects?.firstOrNull()?.rect?.left ?: expectedLine.left.toFloat()
+        val rightX = rects?.lastOrNull()?.rect?.right ?: expectedLine.right.toFloat()
+
+        println("LX = $leftX, RX = $rightX, click = $position")
+
         var correctedGlyphPosition = glyphPosition
 
-        if (position.x <= expectedLine.left) { // when clicked to the left of the left side of a text line
-            correctedGlyphPosition = para.getGlyphPositionAtCoordinate(expectedLine.left.toFloat() + 1f, position.y).position
-        } else if (position.x >= expectedLine.right) { // when clicked to the right side of a text line
-            correctedGlyphPosition = para.getGlyphPositionAtCoordinate(expectedLine.right.toFloat() - 1f, position.y).position
+        if (position.x <= leftX) { // when clicked to the left of a text line
+            correctedGlyphPosition = para.getGlyphPositionAtCoordinate(leftX + 1f, position.y).position
+        } else if (position.x >= rightX) { // when clicked to the right of a text line
+            correctedGlyphPosition = para.getGlyphPositionAtCoordinate(rightX - 1f, position.y).position
             // For RTL blocks, the position is still not correct, so we have to subtract 1 from the returned result
             if (getBoxBackwardByOffset(correctedGlyphPosition)?.direction == Direction.RTL) {
                 correctedGlyphPosition -= 1
