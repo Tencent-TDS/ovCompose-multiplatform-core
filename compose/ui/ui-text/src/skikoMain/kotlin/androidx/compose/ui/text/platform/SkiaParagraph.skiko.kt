@@ -477,7 +477,6 @@ internal class SkiaParagraph(
         val isNotEmptyLine = expectedLine.startIndex < expectedLine.endIndex // a line with only whitespaces considered to be not empty
 
         // No need to apply the workaround if the clicked position is within the line bounds (but doesn't include whitespaces)
-        //if (position.x > expectedLine.left && position.x < expectedLine.right || isEmptyLine) {
         if (position.x > expectedLine.left && position.x < expectedLine.right) {
             return glyphPosition
         }
