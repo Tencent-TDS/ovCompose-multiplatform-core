@@ -166,6 +166,10 @@ internal class UIKitTextInputService(
                 sendEditCommand(
                     SetSelectionCommand(range.start, range.endInclusive + 1)
                 )
+            } else {
+                sendEditCommand(
+                    SetSelectionCommand(endOfDocument().toInt(), endOfDocument().toInt())
+                )
             }
         }
 
