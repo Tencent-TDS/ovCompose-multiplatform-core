@@ -181,14 +181,9 @@ internal class UIKitTextInputService(
          * @param range A range of text in a document.
          * @return A substring of a document that falls within the specified range.
          */
-        override fun textInRange(range: IntRange): String? {
+        override fun textInRange(range: IntRange): String {
             val text = getState()?.text
-            return if (!text.isNullOrEmpty() && range.first >= 0 && range.last >= 0) {
-                val substring = text.substring(range.first, min(range.last + 1, text.length))
-                substring.replace("\n", "").ifEmpty { null } //todo maybe redundant
-            } else {
-                null
-            }
+            return text?.substring(range.first, min(range.last + 1, text.length)) ?: ""
         }
 
         /**
