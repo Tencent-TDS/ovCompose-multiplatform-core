@@ -71,6 +71,7 @@ internal class UIKitTextInputService(
 
     override fun stopInput() {
         currentInput = null
+        hideSoftwareKeyboard()
     }
 
     override fun showSoftwareKeyboard() {
