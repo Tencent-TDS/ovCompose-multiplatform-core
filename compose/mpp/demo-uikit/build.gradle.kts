@@ -86,7 +86,6 @@ kotlin {
 
 apple {
     iosApp {
-        println("sourceSet.name: ${sourceSet.name}")
         productName = "composeuikit"
 
         sceneDelegateClass = "SceneDelegate"
