@@ -80,7 +80,7 @@ internal class ComposeLayer(
                     )
                 }
                 SkikoTouchEventKind.UNKNOWN -> {
-                    TODO("onTouchEvent, event.kind: SkikoTouchEventKind.UNKNOWN")
+                    TODO("onTouchEvent, event.kind is SkikoTouchEventKind.UNKNOWN")
                 }
             }
         }
