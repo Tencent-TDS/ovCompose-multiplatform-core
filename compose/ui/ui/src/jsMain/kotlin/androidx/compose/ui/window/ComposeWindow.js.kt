@@ -32,7 +32,7 @@ internal actual class ComposeWindow actual constructor(){
         },
         hideSoftwareKeyboard = {
             println("TODO hideSoftwareKeyboard in JS")
-        }
+        },
     )
 
     private val layer = ComposeLayer(
