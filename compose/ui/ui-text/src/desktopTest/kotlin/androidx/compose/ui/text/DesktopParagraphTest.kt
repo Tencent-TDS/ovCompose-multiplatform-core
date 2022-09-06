@@ -73,7 +73,245 @@ class DesktopParagraphTest {
                 Truth.assertThat(box.left).isEqualTo(i * fontSizeInPx)
                 Truth.assertThat(box.right).isEqualTo((i + 1) * fontSizeInPx)
                 Truth.assertThat(box.top).isZero()
-                Truth.assertThat(box.bottom).isEqualTo(fontSizeInPx + 10)
+                Truth.assertThat(box.bottom).isEqualTo(fontSizeInPx)
+            }
+        }
+    }
+
+    @Test
+    fun `test cursor position of LTR text in LTR and RTL paragraphs`() {
+        // LTR paragraph
+        with(defaultDensity) {
+            val text = "abc"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val paragraph = simpleParagraph(
+                text = text,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Ltr)
+            )
+
+            repeat(4) {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(fontSizeInPx * it)
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(paragraph.getCursorRect(it).right)
+            }
+        }
+
+        // RTL paragraph
+        with(defaultDensity) {
+            val text = "abc"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val widthInPx = fontSizeInPx * 10
+            val paragraph = simpleParagraph(
+                text = text,
+                width = widthInPx,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Rtl)
+            )
+
+            val leftX = paragraph.getLineLeft(0)
+            Truth.assertThat(leftX).isEqualTo(widthInPx - 3 * fontSizeInPx)
+            repeat(4) {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(leftX + fontSizeInPx * it)
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(paragraph.getCursorRect(it).right)
+            }
+        }
+    }
+
+    @Test
+    fun `test cursor position of RTL text in LTR and RTL paragraphs`() {
+        // LTR paragraph
+        with(defaultDensity) {
+            val text = "אסד"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val paragraph = simpleParagraph(
+                text = text,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Ltr)
+            )
+
+            repeat(4) {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo((3 - it) * fontSizeInPx)
+            }
+        }
+
+        // RTL paragraph
+        with(defaultDensity) {
+            val text = "אסד"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val widthInPx = fontSizeInPx * 10
+            val paragraph = simpleParagraph(
+                text = text,
+                width = widthInPx,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Rtl)
+            )
+
+            val leftX = paragraph.getLineLeft(0)
+            Truth.assertThat(leftX).isEqualTo(widthInPx - 3 * fontSizeInPx)
+            repeat(4) {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(leftX + (3 - it) * fontSizeInPx )
+            }
+        }
+    }
+
+    @Test
+    fun `test cursor position of BiDi text in LTR and RTL paragraphs`() {
+        // LTR paragraph
+        with(defaultDensity) {
+            val text = "asd אסד"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val paragraph = simpleParagraph(
+                text = text,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Ltr)
+            )
+
+            val rightX = paragraph.getLineRight(0)
+            (0..3).forEach {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(it * fontSizeInPx)
+            }
+            (4..7).forEach {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(rightX - (it - 4) * fontSizeInPx)
+            }
+        }
+        with(defaultDensity) {
+            val text = "אסד asd"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val paragraph = simpleParagraph(
+                text = text,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Ltr)
+            )
+
+            val leftX = paragraph.getLineLeft(0)
+            (0..3).forEach {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(leftX + (3 - it) * fontSizeInPx)
+            }
+            (7 downTo 4).forEach {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(it * fontSizeInPx)
+            }
+        }
+
+        // RTL paragraph
+        with(defaultDensity) {
+            val text = "asd אסד"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val paragraph = simpleParagraph(
+                text = text,
+                width = 10 * fontSizeInPx,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Rtl)
+            )
+
+            val rightX = paragraph.getLineRight(0)
+            (3 downTo 0).forEach {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(rightX - (3 - it) * fontSizeInPx)
+            }
+            (4..7).forEach {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(rightX -  it * fontSizeInPx)
+            }
+        }
+        with(defaultDensity) {
+            val text = "אסד asd"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val paragraph = simpleParagraph(
+                text = text,
+                width = 10 * fontSizeInPx,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Rtl)
+            )
+
+            val leftX = paragraph.getLineLeft(0)
+            val rightX = paragraph.getLineRight(0)
+            (0..3).forEach {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(rightX - it * fontSizeInPx)
+            }
+            (4..7).forEach {
+                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(leftX + (it - 4) * fontSizeInPx)
+            }
+        }
+    }
+
+    @Test
+    fun `test cursor position in RTl text when clicking on an empty line`() {
+        // Tests if (leftX == rightX) in getOffsetForPosition
+        with(defaultDensity) {
+            val text = "asd\n"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val paragraph = simpleParagraph(
+                text = text,
+                width = 10 * fontSizeInPx,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Rtl)
+            )
+
+            val leftX = paragraph.getLineLeft(0)
+            val rightX = paragraph.getLineRight(0)
+
+            val clickX = (leftX + rightX) / 2f
+            val secondLineY = (paragraph.getLineBottom(1) + paragraph.getLineTop(1)) / 2f
+
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(clickX, secondLineY))).isEqualTo(4)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(leftX - fontSizeInPx, secondLineY))).isEqualTo(4)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(rightX + fontSizeInPx, secondLineY))).isEqualTo(4)
+        }
+    }
+
+    @Test
+    fun `test getOffsetByPosition`() {
+        // LTR
+        with(defaultDensity) {
+            val text = " abc \ndef ghi"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val paragraph = simpleParagraph(
+                text = text,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Ltr)
+            )
+
+            val firstLineY = (paragraph.getLineBottom(0) + paragraph.getLineTop(0)) / 2f
+            (0..5).forEach {
+                Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = fontSizeInPx * it, y = firstLineY)))
+                    .isEqualTo(it)
+            }
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = 1000f, y = firstLineY))).isEqualTo(5)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = -100f, y = firstLineY))).isEqualTo(0)
+
+            val secondLineY = (paragraph.getLineBottom(1) + paragraph.getLineTop(1)) / 2f
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = 1000f, y = secondLineY))).isEqualTo(13)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = -100f, y = secondLineY))).isEqualTo(6)
+
+            (6..13).forEach {
+                Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = fontSizeInPx * (it - 6), y = secondLineY))).isEqualTo(it)
+            }
+        }
+
+        // RTL
+        with(defaultDensity) {
+            val text = " אסד \nקשע תטו"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val width = 10 * fontSizeInPx
+            val paragraph = simpleParagraph(
+                text = text,
+                width = width,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Rtl)
+            )
+
+            val firstLineY = (paragraph.getLineBottom(0) + paragraph.getLineTop(0)) / 2f
+            (0..5).forEach {
+                Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = width - fontSizeInPx * it, y = firstLineY)))
+                    .isEqualTo(it)
+            }
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = width + fontSizeInPx, y = firstLineY))).isEqualTo(0)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = 0f, y = firstLineY))).isEqualTo(5)
+
+            val secondLineY = 20f + (paragraph.getLineBottom(1) + paragraph.getLineTop(1)) / 2f
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = width - 1f, y = secondLineY))).isEqualTo(6)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = -100f, y = secondLineY))).isEqualTo(13)
+
+            (7..13).forEach {
+                Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = width - (it - 6) * fontSizeInPx, y = secondLineY))).isEqualTo(it)
             }
         }
     }
@@ -94,10 +332,10 @@ class DesktopParagraphTest {
                 .isEqualTo(Rect(0f, 0f, fontSizeInPx, 60f))
 
             Truth.assertThat(paragraph.getBoundingBox(1))
-                .isEqualTo(Rect(fontSizeInPx, 0f, fontSizeInPx * 2.5f, 60f))
+                .isEqualTo(Rect(fontSizeInPx, 0f, fontSizeInPx * 2.5f, 50f))
 
             Truth.assertThat(paragraph.getBoundingBox(5))
-                .isEqualTo(Rect(fontSizeInPx, 0f, fontSizeInPx * 2.5f, 60f))
+                .isEqualTo(Rect(fontSizeInPx, 0f, fontSizeInPx * 2.5f, 50f))
         }
     }
 
@@ -170,7 +408,7 @@ class DesktopParagraphTest {
                 width = width
             )
 
-            for (i in 0..ltrText.length) {
+            for (i in 0..ltrText.lastIndex) {
                 Truth.assertThat(paragraph.getHorizontalPosition(i, true))
                     .isEqualTo(fontSizeInPx * i)
             }
