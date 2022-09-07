@@ -411,7 +411,7 @@ class DesktopParagraphTest {
             )
 
             Truth.assertThat(paragraph.getBoundingBox(0))
-                .isEqualTo(Rect(0f, 0f, fontSizeInPx, 60f))
+                .isEqualTo(Rect(0f, 0f, fontSizeInPx, 50f))
 
             Truth.assertThat(paragraph.getBoundingBox(1))
                 .isEqualTo(Rect(fontSizeInPx, 0f, fontSizeInPx * 2.5f, 50f))
@@ -490,7 +490,7 @@ class DesktopParagraphTest {
                 width = width
             )
 
-            for (i in 0..ltrText.lastIndex) {
+            for (i in ltrText.indices) {
                 Truth.assertThat(paragraph.getHorizontalPosition(i, true))
                     .isEqualTo(fontSizeInPx * i)
             }
