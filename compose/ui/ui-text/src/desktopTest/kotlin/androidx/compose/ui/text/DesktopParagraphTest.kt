@@ -317,6 +317,88 @@ class DesktopParagraphTest {
     }
 
     @Test
+    fun `test cursor position on line-break`() {
+        with(defaultDensity) {
+            val text = "abc abc  abc abc abc abc  abc"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val width = 8 * fontSizeInPx
+            val paragraph = simpleParagraph(
+                width = width,
+                text = text,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Ltr)
+            )
+
+            Truth.assertThat(paragraph.lineCount).isEqualTo(4)
+            val y = fontSizeInPx / 2f
+
+            // first line has 2 spaces in the end
+            Truth.assertThat(
+                paragraph.getOffsetForPosition(Offset(x = width, y = y))
+            ).isEqualTo(8)
+
+            // seconds line has 1 space in the end
+            Truth.assertThat(
+                paragraph.getOffsetForPosition(Offset(x = width, y = y + fontSizeInPx))
+            ).isEqualTo(16)
+
+            // 3rd line has 2 spaces in the end
+            Truth.assertThat(
+                paragraph.getOffsetForPosition(Offset(x = width, y = y + 2 * fontSizeInPx))
+            ).isEqualTo(25)
+
+            // 4th line has no spaces
+            Truth.assertThat(
+                paragraph.getOffsetForPosition(Offset(x = width, y = y + 3 * fontSizeInPx))
+            ).isEqualTo(29)
+        }
+    }
+
+    @Test
+    fun `test cursor position in a line with many space in the end`() {
+        with(defaultDensity) {
+            // 1st: 4 spaces, 2nd: 0 spaces, 3rd: 1 space, 4th: empty line
+            val text = "abc    \ndef\ngh \n"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val width = 20 * fontSizeInPx
+            val paragraph = simpleParagraph(
+                width = width,
+                text = text,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Ltr)
+            )
+
+            val y = fontSizeInPx / 2f
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = width, y = y))).isEqualTo(7)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = width, y = y + fontSizeInPx))).isEqualTo(11)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = width, y = y + 2 * fontSizeInPx))).isEqualTo(15)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = width, y = y + 3 * fontSizeInPx))).isEqualTo(16)
+        }
+    }
+
+    @Test
+    fun `test cursor position in a line with many space in the start`() {
+        with(defaultDensity) {
+            // 1st: 4 spaces, 2nd: 0 spaces, 3rd: 1 space, 4th: empty line
+            val text = "    abc\ndef\n gh\n"
+            val fontSize = 50.sp
+            val fontSizeInPx = fontSize.toPx()
+            val width = 20 * fontSizeInPx
+            val paragraph = simpleParagraph(
+                width = width,
+                text = text,
+                style = TextStyle(fontSize = fontSize, textDirection = TextDirection.Ltr)
+            )
+
+            val y = fontSizeInPx / 2f
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = 0f, y = y))).isEqualTo(0)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = 0f, y = y + fontSizeInPx))).isEqualTo(8)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = 0f, y = y + 2 * fontSizeInPx))).isEqualTo(12)
+            Truth.assertThat(paragraph.getOffsetForPosition(Offset(x = 0f, y = y + 3 * fontSizeInPx))).isEqualTo(16)
+        }
+    }
+
+    @Test
     fun getBoundingBox_multicodepoints() {
         assumeTrue(isLinux)
         with(defaultDensity) {
