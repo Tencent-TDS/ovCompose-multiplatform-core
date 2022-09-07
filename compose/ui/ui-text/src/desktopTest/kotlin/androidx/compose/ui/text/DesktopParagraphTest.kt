@@ -91,8 +91,10 @@ class DesktopParagraphTest {
             )
 
             repeat(4) {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(fontSizeInPx * it)
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(paragraph.getCursorRect(it).right)
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo((fontSizeInPx * it).roundToInt())
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo(paragraph.getCursorRect(it).right.roundToInt())
             }
         }
 
@@ -109,10 +111,12 @@ class DesktopParagraphTest {
             )
 
             val leftX = paragraph.getLineLeft(0)
-            Truth.assertThat(leftX).isEqualTo(widthInPx - 3 * fontSizeInPx)
+            Truth.assertThat(leftX.roundToInt()).isEqualTo((widthInPx - 3 * fontSizeInPx).roundToInt())
             repeat(4) {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(leftX + fontSizeInPx * it)
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(paragraph.getCursorRect(it).right)
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo((leftX + fontSizeInPx * it).roundToInt())
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo(paragraph.getCursorRect(it).right.roundToInt())
             }
         }
     }
@@ -130,7 +134,8 @@ class DesktopParagraphTest {
             )
 
             repeat(4) {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo((3 - it) * fontSizeInPx)
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo(((3 - it) * fontSizeInPx).roundToInt())
             }
         }
 
@@ -147,9 +152,10 @@ class DesktopParagraphTest {
             )
 
             val leftX = paragraph.getLineLeft(0)
-            Truth.assertThat(leftX).isEqualTo(widthInPx - 3 * fontSizeInPx)
+            Truth.assertThat(leftX.roundToInt()).isEqualTo((widthInPx - 3 * fontSizeInPx).roundToInt())
             repeat(4) {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(leftX + (3 - it) * fontSizeInPx )
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo((leftX + (3 - it) * fontSizeInPx).roundToInt())
             }
         }
     }
@@ -168,10 +174,12 @@ class DesktopParagraphTest {
 
             val rightX = paragraph.getLineRight(0)
             (0..3).forEach {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(it * fontSizeInPx)
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo((it * fontSizeInPx).roundToInt())
             }
             (4..7).forEach {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(rightX - (it - 4) * fontSizeInPx)
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo((rightX - (it - 4) * fontSizeInPx).roundToInt())
             }
         }
         with(defaultDensity) {
@@ -185,10 +193,12 @@ class DesktopParagraphTest {
 
             val leftX = paragraph.getLineLeft(0)
             (0..3).forEach {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(leftX + (3 - it) * fontSizeInPx)
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo((leftX + (3 - it) * fontSizeInPx).roundToInt())
             }
             (7 downTo 4).forEach {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(it * fontSizeInPx)
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo((it * fontSizeInPx).roundToInt())
             }
         }
 
@@ -205,10 +215,12 @@ class DesktopParagraphTest {
 
             val rightX = paragraph.getLineRight(0)
             (3 downTo 0).forEach {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(rightX - (3 - it) * fontSizeInPx)
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo((rightX - (3 - it) * fontSizeInPx).roundToInt())
             }
             (4..7).forEach {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(rightX -  it * fontSizeInPx)
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo((rightX -  it * fontSizeInPx).roundToInt())
             }
         }
         with(defaultDensity) {
@@ -224,10 +236,12 @@ class DesktopParagraphTest {
             val leftX = paragraph.getLineLeft(0)
             val rightX = paragraph.getLineRight(0)
             (0..3).forEach {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(rightX - it * fontSizeInPx)
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo((rightX - it * fontSizeInPx).roundToInt())
             }
             (4..7).forEach {
-                Truth.assertThat(paragraph.getCursorRect(it).left).isEqualTo(leftX + (it - 4) * fontSizeInPx)
+                Truth.assertThat(paragraph.getCursorRect(it).left.roundToInt())
+                    .isEqualTo((leftX + (it - 4) * fontSizeInPx).roundToInt())
             }
         }
     }
