@@ -71,6 +71,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
     kotlin {
         watchosArm64()
+        watchosArm32()
         watchosX86()
         watchosX64()
         watchosSimulatorArm64()
@@ -154,6 +155,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             watchosArm64Main.dependsOn(watchOsMain)
             watchosArm64Test.dependsOn(watchOsTest)
+            watchosArm32Main.dependsOn(watchOsMain)
+            watchosArm32Test.dependsOn(watchOsTest)
             watchosX86Main.dependsOn(watchOsMain)
             watchosX86Test.dependsOn(watchOsTest)
             watchosX64Main.dependsOn(watchOsMain)
