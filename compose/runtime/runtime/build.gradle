@@ -70,6 +70,14 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     }
 
     kotlin {
+        watchosArm64()
+        watchosX86()
+        watchosX64()
+        watchosSimulatorArm64()
+        tvosArm64()
+        tvosX64()
+        tvosSimulatorArm64()
+
         targets.js {
             nodejs {
                 testTask {
@@ -135,6 +143,35 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             jsNativeMain.dependsOn(commonMain)
             jsMain.dependsOn(jsNativeMain)
             nativeMain.dependsOn(jsNativeMain)
+
+            def darwinMain = sourceSets.getByName("darwinMain")
+            def darwinTest = sourceSets.getByName("darwinTest")
+
+            def watchOsMain = sourceSets.create("watchOsMain")
+            def watchOsTest = sourceSets.create("watchOsTest")
+            watchOsMain.dependsOn(darwinMain)
+            watchOsTest.dependsOn(darwinTest)
+
+            watchosArm64Main.dependsOn(watchOsMain)
+            watchosArm64Test.dependsOn(watchOsTest)
+            watchosX86Main.dependsOn(watchOsMain)
+            watchosX86Test.dependsOn(watchOsTest)
+            watchosX64Main.dependsOn(watchOsMain)
+            watchosX64Test.dependsOn(watchOsTest)
+            watchosSimulatorArm64Main.dependsOn(watchOsMain)
+            watchosSimulatorArm64Test.dependsOn(watchOsTest)
+
+            def tvOsMain = sourceSets.create("tvOsMain")
+            def tvOsTest = sourceSets.create("tvOsTest")
+            tvOsMain.dependsOn(darwinMain)
+            tvOsTest.dependsOn(darwinTest)
+
+            tvosArm64Main.dependsOn(tvOsMain)
+            tvosArm64Test.dependsOn(tvOsTest)
+            tvosX64Main.dependsOn(tvOsMain)
+            tvosX64Test.dependsOn(tvOsTest)
+            tvosSimulatorArm64Main.dependsOn(tvOsMain)
+            tvosSimulatorArm64Test.dependsOn(tvOsTest)
 
             jvmTest.dependencies {
                 implementation(libs.kotlinTestJunit)
