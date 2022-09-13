@@ -148,7 +148,7 @@ interface TextContextMenu {
      * Defines an area, that describes how to open and show text context menus.
      * Usually it uses [ContextMenuArea] as the implementation.
      *
-     * @param actions Available actions that can be performed with text for which we show the text context menu.
+     * @param actions Available actions that can be performed on the text for which we show the text context menu.
      * @param state [ContextMenuState] of menu controlled by this area.
      * @param content The content of the [ContextMenuArea].
      */
@@ -216,16 +216,16 @@ interface TextContextMenu {
 /**
  * [TextContextMenu] that uses [JPopupMenu] to show the text context menu.
  *
- * You can use it overriding [TextContextMenu] on the top level of your application.
+ * You can use it by overriding [TextContextMenu] on the top level of your application.
  *
- * @param owner owner component of the context menu. Usually it is the root [ComposeWindow] or [ComposePanel].
- * @param createMenu describes how to create [JPopupMenu]. Use it if you want customization of the menu
- * @param createItem describes how to create a generic context menu item. Use it if you want customization
- * of the menu items. It is usually used for items provided by [ContextMenuArea] in user code.
- * @param createCut describes hot to create the menu item for Cut action
- * @param createCopy describes hot to create the menu item for Copy action
- * @param createPaste describes hot to create the menu item for Paste action
- * @param createSelectAll describes hot to create the menu item for Select All action
+ * @param owner The root component that owns a context menu. Usually it is [ComposeWindow] or [ComposePanel].
+ * @param createMenu Describes how to create [JPopupMenu]. Use it if you want customization of the menu.
+ * @param createItem Describes how to create a generic context menu item. Use it if you want customization.
+ * of the menu items. It is called for items provided by [ContextMenuArea] in user code.
+ * @param createCut Describes hot to create the menu item for Cut action.
+ * @param createCopy Describes hot to create the menu item for Copy action.
+ * @param createPaste Describes hot to create the menu item for Paste action.
+ * @param createSelectAll Describes hot to create the menu item for Select All action.
  */
 @ExperimentalFoundationApi
 class JPopupTextMenu(

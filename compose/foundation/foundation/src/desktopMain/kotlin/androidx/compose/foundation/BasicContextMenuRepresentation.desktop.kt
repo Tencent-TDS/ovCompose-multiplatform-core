@@ -197,13 +197,13 @@ private fun MenuItemContent(
 /**
  * [ContextMenuRepresentation] that uses [JPopupMenu] to show a context menu for [ContextMenuArea].
  *
- * You can use it overriding [LocalContextMenuRepresentation] on the top level of your application.
+ * You can use it by overriding [LocalContextMenuRepresentation] on the top level of your application.
  *
  * See also [JPopupTextMenu] that allows more specific customization for the text context menu.
  *
- * @param owner The root component, who owns a context menu. Usually it is [ComposeWindow] or [ComposePanel].
+ * @param owner The root component that owns a context menu. Usually it is [ComposeWindow] or [ComposePanel].
  * @param createMenu Describes how to create [JPopupMenu]. Use it if you want customization of the menu.
- * @param createItem Describes how to create a context menu item. Use it if you want customization of the menu items.
+ * @param createItem Describes how to create a context menu item. Use it if you want customization of menu items.
  */
 @ExperimentalFoundationApi
 class JPopupContextMenuRepresentation(
