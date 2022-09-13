@@ -16,6 +16,9 @@
 
 package androidx.compose.desktop.examples.swingexample
 
+import java.awt.Color as awtColor
+import androidx.compose.foundation.ContextMenuItem
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,13 +31,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.JPopupTextMenu
+import androidx.compose.foundation.text.LocalTextContextMenu
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.Button
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposePanel
@@ -47,40 +58,49 @@ import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.launchApplication
 import androidx.compose.ui.window.rememberWindowState
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
 import java.awt.BorderLayout
-import java.awt.Color as awtColor
 import java.awt.Component
-import java.awt.GridLayout
 import java.awt.Dimension
-import java.awt.event.ActionEvent
-import java.awt.event.ActionListener
+import java.awt.Graphics
+import java.awt.GridLayout
+import java.awt.event.KeyEvent
+import java.awt.event.KeyEvent.CTRL_DOWN_MASK
+import java.awt.event.KeyEvent.META_DOWN_MASK
+import javax.swing.Icon
 import javax.swing.JButton
 import javax.swing.JFrame
+import javax.swing.JMenuItem
 import javax.swing.JPanel
+import javax.swing.KeyStroke
 import javax.swing.SwingUtilities
+import javax.swing.UIManager
 import javax.swing.WindowConstants
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import org.jetbrains.skiko.hostOs
 
 val northClicks = mutableStateOf(0)
 val westClicks = mutableStateOf(0)
 val eastClicks = mutableStateOf(0)
 
 fun main() = SwingUtilities.invokeLater {
+    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
     SwingComposeWindow()
 }
 
 fun SwingComposeWindow() {
     // creating ComposePanel
     val composePanelTop = ComposePanel()
-    composePanelTop.setBackground(awtColor(55, 155, 55))
+    composePanelTop.background = awtColor(55, 155, 55)
 
     val composePanelBottom = ComposePanel()
-    composePanelBottom.setBackground(awtColor(55, 55, 155))
+    composePanelBottom.background = awtColor(55, 55, 155)
 
     // setting the content
     composePanelTop.setContent {
-        ComposeContent(background = Color(55, 155, 55))
+        WithJPopupTextMenu(composePanelTop) {
+            ComposeContent(background = Color(55, 155, 55))
+        }
         DisposableEffect(Unit) {
             onDispose {
                 println("Dispose composition")
@@ -101,7 +121,7 @@ fun SwingComposeWindow() {
     window.title = "SwingComposeWindow"
 
     val panel = JPanel()
-    panel.setLayout(GridLayout(2, 1))
+    panel.layout = GridLayout(2, 1)
     window.contentPane.add(panel, BorderLayout.CENTER)
 
     window.contentPane.add(actionButton("WEST", { westClicks.value++ }), BorderLayout.WEST)
@@ -121,7 +141,7 @@ fun SwingComposeWindow() {
     panel.add(composePanelBottom)
 
     window.setSize(800, 600)
-    window.setVisible(true)
+    window.isVisible = true
 }
 
 fun actionButton(
@@ -130,15 +150,46 @@ fun actionButton(
     size: IntSize = IntSize(70, 70)
 ): JButton {
     val button = JButton(text)
-    button.setToolTipText("Tooltip for $text button.")
-    button.setPreferredSize(Dimension(size.width, size.height))
-    button.addActionListener(object : ActionListener {
-        public override fun actionPerformed(e: ActionEvent) {
-            action?.invoke()
-        }
-    })
+    button.toolTipText = "Tooltip for $text button."
+    button.preferredSize = Dimension(size.width, size.height)
+    button.addActionListener { action?.invoke() }
 
     return button
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun WithJPopupTextMenu(owner: Component, content: @Composable () -> Unit) {
+    CompositionLocalProvider(
+        LocalTextContextMenu provides JPopupTextMenu(
+            owner,
+            createCut = { swingItem(it, java.awt.Color.RED, KeyEvent.VK_X) },
+            createCopy = { swingItem(it, java.awt.Color.GREEN, KeyEvent.VK_C) },
+            createPaste = { swingItem(it, java.awt.Color.BLUE, KeyEvent.VK_V) },
+            createSelectAll = { swingItem(it, java.awt.Color.BLACK, KeyEvent.VK_A) },
+        ),
+        content = content
+    )
+}
+
+private fun swingItem(item: ContextMenuItem, color: java.awt.Color, key: Int) = JMenuItem(item.label).apply {
+    icon = circleIcon(color)
+    accelerator = KeyStroke.getKeyStroke(key, if (hostOs.isMacOS) META_DOWN_MASK else CTRL_DOWN_MASK)
+    addActionListener { item.onClick() }
+}
+
+private fun circleIcon(color: java.awt.Color) = object : Icon {
+    override fun paintIcon(c: Component?, g: Graphics, x: Int, y: Int) {
+        g.create().apply {
+            this.color = color
+            translate(16, 2)
+            fillOval(0, 0, 16, 16)
+        }
+    }
+
+    override fun getIconWidth() = 16
+
+    override fun getIconHeight() = 16
 }
 
 @Composable
@@ -196,6 +247,17 @@ fun ComposeContent(background: Color = Color.White) {
                 Counter("North", northClicks)
                 Spacer(modifier = Modifier.width(25.dp))
                 Counter("East", eastClicks)
+                Spacer(modifier = Modifier.width(25.dp))
+                Column(modifier = Modifier.width(200.dp)) {
+                    SelectionContainer {
+                        Column {
+                            Text("Text1")
+                            Text("Text2")
+                        }
+                    }
+                    var text by remember { mutableStateOf("") }
+                    TextField(text, { text = it })
+                }
             }
         }
     }
