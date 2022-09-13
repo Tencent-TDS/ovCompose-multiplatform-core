@@ -19,7 +19,6 @@ package androidx.compose.ui.test
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,8 +45,6 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
-import kotlin.time.ExperimentalTime
-import kotlin.time.measureTime
 import org.junit.Test
 
 @OptIn(ExperimentalTestApi::class, ExperimentalComposeUiApi::class)
@@ -68,51 +65,6 @@ class ComposeUiTestTest {
                     }
                 }
         )
-    }
-
-    @OptIn(ExperimentalTime::class)
-    @Test
-    fun test1() = runComposeUiTest {
-        var text by mutableStateOf("")
-        setContent {
-            TextField(text, onValueChange = { text = it }, Modifier.testTag("tag"))
-        }
-
-        println(measureTime {
-        onNode(hasTestTag("tag")).performTextInput("different text")
-        })
-//
-//        onNode(hasTestTag("tag")).assertTextContains("different text")
-    }
-    @Test
-    fun test2() = runComposeUiTest {
-        var text by mutableStateOf("")
-        setContent {
-            TextField(text, onValueChange = { text = it }, Modifier.testTag("tag"))
-        }
-        onNode(hasTestTag("tag")).performTextInput("different text")
-
-        onNode(hasTestTag("tag")).assertTextContains("different text")
-    }
-    @Test
-    fun test3() = runComposeUiTest {
-        var text by mutableStateOf("")
-        setContent {
-            TextField(text, onValueChange = { text = it }, Modifier.testTag("tag"))
-        }
-        onNode(hasTestTag("tag")).performTextInput("different text")
-
-        onNode(hasTestTag("tag")).assertTextContains("different text")
-    }
-    @Test
-    fun test4() = runComposeUiTest {
-        var text by mutableStateOf("")
-        setContent {
-            TextField(text, onValueChange = { text = it }, Modifier.testTag("tag"))
-        }
-        onNode(hasTestTag("tag")).performTextInput("different text")
-
-        onNode(hasTestTag("tag")).assertTextContains("different text")
     }
 
     @Test
