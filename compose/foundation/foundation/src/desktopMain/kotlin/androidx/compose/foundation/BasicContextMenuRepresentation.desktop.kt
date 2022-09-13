@@ -91,7 +91,7 @@ val DarkDefaultContextMenuRepresentation = DefaultContextMenuRepresentation(
  *
  * @param backgroundColor Color of a context menu background.
  * @param textColor Color of the text in a context menu
- * @param itemHoverColor Color of the item background when we hover it.
+ * @param itemHoverColor Color of an item background when we hover it.
  */
 class DefaultContextMenuRepresentation(
     private val backgroundColor: Color,
