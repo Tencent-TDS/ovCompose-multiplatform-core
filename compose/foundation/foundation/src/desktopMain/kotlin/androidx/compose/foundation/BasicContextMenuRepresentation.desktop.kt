@@ -144,7 +144,7 @@ class DefaultContextMenuRepresentation(
                         .verticalScroll(rememberScrollState())
 
                 ) {
-                    items().distinctBy { it.label }.forEach { item ->
+                    items().forEach { item ->
                         MenuItemContent(
                             itemHoverColor = itemHoverColor,
                             onClick = {
