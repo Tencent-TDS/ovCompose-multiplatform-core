@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalFoundationApi::class)
-
 package androidx.compose.foundation.text
 
 import androidx.compose.foundation.ContextMenuArea
@@ -25,7 +23,7 @@ import androidx.compose.foundation.DesktopPlatform
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.JPopupContextMenuRepresentation
 import androidx.compose.foundation.LocalContextMenuRepresentation
-import androidx.compose.foundation.text.TextContextMenu.Actions
+import androidx.compose.foundation.text.TextContextMenu.TextManager
 import androidx.compose.foundation.text.selection.SelectionManager
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.runtime.Composable
@@ -41,11 +39,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalLocalization
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.getSelectedText
 import java.awt.Component
-import javax.swing.JMenuItem
 import javax.swing.JPopupMenu
-import kotlinx.coroutines.flow.collect
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal actual fun ContextMenuArea(
     manager: TextFieldSelectionManager,
@@ -55,9 +53,10 @@ internal actual fun ContextMenuArea(
     if (DesktopPlatform.Current == DesktopPlatform.MacOS) {
         OpenMenuAdjuster(state) { manager.contextMenuOpenAdjustment(it) }
     }
-    LocalTextContextMenu.current.Area(manager.actions, state, content)
+    LocalTextContextMenu.current.Area(manager.textManager, state, content)
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal actual fun ContextMenuArea(
     manager: SelectionManager,
@@ -67,7 +66,7 @@ internal actual fun ContextMenuArea(
     if (DesktopPlatform.Current == DesktopPlatform.MacOS) {
         OpenMenuAdjuster(state) { manager.contextMenuOpenAdjustment(it) }
     }
-    LocalTextContextMenu.current.Area(manager.actions, state, content)
+    LocalTextContextMenu.current.Area(manager.textManager, state, content)
 }
 
 @Composable
@@ -81,7 +80,10 @@ internal fun OpenMenuAdjuster(state: ContextMenuState, adjustAction: (Offset) ->
     }
 }
 
-private val TextFieldSelectionManager.actions get() = object : Actions {
+@OptIn(ExperimentalFoundationApi::class)
+private val TextFieldSelectionManager.textManager get() = object : TextManager {
+    override val selectedText get() = value.getSelectedText()
+
     val isPassword get() = visualTransformation is PasswordVisualTransformation
 
     override val cut: (() -> Unit)? get() =
@@ -125,11 +127,13 @@ private val TextFieldSelectionManager.actions get() = object : Actions {
         }
 }
 
-private val SelectionManager.actions get() = object : Actions {
-    override var cut: (() -> Unit)? = null
-    override var copy: (() -> Unit)? = { copy() }
-    override var paste: (() -> Unit)? = null
-    override var selectAll: (() -> Unit)? = null
+@OptIn(ExperimentalFoundationApi::class)
+private val SelectionManager.textManager get() = object : TextManager {
+    override val selectedText get() = getSelectedText() ?: AnnotatedString("")
+    override val cut = null
+    override val copy = { copy() }
+    override val paste = null
+    override val selectAll = null
 }
 
 /**
@@ -148,18 +152,23 @@ interface TextContextMenu {
      * Defines an area, that describes how to open and show text context menus.
      * Usually it uses [ContextMenuArea] as the implementation.
      *
-     * @param actions Available actions that can be performed on the text for which we show the text context menu.
+     * @param textManager Provides useful methods and information for text for which we show the text context menu.
      * @param state [ContextMenuState] of menu controlled by this area.
      * @param content The content of the [ContextMenuArea].
      */
     @Composable
-    fun Area(actions: Actions, state: ContextMenuState, content: @Composable () -> Unit)
+    fun Area(textManager: TextManager, state: ContextMenuState, content: @Composable () -> Unit)
 
     /**
-     * Available actions that can be performed with text for which we show the text context menu.
+     * Provides useful methods and information for text for which we show the text context menu.
      */
     @ExperimentalFoundationApi
-    interface Actions {
+    interface TextManager {
+        /**
+         * The current selected text.
+         */
+        val selectedText: AnnotatedString
+
         /**
          * Action for cutting the selected text to the clipboard. Null if there is no text to cut.
          */
@@ -188,20 +197,20 @@ interface TextContextMenu {
         @ExperimentalFoundationApi
         val Default = object : TextContextMenu {
             @Composable
-            override fun Area(actions: Actions, state: ContextMenuState, content: @Composable () -> Unit) {
+            override fun Area(textManager: TextManager, state: ContextMenuState, content: @Composable () -> Unit) {
                 val localization = LocalLocalization.current
                 val items = {
                     listOfNotNull(
-                        actions.cut?.let {
+                        textManager.cut?.let {
                             ContextMenuItem(localization.cut, it)
                         },
-                        actions.copy?.let {
+                        textManager.copy?.let {
                             ContextMenuItem(localization.copy, it)
                         },
-                        actions.paste?.let {
+                        textManager.paste?.let {
                             ContextMenuItem(localization.paste, it)
                         },
-                        actions.selectAll?.let {
+                        textManager.selectAll?.let {
                             ContextMenuItem(localization.selectAll, it)
                         },
                     )
@@ -219,66 +228,22 @@ interface TextContextMenu {
  * You can use it by overriding [TextContextMenu] on the top level of your application.
  *
  * @param owner The root component that owns a context menu. Usually it is [ComposeWindow] or [ComposePanel].
- * @param createMenu Describes how to create [JPopupMenu]. Use it if you want customization of the menu.
- * @param createItem Describes how to create a generic context menu item. Use it if you want customization.
- * of the menu items. It is called for items provided by [ContextMenuArea] in user code.
- * @param createCut Describes hot to create the menu item for Cut action.
- * @param createCopy Describes hot to create the menu item for Copy action.
- * @param createPaste Describes hot to create the menu item for Paste action.
- * @param createSelectAll Describes hot to create the menu item for Select All action.
+ * @param createMenu Describes how to create [JPopupMenu] from [TextManager] and from list of custom [ContextMenuItem]
+ * defined by [CompositionLocalProvider].
  */
 @ExperimentalFoundationApi
 class JPopupTextMenu(
     private val owner: Component,
-    private val createMenu: () -> JPopupMenu = { JPopupMenu() },
-    private val createItem: (ContextMenuItem) -> Component = { item ->
-        JMenuItem(item.label).apply {
-            addActionListener { item.onClick() }
-        }
-    },
-    private val createCut: (ContextMenuItem) -> Component = createItem,
-    private val createCopy: (ContextMenuItem) -> Component = createItem,
-    private val createPaste: (ContextMenuItem) -> Component = createItem,
-    private val createSelectAll: (ContextMenuItem) -> Component = createItem
+    private val createMenu: (TextManager, List<ContextMenuItem>) -> JPopupMenu,
 ) : TextContextMenu {
     @Composable
-    override fun Area(actions: Actions, state: ContextMenuState, content: @Composable () -> Unit) {
-        val localization = LocalLocalization.current
-        val items = {
-            listOfNotNull(
-                actions.cut?.let {
-                    JPopupContextMenuItem(localization.cut, it, createCut)
-                },
-                actions.copy?.let {
-                    JPopupContextMenuItem(localization.copy, it, createCopy)
-                },
-                actions.paste?.let {
-                    JPopupContextMenuItem(localization.paste, it, createPaste)
-                },
-                actions.selectAll?.let {
-                    JPopupContextMenuItem(localization.selectAll, it, createSelectAll)
-                },
-            )
-        }
-
+    override fun Area(textManager: TextManager, state: ContextMenuState, content: @Composable () -> Unit) {
         CompositionLocalProvider(
-            LocalContextMenuRepresentation provides JPopupContextMenuRepresentation(
-                owner,
-                createMenu
-            ) { item ->
-                when (item) {
-                    is JPopupContextMenuItem -> item.createJMenuItem(item)
-                    else -> createItem(item)
-                }
+            LocalContextMenuRepresentation provides JPopupContextMenuRepresentation(owner) {
+                createMenu(textManager, it)
             }
         ) {
-            ContextMenuArea(items, state, content = content)
+            ContextMenuArea({ emptyList() }, state, content = content)
         }
     }
 }
-
-private class JPopupContextMenuItem(
-    label: String,
-    onClick: () -> Unit,
-    val createJMenuItem: (ContextMenuItem) -> Component
-) : ContextMenuItem(label, onClick)

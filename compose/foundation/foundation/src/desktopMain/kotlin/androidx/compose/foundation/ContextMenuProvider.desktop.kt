@@ -54,12 +54,10 @@ fun ContextMenuArea(
 ) {
     val data = ContextMenuData(items, LocalContextMenuData.current)
 
-    ContextMenuDataProvider(data) {
-        Box(Modifier.contextMenuDetector(state, enabled), propagateMinConstraints = true) {
-            content()
-        }
-        LocalContextMenuRepresentation.current.Representation(state) { data.allItems }
+    Box(Modifier.contextMenuDetector(state, enabled), propagateMinConstraints = true) {
+        content()
     }
+    LocalContextMenuRepresentation.current.Representation(state) { data.allItems }
 }
 
 /**

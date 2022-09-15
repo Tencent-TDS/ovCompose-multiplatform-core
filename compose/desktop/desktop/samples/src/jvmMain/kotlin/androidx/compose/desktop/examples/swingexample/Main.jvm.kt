@@ -17,7 +17,9 @@
 package androidx.compose.desktop.examples.swingexample
 
 import java.awt.Color as awtColor
+import androidx.compose.foundation.ContextMenuDataProvider
 import androidx.compose.foundation.ContextMenuItem
+import androidx.compose.foundation.ContextMenuState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -33,6 +35,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.JPopupTextMenu
 import androidx.compose.foundation.text.LocalTextContextMenu
+import androidx.compose.foundation.text.TextContextMenu
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.Button
 import androidx.compose.material.Surface
@@ -51,6 +54,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposePanel
 import androidx.compose.ui.awt.SwingPanel
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLocalization
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -66,11 +72,15 @@ import java.awt.GridLayout
 import java.awt.event.KeyEvent
 import java.awt.event.KeyEvent.CTRL_DOWN_MASK
 import java.awt.event.KeyEvent.META_DOWN_MASK
+import java.net.URLEncoder
+import java.nio.charset.Charset
 import javax.swing.Icon
 import javax.swing.JButton
 import javax.swing.JFrame
 import javax.swing.JMenuItem
 import javax.swing.JPanel
+import javax.swing.JPopupMenu
+import javax.swing.JPopupMenu.Separator
 import javax.swing.KeyStroke
 import javax.swing.SwingUtilities
 import javax.swing.UIManager
@@ -98,7 +108,7 @@ fun SwingComposeWindow() {
 
     // setting the content
     composePanelTop.setContent {
-        WithJPopupTextMenu(composePanelTop) {
+        JPopupTextMenuProvider(composePanelTop) {
             ComposeContent(background = Color(55, 155, 55))
         }
         DisposableEffect(Unit) {
@@ -108,7 +118,9 @@ fun SwingComposeWindow() {
         }
     }
     composePanelBottom.setContent {
-        ComposeContent(background = Color(55, 55, 155))
+        CustomTextMenuProvider {
+            ComposeContent(background = Color(55, 55, 155))
+        }
         DisposableEffect(Unit) {
             onDispose {
                 println("Dispose composition")
@@ -159,23 +171,80 @@ fun actionButton(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun WithJPopupTextMenu(owner: Component, content: @Composable () -> Unit) {
+fun JPopupTextMenuProvider(owner: Component, content: @Composable () -> Unit) {
+    val localization = LocalLocalization.current
     CompositionLocalProvider(
-        LocalTextContextMenu provides JPopupTextMenu(
-            owner,
-            createCut = { swingItem(it, java.awt.Color.RED, KeyEvent.VK_X) },
-            createCopy = { swingItem(it, java.awt.Color.GREEN, KeyEvent.VK_C) },
-            createPaste = { swingItem(it, java.awt.Color.BLUE, KeyEvent.VK_V) },
-            createSelectAll = { swingItem(it, java.awt.Color.BLACK, KeyEvent.VK_A) },
-        ),
+        LocalTextContextMenu provides JPopupTextMenu(owner) { textManager, items ->
+            JPopupMenu().apply {
+                textManager.cut?.also {
+                    add(swingItem(localization.cut, java.awt.Color.RED, KeyEvent.VK_X, it))
+                }
+                textManager.copy?.also {
+                    add(swingItem(localization.copy, java.awt.Color.GREEN, KeyEvent.VK_C, it))
+                }
+                textManager.paste?.also {
+                    add(swingItem(localization.paste, java.awt.Color.BLUE, KeyEvent.VK_V, it))
+                }
+                textManager.selectAll?.also {
+                    add(Separator())
+                    add(swingItem(localization.selectAll, java.awt.Color.BLACK, KeyEvent.VK_A, it))
+                }
+                for (item in items) {
+                    add(
+                        JMenuItem(item.label).apply {
+                            addActionListener { item.onClick() }
+                        }
+                    )
+                }
+            }
+        },
         content = content
     )
 }
 
-private fun swingItem(item: ContextMenuItem, color: java.awt.Color, key: Int) = JMenuItem(item.label).apply {
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun CustomTextMenuProvider(content: @Composable () -> Unit) {
+    val textMenu = LocalTextContextMenu.current
+    val uriHandler = LocalUriHandler.current
+    CompositionLocalProvider(
+        LocalTextContextMenu provides object : TextContextMenu {
+            @Composable
+            override fun Area(
+                textManager: TextContextMenu.TextManager,
+                state: ContextMenuState,
+                content: @Composable () -> Unit
+            ) {
+                ContextMenuDataProvider({
+                    val shortText = textManager.selectedText.crop()
+                    if (shortText.isNotEmpty()) {
+                        val encoded = URLEncoder.encode(shortText, Charset.defaultCharset())
+                        listOf(ContextMenuItem("Search $shortText") {
+                            uriHandler.openUri("https://google.com/search?q=$encoded")
+                        })
+                    } else {
+                        emptyList()
+                    }
+                }) {
+                    textMenu.Area(textManager, state, content = content)
+                }
+            }
+        },
+        content = content
+    )
+}
+
+private fun AnnotatedString.crop() = if (length <= 5) toString() else "${take(5)}..."
+
+private fun swingItem(
+    label: String,
+    color: java.awt.Color,
+    key: Int,
+    onClick: () -> Unit
+) = JMenuItem(label).apply {
     icon = circleIcon(color)
     accelerator = KeyStroke.getKeyStroke(key, if (hostOs.isMacOS) META_DOWN_MASK else CTRL_DOWN_MASK)
-    addActionListener { item.onClick() }
+    addActionListener { onClick() }
 }
 
 private fun circleIcon(color: java.awt.Color) = object : Icon {

@@ -202,25 +202,29 @@ private fun MenuItemContent(
  * See also [JPopupTextMenu] that allows more specific customization for the text context menu.
  *
  * @param owner The root component that owns a context menu. Usually it is [ComposeWindow] or [ComposePanel].
- * @param createMenu Describes how to create [JPopupMenu]. Use it if you want customization of the menu.
- * @param createItem Describes how to create a context menu item. Use it if you want customization of menu items.
+ * @param createMenu Describes how to create [JPopupMenu] from list of [ContextMenuItem]
  */
 @ExperimentalFoundationApi
 class JPopupContextMenuRepresentation(
     private val owner: Component,
-    private val createMenu: () -> JPopupMenu = { JPopupMenu() },
-    private val createItem: (ContextMenuItem) -> Component = { item ->
-        JMenuItem(item.label).apply {
-            addActionListener { item.onClick() }
+    private val createMenu: (List<ContextMenuItem>) -> JPopupMenu = { items ->
+        JPopupMenu().apply {
+            for (item in items) {
+                add(
+                    JMenuItem(item.label).apply {
+                        addActionListener { item.onClick() }
+                    }
+                )
+            }
         }
-    }
+    },
 ) : ContextMenuRepresentation {
     @Composable
     override fun Representation(state: ContextMenuState, items: () -> List<ContextMenuItem>) {
         val isOpen = state.status is ContextMenuState.Status.Open
         if (isOpen) {
             val menu = remember {
-                createMenu().apply {
+                createMenu(items()).apply {
                     addPopupMenuListener(object : PopupMenuListener {
                         override fun popupMenuWillBecomeVisible(e: PopupMenuEvent?) = Unit
 
@@ -230,10 +234,6 @@ class JPopupContextMenuRepresentation(
 
                         override fun popupMenuCanceled(e: PopupMenuEvent?) = Unit
                     })
-
-                    for (item in items().distinctBy { it.label }) {
-                        add(createItem(item))
-                    }
                 }
             }
 
