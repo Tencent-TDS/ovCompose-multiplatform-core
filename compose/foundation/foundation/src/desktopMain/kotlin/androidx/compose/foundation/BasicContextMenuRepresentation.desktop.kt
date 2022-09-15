@@ -230,11 +230,11 @@ class JPopupContextMenuRepresentation(
 
                         override fun popupMenuCanceled(e: PopupMenuEvent?) = Unit
                     })
-                }
-            }
 
-            for (item in items().distinctBy { it.label }) {
-                menu.add(createItem(item))
+                    for (item in items().distinctBy { it.label }) {
+                        add(createItem(item))
+                    }
+                }
             }
 
             DisposableEffect(Unit) {
