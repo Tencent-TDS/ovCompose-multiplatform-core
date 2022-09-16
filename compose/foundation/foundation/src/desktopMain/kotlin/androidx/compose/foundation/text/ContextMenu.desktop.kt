@@ -243,6 +243,7 @@ class JPopupTextMenu(
                 createMenu(textManager, it)
             }
         ) {
+            // We pass emptyList, but it will be merged with the other custom items defined via ContextMenuDataProvider, and passed to createMenu
             ContextMenuArea({ emptyList() }, state, content = content)
         }
     }
