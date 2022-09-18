@@ -31,7 +31,6 @@ import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -47,16 +46,14 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.times
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.valueToState
-import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 private const val RADIUS = 10f
 private const val HEIGHT = 50f
-private const val WIDTH = 2f
+private const val WIDTH = 4f
 
 @Composable
 internal actual fun SelectionHandle(
@@ -64,6 +61,7 @@ internal actual fun SelectionHandle(
     isStartHandle: Boolean,
     direction: ResolvedTextDirection,
     handlesCrossed: Boolean,
+    lineHeight: Float,
     modifier: Modifier,
     content: @Composable (() -> Unit)?
 ) {
@@ -76,7 +74,7 @@ internal actual fun SelectionHandle(
     }
 
     val x = position.x + if (isLeft) RADIUS else -RADIUS
-    val y = position.y - HEIGHT + RADIUS
+    val y = position.y - lineHeight
     val positionState: State<IntOffset> = valueToState(
         IntOffset(
             x = x.roundToInt(),
@@ -100,7 +98,8 @@ internal actual fun SelectionHandle(
                     },
                 isStartHandle = isStartHandle,
                 direction = direction,
-                handlesCrossed = handlesCrossed
+                handlesCrossed = handlesCrossed,
+                lineHeight = lineHeight
             )
         } else {
             content()
@@ -114,12 +113,13 @@ internal fun DefaultSelectionHandle(
     modifier: Modifier,
     isStartHandle: Boolean,
     direction: ResolvedTextDirection,
-    handlesCrossed: Boolean
+    handlesCrossed: Boolean,
+    lineHeight: Float
 ) {
     Spacer(
         modifier
-            .size(RADIUS * 2.dp, HEIGHT.dp)
-            .drawSelectionHandle(isStartHandle, direction, handlesCrossed)
+            .size(lineHeight.dp, lineHeight.dp)
+            .drawSelectionHandle(isStartHandle, direction, handlesCrossed, lineHeight)
     )
 }
 
@@ -127,24 +127,25 @@ internal fun DefaultSelectionHandle(
 internal fun Modifier.drawSelectionHandle(
     isStartHandle: Boolean,
     direction: ResolvedTextDirection,
-    handlesCrossed: Boolean
+    handlesCrossed: Boolean,
+    lineHeight: Float
 ) = composed {
     val handleColor = LocalTextSelectionColors.current.handleColor
     this.then(
         Modifier.drawWithCache {
-            val radius = size.width / 2f
-            val handleImage = createHandleImage()
+            val isLeft = isLeft(isStartHandle, direction, handlesCrossed)
+            val handleImage = createHandleImage(lineHeight, isLeft)
             val colorFilter = ColorFilter.tint(handleColor)
             onDrawWithContent {
                 drawContent()
-                val isLeft = isLeft(isStartHandle, direction, handlesCrossed)
                 if (isLeft) {
                     // Flip the selection handle vertically.
-//                    scale(scaleX = -1f, scaleY = -1f, pivot = Offset(0f, HEIGHT/2)) {
+//                    scale(scaleX = 1f, scaleY = -1f, pivot = Offset(0f, size.height / 2)) {
                         drawImage(
                             image = handleImage,
                             colorFilter = colorFilter
                         )
+//                    }
                 } else {
                     drawImage(
                         image = handleImage,
@@ -175,10 +176,10 @@ private object HandleImageCache {
  * To draw the cursor handle, translate and rotated the canvas 45 degrees, then draw this image
  * bitmap.
  *
- * @param radius the radius of circle in selection/cursor handle.
+ * @param lineHeight the lineHeight of text line in selection/cursor handle.
  * CanvasDrawScope objects so that we only recreate them when necessary.
  */
-internal fun CacheDrawScope.createHandleImage(): ImageBitmap {
+internal fun CacheDrawScope.createHandleImage(lineHeight: Float, isLeft: Boolean): ImageBitmap {
     // The edge length of the square bounding box of the selection/cursor handle. This is also
     // the size of the bitmap needed for the bitmap mask.
 
@@ -192,8 +193,8 @@ internal fun CacheDrawScope.createHandleImage(): ImageBitmap {
         canvas == null
     ) {
         imageBitmap = ImageBitmap(
-            width = (RADIUS*2).toInt(),
-            height = HEIGHT.toInt(),
+            width = (RADIUS * 2).toInt(),
+            height = (lineHeight + RADIUS * 2).toInt(),
             config = ImageBitmapConfig.Alpha8
         )
         HandleImageCache.imageBitmap = imageBitmap
@@ -221,14 +222,14 @@ internal fun CacheDrawScope.createHandleImage(): ImageBitmap {
 
         drawRect(
             color = Color(0xFF000000),
-            topLeft = Offset(RADIUS - WIDTH, 0f),
-            size = Size(WIDTH * 2, HEIGHT)
+            topLeft = Offset(RADIUS - WIDTH/2, 0f),
+            size = Size(WIDTH, lineHeight + RADIUS)
         )
         // Draw the circle
         drawCircle(
             color = Color(0xFF000000),
             radius = RADIUS,
-            center = Offset(RADIUS, HEIGHT- RADIUS)
+            center = Offset(RADIUS, lineHeight + RADIUS)
         )
     }
     return imageBitmap
