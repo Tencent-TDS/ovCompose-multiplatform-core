@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -45,11 +46,17 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.times
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.valueToState
 import kotlin.math.ceil
 import kotlin.math.roundToInt
+
+private const val RADIUS = 10f
+private const val HEIGHT = 50f
+private const val WIDTH = 2f
 
 @Composable
 internal actual fun SelectionHandle(
@@ -68,8 +75,13 @@ internal actual fun SelectionHandle(
         HandleReferencePoint.TopLeft
     }
 
+    val x = position.x + if (isLeft) RADIUS else -RADIUS
+    val y = position.y - HEIGHT + RADIUS
     val positionState: State<IntOffset> = valueToState(
-        IntOffset(position.x.roundToInt(), position.y.roundToInt())
+        IntOffset(
+            x = x.roundToInt(),
+            y = y.roundToInt()
+        )
     )
 
     HandlePopup(position = positionState, handleReferencePoint = handleReferencePoint) {
@@ -106,7 +118,7 @@ internal fun DefaultSelectionHandle(
 ) {
     Spacer(
         modifier
-            .size(HandleWidth, HandleHeight)
+            .size(RADIUS * 2.dp, HEIGHT.dp)
             .drawSelectionHandle(isStartHandle, direction, handlesCrossed)
     )
 }
@@ -121,19 +133,18 @@ internal fun Modifier.drawSelectionHandle(
     this.then(
         Modifier.drawWithCache {
             val radius = size.width / 2f
-            val handleImage = createHandleImage(radius)
+            val handleImage = createHandleImage()
             val colorFilter = ColorFilter.tint(handleColor)
             onDrawWithContent {
                 drawContent()
                 val isLeft = isLeft(isStartHandle, direction, handlesCrossed)
                 if (isLeft) {
-                    // Flip the selection handle horizontally.
-                    scale(scaleX = -1f, scaleY = 1f) {
+                    // Flip the selection handle vertically.
+//                    scale(scaleX = -1f, scaleY = -1f, pivot = Offset(0f, HEIGHT/2)) {
                         drawImage(
                             image = handleImage,
                             colorFilter = colorFilter
                         )
-                    }
                 } else {
                     drawImage(
                         image = handleImage,
@@ -167,10 +178,9 @@ private object HandleImageCache {
  * @param radius the radius of circle in selection/cursor handle.
  * CanvasDrawScope objects so that we only recreate them when necessary.
  */
-internal fun CacheDrawScope.createHandleImage(radius: Float): ImageBitmap {
+internal fun CacheDrawScope.createHandleImage(): ImageBitmap {
     // The edge length of the square bounding box of the selection/cursor handle. This is also
     // the size of the bitmap needed for the bitmap mask.
-    val edge = ceil(radius).toInt() * 2
 
     var imageBitmap = HandleImageCache.imageBitmap
     var canvas = HandleImageCache.canvas
@@ -179,13 +189,11 @@ internal fun CacheDrawScope.createHandleImage(radius: Float): ImageBitmap {
     // If the cached bitmap is null or too small, we need to create new bitmap.
     if (
         imageBitmap == null ||
-        canvas == null ||
-        edge > imageBitmap.width ||
-        edge > imageBitmap.height
+        canvas == null
     ) {
         imageBitmap = ImageBitmap(
-            width = edge,
-            height = edge,
+            width = (RADIUS*2).toInt(),
+            height = HEIGHT.toInt(),
             config = ImageBitmapConfig.Alpha8
         )
         HandleImageCache.imageBitmap = imageBitmap
@@ -213,14 +221,14 @@ internal fun CacheDrawScope.createHandleImage(radius: Float): ImageBitmap {
 
         drawRect(
             color = Color(0xFF000000),
-            topLeft = Offset(-2f, -20f),
-            size = Size(4f, 20f)
+            topLeft = Offset(RADIUS - WIDTH, 0f),
+            size = Size(WIDTH * 2, HEIGHT)
         )
         // Draw the circle
         drawCircle(
             color = Color(0xFF000000),
-            radius = radius,
-            center = Offset(0f, 0f)
+            radius = RADIUS,
+            center = Offset(RADIUS, HEIGHT- RADIUS)
         )
     }
     return imageBitmap
