@@ -38,7 +38,6 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.ImageBitmapConfig
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.unit.IntOffset
@@ -51,8 +50,9 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.valueToState
 import kotlin.math.roundToInt
 
+private const val PADDING = 5f
 private const val RADIUS = 6f
-private const val WIDTH = 2f
+private const val THICKNESS = 2f
 
 @Composable
 internal actual fun SelectionHandle(
@@ -72,17 +72,10 @@ internal actual fun SelectionHandle(
         HandleReferencePoint.TopLeft
     }
 
-    val x = if (handlesCrossed) {
-        position.x - if (isLeft) RADIUS else -RADIUS
-    } else {
-        position.x + if (isLeft) RADIUS else -RADIUS
-    }
-    val y = position.y - lineHeight - if (isLeft) RADIUS * 2 else 0f
+    val y = if (isLeft) position.y - PADDING - lineHeight - RADIUS * 2 else position.y - PADDING
+
     val positionState: State<IntOffset> = valueToState(
-        IntOffset(
-            x = x.roundToInt(),
-            y = y.roundToInt()
-        )
+        IntOffset(position.x.roundToInt(), y.roundToInt())
     )
 
     HandlePopup(position = positionState, handleReferencePoint = handleReferencePoint) {
@@ -102,6 +95,7 @@ internal actual fun SelectionHandle(
                 isStartHandle = isStartHandle,
                 direction = direction,
                 handlesCrossed = handlesCrossed,
+                isLeft = isLeft,
                 lineHeight = lineHeight
             )
         } else {
@@ -117,18 +111,21 @@ internal fun DefaultSelectionHandle(
     isStartHandle: Boolean,
     direction: ResolvedTextDirection,
     handlesCrossed: Boolean,
+    isLeft: Boolean,
     lineHeight: Float
 ) {
-//    androidx.compose.foundation.Canvas(modifier = modifier) {
-//        drawRect(
-//            Color.Yellow,
-//            topLeft = Offset.Zero,
-//            size = Size(RADIUS * 2, RADIUS * 2 + lineHeight)
-//        )
-//    }
+    val handleColor = LocalTextSelectionColors.current.handleColor
+    androidx.compose.foundation.Canvas(Modifier) {
+        drawRect(
+            handleColor,
+            topLeft = Offset(-THICKNESS / 2, if (isLeft) lineHeight - RADIUS else PADDING - lineHeight),
+            size = Size(THICKNESS, lineHeight + RADIUS)
+        )
+    }
     Spacer(
         modifier
-            .size((RADIUS * 2).dp, lineHeight.dp)
+            .size((PADDING * 2 + RADIUS * 2).dp, (PADDING * 2 + RADIUS * 2).dp)
+//            .offset(x = -RADIUS.dp, y = -lineHeight.dp)
             .drawSelectionHandle(isStartHandle, direction, handlesCrossed, lineHeight)
     )
 }
@@ -148,24 +145,10 @@ internal fun Modifier.drawSelectionHandle(
             val colorFilter = ColorFilter.tint(handleColor)
             onDrawWithContent {
                 drawContent()
-                if (isLeft) {
-                    // Flip the selection handle vertically.
-//                    scale(
-//                        scaleX = 1f,
-//                        scaleY = -1f,
-//                        pivot = Offset(size.width / 2, 0f)
-//                    ) {
-                        drawImage(
-                            image = handleImage,
-                            colorFilter = colorFilter
-                        )
-//                    }
-                } else {
-                    drawImage(
-                        image = handleImage,
-                        colorFilter = colorFilter
-                    )
-                }
+                drawImage(
+                    image = handleImage,
+                    colorFilter = colorFilter
+                )
             }
         }
     )
@@ -207,8 +190,8 @@ internal fun CacheDrawScope.createHandleImage(lineHeight: Float, isLeft: Boolean
         canvas == null
     ) {
         imageBitmap = ImageBitmap(
-            width = (RADIUS * 2).toInt(),
-            height = (lineHeight + RADIUS * 2).toInt(),
+            width = (PADDING * 2 + RADIUS * 2).toInt(),
+            height = (PADDING * 2 + RADIUS * 2).toInt(),
             config = ImageBitmapConfig.Alpha8
         )
         HandleImageCache.imageBitmap = imageBitmap
@@ -233,17 +216,11 @@ internal fun CacheDrawScope.createHandleImage(lineHeight: Float, isLeft: Boolean
             size = size,
             blendMode = BlendMode.Clear
         )
-
-        drawRect(
-            color = Color(0xFF000000),
-            topLeft = Offset(RADIUS - WIDTH/2, 0f),
-            size = Size(WIDTH, lineHeight + RADIUS)
-        )
         // Draw the circle
         drawCircle(
             color = Color(0xFF000000),
             radius = RADIUS,
-            center = Offset(RADIUS, lineHeight + RADIUS)
+            center = Offset(PADDING + RADIUS, PADDING + RADIUS)
         )
     }
     return imageBitmap
@@ -287,7 +264,7 @@ internal enum class HandleReferencePoint {
  * @see HandleReferencePoint
  */
 /*@VisibleForTesting*/
-internal data class HandlePositionProvider(
+internal class HandlePositionProvider(
     private val handleReferencePoint: HandleReferencePoint,
     private val getOffset: () -> IntOffset
 ) : PopupPositionProvider {
@@ -298,23 +275,10 @@ internal data class HandlePositionProvider(
         popupContentSize: IntSize
     ): IntOffset {
         val offset = getOffset()
-        return when (handleReferencePoint) {
-            HandleReferencePoint.TopLeft ->
-                IntOffset(
-                    x = anchorBounds.left + offset.x,
-                    y = anchorBounds.top + offset.y
-                )
-            HandleReferencePoint.TopRight ->
-                IntOffset(
-                    x = anchorBounds.left + offset.x - popupContentSize.width,
-                    y = anchorBounds.top + offset.y
-                )
-            HandleReferencePoint.TopMiddle ->
-                IntOffset(
-                    x = anchorBounds.left + offset.x - popupContentSize.width / 2,
-                    y = anchorBounds.top + offset.y
-                )
-        }
+        return IntOffset(
+            x = anchorBounds.left + offset.x - popupContentSize.width / 2,
+            y = anchorBounds.top + offset.y
+        )
     }
 }
 
