@@ -23,7 +23,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -73,12 +72,36 @@ internal actual fun SelectionHandle(
         IntOffset(position.x.roundToInt(), y.roundToInt())
     )
     val handleColor = LocalTextSelectionColors.current.handleColor
-    HandlePopup(position = positionState) {
+    Popup(
+        popupPositionProvider = remember {
+            object : PopupPositionProvider {
+                override fun calculatePosition(
+                    anchorBounds: IntRect,
+                    windowSize: IntSize,
+                    layoutDirection: LayoutDirection,
+                    popupContentSize: IntSize
+                ) = IntOffset(
+                    x = anchorBounds.left + positionState.value.x - popupContentSize.width / 2,
+                    y = anchorBounds.top + positionState.value.y
+                )
+            }
+        }
+    ) {
         Spacer(
             modifier.size((PADDING + RADIUS) * 2.dp)
                 .drawWithCache {
                     onDrawWithContent {
                         drawContent()
+                        // vertical line
+                        drawRect(
+                            color = handleColor,
+                            topLeft = Offset(
+                                x = PADDING + RADIUS - THICKNESS / 2,
+                                y = if (isLeft) PADDING + RADIUS else PADDING - lineHeight
+                            ),
+                            size = Size(THICKNESS, lineHeight + RADIUS)
+                        )
+                        // handle circle
                         drawCircle(
                             color = handleColor,
                             radius = RADIUS,
@@ -86,49 +109,15 @@ internal actual fun SelectionHandle(
                         )
                     }
                 }
-                .drawBehind {
-                    drawRect(
-                        color = handleColor,
-                        topLeft = Offset(
-                            x = PADDING + RADIUS - THICKNESS / 2,
-                            y = if (isLeft) PADDING + RADIUS else PADDING - lineHeight
-                        ),
-                        size = Size(THICKNESS, lineHeight + RADIUS)
-                    )
-                }
         )
     }
 }
 
-@Composable
-internal fun HandlePopup(
-    position: State<IntOffset>,
-    content: @Composable () -> Unit
-) {
-    val popupPositioner = remember {
-        object : PopupPositionProvider {
-            override fun calculatePosition(
-                anchorBounds: IntRect,
-                windowSize: IntSize,
-                layoutDirection: LayoutDirection,
-                popupContentSize: IntSize
-            ) = IntOffset(
-                x = anchorBounds.left + position.value.x - popupContentSize.width / 2,
-                y = anchorBounds.top + position.value.y
-            )
-        }
-    }
-    Popup(
-        popupPositionProvider = popupPositioner,
-        content = content
-    )
-}
-
 /**
- * Transform value:T to State<T>
+ * Transform value of type T to State<T>
  */
 @Composable
-private inline fun <reified T> valueToState(value: T): State<T> {
+private inline fun <T> valueToState(value: T): State<T> {
     val state = remember { mutableStateOf(value) }
     state.value = value
     return state
@@ -160,11 +149,10 @@ private fun isLeft(
  * the right, and the end handle should point to left.
  */
 /*@VisibleForTesting*/
-internal fun isHandleLtrDirection(
+private fun isHandleLtrDirection(
     direction: ResolvedTextDirection,
     areHandlesCrossed: Boolean
 ): Boolean {
     return direction == ResolvedTextDirection.Ltr && !areHandlesCrossed ||
         direction == ResolvedTextDirection.Rtl && areHandlesCrossed
 }
-
