@@ -83,72 +83,33 @@ internal actual fun SelectionHandle(
     val positionState: State<IntOffset> = valueToState(
         IntOffset(position.x.roundToInt(), y.roundToInt())
     )
+    val handleColor = LocalTextSelectionColors.current.handleColor
     HandlePopup(position = positionState) {
-        if (content == null) {
-            DefaultSelectionHandle(
-                modifier = modifier,
-                isStartHandle = isStartHandle,
-                direction = direction,
-                handlesCrossed = handlesCrossed,
-                isLeft = isLeft,
-                lineHeight = lineHeight
-            )
-        } else {
-            content()
-        }
+        Spacer(
+            modifier.size((PADDING + RADIUS) * 2.dp)
+                .drawWithCache {
+                    val handleImage = createHandleImage(lineHeight, isLeft)
+                    val colorFilter = ColorFilter.tint(handleColor)
+                    onDrawWithContent {
+                        drawContent()
+                        drawImage(
+                            image = handleImage,
+                            colorFilter = colorFilter
+                        )
+                    }
+                }
+                .drawBehind {
+                    drawRect(
+                        handleColor,
+                        topLeft = Offset(
+                            x = PADDING + RADIUS - THICKNESS / 2,
+                            y = if (isLeft) PADDING + RADIUS else PADDING - lineHeight
+                        ),
+                        size = Size(THICKNESS, lineHeight + RADIUS)
+                    )
+                }
+        )
     }
-}
-
-@Composable
-/*@VisibleForTesting*/
-internal fun DefaultSelectionHandle(
-    modifier: Modifier,
-    isStartHandle: Boolean,
-    direction: ResolvedTextDirection,
-    handlesCrossed: Boolean,
-    isLeft: Boolean,
-    lineHeight: Float
-) {
-    val handleColor = LocalTextSelectionColors.current.handleColor
-    Spacer(
-        modifier
-            .size((PADDING + RADIUS) * 2.dp)
-            .drawSelectionHandle(isStartHandle, direction, handlesCrossed, lineHeight)
-            .drawBehind {
-                drawRect(
-                    handleColor,
-                    topLeft = Offset(
-                        x = PADDING + RADIUS - THICKNESS / 2,
-                        y = if (isLeft) PADDING + RADIUS else PADDING - lineHeight
-                    ),
-                    size = Size(THICKNESS, lineHeight + RADIUS)
-                )
-            }
-    )
-}
-
-@Suppress("ModifierInspectorInfo")
-internal fun Modifier.drawSelectionHandle(
-    isStartHandle: Boolean,
-    direction: ResolvedTextDirection,
-    handlesCrossed: Boolean,
-    lineHeight: Float
-) = composed {
-    val handleColor = LocalTextSelectionColors.current.handleColor
-    this.then(
-        Modifier.drawWithCache {
-            val isLeft = isLeft(isStartHandle, direction, handlesCrossed)
-            val handleImage = createHandleImage(lineHeight, isLeft)
-            val colorFilter = ColorFilter.tint(handleColor)
-            onDrawWithContent {
-                drawContent()
-                drawImage(
-                    image = handleImage,
-                    colorFilter = colorFilter
-                )
-            }
-        }
-    )
 }
 
 /**
@@ -229,30 +190,22 @@ internal fun HandlePopup(
     content: @Composable () -> Unit
 ) {
     val popupPositioner = remember {
-        HandlePositionProvider { position.value }
+        object : PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: IntRect,
+                windowSize: IntSize,
+                layoutDirection: LayoutDirection,
+                popupContentSize: IntSize
+            ) = IntOffset(
+                x = anchorBounds.left + position.value.x - popupContentSize.width / 2,
+                y = anchorBounds.top + position.value.y
+            )
+        }
     }
-
     Popup(
         popupPositionProvider = popupPositioner,
         content = content
     )
-}
-
-internal class HandlePositionProvider(
-    private val getOffset: () -> IntOffset
-) : PopupPositionProvider {
-    override fun calculatePosition(
-        anchorBounds: IntRect,
-        windowSize: IntSize,
-        layoutDirection: LayoutDirection,
-        popupContentSize: IntSize
-    ): IntOffset {
-        val offset = getOffset()
-        return IntOffset(
-            x = anchorBounds.left + offset.x - popupContentSize.width / 2,
-            y = anchorBounds.top + offset.y
-        )
-    }
 }
 
 /**
