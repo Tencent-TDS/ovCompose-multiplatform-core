@@ -19,11 +19,9 @@ package androidx.compose.foundation.text.selection
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.Handle
-import androidx.compose.foundation.text.selection.HandleReferencePoint.TopLeft
-import androidx.compose.foundation.text.selection.HandleReferencePoint.TopMiddle
-import androidx.compose.foundation.text.selection.HandleReferencePoint.TopRight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -46,9 +44,9 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.times
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
-import androidx.compose.valueToState
 import kotlin.math.roundToInt
 
 /**
@@ -77,33 +75,18 @@ internal actual fun SelectionHandle(
     content: @Composable (() -> Unit)?
 ) {
     val isLeft = isLeft(isStartHandle, direction, handlesCrossed)
-    // The left selection handle's top right is placed at the given position, and vice versa.
-    val handleReferencePoint = if (isLeft) {
-        HandleReferencePoint.TopRight
+    val y = if (isLeft) {
+        position.y - PADDING - lineHeight - RADIUS * 2
     } else {
-        HandleReferencePoint.TopLeft
+        position.y - PADDING
     }
-
-    val y = if (isLeft) position.y - PADDING - lineHeight - RADIUS * 2 else position.y - PADDING
-
     val positionState: State<IntOffset> = valueToState(
         IntOffset(position.x.roundToInt(), y.roundToInt())
     )
-
-    HandlePopup(position = positionState, handleReferencePoint = handleReferencePoint) {
+    HandlePopup(position = positionState) {
         if (content == null) {
             DefaultSelectionHandle(
-                modifier = modifier
-                    .semantics {
-                        this[SelectionHandleInfoKey] = SelectionHandleInfo(
-                            handle = if (isStartHandle) {
-                                Handle.SelectionStart
-                            } else {
-                                Handle.SelectionEnd
-                            },
-                            position = position
-                        )
-                    },
+                modifier = modifier,
                 isStartHandle = isStartHandle,
                 direction = direction,
                 handlesCrossed = handlesCrossed,
@@ -127,17 +110,9 @@ internal fun DefaultSelectionHandle(
     lineHeight: Float
 ) {
     val handleColor = LocalTextSelectionColors.current.handleColor
-//    androidx.compose.foundation.Canvas(Modifier) {
-//        drawRect(
-//            handleColor,
-//            topLeft = Offset(-THICKNESS / 2, if (isLeft) lineHeight/2 else PADDING - lineHeight),
-//            size = Size(THICKNESS, lineHeight + RADIUS)
-//        )
-//    }
     Spacer(
         modifier
-            .size((PADDING * 2 + RADIUS * 2).dp, (PADDING * 2 + RADIUS * 2).dp)
-//            .offset(x = -RADIUS.dp, y = -lineHeight.dp)
+            .size((PADDING + RADIUS) * 2.dp)
             .drawSelectionHandle(isStartHandle, direction, handlesCrossed, lineHeight)
             .drawBehind {
                 drawRect(
@@ -251,11 +226,10 @@ internal fun CacheDrawScope.createHandleImage(lineHeight: Float, isLeft: Boolean
 @Composable
 internal fun HandlePopup(
     position: State<IntOffset>,
-    handleReferencePoint: HandleReferencePoint,
     content: @Composable () -> Unit
 ) {
-    val popupPositioner = remember(handleReferencePoint) {
-        HandlePositionProvider(handleReferencePoint) { position.value }
+    val popupPositioner = remember {
+        HandlePositionProvider { position.value }
     }
 
     Popup(
@@ -264,30 +238,7 @@ internal fun HandlePopup(
     )
 }
 
-/**
- * The enum that specifies how a selection/cursor handle is placed to its given position.
- * When this value is [TopLeft], the top left corner of the handle will be placed at the
- * given position.
- * When this value is [TopRight], the top right corner of the handle will be placed at the
- * given position.
- * When this value is [TopMiddle], the handle top edge's middle point will be placed at the given
- * position.
- */
-internal enum class HandleReferencePoint {
-    TopLeft,
-    TopRight,
-    TopMiddle
-}
-
-/**
- * This [PopupPositionProvider] for [HandlePopup]. It will position the selection handle
- * to the [getOffset] in its anchor layout.
- *
- * @see HandleReferencePoint
- */
-/*@VisibleForTesting*/
 internal class HandlePositionProvider(
-    private val handleReferencePoint: HandleReferencePoint,
     private val getOffset: () -> IntOffset
 ) : PopupPositionProvider {
     override fun calculatePosition(
@@ -336,4 +287,14 @@ internal fun isHandleLtrDirection(
 ): Boolean {
     return direction == ResolvedTextDirection.Ltr && !areHandlesCrossed ||
         direction == ResolvedTextDirection.Rtl && areHandlesCrossed
+}
+
+/**
+ * Transform value:T to State<T>
+ */
+@Composable
+private inline fun <reified T> valueToState(value: T): State<T> {
+    val state = remember { mutableStateOf(value) }
+    state.value = value
+    return state
 }
