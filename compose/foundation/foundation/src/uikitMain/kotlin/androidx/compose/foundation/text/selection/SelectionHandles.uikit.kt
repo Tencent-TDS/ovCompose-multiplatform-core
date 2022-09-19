@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.CacheDrawScope
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -50,8 +51,19 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.valueToState
 import kotlin.math.roundToInt
 
+/**
+ * Clickable padding of handler
+ */
 private const val PADDING = 5f
+
+/**
+ * Radius of handle circle
+ */
 private const val RADIUS = 6f
+
+/**
+ * Thickness of handlers vertical line
+ */
 private const val THICKNESS = 2f
 
 @Composable
@@ -115,18 +127,28 @@ internal fun DefaultSelectionHandle(
     lineHeight: Float
 ) {
     val handleColor = LocalTextSelectionColors.current.handleColor
-    androidx.compose.foundation.Canvas(Modifier) {
-        drawRect(
-            handleColor,
-            topLeft = Offset(-THICKNESS / 2, if (isLeft) lineHeight - RADIUS else PADDING - lineHeight),
-            size = Size(THICKNESS, lineHeight + RADIUS)
-        )
-    }
+//    androidx.compose.foundation.Canvas(Modifier) {
+//        drawRect(
+//            handleColor,
+//            topLeft = Offset(-THICKNESS / 2, if (isLeft) lineHeight/2 else PADDING - lineHeight),
+//            size = Size(THICKNESS, lineHeight + RADIUS)
+//        )
+//    }
     Spacer(
         modifier
             .size((PADDING * 2 + RADIUS * 2).dp, (PADDING * 2 + RADIUS * 2).dp)
 //            .offset(x = -RADIUS.dp, y = -lineHeight.dp)
             .drawSelectionHandle(isStartHandle, direction, handlesCrossed, lineHeight)
+            .drawBehind {
+                drawRect(
+                    handleColor,
+                    topLeft = Offset(
+                        x = PADDING + RADIUS - THICKNESS / 2,
+                        y = if (isLeft) PADDING + RADIUS else PADDING - lineHeight
+                    ),
+                    size = Size(THICKNESS, lineHeight + RADIUS)
+                )
+            }
     )
 }
 

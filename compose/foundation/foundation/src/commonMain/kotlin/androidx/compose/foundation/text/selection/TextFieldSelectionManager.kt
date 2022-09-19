@@ -35,7 +35,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.TextToolbar
@@ -607,6 +606,14 @@ internal class TextFieldSelectionManager(
         )
     }
 
+    internal fun getHandleLineHeight(isStartHandle: Boolean): Float {
+        val offset = if (isStartHandle) value.selection.start else value.selection.end
+        val line = state?.layoutResult!!.value.getLineForOffset(
+            offset = offsetMapping.originalToTransformed(offset)
+        )
+        return state?.layoutResult!!.value.multiParagraph.getLineHeight(line)
+    }
+
     internal fun getCursorPosition(density: Density): Offset {
         val offset = offsetMapping.originalToTransformed(value.selection.start)
         val layoutResult = state?.layoutResult!!.value
@@ -814,6 +821,7 @@ internal fun TextFieldSelectionHandle(
         isStartHandle = isStartHandle,
         direction = direction,
         handlesCrossed = manager.value.selection.reversed,
+        lineHeight = manager.getHandleLineHeight(isStartHandle),
         modifier = Modifier.pointerInput(observer) {
             detectDownAndDragGesturesWithObserver(observer)
         },

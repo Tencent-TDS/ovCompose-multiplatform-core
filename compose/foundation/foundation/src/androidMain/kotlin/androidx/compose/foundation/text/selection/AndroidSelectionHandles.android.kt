@@ -56,6 +56,7 @@ internal actual fun SelectionHandle(
     isStartHandle: Boolean,
     direction: ResolvedTextDirection,
     handlesCrossed: Boolean,
+    lineHeight: Float,
     modifier: Modifier,
     content: @Composable (() -> Unit)?
 ) {
@@ -100,7 +101,8 @@ internal fun DefaultSelectionHandle(
     handlesCrossed: Boolean
 ) {
     Spacer(
-        modifier.size(HandleWidth, HandleHeight)
+        modifier
+            .size(HandleWidth, HandleHeight)
             .drawSelectionHandle(isStartHandle, direction, handlesCrossed)
     )
 }
