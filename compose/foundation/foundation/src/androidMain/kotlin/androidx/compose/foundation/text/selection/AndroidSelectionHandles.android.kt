@@ -101,8 +101,7 @@ internal fun DefaultSelectionHandle(
     handlesCrossed: Boolean
 ) {
     Spacer(
-        modifier
-            .size(HandleWidth, HandleHeight)
+        modifier.size(HandleWidth, HandleHeight)
             .drawSelectionHandle(isStartHandle, direction, handlesCrossed)
     )
 }
