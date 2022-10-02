@@ -142,7 +142,7 @@ internal actual class ComposeWindow : UIViewController {
                     override val doubleTapTimeoutMillis: Long get() = 300
                     override val doubleTapMinTimeMillis: Long get() = 40
                     override val touchSlop: Float
-                        get() = with(densityProvider()) { 2.dp.toPx() }
+                        get() = with(densityProvider()) { 3.dp.toPx() }
                 }
         }
         layer = ComposeLayer(
