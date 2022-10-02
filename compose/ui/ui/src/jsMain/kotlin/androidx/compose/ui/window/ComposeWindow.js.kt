@@ -21,18 +21,21 @@ import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.JSTextInputService
+import androidx.compose.ui.platform.Platform
 import kotlinx.browser.document
 import org.w3c.dom.HTMLCanvasElement
 
-internal actual class ComposeWindow actual constructor(){
+internal actual class ComposeWindow actual constructor() {
 
-    private val textInputService = JSTextInputService()
-
+    private val jsTextInputService = JSTextInputService()
+    val platform = object : Platform by Platform.Empty {
+        override val textInputService = jsTextInputService
+    }
     private val layer = ComposeLayer(
         layer = createSkiaLayer(),
+        platform = platform,
         getTopLeftOffset = { Offset.Zero },
-        inputService = textInputService,
-        input = textInputService.input
+        input = jsTextInputService.input
     )
 
     val title: String
