@@ -20,8 +20,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -68,7 +68,8 @@ internal actual fun SelectionHandle(
     } else {
         position.y - PADDING
     }
-    val positionState: State<IntOffset> = valueToState(
+
+    val positionState: State<IntOffset> = rememberUpdatedState(
         IntOffset(position.x.roundToInt(), y.roundToInt())
     )
     val handleColor = LocalTextSelectionColors.current.handleColor
@@ -111,16 +112,6 @@ internal actual fun SelectionHandle(
                 }
         )
     }
-}
-
-/**
- * Transform value of type T to State<T>
- */
-@Composable
-private inline fun <T> valueToState(value: T): State<T> {
-    val state = remember { mutableStateOf(value) }
-    state.value = value
-    return state
 }
 
 /**
