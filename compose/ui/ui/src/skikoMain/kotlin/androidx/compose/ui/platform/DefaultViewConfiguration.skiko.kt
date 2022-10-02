@@ -19,7 +19,7 @@ package androidx.compose.ui.platform
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
 
-class DefaultViewConfiguration(private val density: Density) : ViewConfiguration {
+class DefaultViewConfiguration(private val densityProvider: () -> Density) : ViewConfiguration {
     override val longPressTimeoutMillis: Long
         get() = 500
 
@@ -30,5 +30,5 @@ class DefaultViewConfiguration(private val density: Density) : ViewConfiguration
         get() = 40
 
     override val touchSlop: Float
-        get() = with(density) { 18.dp.toPx() }
+        get() = with(densityProvider()) { 18.dp.toPx() }
 }
