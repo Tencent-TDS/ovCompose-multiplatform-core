@@ -212,7 +212,10 @@ fun Window(
                 appliedState.size = state.size
             }
             if (state.position != appliedState.position) {
-                window.setPositionSafely(state.position, WindowLocationTracker.getCascadeLocationFor(window))
+                window.setPositionSafely(
+                    state.position,
+                    platformDefaultPosition = { WindowLocationTracker.getCascadeLocationFor(window) }
+                )
                 appliedState.position = state.position
             }
             if (state.placement != appliedState.placement) {

@@ -189,7 +189,10 @@ fun Dialog(
                 appliedState.size = state.size
             }
             if (state.position != appliedState.position) {
-                dialog.setPositionSafely(state.position, WindowLocationTracker.getCascadeLocationFor(dialog))
+                dialog.setPositionSafely(
+                    state.position,
+                    platformDefaultPosition = { WindowLocationTracker.getCascadeLocationFor(dialog) }
+                )
                 appliedState.position = state.position
             }
         },

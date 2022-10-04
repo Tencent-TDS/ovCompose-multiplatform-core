@@ -53,7 +53,7 @@ internal fun ComposeWindow.setSizeSafely(size: DpSize) {
  */
 internal fun ComposeWindow.setPositionSafely(
     position: WindowPosition,
-    platformDefaultPosition: Point?
+    platformDefaultPosition: () -> Point?
 ) {
     if (placement == WindowPlacement.Floating) {
         (this as Window).setPositionSafely(position, platformDefaultPosition)
@@ -97,9 +97,9 @@ internal fun Window.setSizeSafely(size: DpSize) {
 
 internal fun Window.setPositionSafely(
     position: WindowPosition,
-    platformDefaultPosition: Point?
+    platformDefaultPosition: () -> Point?
 ) = when (position) {
-    WindowPosition.PlatformDefault -> location = platformDefaultPosition
+    WindowPosition.PlatformDefault -> location = platformDefaultPosition()
     is WindowPosition.Aligned -> align(position.alignment)
     is WindowPosition.Absolute -> setLocation(
         position.x.value.roundToInt(),
