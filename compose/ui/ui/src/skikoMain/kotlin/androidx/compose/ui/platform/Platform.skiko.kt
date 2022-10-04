@@ -78,7 +78,7 @@ internal interface Platform {
 
             override fun setPointerIcon(pointerIcon: PointerIcon) = Unit
             override fun viewConfiguration(densityProvider: () -> Density) =
-                DefaultViewConfiguration(densityProvider)
+                DefaultViewConfigurationWithDensityProvider(densityProvider)
         }
     }
 }

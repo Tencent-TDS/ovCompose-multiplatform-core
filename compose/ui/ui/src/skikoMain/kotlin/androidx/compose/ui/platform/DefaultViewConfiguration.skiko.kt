@@ -19,16 +19,37 @@ package androidx.compose.ui.platform
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
 
-class DefaultViewConfiguration(private val densityProvider: () -> Density) : ViewConfiguration {
+private const val DEFAULT_LONG_PRESS_TIMEOUT_MILLIS = 500L
+private const val DEFAULT_DOUBLE_TAP_TIMEOUT_MILLIS = 300L
+private const val DEFAULT_DOUBLE_TAP_MIN_TIME_MILLIS = 40L
+private val DEFAULT_TOUCH_SLOP_DP = 18.dp
+
+class DefaultViewConfiguration(private val density: Density) : ViewConfiguration {
     override val longPressTimeoutMillis: Long
-        get() = 500
+        get() = DEFAULT_LONG_PRESS_TIMEOUT_MILLIS
 
     override val doubleTapTimeoutMillis: Long
-        get() = 300
+        get() = DEFAULT_DOUBLE_TAP_TIMEOUT_MILLIS
 
     override val doubleTapMinTimeMillis: Long
-        get() = 40
+        get() = DEFAULT_DOUBLE_TAP_MIN_TIME_MILLIS
 
     override val touchSlop: Float
-        get() = with(densityProvider()) { 18.dp.toPx() }
+        get() = with(density) { DEFAULT_TOUCH_SLOP_DP.toPx() }
+}
+
+internal class DefaultViewConfigurationWithDensityProvider(
+    private val densityProvider: () -> Density
+) : ViewConfiguration {
+    override val longPressTimeoutMillis: Long
+        get() = DEFAULT_LONG_PRESS_TIMEOUT_MILLIS
+
+    override val doubleTapTimeoutMillis: Long
+        get() = DEFAULT_DOUBLE_TAP_TIMEOUT_MILLIS
+
+    override val doubleTapMinTimeMillis: Long
+        get() = DEFAULT_DOUBLE_TAP_MIN_TIME_MILLIS
+
+    override val touchSlop: Float
+        get() = with(densityProvider()) { DEFAULT_TOUCH_SLOP_DP.toPx() }
 }
