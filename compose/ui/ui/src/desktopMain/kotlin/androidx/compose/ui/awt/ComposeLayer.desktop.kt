@@ -37,12 +37,14 @@ import androidx.compose.ui.platform.AccessibilityControllerImpl
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.platform.PlatformComponent
 import androidx.compose.ui.platform.PlatformInput
+import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.toPointerKeyboardModifiers
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.layoutDirection
@@ -110,7 +112,7 @@ internal class ComposeLayer(
         }
     }
 
-    private val platform = object : Platform by Platform.Empty {
+    private val platform = object : Platform {
         override fun setPointerIcon(pointerIcon: PointerIcon) {
             _component.cursor = (pointerIcon as? AwtCursor)?.cursor ?: Cursor(Cursor.DEFAULT_CURSOR)
         }
@@ -156,6 +158,13 @@ internal class ComposeLayer(
 
         override fun requestFocusForOwner(): Boolean {
             return component.hasFocus() || component.requestFocusInWindow()
+        }
+
+        override val viewConfiguration = object : ViewConfiguration {
+            override val longPressTimeoutMillis: Long = 500
+            override val doubleTapTimeoutMillis: Long = 300
+            override val doubleTapMinTimeMillis: Long = 40
+            override val touchSlop: Float get() = with(_component.density) { 18.dp.toPx() }
         }
     }
 
@@ -270,6 +279,7 @@ internal class ComposeLayer(
             get() = super.getLocationOnScreen()
 
         override var density: Density = Density(1f)
+            private set
 
         private fun resetDensity() {
             density = (this as SkiaLayer).density

@@ -26,7 +26,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 
 // TODO(demin): make it public when we stabilize it after implementing it for uikit and js
@@ -40,7 +39,7 @@ internal interface Platform {
     val textInputService: PlatformTextInputService
     fun accessibilityController(owner: SemanticsOwner): AccessibilityController
     fun setPointerIcon(pointerIcon: PointerIcon)
-    fun viewConfiguration(densityProvider: () -> Density): ViewConfiguration
+    val viewConfiguration: ViewConfiguration
 
     companion object {
         @OptIn(ExperimentalComposeUiApi::class)
@@ -77,8 +76,12 @@ internal interface Platform {
             }
 
             override fun setPointerIcon(pointerIcon: PointerIcon) = Unit
-            override fun viewConfiguration(densityProvider: () -> Density) =
-                DefaultViewConfigurationWithDensityProvider(densityProvider)
+            override val viewConfiguration = object : ViewConfiguration {
+                override val longPressTimeoutMillis: Long = 0L
+                override val doubleTapTimeoutMillis: Long = 0L
+                override val doubleTapMinTimeMillis: Long = 0L
+                override val touchSlop: Float = 0f
+            }
         }
     }
 }
