@@ -77,9 +77,9 @@ internal interface Platform {
 
             override fun setPointerIcon(pointerIcon: PointerIcon) = Unit
             override val viewConfiguration = object : ViewConfiguration {
-                override val longPressTimeoutMillis: Long = 0L
-                override val doubleTapTimeoutMillis: Long = 0L
-                override val doubleTapMinTimeMillis: Long = 0L
+                override val longPressTimeoutMillis: Long = 500
+                override val doubleTapTimeoutMillis: Long = 300
+                override val doubleTapMinTimeMillis: Long = 40
                 override val touchSlop: Float = 0f
             }
         }
