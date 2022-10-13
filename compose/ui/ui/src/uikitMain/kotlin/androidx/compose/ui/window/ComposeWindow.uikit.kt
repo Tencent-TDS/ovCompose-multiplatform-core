@@ -65,6 +65,7 @@ internal actual class ComposeWindow : UIViewController {
     @OverrideInit
     constructor(coder: NSCoder) : super(coder)
 
+    private val density: Density = Density(1f) //todo get and update density from UIKit Platform
     private lateinit var layer: ComposeLayer
     private lateinit var content: @Composable () -> Unit
     private val keyboardVisibilityListener = object : NSObject() {
@@ -136,13 +137,12 @@ internal actual class ComposeWindow : UIViewController {
         )
         val uiKitPlatform = object : Platform by Platform.Empty {
             override val textInputService: PlatformTextInputService = uiKitTextInputService
-            override fun viewConfiguration(densityProvider: () -> Density) =
+            override val viewConfiguration =
                 object : ViewConfiguration {
                     override val longPressTimeoutMillis: Long get() = 500
                     override val doubleTapTimeoutMillis: Long get() = 300
                     override val doubleTapMinTimeMillis: Long get() = 40
-                    override val touchSlop: Float
-                        get() = with(densityProvider()) { 3.dp.toPx() }
+                    override val touchSlop: Float get() = with(density) { 3.dp.toPx() }
                 }
         }
         layer = ComposeLayer(

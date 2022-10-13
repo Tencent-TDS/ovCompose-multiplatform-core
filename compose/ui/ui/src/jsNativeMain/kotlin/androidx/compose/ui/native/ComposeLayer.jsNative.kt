@@ -71,7 +71,7 @@ internal class ComposeLayer(
                     scene.sendPointerEvent(
                         eventType = event.kind.toCompose(),
                         // TODO: account for the proper density.
-                        position = Offset(event.x.toFloat(), event.y.toFloat()) - getTopLeftOffset(), // * density,
+                        position = Offset(event.x.toFloat(), event.y.toFloat()) - getTopLeftOffset(), // * scene.density
                         timeMillis = currentMillis(),
                         type = PointerType.Touch,
                         nativeEvent = event

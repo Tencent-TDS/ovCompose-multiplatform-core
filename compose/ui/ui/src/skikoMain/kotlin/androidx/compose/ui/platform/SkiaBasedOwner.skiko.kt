@@ -216,9 +216,7 @@ internal class SkiaBasedOwner(
 
     override val autofill: Autofill? get() = null
 
-    override val viewConfiguration: ViewConfiguration = platform.viewConfiguration(
-        densityProvider = ::density
-    )
+    override val viewConfiguration = platform.viewConfiguration
 
     init {
         snapshotObserver.startObserving()
