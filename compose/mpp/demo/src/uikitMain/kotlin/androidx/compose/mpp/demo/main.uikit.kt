@@ -2,10 +2,10 @@
 package androidx.compose.mpp.demo
 
 import androidx.compose.ui.window.Application
-import androidx.compose.ui.main.defaultIOSMain
+import androidx.compose.ui.main.defaultUIKitMain
 
 fun main() {
-    defaultIOSMain("ComposeDemo", Application("Compose/Native sample") {
+    defaultUIKitMain("ComposeDemo", Application("Compose/Native sample") {
         myContent()
     })
 }

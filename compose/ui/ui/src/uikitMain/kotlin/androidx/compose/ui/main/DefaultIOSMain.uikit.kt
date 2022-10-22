@@ -22,7 +22,7 @@ import platform.Foundation.*
 
 private var _rootViewController: UIViewController? = null
 
-fun defaultIOSMain(executableName: String, rootViewController: UIViewController) {
+fun defaultUIKitMain(executableName: String, rootViewController: UIViewController) {
     _rootViewController = rootViewController
     val args = emptyArray<String>()
     memScoped {
