@@ -287,6 +287,8 @@ internal class FakeSelectable : Selectable {
         return TextRange.Zero
     }
 
+    override fun getLineHeight(offset: Int): Float = 0f
+
     fun clear() {
         lastEndHandlePosition = null
         lastStartHandlePosition = null
