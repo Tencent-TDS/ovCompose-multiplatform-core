@@ -359,8 +359,6 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
             if (visibleBounds.containsInclusive(startHandlePosition)) startHandlePosition else null
         this.endHandlePosition =
             if (visibleBounds.containsInclusive(endHandlePosition)) endHandlePosition else null
-//        startHandleLineHeight = startSelectable.getLineHeight(selection.start.offset)
-//        endHandleLineHeight = startSelectable.getLineHeight(selection.end.offset)
     }
 
     /**
