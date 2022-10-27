@@ -121,5 +121,5 @@ internal interface Selectable {
      */
     fun getRangeOfLineContaining(offset: Int): TextRange
 
-    fun getLineHeight(offset: Int): Float
+    fun getLineHeight(offset: Int): Float = 0f
 }
