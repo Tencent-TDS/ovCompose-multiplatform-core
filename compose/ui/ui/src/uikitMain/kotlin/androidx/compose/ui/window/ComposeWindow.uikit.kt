@@ -35,7 +35,7 @@ import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.SkikoUIView
-import org.jetbrains.skiko.TextMenuArguments
+import org.jetbrains.skiko.TextActions
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
 import platform.Foundation.NSCoder
@@ -157,13 +157,13 @@ internal actual class ComposeWindow : UIViewController {
                     onCutRequested: (() -> Unit)?,
                     onSelectAllRequested: (() -> Unit)?
                 ) = skikoUIView.showTextMenu(
-                    TextMenuArguments(
-                        targetRect = rect.toSkiaRect(),
-                        onCopyRequested = onCopyRequested,
-                        onPasteRequested = onPasteRequested,
-                        onCutRequested = onCutRequested,
-                        onSelectAllRequested = onSelectAllRequested
-                    )
+                    targetRect = rect.toSkiaRect(),
+                    textActions = object: TextActions {
+                        override val copy: (() -> Unit)? = onCopyRequested
+                        override val cut: (() -> Unit)? = onCutRequested
+                        override val paste: (() -> Unit)? = onPasteRequested
+                        override val selectAll: (() -> Unit)? = onSelectAllRequested
+                    }
                 )
 
                 override fun hide() = skikoUIView.hideTextMenu()
