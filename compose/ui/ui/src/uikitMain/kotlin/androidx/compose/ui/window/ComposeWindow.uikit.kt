@@ -166,6 +166,9 @@ internal actual class ComposeWindow : UIViewController {
                     }
                 )
 
+                /**
+                 * TODO on UIKit native behaviour is hide text menu, when touch outside
+                 */
                 override fun hide() = skikoUIView.hideTextMenu()
 
                 override val status: TextToolbarStatus
