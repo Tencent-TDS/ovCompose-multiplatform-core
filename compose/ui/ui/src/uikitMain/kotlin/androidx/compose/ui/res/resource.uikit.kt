@@ -33,16 +33,51 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.skia.Image
 
-fun interface ByteSource { //todo move to commonMain
+interface ByteSource { //todo move to commonMain
     suspend fun readBytes(): ByteArray //todo in future use streaming
 }
 
-fun interface ResourceProvider<T> { //todo move to commonMain
+interface ResourceProvider<T> { //todo move to commonMain
     suspend fun provide(): T
 }
 
+internal class ByteSourceWithKey(val key: Any, val byteSource: ByteSource):ByteSource { // todo move to commonMain
+    override suspend fun readBytes(): ByteArray = byteSource.readBytes()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        return if (other is ByteSourceWithKey) {
+            key != other.key
+        } else {
+            false
+        }
+    }
+
+    override fun hashCode(): Int {
+        return key.hashCode()
+    }
+
+}
+
+internal class ResourceProviderWithKey<T>(val key: Any, val provider: ResourceProvider<T>) : ResourceProvider<T> { //todo move to commonMain
+    override suspend fun provide(): T = provider.provide()
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        return if (other is ResourceProviderWithKey<*>) {
+            key != other.key
+        } else {
+            false
+        }
+    }
+
+    override fun hashCode(): Int {
+        return key.hashCode()
+    }
+
+}
+
 @Composable
-fun <T> ResourceProvider<T>.rememberBlocking() = remember { //todo move to commonMain
+fun <T> ResourceProvider<T>.rememberBlocking() = remember(this) { //todo move to commonMain
     runBlocking {
         provide()
     }
@@ -57,16 +92,24 @@ fun <T> ResourceProvider<T>.rememberAsync(): State<T?> { //todo move to commonMa
     return state
 }
 
-fun ByteSource.asImageBitmap(): ResourceProvider<ImageBitmap> = ResourceProvider {//todo move to skikoMain
-    Image.makeFromEncoded(readBytes()).toComposeImageBitmap()
-}
-
-fun resource(path: String): ByteSource = ByteSource { // todo expect / actual
-    val absolutePath = NSBundle.mainBundle.resourcePath + "/" + path
-    val contentsAtPath: NSData = NSFileManager.defaultManager().contentsAtPath(absolutePath)!!
-    val byteArray = ByteArray(contentsAtPath.length.toInt())
-    byteArray.usePinned {
-        memcpy(it.addressOf(0), contentsAtPath.bytes, contentsAtPath.length)
+fun ByteSource.asImageBitmap(): ResourceProvider<ImageBitmap> = ResourceProviderWithKey( //todo move to skikoMain
+    key = this,
+    object : ResourceProvider<ImageBitmap> {
+        override suspend fun provide(): ImageBitmap = Image.makeFromEncoded(readBytes()).toComposeImageBitmap()
     }
-    byteArray
-}
+)
+
+fun resource(path: String): ByteSource = ByteSourceWithKey( // todo expect / actual
+    key =  path,
+    object : ByteSource {
+        override suspend fun readBytes(): ByteArray {
+            val absolutePath = NSBundle.mainBundle.resourcePath + "/" + path
+            val contentsAtPath: NSData = NSFileManager.defaultManager().contentsAtPath(absolutePath)!!
+            val byteArray = ByteArray(contentsAtPath.length.toInt())
+            byteArray.usePinned {
+                memcpy(it.addressOf(0), contentsAtPath.bytes, contentsAtPath.length)
+            }
+            return byteArray
+        }
+    }
+)
