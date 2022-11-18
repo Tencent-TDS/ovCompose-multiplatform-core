@@ -18,6 +18,7 @@ package androidx.compose.ui.res
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,11 +35,10 @@ fun Resource.rememberImageBitmap(): ImageBitmap = remember(this) { //todo move t
 }
 
 @Composable
-fun Resource.rememberImageBitmapAsync(): State<ImageBitmap?> = remember(this) { //todo move to commonMain
-    val state = remember { mutableStateOf<ImageBitmap?>(null) }
+fun Resource.rememberImageBitmapAsync(): ImageBitmap? { //todo move to commonMain
+    val state = remember(this) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(this) {
         state.value = Image.makeFromEncoded(readBytes()).toComposeImageBitmap()
     }
-    state
+    return state.value
 }
-
