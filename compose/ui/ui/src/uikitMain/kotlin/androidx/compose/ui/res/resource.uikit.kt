@@ -85,8 +85,8 @@ fun <T> ResourceProvider<T>.rememberBlocking() = remember(this) { //todo move to
 
 @Composable
 fun <T> ResourceProvider<T>.rememberAsync(): State<T?> { //todo move to commonMain
-    val state = remember(this) { mutableStateOf<T?>(null) }
-    LaunchedEffect(Unit) {
+    val state = remember { mutableStateOf<T?>(null) }
+    LaunchedEffect(this) {
         state.value = provide()
     }
     return state
