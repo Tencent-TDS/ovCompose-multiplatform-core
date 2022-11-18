@@ -30,9 +30,9 @@ interface Resource { //todo move to commonMain
     suspend fun readBytes(): ByteArray //todo in future use streaming
 }
 
-fun resource(path: String):Resource = LocalResource(path) // todo expect/actual
+fun resource(path: String): Resource = UIKitResourceImpl(path) // todo expect/actual
 
-private class LocalResource(val path:String):Resource {
+private class UIKitResourceImpl(val path: String) : Resource {
     override suspend fun readBytes(): ByteArray {
         val absolutePath = NSBundle.mainBundle.resourcePath + "/" + path
         val contentsAtPath: NSData = NSFileManager.defaultManager().contentsAtPath(absolutePath)!!
@@ -45,7 +45,7 @@ private class LocalResource(val path:String):Resource {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        return if (other is LocalResource) {
+        return if (other is UIKitResourceImpl) {
             path != other.path
         } else {
             false
