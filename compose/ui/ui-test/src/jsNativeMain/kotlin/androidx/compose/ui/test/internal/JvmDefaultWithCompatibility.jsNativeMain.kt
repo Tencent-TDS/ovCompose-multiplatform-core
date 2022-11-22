@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.test.junit4
+package androidx.compose.ui.test.internal
 
-internal actual fun synchronized(lock: Any, block: () -> Unit) = kotlin.synchronized(lock, block)
+// TODO: this actual is not needed after https://youtrack.jetbrains.com/issue/KT-53149 is implemented
+internal annotation class NoOp
+internal actual typealias JvmDefaultWithCompatibility = NoOp

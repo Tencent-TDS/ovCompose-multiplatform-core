@@ -38,6 +38,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.datetime.Clock
 import org.jetbrains.skia.Image
 import org.jetbrains.skia.Surface
 
@@ -184,10 +185,10 @@ class DesktopComposeUiTest(
     }
 
     override fun waitUntil(timeoutMillis: Long, condition: () -> Boolean) {
-        val startTime = System.nanoTime()
+        val startTime = Clock.System.now().toEpochMilliseconds()
         while (!condition()) {
             renderNextFrame()
-            if (System.nanoTime() - startTime > timeoutMillis * NanoSecondsPerMilliSecond) {
+            if (Clock.System.now().toEpochMilliseconds() - startTime > timeoutMillis) {
                 throw ComposeTimeoutException(
                     "Condition still not satisfied after $timeoutMillis ms"
                 )

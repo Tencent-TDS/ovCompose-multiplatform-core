@@ -32,12 +32,26 @@ import androidx.compose.ui.unit.round
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class SkiaLayerTest {
+open class SkikoBaseTest {
+    @BeforeTest
+    open fun before() {
+        println("Before test")
+    }
+
+    @AfterTest
+    open fun after() {
+        println("After Test")
+    }
+}
+
+class SkiaLayerTest : SkikoBaseTest() {
 
     private val layer = TestSkiaLayer()
     private val cos45 = cos(PI / 4)

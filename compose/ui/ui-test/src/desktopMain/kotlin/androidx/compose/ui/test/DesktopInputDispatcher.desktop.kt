@@ -41,6 +41,7 @@ internal actual fun createInputDispatcher(
     return DesktopInputDispatcher(testContext, root as SkiaRootForTest)
 }
 
+@OptIn(InternalComposeUiApi::class)
 internal class DesktopInputDispatcher(
     testContext: TestContext,
     private val root: SkiaRootForTest
@@ -247,10 +248,10 @@ private object DummyComponent : Component()
  * The [KeyEvent] is usually created by the system. This function creates an instance of
  * [KeyEvent] that can be used in tests.
  */
-internal fun keyEvent(
+internal actual fun keyEvent(
     key: Key,
     keyEventType: KeyEventType,
-    modifiers: Int = 0
+    modifiers: Int
 ): KeyEvent {
     val action = when (keyEventType) {
         KeyEventType.KeyDown -> java.awt.event.KeyEvent.KEY_PRESSED

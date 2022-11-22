@@ -25,7 +25,7 @@ import javax.swing.SwingUtilities
  *
  * This method is blocking until the action is complete.
  */
-internal fun <T> runOnUiThread(action: () -> T): T {
+internal actual fun <T> runOnUiThread(action: () -> T): T {
     return if (isOnUiThread()) {
         action()
     } else {
@@ -42,6 +42,6 @@ internal fun <T> runOnUiThread(action: () -> T): T {
 /**
  * Returns if the call is made on the main thread.
  */
-internal fun isOnUiThread(): Boolean {
+internal actual fun isOnUiThread(): Boolean {
     return SwingUtilities.isEventDispatchThread()
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package androidx.compose.ui.test
 
-package androidx.compose.ui.test.junit4
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
 
-internal actual fun synchronized(lock: Any, block: () -> Unit) = kotlin.synchronized(lock, block)
+/**
+ * The [KeyEvent] is usually created by the system. This function creates an instance of
+ * [KeyEvent] that can be used in tests.
+ */
+internal expect fun keyEvent(
+    key: Key, keyEventType: KeyEventType, modifiers: Int = 0
+): KeyEvent
