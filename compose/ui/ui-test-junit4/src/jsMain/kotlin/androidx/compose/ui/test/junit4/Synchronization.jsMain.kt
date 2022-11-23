@@ -16,35 +16,16 @@
 
 package androidx.compose.ui.test.junit4
 
-import kotlin.coroutines.suspendCoroutine
-import kotlinx.coroutines.runBlocking
-import platform.Foundation.NSDate
-import platform.Foundation.NSDefaultRunLoopMode
-import platform.Foundation.NSRunLoop
-import platform.Foundation.performBlock
-import platform.Foundation.runMode
-
 /**
  * Runs the given action on the UI thread.
  *
  * This method is blocking until the action is complete.
  */
 internal actual fun <T> runOnUiThread(action: () -> T): T {
-    return if (isOnUiThread()) {
-        action()
-    } else {
-        runBlocking {
-            suspendCoroutine {
-                NSRunLoop.mainRunLoop.performBlock {
-                    it.resumeWith(kotlin.runCatching { action() })
-                }
-                NSRunLoop.mainRunLoop.runMode(NSDefaultRunLoopMode, NSDate.new()!!)
-            }
-        }
-    }
+    return action()
 }
 
 /**
  * Returns if the call is made on the main thread.
  */
-internal actual fun isOnUiThread(): Boolean = NSRunLoop.currentRunLoop === NSRunLoop.mainRunLoop
+internal actual fun isOnUiThread(): Boolean = true

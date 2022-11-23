@@ -44,27 +44,12 @@ import org.jetbrains.skia.Surface
 
 @ExperimentalTestApi
 actual fun runComposeUiTest(block: ComposeUiTest.() -> Unit) {
-    DesktopComposeUiTest().runTest(block)
-}
-
-/**
- * Variant of [runComposeUiTest] that allows you to specify the size of the surface.
- *
- * @param width the desired width of the surface
- * @param height the desired height of the surface
- */
-@ExperimentalTestApi
-fun runDesktopComposeUiTest(
-    width: Int = 1024,
-    height: Int = 768,
-    block: DesktopComposeUiTest.() -> Unit
-) {
-    DesktopComposeUiTest(width, height).runTest(block)
+    SkikoComposeUiTest().runTest(block)
 }
 
 @ExperimentalTestApi
 @OptIn(ExperimentalCoroutinesApi::class, InternalTestApi::class)
-class DesktopComposeUiTest(
+class SkikoComposeUiTest(
     width: Int = 1024,
     height: Int = 768
 ) : ComposeUiTest {
@@ -118,7 +103,7 @@ class DesktopComposeUiTest(
     private val testOwner = DesktopTestOwner()
     private val testContext = createTestContext(testOwner)
 
-    fun <R> runTest(block: DesktopComposeUiTest.() -> R): R {
+    fun <R> runTest(block: SkikoComposeUiTest.() -> R): R {
         scene = runOnUiThread(::createUi)
         try {
             return block()
@@ -256,15 +241,15 @@ class DesktopComposeUiTest(
         }
 
         override fun <T> runOnUiThread(action: () -> T): T {
-            return this@DesktopComposeUiTest.runOnUiThread(action)
+            return this@SkikoComposeUiTest.runOnUiThread(action)
         }
 
         override fun getRoots(atLeastOneRootExpected: Boolean): Set<RootForTest> {
-            return this@DesktopComposeUiTest.scene.roots
+            return this@SkikoComposeUiTest.scene.roots
         }
 
         override val mainClock get() =
-            this@DesktopComposeUiTest.mainClock
+            this@SkikoComposeUiTest.mainClock
     }
 }
 

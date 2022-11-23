@@ -16,4 +16,4 @@
 
 package androidx.compose.ui.test.junit4
 
-internal actual fun synchronized(lock: Any, block: () -> Unit) = block()
+internal actual inline fun <T> synchronized(lock: Any, block: () -> T) = block()

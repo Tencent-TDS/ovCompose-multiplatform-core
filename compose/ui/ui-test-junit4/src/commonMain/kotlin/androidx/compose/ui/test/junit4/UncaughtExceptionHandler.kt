@@ -77,4 +77,4 @@ internal class UncaughtExceptionHandler :
     }
 }
 
-internal expect fun synchronized(lock: Any, block: () -> Unit)
+internal expect inline fun <T> synchronized(lock: Any, block: () -> T): T
