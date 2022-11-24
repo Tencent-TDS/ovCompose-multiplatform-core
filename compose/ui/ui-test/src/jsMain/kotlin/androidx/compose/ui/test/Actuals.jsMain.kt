@@ -18,6 +18,8 @@ package androidx.compose.ui.test
 
 import androidx.compose.runtime.NoLiveLiterals
 
+// This is a copy of compose/runtime/runtime/src/jsMain/kotlin/androidx/compose/runtime/ActualJs.js.kt
+
 private var nextHash = 1
 private const val IDENTITY_HASHCODE_FIELD = "kotlinIdentityHashcodeValue$"
 
