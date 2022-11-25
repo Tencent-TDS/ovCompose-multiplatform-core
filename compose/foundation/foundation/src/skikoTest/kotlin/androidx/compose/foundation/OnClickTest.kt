@@ -33,11 +33,12 @@ import androidx.compose.ui.platform.DefaultViewConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.use
-import com.google.common.truth.Truth.assertThat
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import org.junit.Test
+import kotlin.test.Test
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runTest
 
+@ExperimentalCoroutinesApi
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 class OnClickTest {
 
@@ -129,16 +130,20 @@ class OnClickTest {
         assertThat(clicksCount).isEqualTo(2)
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     private fun testDoubleClick(
         pointerMatcher: PointerMatcher,
         button: PointerButton
-    ) = runBlocking {
+    ) = runTest {
         val density = Density(1f)
         val viewConfiguration = DefaultViewConfiguration(density)
         ImageComposeScene(
             width = 100,
             height = 100,
-            density = density
+            density = density,
+            coroutineContext = coroutineContext,
+            effectDispatcher = coroutineContext[CoroutineDispatcher],
+            recomposeDispatcher = coroutineContext[CoroutineDispatcher],
         ).use { scene ->
             var clicksCount = 0
             var doubleClickCount = 0
@@ -158,18 +163,28 @@ class OnClickTest {
             }
 
             scene.sendPointerEvent(PointerEventType.Move, Offset(0f, 0f))
+            testScheduler.runCurrent()
             scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), button = button)
+            testScheduler.runCurrent()
             scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), button = button)
-            delay(viewConfiguration.doubleTapTimeoutMillis * 2)
+            testScheduler.advanceTimeBy(viewConfiguration.doubleTapTimeoutMillis * 2)
+            testScheduler.advanceUntilIdle()
             assertThat(clicksCount).isEqualTo(1)
             assertThat(doubleClickCount).isEqualTo(0)
 
             scene.sendPointerEvent(PointerEventType.Move, Offset(5f, 5f))
-            scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), button = button)
+            testScheduler.runCurrent()
+            scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), button = button, timeMillis = 99)
+            testScheduler.runCurrent()
+            scene.sendPointerEvent(PointerEventType.Release, Offset(5f, 5f), button = button, timeMillis = 100)
+            testScheduler.runCurrent()
+            scene.sendPointerEvent(
+                PointerEventType.Press, Offset(5f, 5f), button = button,
+                timeMillis = 100 + viewConfiguration.doubleTapTimeoutMillis / 2
+            )
+            testScheduler.runCurrent()
             scene.sendPointerEvent(PointerEventType.Release, Offset(5f, 5f), button = button)
-            delay(viewConfiguration.doubleTapTimeoutMillis / 2)
-            scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), button = button)
-            scene.sendPointerEvent(PointerEventType.Release, Offset(5f, 5f), button = button)
+            testScheduler.advanceUntilIdle()
             assertThat(clicksCount).isEqualTo(1)
             assertThat(doubleClickCount).isEqualTo(1)
         }
@@ -193,16 +208,20 @@ class OnClickTest {
         pointerMatcher = PointerMatcher.mouse(PointerButton.Tertiary)
     )
 
+    @OptIn(ExperimentalStdlibApi::class)
     private fun testLongClick(
         pointerMatcher: PointerMatcher,
         button: PointerButton
-    ) = runBlocking {
+    ) = runTest {
         val density = Density(1f)
         val viewConfiguration = DefaultViewConfiguration(density)
         ImageComposeScene(
             width = 100,
             height = 100,
-            density = density
+            density = density,
+            coroutineContext = coroutineContext,
+            effectDispatcher = coroutineContext[CoroutineDispatcher],
+            recomposeDispatcher = coroutineContext[CoroutineDispatcher],
         ).use { scene ->
             var clicksCount = 0
             var longClickCount = 0
@@ -221,14 +240,18 @@ class OnClickTest {
             }
 
             scene.sendPointerEvent(PointerEventType.Move, Offset(0f, 0f))
+            testScheduler.runCurrent()
             scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), button = button)
+            testScheduler.runCurrent()
             scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), button = button)
+            testScheduler.runCurrent()
             assertThat(clicksCount).isEqualTo(1)
             assertThat(longClickCount).isEqualTo(0)
 
             scene.sendPointerEvent(PointerEventType.Move, Offset(5f, 5f))
+            testScheduler.runCurrent()
             scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), button = button)
-            delay(viewConfiguration.longPressTimeoutMillis * 2)
+            testScheduler.advanceTimeBy(viewConfiguration.longPressTimeoutMillis * 2)
             assertThat(clicksCount).isEqualTo(1)
             assertThat(longClickCount).isEqualTo(1)
         }
@@ -254,7 +277,7 @@ class OnClickTest {
         )
 
     @Test
-    fun `handles primary and secondary clicks`() = ImageComposeScene(
+    fun handles_primary_and_secondary_clicks() = ImageComposeScene(
         width = 100,
         height = 100,
         density = Density(1f)
@@ -302,7 +325,7 @@ class OnClickTest {
     }
 
     @Test
-    fun `handles primary click with alt keyModifier`() = ImageComposeScene(
+    fun handles_primary_click_with_alt_keyModifier() = ImageComposeScene(
         width = 100,
         height = 100,
         density = Density(1f)
@@ -358,7 +381,7 @@ class OnClickTest {
     }
 
     @Test
-    fun `consume click`() = ImageComposeScene(
+    fun consume_click() = ImageComposeScene(
         width = 100,
         height = 100,
         density = Density(1f)
@@ -398,7 +421,7 @@ class OnClickTest {
     }
 
     @Test
-    fun `don't handle consumed click by another click`() = ImageComposeScene(
+    fun dont_handle_consumed_click_by_another_click() = ImageComposeScene(
         width = 100,
         height = 100,
         density = Density(1f)
@@ -438,7 +461,7 @@ class OnClickTest {
     }
 
     @Test
-    fun `don't handle consumed click by pan`() = ImageComposeScene(
+    fun dont_handle_consumed_click_by_pan() = ImageComposeScene(
         width = 100,
         height = 100,
         density = Density(1f)

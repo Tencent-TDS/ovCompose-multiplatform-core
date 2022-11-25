@@ -48,7 +48,6 @@ import androidx.compose.ui.input.pointer.areAnyPressed
 import androidx.compose.ui.input.pointer.copyFor
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.RootForTest
-import androidx.compose.ui.platform.DefaultTextToolbar
 import androidx.compose.ui.platform.FlushCoroutineDispatcher
 import androidx.compose.ui.platform.GlobalSnapshotManager
 import androidx.compose.ui.platform.Platform
@@ -62,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toIntRect
 import kotlin.coroutines.CoroutineContext
 import kotlin.jvm.Volatile
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -92,12 +92,14 @@ internal val LocalComposeScene = staticCompositionLocalOf<ComposeScene> {
  */
 class ComposeScene internal constructor(
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
-    internal val platform: Platform,
+    internal val platform: Platform = Platform.Empty,
     density: Density = Density(1f),
     private val invalidate: () -> Unit = {},
     @Deprecated("Will be removed in Compose 1.3")
     internal val createSyntheticNativeMoveEvent:
         (sourceEvent: Any?, positionSourceEvent: Any?) -> Any? = { _, _ -> null },
+    internal val customEffectDispatcher: CoroutineDispatcher? = null,
+    internal val customRecomposeDispatcher: CoroutineDispatcher? = null,
 ) {
     /**
      * Constructs [ComposeScene]
@@ -210,8 +212,8 @@ class ComposeScene internal constructor(
     private val coroutineScope = CoroutineScope(coroutineContext + job)
     // We use FlushCoroutineDispatcher for effectDispatcher not because we need `flush` for
     // LaunchEffect tasks, but because we need to know if it is idle (hasn't scheduled tasks)
-    private val effectDispatcher = FlushCoroutineDispatcher(coroutineScope)
-    private val recomposeDispatcher = FlushCoroutineDispatcher(coroutineScope)
+    private val effectDispatcher: CoroutineDispatcher = customEffectDispatcher ?: FlushCoroutineDispatcher(coroutineScope)
+    private val recomposeDispatcher: CoroutineDispatcher = customRecomposeDispatcher ?: FlushCoroutineDispatcher(coroutineScope)
     private val frameClock = BroadcastFrameClock(onNewAwaiters = ::invalidateIfNeeded)
 
     private val recomposer = Recomposer(coroutineContext + job + effectDispatcher)
@@ -268,8 +270,8 @@ class ComposeScene internal constructor(
      */
     fun hasInvalidations() = hasPendingDraws ||
         recomposer.hasPendingWork ||
-        effectDispatcher.hasTasks() ||
-        recomposeDispatcher.hasTasks()
+        (effectDispatcher as? FlushCoroutineDispatcher)?.hasTasks() == true ||
+        (recomposeDispatcher as? FlushCoroutineDispatcher)?.hasTasks() == true
 
     internal fun attach(owner: SkiaBasedOwner) {
         check(!isClosed) { "ComposeScene is closed" }
@@ -376,7 +378,7 @@ class ComposeScene internal constructor(
         this.mainOwner = mainOwner
 
         // to perform all pending work synchronously
-        recomposeDispatcher.flush()
+        (recomposeDispatcher as? FlushCoroutineDispatcher)?.flush()
     }
 
     /**
@@ -407,7 +409,7 @@ class ComposeScene internal constructor(
      * animations in the content (or any other code, which uses [withFrameNanos]
      */
     fun render(canvas: Canvas, nanoTime: Long): Unit = postponeInvalidation {
-        recomposeDispatcher.flush()
+        (recomposeDispatcher as? FlushCoroutineDispatcher)?.flush()
         frameClock.sendFrame(nanoTime)
         needLayout = false
         forEachOwner { it.measureAndLayout() }

@@ -86,19 +86,11 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         desktop()
         darwin()
         js()
+
+        configureDarwinFlags()
     }
 
     kotlin {
-        // linker-option need to run tests on macOS
-        macosX64 {
-            binaries.findTest(NativeBuildType.DEBUG).freeCompilerArgs +=
-                    ["-linker-option", "-framework", "-linker-option", "Metal"]
-        }
-        macosArm64 {
-            binaries.findTest(NativeBuildType.DEBUG).freeCompilerArgs +=
-                    ["-linker-option", "-framework", "-linker-option", "Metal"]
-        }
-
         /*
          * When updating dependencies, make sure to make the an an analogous update in the
          * corresponding block above

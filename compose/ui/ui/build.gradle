@@ -174,6 +174,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             skikoMain {
                 dependsOn(commonMain)
                 dependencies {
+                    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
                     api(project(":compose:ui:ui-graphics"))
                     api(project(":compose:ui:ui-text"))
                     api(libs.skikoCommon)
@@ -240,6 +241,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             skikoTest.dependencies {
                 implementation(libs.kotlinTest)
+                implementation(libs.kotlinCoroutinesTest)
                 implementation(project(":compose:material:material"))
                 implementation(project(":compose:foundation:foundation"))
             }
