@@ -143,7 +143,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(commonMain)
                 dependencies {
                     implementation(libs.skikoCommon)
-                    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
                 }
             }
 

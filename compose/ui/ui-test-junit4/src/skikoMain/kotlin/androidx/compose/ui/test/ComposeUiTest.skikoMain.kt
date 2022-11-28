@@ -38,9 +38,9 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.datetime.Clock
 import org.jetbrains.skia.Image
 import org.jetbrains.skia.Surface
+import org.jetbrains.skiko.currentNanoTime
 
 @ExperimentalTestApi
 actual fun runComposeUiTest(block: ComposeUiTest.() -> Unit) {
@@ -170,10 +170,11 @@ class SkikoComposeUiTest(
     }
 
     override fun waitUntil(timeoutMillis: Long, condition: () -> Boolean) {
-        val startTime = Clock.System.now().toEpochMilliseconds()
+        val startTime = currentNanoTime()
+        val timeoutNanos = timeoutMillis * NanoSecondsPerMilliSecond
         while (!condition()) {
             renderNextFrame()
-            if (Clock.System.now().toEpochMilliseconds() - startTime > timeoutMillis) {
+            if (currentNanoTime() - startTime > timeoutNanos) {
                 throw ComposeTimeoutException(
                     "Condition still not satisfied after $timeoutMillis ms"
                 )
