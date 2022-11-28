@@ -39,10 +39,10 @@ import kotlin.time.DurationUnit.NANOSECONDS
 import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.datetime.Clock
 import org.jetbrains.skia.Color
 import org.jetbrains.skia.Image
 import org.jetbrains.skia.Surface
+import org.jetbrains.skiko.currentNanoTime
 
 /**
  * Render Compose [content] into an [Image]
@@ -213,7 +213,7 @@ class ImageComposeScene(
         eventType: PointerEventType,
         position: Offset,
         scrollDelta: Offset = Offset(0f, 0f),
-        timeMillis: Long = Clock.System.now().toEpochMilliseconds(),
+        timeMillis: Long = currentNanoTime() / 1_000_000L,
         type: PointerType = PointerType.Mouse,
         buttons: PointerButtons? = null,
         keyboardModifiers: PointerKeyboardModifiers? = null,
