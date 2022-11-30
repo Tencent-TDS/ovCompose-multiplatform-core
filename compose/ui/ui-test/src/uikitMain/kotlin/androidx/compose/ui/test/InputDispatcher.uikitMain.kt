@@ -34,6 +34,7 @@ internal actual fun keyEvent(
 ): KeyEvent {
     return return KeyEvent(
         SkikoKeyboardEvent(
+// TODO replace  `enum class SkikoKey` by `class SkikoKey` in skiko, change code here to `SkikoKey(it.platformKeyCode)`
             key = SkikoKey.values().firstOrNull {
                 it.platformKeyCode.toLong() == key.keyCode
             } ?: error("SkikoKey not found for key=$key"),
