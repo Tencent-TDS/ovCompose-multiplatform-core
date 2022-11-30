@@ -108,17 +108,13 @@ class ImageComposeScene(
     height: Int,
     density: Density = Density(1f),
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
-    effectDispatcher: CoroutineDispatcher? = null,
-    recomposeDispatcher: CoroutineDispatcher? = null,
     content: @Composable () -> Unit = {},
 ) {
     private val surface = Surface.makeRasterN32Premul(width, height)
 
     private val scene = ComposeScene(
         density = density,
-        coroutineContext = coroutineContext,
-        customEffectDispatcher = effectDispatcher,
-        customRecomposeDispatcher = recomposeDispatcher
+        coroutineContext = coroutineContext
     ).apply {
         constraints = Constraints(maxWidth = surface.width, maxHeight = surface.height)
         setContent(content = content)

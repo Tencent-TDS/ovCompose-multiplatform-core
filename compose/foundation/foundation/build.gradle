@@ -171,6 +171,13 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             skikoTest {
                 dependsOn(commonTest)
+                dependencies {
+                    implementation(project(":compose:ui:ui-test-junit4"))
+                    implementation(libs.skikoCommon)
+                }
+            }
+            jsNativeTest {
+                dependsOn(skikoTest)
             }
 
             desktopTest {
@@ -186,8 +193,8 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 }
             }
 
-            nativeTest.dependsOn(skikoTest)
-            jsTest.dependsOn(skikoTest)
+            nativeTest.dependsOn(jsNativeTest)
+            jsTest.dependsOn(jsNativeTest)
         }
     }
     dependencies {

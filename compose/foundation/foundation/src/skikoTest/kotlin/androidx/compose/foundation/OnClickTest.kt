@@ -29,14 +29,15 @@ import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.isAltPressed
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.DefaultViewConfiguration
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.use
 import kotlin.test.Test
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runTest
 
 @ExperimentalCoroutinesApi
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
@@ -130,64 +131,50 @@ class OnClickTest {
         assertThat(clicksCount).isEqualTo(2)
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
+    @OptIn(ExperimentalStdlibApi::class, ExperimentalTestApi::class)
     private fun testDoubleClick(
         pointerMatcher: PointerMatcher,
         button: PointerButton
-    ) = runTest {
-        val density = Density(1f)
-        val viewConfiguration = DefaultViewConfiguration(density)
-        ImageComposeScene(
-            width = 100,
-            height = 100,
-            density = density,
-            coroutineContext = coroutineContext,
-            effectDispatcher = coroutineContext[CoroutineDispatcher],
-            recomposeDispatcher = coroutineContext[CoroutineDispatcher],
-        ).use { scene ->
-            var clicksCount = 0
-            var doubleClickCount = 0
+    ) = runSkikoComposeUiTest {
+        var clicksCount = 0
+        var doubleClickCount = 0
+        var viewConfiguration: ViewConfiguration? = null
 
-            scene.setContent {
-                Box(
-                    modifier = Modifier
-                        .onClick(
-                            matcher = pointerMatcher,
-                            onDoubleClick = {
-                                doubleClickCount++
-                            }
-                        ) {
-                            clicksCount++
-                        }.size(10.dp, 20.dp)
-                )
-            }
-
-            scene.sendPointerEvent(PointerEventType.Move, Offset(0f, 0f))
-            testScheduler.runCurrent()
-            scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), button = button)
-            testScheduler.runCurrent()
-            scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), button = button)
-            testScheduler.advanceTimeBy(viewConfiguration.doubleTapTimeoutMillis * 2)
-            testScheduler.advanceUntilIdle()
-            assertThat(clicksCount).isEqualTo(1)
-            assertThat(doubleClickCount).isEqualTo(0)
-
-            scene.sendPointerEvent(PointerEventType.Move, Offset(5f, 5f))
-            testScheduler.runCurrent()
-            scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), button = button, timeMillis = 99)
-            testScheduler.runCurrent()
-            scene.sendPointerEvent(PointerEventType.Release, Offset(5f, 5f), button = button, timeMillis = 100)
-            testScheduler.runCurrent()
-            scene.sendPointerEvent(
-                PointerEventType.Press, Offset(5f, 5f), button = button,
-                timeMillis = 100 + viewConfiguration.doubleTapTimeoutMillis / 2
+        setContent {
+            viewConfiguration = LocalViewConfiguration.current
+            Box(
+                modifier = Modifier
+                    .onClick(
+                        matcher = pointerMatcher,
+                        onDoubleClick = {
+                            doubleClickCount++
+                        }
+                    ) {
+                        clicksCount++
+                    }.size(10.dp, 20.dp)
             )
-            testScheduler.runCurrent()
-            scene.sendPointerEvent(PointerEventType.Release, Offset(5f, 5f), button = button)
-            testScheduler.advanceUntilIdle()
-            assertThat(clicksCount).isEqualTo(1)
-            assertThat(doubleClickCount).isEqualTo(1)
         }
+
+        scene.sendPointerEvent(PointerEventType.Move, Offset(0f, 0f))
+        scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), button = button)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), button = button)
+
+        waitUntil(500) { clicksCount == 1 }
+        assertThat(clicksCount).isEqualTo(1)
+        assertThat(doubleClickCount).isEqualTo(0)
+
+        scene.sendPointerEvent(PointerEventType.Move, Offset(5f, 5f))
+        scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), button = button, timeMillis = 99)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(5f, 5f), button = button, timeMillis = 100)
+        scene.sendPointerEvent(
+            PointerEventType.Press, Offset(5f, 5f), button = button,
+            timeMillis = 100 + viewConfiguration!!.doubleTapMinTimeMillis
+        )
+        scene.sendPointerEvent(PointerEventType.Release, Offset(5f, 5f), button = button)
+
+        waitUntil(500) { doubleClickCount == 1 }
+        assertThat(clicksCount).isEqualTo(1)
+        assertThat(doubleClickCount).isEqualTo(1)
     }
 
     @Test
@@ -208,53 +195,40 @@ class OnClickTest {
         pointerMatcher = PointerMatcher.mouse(PointerButton.Tertiary)
     )
 
-    @OptIn(ExperimentalStdlibApi::class)
+    @OptIn(ExperimentalStdlibApi::class, ExperimentalTestApi::class)
     private fun testLongClick(
         pointerMatcher: PointerMatcher,
         button: PointerButton
-    ) = runTest {
-        val density = Density(1f)
-        val viewConfiguration = DefaultViewConfiguration(density)
-        ImageComposeScene(
-            width = 100,
-            height = 100,
-            density = density,
-            coroutineContext = coroutineContext,
-            effectDispatcher = coroutineContext[CoroutineDispatcher],
-            recomposeDispatcher = coroutineContext[CoroutineDispatcher],
-        ).use { scene ->
-            var clicksCount = 0
-            var longClickCount = 0
+    ) = runSkikoComposeUiTest {
+        var clicksCount = 0
+        var longClickCount = 0
 
-            scene.setContent {
-                Box(
-                    modifier = Modifier
-                        .onClick(
-                            matcher = pointerMatcher,
-                            onLongClick = {
-                                longClickCount++
-                            }) {
-                            clicksCount++
-                        }.size(10.dp, 20.dp)
-                )
-            }
-
-            scene.sendPointerEvent(PointerEventType.Move, Offset(0f, 0f))
-            testScheduler.runCurrent()
-            scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), button = button)
-            testScheduler.runCurrent()
-            scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), button = button)
-            testScheduler.runCurrent()
-            assertThat(clicksCount).isEqualTo(1)
-            assertThat(longClickCount).isEqualTo(0)
-
-            scene.sendPointerEvent(PointerEventType.Move, Offset(5f, 5f))
-            testScheduler.runCurrent()
-            scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), button = button)
-            testScheduler.advanceTimeBy(viewConfiguration.longPressTimeoutMillis * 2)
-            assertThat(clicksCount).isEqualTo(1)
-            assertThat(longClickCount).isEqualTo(1)
+        setContent {
+            Box(
+                modifier = Modifier
+                    .onClick(
+                        matcher = pointerMatcher,
+                        onLongClick = {
+                            longClickCount++
+                        }) {
+                        clicksCount++
+                    }.size(10.dp, 20.dp)
+            )
         }
+        scene.sendPointerEvent(PointerEventType.Move, Offset(0f, 0f))
+        scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), button = button)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), button = button)
+
+        waitUntil(500) { clicksCount == 1 }
+        assertThat(clicksCount).isEqualTo(1)
+        assertThat(longClickCount).isEqualTo(0)
+
+        scene.sendPointerEvent(PointerEventType.Move, Offset(5f, 5f))
+        scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), button = button)
+
+        waitUntil(1000) { longClickCount == 1 }
+        assertThat(clicksCount).isEqualTo(1)
+        assertThat(longClickCount).isEqualTo(1)
     }
 
     @Test
