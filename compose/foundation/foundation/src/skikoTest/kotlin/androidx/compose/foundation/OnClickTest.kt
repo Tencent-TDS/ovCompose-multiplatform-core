@@ -159,7 +159,7 @@ class OnClickTest {
         scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), button = button)
         scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), button = button)
 
-        waitUntil(500) { clicksCount == 1 }
+        waitUntil(viewConfiguration!!.doubleTapTimeoutMillis * 2) { clicksCount == 1 }
         assertThat(clicksCount).isEqualTo(1)
         assertThat(doubleClickCount).isEqualTo(0)
 
@@ -172,7 +172,7 @@ class OnClickTest {
         )
         scene.sendPointerEvent(PointerEventType.Release, Offset(5f, 5f), button = button)
 
-        waitUntil(500) { doubleClickCount == 1 }
+        waitUntil(viewConfiguration!!.doubleTapTimeoutMillis / 2) { doubleClickCount == 1 }
         assertThat(clicksCount).isEqualTo(1)
         assertThat(doubleClickCount).isEqualTo(1)
     }
@@ -202,8 +202,10 @@ class OnClickTest {
     ) = runSkikoComposeUiTest {
         var clicksCount = 0
         var longClickCount = 0
+        var viewConfiguration: ViewConfiguration? = null
 
         setContent {
+            viewConfiguration = LocalViewConfiguration.current
             Box(
                 modifier = Modifier
                     .onClick(
@@ -219,14 +221,14 @@ class OnClickTest {
         scene.sendPointerEvent(PointerEventType.Press, Offset(0f, 0f), button = button)
         scene.sendPointerEvent(PointerEventType.Release, Offset(0f, 0f), button = button)
 
-        waitUntil(500) { clicksCount == 1 }
+        waitUntil(viewConfiguration!!.longPressTimeoutMillis) { clicksCount == 1 }
         assertThat(clicksCount).isEqualTo(1)
         assertThat(longClickCount).isEqualTo(0)
 
         scene.sendPointerEvent(PointerEventType.Move, Offset(5f, 5f))
         scene.sendPointerEvent(PointerEventType.Press, Offset(5f, 5f), button = button)
 
-        waitUntil(1000) { longClickCount == 1 }
+        waitUntil(viewConfiguration!!.longPressTimeoutMillis * 2) { longClickCount == 1 }
         assertThat(clicksCount).isEqualTo(1)
         assertThat(longClickCount).isEqualTo(1)
     }
