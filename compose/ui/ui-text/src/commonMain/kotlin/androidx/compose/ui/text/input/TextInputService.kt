@@ -169,6 +169,9 @@ class TextInputSession(
      * @param rect the rectangle that describes the boundaries on the screen that requires focus
      * @return false if this session expired and no action was performed
      */
+    // TODO remove `Deprecated`, if it is removed in AOSP repository
+    @Suppress("DEPRECATION")
+    @Deprecated("This method should not be called, used BringIntoViewRequester instead.")
     fun notifyFocusedRect(rect: Rect): Boolean = ensureOpenSession {
         platformTextInputService.notifyFocusedRect(rect)
     }
@@ -282,6 +285,8 @@ interface PlatformTextInputService {
      *
      * For example, desktop systems show a popup near the focused input area (for some languages).
      */
+    // TODO remove `Deprecated`, if it is removed in AOSP repository
+    @Deprecated("This method should not be called, used BringIntoViewRequester instead.")
     fun notifyFocusedRect(rect: Rect) {
     }
 }

@@ -173,6 +173,8 @@ internal class TextFieldDelegate {
             }
             val globalLT = layoutCoordinates.localToRoot(Offset(bbox.left, bbox.top))
 
+            // TODO remove `Deprecated`, if it is removed in AOSP repository
+            @Suppress("DEPRECATION")
             textInputSession.notifyFocusedRect(
                 Rect(Offset(globalLT.x, globalLT.y), Size(bbox.width, bbox.height))
             )
