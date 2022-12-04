@@ -17,10 +17,12 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.toSkiaRect
+import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.platform.TextToolbar
@@ -44,8 +46,12 @@ import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSSelectorFromString
 import platform.Foundation.NSValue
 import platform.UIKit.CGRectValue
+import platform.UIKit.UIColor
 import platform.UIKit.UIScreen
+import platform.UIKit.UIView
 import platform.UIKit.UIViewController
+import platform.UIKit.addSubview
+import platform.UIKit.backgroundColor
 import platform.UIKit.reloadInputViews
 import platform.UIKit.setClipsToBounds
 import platform.UIKit.setNeedsDisplay
@@ -121,8 +127,10 @@ internal actual class ComposeWindow : UIViewController {
 
     override fun loadView() {
         val skiaLayer = createSkiaLayer()
-        val skikoUIView = SkikoUIView(skiaLayer).load()
-        view = skikoUIView
+        val skikoUIView = org.jetbrains.skiko.SkikoUIView2(skiaLayer).load()
+        val rootView = UIView()
+        view = rootView
+        view.addSubview(skikoUIView)
         val uiKitTextInputService = UIKitTextInputService(
             showSoftwareKeyboard = {
                 skikoUIView.showScreenKeyboard()
@@ -184,7 +192,14 @@ internal actual class ComposeWindow : UIViewController {
             getTopLeftOffset = ::getTopLeftOffset,
             input = uiKitTextInputService.skikoInput,
         )
-        layer.setContent(content = content)
+        layer.setContent(content = {
+            CompositionLocalProvider(
+//                LocalWindow provides window,
+                LocalLayerContainer provides rootView
+            ) {
+                content()
+            }
+        })
     }
 
     override fun viewWillAppear(animated: Boolean) {
