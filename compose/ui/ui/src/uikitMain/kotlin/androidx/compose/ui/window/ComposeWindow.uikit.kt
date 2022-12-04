@@ -128,7 +128,11 @@ internal actual class ComposeWindow : UIViewController {
     override fun loadView() {
         val skiaLayer = createSkiaLayer()
         val skikoUIView = org.jetbrains.skiko.SkikoUIView2(skiaLayer).load()
-        view = skikoUIView
+        val rootView = UIView()
+        val interopView = UIView()
+        rootView.addSubview(interopView)
+        rootView.addSubview(skikoUIView)
+        view = rootView
         val uiKitTextInputService = UIKitTextInputService(
             showSoftwareKeyboard = {
                 skikoUIView.showScreenKeyboard()
@@ -193,7 +197,7 @@ internal actual class ComposeWindow : UIViewController {
         layer.setContent(content = {
             CompositionLocalProvider(
 //                LocalWindow provides window,
-                LocalLayerContainer provides skikoUIView
+                LocalLayerContainer provides interopView
             ) {
                 content()
             }
