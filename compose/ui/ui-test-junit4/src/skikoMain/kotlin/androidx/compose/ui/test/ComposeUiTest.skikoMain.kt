@@ -19,6 +19,7 @@ package androidx.compose.ui.test
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ComposeScene
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.InfiniteAnimationPolicy
 import androidx.compose.ui.semantics.SemanticsNode
@@ -38,6 +39,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.math.roundToInt
 import org.jetbrains.skia.Image
 import org.jetbrains.skia.Surface
 import org.jetbrains.skiko.currentNanoTime
@@ -48,8 +50,14 @@ actual fun runComposeUiTest(block: ComposeUiTest.() -> Unit) {
 }
 
 @ExperimentalTestApi
-fun runSkikoComposeUiTest(block: SkikoComposeUiTest.() -> Unit) {
-    SkikoComposeUiTest().runTest(block)
+fun runSkikoComposeUiTest(
+    size: Size = Size(1024.0f, 768.0f),
+    block: SkikoComposeUiTest.() -> Unit
+) {
+    SkikoComposeUiTest(
+        width = size.width.roundToInt(),
+        height = size.height.roundToInt()
+    ).runTest(block)
 }
 
 @ExperimentalTestApi
