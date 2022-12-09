@@ -16,6 +16,8 @@
 
 package androidx.compose.foundation
 
+import kotlin.math.abs
+import kotlin.test.assertContains
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -26,13 +28,28 @@ internal fun <T> AssertThat<T>.isEqualTo(a: Any?) {
     assertEquals(a, t)
 }
 
+internal fun AssertThat<Float>.isEqualTo(f: Float, eps: Float = 0f) {
+    if (eps != 0f) {
+        assertTrue(message = "|$t - $f| exceeds $eps") { abs(t!! - f) <= eps }
+    } else {
+        assertEquals(f, t!!)
+    }
+}
+
 internal fun AssertThat<Boolean>.isTrue() = assertTrue(t == true)
 
 internal fun AssertThat<Boolean>.isFalse() = assertTrue(t == false)
 
-internal fun <T> AssertThat<Iterable<T>>.containsExactly(vararg any: T) {
+internal fun <K, T : Iterable<K>> AssertThat<T>.containsExactly(vararg any: K) {
     require(t != null)
     assertContentEquals(t, any.toList())
+}
+
+internal fun <K, T : Iterable<K>> AssertThat<T>.containsAtLeast(vararg any: K) {
+    require(t != null)
+    any.toList().forEach {
+        assertContains(t, it)
+    }
 }
 
 internal fun AssertThat<Float>.isGreaterThan(n: Int) {
@@ -43,6 +60,9 @@ internal fun AssertThat<Float>.isGreaterThan(n: Float) {
     assertTrue(t!! > n, "$t is not greater than $n")
 }
 internal fun AssertThat<Float>.isLessThan(n: Float) {
+    assertTrue(t!! < n, "$t is not less than $n")
+}
+internal fun AssertThat<Float>.isLessThan(n: Int) {
     assertTrue(t!! < n, "$t is not less than $n")
 }
 
