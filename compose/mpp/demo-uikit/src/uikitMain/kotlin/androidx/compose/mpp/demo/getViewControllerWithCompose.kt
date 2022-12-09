@@ -53,9 +53,11 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import kotlinx.coroutines.delay
 import platform.CoreGraphics.CGRectMake
+import platform.UIKit.UIButton
 import platform.UIKit.UIColor
 import platform.UIKit.UITextField
 import platform.UIKit.UIView
+import platform.UIKit.addSubview
 import platform.UIKit.backgroundColor
 
 fun getViewControllerWithCompose() = Application("Compose/Native sample") {
@@ -83,16 +85,16 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
         }
         item {
             UIKitInteropView(
-                background = Color.Yellow,
+                background = Color.Green,
                 modifier = Modifier.size(200.dp, 200.dp),
                 factory = {
-                    val uiTextField = UITextField(CGRectMake(0.0, 0.0, 300.0, 100.0))
-                    uiTextField.text = "UITextField"
-                    uiTextField
+                    UITextField(CGRectMake(0.0, 0.0, 300.0, 100.0)).apply {
+                        text = "UITextField"
+                    }
                 }
             )
         }
-        items(5) {
+        items(10) {
             Stub()
         }
     }
@@ -100,14 +102,5 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
 
 @Composable
 internal fun Stub() {
-    var counter by remember { mutableStateOf(0) }
-    Box(Modifier.size(100.dp).background(Color.Gray).padding(10.dp)) {
-        Text(counter.toString())
-    }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(500)
-            counter++
-        }
-    }
+    Box(Modifier.size(100.dp).background(Color.Gray).padding(10.dp))
 }
