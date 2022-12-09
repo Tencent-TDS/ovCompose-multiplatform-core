@@ -23,6 +23,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.toSkiaRect
 import androidx.compose.ui.interop.LocalLayerContainer
+import androidx.compose.ui.interop.SkikoTouchEventHandler
+import androidx.compose.ui.interop.uikitRect
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.platform.TextToolbar
@@ -36,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
+import org.jetbrains.skia.Point
 import org.jetbrains.skiko.SkikoUIView
 import org.jetbrains.skiko.TextActions
 import platform.CoreGraphics.CGPointMake
@@ -46,12 +49,10 @@ import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSSelectorFromString
 import platform.Foundation.NSValue
 import platform.UIKit.CGRectValue
-import platform.UIKit.UIColor
 import platform.UIKit.UIScreen
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.UIKit.addSubview
-import platform.UIKit.backgroundColor
 import platform.UIKit.reloadInputViews
 import platform.UIKit.setClipsToBounds
 import platform.UIKit.setNeedsDisplay
@@ -129,7 +130,9 @@ internal actual class ComposeWindow : UIViewController {
         val skiaLayer = createSkiaLayer()
         val skikoUIView = SkikoUIView(
             skiaLayer = skiaLayer,
-            hitTest = { listOf(true, false).random(); true },//todo
+            hitTest = { point: Point ->
+                !uikitRect.contains(Offset(point.x, point.y))
+            },
         ).load()
         val rootView = UIView()
         rootView.addSubview(skikoUIView)
@@ -198,7 +201,11 @@ internal actual class ComposeWindow : UIViewController {
         layer.setContent(content = {
             CompositionLocalProvider(
 //                LocalWindow provides window,
-                LocalLayerContainer provides rootView
+                LocalLayerContainer provides rootView,
+                SkikoTouchEventHandler provides {
+
+                    skiaLayer.skikoView?.onTouchEvent(it)
+                }
             ) {
                 content()
             }

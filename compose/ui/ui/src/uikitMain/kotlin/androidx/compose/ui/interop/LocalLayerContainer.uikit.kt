@@ -17,8 +17,13 @@
 package androidx.compose.ui.interop
 
 import androidx.compose.runtime.compositionLocalOf
+import org.jetbrains.skiko.SkikoTouchEvent
 import platform.UIKit.UIView
 
 internal val LocalLayerContainer = compositionLocalOf<UIView> {
     error("CompositionLocal LayerContainer not provided")
+}
+
+internal val SkikoTouchEventHandler = compositionLocalOf<(Array<SkikoTouchEvent>) -> Unit> {
+    error("SkikoTouchEventProvider not provided")
 }

@@ -94,6 +94,9 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
                 }
             )
         }
+        item {
+            TextField(value = textState1.value, onValueChange = { textState1.value = it })
+        }
         items(10) {
             Stub()
         }

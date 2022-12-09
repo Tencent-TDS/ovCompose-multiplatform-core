@@ -30,6 +30,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
@@ -39,12 +40,18 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.round
 import kotlinx.atomicfu.atomic
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.skiko.SkikoTouchEvent
+import org.jetbrains.skiko.SkikoTouchEventKind
+import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UIColor
+import platform.UIKit.UIEvent
+import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.addSubview
 import platform.UIKit.backgroundColor
@@ -55,6 +62,7 @@ import platform.UIKit.setNeedsDisplay
 import platform.UIKit.setNeedsUpdateConstraints
 
 val NoOpUpdate: UIView.() -> Unit = {}
+var uikitRect = Rect(0f, 0f, 0f, 0f)
 
 /**
  * TODO doc
@@ -69,6 +77,7 @@ public fun <T : UIView> UIKitInteropView(
     val componentInfo = remember { ComponentInfo<T>() }
 
     val root = LocalLayerContainer.current
+    val skikoTouchEventHandler = SkikoTouchEventHandler.current
     val density = LocalDensity.current.density
     val focusManager = LocalFocusManager.current
     val focusSwitcher = remember { FocusSwitcher(componentInfo, focusManager) }
@@ -79,6 +88,7 @@ public fun <T : UIView> UIKitInteropView(
             val location = coordinates.localToWindow(Offset.Zero).round()
             val size = coordinates.size
             val rect = IntRect(location, size) / density
+            uikitRect = rect
             componentInfo.container.setFrame(rect.toCGRect())
             componentInfo.container.setNeedsDisplay()
             componentInfo.container.setNeedsUpdateConstraints()
@@ -107,7 +117,37 @@ public fun <T : UIView> UIKitInteropView(
 //        }
 //        root.addFocusListener(focusListener)
         componentInfo.component = factory()
-        componentInfo.container = UIView().apply {
+        componentInfo.container = object : UIView(CGRectMake(.0, .0, .0, .0)) {
+            override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
+                super.touchesBegan(touches, withEvent)
+                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.STARTED)
+            }
+
+            override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
+                super.touchesEnded(touches, withEvent)
+                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.ENDED)
+            }
+
+            override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
+                super.touchesMoved(touches, withEvent)
+                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.MOVED)
+            }
+
+            override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
+                super.touchesCancelled(touches, withEvent)
+                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.CANCELLED)
+            }
+
+            private fun sendTouchEventToSkikoView(touches: Set<*>, kind: SkikoTouchEventKind) {
+                val events: Array<SkikoTouchEvent> = touches.map {
+                    val event = it as UITouch
+                    val (x, y) = event.locationInView(null).useContents { x to y }
+                    val timestamp = (event.timestamp * 1_000).toLong()
+                    SkikoTouchEvent(x, y, kind, timestamp, event)
+                }.toTypedArray()
+                skikoTouchEventHandler(events)
+            }
+        }.apply {
 //            layout = BorderLayout(0, 0)
 //            focusTraversalPolicy = object : LayoutFocusTraversalPolicy() {
 //                override fun getComponentAfter(aContainer: Container?, aComponent: Component?): Component? {
