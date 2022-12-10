@@ -33,11 +33,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.InteropSizeModifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import kotlinx.atomicfu.atomic
 import kotlinx.cinterop.useContents
@@ -57,6 +59,7 @@ import platform.UIKit.addSubview
 import platform.UIKit.backgroundColor
 import platform.UIKit.insertSubview
 import platform.UIKit.removeFromSuperview
+import platform.UIKit.setBounds
 import platform.UIKit.setFrame
 import platform.UIKit.setNeedsDisplay
 import platform.UIKit.setNeedsUpdateConstraints
@@ -90,13 +93,16 @@ public fun <T : UIView> UIKitInteropView(
             val rect = IntRect(location, size) / density
             uikitRect = rect
             componentInfo.container.setFrame(rect.toCGRect())
+//            componentInfo.container.setBounds(rect.toCGRect())
             componentInfo.container.setNeedsDisplay()
             componentInfo.container.setNeedsUpdateConstraints()
+            componentInfo.component.setNeedsDisplay()
+            componentInfo.component.setNeedsUpdateConstraints()
 //            componentInfo.container.validate()
 //            componentInfo.container.repaint()
         }.drawBehind {
             this.drawRect(Color(0), blendMode = BlendMode.DstAtop)
-        }
+        }.then(InteropSizeModifier(200.dp, 200.dp))//todo
     ) {
         focusSwitcher.Content()
     }

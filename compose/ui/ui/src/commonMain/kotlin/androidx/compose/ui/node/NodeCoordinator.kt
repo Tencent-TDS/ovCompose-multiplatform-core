@@ -1285,6 +1285,24 @@ internal abstract class NodeCoordinator(
                     isInLayer
                 )
             }
+
+        @OptIn(ExperimentalComposeUiApi::class)
+        val LayoutInputSource =
+            object : HitTestSource<LayoutModifierNode> {
+                override fun entityType() = Nodes.Layout
+
+                override fun interceptOutOfBoundsChildEvents(node: LayoutModifierNode) = false
+
+                override fun shouldHitTestChildren(parentLayoutNode: LayoutNode) = true
+
+                override fun childHitTest(
+                    layoutNode: LayoutNode,
+                    pointerPosition: Offset,
+                    hitTestResult: HitTestResult<LayoutModifierNode>,
+                    isTouchEvent: Boolean,
+                    isInLayer: Boolean
+                ) = layoutNode.hitTestDisplay(pointerPosition, hitTestResult, isTouchEvent, isInLayer)
+            }
     }
 }
 

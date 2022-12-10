@@ -24,7 +24,6 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.toSkiaRect
 import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.interop.SkikoTouchEventHandler
-import androidx.compose.ui.interop.uikitRect
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.platform.TextToolbar
@@ -49,7 +48,10 @@ import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSSelectorFromString
 import platform.Foundation.NSValue
 import platform.UIKit.CGRectValue
+import platform.UIKit.UIEvent
 import platform.UIKit.UIScreen
+import platform.UIKit.UITouch
+import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.UIKit.addSubview
@@ -126,12 +128,22 @@ internal actual class ComposeWindow : UIViewController {
         println("TODO: set title to SkiaWindow")
     }
 
+    var handleNextMoveWithInterop: Boolean = false
     override fun loadView() {
         val skiaLayer = createSkiaLayer()
         val skikoUIView = SkikoUIView(
             skiaLayer = skiaLayer,
-            hitTest = { point: Point ->
-                !uikitRect.contains(Offset(point.x, point.y))
+            hitTest = { point: Point, withEvent: UIEvent? ->
+//                !uikitRect.contains(Offset(point.x, point.y))
+                val isInteropView = layer.scene.mainOwner?.hitInterop(Offset(point.x, point.y), true) ?: false
+                if (isInteropView) {
+                    val uiTouches = withEvent?.allTouches()?.filterIsInstance<UITouch>().orEmpty()
+                    uiTouches.size == 1 && uiTouches[0].phase == UITouchPhase.UITouchPhaseMoved
+                    handleNextMoveWithInterop = !handleNextMoveWithInterop
+                    handleNextMoveWithInterop
+                } else {
+                    true
+                }
             },
         ).load()
         val rootView = UIView()

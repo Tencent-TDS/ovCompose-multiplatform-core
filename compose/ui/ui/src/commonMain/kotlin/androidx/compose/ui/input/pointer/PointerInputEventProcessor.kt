@@ -18,8 +18,10 @@ package androidx.compose.ui.input.pointer
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.node.BackwardsCompatNode
 import androidx.compose.ui.node.HitTestResult
 import androidx.compose.ui.node.InternalCoreApi
+import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.util.fastForEach
@@ -107,6 +109,17 @@ internal class PointerInputEventProcessor(val root: LayoutNode) {
             return ProcessResult(dispatchedToSomething, anyMovementConsumed)
         } finally {
             isProcessing = false
+        }
+    }
+
+    fun hitInterop(pointerPosition: Offset, isTouchEvent: Boolean): Boolean {
+        val result: HitTestResult<LayoutModifierNode> = HitTestResult<LayoutModifierNode>()
+        root.hitTestDisplay(pointerPosition, result, isTouchEvent)
+        val last = result.lastOrNull()
+        return if (last is BackwardsCompatNode) {
+            last.element is InteropSizeModifier
+        } else {
+            false
         }
     }
 

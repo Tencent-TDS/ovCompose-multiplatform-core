@@ -80,19 +80,22 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
         }
     }
     LazyColumn {
-        items(1) {
+        items(2) {
             Stub()
         }
         item {
-            UIKitInteropView(
-                background = Color.Green,
-                modifier = Modifier.size(200.dp, 200.dp),
-                factory = {
-                    UITextField(CGRectMake(0.0, 0.0, 300.0, 100.0)).apply {
-                        text = "UITextField"
+            Box(Modifier.size(200.dp, 200.dp)) {
+                UIKitInteropView(
+                    background = Color.Green,
+                    modifier = Modifier.size(200.dp, 200.dp),
+                    factory = {
+                        UITextField(CGRectMake(0.0, 0.0, 300.0, 100.0)).apply {
+                            text = "UITextField"
+                        }
                     }
-                }
-            )
+                )
+//                Box(Modifier.size(100.dp, 100.dp).background(Color.Black))
+            }
         }
         item {
             TextField(value = textState1.value, onValueChange = { textState1.value = it })

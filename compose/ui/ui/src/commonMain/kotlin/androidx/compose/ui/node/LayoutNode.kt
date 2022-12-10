@@ -869,6 +869,23 @@ internal class LayoutNode(
         )
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
+    internal fun hitTestDisplay(
+        pointerPosition: Offset,
+        hitSemanticsEntities: HitTestResult<LayoutModifierNode>,
+        isTouchEvent: Boolean = true,
+        isInLayer: Boolean = true
+    ) {
+        val positionInWrapped = outerCoordinator.fromParentPosition(pointerPosition)
+        outerCoordinator.hitTest(
+            NodeCoordinator.LayoutInputSource,
+            positionInWrapped,
+            hitSemanticsEntities,
+            isTouchEvent = true,
+            isInLayer = isInLayer
+        )
+    }
+
     @Suppress("UNUSED_PARAMETER")
     @OptIn(ExperimentalComposeUiApi::class)
     internal fun hitTestSemantics(
