@@ -37,7 +37,6 @@ internal fun ComposeUITextField(value: String, onValueChange: (String) -> Unit) 
         modifier = Modifier.size(200.dp, 200.dp),
         factory = {
             val textField = object : UITextField(CGRectMake(0.0, 0.0, 300.0, 100.0)) {
-                @Suppress("unused")
                 @ObjCAction
                 fun editingChanged() {
                     onValueChange(text ?: "")
