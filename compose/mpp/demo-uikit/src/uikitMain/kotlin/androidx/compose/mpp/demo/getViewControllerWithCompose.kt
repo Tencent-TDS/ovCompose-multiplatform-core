@@ -52,19 +52,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Application
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
+import kotlinx.cinterop.ObjCAction
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.delay
 import platform.CoreGraphics.CGRectMake
+import platform.Foundation.NSNotification
+import platform.Foundation.NSSelectorFromString
+import platform.UIKit.UIControlEventEditingChanged
+
+import platform.Foundation.NSValue
+import platform.UIKit.CGRectValue
 import platform.UIKit.UIButton
 import platform.UIKit.UIColor
+import platform.UIKit.UIScreen
 import platform.UIKit.UITextField
 import platform.UIKit.UIView
 import platform.UIKit.addSubview
 import platform.UIKit.backgroundColor
+import platform.UIKit.setClipsToBounds
 import platform.UIKit.setNeedsUpdateConstraints
+import platform.darwin.NSObject
 
 fun getViewControllerWithCompose() = Application("Compose/Native sample") {
-    val textState1 = remember { mutableStateOf("text field 1") }
-    val textState2 = remember { mutableStateOf("text field 2") }
+    val textState1 = remember { mutableStateOf("sync text state") }
     val counter = remember { mutableStateOf(0) }
     Popup(object : PopupPositionProvider {
         override fun calculatePosition(
@@ -88,18 +98,7 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
         }
         item {
             Box(Modifier.size(200.dp, 200.dp)) {
-                UIKitInteropView(
-                    background = Color.Green,
-                    modifier = Modifier.size(200.dp, 200.dp),
-                    factory = {
-                        UITextField(CGRectMake(0.0, 0.0, 300.0, 100.0)).apply {
-                            text = "UITextField"
-                        }
-                    },
-                    update = {
-                        println("update")//todo check update
-                    }
-                )
+                ComposeUITextField(textState1.value, onValueChange = { textState1.value = it })
                 Button(onClick = { counter.value++ }, Modifier.align(Alignment.BottomCenter)) {
                     Text("Click ${counter.value}")
                 }

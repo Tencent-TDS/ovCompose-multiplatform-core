@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,7 +87,8 @@ public fun <T : UIView> UIKitInteropView(
     background: Color = Color.White,
     factory: () -> T,
     modifier: Modifier = Modifier,
-    update: (T) -> Unit = NoOpUpdate
+    update: (T) -> Unit = NoOpUpdate,
+    dispose: (T) -> Unit = {}
 ) {
     val componentInfo = remember { ComponentInfo<T>() }
 
@@ -191,10 +193,10 @@ public fun <T : UIView> UIKitInteropView(
         onDispose {
             componentInfo.container.removeFromSuperview()
             componentInfo.updater.dispose()
+            dispose(componentInfo.component)
 //            root.removeFocusListener(focusListener)
         }
     }
-
     SideEffect {
         componentInfo.container.backgroundColor = parseColor(background)
         componentInfo.updater.update = update
