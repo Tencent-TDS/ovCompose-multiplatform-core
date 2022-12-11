@@ -59,6 +59,7 @@ import platform.UIKit.UITextField
 import platform.UIKit.UIView
 import platform.UIKit.addSubview
 import platform.UIKit.backgroundColor
+import platform.UIKit.setNeedsUpdateConstraints
 
 fun getViewControllerWithCompose() = Application("Compose/Native sample") {
     val textState1 = remember { mutableStateOf("text field 1") }
@@ -80,7 +81,7 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
         }
     }
     LazyColumn {
-        items(2) {
+        items(3) {
             Stub()
         }
         item {
@@ -92,6 +93,9 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
                         UITextField(CGRectMake(0.0, 0.0, 300.0, 100.0)).apply {
                             text = "UITextField"
                         }
+                    },
+                    update = {
+                        println("update")//todo check update
                     }
                 )
 //                Box(Modifier.size(100.dp, 100.dp).background(Color.Black))

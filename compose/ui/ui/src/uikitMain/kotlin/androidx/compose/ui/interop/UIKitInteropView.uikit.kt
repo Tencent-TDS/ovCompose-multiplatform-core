@@ -18,7 +18,10 @@ package androidx.compose.ui.interop
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.Modifier
@@ -34,10 +37,12 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.InteropSizeModifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
@@ -46,26 +51,32 @@ import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.skiko.SkikoTouchEvent
 import org.jetbrains.skiko.SkikoTouchEventKind
 import platform.CoreGraphics.CGRectMake
+import platform.QuartzCore.CATransaction
 import platform.UIKit.UIColor
 import platform.UIKit.UIEvent
+import platform.UIKit.UITextField
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.addSubview
 import platform.UIKit.backgroundColor
 import platform.UIKit.insertSubview
+import platform.UIKit.layoutIfNeeded
 import platform.UIKit.removeFromSuperview
 import platform.UIKit.setBounds
 import platform.UIKit.setFrame
 import platform.UIKit.setNeedsDisplay
 import platform.UIKit.setNeedsUpdateConstraints
+import platform.UIKit.window
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
 
 val NoOpUpdate: UIView.() -> Unit = {}
-var uikitRect = Rect(0f, 0f, 0f, 0f)
 
 /**
  * TODO doc
@@ -91,17 +102,17 @@ public fun <T : UIView> UIKitInteropView(
             val location = coordinates.localToWindow(Offset.Zero).round()
             val size = coordinates.size
             val rect = IntRect(location, size) / density
-            uikitRect = rect
-            componentInfo.container.setFrame(rect.toCGRect())
-//            componentInfo.container.setBounds(rect.toCGRect())
-            componentInfo.container.setNeedsDisplay()
-            componentInfo.container.setNeedsUpdateConstraints()
-            componentInfo.component.setNeedsDisplay()
-            componentInfo.component.setNeedsUpdateConstraints()
-//            componentInfo.container.validate()
-//            componentInfo.container.repaint()
+            dispatch_async(dispatch_get_main_queue()) {
+                CATransaction.begin()
+                componentInfo.container.setFrame(rect.toCGRect())
+                CATransaction.commit()
+                componentInfo.component.layoutIfNeeded()
+                componentInfo.component.setNeedsDisplay()
+                componentInfo.component.setNeedsUpdateConstraints()
+                componentInfo.component.resignFirstResponder()
+            }
         }.drawBehind {
-            this.drawRect(Color(0), blendMode = BlendMode.DstAtop)
+            drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)
         }.then(InteropSizeModifier(200.dp, 200.dp))//todo
     ) {
         focusSwitcher.Content()
@@ -123,7 +134,7 @@ public fun <T : UIView> UIKitInteropView(
 //        }
 //        root.addFocusListener(focusListener)
         componentInfo.component = factory()
-        componentInfo.container = object : UIView(CGRectMake(.0, .0, .0, .0)) {
+        componentInfo.container = object : UIView(CGRectMake(0.0, 0.0, 0.0, 0.0)) {
             override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
                 super.touchesBegan(touches, withEvent)
                 sendTouchEventToSkikoView(touches, SkikoTouchEventKind.STARTED)

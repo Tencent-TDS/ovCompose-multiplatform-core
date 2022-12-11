@@ -128,7 +128,6 @@ internal actual class ComposeWindow : UIViewController {
         println("TODO: set title to SkiaWindow")
     }
 
-    var handleNextMoveWithInterop: Boolean = false
     override fun loadView() {
         val skiaLayer = createSkiaLayer()
         val skikoUIView = SkikoUIView(
@@ -136,14 +135,7 @@ internal actual class ComposeWindow : UIViewController {
             hitTest = { point: Point, withEvent: UIEvent? ->
 //                !uikitRect.contains(Offset(point.x, point.y))
                 val isInteropView = layer.scene.mainOwner?.hitInterop(Offset(point.x, point.y), true) ?: false
-                if (isInteropView) {
-                    val uiTouches = withEvent?.allTouches()?.filterIsInstance<UITouch>().orEmpty()
-                    uiTouches.size == 1 && uiTouches[0].phase == UITouchPhase.UITouchPhaseMoved
-                    handleNextMoveWithInterop = !handleNextMoveWithInterop
-                    handleNextMoveWithInterop
-                } else {
-                    true
-                }
+                !isInteropView
             },
         ).load()
         val rootView = UIView()
@@ -224,10 +216,14 @@ internal actual class ComposeWindow : UIViewController {
         })
     }
 
-    override fun viewWillAppear(animated: Boolean) {
-        super.viewDidAppear(animated)
+    override fun viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
         val (width, height) = getViewFrameSize()
         layer.setSize(width, height)
+    }
+
+    override fun viewDidAppear(animated: Boolean) {
+        super.viewDidAppear(animated)
         NSNotificationCenter.defaultCenter.addObserver(
             observer = keyboardVisibilityListener,
             selector = NSSelectorFromString("keyboardWillShow:"),
@@ -250,6 +246,7 @@ internal actual class ComposeWindow : UIViewController {
 
     // viewDidUnload() is deprecated and not called.
     override fun viewDidDisappear(animated: Boolean) {
+        super.viewDidDisappear(animated)
         this.dispose()
         NSNotificationCenter.defaultCenter.removeObserver(
             observer = keyboardVisibilityListener,
@@ -266,6 +263,11 @@ internal actual class ComposeWindow : UIViewController {
             name = platform.UIKit.UIKeyboardDidHideNotification,
             `object` = null
         )
+    }
+
+    override fun didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        TODO("didReceiveMemoryWarning, maybe memory leak")
     }
 
     actual fun setContent(
