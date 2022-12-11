@@ -97,6 +97,7 @@ public fun <T : UIView> UIKitInteropView(
     val density = LocalDensity.current.density
     val focusManager = LocalFocusManager.current
     val focusSwitcher = remember { FocusSwitcher(componentInfo, focusManager) }
+    val rectState = remember { mutableStateOf(Rect(0f, 0f, 0f, 0f)) }
 
     Box(
         modifier = modifier.onGloballyPositioned { childCoordinates ->
@@ -104,14 +105,17 @@ public fun <T : UIView> UIKitInteropView(
             val location = coordinates.localToWindow(Offset.Zero).round()
             val size = coordinates.size
             val rect = IntRect(location, size) / density
-            dispatch_async(dispatch_get_main_queue()) {
-                CATransaction.begin()
-                componentInfo.container.setFrame(rect.toCGRect())
-                CATransaction.commit()
-                componentInfo.component.layoutIfNeeded()
-                componentInfo.component.setNeedsDisplay()
-                componentInfo.component.setNeedsUpdateConstraints()
-                componentInfo.component.resignFirstResponder()
+            if (rectState.value != rect) {
+                rectState.value = rect
+                dispatch_async(dispatch_get_main_queue()) {
+                    CATransaction.begin()
+                    componentInfo.container.setFrame(rect.toCGRect())
+                    CATransaction.commit()
+                    componentInfo.component.layoutIfNeeded()
+                    componentInfo.component.setNeedsDisplay()
+                    componentInfo.component.setNeedsUpdateConstraints()
+                    componentInfo.component.resignFirstResponder()
+                }
             }
         }.drawBehind {
             drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)
