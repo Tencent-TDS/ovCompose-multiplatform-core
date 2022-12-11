@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
@@ -64,6 +65,7 @@ import platform.UIKit.setNeedsUpdateConstraints
 fun getViewControllerWithCompose() = Application("Compose/Native sample") {
     val textState1 = remember { mutableStateOf("text field 1") }
     val textState2 = remember { mutableStateOf("text field 2") }
+    val counter = remember { mutableStateOf(0) }
     Popup(object : PopupPositionProvider {
         override fun calculatePosition(
             anchorBounds: IntRect,
@@ -98,7 +100,9 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
                         println("update")//todo check update
                     }
                 )
-//                Box(Modifier.size(100.dp, 100.dp).background(Color.Black))
+                Button(onClick = { counter.value++ }, Modifier.align(Alignment.BottomCenter)) {
+                    Text("Click ${counter.value}")
+                }
             }
         }
         item {
