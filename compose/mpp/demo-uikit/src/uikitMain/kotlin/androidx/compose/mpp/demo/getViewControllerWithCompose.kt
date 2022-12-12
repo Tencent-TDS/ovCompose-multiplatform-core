@@ -21,6 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -59,7 +60,6 @@ import platform.CoreGraphics.CGRectMake
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
 import platform.UIKit.UIControlEventEditingChanged
-
 import platform.Foundation.NSValue
 import platform.UIKit.CGRectValue
 import platform.UIKit.UIButton
@@ -97,8 +97,8 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
             Stub()
         }
         item {
-            Box(Modifier.size(200.dp, 200.dp)) {
-                ComposeUITextField(textState1.value, onValueChange = { textState1.value = it })
+            Box(Modifier.size(200.dp, 100.dp)) {
+                ComposeUITextField(Modifier.fillMaxSize(), textState1.value, onValueChange = { textState1.value = it })
                 Button(onClick = { counter.value++ }, Modifier.align(Alignment.BottomCenter)) {
                     Text("Click ${counter.value}")
                 }

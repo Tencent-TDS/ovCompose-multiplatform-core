@@ -23,59 +23,34 @@ import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
 
 internal class InteropSizeModifier(
-    private val width: Dp = Dp.Unspecified,
-    private val height: Dp = Dp.Unspecified,
+    private val widthPx: Int,
+    private val heightPx: Int,
 ) : LayoutModifier {
     override fun MeasureScope.measure(
         measurable: Measurable,
         constraints: Constraints
     ): MeasureResult {
-        val placeable = measurable.measure(Constraints(width.roundToPx(), width.roundToPx(), height.roundToPx(), height.roundToPx()))
+        val placeable = measurable.measure(Constraints(widthPx, widthPx, heightPx, heightPx))
         return layout(placeable.width, placeable.height) {
             placeable.placeRelative(0, 0)
         }
     }
-
-    override fun IntrinsicMeasureScope.minIntrinsicWidth(
-        measurable: IntrinsicMeasurable,
-        height: Int
-    ): Int {
-        return width.roundToPx()
-    }
-
-    override fun IntrinsicMeasureScope.minIntrinsicHeight(
-        measurable: IntrinsicMeasurable,
-        width: Int
-    ): Int {
-        return height.roundToPx()
-    }
-
-    override fun IntrinsicMeasureScope.maxIntrinsicWidth(
-        measurable: IntrinsicMeasurable,
-        height: Int
-    ): Int {
-        return width.roundToPx()
-    }
-
-    override fun IntrinsicMeasureScope.maxIntrinsicHeight(
-        measurable: IntrinsicMeasurable,
-        width: Int
-    ): Int {
-        return height.roundToPx()
-    }
+    override fun IntrinsicMeasureScope.minIntrinsicWidth(measurable: IntrinsicMeasurable, height: Int): Int = widthPx
+    override fun IntrinsicMeasureScope.minIntrinsicHeight(measurable: IntrinsicMeasurable, width: Int) = heightPx
+    override fun IntrinsicMeasureScope.maxIntrinsicWidth(measurable: IntrinsicMeasurable, height: Int) = widthPx
+    override fun IntrinsicMeasureScope.maxIntrinsicHeight(measurable: IntrinsicMeasurable, width: Int) = heightPx
 
     override fun equals(other: Any?): Boolean {
         if (other !is InteropSizeModifier) return false
-        return width == other.width &&
-            height == other.height
+        return widthPx == other.widthPx &&
+            heightPx == other.heightPx
     }
 
     override fun hashCode(): Int {
-        var result = width.hashCode()
-        result = 31 * result + height.hashCode()
+        var result = widthPx.hashCode()
+        result = 31 * result + heightPx.hashCode()
         return result
     }
 

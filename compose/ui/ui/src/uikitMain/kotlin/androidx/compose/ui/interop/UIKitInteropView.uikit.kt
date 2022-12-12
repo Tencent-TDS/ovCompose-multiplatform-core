@@ -18,10 +18,8 @@ package androidx.compose.ui.interop
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
@@ -34,16 +32,13 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.InteropSizeModifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
@@ -52,7 +47,6 @@ import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.skiko.SkikoTouchEvent
@@ -61,7 +55,6 @@ import platform.CoreGraphics.CGRectMake
 import platform.QuartzCore.CATransaction
 import platform.UIKit.UIColor
 import platform.UIKit.UIEvent
-import platform.UIKit.UITextField
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.addSubview
@@ -69,11 +62,9 @@ import platform.UIKit.backgroundColor
 import platform.UIKit.insertSubview
 import platform.UIKit.layoutIfNeeded
 import platform.UIKit.removeFromSuperview
-import platform.UIKit.setBounds
 import platform.UIKit.setFrame
 import platform.UIKit.setNeedsDisplay
 import platform.UIKit.setNeedsUpdateConstraints
-import platform.UIKit.window
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 
@@ -97,19 +88,20 @@ public fun <T : UIView> UIKitInteropView(
     val density = LocalDensity.current.density
     val focusManager = LocalFocusManager.current
     val focusSwitcher = remember { FocusSwitcher(componentInfo, focusManager) }
-    val rectState = remember { mutableStateOf(Rect(0f, 0f, 0f, 0f)) }
+    var rectInPixels by remember { mutableStateOf(IntRect(0, 0, 0, 0)) }
 
     Box(
         modifier = modifier.onGloballyPositioned { childCoordinates ->
             val coordinates = childCoordinates.parentCoordinates!!
-            val location = coordinates.localToWindow(Offset.Zero).round()
-            val size = coordinates.size
-            val rect = IntRect(location, size) / density
-            if (rectState.value != rect) {
-                rectState.value = rect
+            val newRectInPixels = IntRect(coordinates.localToWindow(Offset.Zero).round(), coordinates.size)
+            if (rectInPixels != newRectInPixels) {
+                rectInPixels = newRectInPixels
                 dispatch_async(dispatch_get_main_queue()) {
+                    val rect = rectInPixels / density
+                    val cgRect = rect.toCGRect()
                     CATransaction.begin()
-                    componentInfo.container.setFrame(rect.toCGRect())
+                    componentInfo.container.setFrame(cgRect)
+                    componentInfo.component.setFrame(CGRectMake(0.0, 0.0, rect.width.toDouble(), rect.height.toDouble()))
                     CATransaction.commit()
                     componentInfo.component.layoutIfNeeded()
                     componentInfo.component.setNeedsDisplay()
@@ -119,7 +111,7 @@ public fun <T : UIView> UIKitInteropView(
             }
         }.drawBehind {
             drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)
-        }.then(InteropSizeModifier(200.dp, 200.dp))//todo
+        }.then(InteropSizeModifier(rectInPixels.width, rectInPixels.height))
     ) {
         focusSwitcher.Content()
     }

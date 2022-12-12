@@ -31,12 +31,12 @@ import platform.UIKit.UIControlEventEditingChanged
 import platform.UIKit.UITextField
 
 @Composable
-internal fun ComposeUITextField(value: String, onValueChange: (String) -> Unit) {
+internal fun ComposeUITextField(modifier: Modifier, value: String, onValueChange: (String) -> Unit) {
     UIKitInteropView(
         background = Color.Green,
-        modifier = Modifier.size(200.dp, 200.dp),
+        modifier = modifier,
         factory = {
-            val textField = object : UITextField(CGRectMake(0.0, 0.0, 300.0, 100.0)) {
+            val textField = object : UITextField(CGRectMake(0.0, 0.0, 0.0, 0.0)) {
                 @ObjCAction
                 fun editingChanged() {
                     onValueChange(text ?: "")
