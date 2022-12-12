@@ -312,17 +312,11 @@ private class Updater<T : UIView>(
 
     private val scheduleUpdate = { _: T ->
         if (!isUpdateScheduled.getAndSet(true)) {
-            GlobalScope.launch {
-                withContext(Dispatchers.Main) {
-                    isUpdateScheduled.value = false
-                    if (!isDisposed) {
-                        performUpdate()
-                    }
+            dispatch_async(dispatch_get_main_queue()) {
+                isUpdateScheduled.value = false
+                if (!isDisposed) {
+                    performUpdate()
                 }
-            }
-            MainScope().launch { // instead of DispatchQueue.main.async {
-                // run on main thread
-
             }
         }
     }
