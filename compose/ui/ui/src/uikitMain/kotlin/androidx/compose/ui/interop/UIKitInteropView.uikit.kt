@@ -34,21 +34,15 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.InteropSizeModifier
+import androidx.compose.ui.input.pointer.UIKitInteropModifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import kotlinx.atomicfu.atomic
 import kotlinx.cinterop.useContents
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.jetbrains.skiko.SkikoTouchEvent
 import org.jetbrains.skiko.SkikoTouchEventKind
 import platform.CoreGraphics.CGRectMake
@@ -111,7 +105,7 @@ public fun <T : UIView> UIKitInteropView(
             }
         }.drawBehind {
             drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)
-        }.then(InteropSizeModifier(rectInPixels.width, rectInPixels.height))
+        }.then(UIKitInteropModifier(rectInPixels.width, rectInPixels.height))
     ) {
         focusSwitcher.Content()
     }

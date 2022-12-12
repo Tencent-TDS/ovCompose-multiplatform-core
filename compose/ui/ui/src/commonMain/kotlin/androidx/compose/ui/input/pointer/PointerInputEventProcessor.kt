@@ -117,7 +117,7 @@ internal class PointerInputEventProcessor(val root: LayoutNode) {
         root.hitTestDisplay(pointerPosition, result, isTouchEvent)
         val last = result.lastOrNull()
         return if (last is BackwardsCompatNode) {
-            last.element is InteropSizeModifier
+            last.element is UIKitInteropModifier
         } else {
             false
         }
