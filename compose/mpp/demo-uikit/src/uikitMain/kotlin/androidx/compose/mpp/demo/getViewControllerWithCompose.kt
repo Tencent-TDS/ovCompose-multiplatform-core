@@ -76,17 +76,29 @@ import platform.darwin.NSObject
 fun getViewControllerWithCompose() = Application("Compose/Native sample") {
     val textState1 = remember { mutableStateOf("sync text state") }
     val counter = remember { mutableStateOf(0) }
+    Popup(object : PopupPositionProvider {
+        override fun calculatePosition(
+            anchorBounds: IntRect,
+            windowSize: IntSize,
+            layoutDirection: LayoutDirection,
+            popupContentSize: IntSize
+        ): IntOffset = IntOffset(50, 50)
+    }) {
+        val shape = RoundedCornerShape(10.dp)
+        Box(
+            Modifier.size(150.dp).clip(shape).background(Color.LightGray).border(2.dp, color = Color.Black, shape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("Popup")
+        }
+    }
     LazyColumn {
         items(3) {
             Stub()
         }
         item {
             Box(Modifier.size(200.dp, 100.dp)) {
-
-                // Usage:
                 ComposeUITextField(Modifier.fillMaxSize(), textState1.value, onValueChange = { textState1.value = it })
-
-                // Compose Button displays over UIKit view
                 Button(onClick = { counter.value++ }, Modifier.align(Alignment.BottomCenter)) {
                     Text("Click ${counter.value}")
                 }

@@ -24,8 +24,7 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.unit.Constraints
 
-// Helps to find UIKit views
-internal class UIKitInteropModifier(
+internal class InteropSizeModifier(
     private val widthPx: Int,
     private val heightPx: Int,
 ) : LayoutModifier {
@@ -44,7 +43,7 @@ internal class UIKitInteropModifier(
     override fun IntrinsicMeasureScope.maxIntrinsicHeight(measurable: IntrinsicMeasurable, width: Int) = heightPx
 
     override fun equals(other: Any?): Boolean {
-        if (other !is UIKitInteropModifier) return false
+        if (other !is InteropSizeModifier) return false
         return widthPx == other.widthPx &&
             heightPx == other.heightPx
     }

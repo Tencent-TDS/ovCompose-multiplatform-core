@@ -869,6 +869,23 @@ internal class LayoutNode(
         )
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
+    internal fun hitTestDisplay(
+        pointerPosition: Offset,
+        hitSemanticsEntities: HitTestResult<LayoutModifierNode>,
+        isTouchEvent: Boolean = true,
+        isInLayer: Boolean = true
+    ) {
+        val positionInWrapped = outerCoordinator.fromParentPosition(pointerPosition)
+        outerCoordinator.hitTest(
+            NodeCoordinator.LayoutInputSource,
+            positionInWrapped,
+            hitSemanticsEntities,
+            isTouchEvent = true,
+            isInLayer = isInLayer
+        )
+    }
+
     @Suppress("UNUSED_PARAMETER")
     @OptIn(ExperimentalComposeUiApi::class)
     internal fun hitTestSemantics(
@@ -880,24 +897,6 @@ internal class LayoutNode(
         val positionInWrapped = outerCoordinator.fromParentPosition(pointerPosition)
         outerCoordinator.hitTest(
             NodeCoordinator.SemanticsSource,
-            positionInWrapped,
-            hitSemanticsEntities,
-            isTouchEvent = true,
-            isInLayer = isInLayer
-        )
-    }
-
-    // It helps to find UIKitInteropModifier
-    @OptIn(ExperimentalComposeUiApi::class)
-    internal fun hitTestLayout(
-        pointerPosition: Offset,
-        hitSemanticsEntities: HitTestResult<LayoutModifierNode>,
-        isTouchEvent: Boolean = true,
-        isInLayer: Boolean = true
-    ) {
-        val positionInWrapped = outerCoordinator.fromParentPosition(pointerPosition)
-        outerCoordinator.hitTest(
-            NodeCoordinator.LayoutInputSource,
             positionInWrapped,
             hitSemanticsEntities,
             isTouchEvent = true,

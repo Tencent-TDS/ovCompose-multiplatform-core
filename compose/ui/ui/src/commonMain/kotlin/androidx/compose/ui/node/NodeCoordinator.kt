@@ -1286,7 +1286,6 @@ internal abstract class NodeCoordinator(
                 )
             }
 
-        // It helps to find UIKitInteropModifier
         @OptIn(ExperimentalComposeUiApi::class)
         val LayoutInputSource =
             object : HitTestSource<LayoutModifierNode> {
@@ -1302,7 +1301,7 @@ internal abstract class NodeCoordinator(
                     hitTestResult: HitTestResult<LayoutModifierNode>,
                     isTouchEvent: Boolean,
                     isInLayer: Boolean
-                ) = layoutNode.hitTestLayout(pointerPosition, hitTestResult, isTouchEvent, isInLayer)
+                ) = layoutNode.hitTestDisplay(pointerPosition, hitTestResult, isTouchEvent, isInLayer)
             }
     }
 }
