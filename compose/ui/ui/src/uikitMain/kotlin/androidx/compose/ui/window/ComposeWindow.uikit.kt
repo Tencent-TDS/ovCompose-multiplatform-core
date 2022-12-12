@@ -130,7 +130,6 @@ internal actual class ComposeWindow : UIViewController {
         val skikoUIView = SkikoUIView(
             skiaLayer = skiaLayer,
             hitTest = { point: Point, withEvent: UIEvent? ->
-//                !uikitRect.contains(Offset(point.x, point.y))
                 val isInteropView = layer.scene.mainOwner?.hitInterop(Offset(point.x, point.y), true) ?: false
                 !isInteropView
             },
