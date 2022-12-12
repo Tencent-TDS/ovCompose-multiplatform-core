@@ -200,7 +200,6 @@ internal actual class ComposeWindow : UIViewController {
         )
         layer.setContent(content = {
             CompositionLocalProvider(
-//                LocalWindow provides window,
                 LocalLayerContainer provides rootView,
             ) {
                 content()
