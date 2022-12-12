@@ -34,28 +34,17 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.InteropSizeModifier
+import androidx.compose.ui.input.pointer.UIKitInteropModifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import kotlinx.atomicfu.atomic
-import kotlinx.cinterop.useContents
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.jetbrains.skiko.SkikoTouchEvent
-import org.jetbrains.skiko.SkikoTouchEventKind
 import platform.CoreGraphics.CGRectMake
 import platform.QuartzCore.CATransaction
 import platform.UIKit.UIColor
-import platform.UIKit.UIEvent
-import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.addSubview
 import platform.UIKit.backgroundColor
@@ -84,7 +73,6 @@ public fun <T : UIView> UIKitInteropView(
     val componentInfo = remember { ComponentInfo<T>() }
 
     val root = LocalLayerContainer.current
-    val skikoTouchEventHandler = SkikoTouchEventHandler.current
     val density = LocalDensity.current.density
     val focusManager = LocalFocusManager.current
     val focusSwitcher = remember { FocusSwitcher(componentInfo, focusManager) }
@@ -111,77 +99,14 @@ public fun <T : UIView> UIKitInteropView(
             }
         }.drawBehind {
             drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)
-        }.then(InteropSizeModifier(rectInPixels.width, rectInPixels.height))
+        }.then(UIKitInteropModifier(rectInPixels.width, rectInPixels.height))
     ) {
         focusSwitcher.Content()
     }
 
     DisposableEffect(factory) {
-//        val focusListener = object : FocusListener {
-//            override fun focusGained(e: FocusEvent) {
-//                if (componentInfo.container.isParentOf(e.oppositeComponent)) {
-//                    when (e.cause) {
-//                        FocusEvent.Cause.TRAVERSAL_FORWARD -> focusSwitcher.moveForward()
-//                        FocusEvent.Cause.TRAVERSAL_BACKWARD -> focusSwitcher.moveBackward()
-//                        else -> Unit
-//                    }
-//                }
-//            }
-//
-//            override fun focusLost(e: FocusEvent) = Unit
-//        }
-//        root.addFocusListener(focusListener)
         componentInfo.component = factory()
-        componentInfo.container = object : UIView(CGRectMake(0.0, 0.0, 0.0, 0.0)) {
-            override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
-                super.touchesBegan(touches, withEvent)
-                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.STARTED)
-            }
-
-            override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
-                super.touchesEnded(touches, withEvent)
-                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.ENDED)
-            }
-
-            override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
-                super.touchesMoved(touches, withEvent)
-                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.MOVED)
-            }
-
-            override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
-                super.touchesCancelled(touches, withEvent)
-                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.CANCELLED)
-            }
-
-            private fun sendTouchEventToSkikoView(touches: Set<*>, kind: SkikoTouchEventKind) {
-                val events: Array<SkikoTouchEvent> = touches.map {
-                    val event = it as UITouch
-                    val (x, y) = event.locationInView(null).useContents { x to y }
-                    val timestamp = (event.timestamp * 1_000).toLong()
-                    SkikoTouchEvent(x, y, kind, timestamp, event)
-                }.toTypedArray()
-                skikoTouchEventHandler(events)
-            }
-        }.apply {
-//            layout = BorderLayout(0, 0)
-//            focusTraversalPolicy = object : LayoutFocusTraversalPolicy() {
-//                override fun getComponentAfter(aContainer: Container?, aComponent: Component?): Component? {
-//                    return if (aComponent == getLastComponent(aContainer)) {
-//                        root
-//                    } else {
-//                        super.getComponentAfter(aContainer, aComponent)
-//                    }
-//                }
-//
-//                override fun getComponentBefore(aContainer: Container?, aComponent: Component?): Component? {
-//                    return if (aComponent == getFirstComponent(aContainer)) {
-//                        root
-//                    } else {
-//                        super.getComponentBefore(aContainer, aComponent)
-//                    }
-//                }
-//            }
-//            isFocusCycleRoot = true
+        componentInfo.container = UIView(CGRectMake(0.0, 0.0, 0.0, 0.0)).apply {
             addSubview(componentInfo.component)
         }
         componentInfo.updater = Updater(componentInfo.component, update)
@@ -190,7 +115,6 @@ public fun <T : UIView> UIKitInteropView(
             componentInfo.container.removeFromSuperview()
             componentInfo.updater.dispose()
             dispose(componentInfo.component)
-//            root.removeFocusListener(focusListener)
         }
     }
     SideEffect {
@@ -235,7 +159,7 @@ private class FocusSwitcher<T : UIView>(
                 .onFocusChanged {
                     if (it.isFocused && !isRequesting) {
                         focusManager.clearFocus(force = true)
-
+                          // TODO Copied from Desktop:
 //                        val component = info.container.focusTraversalPolicy.getFirstComponent(info.container)
 //                        if (component != null) {
 //                            component.requestFocus(FocusEvent.Cause.TRAVERSAL_FORWARD)
@@ -252,7 +176,7 @@ private class FocusSwitcher<T : UIView>(
                 .onFocusChanged {
                     if (it.isFocused && !isRequesting) {
                         focusManager.clearFocus(force = true)
-
+                          // TODO Copied from Desktop:
 //                        val component = info.container.focusTraversalPolicy.getLastComponent(info.container)
 //                        if (component != null) {
 //                            component.requestFocus(FocusEvent.Cause.TRAVERSAL_BACKWARD)

@@ -389,8 +389,9 @@ internal class SkiaBasedOwner(
         }
     }
 
+    // If pointerPosition is UIKitInterop, then Compose skip touches. And touches goes to UIKit view
     fun hitInterop(pointerPosition: Offset, isTouchEvent: Boolean): Boolean =
-        pointerInputEventProcessor.hitInterop(pointerPosition, isTouchEvent)
+        pointerInputEventProcessor.hitTestUIKitInterop(pointerPosition, isTouchEvent)
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun processPointerInput(timeMillis: Long, pointers: List<TestPointerInputEventData>) {

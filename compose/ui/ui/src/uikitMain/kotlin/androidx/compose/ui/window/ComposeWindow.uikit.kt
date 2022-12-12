@@ -23,7 +23,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.toSkiaRect
 import androidx.compose.ui.interop.LocalLayerContainer
-import androidx.compose.ui.interop.SkikoTouchEventHandler
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.platform.TextToolbar
@@ -50,8 +49,6 @@ import platform.Foundation.NSValue
 import platform.UIKit.CGRectValue
 import platform.UIKit.UIEvent
 import platform.UIKit.UIScreen
-import platform.UIKit.UITouch
-import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.UIKit.addSubview
@@ -206,10 +203,6 @@ internal actual class ComposeWindow : UIViewController {
             CompositionLocalProvider(
 //                LocalWindow provides window,
                 LocalLayerContainer provides rootView,
-                SkikoTouchEventHandler provides {
-
-                    skiaLayer.skikoView?.onTouchEvent(it)
-                }
             ) {
                 content()
             }
@@ -263,11 +256,6 @@ internal actual class ComposeWindow : UIViewController {
             name = platform.UIKit.UIKeyboardDidHideNotification,
             `object` = null
         )
-    }
-
-    override fun didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        TODO("didReceiveMemoryWarning, maybe memory leak")
     }
 
     actual fun setContent(

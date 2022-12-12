@@ -103,7 +103,7 @@ internal class ComposeLayer(
         layer.skikoView = view
     }
 
-    val scene = ComposeScene(
+    val scene = ComposeScene( //todo private
         coroutineContext = getMainDispatcher(),
         platform = platform,
         density = Density(1f),

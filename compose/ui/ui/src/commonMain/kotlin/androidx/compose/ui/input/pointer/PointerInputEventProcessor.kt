@@ -112,12 +112,13 @@ internal class PointerInputEventProcessor(val root: LayoutNode) {
         }
     }
 
-    fun hitInterop(pointerPosition: Offset, isTouchEvent: Boolean): Boolean {
-        val result: HitTestResult<LayoutModifierNode> = HitTestResult<LayoutModifierNode>()
-        root.hitTestDisplay(pointerPosition, result, isTouchEvent)
+    fun hitTestUIKitInterop(pointerPosition: Offset, isTouchEvent: Boolean): Boolean {
+        // If latest LayoutModifierNode is UIKitInteropModifier, then it's click on UIKit view
+        val result = HitTestResult<LayoutModifierNode>()
+        root.hitTestLayout(pointerPosition, result, isTouchEvent)
         val last = result.lastOrNull()
         return if (last is BackwardsCompatNode) {
-            last.element is InteropSizeModifier
+            last.element is UIKitInteropModifier
         } else {
             false
         }
