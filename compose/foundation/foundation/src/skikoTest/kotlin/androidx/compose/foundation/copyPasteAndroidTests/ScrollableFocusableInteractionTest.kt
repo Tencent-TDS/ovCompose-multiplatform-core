@@ -76,7 +76,6 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalTestApi::class)
-@Ignore // TODO: implement `SemanticsNodeInteraction.checkIsDisplayed`, etc.
 class ScrollableFocusableInteractionTest {
     companion object {
         fun initParameters() = arrayOf(
@@ -136,6 +135,7 @@ class ScrollableFocusableInteractionTest {
 
         // Act: Shrink the viewport.
         viewportSize = 50.toDp()
+        waitForIdle()
 
         onNodeWithTag(focusableTag)
             .assertScrollAxisPositionInRootIsEqualTo(40.toDp())
@@ -143,7 +143,7 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
-    fun scrollsFocusedFocusableIntoView_whenFullyInViewAndBecomesPartiallyHidden() = runSkikoComposeUiTest {
+    fun scrollsFocusedFocusableIntoView_whenFullyInViewAndBecomesPartiallyHidden() = runParametrizedTest {
         var viewportSize by mutableStateOf(100.toDp())
 
         setContent {
@@ -161,6 +161,7 @@ class ScrollableFocusableInteractionTest {
 
         // Act: Shrink the viewport.
         viewportSize = 95.toDp()
+        waitForIdle()
 
         onNodeWithTag(focusableTag)
             .assertScrollAxisPositionInRootIsEqualTo(85.toDp())
@@ -168,6 +169,7 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
+    @Ignore // TODO: the test is failing
     fun scrollsFocusedFocusableIntoView_whenPartiallyInViewAndBecomesMoreHidden() = runParametrizedTest {
         var viewportSize by mutableStateOf(95.toDp())
 
@@ -189,6 +191,7 @@ class ScrollableFocusableInteractionTest {
 
         // Act: Shrink the viewport.
         viewportSize = 91.toDp()
+        waitForIdle()
 
         onNodeWithTag(focusableTag)
             .assertScrollAxisPositionInRootIsEqualTo(
@@ -198,6 +201,7 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
+    @Ignore // TODO: the test is failing
     fun scrollsFocusedFocusableIntoView_whenPartiallyInViewAndBecomesFullyHidden() = runParametrizedTest {
         var viewportSize by mutableStateOf(95.toDp())
 
@@ -218,6 +222,7 @@ class ScrollableFocusableInteractionTest {
 
         // Act: Shrink the viewport.
         viewportSize = 90.toDp()
+        waitForIdle()
 
         onNodeWithTag(focusableTag)
             .assertScrollAxisPositionInRootIsEqualTo(
@@ -227,7 +232,8 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
-    fun scrollsFocusedFocusableIntoView_whenViewportAnimatedQuickly() = runSkikoComposeUiTest {
+    @Ignore // TODO: the test gets stuck
+    fun scrollsFocusedFocusableIntoView_whenViewportAnimatedQuickly() = runParametrizedTest {
         var viewportSize by mutableStateOf(100.toDp())
 
         setContent {
@@ -265,7 +271,8 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
-    fun scrollFromViewportShrink_isInterrupted_byGesture() = runSkikoComposeUiTest {
+    @Ignore // TODO: the test get stuck
+    fun scrollFromViewportShrink_isInterrupted_byGesture() = runParametrizedTest {
         var viewportSize by mutableStateOf(100.toDp())
 
         setContent {
@@ -312,7 +319,8 @@ class ScrollableFocusableInteractionTest {
      * shrinking the viewport should trigger another animation.
      */
     @Test
-    fun scrollsFocusedFocusableIntoView_whenViewportExpandedThenReshrunk_afterInterruption() = runSkikoComposeUiTest {
+    @Ignore // TODO: the test get stuck
+    fun scrollsFocusedFocusableIntoView_whenViewportExpandedThenReshrunk_afterInterruption() = runParametrizedTest {
         var viewportSize by mutableStateOf(100.toDp())
 
         setContent {
@@ -367,6 +375,7 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
+    @Ignore // TODO: the test is failing
     fun doesNotScrollFocusedFocusableIntoView_whenNotInViewAndViewportShrunk() = runParametrizedTest {
         val gapSize = 100.toDp()
         var viewportSize by mutableStateOf(gapSize)
@@ -394,6 +403,7 @@ class ScrollableFocusableInteractionTest {
 
         // Act: Shrink the viewport.
         viewportSize = 50.toDp()
+        waitForIdle()
 
         // Focusable should not have moved since it was never in view.
         onNodeWithTag(focusableTag)
@@ -405,7 +415,8 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
-    fun doesNotScrollUnfocusedFocusableIntoView_whenViewportShrunk() = runSkikoComposeUiTest {
+    @Ignore // TODO: the test is failing
+    fun doesNotScrollUnfocusedFocusableIntoView_whenViewportShrunk() = runParametrizedTest {
         var viewportSize by mutableStateOf(100.toDp())
 
         setContent {
@@ -425,6 +436,7 @@ class ScrollableFocusableInteractionTest {
 
         // Act: Shrink the viewport.
         viewportSize = 50.toDp()
+        waitForIdle()
 
         onNodeWithTag(focusableTag)
             .assertScrollAxisPositionInRootIsEqualTo(
@@ -434,7 +446,8 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
-    fun doesNotScrollFocusedFocusableIntoView_whenPartiallyInViewAndViewportGrown() = runSkikoComposeUiTest {
+    @Ignore // TODO: the test is failing
+    fun doesNotScrollFocusedFocusableIntoView_whenPartiallyInViewAndViewportGrown() = runParametrizedTest {
         val initialViewPortSize = 50.toDp()
         val itemSize = 30.toDp()
         var viewportSize by mutableStateOf(initialViewPortSize)
@@ -457,10 +470,11 @@ class ScrollableFocusableInteractionTest {
 
         // Requesting focus will bring the entire focused item into view (at the bottom of the
         // viewport), then scroll up by half the focusable height so it's partially in view.
-        waitForIdle()
-        scope!!.launch {
-            val halfFocusableSize = with(density) { (itemSize / 2).toPx() }
-            scrollState.scrollBy(-halfFocusableSize)
+        runOnIdle {
+            scope!!.launch {
+                val halfFocusableSize = with(density) { (itemSize / 2).toPx() }
+                scrollState.scrollBy(-halfFocusableSize)
+            }
         }
 
         onNodeWithTag(focusableTag)
@@ -472,6 +486,7 @@ class ScrollableFocusableInteractionTest {
 
         // Act: Grow the viewport.
         viewportSize *= 2
+        waitForIdle()
 
         onNodeWithTag(focusableTag)
             .assertScrollAxisPositionInRootIsEqualTo(initialViewPortSize - (itemSize / 2))
@@ -479,7 +494,8 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
-    fun scrollsToNewFocusable_whenFocusedChildChangesDuringAnimation() = runSkikoComposeUiTest {
+    @Ignore // TODO: the test get stuck
+    fun scrollsToNewFocusable_whenFocusedChildChangesDuringAnimation() = runParametrizedTest {
         var viewportSize by mutableStateOf(100.toDp())
         val focusRequester1 = FocusRequester()
         val focusRequester2 = FocusRequester()
@@ -545,7 +561,7 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
-    fun focusingOnVisibleItemDoesNotScroll_whenMultipleFocusables() = runSkikoComposeUiTest {
+    fun focusingOnVisibleItemDoesNotScroll_whenMultipleFocusables() = runParametrizedTest {
         // Arrange.
         val itemSize = with(density) { 100.toDp() }
         setContentForTest {
@@ -566,7 +582,7 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
-    fun focusingOutOfBoundsItem_bringsItIntoView_whenMultipleFocusables() = runSkikoComposeUiTest {
+    fun focusingOutOfBoundsItem_bringsItIntoView_whenMultipleFocusables() = runParametrizedTest {
         // Arrange.
         val itemSize = with(density) { 100.toDp() }
         setContentForTest {
@@ -587,7 +603,7 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
-    fun moveOutFromBoundaryItem_bringsNextItemIntoView() = runSkikoComposeUiTest {
+    fun moveOutFromBoundaryItem_bringsNextItemIntoView() = runParametrizedTest {
         // Arrange.
         val itemSize = with(density) { 100.toDp() }
         setContentForTest {
