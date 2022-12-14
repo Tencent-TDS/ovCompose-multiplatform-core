@@ -19,6 +19,7 @@ package androidx.compose.ui.platform
 import androidx.compose.ui.ComposeScene
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.input.pointer.TestPointerInputEventData
+import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.RootForTest
 
 /**
@@ -32,7 +33,10 @@ interface SkiaRootForTest : RootForTest {
      */
     val scene: ComposeScene get() = throw UnsupportedOperationException("SkiaRootForTest.scene is not implemented")
 
-    open val isPlaced: Boolean
+    /**
+     * Whether or not this root has been placed in the hierarchy.
+     */
+    val isPlaced: Boolean
 
     /**
      * Process pointer event
