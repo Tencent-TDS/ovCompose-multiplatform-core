@@ -39,12 +39,6 @@ internal actual fun SemanticsNodeInteraction.checkIsDisplayed(): Boolean {
         return false
     }
 
-    (node.root as? SkiaRootForTest)?.let {
-        if (!it.isPlaced) {
-            return false
-        }
-    }
-
     // check node doesn't clip unintentionally (e.g. row too small for content)
     val globalRect = node.boundsInWindow
     if (!node.isInScreenBounds()) {

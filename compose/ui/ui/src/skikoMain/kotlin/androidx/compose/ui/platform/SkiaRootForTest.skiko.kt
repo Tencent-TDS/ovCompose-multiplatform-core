@@ -34,11 +34,6 @@ interface SkiaRootForTest : RootForTest {
     val scene: ComposeScene get() = throw UnsupportedOperationException("SkiaRootForTest.scene is not implemented")
 
     /**
-     * Whether or not this root has been placed in the hierarchy.
-     */
-    val isPlaced: Boolean
-
-    /**
      * Process pointer event
      *
      * [timeMillis] time when the pointer event occurred

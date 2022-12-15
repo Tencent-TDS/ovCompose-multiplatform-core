@@ -168,9 +168,6 @@ internal class SkiaBasedOwner(
 
     var constraints: Constraints = Constraints()
 
-    override val isPlaced: Boolean
-        get() = root.isPlaced
-
     override val root = LayoutNode().also {
         it.layoutDirection = platform.layoutDirection
         it.measurePolicy = RootMeasurePolicy
