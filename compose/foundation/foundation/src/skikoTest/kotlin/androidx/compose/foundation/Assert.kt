@@ -44,6 +44,11 @@ internal fun AssertThat<Float>.isEqualTo(f: Float, eps: Float = 0f) {
 internal fun AssertThat<Int>.isNotEqualTo(i: Int) {
     assertNotEquals(i, t)
 }
+
+internal fun <T> AssertThat<T>.isNotEqualTo(i: T) {
+    assertNotEquals(i, t)
+}
+
 internal fun AssertThat<Int>.isEqualTo(i: Int, d: Int = 0) {
     if (d != 0) {
         assertTrue(message = message ?: "|$t - $i| exceeds $d") { abs(t!! - i) <= d }
@@ -125,3 +130,7 @@ internal fun <T> assertThat(t: T?, message: String? = null): AssertThat<T> {
 }
 
 internal fun assertWithMessage(message: String) = AssertMessage(message)
+
+internal fun AssertThat<Int>.isGreaterThan(other: Int, d: Int = 0) {
+    assertTrue(message ?: "The was expected to be greater than $other. But value = $t") { t!! > other }
+}

@@ -237,6 +237,11 @@ class SkikoComposeUiTest(
         }
     }
 
+    // To simplify the tests porting from androidTest
+    fun setContentWithTestViewConfiguration(composable: @Composable () -> Unit) {
+        setContent(composable)
+    }
+
     override fun onNode(
         matcher: SemanticsMatcher,
         useUnmergedTree: Boolean
