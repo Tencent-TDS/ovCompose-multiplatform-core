@@ -61,6 +61,12 @@ class SkikoComposeUiTest(
 
     override val density = Density(1f, 1f)
 
+    /**
+     * Infinite animations in tests are supported only when `mainClock.autoAdvance == false`.
+     * Set this to false in order to use mainClock.autoAdvanced == true and ignore infinite animations.
+     */
+    var throwOnInfiniteAnimation = true
+
     private val textInputService = object : PlatformTextInputService {
         var onEditCommand: ((List<EditCommand>) -> Unit)? = null
         var onImeActionPerformed: ((ImeAction) -> Unit)? = null
@@ -93,6 +99,11 @@ class SkikoComposeUiTest(
     private val infiniteAnimationPolicy = object : InfiniteAnimationPolicy {
         override suspend fun <R> onInfiniteOperation(block: suspend () -> R): R {
             if (mainClock.autoAdvance) {
+                if (throwOnInfiniteAnimation) {
+                    error("Infinite animations are disabled on tests with mainClock.autoAdvance=true. " +
+                        "You may set `throwOnInfiniteAnimation = false`"
+                    )
+                }
                 throw CancellationException("Infinite animations are disabled on tests")
             }
             return block()
@@ -146,6 +157,14 @@ class SkikoComposeUiTest(
     override fun waitForIdle() {
         // always check even if we are idle
         uncaughtExceptionHandler.throwUncaught()
+        if (!mainClock.autoAdvance) {
+            // Tests with infinite animations should control the Clock manually (via advanceTimeBy).
+            // When infinite animations are present, isIdle will always be false.
+            // Therefore, we simply render the next frame with last known Clock time.
+            renderNextFrame()
+            uncaughtExceptionHandler.throwUncaught()
+            return
+        }
         while (!isIdle()) {
             renderNextFrame()
             uncaughtExceptionHandler.throwUncaught()
