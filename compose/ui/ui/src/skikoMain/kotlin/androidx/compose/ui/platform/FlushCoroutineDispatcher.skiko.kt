@@ -43,6 +43,7 @@ internal class FlushCoroutineDispatcher(
     // TODO replace it by scope.coroutineContext[Dispatcher] when it will be no longer experimental
     private val scope = CoroutineScope(scope.coroutineContext.minusKey(Job))
     private val tasks = mutableSetOf<Runnable>()
+    private val delayedTasks = mutableSetOf<Runnable>()
     private val tasksLock = createSynchronizedObject()
     private val tasksCopy = mutableSetOf<Runnable>()
     @Volatile
@@ -67,7 +68,7 @@ internal class FlushCoroutineDispatcher(
      * Does the dispatcher have any tasks scheduled or currently in progress
      */
     fun hasTasks() = synchronized(tasksLock) {
-        tasks.isNotEmpty()
+        tasks.isNotEmpty() && delayedTasks.isNotEmpty()
     } && !isPerformingRun
 
     /**
@@ -95,9 +96,20 @@ internal class FlushCoroutineDispatcher(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun scheduleResumeAfterDelay(timeMillis: Long, continuation: CancellableContinuation<Unit>) {
+        val block = Runnable { continuation.resume(Unit, null) }
+        synchronized(tasksLock) {
+            delayedTasks.add(block)
+        }
         scope.launch {
             kotlinx.coroutines.delay(timeMillis)
-            dispatch(coroutineContext, Runnable { continuation.resume(Unit, null) })
+            performRun {
+                val isTaskAlive = synchronized(tasksLock) {
+                    delayedTasks.remove(block)
+                }
+                if (isTaskAlive) {
+                    block.run()
+                }
+            }
         }
     }
 }
