@@ -19,8 +19,10 @@ package androidx.compose.ui.test
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ComposeScene
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.InfiniteAnimationPolicy
+import androidx.compose.ui.platform.SkiaRootForTest
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.test.junit4.MainTestClockImpl
 import androidx.compose.ui.test.junit4.UncaughtExceptionHandler
@@ -61,12 +63,6 @@ class SkikoComposeUiTest(
 
     override val density = Density(1f, 1f)
 
-    /**
-     * Infinite animations in tests are supported only when `mainClock.autoAdvance == false`.
-     * Set this to false in order to use mainClock.autoAdvanced == true and ignore infinite animations.
-     */
-    var throwOnInfiniteAnimation = true
-
     private val textInputService = object : PlatformTextInputService {
         var onEditCommand: ((List<EditCommand>) -> Unit)? = null
         var onImeActionPerformed: ((ImeAction) -> Unit)? = null
@@ -99,11 +95,6 @@ class SkikoComposeUiTest(
     private val infiniteAnimationPolicy = object : InfiniteAnimationPolicy {
         override suspend fun <R> onInfiniteOperation(block: suspend () -> R): R {
             if (mainClock.autoAdvance) {
-                if (throwOnInfiniteAnimation) {
-                    error("Infinite animations are disabled on tests with mainClock.autoAdvance=true. " +
-                        "You may set `throwOnInfiniteAnimation = false`"
-                    )
-                }
                 throw CancellationException("Infinite animations are disabled on tests")
             }
             return block()
@@ -150,25 +141,34 @@ class SkikoComposeUiTest(
         constraints = Constraints(maxWidth = surface.width, maxHeight = surface.height)
     }
 
-    private fun isIdle() =
-        !Snapshot.current.hasPendingChanges() &&
-            !scene.hasInvalidations()
+    private fun shouldPumpTime(): Boolean {
+        return mainClock.autoAdvance &&
+            (Snapshot.current.hasPendingChanges() || scene.hasInvalidations())
+    }
+
+    @OptIn(InternalComposeUiApi::class)
+    private fun isIdle(): Boolean {
+        var i = 0
+        while (i < 100 && shouldPumpTime()) {
+            mainClock.advanceTimeByFrame()
+            ++i
+        }
+
+        val hasPendingMeasureOrLayout = testOwner.getRoots(true).any {
+            (it as SkiaRootForTest).hasPendingMeasureOrLayout
+        }
+
+        return !shouldPumpTime() && !hasPendingMeasureOrLayout
+    }
 
     override fun waitForIdle() {
-        // always check even if we are idle
-        uncaughtExceptionHandler.throwUncaught()
-        if (!mainClock.autoAdvance) {
-            // Tests with infinite animations should control the Clock manually (via advanceTimeBy).
-            // When infinite animations are present, isIdle will always be false.
-            // Therefore, we simply render the next frame with last known Clock time.
+        // TODO: consider adding a timeout to avoid an infinite loop?
+        do {
+            // always check even if we are idle
+            uncaughtExceptionHandler.throwUncaught()
             renderNextFrame()
             uncaughtExceptionHandler.throwUncaught()
-            return
-        }
-        while (!isIdle()) {
-            renderNextFrame()
-            uncaughtExceptionHandler.throwUncaught()
-        }
+        } while (!isIdle())
     }
 
     override suspend fun awaitIdle() {
