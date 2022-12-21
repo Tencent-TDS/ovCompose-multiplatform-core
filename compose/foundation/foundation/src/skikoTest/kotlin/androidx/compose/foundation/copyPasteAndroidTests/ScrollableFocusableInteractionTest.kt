@@ -232,7 +232,6 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
-    @Ignore // TODO: the test gets stuck
     fun scrollsFocusedFocusableIntoView_whenViewportAnimatedQuickly() = runParametrizedTest {
         var viewportSize by mutableStateOf(100.toDp())
 
@@ -265,13 +264,13 @@ class ScrollableFocusableInteractionTest {
 
         // Resume the clock. The scroll animation should finish.
         mainClock.autoAdvance = true
+        waitForIdle()
 
         onNodeWithTag(focusableTag)
             .assertIsDisplayed()
     }
 
     @Test
-    @Ignore // TODO: the test get stuck
     fun scrollFromViewportShrink_isInterrupted_byGesture() = runParametrizedTest {
         var viewportSize by mutableStateOf(100.toDp())
 
@@ -319,7 +318,6 @@ class ScrollableFocusableInteractionTest {
      * shrinking the viewport should trigger another animation.
      */
     @Test
-    @Ignore // TODO: the test get stuck
     fun scrollsFocusedFocusableIntoView_whenViewportExpandedThenReshrunk_afterInterruption() = runParametrizedTest {
         var viewportSize by mutableStateOf(100.toDp())
 
@@ -494,7 +492,6 @@ class ScrollableFocusableInteractionTest {
     }
 
     @Test
-    @Ignore // TODO: the test get stuck
     fun scrollsToNewFocusable_whenFocusedChildChangesDuringAnimation() = runParametrizedTest {
         var viewportSize by mutableStateOf(100.toDp())
         val focusRequester1 = FocusRequester()
@@ -555,6 +552,7 @@ class ScrollableFocusableInteractionTest {
         }
         // Resume the clock, allow animation to finish.
         mainClock.autoAdvance = true
+        waitForIdle()
 
         onNodeWithTag("focusable1").assertIsDisplayed()
         onNodeWithTag("focusable2").assertIsNotDisplayed()

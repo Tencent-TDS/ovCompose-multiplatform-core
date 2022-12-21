@@ -1731,7 +1731,6 @@ class ScrollableTest {
     }
 
     @Test
-    @Ignore // TODO: test is stuck on desktop
     fun scrollable_scrollByWorksWithRepeatableAnimations() = runSkikoComposeUiTest {
         mainClock.autoAdvance = false
 
@@ -1781,7 +1780,7 @@ class ScrollableTest {
         mainClock.advanceTimeBy(500) // 750 ms
         runOnIdle {
             // first animation finished
-            assertThat(total).isEqualTo(100)
+            assertThat(total).isEqualTo(100f)
         }
 
         mainClock.advanceTimeBy(250) // 1250 ms
@@ -1794,7 +1793,7 @@ class ScrollableTest {
         mainClock.advanceTimeBy(500) // 1750 ms
         runOnIdle {
             // second animation finished
-            assertThat(total).isEqualTo(0)
+            assertThat(total).isEqualTo(0f)
         }
 
         mainClock.advanceTimeBy(500) // 2250 ms
@@ -1807,12 +1806,11 @@ class ScrollableTest {
         mainClock.advanceTimeBy(500) // 2750 ms
         runOnIdle {
             // third animation finished
-            assertThat(total).isEqualTo(100)
+            assertThat(total).isEqualTo(100f)
         }
     }
 
     @Test
-    @Ignore // TODO: test is stuck on desktop
     fun scrollable_cancellingAnimateScrollUpdatesIsScrollInProgress() = runSkikoComposeUiTest {
         mainClock.autoAdvance = false
 

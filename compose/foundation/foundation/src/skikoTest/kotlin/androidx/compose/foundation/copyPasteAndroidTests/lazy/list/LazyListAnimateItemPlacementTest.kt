@@ -78,7 +78,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalTestApi::class)
-@Ignore // TODO: the tests get stuck
+@Ignore // TODO: the tests fail on desktop
 class LazyListAnimateItemPlacementTest() {
 
     private val isVertical: Boolean get() = config!!.isVertical

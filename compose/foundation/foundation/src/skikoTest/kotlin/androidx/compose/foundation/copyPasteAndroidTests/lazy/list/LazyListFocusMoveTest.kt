@@ -64,7 +64,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalTestApi::class)
-@Ignore // TODO: the tests get stuck time from time - flaky
+@Ignore // TODO: the tests fail or get stuck time from time - flaky
+// Fails with:
+// Compose Runtime internal error.
+// Unexpected or incorrect use of the Compose internal runtime API ... (flaky too, tested on desktop)
 class LazyListFocusMoveTest {
 
     // We need to wrap the inline class parameter in another class because Java can't instantiate
@@ -210,7 +213,6 @@ class LazyListFocusMoveTest {
     }
 
     @Test
-//    @Ignore // TODO: the test gets stuck
     fun moveFocusToItemThatIsFarBeyondBounds() = runParametrizedTest {
         // Arrange.
         lateinit var scope: CoroutineScope
