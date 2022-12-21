@@ -21,6 +21,9 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ComposeScene
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asSkiaBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.InfiniteAnimationPolicy
 import androidx.compose.ui.platform.SkiaRootForTest
@@ -42,6 +45,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt
+import org.jetbrains.skia.Bitmap
+import org.jetbrains.skia.IRect
 import org.jetbrains.skia.Image
 import org.jetbrains.skia.Surface
 import org.jetbrains.skiko.currentNanoTime
@@ -260,6 +265,16 @@ class SkikoComposeUiTest(
         waitForIdle()
         return surface.makeImageSnapshot()
     }
+
+    fun SemanticsNodeInteraction.captureToImage(): ImageBitmap {
+        val rootImage = this@SkikoComposeUiTest.captureToImage()
+        val rect = fetchSemanticsNode().boundsInWindow
+        val btm = Bitmap()
+        val iRect = IRect.makeLTRB(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt())
+        rootImage.toComposeImageBitmap().asSkiaBitmap().extractSubset(btm, iRect)
+        return Image.makeFromBitmap(btm).toComposeImageBitmap()
+    }
+
 
     private inner class DesktopTestOwner : TestOwner {
         override fun sendTextInputCommand(node: SemanticsNode, command: List<EditCommand>) {

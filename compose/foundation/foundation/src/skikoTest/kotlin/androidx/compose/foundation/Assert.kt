@@ -125,6 +125,10 @@ internal fun AssertThat<*>.isNull() {
     assertEquals(null, t, message ?: "$t expected to be null")
 }
 
+internal fun AssertThat<*>.isNotNull() {
+    assertNotEquals(null, t, message ?: "$t expected to be not null")
+}
+
 internal fun <T> assertThat(t: T?, message: String? = null): AssertThat<T> {
     return AssertThat(t, message)
 }
