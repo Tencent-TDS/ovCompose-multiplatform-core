@@ -56,7 +56,7 @@ class LazyGridsReverseLayoutTest {
 
     @Test
     fun verticalGrid_reverseLayout() = runSkikoComposeUiTest {
-        setContentWithTestViewConfiguration {
+        setContent {
             LazyVerticalGrid(
                 GridCells.Fixed(2),
                 Modifier.width(itemSize * 2),
@@ -84,7 +84,7 @@ class LazyGridsReverseLayoutTest {
 
     @Test
     fun column_emitTwoElementsAsOneItem() = runSkikoComposeUiTest {
-        setContentWithTestViewConfiguration {
+        setContent {
             LazyVerticalGrid(
                 GridCells.Fixed(2),
                 Modifier.width(itemSize * 2),
@@ -126,7 +126,7 @@ class LazyGridsReverseLayoutTest {
     @Test
     fun verticalGrid_whenParameterChanges() = runSkikoComposeUiTest {
         var reverse by mutableStateOf(true)
-        setContentWithTestViewConfiguration {
+        setContent {
             LazyVerticalGrid(
                 GridCells.Fixed(2),
                 Modifier.width(itemSize * 2),
