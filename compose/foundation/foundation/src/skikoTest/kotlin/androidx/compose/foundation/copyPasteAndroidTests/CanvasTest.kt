@@ -81,7 +81,7 @@ class CanvasTest {
         val paintBoxColor = Color.Red.toArgb()
         val containerBgColor = Color.White.toArgb()
         val strokeOffset = (strokeWidth / 2).toInt() + 3
-        captureToImage().toComposeImageBitmap().asSkiaBitmap().apply {
+        captureToImage().asSkiaBitmap().apply {
             val imageStartX = width / 2 - boxWidth / 2
             val imageStartY = height / 2 - boxHeight / 2
 
@@ -191,7 +191,7 @@ class CanvasTest {
             .assertWidthIsEqualTo(100.dp)
             .assertHeightIsEqualTo(100.dp)
 
-        captureToImage().toComposeImageBitmap().apply {
+        captureToImage().apply {
             val pixelMap = toPixelMap(width = 100, height = 100)
             repeat(100) { x ->
                 repeat(100) { y ->
@@ -215,7 +215,7 @@ class CanvasTest {
             .assertWidthIsEqualTo(100.dp)
             .assertHeightIsEqualTo(100.dp)
 
-        captureToImage().toComposeImageBitmap().assertShape(
+        captureToImage().assertShape(
             density = density,
             backgroundColor = Color.Red,
             shapeColor = Color.Blue,

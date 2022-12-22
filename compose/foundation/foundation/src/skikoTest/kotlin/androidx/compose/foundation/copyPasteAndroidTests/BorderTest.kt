@@ -123,7 +123,7 @@ class BorderTest {
             }
         }
         waitForIdle()
-        val bitmap = captureToImage().toComposeImageBitmap()
+        val bitmap = captureToImage()
         bitmap.assertShape(
             density = density,
             backgroundColor = Color.Red,
@@ -151,7 +151,7 @@ class BorderTest {
             }
         }
         waitForIdle()
-        val bitmap = captureToImage().toComposeImageBitmap()
+        val bitmap = captureToImage()
         bitmap.assertShape(
             density = density,
             backgroundColor = Color.Red,
@@ -175,7 +175,7 @@ class BorderTest {
                 ) {}
             }
         }
-        val bitmap = captureToImage().toComposeImageBitmap()
+        val bitmap = captureToImage()
         bitmap.assertShape(
             density = density,
             backgroundColor = Color.White,
@@ -197,7 +197,7 @@ class BorderTest {
                 ) {}
             }
         }
-        val bitmap = captureToImage().toComposeImageBitmap()
+        val bitmap = captureToImage()
         bitmap.assertShape(
             density = density,
             backgroundColor = Color.White,
@@ -222,7 +222,7 @@ class BorderTest {
                 }
             }
         }
-        val bitmap = captureToImage().toComposeImageBitmap()
+        val bitmap = captureToImage()
         bitmap.assertShape(
             density = density,
             backgroundColor = Color.White,
@@ -259,7 +259,7 @@ class BorderTest {
         val offsetRight = 2
         val offsetTop = 2
         val offsetBottom = 5
-        captureToImage().toComposeImageBitmap().apply {
+        captureToImage().apply {
             val map = toPixelMap()
             assertEquals(Color.Red, map[offsetLeft, offsetTop]) // Top left
             assertEquals(Color.Red, map[width - offsetRight, offsetTop]) // Top right
@@ -300,7 +300,7 @@ class BorderTest {
             )
         }
 
-        captureToImage().toComposeImageBitmap().apply {
+        captureToImage().apply {
             val map = toPixelMap()
             val offset = 2
             assertEquals(Color.Red, map[offset, offset])
@@ -353,7 +353,7 @@ class BorderTest {
                 ) {}
             }
         }
-        captureToImage().toComposeImageBitmap().assertShape(
+        captureToImage().assertShape(
             density = density,
             backgroundColor = Color.Red,
             shape = shape!!,
@@ -383,7 +383,7 @@ class BorderTest {
         runOnIdle {
             direction.value = LayoutDirection.Rtl
         }
-        captureToImage().toComposeImageBitmap().assertShape(
+        captureToImage().assertShape(
             density = density,
             backgroundColor = Color.Red,
             shape = shape!!,
@@ -432,7 +432,7 @@ class BorderTest {
 
         waitForIdle()
         val halfBorderStrokePx = (borderStrokePx / 2).toInt()
-        captureToImage().toComposeImageBitmap().apply {
+        captureToImage().apply {
             val pixelMap = toPixelMap()
             assertEquals(
                 Color.Green,
@@ -460,7 +460,7 @@ class BorderTest {
             toggle.value = !toggle.value
         }
 
-        captureToImage().toComposeImageBitmap().apply {
+        captureToImage().apply {
             val pixelMap = toPixelMap()
             assertEquals(
                 Color.Red,
@@ -534,7 +534,7 @@ class BorderTest {
         }
 
         val arrowTipX = arrowTipPx / 2
-        captureToImage().toComposeImageBitmap().apply {
+        captureToImage().apply {
             val map = toPixelMap()
 
             // point along the rounded rect but before the triangle is drawn with the border

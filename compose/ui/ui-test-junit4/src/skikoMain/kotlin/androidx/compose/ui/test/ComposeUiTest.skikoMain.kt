@@ -261,20 +261,18 @@ class SkikoComposeUiTest(
         return SemanticsNodeInteractionCollection(testContext, useUnmergedTree, matcher)
     }
 
-    fun captureToImage(): Image {
+    fun captureToImage(): ImageBitmap {
         waitForIdle()
-        return surface.makeImageSnapshot()
+        return surface.makeImageSnapshot().toComposeImageBitmap()
     }
 
     fun SemanticsNodeInteraction.captureToImage(): ImageBitmap {
-        val rootImage = this@SkikoComposeUiTest.captureToImage()
+        waitForIdle()
         val rect = fetchSemanticsNode().boundsInWindow
-        val btm = Bitmap()
         val iRect = IRect.makeLTRB(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt())
-        rootImage.toComposeImageBitmap().asSkiaBitmap().extractSubset(btm, iRect)
-        return Image.makeFromBitmap(btm).toComposeImageBitmap()
+        val image = surface.makeImageSnapshot(iRect)
+        return image!!.toComposeImageBitmap()
     }
-
 
     private inner class DesktopTestOwner : TestOwner {
         override fun sendTextInputCommand(node: SemanticsNode, command: List<EditCommand>) {
