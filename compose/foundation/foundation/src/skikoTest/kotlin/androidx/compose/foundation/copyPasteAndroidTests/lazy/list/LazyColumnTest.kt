@@ -481,7 +481,7 @@ class LazyColumnTest {
         }
 
         // and verify there is no Red item displayed
-        captureToImage().toComposeImageBitmap().assertPixels { Color.Blue }
+        captureToImage().assertPixels { Color.Blue }
     }
 
     @Test

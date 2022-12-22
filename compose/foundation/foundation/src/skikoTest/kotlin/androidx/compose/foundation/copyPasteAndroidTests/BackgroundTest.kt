@@ -96,7 +96,7 @@ class BackgroundTest {
             }
         }
         waitForIdle()
-        val bitmap = captureToImage().toComposeImageBitmap()
+        val bitmap = captureToImage()
 
         bitmap.assertShape(
             density = density,
@@ -124,7 +124,7 @@ class BackgroundTest {
             }
         }
         waitForIdle()
-        val bitmap = captureToImage().toComposeImageBitmap()
+        val bitmap = captureToImage()
 
         bitmap.assertShape(
             density = density,
@@ -148,7 +148,7 @@ class BackgroundTest {
             }
         }
         waitForIdle()
-        val bitmap = captureToImage().toComposeImageBitmap()
+        val bitmap = captureToImage()
 
         bitmap.assertShape(
             density = density,
@@ -174,7 +174,7 @@ class BackgroundTest {
             }
         }
         waitForIdle()
-        val bitmap = captureToImage().toComposeImageBitmap()
+        val bitmap = captureToImage()
 
         bitmap.assertShape(
             density = density,
@@ -202,7 +202,7 @@ class BackgroundTest {
             }
         }
         waitForIdle()
-        val bitmap = captureToImage().toComposeImageBitmap()
+        val bitmap = captureToImage()
 
         bitmap.assertShape(
             density = density,
@@ -235,7 +235,7 @@ class BackgroundTest {
             direction.value = LayoutDirection.Rtl
         }
 
-        val bitmap = captureToImage().toComposeImageBitmap()
+        val bitmap = captureToImage()
 
         bitmap.assertShape(
             density = density,

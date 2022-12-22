@@ -115,7 +115,7 @@ class ImageTest {
         val bgColorArgb = bgColor.toArgb()
         val pathArgb = pathColor.toArgb()
 
-        captureToImage().toComposeImageBitmap().asSkiaBitmap().apply {
+        captureToImage().asSkiaBitmap().apply {
             val imageStartX = width / 2 - imageWidth / 2
             val imageStartY = height / 2 - imageHeight / 2
             assertEquals(bgColorArgb, getColor(imageStartX + 2, imageStartY))
@@ -167,7 +167,7 @@ class ImageTest {
         val bgColorArgb = bgColor.toArgb()
         val pathArgb = pathColor.toArgb()
 
-        captureToImage().toComposeImageBitmap().asSkiaBitmap().apply {
+        captureToImage().asSkiaBitmap().apply {
             val imageStartX = width / 2 - subsectionWidth / 2
             val imageStartY = height / 2 - subsectionHeight / 2
             assertEquals(bgColorArgb, getColor(imageStartX + 2, imageStartY))
@@ -267,7 +267,7 @@ class ImageTest {
 
         val bgColorArgb = bgColor.toArgb()
         val pathArgb = pathColor.toArgb()
-        captureToImage().toComposeImageBitmap().asSkiaBitmap().apply {
+        captureToImage().asSkiaBitmap().apply {
             val imageStartX = width / 2 - imageComposableWidth / 2
             val imageStartY = height / 2 - imageComposableHeight / 2
             assertEquals(bgColorArgb, getColor(imageStartX + 5, imageStartY))
@@ -335,7 +335,7 @@ class ImageTest {
             }
         }
 
-        captureToImage().toComposeImageBitmap().assertPixels { Color.Blue }
+        captureToImage().assertPixels { Color.Blue }
     }
 
     @Test
@@ -370,7 +370,7 @@ class ImageTest {
 
         val bgColorArgb = bgColor.toArgb()
         val pathArgb = pathColor.toArgb()
-        captureToImage().toComposeImageBitmap().asSkiaBitmap().apply {
+        captureToImage().asSkiaBitmap().apply {
             val composableEndX = width / 2 + imageComposableWidth / 2
             val composableEndY = height / 2 + imageComposableHeight / 2
             val imageStartX = composableEndX - imageWidth
@@ -426,7 +426,7 @@ class ImageTest {
             )
         }
 
-        captureToImage().toComposeImageBitmap().asSkiaBitmap().apply {
+        captureToImage().asSkiaBitmap().apply {
             assertEquals(100, width)
             assertEquals(50, height)
             assertEquals(Color.Blue.toArgb(), getColor(24, height / 2))
@@ -468,7 +468,7 @@ class ImageTest {
                 )
             }
         }
-        captureToImage().toComposeImageBitmap().assertPixels { Color.Red }
+        captureToImage().assertPixels { Color.Red }
     }
 
     @Test
@@ -511,7 +511,7 @@ class ImageTest {
             )
         }
 
-        captureToImage().toComposeImageBitmap().apply {
+        captureToImage().apply {
             val pixelMap = toPixelMap()
             for (i in 0 until width / 2) {
                 for (j in 0 until height / 2) {
