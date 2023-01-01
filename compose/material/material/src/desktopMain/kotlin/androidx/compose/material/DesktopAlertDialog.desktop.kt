@@ -16,37 +16,25 @@
 
 package androidx.compose.material
 
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.window.Dialog as CoreDialog
+import androidx.compose.foundation.dialog.PopupDialog
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.window.WindowDraggableArea
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.rememberDialogState
-import java.awt.event.KeyEvent
-import androidx.compose.ui.window.Dialog as CoreDialog
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.type
 
 /**
  * Alert dialog is a Dialog which interrupts the user with urgent information, details or actions.
@@ -187,48 +175,15 @@ interface AlertDialogProvider {
  */
 @ExperimentalMaterialApi
 object PopupAlertDialogProvider : AlertDialogProvider {
+    @OptIn(InternalComposeApi::class)
     @Composable
     override fun AlertDialog(
         onDismissRequest: () -> Unit,
         content: @Composable () -> Unit
     ) {
-        // Popups on the desktop are by default embedded in the component in which
-        // they are defined and aligned within its bounds. But an [AlertDialog] needs
-        // to be aligned within the window, not the parent component, so we cannot use
-        // [alignment] property of [Popup] and have to use [Box] that fills all the
-        // available space. Also [Box] provides a dismiss request feature when clicked
-        // outside of the [AlertDialog] content.
-        Popup(
-            popupPositionProvider = object : PopupPositionProvider {
-                override fun calculatePosition(
-                    anchorBounds: IntRect,
-                    windowSize: IntSize,
-                    layoutDirection: LayoutDirection,
-                    popupContentSize: IntSize
-                ): IntOffset = IntOffset.Zero
-            },
-            focusable = true,
-            onDismissRequest = onDismissRequest,
-            onKeyEvent = {
-                if (it.type == KeyEventType.KeyDown && it.awtEventOrNull?.keyCode == KeyEvent.VK_ESCAPE) {
-                    onDismissRequest()
-                    true
-                } else {
-                    false
-                }
-            },
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(onDismissRequest) {
-                        detectTapGestures(onPress = { onDismissRequest() })
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Surface(elevation = 24.dp) {
-                    content()
-                }
+        PopupDialog(onDismissRequest = onDismissRequest) {
+            Surface(elevation = 24.dp) {
+                content()
             }
         }
     }
