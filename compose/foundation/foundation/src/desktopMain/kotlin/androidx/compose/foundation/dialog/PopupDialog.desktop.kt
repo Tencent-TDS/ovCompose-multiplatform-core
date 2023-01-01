@@ -16,10 +16,12 @@
 
 package androidx.compose.foundation.dialog
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.onClick
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.ui.Alignment
@@ -38,7 +40,7 @@ import androidx.compose.ui.window.PopupPositionProvider
 import java.awt.event.KeyEvent
 
 @InternalComposeApi
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun PopupDialog(onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
     //TODO Change PopupDialog to LayerDialog (https://github.com/JetBrains/compose-jb/issues/933)
@@ -77,7 +79,11 @@ fun PopupDialog(onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
                 },
             contentAlignment = Alignment.Center
         ) {
-            content()
+            Box(Modifier.onClick {
+                // Workaround to disable clicks on Dialog background https://github.com/JetBrains/compose-jb/issues/2581
+            }) {
+                content()
+            }
         }
     }
 }
