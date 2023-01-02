@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
@@ -70,7 +71,9 @@ internal actual class ComposeWindow : UIViewController {
     @OverrideInit
     constructor(coder: NSCoder) : super(coder)
 
-    private val density: Density = Density(1f) //todo get and update density from UIKit Platform
+    private val density: Density
+        get() = Density(UIScreen.mainScreen.scale.toFloat())
+
     private lateinit var layer: ComposeLayer
     private lateinit var content: @Composable () -> Unit
     private val keyboardVisibilityListener = object : NSObject() {
@@ -190,7 +193,9 @@ internal actual class ComposeWindow : UIViewController {
     override fun viewWillAppear(animated: Boolean) {
         super.viewDidAppear(animated)
         val (width, height) = getViewFrameSize()
-        layer.setSize(width, height)
+        layer.setDensity(density)
+        val scale = layer.layer.contentScale
+        layer.setSize((width * scale).roundToInt(), (height * scale).roundToInt())
         NSNotificationCenter.defaultCenter.addObserver(
             observer = keyboardVisibilityListener,
             selector = NSSelectorFromString("keyboardWillShow:"),
