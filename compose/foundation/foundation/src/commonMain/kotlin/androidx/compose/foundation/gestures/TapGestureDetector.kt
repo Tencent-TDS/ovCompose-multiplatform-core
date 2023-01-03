@@ -222,7 +222,7 @@ internal suspend fun PointerInputScope.detectTapAndPress(
             pressScope.reset()
             awaitPointerEventScope {
 
-                val down = awaitFirstDown().also { it.consume() }
+                val down = waitForPressDown().also { it.consume() }
 
                 if (onPress !== NoPressGesture) {
                     launch { pressScope.onPress(down.position) }
@@ -242,6 +242,11 @@ internal suspend fun PointerInputScope.detectTapAndPress(
 }
 
 /**
+ * Multiplatform logic that awaits for starts pressing.
+ */
+internal expect suspend fun AwaitPointerEventScope.waitForPressDown(): PointerInputChange
+
+/**
  * Reads events until the first down is received. If [requireUnconsumed] is `true` and the first
  * down is consumed in the [PointerEventPass.Main] pass, that gesture is ignored.
  * If it was down caused by [PointerType.Mouse], this function reacts only on primary button.
@@ -251,18 +256,28 @@ suspend fun AwaitPointerEventScope.awaitFirstDown(
 ): PointerInputChange =
     awaitFirstDownOnPass(pass = PointerEventPass.Main, requireUnconsumed = requireUnconsumed)
 
-internal suspend fun AwaitPointerEventScope.awaitFirstDownOnPass(
+/**
+ * Read events until the first condition is resolved successfully.
+ */
+internal suspend inline fun AwaitPointerEventScope.awaitEvent(
     pass: PointerEventPass,
-    requireUnconsumed: Boolean
-): PointerInputChange {
+    condition: (PointerEvent) -> Boolean
+): PointerEvent {
     var event: PointerEvent
     do {
         event = awaitPointerEvent(pass)
-    } while (!event.isPrimaryChangedDown(requireUnconsumed))
-    return event.changes[0]
+    } while (!condition(event))
+    return event
 }
 
-private fun PointerEvent.isPrimaryChangedDown(requireUnconsumed: Boolean): Boolean {
+internal suspend fun AwaitPointerEventScope.awaitFirstDownOnPass(
+    pass: PointerEventPass,
+    requireUnconsumed: Boolean
+): PointerInputChange = awaitEvent(pass) { pointerEvent ->
+    pointerEvent.isPrimaryChangedDown(requireUnconsumed)
+}.changes[0]
+
+internal fun PointerEvent.isPrimaryChangedDown(requireUnconsumed: Boolean): Boolean {
     val primaryButtonCausesDown = changes.fastAll { it.type == PointerType.Mouse }
     val changedToDown = changes.fastAll {
         if (requireUnconsumed) it.changedToDown() else it.changedToDownIgnoreConsumed()
