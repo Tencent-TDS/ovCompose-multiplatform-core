@@ -137,15 +137,13 @@ internal class ComposeLayer(
     }
 
     fun getActiveFocusRect(): DpRect? {
-        return scene.mainOwner?.focusManager?.getActiveFocusModifier()?.focusRect()?.run {
+        val focusRect = scene.mainOwner?.focusManager?.getActiveFocusModifier()?.focusRect()
+        return if (focusRect != null) {
             with(density) {
-                DpRect(
-                    left = left.toDp(),
-                    top = top.toDp(),
-                    right = right.toDp(),
-                    bottom = bottom.toDp(),
-                )
+                focusRect.toDpRect()
             }
+        } else {
+            null
         }
     }
 

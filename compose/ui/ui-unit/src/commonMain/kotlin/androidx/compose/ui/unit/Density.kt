@@ -18,6 +18,7 @@ package androidx.compose.ui.unit
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
@@ -159,4 +160,35 @@ interface Density {
     } else {
         DpSize.Unspecified
     }
+
+    /**
+     * Convert a [Offset] to a [DpOffset].
+     */
+    @Stable
+    fun Offset.toDpOffset(): DpOffset = if (isSpecified) {
+        DpOffset(x.toDp(), y.toDp())
+    } else {
+        DpOffset.Unspecified
+    }
+
+    /**
+     * Convert a [DpOffset] to a [Offset].
+     */
+    @Stable
+    fun DpOffset.toOffset(): Offset = if (isSpecified) {
+        Offset(x.toPx(), y.toPx())
+    } else {
+        Offset.Unspecified
+    }
+
+    /**
+     * Convert a [Rect] to a [DpRect].
+     */
+    @Stable
+    fun Rect.toDpRect(): DpRect =
+        DpRect(
+            origin = topLeft.toDpOffset(),
+            size = size.toDpSize()
+        )
+
 }

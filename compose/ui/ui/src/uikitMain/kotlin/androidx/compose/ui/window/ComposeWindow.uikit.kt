@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -273,7 +274,9 @@ internal actual class ComposeWindow : UIViewController {
                 point = CGPointMake(0.0, 0.0),
                 toCoordinateSpace = UIScreen.mainScreen.coordinateSpace()
             )
-        return topLeftPoint.useContents { Offset(x.toFloat(), y.toFloat()) }
+        return with(density) {
+            topLeftPoint.useContents { DpOffset(x.dp, y.dp).toOffset() }
+        }
     }
 
 }
