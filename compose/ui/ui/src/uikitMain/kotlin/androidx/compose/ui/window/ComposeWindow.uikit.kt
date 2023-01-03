@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
@@ -39,6 +40,7 @@ import org.jetbrains.skiko.SkikoUIView
 import org.jetbrains.skiko.TextActions
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
+import platform.CoreGraphics.CGSize
 import platform.Foundation.NSCoder
 import platform.Foundation.NSNotification
 import platform.Foundation.NSNotificationCenter
@@ -47,6 +49,7 @@ import platform.Foundation.NSValue
 import platform.UIKit.CGRectValue
 import platform.UIKit.UIScreen
 import platform.UIKit.UIViewController
+import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.UIKit.reloadInputViews
 import platform.UIKit.setClipsToBounds
 import platform.UIKit.setNeedsDisplay
@@ -188,6 +191,18 @@ internal actual class ComposeWindow : UIViewController {
             input = uiKitTextInputService.skikoInput,
         )
         layer.setContent(content = content)
+    }
+
+    override fun viewWillTransitionToSize(
+        size: CValue<CGSize>,
+        withTransitionCoordinator: UIViewControllerTransitionCoordinatorProtocol
+    ) {
+        layer.setDensity(density)
+        val scale = layer.layer.contentScale
+        val width = size.useContents { width } * scale
+        val height = size.useContents { height } * scale
+        layer.setSize(width.roundToInt(), height.roundToInt())
+        super.viewWillTransitionToSize(size, withTransitionCoordinator)
     }
 
     override fun viewWillAppear(animated: Boolean) {
