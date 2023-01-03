@@ -88,7 +88,7 @@ internal actual class ComposeWindow : UIViewController {
             val screenHeight = UIScreen.mainScreen.bounds.useContents { size.height }
             val focused = layer.getActiveFocusRect()
             if (focused != null) {
-                val focusedBottom = focused.bottom + getTopLeftOffset().y
+                val focusedBottom = focused.bottom.value + getTopLeftOffset().y
                 val hiddenPartOfFocusedElement = focusedBottom + keyboardHeight - screenHeight
                 if (hiddenPartOfFocusedElement > 0) {
                     // If focused element hidden by keyboard, then change UIView bounds.

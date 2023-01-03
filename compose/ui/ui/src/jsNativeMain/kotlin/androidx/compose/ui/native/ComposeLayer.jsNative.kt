@@ -37,6 +37,7 @@ import org.jetbrains.skiko.SkikoPointerEvent
 import org.jetbrains.skiko.SkikoTouchEvent
 import org.jetbrains.skiko.SkikoTouchEventKind
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.DpRect
 import org.jetbrains.skiko.SkikoInput
 import org.jetbrains.skiko.currentNanoTime
 
@@ -135,8 +136,17 @@ internal class ComposeLayer(
         scene.constraints = Constraints(maxWidth = width, maxHeight = height)
     }
 
-    fun getActiveFocusRect(): Rect? {
-        return scene.mainOwner?.focusManager?.getActiveFocusModifier()?.focusRect()
+    fun getActiveFocusRect(): DpRect? {
+        return scene.mainOwner?.focusManager?.getActiveFocusModifier()?.focusRect()?.run {
+            with(density) {
+                DpRect(
+                    left = left.toDp(),
+                    top = top.toDp(),
+                    right = right.toDp(),
+                    bottom = bottom.toDp(),
+                )
+            }
+        }
     }
 
     fun setContent(
