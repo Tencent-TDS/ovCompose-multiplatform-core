@@ -25,6 +25,7 @@ import androidx.compose.ui.geometry.isSpecified
  * Convert a [Offset] to a [DpOffset].
  */
 @Stable
+@ExperimentalUnitApi
 fun Offset.toDpOffset(density: Density): DpOffset = with(density) {
     if (isSpecified) {
         DpOffset(x.toDp(), y.toDp())
@@ -37,6 +38,7 @@ fun Offset.toDpOffset(density: Density): DpOffset = with(density) {
  * Convert a [DpOffset] to a [Offset].
  */
 @Stable
+@ExperimentalUnitApi
 fun DpOffset.toOffset(density: Density): Offset = with(density) {
     if (isSpecified) {
         Offset(x.toPx(), y.toPx())
@@ -49,6 +51,7 @@ fun DpOffset.toOffset(density: Density): Offset = with(density) {
  * Convert a [Rect] to a [DpRect].
  */
 @Stable
+@ExperimentalUnitApi
 fun Rect.toDpRect(density: Density): DpRect = with(density) {
     DpRect(
         origin = topLeft.toDpOffset(density),

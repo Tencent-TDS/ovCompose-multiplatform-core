@@ -38,10 +38,12 @@ import org.jetbrains.skiko.SkikoTouchEvent
 import org.jetbrains.skiko.SkikoTouchEventKind
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.ExperimentalUnitApi
 import androidx.compose.ui.unit.toDpRect
 import org.jetbrains.skiko.SkikoInput
 import org.jetbrains.skiko.currentNanoTime
 
+@OptIn(ExperimentalUnitApi::class)
 internal class ComposeLayer(
     internal val layer: SkiaLayer,
     platform: Platform,
