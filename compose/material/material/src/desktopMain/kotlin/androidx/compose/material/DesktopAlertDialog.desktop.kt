@@ -45,7 +45,9 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.rememberDialogState
 import java.awt.event.KeyEvent
 import androidx.compose.ui.window.Dialog as CoreDialog
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.onClick
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.type
 
@@ -188,6 +190,7 @@ interface AlertDialogProvider {
  */
 @ExperimentalMaterialApi
 object PopupAlertDialogProvider : AlertDialogProvider {
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     override fun AlertDialog(
         onDismissRequest: () -> Unit,
@@ -229,7 +232,9 @@ object PopupAlertDialogProvider : AlertDialogProvider {
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Surface(elevation = 24.dp) {
+                Surface(Modifier.onClick {
+                    // Workaround to disable clicks on Dialog background https://github.com/JetBrains/compose-jb/issues/2581
+                }, elevation = 24.dp) {
                     content()
                 }
             }
