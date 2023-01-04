@@ -29,8 +29,10 @@ import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toOffset
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
@@ -88,7 +90,7 @@ internal actual class ComposeWindow : UIViewController {
             val screenHeight = UIScreen.mainScreen.bounds.useContents { size.height }
             val focused = layer.getActiveFocusRect()
             if (focused != null) {
-                val focusedBottom = focused.bottom + getTopLeftOffset().y
+                val focusedBottom = focused.bottom.value + getTopLeftOffset().y
                 val hiddenPartOfFocusedElement = focusedBottom + keyboardHeight - screenHeight
                 if (hiddenPartOfFocusedElement > 0) {
                     // If focused element hidden by keyboard, then change UIView bounds.
@@ -273,7 +275,7 @@ internal actual class ComposeWindow : UIViewController {
                 point = CGPointMake(0.0, 0.0),
                 toCoordinateSpace = UIScreen.mainScreen.coordinateSpace()
             )
-        return topLeftPoint.useContents { Offset(x.toFloat(), y.toFloat()) }
+        return topLeftPoint.useContents { DpOffset(x.dp, y.dp).toOffset(density) }
     }
 
 }
