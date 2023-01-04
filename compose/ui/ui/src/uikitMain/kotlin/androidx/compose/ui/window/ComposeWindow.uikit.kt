@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toOffset
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
@@ -274,9 +275,7 @@ internal actual class ComposeWindow : UIViewController {
                 point = CGPointMake(0.0, 0.0),
                 toCoordinateSpace = UIScreen.mainScreen.coordinateSpace()
             )
-        return with(density) {
-            topLeftPoint.useContents { DpOffset(x.dp, y.dp).toOffset() }
-        }
+        return topLeftPoint.useContents { DpOffset(x.dp, y.dp).toOffset(density) }
     }
 
 }
