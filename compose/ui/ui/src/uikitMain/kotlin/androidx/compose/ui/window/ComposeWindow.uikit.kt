@@ -55,6 +55,7 @@ import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.UIKit.reloadInputViews
 import platform.UIKit.setClipsToBounds
 import platform.UIKit.setNeedsDisplay
+import platform.UIKit.window
 import platform.darwin.NSObject
 
 // The only difference with macos' Window is that
@@ -77,7 +78,7 @@ internal actual class ComposeWindow : UIViewController {
     constructor(coder: NSCoder) : super(coder)
 
     private val density: Density
-        get() = Density(UIScreen.mainScreen.scale.toFloat())
+        get() = Density(layer.layer.contentScale)
 
     private lateinit var layer: ComposeLayer
     private lateinit var content: @Composable () -> Unit
@@ -200,7 +201,7 @@ internal actual class ComposeWindow : UIViewController {
         withTransitionCoordinator: UIViewControllerTransitionCoordinatorProtocol
     ) {
         layer.setDensity(density)
-        val scale = layer.layer.contentScale
+        val scale = density.density
         val width = size.useContents { width } * scale
         val height = size.useContents { height } * scale
         layer.setSize(width.roundToInt(), height.roundToInt())
@@ -211,7 +212,7 @@ internal actual class ComposeWindow : UIViewController {
         super.viewDidAppear(animated)
         val (width, height) = getViewFrameSize()
         layer.setDensity(density)
-        val scale = layer.layer.contentScale
+        val scale = density.density
         layer.setSize((width * scale).roundToInt(), (height * scale).roundToInt())
         NSNotificationCenter.defaultCenter.addObserver(
             observer = keyboardVisibilityListener,
