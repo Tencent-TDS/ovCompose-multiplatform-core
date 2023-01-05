@@ -1301,7 +1301,7 @@ internal abstract class NodeCoordinator(
                     hitTestResult: HitTestResult<LayoutModifierNode>,
                     isTouchEvent: Boolean,
                     isInLayer: Boolean
-                ) = layoutNode.hitTestDisplay(pointerPosition, hitTestResult, isTouchEvent, isInLayer)
+                ) = layoutNode.hitTestLayout(pointerPosition, hitTestResult, isTouchEvent, isInLayer)
             }
     }
 }
