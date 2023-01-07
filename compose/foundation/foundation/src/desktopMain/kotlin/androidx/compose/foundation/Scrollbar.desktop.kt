@@ -18,6 +18,7 @@ package androidx.compose.foundation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.TweenSpec
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapAndPress
 import androidx.compose.foundation.gestures.drag
@@ -240,7 +241,7 @@ private fun Scrollbar(
         animationSpec = TweenSpec(durationMillis = style.hoverDurationMillis)
     )
 
-    val isVisible = sliderAdapter.size < containerSize
+    val isVisible = sliderAdapter.thumbSize < containerSize
 
     Layout(
         {
@@ -311,7 +312,6 @@ private fun Modifier.scrollOnPressOutsideSlider(
             while (targetPosition !in sliderAdapter.bounds) {
                 val oldSign = sign(targetPosition - sliderAdapter.position)
                 scrollbarAdapter.scrollTo(
-                    containerSize,
                     scrollbarAdapter.scrollOffset + oldSign * containerSize
                 )
                 val newSign = sign(targetPosition - sliderAdapter.position)
@@ -389,12 +389,19 @@ private class ScrollableScrollbarAdapter(
 ) : ScrollbarAdapter {
     override val scrollOffset: Float get() = scrollState.value.toFloat()
 
-    override suspend fun scrollTo(containerSize: Int, scrollOffset: Float) {
+    override suspend fun scrollTo(scrollOffset: Float) {
         scrollState.scrollTo(scrollOffset.roundToInt())
     }
 
-    override fun maxScrollOffset(containerSize: Int) =
-        scrollState.maxValue.toFloat()
+    override val contentSize: Float
+        get() = maxScrollOffset + viewportSize
+
+    override val viewportSize: Float
+        get() = scrollState.viewportSize.toFloat()
+
+    override val maxScrollOffset: Float
+        get() = scrollState.maxValue.toFloat()
+
 }
 
 /**
@@ -427,26 +434,42 @@ fun ScrollbarAdapter(
 private class LazyScrollbarAdapter(
     private val scrollState: LazyListState
 ) : ScrollbarAdapter {
+
     override val scrollOffset: Float
         get() = scrollState.firstVisibleItemIndex * averageItemSize +
             scrollState.firstVisibleItemScrollOffset
 
-    override suspend fun scrollTo(containerSize: Int, scrollOffset: Float) {
+    override val viewportSize: Float
+        get() = with(scrollState.layoutInfo){
+            if (orientation == Orientation.Vertical)
+                viewportSize.height
+            else
+                viewportSize.width
+        }.toFloat()
+
+    override val contentSize: Float
+        get() {
+            return averageItemSize * itemCount +
+                scrollState.layoutInfo.beforeContentPadding +
+                scrollState.layoutInfo.afterContentPadding
+        }
+
+    override suspend fun scrollTo(scrollOffset: Float) {
         val distance = scrollOffset - this@LazyScrollbarAdapter.scrollOffset
 
-        // if we scroll less than containerSize we need to use scrollBy function to avoid
+        // if we scroll less than viewport we need to use scrollBy function to avoid
         // undesirable scroll jumps (when an item size is different)
         //
-        // if we scroll more than containerSize we should immediately jump to this position
+        // if we scroll more than viewport we should immediately jump to this position
         // without recreating all items between the current and the new position
-        if (abs(distance) <= containerSize) {
+        if (abs(distance) <= viewportSize) {
             scrollState.scrollBy(distance)
         } else {
-            snapTo(containerSize, scrollOffset)
+            snapTo(scrollOffset)
         }
     }
 
-    private suspend fun snapTo(containerSize: Int, scrollOffset: Float) {
+    private suspend fun snapTo(scrollOffset: Float) {
         // In case of very big values, we can catch an overflow, so convert values to double and
         // coerce them
 //        val averageItemSize = 26.000002f
@@ -455,7 +478,7 @@ private class LazyScrollbarAdapter(
 //        val offset = (scrollOffsetCoerced - index * averageItemSize) // -16.0
 //        println(offset)
 
-        val maximumValue = maxScrollOffset(containerSize).toDouble()
+        val maximumValue = maxScrollOffset.toDouble()
         val scrollOffsetCoerced = scrollOffset.toDouble().coerceIn(0.0, maximumValue)
         val averageItemSize = averageItemSize.toDouble()
 
@@ -470,13 +493,6 @@ private class LazyScrollbarAdapter(
 
         scrollState.scrollToItem(index = index, scrollOffset = offset)
     }
-
-    override fun maxScrollOffset(containerSize: Int) =
-        (averageItemSize * itemCount
-            + scrollState.layoutInfo.beforeContentPadding
-            + scrollState.layoutInfo.afterContentPadding
-            - containerSize
-        ).coerceAtLeast(0f)
 
     private val itemCount get() = scrollState.layoutInfo.totalItemsCount
 
@@ -495,6 +511,8 @@ private class LazyScrollbarAdapter(
  * Defines how to scroll the scrollable component
  */
 interface ScrollbarAdapter {
+
+
     /**
      * Scroll offset of the content inside the scrollable component.
      * Offset "100" means that the content is scrolled by 100 pixels from the start.
@@ -504,41 +522,44 @@ interface ScrollbarAdapter {
     /**
      * Instantly jump to [scrollOffset] in pixels
      *
-     * @param containerSize size of the scrollable container
-     *  (for example, it is height of ScrollableColumn if we use VerticalScrollbar)
      * @param scrollOffset target value in pixels to jump to,
      *  value will be coerced to 0..maxScrollOffset
      */
-    suspend fun scrollTo(containerSize: Int, scrollOffset: Float)
+    suspend fun scrollTo(scrollOffset: Float)
+
+    val contentSize: Float
+
+    val viewportSize: Float
+
 
     /**
      * Maximum scroll offset of the content inside the scrollable component
-     *
-     * @param containerSize size of the scrollable component
-     *  (for example, it is height of ScrollableColumn if we use VerticalScrollbar)
      */
-    fun maxScrollOffset(containerSize: Int): Float
+    val maxScrollOffset: Float
+        get() = contentSize - viewportSize
+
 }
 
 private class SliderAdapter(
     val adapter: ScrollbarAdapter,
-    val containerSize: Int,
+    val trackSize: Int,
     val minHeight: Float,
     val reverseLayout: Boolean,
     val isVertical: Boolean,
 ) {
-    private val contentSize get() = adapter.maxScrollOffset(containerSize) + containerSize
-    private val visiblePart get() = containerSize.toFloat() / contentSize
 
-    val size
-        get() = (containerSize * visiblePart)
+    private val contentSize get() = adapter.contentSize
+    private val visiblePart get() = adapter.viewportSize / contentSize
+
+    val thumbSize
+        get() = (trackSize * visiblePart)
             .coerceAtLeast(minHeight)
-            .coerceAtMost(containerSize.toFloat())
+            .coerceAtMost(trackSize.toFloat())
 
     private val scrollScale: Float
         get() {
-            val extraScrollbarSpace = containerSize - size
-            val extraContentSpace = contentSize - containerSize
+            val extraScrollbarSpace = trackSize - thumbSize
+            val extraContentSpace = adapter.maxScrollOffset  // == contentSize - viewportSize
             return if (extraContentSpace == 0f) 1f else extraScrollbarSpace / extraContentSpace
         }
 
@@ -546,21 +567,21 @@ private class SliderAdapter(
         get() = scrollScale * adapter.scrollOffset
         set(value) {
             runBlocking {
-                adapter.scrollTo(containerSize, value / scrollScale)
+                adapter.scrollTo(value / scrollScale)
             }
         }
 
     var position: Float
-        get() = if (reverseLayout) containerSize - size - rawPosition else rawPosition
+        get() = if (reverseLayout) trackSize - thumbSize - rawPosition else rawPosition
         set(value) {
             rawPosition = if (reverseLayout) {
-                containerSize - size - value
+                trackSize - thumbSize - value
             } else {
                 value
             }
         }
 
-    val bounds get() = position..position + size
+    val bounds get() = position..position + thumbSize
 
     // Stores the unrestricted position during a dragging gesture
     private var positionDuringDrag = 0f
@@ -573,7 +594,7 @@ private class SliderAdapter(
     /** Called on every movement while dragging the thumb */
     fun onDragDelta(offset: Offset) {
         val dragDelta = if (isVertical) offset.y else offset.x
-        val maxScrollPosition = adapter.maxScrollOffset(containerSize) * scrollScale
+        val maxScrollPosition = adapter.maxScrollOffset * scrollScale
         val sliderDelta =
             (positionDuringDrag + dragDelta).coerceIn(0f, maxScrollPosition) -
                 positionDuringDrag.coerceIn(0f, maxScrollPosition)
@@ -589,7 +610,7 @@ private fun verticalMeasurePolicy(
     scrollThickness: Int
 ) = MeasurePolicy { measurables, constraints ->
     setContainerSize(constraints.maxHeight)
-    val height = sliderAdapter.size.toInt()
+    val height = sliderAdapter.thumbSize.toInt()
     val placeable = measurables.first().measure(
         Constraints.fixed(
             constraints.constrainWidth(scrollThickness),
@@ -607,7 +628,7 @@ private fun horizontalMeasurePolicy(
     scrollThickness: Int
 ) = MeasurePolicy { measurables, constraints ->
     setContainerSize(constraints.maxWidth)
-    val width = sliderAdapter.size.toInt()
+    val width = sliderAdapter.thumbSize.toInt()
     val placeable = measurables.first().measure(
         Constraints.fixed(
             width,
