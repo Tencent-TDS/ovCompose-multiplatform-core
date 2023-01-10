@@ -29,8 +29,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.window.Application
+import androidx.compose.runtime.Composable
 
 fun getViewControllerWithCompose() = Application("Compose/Native sample") {
+    UIKitDemoApp()
+}
+
+@Composable
+internal fun UIKitDemoApp() {
     val textState1 = remember { mutableStateOf("text field 1") }
     val textState2 = remember { mutableStateOf("text field 2") }
     Column {

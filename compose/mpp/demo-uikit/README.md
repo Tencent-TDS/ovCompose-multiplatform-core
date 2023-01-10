@@ -7,3 +7,8 @@ androidx.compose.multiplatformEnabled=true
 
 ### Run
  - Choose run configuration iOS App
+
+## Run with Xcode
+- Install xcodegen
+- run `xcodegen`
+- run `open DemoUikit.xcodeproj`

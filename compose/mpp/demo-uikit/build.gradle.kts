@@ -1,5 +1,6 @@
 import androidx.build.AndroidXComposePlugin
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
     id("AndroidXPlugin")
@@ -8,7 +9,26 @@ plugins {
     id("org.jetbrains.gradle.apple.applePlugin") version "222.3345.143-0.16"
 }
 
-val RUN_ON_DEVICE = false
+val osName = System.getProperty("os.name")
+val hostOs = when {
+    osName == "Mac OS X" -> "macos"
+    osName.startsWith("Win") -> "windows"
+    osName.startsWith("Linux") -> "linux"
+    else -> error("Unsupported OS: $osName")
+}
+
+val osArch = System.getProperty("os.arch")
+var hostArch = when (osArch) {
+    "x86_64", "amd64" -> "x64"
+    "aarch64" -> "arm64"
+    else -> error("Unsupported arch: $osArch")
+}
+
+val host = "${hostOs}-${hostArch}"
+enum class Target(val simulator: Boolean, val key: String) {
+    WATCHOS_X86(true, "watchos"), WATCHOS_ARM64(false, "watchos"),
+    IOS_X64(true, "iosX64"), IOS_ARM64(false, "iosArm64"), IOS_SIMULATOR_ARM64(true, "iosSimulatorArm64")
+}
 
 AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
 
@@ -21,47 +41,17 @@ repositories {
 }
 
 kotlin {
-    if (System.getProperty("os.arch") == "aarch64") {
-        iosSimulatorArm64("uikitSimArm64") {
-            binaries {
-                framework {
-                    baseName = "shared"
-                    freeCompilerArgs += listOf(
-                        "-linker-option", "-framework", "-linker-option", "Metal",
-                        "-linker-option", "-framework", "-linker-option", "CoreText",
-                        "-linker-option", "-framework", "-linker-option", "CoreGraphics"
-                    )
-                }
-            }
+    if (hostOs == "macos") {
+        ios() {
+            configureToLaunchFromAppCode()
+            configureToLaunchFromXcode()
         }
-    } else {
-        ios("uikitX64") {
-            binaries {
-                framework {
-                    baseName = "shared"
-                    freeCompilerArgs += listOf(
-                        "-linker-option", "-framework", "-linker-option", "Metal",
-                        "-linker-option", "-framework", "-linker-option", "CoreText",
-                        "-linker-option", "-framework", "-linker-option", "CoreGraphics"
-                    )
-                }
-            }
+        iosSimulatorArm64() {
+            configureToLaunchFromAppCode()
+            configureToLaunchFromXcode()
         }
     }
-    if (RUN_ON_DEVICE) {
-        iosArm64("uikitArm64") {
-            binaries {
-                framework {
-                    baseName = "shared"
-                    freeCompilerArgs += listOf(
-                        "-linker-option", "-framework", "-linker-option", "Metal",
-                        "-linker-option", "-framework", "-linker-option", "CoreText",
-                        "-linker-option", "-framework", "-linker-option", "CoreGraphics"
-                    )
-                }
-            }
-        }
-    }
+
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -84,14 +74,14 @@ kotlin {
         }
         val nativeMain by creating { dependsOn(skikoMain) }
         val darwinMain by creating { dependsOn(nativeMain) }
-        val uikitMain by creating { dependsOn(darwinMain) }
-        if (System.getProperty("os.arch") == "aarch64") {
-            val uikitSimArm64Main by getting { dependsOn(uikitMain) }
-        } else {
-            val uikitX64Main by getting { dependsOn(uikitMain) }
-        }
-        if (RUN_ON_DEVICE) {
-            val uikitArm64Main by getting { dependsOn(uikitMain) }
+
+        if (hostOs == "macos") {
+            val iosMain by getting {
+                dependsOn(darwinMain)
+            }
+            val iosSimulatorArm64Main by getting {
+                dependsOn(iosMain)
+            }
         }
     }
 }
@@ -105,6 +95,89 @@ apple {
 
         dependencies {
             implementation(project(":compose:mpp:demo-uikit"))
+        }
+    }
+}
+
+if (hostOs == "macos") {
+    // Create Xcode integration tasks.
+    val sdkName: String? = System.getenv("SDK_NAME")
+
+    val target = sdkName.orEmpty().let {
+        when {
+            it.startsWith("iphoneos") -> Target.IOS_ARM64
+            it.startsWith("watchos") -> Target.WATCHOS_ARM64
+            it.startsWith("watchsimulator") -> Target.WATCHOS_X86
+            else -> when (host) {
+                "macos-x64" -> Target.IOS_X64
+                "macos-arm64" -> Target.IOS_SIMULATOR_ARM64
+                else -> throw GradleException("Host OS is not supported")
+            }
+        }
+    }
+
+    val targetBuildDir: String? = System.getenv("TARGET_BUILD_DIR")
+    val executablePath: String? = System.getenv("EXECUTABLE_PATH")
+    val buildType = System.getenv("CONFIGURATION")?.let {
+        org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.valueOf(it.toUpperCase())
+    } ?: org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType.DEBUG
+
+    val currentTarget = kotlin.targets[target.key] as org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+    val kotlinBinary = currentTarget.binaries.getExecutable(buildType)
+    val xcodeIntegrationGroup = "Xcode integration"
+
+    val packForXCode = if (sdkName == null || targetBuildDir == null || executablePath == null) {
+        // The build is launched not by Xcode ->
+        // We cannot create a copy task and just show a meaningful error message.
+        tasks.create("packForXCode").doLast {
+            throw IllegalStateException("Please run the task from Xcode")
+        }
+    } else {
+        // Otherwise copy the executable into the Xcode output directory.
+        tasks.create("packForXCode", Copy::class.java) {
+            dependsOn(kotlinBinary.linkTask)
+
+            destinationDir = file(targetBuildDir)
+
+            val dsymSource = kotlinBinary.outputFile.absolutePath + ".dSYM"
+            val dsymDestination = File(executablePath).parentFile.name + ".dSYM"
+            val oldExecName = kotlinBinary.outputFile.name
+            val newExecName = File(executablePath).name
+
+            from(dsymSource) {
+                into(dsymDestination)
+                rename(oldExecName, newExecName)
+            }
+
+            from(kotlinBinary.outputFile) {
+                rename { executablePath }
+            }
+        }
+    }
+}
+
+fun KotlinNativeTarget.configureToLaunchFromAppCode() {
+    binaries {
+        framework {
+            baseName = "shared"
+            freeCompilerArgs += listOf(
+                "-linker-option", "-framework", "-linker-option", "Metal",
+                "-linker-option", "-framework", "-linker-option", "CoreText",
+                "-linker-option", "-framework", "-linker-option", "CoreGraphics"
+            )
+        }
+    }
+}
+
+fun KotlinNativeTarget.configureToLaunchFromXcode() {
+    binaries {
+        executable {
+            entryPoint = "androidx.compose.mpp.demo.main"
+            freeCompilerArgs += listOf(
+                "-linker-option", "-framework", "-linker-option", "Metal",
+                "-linker-option", "-framework", "-linker-option", "CoreText",
+                "-linker-option", "-framework", "-linker-option", "CoreGraphics"
+            )
         }
     }
 }
