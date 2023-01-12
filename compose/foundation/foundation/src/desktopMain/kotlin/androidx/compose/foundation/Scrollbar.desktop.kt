@@ -16,7 +16,6 @@
 
 package androidx.compose.foundation
 
-import androidx.compose.foundation.v2.ScrollbarAdapter as NewScrollbarAdapter
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.TweenSpec
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -29,6 +28,8 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.v2.LazyScrollbarAdapter
+import androidx.compose.foundation.v2.ScrollableScrollbarAdapter
 import androidx.compose.foundation.v2.SliderAdapter
 import androidx.compose.foundation.v2.maxScrollOffset
 import androidx.compose.runtime.Composable
@@ -127,7 +128,7 @@ fun defaultScrollbarStyle() = ScrollbarStyle(
  * @param interactionSource [MutableInteractionSource] that will be used to dispatch
  * [DragInteraction.Start] when this Scrollbar is being dragged.
  */
-@Deprecated("Use androidx.compose.foundation.v2.VerticalScrollbar instead")
+@Deprecated("Use VerticalScrollbar(adapter: androidx.compose.foundation.v2.ScrollbarAdapter) instead")
 @Composable
 fun VerticalScrollbar(
     @Suppress("DEPRECATION") adapter: ScrollbarAdapter,
@@ -135,7 +136,7 @@ fun VerticalScrollbar(
     reverseLayout: Boolean = false,
     style: ScrollbarStyle = LocalScrollbarStyle.current,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
-) = Scrollbar(
+) = OldScrollbar(
     adapter,
     modifier,
     reverseLayout,
@@ -174,7 +175,8 @@ fun VerticalScrollbar(
  * @param interactionSource [MutableInteractionSource] that will be used to dispatch
  * [DragInteraction.Start] when this Scrollbar is being dragged.
  */
-@Deprecated("Use androidx.compose.foundation.v2.HorizontalScrollbar instead")
+@Deprecated("Use HorizontalScrollbar(" +
+    "adapter: androidx.compose.foundation.v2.ScrollbarAdapter) instead")
 @Composable
 fun HorizontalScrollbar(
     @Suppress("DEPRECATION") adapter: ScrollbarAdapter,
@@ -182,7 +184,7 @@ fun HorizontalScrollbar(
     reverseLayout: Boolean = false,
     style: ScrollbarStyle = LocalScrollbarStyle.current,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
-) = Scrollbar(
+) = OldScrollbar(
     adapter,
     modifier,
     if (LocalLayoutDirection.current == LayoutDirection.Rtl) !reverseLayout else reverseLayout,
@@ -193,16 +195,128 @@ fun HorizontalScrollbar(
 
 @Suppress("DEPRECATION")
 @Composable
-private fun Scrollbar(
+private fun OldScrollbar(
     oldAdapter: ScrollbarAdapter,
     modifier: Modifier = Modifier,
     reverseLayout: Boolean,
     style: ScrollbarStyle,
     interactionSource: MutableInteractionSource,
     isVertical: Boolean
-) = Scrollbar(
+) = OldOrNewScrollbar(
     oldOrNewAdapter = oldAdapter,
     newScrollbarAdapterFactory = ScrollbarAdapter::asNewAdapter,
+    modifier = modifier,
+    reverseLayout = reverseLayout,
+    style = style,
+    interactionSource = interactionSource,
+    isVertical = isVertical
+)
+
+/**
+ * Vertical scrollbar that can be attached to some scrollable
+ * component (ScrollableColumn, LazyColumn) and share common state with it.
+ *
+ * Can be placed independently.
+ *
+ * Example:
+ *     val state = rememberScrollState(0f)
+ *
+ *     Box(Modifier.fillMaxSize()) {
+ *         Box(modifier = Modifier.verticalScroll(state)) {
+ *             ...
+ *         }
+ *
+ *         VerticalScrollbar(
+ *             Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+ *             rememberScrollbarAdapter(state)
+ *         )
+ *     }
+ *
+ * @param adapter [androidx.compose.foundation.v2.ScrollbarAdapter] that will be used to
+ * communicate with scrollable component
+ * @param modifier the modifier to apply to this layout
+ * @param reverseLayout reverse the direction of scrolling and layout, when `true`
+ * and [LazyListState.firstVisibleItemIndex] == 0 then scrollbar
+ * will be at the bottom of the container.
+ * It is usually used in pair with `LazyColumn(reverseLayout = true)`
+ * @param style [ScrollbarStyle] to define visual style of scrollbar
+ * @param interactionSource [MutableInteractionSource] that will be used to dispatch
+ * [DragInteraction.Start] when this Scrollbar is being dragged.
+ */
+@Composable
+fun VerticalScrollbar(
+    adapter: androidx.compose.foundation.v2.ScrollbarAdapter,
+    modifier: Modifier = Modifier,
+    reverseLayout: Boolean = false,
+    style: ScrollbarStyle = LocalScrollbarStyle.current,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
+) = NewScrollbar(
+    newAdapter = adapter,
+    modifier,
+    reverseLayout,
+    style,
+    interactionSource,
+    isVertical = true
+)
+
+/**
+ * Horizontal scrollbar that can be attached to some scrollable
+ * component (Modifier.verticalScroll(), LazyRow) and share common state with it.
+ *
+ * Can be placed independently.
+ *
+ * Example:
+ *     val state = rememberScrollState(0f)
+ *
+ *     Box(Modifier.fillMaxSize()) {
+ *         Box(modifier = Modifier.verticalScroll(state)) {
+ *             ...
+ *         }
+ *
+ *         HorizontalScrollbar(
+ *             Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+ *             rememberScrollbarAdapter(state)
+ *         )
+ *     }
+ *
+ * @param adapter [androidx.compose.foundation.v2.ScrollbarAdapter] that will be used to
+ * communicate with scrollable component
+ * @param modifier the modifier to apply to this layout
+ * @param reverseLayout reverse the direction of scrolling and layout, when `true`
+ * and [LazyListState.firstVisibleItemIndex] == 0 then scrollbar
+ * will be at the end of the container.
+ * It is usually used in pair with `LazyRow(reverseLayout = true)`
+ * @param style [ScrollbarStyle] to define visual style of scrollbar
+ * @param interactionSource [MutableInteractionSource] that will be used to dispatch
+ * [DragInteraction.Start] when this Scrollbar is being dragged.
+ */
+@Composable
+fun HorizontalScrollbar(
+    adapter: androidx.compose.foundation.v2.ScrollbarAdapter,
+    modifier: Modifier = Modifier,
+    reverseLayout: Boolean = false,
+    style: ScrollbarStyle = LocalScrollbarStyle.current,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
+) = NewScrollbar(
+    newAdapter = adapter,
+    modifier,
+    if (LocalLayoutDirection.current == LayoutDirection.Rtl) !reverseLayout else reverseLayout,
+    style,
+    interactionSource,
+    isVertical = false
+)
+
+@Composable
+private fun NewScrollbar(
+    newAdapter: androidx.compose.foundation.v2.ScrollbarAdapter,
+    modifier: Modifier = Modifier,
+    reverseLayout: Boolean,
+    style: ScrollbarStyle,
+    interactionSource: MutableInteractionSource,
+    isVertical: Boolean
+) = OldOrNewScrollbar(
+    oldOrNewAdapter = newAdapter,
+    newScrollbarAdapterFactory = { adapter, _ -> adapter },
     modifier = modifier,
     reverseLayout = reverseLayout,
     style = style,
@@ -213,10 +327,18 @@ private fun Scrollbar(
 private typealias NewScrollbarAdapterFactory<T> = (
     adapter: T,
     trackSize: Int,
-) -> NewScrollbarAdapter
+) -> androidx.compose.foundation.v2.ScrollbarAdapter
 
+
+/**
+ * The actual implementation of the scrollbar.
+ *
+ * Takes the scroll adapter (old or new) and a function that converts it to the new scrollbar
+ * adapter interface. This allows both the old (left for backwards compatibility) and new
+ * implementations to use the same code.
+ */
 @Composable
-internal fun <T> Scrollbar(
+internal fun <T> OldOrNewScrollbar(
     oldOrNewAdapter: T,
     // We need an adapter factory because we can't convert an old to a new
     // adapter until we have the track/container size
@@ -293,13 +415,13 @@ internal fun <T> Scrollbar(
 }
 
 /**
- * Adapts an old [androidx.compose.foundation.ScrollbarAdapter] to the new interface, under the assumption that the
+ * Adapts an old [ScrollbarAdapter] to the new interface, under the assumption that the
  * track size is equal to the viewport size.
  */
-private class OldAdapterAsNew(
+private class OldScrollbarAdapterAsNew(
     @Suppress("DEPRECATION") val oldAdapter: ScrollbarAdapter,
     private val trackSize: Int
-) : NewScrollbarAdapter {
+) : androidx.compose.foundation.v2.ScrollbarAdapter {
 
     override val scrollOffset: Double
         get() = oldAdapter.scrollOffset.toDouble()
@@ -318,23 +440,24 @@ private class OldAdapterAsNew(
 
 /**
  * Converts an instance of the old scrollbar adapter to a new one.
- * If the old one is in fact just a [NewAdapterAsOld], then simply unwrap it.
+ *
+ * If the old one is in fact just a [NewScrollbarAdapterAsOld], then simply unwrap it.
  * This allows users that simply passed our own (old) implementations back to
  * us to seamlessly use the new implementations, and enjoy all their benefits.
  */
 @Suppress("DEPRECATION")
-private fun ScrollbarAdapter.asNewAdapter(trackSize: Int) =
-    if (this is NewAdapterAsOld)
+private fun ScrollbarAdapter.asNewAdapter(trackSize: Int): androidx.compose.foundation.v2.ScrollbarAdapter =
+    if (this is NewScrollbarAdapterAsOld)
         this.newAdapter  // Just unwrap
     else
-        OldAdapterAsNew(this, trackSize)
+        OldScrollbarAdapterAsNew(this, trackSize)
 
 /**
  * Adapts a new scrollbar adapter to the old interface.
  */
 @Suppress("DEPRECATION")
-private class NewAdapterAsOld(
-    val newAdapter: NewScrollbarAdapter
+private class NewScrollbarAdapterAsOld(
+    val newAdapter: androidx.compose.foundation.v2.ScrollbarAdapter
 ): ScrollbarAdapter {
 
     override val scrollOffset: Float
@@ -353,11 +476,262 @@ private class NewAdapterAsOld(
 /**
  * Converts an instance of the new scrollbar adapter to an old one.
  */
-private fun NewScrollbarAdapter.asOldAdapter() =
-    if (this is OldAdapterAsNew)
+@Suppress("DEPRECATION")
+private fun androidx.compose.foundation.v2.ScrollbarAdapter.asOldAdapter(): ScrollbarAdapter =
+    if (this is OldScrollbarAdapterAsNew)
         this.oldAdapter  // Just unwrap
     else
-        NewAdapterAsOld(this)
+        NewScrollbarAdapterAsOld(this)
+
+/**
+ * Create and [remember] (old) [ScrollbarAdapter] for scrollable container and current instance of
+ * [scrollState]
+ */
+@Deprecated(
+    message = "Use rememberScrollbarAdapter instead",
+    replaceWith = ReplaceWith(
+        expression = "rememberScrollbarAdapter(scrollState)",
+        "androidx.compose.foundation.rememberScrollbarAdapter"
+    )
+)
+@JvmName("rememberScrollbarAdapter")
+@Suppress("DEPRECATION")
+@Composable
+fun rememberOldScrollbarAdapter(
+    scrollState: ScrollState
+): ScrollbarAdapter = remember(scrollState) {
+    OldScrollbarAdapter(scrollState)
+}
+
+/**
+ * Create and [remember] (old) [ScrollbarAdapter] for lazy scrollable container and current instance of
+ * [scrollState]
+ */
+@Deprecated(
+    message ="Use rememberScrollbarAdapter instead",
+    replaceWith = ReplaceWith(
+        expression = "rememberScrollbarAdapter(scrollState)",
+        "androidx.compose.foundation.rememberScrollbarAdapter"
+    )
+)
+@JvmName("rememberScrollbarAdapter")
+@Suppress("DEPRECATION")
+@Composable
+fun rememberOldScrollbarAdapter(
+    scrollState: LazyListState,
+): ScrollbarAdapter {
+    return remember(scrollState) {
+        OldScrollbarAdapter(scrollState)
+    }
+}
+
+/**
+ * ScrollbarAdapter for Modifier.verticalScroll and Modifier.horizontalScroll
+ *
+ * [scrollState] is instance of [ScrollState] which is used by scrollable component
+ *
+ * Example:
+ *     val state = rememberScrollState(0f)
+ *
+ *     Box(Modifier.fillMaxSize()) {
+ *         Box(modifier = Modifier.verticalScroll(state)) {
+ *             ...
+ *         }
+ *
+ *         VerticalScrollbar(
+ *             Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+ *             rememberScrollbarAdapter(state)
+ *         )
+ *     }
+ */
+@Deprecated(
+    message = "Use ScrollbarAdapter() instead",
+    replaceWith = ReplaceWith(
+        expression = "ScrollbarAdapter(scrollState)",
+        "androidx.compose.foundation.ScrollbarAdapter"
+    )
+)
+@JvmName("ScrollbarAdapter")
+@Suppress("DEPRECATION")
+fun OldScrollbarAdapter(
+    scrollState: ScrollState
+): ScrollbarAdapter = ScrollbarAdapter(scrollState).asOldAdapter()
+
+/**
+ * ScrollbarAdapter for lazy lists.
+ *
+ * [scrollState] is instance of [LazyListState] which is used by scrollable component
+ *
+ * Scrollbar size and position will be dynamically changed on the current visible content.
+ *
+ * Example:
+ *     Box(Modifier.fillMaxSize()) {
+ *         val state = rememberLazyListState()
+ *
+ *         LazyColumn(state = state) {
+ *             ...
+ *         }
+ *
+ *         VerticalScrollbar(
+ *             Modifier.align(Alignment.CenterEnd),
+ *             rememberScrollbarAdapter(state)
+ *         )
+ *     }
+ */
+@Deprecated(
+    message = "Use ScrollbarAdapter() instead",
+    replaceWith = ReplaceWith(
+        expression = "ScrollbarAdapter(scrollState)",
+        "androidx.compose.foundation.ScrollbarAdapter"
+    )
+)
+@JvmName("ScrollbarAdapter")
+@Suppress("DEPRECATION")
+fun OldScrollbarAdapter(
+    scrollState: LazyListState
+): ScrollbarAdapter = ScrollbarAdapter(scrollState).asOldAdapter()
+
+/**
+ * Create and [remember] [OldScrollbarAdapter] for scrollable container and current instance of
+ * [scrollState]
+ */
+@JvmName("rememberScrollbarAdapter2")
+@Composable
+fun rememberScrollbarAdapter(
+    scrollState: ScrollState
+): androidx.compose.foundation.v2.ScrollbarAdapter = remember(scrollState) {
+    ScrollbarAdapter(scrollState)
+}
+
+/**
+ * Create and [remember] [OldScrollbarAdapter] for lazy scrollable container and current instance of
+ * [scrollState]
+ */
+@JvmName("rememberScrollbarAdapter2")
+@Composable
+fun rememberScrollbarAdapter(
+    scrollState: LazyListState,
+): androidx.compose.foundation.v2.ScrollbarAdapter = remember(scrollState) {
+    ScrollbarAdapter(scrollState)
+}
+
+/**
+ * ScrollbarAdapter for Modifier.verticalScroll and Modifier.horizontalScroll
+ *
+ * [scrollState] is instance of [ScrollState] which is used by scrollable component
+ *
+ * Example:
+ *     val state = rememberScrollState(0f)
+ *
+ *     Box(Modifier.fillMaxSize()) {
+ *         Box(modifier = Modifier.verticalScroll(state)) {
+ *             ...
+ *         }
+ *
+ *         VerticalScrollbar(
+ *             Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+ *             rememberScrollbarAdapter(state)
+ *         )
+ *     }
+ */
+@JvmName("ScrollbarAdapter2")
+fun ScrollbarAdapter(
+    scrollState: ScrollState
+): androidx.compose.foundation.v2.ScrollbarAdapter = ScrollableScrollbarAdapter(scrollState)
+
+/**
+ * ScrollbarAdapter for lazy lists.
+ *
+ * [scrollState] is instance of [LazyListState] which is used by scrollable component
+ *
+ * Scrollbar size and position will be dynamically changed on the current visible content.
+ *
+ * Example:
+ *     Box(Modifier.fillMaxSize()) {
+ *         val state = rememberLazyListState()
+ *
+ *         LazyColumn(state = state) {
+ *             ...
+ *         }
+ *
+ *         VerticalScrollbar(
+ *             Modifier.align(Alignment.CenterEnd),
+ *             rememberScrollbarAdapter(state)
+ *         )
+ *     }
+ */
+@JvmName("ScrollbarAdapter2")
+fun ScrollbarAdapter(
+    scrollState: LazyListState
+): androidx.compose.foundation.v2.ScrollbarAdapter = LazyScrollbarAdapter(scrollState)
+
+/**
+ * Defines how to scroll the scrollable component
+ */
+@Deprecated("Use androidx.compose.foundation.v2.ScrollbarAdapter instead")
+interface ScrollbarAdapter {
+
+    /**
+     * Scroll offset of the content inside the scrollable component.
+     * Offset "100" means that the content is scrolled by 100 pixels from the start.
+     */
+    val scrollOffset: Float
+
+    /**
+     * Instantly jump to [scrollOffset] in pixels
+     *
+     * @param containerSize size of the scrollable container
+     *  (for example, it is height of ScrollableColumn if we use VerticalScrollbar)
+     * @param scrollOffset target value in pixels to jump to,
+     *  value will be coerced to 0..maxScrollOffset
+     */
+    suspend fun scrollTo(containerSize: Int, scrollOffset: Float)
+
+    /**
+     * Maximum scroll offset of the content inside the scrollable component
+     *
+     * @param containerSize size of the scrollable component
+     *  (for example, it is height of ScrollableColumn if we use VerticalScrollbar)
+     */
+    fun maxScrollOffset(containerSize: Int): Float
+
+}
+
+private fun verticalMeasurePolicy(
+    sliderAdapter: SliderAdapter,
+    setContainerSize: (Int) -> Unit,
+    scrollThickness: Int
+) = MeasurePolicy { measurables, constraints ->
+    setContainerSize(constraints.maxHeight)
+    val height = sliderAdapter.thumbSize.toInt()
+    val placeable = measurables.first().measure(
+        Constraints.fixed(
+            constraints.constrainWidth(scrollThickness),
+            height
+        )
+    )
+    layout(placeable.width, constraints.maxHeight) {
+        placeable.place(0, sliderAdapter.position.toInt())
+    }
+}
+
+private fun horizontalMeasurePolicy(
+    sliderAdapter: SliderAdapter,
+    setContainerSize: (Int) -> Unit,
+    scrollThickness: Int
+) = MeasurePolicy { measurables, constraints ->
+    setContainerSize(constraints.maxWidth)
+    val width = sliderAdapter.thumbSize.toInt()
+    val placeable = measurables.first().measure(
+        Constraints.fixed(
+            width,
+            constraints.constrainHeight(scrollThickness)
+        )
+    )
+    layout(constraints.maxWidth, placeable.height) {
+        placeable.place(sliderAdapter.position.toInt(), 0)
+    }
+}
 
 private fun Modifier.scrollbarDrag(
     interactionSource: MutableInteractionSource,
@@ -395,7 +769,7 @@ private fun Modifier.scrollbarDrag(
 private fun Modifier.scrollOnPressOutsideThumb(
     isVertical: Boolean,
     sliderAdapter: SliderAdapter,
-    scrollbarAdapter: NewScrollbarAdapter,
+    scrollbarAdapter: androidx.compose.foundation.v2.ScrollbarAdapter,
 ) = composed {
     var targetOffset: Offset? by remember { mutableStateOf(null) }
 
@@ -429,173 +803,6 @@ private fun Modifier.scrollOnPressOutsideThumb(
             },
             onTap = {}
         )
-    }
-}
-
-/**
- * Create and [remember] [ScrollbarAdapter] for scrollable container and current instance of
- * [scrollState]
- */
-@Deprecated(
-    message = "Use androidx.compose.foundation.v2.rememberScrollbarAdapter instead",
-    replaceWith = ReplaceWith(
-        expression = "androidx.compose.foundation.v2.rememberScrollbarAdapter(scrollState)",
-    )
-)
-@Suppress("DEPRECATION")
-@Composable
-fun rememberScrollbarAdapter(
-    scrollState: ScrollState
-): ScrollbarAdapter = remember(scrollState) {
-    ScrollbarAdapter(scrollState)
-}
-
-/**
- * Create and [remember] [ScrollbarAdapter] for lazy scrollable container and current instance of
- * [scrollState]
- */
-@Deprecated(
-    message = "Use androidx.compose.foundation.v2.rememberScrollbarAdapter instead",
-    replaceWith = ReplaceWith(
-        expression = "androidx.compose.foundation.v2.rememberScrollbarAdapter(scrollState)",
-    )
-)
-@Suppress("DEPRECATION")
-@Composable
-fun rememberScrollbarAdapter(
-    scrollState: LazyListState,
-): ScrollbarAdapter {
-    return remember(scrollState) {
-        ScrollbarAdapter(scrollState)
-    }
-}
-
-/**
- * ScrollbarAdapter for Modifier.verticalScroll and Modifier.horizontalScroll
- *
- * [scrollState] is instance of [ScrollState] which is used by scrollable component
- *
- * Example:
- *     val state = rememberScrollState(0f)
- *
- *     Box(Modifier.fillMaxSize()) {
- *         Box(modifier = Modifier.verticalScroll(state)) {
- *             ...
- *         }
- *
- *         VerticalScrollbar(
- *             Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
- *             rememberScrollbarAdapter(state)
- *         )
- *     }
- */
-@Deprecated(
-    message = "Use androidx.compose.foundation.v2.ScrollbarAdapter instead",
-    replaceWith = ReplaceWith(
-        expression = "androidx.compose.foundation.v2.ScrollbarAdapter(scrollState)",
-    )
-)
-@Suppress("DEPRECATION")
-fun ScrollbarAdapter(
-    scrollState: ScrollState
-): ScrollbarAdapter = NewScrollbarAdapter(scrollState).asOldAdapter()
-
-/**
- * ScrollbarAdapter for lazy lists.
- *
- * [scrollState] is instance of [LazyListState] which is used by scrollable component
- *
- * Scrollbar size and position will be dynamically changed on the current visible content.
- *
- * Example:
- *     Box(Modifier.fillMaxSize()) {
- *         val state = rememberLazyListState()
- *
- *         LazyColumn(state = state) {
- *             ...
- *         }
- *
- *         VerticalScrollbar(
- *             Modifier.align(Alignment.CenterEnd),
- *             rememberScrollbarAdapter(state)
- *         )
- *     }
- */
-@Deprecated(
-    message = "Use androidx.compose.foundation.v2.ScrollbarAdapter instead",
-    replaceWith = ReplaceWith(
-        expression = "androidx.compose.foundation.v2.ScrollbarAdapter(scrollState)",
-    )
-)
-@Suppress("DEPRECATION")
-fun ScrollbarAdapter(
-    scrollState: LazyListState
-): ScrollbarAdapter = NewScrollbarAdapter(scrollState).asOldAdapter()
-
-/**
- * Defines how to scroll the scrollable component
- */
-@Deprecated("Use androidx.compose.foundation.v2.ScrollbarAdapter instead")
-interface ScrollbarAdapter {
-    /**
-     * Scroll offset of the content inside the scrollable component.
-     * Offset "100" means that the content is scrolled by 100 pixels from the start.
-     */
-    val scrollOffset: Float
-
-    /**
-     * Instantly jump to [scrollOffset] in pixels
-     *
-     * @param containerSize size of the scrollable container
-     *  (for example, it is height of ScrollableColumn if we use VerticalScrollbar)
-     * @param scrollOffset target value in pixels to jump to,
-     *  value will be coerced to 0..maxScrollOffset
-     */
-    suspend fun scrollTo(containerSize: Int, scrollOffset: Float)
-
-    /**
-     * Maximum scroll offset of the content inside the scrollable component
-     *
-     * @param containerSize size of the scrollable component
-     *  (for example, it is height of ScrollableColumn if we use VerticalScrollbar)
-     */
-    fun maxScrollOffset(containerSize: Int): Float
-}
-
-
-private fun verticalMeasurePolicy(
-    sliderAdapter: SliderAdapter,
-    setContainerSize: (Int) -> Unit,
-    scrollThickness: Int
-) = MeasurePolicy { measurables, constraints ->
-    setContainerSize(constraints.maxHeight)
-    val height = sliderAdapter.thumbSize.toInt()
-    val placeable = measurables.first().measure(
-        Constraints.fixed(
-            constraints.constrainWidth(scrollThickness),
-            height
-        )
-    )
-    layout(placeable.width, constraints.maxHeight) {
-        placeable.place(0, sliderAdapter.position.toInt())
-    }
-}
-
-private fun horizontalMeasurePolicy(
-    sliderAdapter: SliderAdapter,
-    setContainerSize: (Int) -> Unit,
-    scrollThickness: Int
-) = MeasurePolicy { measurables, constraints ->
-    setContainerSize(constraints.maxWidth)
-    val width = sliderAdapter.thumbSize.toInt()
-    val placeable = measurables.first().measure(
-        Constraints.fixed(
-            width,
-            constraints.constrainHeight(scrollThickness)
-        )
-    )
-    layout(constraints.maxWidth, placeable.height) {
-        placeable.place(sliderAdapter.position.toInt(), 0)
     }
 }
 

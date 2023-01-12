@@ -695,7 +695,6 @@ class ScrollbarTest {
                 }
             }
 
-            @Suppress("DEPRECATION")
             VerticalScrollbar(
                 adapter = rememberScrollbarAdapter(state),
                 modifier = Modifier
@@ -720,7 +719,6 @@ class ScrollbarTest {
                 content = scrollableContent
             )
 
-            @Suppress("DEPRECATION")
             VerticalScrollbar(
                 adapter = rememberScrollbarAdapter(state),
                 modifier = Modifier
@@ -755,7 +753,6 @@ class ScrollbarTest {
                 }
             }
 
-            @Suppress("DEPRECATION")
             VerticalScrollbar(
                 adapter = rememberScrollbarAdapter(state),
                 reverseLayout = reverseLayout,
@@ -784,7 +781,6 @@ class ScrollbarTest {
                 content = content
             )
 
-            @Suppress("DEPRECATION")
             VerticalScrollbar(
                 adapter = rememberScrollbarAdapter(state),
                 reverseLayout = reverseLayout,

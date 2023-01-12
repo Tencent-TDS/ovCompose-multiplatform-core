@@ -16,161 +16,17 @@
 
 package androidx.compose.foundation.v2
 
-import androidx.compose.foundation.LocalScrollbarStyle
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.Scrollbar
-import androidx.compose.foundation.ScrollbarStyle
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.interaction.DragInteraction
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.runBlocking
 
-
-/**
- * Vertical scrollbar that can be attached to some scrollable
- * component (ScrollableColumn, LazyColumn) and share common state with it.
- *
- * Can be placed independently.
- *
- * Example:
- *     val state = rememberScrollState(0f)
- *
- *     Box(Modifier.fillMaxSize()) {
- *         Box(modifier = Modifier.verticalScroll(state)) {
- *             ...
- *         }
- *
- *         VerticalScrollbar(
- *             Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
- *             rememberScrollbarAdapter(state)
- *         )
- *     }
- *
- * @param adapter [ScrollbarAdapter] that will be used to communicate with scrollable component
- * @param modifier the modifier to apply to this layout
- * @param reverseLayout reverse the direction of scrolling and layout, when `true`
- * and [LazyListState.firstVisibleItemIndex] == 0 then scrollbar
- * will be at the bottom of the container.
- * It is usually used in pair with `LazyColumn(reverseLayout = true)`
- * @param style [ScrollbarStyle] to define visual style of scrollbar
- * @param interactionSource [MutableInteractionSource] that will be used to dispatch
- * [DragInteraction.Start] when this Scrollbar is being dragged.
- */
-@Composable
-fun VerticalScrollbar(
-    adapter: ScrollbarAdapter,
-    modifier: Modifier = Modifier,
-    reverseLayout: Boolean = false,
-    style: ScrollbarStyle = LocalScrollbarStyle.current,
-    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
-) = Scrollbar(
-    newAdapter = adapter,
-    modifier,
-    reverseLayout,
-    style,
-    interactionSource,
-    isVertical = true
-)
-
-/**
- * Horizontal scrollbar that can be attached to some scrollable
- * component (Modifier.verticalScroll(), LazyRow) and share common state with it.
- *
- * Can be placed independently.
- *
- * Example:
- *     val state = rememberScrollState(0f)
- *
- *     Box(Modifier.fillMaxSize()) {
- *         Box(modifier = Modifier.verticalScroll(state)) {
- *             ...
- *         }
- *
- *         HorizontalScrollbar(
- *             Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
- *             rememberScrollbarAdapter(state)
- *         )
- *     }
- *
- * @param adapter [ScrollbarAdapter] that will be used to communicate with scrollable component
- * @param modifier the modifier to apply to this layout
- * @param reverseLayout reverse the direction of scrolling and layout, when `true`
- * and [LazyListState.firstVisibleItemIndex] == 0 then scrollbar
- * will be at the end of the container.
- * It is usually used in pair with `LazyRow(reverseLayout = true)`
- * @param style [ScrollbarStyle] to define visual style of scrollbar
- * @param interactionSource [MutableInteractionSource] that will be used to dispatch
- * [DragInteraction.Start] when this Scrollbar is being dragged.
- */
-@Composable
-fun HorizontalScrollbar(
-    adapter: ScrollbarAdapter,
-    modifier: Modifier = Modifier,
-    reverseLayout: Boolean = false,
-    style: ScrollbarStyle = LocalScrollbarStyle.current,
-    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
-) = Scrollbar(
-    newAdapter = adapter,
-    modifier,
-    if (LocalLayoutDirection.current == LayoutDirection.Rtl) !reverseLayout else reverseLayout,
-    style,
-    interactionSource,
-    isVertical = false
-)
-
-@Composable
-private fun Scrollbar(
-    newAdapter: ScrollbarAdapter,
-    modifier: Modifier = Modifier,
-    reverseLayout: Boolean,
-    style: ScrollbarStyle,
-    interactionSource: MutableInteractionSource,
-    isVertical: Boolean
-) = Scrollbar(
-    oldOrNewAdapter = newAdapter,
-    newScrollbarAdapterFactory = { adapter, _ -> adapter },
-    modifier = modifier,
-    reverseLayout = reverseLayout,
-    style = style,
-    interactionSource = interactionSource,
-    isVertical = isVertical
-)
-
-/**
- * Create and [remember] [ScrollbarAdapter] for scrollable container and current instance of
- * [scrollState]
- */
-@Composable
-fun rememberScrollbarAdapter(
-    scrollState: ScrollState
-): ScrollbarAdapter = remember(scrollState) {
-    ScrollbarAdapter(scrollState)
-}
-
-/**
- * Create and [remember] [ScrollbarAdapter] for lazy scrollable container and current instance of
- * [scrollState]
- */
-@Composable
-fun rememberScrollbarAdapter(
-    scrollState: LazyListState,
-): ScrollbarAdapter {
-    return remember(scrollState) {
-        ScrollbarAdapter(scrollState)
-    }
-}
 
 /**
  * Defines how to scroll the scrollable component and how to display a scrollbar for it.
@@ -216,30 +72,7 @@ interface ScrollbarAdapter {
 val ScrollbarAdapter.maxScrollOffset: Double
     get() = (contentSize - viewportSize).coerceAtLeast(0.0)
 
-/**
- * ScrollbarAdapter for Modifier.verticalScroll and Modifier.horizontalScroll
- *
- * [scrollState] is instance of [ScrollState] which is used by scrollable component
- *
- * Example:
- *     val state = rememberScrollState(0f)
- *
- *     Box(Modifier.fillMaxSize()) {
- *         Box(modifier = Modifier.verticalScroll(state)) {
- *             ...
- *         }
- *
- *         VerticalScrollbar(
- *             Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
- *             rememberScrollbarAdapter(state)
- *         )
- *     }
- */
-fun ScrollbarAdapter(
-    scrollState: ScrollState
-): ScrollbarAdapter = ScrollableScrollbarAdapter(scrollState)
-
-private class ScrollableScrollbarAdapter(
+internal class ScrollableScrollbarAdapter(
     private val scrollState: ScrollState
 ) : ScrollbarAdapter {
 
@@ -261,34 +94,7 @@ private class ScrollableScrollbarAdapter(
 
 }
 
-/**
- * ScrollbarAdapter for lazy lists.
- *
- * [scrollState] is instance of [LazyListState] which is used by scrollable component
- *
- * Scrollbar size and position will be dynamically changed on the current visible content.
- *
- * Example:
- *     Box(Modifier.fillMaxSize()) {
- *         val state = rememberLazyListState()
- *
- *         LazyColumn(state = state) {
- *             ...
- *         }
- *
- *         VerticalScrollbar(
- *             Modifier.align(Alignment.CenterEnd),
- *             rememberScrollbarAdapter(state)
- *         )
- *     }
- */
-fun ScrollbarAdapter(
-    scrollState: LazyListState
-): ScrollbarAdapter = LazyScrollbarAdapter(
-    scrollState
-)
-
-private class LazyScrollbarAdapter(
+internal class LazyScrollbarAdapter(
     private val scrollState: LazyListState
 ) : ScrollbarAdapter {
 
