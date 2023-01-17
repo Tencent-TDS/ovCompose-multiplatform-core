@@ -593,8 +593,8 @@ fun OldScrollbarAdapter(
 ): ScrollbarAdapter = ScrollbarAdapter(scrollState).asOldAdapter()
 
 /**
- * Create and [remember] [OldScrollbarAdapter] for scrollable container and current instance of
- * [scrollState]
+ * Create and [remember] [androidx.compose.foundation.v2.ScrollbarAdapter] for
+ * scrollable container with the given instance [ScrollState].
  */
 @JvmName("rememberScrollbarAdapter2")
 @Composable
@@ -605,8 +605,8 @@ fun rememberScrollbarAdapter(
 }
 
 /**
- * Create and [remember] [OldScrollbarAdapter] for lazy scrollable container and current instance of
- * [scrollState]
+ * Create and [remember] [androidx.compose.foundation.v2.ScrollbarAdapter] for
+ * lazy scrollable container with the given instance [LazyListState].
  */
 @JvmName("rememberScrollbarAdapter2")
 @Composable
