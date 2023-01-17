@@ -110,9 +110,6 @@ class ScrollState(initial: Int) : ScrollableState {
     /**
      * Size of the viewport on the scrollable axis, or -1 if still unknown.
      */
-    // This property is internal until it is merged upstream, because we can't expose an API that
-    // doesn't exist on Android. Once it is merged upstream, it should be made public with an
-    // internal setter
     internal var viewportSize: Int by mutableStateOf(-1, structuralEqualityPolicy())
 
     /**
