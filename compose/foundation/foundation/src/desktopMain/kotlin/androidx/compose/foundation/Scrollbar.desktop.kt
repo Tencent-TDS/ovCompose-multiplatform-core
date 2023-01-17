@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlinx.coroutines.delay
 
@@ -697,13 +698,22 @@ interface ScrollbarAdapter {
 
 }
 
+private fun computeSlidePositionAndSize(sliderAdapter: SliderAdapter): Pair<Int, Int> {
+    val adapterPosition = sliderAdapter.position
+    val position = adapterPosition.roundToInt()
+    val size = (sliderAdapter.thumbSize + adapterPosition - position).roundToInt()
+
+    return Pair(position, size)
+}
+
 private fun verticalMeasurePolicy(
     sliderAdapter: SliderAdapter,
     setContainerSize: (Int) -> Unit,
     scrollThickness: Int
 ) = MeasurePolicy { measurables, constraints ->
     setContainerSize(constraints.maxHeight)
-    val height = sliderAdapter.thumbSize.toInt()
+    val (position, height) = computeSlidePositionAndSize(sliderAdapter)
+
     val placeable = measurables.first().measure(
         Constraints.fixed(
             constraints.constrainWidth(scrollThickness),
@@ -711,7 +721,7 @@ private fun verticalMeasurePolicy(
         )
     )
     layout(placeable.width, constraints.maxHeight) {
-        placeable.place(0, sliderAdapter.position.toInt())
+        placeable.place(0, position)
     }
 }
 
@@ -721,7 +731,8 @@ private fun horizontalMeasurePolicy(
     scrollThickness: Int
 ) = MeasurePolicy { measurables, constraints ->
     setContainerSize(constraints.maxWidth)
-    val width = sliderAdapter.thumbSize.toInt()
+    val (position, width) = computeSlidePositionAndSize(sliderAdapter)
+
     val placeable = measurables.first().measure(
         Constraints.fixed(
             width,
@@ -729,7 +740,7 @@ private fun horizontalMeasurePolicy(
         )
     )
     layout(constraints.maxWidth, placeable.height) {
-        placeable.place(sliderAdapter.position.toInt(), 0)
+        placeable.place(position, 0)
     }
 }
 

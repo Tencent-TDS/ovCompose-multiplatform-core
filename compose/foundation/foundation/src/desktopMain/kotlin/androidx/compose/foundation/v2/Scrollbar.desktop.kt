@@ -169,7 +169,14 @@ internal class SliderAdapter(
 ) {
 
     private val contentSize get() = adapter.contentSize
-    private val visiblePart get() = (adapter.viewportSize / contentSize).coerceAtMost(1.0)
+    private val visiblePart: Double
+        get() {
+            val contentSize = contentSize
+            return if (contentSize == 0.0)
+                1.0
+            else
+                (adapter.viewportSize / contentSize).coerceAtMost(1.0)
+        }
 
     val thumbSize
         get() = (trackSize * visiblePart).coerceAtLeast(minHeight.toDouble())
