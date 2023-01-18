@@ -97,10 +97,10 @@ internal class ScrollableScrollbarAdapter(
 }
 
 /**
- * Base class for [LazyListScrollbarAdapter] and [LazyGridScrollbarAdapter], and maybe
- * other lazy-content widgets in the future.
+ * Base class for [LazyListScrollbarAdapter] and [LazyGridScrollbarAdapter],
+ * and in the future maybe other lazy widgets that lay out their content in lines.
  */
-internal abstract class LazyContentAdapter: ScrollbarAdapter{
+internal abstract class LazyLineContentAdapter: ScrollbarAdapter{
 
     // Implement the adapter in terms of "lines", which means either rows,
     // (for a vertically scrollable widget) or columns (for a horizontally
@@ -160,7 +160,7 @@ internal abstract class LazyContentAdapter: ScrollbarAdapter{
         }
 
     override suspend fun scrollTo(scrollOffset: Double) {
-        val distance = scrollOffset - this@LazyContentAdapter.scrollOffset
+        val distance = scrollOffset - this@LazyLineContentAdapter.scrollOffset
 
         // if we scroll less than viewport we need to use scrollBy function to avoid
         // undesirable scroll jumps (when an item size is different)
@@ -193,7 +193,7 @@ internal abstract class LazyContentAdapter: ScrollbarAdapter{
 
 internal class LazyListScrollbarAdapter(
     private val scrollState: LazyListState
-) : LazyContentAdapter() {
+) : LazyLineContentAdapter() {
 
     override val viewportSize: Double
         get() = with(scrollState.layoutInfo) {
@@ -238,7 +238,7 @@ internal class LazyListScrollbarAdapter(
 
 internal class LazyGridScrollbarAdapter(
     private val scrollState: LazyGridState
-): LazyContentAdapter() {
+): LazyLineContentAdapter() {
 
     override val viewportSize: Double
         get() = with(scrollState.layoutInfo) {
