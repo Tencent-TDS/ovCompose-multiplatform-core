@@ -108,9 +108,9 @@ class ScrollState(initial: Int) : ScrollableState {
         }
 
     /**
-     * Size of the viewport on the scrollable axis, or -1 if still unknown.
+     * Size of the viewport on the scrollable axis, or 0 if still unknown.
      */
-    internal var viewportSize: Int by mutableStateOf(-1, structuralEqualityPolicy())
+    internal var viewportSize: Int by mutableStateOf(0, structuralEqualityPolicy())
 
     /**
      * [InteractionSource] that will be used to dispatch drag events when this
