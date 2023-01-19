@@ -226,13 +226,14 @@ internal class LazyListScrollbarAdapter(
         scrollState.scrollBy(value)
     }
 
-    override fun averageVisibleLineSize() =
-        scrollState
-            .layoutInfo
-            .visibleItemsInfo
-            .asSequence()
-            .map { it.size }
-            .average()
+    override fun averageVisibleLineSize() = with(scrollState.layoutInfo.visibleItemsInfo){
+        if (isEmpty())
+            return 0.0
+
+        val first = first()
+        val last = last()
+        (last.offset + last.size - first.offset).toDouble() / size
+    }
 
 }
 
@@ -305,7 +306,9 @@ internal class LazyGridScrollbarAdapter(
         val realVisibleItemsInfo = visibleItemsInfo.subList(indexOfFirstKnownLineItem, visibleItemsInfo.size)
         val lastLine = realVisibleItemsInfo.last().line()
         val lastLineSize = realVisibleItemsInfo
-            .takeLastWhile { it.line() == lastLine }
+            .asReversed()
+            .asSequence()
+            .takeWhile { it.line() == lastLine }
             .maxOf { it.mainAxisSize() }
 
         val first = realVisibleItemsInfo.first()
