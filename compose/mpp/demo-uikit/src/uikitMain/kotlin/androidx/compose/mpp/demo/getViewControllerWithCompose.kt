@@ -44,6 +44,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.interop.MtlTextureInteropView
 import androidx.compose.ui.interop.UIKitInteropView
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
@@ -61,10 +62,12 @@ import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
 import platform.UIKit.UIControlEventEditingChanged
 import platform.Foundation.NSValue
+import platform.Metal.MTLTextureProtocol
 import platform.UIKit.CGRectValue
 import platform.UIKit.UIButton
 import platform.UIKit.UIColor
 import platform.UIKit.UIScreen
+import platform.UIKit.UISwitch
 import platform.UIKit.UITextField
 import platform.UIKit.UIView
 import platform.UIKit.addSubview
@@ -73,7 +76,7 @@ import platform.UIKit.setClipsToBounds
 import platform.UIKit.setNeedsUpdateConstraints
 import platform.darwin.NSObject
 
-fun getViewControllerWithCompose() = Application("Compose/Native sample") {
+fun getViewControllerWithCompose(mtlTexture:MTLTextureProtocol) = Application("Compose/Native sample") {
     val textState1 = remember { mutableStateOf("sync text state") }
     val counter = remember { mutableStateOf(0) }
     Popup(object : PopupPositionProvider {
@@ -98,7 +101,9 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
         }
         item {
             Box(Modifier.size(200.dp, 100.dp)) {
-                ComposeUITextField(Modifier.fillMaxSize(), textState1.value, onValueChange = { textState1.value = it })
+                if (true) MtlTextureInteropView(modifier = Modifier.fillMaxSize(), factory = { mtlTexture })
+                if (false) UIKitInteropView(modifier = Modifier.fillMaxSize(), factory = { UISwitch() })
+                if (false) ComposeUITextField(Modifier.fillMaxSize(), textState1.value, onValueChange = { textState1.value = it })
                 Button(onClick = { counter.value++ }, Modifier.align(Alignment.BottomCenter)) {
                     Text("Click ${counter.value}")
                 }

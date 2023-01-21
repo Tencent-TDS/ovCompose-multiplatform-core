@@ -16,8 +16,9 @@
 
 package androidx.compose.mpp.demo
 
+import platform.Metal.MTLTextureProtocol
 import platform.UIKit.UIViewController
 
 class SwiftHelper {
-    fun getViewController(): UIViewController = getViewControllerWithCompose()
+    fun getViewController(mtlTexture: MTLTextureProtocol): UIViewController = getViewControllerWithCompose(mtlTexture)
 }
