@@ -32,6 +32,8 @@ import org.jetbrains.skia.SamplingMode
 import org.jetbrains.skia.ClipMode as SkClipMode
 import org.jetbrains.skia.RRect as SkRRect
 import org.jetbrains.skia.Rect as SkRect
+import org.jetbrains.skia.DirectContext
+import org.jetbrains.skia.GrBackendTexture
 // Using skiko use as it has versions for all mpp platforms
 import org.jetbrains.skia.impl.use
 
@@ -167,6 +169,12 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
 
     override fun drawPath(path: Path, paint: Paint) {
         skia.drawPath(path.asSkiaPath(), paint.skia)
+    }
+
+    override fun drawSomeTexture(someTexture: SomeTexture, topLeftOffset: Offset) {
+//        val context:DirectContext = skia.getGrRecordingContext()
+        val skiaImage = Image.makeFromBackendTexture(skia, someTexture.toBackendTexture());
+        skia.drawImage(skiaImage, topLeftOffset.x, topLeftOffset.y)
     }
 
     override fun drawImage(image: ImageBitmap, topLeftOffset: Offset, paint: Paint) {
@@ -392,3 +400,5 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
         else -> FilterMipmap(FilterMode.NEAREST, MipmapMode.NONE)
     }
 }
+
+expect fun SomeTexture.toBackendTexture():GrBackendTexture

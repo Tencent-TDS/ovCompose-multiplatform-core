@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.PointMode
+import androidx.compose.ui.graphics.SomeTexture
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope.Companion.DefaultFilterQuality
@@ -41,7 +42,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.center
 
 /**
  * Default density value that is used as a stub to provide a non-null
@@ -194,6 +194,10 @@ class CanvasDrawScope : DrawScope {
         bottom = topLeft.y + size.height,
         paint = configurePaint(color, style, alpha, colorFilter, blendMode)
     )
+
+    override fun drawSomeTexture(texture: SomeTexture, topLeft: Offset) {
+        drawParams.canvas.drawSomeTexture(texture, topLeft)
+    }
 
     /**
      * @see [DrawScope.drawImage]

@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.PointMode
+import androidx.compose.ui.graphics.SomeTexture
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.degrees
@@ -414,6 +415,8 @@ interface DrawScope : Density {
         colorFilter: ColorFilter? = null,
         blendMode: BlendMode = DefaultBlendMode
     )
+
+    fun drawSomeTexture(texture: SomeTexture, topLeft: Offset = Offset.Zero)
 
     /**
      * Draws the given [ImageBitmap] into the canvas with its top-left corner at the

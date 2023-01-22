@@ -34,6 +34,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SomeTexture
 import androidx.compose.ui.input.pointer.UIKitInteropModifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -43,6 +44,8 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.round
 import kotlinx.atomicfu.atomic
 import kotlinx.cinterop.useContents
+import org.jetbrains.skia.GrBackendTexture
+import org.jetbrains.skiko.createFromMetalTexture
 import platform.CoreGraphics.CGRectMake
 import platform.Metal.MTLTextureProtocol
 import platform.QuartzCore.CATransaction
@@ -69,6 +72,7 @@ public fun MtlTextureInteropView(
 ) {
     val componentInfo = remember { ComponentInfo2() }
 
+    val mtlTexture = remember { factory() }
     val root = LocalLayerContainer.current
     val skikoTouchEventHandler = SkikoTouchEventHandler.current
     val density = LocalDensity.current.density
@@ -89,7 +93,8 @@ public fun MtlTextureInteropView(
                 }
             }
         }.drawBehind {
-            drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)
+            if (false) drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)
+            drawSomeTexture(SomeTexture(mtlTexture))
         }.then(UIKitInteropModifier(rectInPixels.width, rectInPixels.height))
     ) {
         focusSwitcher.Content()
