@@ -25,7 +25,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         if let windowScene = scene as? UIWindowScene {
             let window = UIWindow(windowScene: windowScene)
-            window.rootViewController = SwiftHelper().getViewController(mtlTexture: UISwitch().takeTextureSnapshot()!)
+            window.rootViewController = SwiftHelper().getViewController()
             self.window = window
             window.makeKeyAndVisible()
         }
@@ -39,7 +39,7 @@ extension UIView {
     }
 }
 
-func createMTLTexture(_ uiView: UIView, _ device: MTLDevice) -> MTLTexture? {
+func createMTLTexture(_ uiView: UIView, _ device: MTLDevice) -> MTLTexture? {//todo remove
     let width = Int(uiView.bounds.width)
     let height = Int(uiView.bounds.height)
 

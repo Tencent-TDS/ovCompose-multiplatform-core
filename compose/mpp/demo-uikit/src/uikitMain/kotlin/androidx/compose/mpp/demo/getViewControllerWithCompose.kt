@@ -77,7 +77,7 @@ import platform.UIKit.setClipsToBounds
 import platform.UIKit.setNeedsUpdateConstraints
 import platform.darwin.NSObject
 
-fun getViewControllerWithCompose(mtlTexture:MTLTextureProtocol) = Application("Compose/Native sample") {
+fun getViewControllerWithCompose() = Application("Compose/Native sample") {
     val textState1 = remember { mutableStateOf("sync text state") }
     val counter = remember { mutableStateOf(0) }
     Popup(object : PopupPositionProvider {
@@ -102,8 +102,7 @@ fun getViewControllerWithCompose(mtlTexture:MTLTextureProtocol) = Application("C
         }
         item {
             Box(Modifier.size(200.dp, 100.dp)) {
-                if (true) MtlTextureInteropView(modifier = Modifier.fillMaxSize().alpha(1.0f), factory = { mtlTexture })
-                if (false) UIKitInteropView(modifier = Modifier.fillMaxSize(), factory = { UISwitch() })
+                if (true) UIKitInteropView(modifier = Modifier.fillMaxSize(), factory = { UISwitch() })
                 if (false) ComposeUITextField(Modifier.fillMaxSize(), textState1.value, onValueChange = { textState1.value = it })
                 Button(onClick = { counter.value++ }, Modifier.align(Alignment.BottomCenter)) {
                     Text("Click ${counter.value}")
