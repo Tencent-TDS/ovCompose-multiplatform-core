@@ -210,8 +210,7 @@ internal actual class ComposeWindow : UIViewController {
                     skiaLayer.skikoView?.onTouchEvent(it)
                 },
                 SkikoBackendTextureToImage provides { texture: GrBackendTexture ->
-                    val result = skiaLayer.backendTextureToImage(texture)
-                    result
+                    skiaLayer.backendTextureToImage(texture)
                 },
             ) {
                 content()

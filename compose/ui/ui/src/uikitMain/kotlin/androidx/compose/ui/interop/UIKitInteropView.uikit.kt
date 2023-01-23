@@ -34,10 +34,8 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SomeTexture
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toBackendTexture
 import androidx.compose.ui.input.pointer.UIKitInteropModifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -49,8 +47,10 @@ import cnames.structs.CGContext
 import kotlinx.atomicfu.atomic
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.useContents
+import org.jetbrains.skia.GrBackendTexture
 import org.jetbrains.skiko.SkikoTouchEvent
 import org.jetbrains.skiko.SkikoTouchEventKind
+import org.jetbrains.skiko.createFromMetalTexture
 import platform.CoreGraphics.CGBitmapContextCreate
 import platform.CoreGraphics.CGBitmapContextGetBytesPerRow
 import platform.CoreGraphics.CGBitmapContextGetData
@@ -124,9 +124,18 @@ public fun <T : UIView> UIKitInteropView(
         }.drawBehind {
             if(false) drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)
             drawIntoCanvas {
-                val image = backendTextureToImage(SomeTexture(componentInfo.component.toMtlTexture()).toBackendTexture())
-                if (image != null) {
-                    it.nativeCanvas.drawImage(image, 0f, 0f)
+                val (w, h) = componentInfo.component.bounds.useContents { size.width to size.height }
+                val mtlTexture = componentInfo.component.toMtlTexture()
+                if (mtlTexture != null) {
+                    val backendTexture = GrBackendTexture.Companion.createFromMetalTexture(
+                        mtlTexture = mtlTexture,
+                        width = mtlTexture.width.toInt(),
+                        height = mtlTexture.height.toInt()
+                    )
+                    val image = backendTextureToImage(backendTexture)
+                    if (image != null) {
+                        it.nativeCanvas.drawImage(image, 0f, 0f)
+                    }
                 }
             }
         }.then(UIKitInteropModifier(rectInPixels.width, rectInPixels.height))
@@ -367,9 +376,9 @@ private class Updater<T : UIView>(
     }
 }
 
-fun UIView.toMtlTexture(): MTLTextureProtocol {
+fun UIView.toMtlTexture(): MTLTextureProtocol? {
     val device = MTLCreateSystemDefaultDevice() ?: error("Failed to create MTLCreateSystemDefaultDevice")
-    return createMetalTexture(this, device) ?: error("fail to createMetalTexture, uiView: $this")
+    return createMetalTexture(this, device)
 }
 
 fun createMetalTexture(uiView: UIView, device: MTLDeviceProtocol): MTLTextureProtocol? {//todo move to skiko

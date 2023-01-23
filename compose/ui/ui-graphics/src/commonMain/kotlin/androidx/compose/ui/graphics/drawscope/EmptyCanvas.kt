@@ -27,7 +27,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PointMode
 import androidx.compose.ui.graphics.Vertices
 import androidx.compose.ui.graphics.Matrix
-import androidx.compose.ui.graphics.SomeTexture
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 

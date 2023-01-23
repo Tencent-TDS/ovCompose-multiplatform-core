@@ -594,5 +594,3 @@ interface Canvas {
      */
     fun disableZ()
 }
-
-expect class SomeTexture

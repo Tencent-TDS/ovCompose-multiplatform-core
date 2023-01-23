@@ -394,5 +394,3 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
         else -> FilterMipmap(FilterMode.NEAREST, MipmapMode.NONE)
     }
 }
-
-expect fun SomeTexture.toBackendTexture():GrBackendTexture

@@ -101,8 +101,8 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
         }
         item {
             Box(Modifier.size(200.dp, 100.dp)) {
-                if (true) UIKitInteropView(modifier = Modifier.fillMaxSize(), factory = { UISwitch() })
-                if (false) ComposeUITextField(Modifier.fillMaxSize(), textState1.value, onValueChange = { textState1.value = it })
+                if (false) UIKitInteropView(modifier = Modifier.fillMaxSize(), factory = { UISwitch() })
+                if (true) ComposeUITextField(Modifier.fillMaxSize(), textState1.value, onValueChange = { textState1.value = it })
                 Button(onClick = { counter.value++ }, Modifier.align(Alignment.BottomCenter)) {
                     Text("Click ${counter.value}")
                 }
