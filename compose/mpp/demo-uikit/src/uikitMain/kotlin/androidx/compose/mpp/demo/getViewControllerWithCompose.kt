@@ -100,12 +100,12 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
             Stub()
         }
         item {
-            Box(Modifier.size(200.dp, 100.dp)) {
-                if (false) UIKitInteropView(modifier = Modifier.fillMaxSize(), factory = { UISwitch() })
-                if (true) ComposeUITextField(Modifier.fillMaxSize(), textState1.value, onValueChange = { textState1.value = it })
-                Button(onClick = { counter.value++ }, Modifier.align(Alignment.BottomCenter)) {
-                    Text("Click ${counter.value}")
-                }
+            Box(Modifier.size(100.dp, 100.dp)) {
+                if (true) UIKitInteropView(modifier = Modifier.fillMaxSize(), factory = { UISwitch(CGRectMake(0.0, 0.0, 100.0, 100.0)) })
+                if (false) ComposeUITextField(Modifier.fillMaxSize(), textState1.value, onValueChange = { textState1.value = it })
+//                Button(onClick = { counter.value++ }, Modifier.align(Alignment.BottomCenter)) {
+//                    Text("Click ${counter.value}")
+//                }
             }
         }
         item {

@@ -42,6 +42,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.round
 import cnames.structs.CGContext
 import kotlinx.atomicfu.atomic
@@ -80,6 +81,41 @@ import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 
 val NoOpUpdate: UIView.() -> Unit = {}
+private val device = MTLCreateSystemDefaultDevice()//todo hardcode
+
+fun createMetalTexture(uiView: UIView, device: MTLDeviceProtocol): MTLTextureProtocol? {//todo move to skiko
+    val (width, height) = uiView.bounds().useContents { size.width to size.height }
+    val context: CPointer<CGContext>? = CGBitmapContextCreate(
+        null,
+        width.toULong(),
+        height.toULong(),
+        8,
+        0,
+        CGColorSpaceCreateDeviceRGB(),
+        CGImageAlphaInfo.kCGImageAlphaPremultipliedLast.value
+    )
+    val data = CGBitmapContextGetData(context)
+    if (data != null) {
+        val desc = MTLTextureDescriptor.texture2DDescriptorWithPixelFormat(
+            pixelFormat = MTLPixelFormatRGBA8Unorm,
+            width = width.toULong(),
+            height = height.toULong(),
+            mipmapped = false
+        )
+        val texture = device.newTextureWithDescriptor(desc)
+        if (texture != null) {
+            uiView.layer.renderInContext(context)
+            texture.replaceRegion(
+                region = MTLRegionMake2D(0, 0, width.toULong(), height.toULong()),
+                mipmapLevel = 0,
+                withBytes = data,
+                bytesPerRow = CGBitmapContextGetBytesPerRow(context)
+            )
+            return texture
+        }
+    }
+    return null
+}
 
 /**
  * TODO doc
@@ -101,6 +137,34 @@ public fun <T : UIView> UIKitInteropView(
     val backendTextureToImage = SkikoBackendTextureToImage.current
     val focusSwitcher = remember { FocusSwitcher(componentInfo, focusManager) }
     var rectInPixels by remember { mutableStateOf(IntRect(0, 0, 0, 0)) }
+    var uiViewSize by remember { mutableStateOf(IntSize(100, 100)) }//todo handle if 0,0
+    val texture = remember(uiViewSize) {
+        val desc = MTLTextureDescriptor.texture2DDescriptorWithPixelFormat(
+            pixelFormat = MTLPixelFormatRGBA8Unorm,
+            width = uiViewSize.width.toULong(),
+            height = uiViewSize.height.toULong(),
+            mipmapped = false
+        )
+        device!!.newTextureWithDescriptor(desc)
+    }
+    val skikoBackendTexture = remember(uiViewSize) {
+        if(texture != null) {
+            GrBackendTexture.Companion.createFromMetalTexture(
+                mtlTexture = texture,
+                width = uiViewSize.width.toInt(),
+                height = uiViewSize.height.toInt()
+            )
+        } else {
+            null
+        }
+    }
+    val mtlSkikoImage = remember(uiViewSize) {
+        if (skikoBackendTexture != null) {
+            backendTextureToImage(skikoBackendTexture)
+        } else {
+            null
+        }
+    }
 
     Box(
         modifier = modifier.onGloballyPositioned { childCoordinates ->
@@ -122,20 +186,38 @@ public fun <T : UIView> UIKitInteropView(
                 }
             }
         }.drawBehind {
-            if(false) drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)
-            drawIntoCanvas {
-                val (w, h) = componentInfo.component.bounds.useContents { size.width to size.height }
-                val mtlTexture = componentInfo.component.toMtlTexture()
-                if (mtlTexture != null) {
-                    val backendTexture = GrBackendTexture.Companion.createFromMetalTexture(
-                        mtlTexture = mtlTexture,
-                        width = mtlTexture.width.toInt(),
-                        height = mtlTexture.height.toInt()
-                    )
-                    val image = backendTextureToImage(backendTexture)
-                    if (image != null) {
-                        it.nativeCanvas.drawImage(image, 0f, 0f)
+            if (false) drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)
+            drawIntoCanvas {canvas->
+//                val newSize =
+//                    componentInfo.component.bounds().useContents { IntSize(size.width.toInt(), size.height.toInt()) }
+//                if (newSize.width != 0 && newSize.height != 0) {
+//                    uiViewSize = newSize
+//                }
+                val uiView = componentInfo.component
+                val (width, height) = uiView.bounds().useContents { size.width to size.height }
+                val context: CPointer<CGContext>? = CGBitmapContextCreate(
+                    null,
+                    width.toULong(),
+                    height.toULong(),
+                    8,
+                    0,
+                    CGColorSpaceCreateDeviceRGB(),
+                    CGImageAlphaInfo.kCGImageAlphaPremultipliedLast.value
+                )
+                val data = CGBitmapContextGetData(context)
+                if (data != null) {
+                    if (texture != null) {
+                        uiView.layer.renderInContext(context)
+                        texture.replaceRegion(
+                            region = MTLRegionMake2D(0, 0, width.toULong(), height.toULong()),
+                            mipmapLevel = 0,
+                            withBytes = data,
+                            bytesPerRow = CGBitmapContextGetBytesPerRow(context)
+                        )
                     }
+                }
+                if (mtlSkikoImage != null) {
+                    canvas.nativeCanvas.drawImage(mtlSkikoImage, 0f, 0f)
                 }
             }
         }.then(UIKitInteropModifier(rectInPixels.width, rectInPixels.height))
@@ -381,36 +463,3 @@ fun UIView.toMtlTexture(): MTLTextureProtocol? {
     return createMetalTexture(this, device)
 }
 
-fun createMetalTexture(uiView: UIView, device: MTLDeviceProtocol): MTLTextureProtocol? {//todo move to skiko
-    val (width, height) = uiView.bounds().useContents { size.width to size.height }
-    val context: CPointer<CGContext>? = CGBitmapContextCreate(
-        null,
-        width.toULong(),
-        height.toULong(),
-        8,
-        0,
-        CGColorSpaceCreateDeviceRGB(),
-        CGImageAlphaInfo.kCGImageAlphaPremultipliedLast.value
-    );
-    val data = CGBitmapContextGetData(context)
-    if (data != null) {
-        uiView.layer.renderInContext(context)
-        val desc = MTLTextureDescriptor.texture2DDescriptorWithPixelFormat(
-            pixelFormat = MTLPixelFormatRGBA8Unorm,
-            width = width.toULong(),
-            height = height.toULong(),
-            mipmapped = false
-        )
-        val texture = device.newTextureWithDescriptor(desc)
-        if (texture != null) {
-            texture.replaceRegion(
-                region = MTLRegionMake2D(0, 0, width.toULong(), height.toULong()),
-                mipmapLevel = 0,
-                withBytes = data,
-                bytesPerRow = CGBitmapContextGetBytesPerRow(context)
-            )
-            return texture
-        }
-    }
-    return null
-}
