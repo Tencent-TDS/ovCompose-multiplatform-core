@@ -45,7 +45,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.interop.MtlTextureInteropView
 import androidx.compose.ui.interop.UIKitInteropView
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
