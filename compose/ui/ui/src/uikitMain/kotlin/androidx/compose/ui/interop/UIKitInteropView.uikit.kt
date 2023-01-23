@@ -166,6 +166,35 @@ public fun <T : UIView> UIKitInteropView(
         }
     }
 
+    LaunchedEffect(Unit) {
+        while (true) {
+            withFrameNanos { it }
+            val uiView = componentInfo.component
+            val (width, height) = uiView.bounds().useContents { size.width to size.height }
+            val context: CPointer<CGContext>? = CGBitmapContextCreate(
+                null,
+                width.toULong(),
+                height.toULong(),
+                8,
+                0,
+                CGColorSpaceCreateDeviceRGB(),
+                CGImageAlphaInfo.kCGImageAlphaPremultipliedLast.value
+            )
+            val data = CGBitmapContextGetData(context)
+            if (data != null) {
+                if (texture != null) {
+                    uiView.layer.renderInContext(context)
+                    texture.replaceRegion(
+                        region = MTLRegionMake2D(0, 0, width.toULong(), height.toULong()),
+                        mipmapLevel = 0,
+                        withBytes = data,
+                        bytesPerRow = CGBitmapContextGetBytesPerRow(context)
+                    )
+                }
+            }
+        }
+    }
+
     Box(
         modifier = modifier.onGloballyPositioned { childCoordinates ->
             val coordinates = childCoordinates.parentCoordinates!!
@@ -193,29 +222,6 @@ public fun <T : UIView> UIKitInteropView(
 //                if (newSize.width != 0 && newSize.height != 0) {
 //                    uiViewSize = newSize
 //                }
-                val uiView = componentInfo.component
-                val (width, height) = uiView.bounds().useContents { size.width to size.height }
-                val context: CPointer<CGContext>? = CGBitmapContextCreate(
-                    null,
-                    width.toULong(),
-                    height.toULong(),
-                    8,
-                    0,
-                    CGColorSpaceCreateDeviceRGB(),
-                    CGImageAlphaInfo.kCGImageAlphaPremultipliedLast.value
-                )
-                val data = CGBitmapContextGetData(context)
-                if (data != null) {
-                    if (texture != null) {
-                        uiView.layer.renderInContext(context)
-                        texture.replaceRegion(
-                            region = MTLRegionMake2D(0, 0, width.toULong(), height.toULong()),
-                            mipmapLevel = 0,
-                            withBytes = data,
-                            bytesPerRow = CGBitmapContextGetBytesPerRow(context)
-                        )
-                    }
-                }
                 if (mtlSkikoImage != null) {
                     canvas.nativeCanvas.drawImage(mtlSkikoImage, 0f, 0f)
                 }
