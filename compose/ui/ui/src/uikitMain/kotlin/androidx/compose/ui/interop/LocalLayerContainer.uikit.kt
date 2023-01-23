@@ -17,6 +17,8 @@
 package androidx.compose.ui.interop
 
 import androidx.compose.runtime.compositionLocalOf
+import org.jetbrains.skia.GrBackendTexture
+import org.jetbrains.skia.Image
 import org.jetbrains.skiko.SkikoTouchEvent
 import platform.UIKit.UIView
 
@@ -25,5 +27,9 @@ internal val LocalLayerContainer = compositionLocalOf<UIView> {
 }
 
 internal val SkikoTouchEventHandler = compositionLocalOf<(Array<SkikoTouchEvent>) -> Unit> {
+    error("SkikoTouchEventProvider not provided")
+}
+
+internal val SkikoBackendTextureToImage = compositionLocalOf<((GrBackendTexture)) -> Image?> {
     error("SkikoTouchEventProvider not provided")
 }

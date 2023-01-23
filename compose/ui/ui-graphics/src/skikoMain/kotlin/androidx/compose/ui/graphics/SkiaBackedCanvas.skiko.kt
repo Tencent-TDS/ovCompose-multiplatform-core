@@ -171,12 +171,6 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
         skia.drawPath(path.asSkiaPath(), paint.skia)
     }
 
-    override fun drawSomeTexture(someTexture: SomeTexture, topLeftOffset: Offset) {
-//        val context:DirectContext = skia.getGrRecordingContext()
-        val skiaImage = Image.makeFromBackendTexture(skia, someTexture.toBackendTexture());
-        skia.drawImage(skiaImage, topLeftOffset.x, topLeftOffset.y)
-    }
-
     override fun drawImage(image: ImageBitmap, topLeftOffset: Offset, paint: Paint) {
         val size = Size(image.width.toFloat(), image.height.toFloat())
         drawImageRect(image, Offset.Zero, size, topLeftOffset, size, paint)

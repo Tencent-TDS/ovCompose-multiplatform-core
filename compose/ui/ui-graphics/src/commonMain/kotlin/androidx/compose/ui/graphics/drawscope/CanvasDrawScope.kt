@@ -195,10 +195,6 @@ class CanvasDrawScope : DrawScope {
         paint = configurePaint(color, style, alpha, colorFilter, blendMode)
     )
 
-    override fun drawSomeTexture(texture: SomeTexture, topLeft: Offset) {
-        drawParams.canvas.drawSomeTexture(texture, topLeft)
-    }
-
     /**
      * @see [DrawScope.drawImage]
      */

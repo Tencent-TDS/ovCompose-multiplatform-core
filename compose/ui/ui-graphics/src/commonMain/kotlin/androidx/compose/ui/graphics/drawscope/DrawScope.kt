@@ -416,8 +416,6 @@ interface DrawScope : Density {
         blendMode: BlendMode = DefaultBlendMode
     )
 
-    fun drawSomeTexture(texture: SomeTexture, topLeft: Offset = Offset.Zero)
-
     /**
      * Draws the given [ImageBitmap] into the canvas with its top-left corner at the
      * given [Offset]. The image is composited into the canvas using the given [Paint].

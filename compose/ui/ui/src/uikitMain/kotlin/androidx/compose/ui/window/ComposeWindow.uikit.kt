@@ -23,6 +23,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.toSkiaRect
 import androidx.compose.ui.interop.LocalLayerContainer
+import androidx.compose.ui.interop.SkikoBackendTextureToImage
 import androidx.compose.ui.interop.SkikoTouchEventHandler
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.Platform
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
+import org.jetbrains.skia.GrBackendTexture
 import org.jetbrains.skia.Point
 import org.jetbrains.skiko.SkikoUIView
 import org.jetbrains.skiko.TextActions
@@ -205,9 +207,12 @@ internal actual class ComposeWindow : UIViewController {
             CompositionLocalProvider(
                 LocalLayerContainer provides rootView,
                 SkikoTouchEventHandler provides {
-
                     skiaLayer.skikoView?.onTouchEvent(it)
-                }
+                },
+                SkikoBackendTextureToImage provides { texture: GrBackendTexture ->
+                    val result = skiaLayer.backendTextureToImage(texture)
+                    result
+                },
             ) {
                 content()
             }

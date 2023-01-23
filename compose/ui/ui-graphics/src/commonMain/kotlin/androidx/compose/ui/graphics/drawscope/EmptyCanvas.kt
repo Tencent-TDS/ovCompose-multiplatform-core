@@ -131,10 +131,6 @@ internal class EmptyCanvas : Canvas {
         throw UnsupportedOperationException()
     }
 
-    override fun drawSomeTexture(someTexture: SomeTexture, topLeftOffset: Offset) {
-        throw UnsupportedOperationException()
-    }
-
     override fun drawImageRect(
         image: ImageBitmap,
         srcOffset: IntOffset,

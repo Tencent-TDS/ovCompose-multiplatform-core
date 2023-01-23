@@ -525,8 +525,6 @@ interface Canvas {
      */
     fun drawImage(image: ImageBitmap, topLeftOffset: Offset, paint: Paint)
 
-    fun drawSomeTexture(someTexture: SomeTexture, topLeftOffset: Offset)
-
     /**
      * Draws the subset of the given image described by the `src` argument into
      * the canvas in the axis-aligned rectangle given by the `dst` argument.

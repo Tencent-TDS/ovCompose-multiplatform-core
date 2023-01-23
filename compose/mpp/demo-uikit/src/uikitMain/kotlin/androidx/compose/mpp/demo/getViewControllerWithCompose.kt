@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Size
@@ -101,7 +102,7 @@ fun getViewControllerWithCompose(mtlTexture:MTLTextureProtocol) = Application("C
         }
         item {
             Box(Modifier.size(200.dp, 100.dp)) {
-                if (true) MtlTextureInteropView(modifier = Modifier.fillMaxSize(), factory = { mtlTexture })
+                if (true) MtlTextureInteropView(modifier = Modifier.fillMaxSize().alpha(1.0f), factory = { mtlTexture })
                 if (false) UIKitInteropView(modifier = Modifier.fillMaxSize(), factory = { UISwitch() })
                 if (false) ComposeUITextField(Modifier.fillMaxSize(), textState1.value, onValueChange = { textState1.value = it })
                 Button(onClick = { counter.value++ }, Modifier.align(Alignment.BottomCenter)) {

@@ -35,6 +35,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SomeTexture
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toBackendTexture
 import androidx.compose.ui.input.pointer.UIKitInteropModifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -75,6 +78,7 @@ public fun MtlTextureInteropView(
     val mtlTexture = remember { factory() }
     val root = LocalLayerContainer.current
     val skikoTouchEventHandler = SkikoTouchEventHandler.current
+    val backendTextureToImage = SkikoBackendTextureToImage.current
     val density = LocalDensity.current.density
     val focusManager = LocalFocusManager.current
     val focusSwitcher = remember { FocusSwitcher2(componentInfo, focusManager) }
@@ -94,7 +98,12 @@ public fun MtlTextureInteropView(
             }
         }.drawBehind {
             if (false) drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)
-            drawSomeTexture(SomeTexture(mtlTexture))
+            drawIntoCanvas {
+                val image = backendTextureToImage(SomeTexture(mtlTexture).toBackendTexture())
+                if (image != null) {
+                    it.nativeCanvas.drawImage(image, 0f, 0f)
+                }
+            }
         }.then(UIKitInteropModifier(rectInPixels.width, rectInPixels.height))
     ) {
         focusSwitcher.Content()
