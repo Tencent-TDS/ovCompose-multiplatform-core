@@ -21,12 +21,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.Text
@@ -86,7 +88,7 @@ val BACKGROUND_COLOR = Color.LightGray
 fun getViewControllerWithCompose() = Application("Compose/Native sample") {
     val textState1 = remember { mutableStateOf("sync text state") }
     val counter = remember { mutableStateOf(0) }
-    Popup(object : PopupPositionProvider {
+    if(false) Popup(object : PopupPositionProvider {
         override fun calculatePosition(
             anchorBounds: IntRect,
             windowSize: IntSize,
@@ -102,36 +104,25 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
             Text("Popup")
         }
     }
-    LazyColumn(Modifier.background(BACKGROUND_COLOR)) {
-        items(3) {
+    LazyColumn {
+        items(6) {
             Stub()
         }
-        item {
-            ComposeUITextField(Modifier.fillMaxWidth().height(50.dp), textState1.value, onValueChange = { textState1.value = it })
-        }
-        item {
-            TextField(value = textState1.value, onValueChange = { textState1.value = it })
-        }
-        item {
-            Stub()
-        }
-        item {
+        Example("UISwitch") {
             UIKitInteropView(modifier = Modifier.size(70.dp, 50.dp), factory = { UISwitch() })
         }
-        item {
-            Stub()
+        Example("UITextField with shared state") {
+            ComposeUITextField(Modifier.fillMaxWidth().height(50.dp), textState1.value, onValueChange = { textState1.value = it })
+            TextField(value = textState1.value, onValueChange = { textState1.value = it })
         }
-        item {
+        Example("WebView") {
             UIKitInteropView(modifier = Modifier.size(300.dp, 400.dp), factory = {
                 val wkWebView = WKWebView(frame = CGRectMake(0.0, 0.0, 300.0, 400.0))
                 wkWebView.loadRequest(NSURLRequest.requestWithURL(NSURL.URLWithString("https://kotlinlang.org")!!))
                 wkWebView
             })
         }
-        item {
-            Stub()
-        }
-        item {
+        Example("Todo") {
             Box(Modifier.size(200.dp, 200.dp)) {
                 UIKitInteropView(modifier = Modifier.fillMaxSize(), factory = {
                     UISwitch(CGRectMake(0.0, 0.0, 100.0, 100.0))
@@ -147,7 +138,20 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
     }
 }
 
+internal fun LazyListScope.Example(title: String, content: @Composable () -> Unit) {
+    item {
+        Column(Modifier.fillMaxWidth().border(width = 1.dp, color = Color.Black).padding(10.dp)) {
+            Text(title)
+            Spacer(Modifier.size(10.dp))
+            content()
+        }
+    }
+    item {
+        Stub()
+    }
+}
+
 @Composable
 internal fun Stub() {
-    Box(Modifier.fillMaxWidth().height(100.dp).background(BACKGROUND_COLOR).padding(10.dp))
+    Box(Modifier.fillMaxWidth().height(50.dp).padding(10.dp))
 }
