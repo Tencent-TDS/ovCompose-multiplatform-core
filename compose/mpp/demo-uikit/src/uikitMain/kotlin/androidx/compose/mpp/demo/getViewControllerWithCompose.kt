@@ -68,6 +68,7 @@ import platform.Foundation.NSURL
 import platform.Foundation.NSURLRequest
 import platform.UIKit.UIControlEventEditingChanged
 import platform.Foundation.NSValue
+import platform.MapKit.MKMapView
 import platform.Metal.MTLTextureProtocol
 import platform.UIKit.CGRectValue
 import platform.UIKit.UIButton
@@ -120,6 +121,12 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
                 val wkWebView = WKWebView(frame = CGRectMake(0.0, 0.0, 300.0, 400.0))
                 wkWebView.loadRequest(NSURLRequest.requestWithURL(NSURL.URLWithString("https://kotlinlang.org")!!))
                 wkWebView
+            })
+        }
+        Example("MapView") {
+            UIKitInteropView(modifier = Modifier.size(300.dp, 300.dp), factory = {
+                val mapView = MKMapView(frame = CGRectMake(0.0, 0.0, 300.0, 300.0))
+                mapView
             })
         }
         Example("Todo") {
