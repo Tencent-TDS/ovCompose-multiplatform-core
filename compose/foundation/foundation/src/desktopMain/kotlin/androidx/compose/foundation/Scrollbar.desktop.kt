@@ -108,7 +108,7 @@ fun defaultScrollbarStyle() = ScrollbarStyle(
  * Can be placed independently.
  *
  * Example:
- *     val state = rememberScrollState(0f)
+ *     val state = rememberScrollState(0)
  *
  *     Box(Modifier.fillMaxSize()) {
  *         Box(modifier = Modifier.verticalScroll(state)) {
@@ -116,8 +116,8 @@ fun defaultScrollbarStyle() = ScrollbarStyle(
  *         }
  *
  *         VerticalScrollbar(
+ *             adapter = rememberScrollbarAdapter(state)
  *             Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
- *             rememberScrollbarAdapter(state)
  *         )
  *     }
  *
@@ -155,16 +155,16 @@ fun VerticalScrollbar(
  * Can be placed independently.
  *
  * Example:
- *     val state = rememberScrollState(0f)
+ *     val state = rememberScrollState(0)
  *
  *     Box(Modifier.fillMaxSize()) {
- *         Box(modifier = Modifier.verticalScroll(state)) {
+ *         Box(modifier = Modifier.horizontalScroll(state)) {
  *             ...
  *         }
  *
  *         HorizontalScrollbar(
- *             Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
- *             rememberScrollbarAdapter(state)
+ *             adapter = rememberScrollbarAdapter(state)
+ *             modifier = Modifier.align(Alignment.CenterEnd).fillMaxWidth(),
  *         )
  *     }
  *
@@ -222,7 +222,7 @@ private fun OldScrollbar(
  * Can be placed independently.
  *
  * Example:
- *     val state = rememberScrollState(0f)
+ *     val state = rememberScrollState(0)
  *
  *     Box(Modifier.fillMaxSize()) {
  *         Box(modifier = Modifier.verticalScroll(state)) {
@@ -230,8 +230,8 @@ private fun OldScrollbar(
  *         }
  *
  *         VerticalScrollbar(
- *             Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
- *             rememberScrollbarAdapter(state)
+ *             adapter = rememberScrollbarAdapter(state)
+ *             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
  *         )
  *     }
  *
@@ -269,7 +269,7 @@ fun VerticalScrollbar(
  * Can be placed independently.
  *
  * Example:
- *     val state = rememberScrollState(0f)
+ *     val state = rememberScrollState(0)
  *
  *     Box(Modifier.fillMaxSize()) {
  *         Box(modifier = Modifier.verticalScroll(state)) {
@@ -277,8 +277,8 @@ fun VerticalScrollbar(
  *         }
  *
  *         HorizontalScrollbar(
- *             Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
- *             rememberScrollbarAdapter(state)
+ *             adapter = rememberScrollbarAdapter(state)
+ *             modifier = Modifier.align(Alignment.CenterEnd).fillMaxWidth(),
  *         )
  *     }
  *
@@ -534,7 +534,7 @@ fun rememberOldScrollbarAdapter(
  * [scrollState] is instance of [ScrollState] which is used by scrollable component
  *
  * Example:
- *     val state = rememberScrollState(0f)
+ *     val state = rememberScrollState(0)
  *
  *     Box(Modifier.fillMaxSize()) {
  *         Box(modifier = Modifier.verticalScroll(state)) {
@@ -542,8 +542,8 @@ fun rememberOldScrollbarAdapter(
  *         }
  *
  *         VerticalScrollbar(
- *             Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
- *             rememberScrollbarAdapter(state)
+ *             adapter = rememberScrollbarAdapter(state)
+ *             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
  *         )
  *     }
  */
@@ -576,8 +576,8 @@ fun OldScrollbarAdapter(
  *         }
  *
  *         VerticalScrollbar(
- *             Modifier.align(Alignment.CenterEnd),
- *             rememberScrollbarAdapter(state)
+ *             adapter = rememberScrollbarAdapter(state)
+ *             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
  *         )
  *     }
  */
@@ -636,7 +636,7 @@ fun rememberScrollbarAdapter(
  * [scrollState] is instance of [ScrollState] which is used by scrollable component
  *
  * Example:
- *     val state = rememberScrollState(0f)
+ *     val state = rememberScrollState(0)
  *
  *     Box(Modifier.fillMaxSize()) {
  *         Box(modifier = Modifier.verticalScroll(state)) {
@@ -644,8 +644,8 @@ fun rememberScrollbarAdapter(
  *         }
  *
  *         VerticalScrollbar(
- *             Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
- *             rememberScrollbarAdapter(state)
+ *             adapter = rememberScrollbarAdapter(state)
+ *             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
  *         )
  *     }
  */
@@ -670,8 +670,8 @@ fun ScrollbarAdapter(
  *         }
  *
  *         VerticalScrollbar(
- *             Modifier.align(Alignment.CenterEnd),
- *             rememberScrollbarAdapter(state)
+ *             adapter = rememberScrollbarAdapter(state)
+ *             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
  *         )
  *     }
  */
@@ -691,13 +691,13 @@ fun ScrollbarAdapter(
  *     Box(Modifier.fillMaxSize()) {
  *         val state = rememberLazyGridState()
  *
- *         LazyVerticalGrid(state = state) {
+ *         LazyVerticalGrid(columns = ..., state = state) {
  *             ...
  *         }
  *
  *         VerticalScrollbar(
- *             Modifier.align(Alignment.CenterEnd),
- *             rememberScrollbarAdapter(state)
+ *             adapter = rememberScrollbarAdapter(state)
+ *             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
  *         )
  *     }
  */
