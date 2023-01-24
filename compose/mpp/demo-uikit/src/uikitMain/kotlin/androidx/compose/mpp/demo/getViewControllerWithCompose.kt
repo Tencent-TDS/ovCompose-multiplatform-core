@@ -22,6 +22,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -60,6 +62,8 @@ import kotlinx.coroutines.delay
 import platform.CoreGraphics.CGRectMake
 import platform.Foundation.NSNotification
 import platform.Foundation.NSSelectorFromString
+import platform.Foundation.NSURL
+import platform.Foundation.NSURLRequest
 import platform.UIKit.UIControlEventEditingChanged
 import platform.Foundation.NSValue
 import platform.Metal.MTLTextureProtocol
@@ -74,7 +78,10 @@ import platform.UIKit.addSubview
 import platform.UIKit.backgroundColor
 import platform.UIKit.setClipsToBounds
 import platform.UIKit.setNeedsUpdateConstraints
+import platform.WebKit.WKWebView
 import platform.darwin.NSObject
+
+val BACKGROUND_COLOR = Color.LightGray
 
 fun getViewControllerWithCompose() = Application("Compose/Native sample") {
     val textState1 = remember { mutableStateOf("sync text state") }
@@ -95,21 +102,44 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
             Text("Popup")
         }
     }
-    LazyColumn {
+    LazyColumn(Modifier.background(BACKGROUND_COLOR)) {
         items(3) {
             Stub()
         }
         item {
-            Box(Modifier.size(100.dp, 100.dp)) {
-                if (true) UIKitInteropView(modifier = Modifier.fillMaxSize(), factory = { UISwitch(CGRectMake(0.0, 0.0, 100.0, 100.0)) })
-                if (false) ComposeUITextField(Modifier.fillMaxSize(), textState1.value, onValueChange = { textState1.value = it })
+            ComposeUITextField(Modifier.fillMaxWidth().height(50.dp), textState1.value, onValueChange = { textState1.value = it })
+        }
+        item {
+            TextField(value = textState1.value, onValueChange = { textState1.value = it })
+        }
+        item {
+            Stub()
+        }
+        item {
+            UIKitInteropView(modifier = Modifier.size(70.dp, 50.dp), factory = { UISwitch() })
+        }
+        item {
+            Stub()
+        }
+        item {
+            UIKitInteropView(modifier = Modifier.size(300.dp, 400.dp), factory = {
+                val wkWebView = WKWebView(frame = CGRectMake(0.0, 0.0, 300.0, 400.0))
+                wkWebView.loadRequest(NSURLRequest.requestWithURL(NSURL.URLWithString("https://kotlinlang.org")!!))
+                wkWebView
+            })
+        }
+        item {
+            Stub()
+        }
+        item {
+            Box(Modifier.size(200.dp, 200.dp)) {
+                UIKitInteropView(modifier = Modifier.fillMaxSize(), factory = {
+                    UISwitch(CGRectMake(0.0, 0.0, 100.0, 100.0))
+                })
 //                Button(onClick = { counter.value++ }, Modifier.align(Alignment.BottomCenter)) {
 //                    Text("Click ${counter.value}")
 //                }
             }
-        }
-        item {
-            TextField(value = textState1.value, onValueChange = { textState1.value = it })
         }
         items(10) {
             Stub()
@@ -119,5 +149,5 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
 
 @Composable
 internal fun Stub() {
-    Box(Modifier.size(100.dp).background(Color.Gray).padding(10.dp))
+    Box(Modifier.fillMaxWidth().height(100.dp).background(BACKGROUND_COLOR).padding(10.dp))
 }
