@@ -21,6 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,6 +32,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
+import androidx.compose.material.Slider
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -128,6 +131,32 @@ fun getViewControllerWithCompose() = Application("Compose/Native sample") {
                 val mapView = MKMapView(frame = CGRectMake(0.0, 0.0, 300.0, 300.0))
                 mapView
             })
+        }
+        Example("Modifiers") {
+            var alpha by remember { mutableStateOf(1f) }
+            var corner by remember { mutableStateOf(0f) }
+            var rotate by remember { mutableStateOf(0f) }
+            UIKitInteropView(
+                modifier = Modifier.size(300.dp, 300.dp)
+                    .alpha(alpha)
+                    .clip(RoundedCornerShape(size = corner.dp))
+                    .rotate(rotate),
+                factory = {
+                    val mapView = MKMapView(frame = CGRectMake(0.0, 0.0, 300.0, 300.0))
+                    mapView
+            })
+            Row {
+                Text("Alpha")
+                Slider(alpha, onValueChange = {alpha = it}, Modifier.fillMaxWidth())
+            }
+            Row {
+                Text("Corner")
+                Slider(corner, onValueChange = {corner = it}, Modifier.fillMaxWidth(), valueRange = 0f..150f)
+            }
+            Row {
+                Text("Rotate")
+                Slider(rotate, onValueChange = {rotate = it}, Modifier.fillMaxWidth(), valueRange = 0f..360f)
+            }
         }
         Example("Todo") {
             Box(Modifier.size(200.dp, 200.dp)) {
