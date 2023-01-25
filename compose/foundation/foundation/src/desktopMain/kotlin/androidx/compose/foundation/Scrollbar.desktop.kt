@@ -640,6 +640,7 @@ fun rememberScrollbarAdapter(
  * Create and [remember] [androidx.compose.foundation.v2.ScrollbarAdapter] for text field with
  * the given instance of [TextFieldScrollState].
  */
+@ExperimentalFoundationApi
 @JvmName("rememberScrollbarAdapter2")
 @Composable
 fun rememberScrollbarAdapter(
@@ -749,6 +750,7 @@ fun ScrollbarAdapter(
  *         )
  *     }
  */
+@ExperimentalFoundationApi
 @JvmName("ScrollbarAdapter2")
 fun ScrollbarAdapter(
     scrollState: TextFieldScrollState

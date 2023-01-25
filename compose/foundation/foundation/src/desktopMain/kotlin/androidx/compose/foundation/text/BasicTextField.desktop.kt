@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.text
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
@@ -118,6 +119,8 @@ import androidx.compose.ui.text.input.VisualTransformation
  * parameter "innerTextField" to the decorationBox lambda you provide. You must call
  * innerTextField exactly once.
  */
+@ExperimentalFoundationApi
+@Suppress("DuplicatedCode")
 @Composable
 fun BasicTextField(
     value: String,
@@ -263,6 +266,8 @@ fun BasicTextField(
  * parameter "innerTextField" to the decorationBox lambda you provide. You must call
  * innerTextField exactly once.
  */
+@ExperimentalFoundationApi
+@Suppress("DuplicatedCode")
 @Composable
 fun BasicTextField(
     value: TextFieldValue,

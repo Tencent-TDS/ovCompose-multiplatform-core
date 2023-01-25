@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.text
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollScope
@@ -34,6 +35,7 @@ import androidx.compose.runtime.remember
  * must be [Orientation.Horizontal]. For all others, it must be [Orientation.Vertical].
  * @param initial the initial value for [TextFieldScrollState.offset]
  */
+@ExperimentalFoundationApi
 @Composable
 fun rememberTextFieldScrollState(
     orientation: Orientation,
@@ -55,6 +57,7 @@ fun rememberTextFieldScrollState(
  *
  * @param initial the initial value for [TextFieldScrollState.offset]
  */
+@ExperimentalFoundationApi
 @Composable
 fun rememberTextFieldVerticalScrollState(initial: Int = 0): TextFieldScrollState {
     return rememberTextFieldScrollState(Orientation.Vertical, initial)
@@ -71,6 +74,7 @@ fun rememberTextFieldVerticalScrollState(initial: Int = 0): TextFieldScrollState
  *
  * @param initial the initial value for [TextFieldScrollState.offset]
  */
+@ExperimentalFoundationApi
 @Composable
 fun rememberTextFieldHorizontalScrollState(initial: Int = 0): TextFieldScrollState {
     return rememberTextFieldScrollState(Orientation.Horizontal, initial)
@@ -85,6 +89,7 @@ fun rememberTextFieldHorizontalScrollState(initial: Int = 0): TextFieldScrollSta
  * must be [Orientation.Horizontal]. For all others, it must be [Orientation.Vertical].
  * @param initial the initial value for [TextFieldScrollState.offset]
  */
+@ExperimentalFoundationApi
 class TextFieldScrollState(
     orientation: Orientation,
     initial: Int = 0,
