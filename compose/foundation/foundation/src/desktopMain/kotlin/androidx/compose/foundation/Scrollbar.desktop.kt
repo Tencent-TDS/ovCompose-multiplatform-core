@@ -571,8 +571,6 @@ fun OldScrollbarAdapter(
  *
  * [scrollState] is instance of [LazyListState] which is used by scrollable component
  *
- * Scrollbar size and position will be dynamically changed on the current visible content.
- *
  * Example:
  *     Box(Modifier.fillMaxSize()) {
  *         val state = rememberLazyListState()
@@ -678,8 +676,6 @@ fun ScrollbarAdapter(
  *
  * [scrollState] is instance of [LazyListState] which is used by scrollable component
  *
- * Scrollbar size and position will be dynamically changed on the current visible content.
- *
  * Example:
  *     Box(Modifier.fillMaxSize()) {
  *         val state = rememberLazyListState()
@@ -704,8 +700,6 @@ fun ScrollbarAdapter(
  *
  * [scrollState] is instance of [LazyGridState] which is used by scrollable component
  *
- * Scrollbar size and position will be dynamically changed on the current visible content.
- *
  * Example:
  *     Box(Modifier.fillMaxSize()) {
  *         val state = rememberLazyGridState()
@@ -729,8 +723,6 @@ fun ScrollbarAdapter(
  * ScrollbarAdapter for text fields.
  *
  * [scrollState] is instance of [TextFieldScrollState] which is used by scrollable component
- *
- * Scrollbar size and position will be dynamically changed on the current visible content.
  *
  * Example:
  *     Box(Modifier.fillMaxSize()) {
