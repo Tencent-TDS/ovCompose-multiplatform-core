@@ -118,6 +118,7 @@ import androidx.compose.ui.text.input.VisualTransformation
  * decorations, the text field implementation will pass in a framework-controlled composable
  * parameter "innerTextField" to the decorationBox lambda you provide. You must call
  * innerTextField exactly once.
+ * @param scrollState The state holder for the text field's scrolling-related properties.
  */
 @ExperimentalFoundationApi
 @Suppress("DuplicatedCode")
@@ -265,6 +266,7 @@ fun BasicTextField(
  * decorations, the text field implementation will pass in a framework-controlled composable
  * parameter "innerTextField" to the decorationBox lambda you provide. You must call
  * innerTextField exactly once.
+ * @param scrollState The state holder for the text field's scrolling-related properties.
  */
 @ExperimentalFoundationApi
 @Suppress("DuplicatedCode")

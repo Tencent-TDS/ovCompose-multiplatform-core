@@ -47,8 +47,8 @@ fun rememberTextFieldScrollState(
 }
 
 /**
- * Creates a [TextFieldScrollState] that is remembered across compositions, for vertically
- * scrolling a text field.
+ * Creates a [TextFieldScrollState] that is remembered across compositions, for a vertically
+ * scrolling text field.
  *
  * This cannot be used with text fields that are single-line and non-wrapping.
  *
@@ -64,8 +64,8 @@ fun rememberTextFieldVerticalScrollState(initial: Int = 0): TextFieldScrollState
 }
 
 /**
- * Creates a [TextFieldScrollState] that is remembered across compositions, for horizontally
- * scrolling a text field.
+ * Creates a [TextFieldScrollState] that is remembered across compositions, for a horizontally
+ * scrolling text field.
  *
  * This can only be used with text fields that are single-line and non-wrapping.
  *
