@@ -336,8 +336,7 @@ internal class LazyGridScrollbarAdapter(
 
 }
 
-
-@ExperimentalFoundationApi
+@OptIn(ExperimentalFoundationApi::class)
 internal class TextFieldScrollbarAdapter(
     private val scrollState: TextFieldScrollState
 ): ScrollbarAdapter{
