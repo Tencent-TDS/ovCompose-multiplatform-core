@@ -20,7 +20,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.window.LocalWindow
 import androidx.compose.ui.window.UndecoratedWindowResizer
 import androidx.compose.ui.window.WindowExceptionHandler
@@ -38,6 +42,7 @@ import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
 import java.awt.event.MouseWheelListener
 import javax.swing.JLayeredPane
+import kotlin.math.max
 import org.jetbrains.skiko.SkiaLayerAnalytics
 
 internal class ComposeWindowDelegate(
@@ -143,8 +148,40 @@ internal class ComposeWindowDelegate(
                 LocalWindow provides window,
                 LocalLayerContainer provides _pane
             ) {
-                content()
-                undecoratedWindowResizer.Content()
+                val density = LocalDensity.current.density
+                Layout(
+                    {
+                        content()
+                        undecoratedWindowResizer.Content()
+                    },
+                    Modifier,
+                    measurePolicy = { measurables, constraints ->
+                        val contentMeasurable = measurables[0]
+                        val resizerMeasurable = measurables.getOrNull(1)
+
+                        val contentPlaceable = contentMeasurable.measure(constraints)
+                        val width: Int = max(constraints.minWidth, contentPlaceable.width)
+                        val height: Int = max(constraints.minHeight, contentPlaceable.height)
+
+                        val resizerPlaceable = resizerMeasurable?.let{
+                            val resizerWidth = (window.width * density).toInt()
+                            val resizerHeight = (window.height * density).toInt()
+                            it.measure(
+                                Constraints(
+                                    minWidth = resizerWidth,
+                                    minHeight = resizerHeight,
+                                    maxWidth = resizerWidth,
+                                    maxHeight = resizerHeight
+                                )
+                            )
+                        }
+
+                        layout(width, height){
+                            contentPlaceable.place(0, 0)
+                            resizerPlaceable?.place(0, 0)
+                        }
+                    }
+                )
             }
         }
     }
