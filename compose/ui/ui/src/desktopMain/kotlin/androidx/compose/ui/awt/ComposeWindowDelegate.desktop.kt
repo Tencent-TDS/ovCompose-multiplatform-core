@@ -20,14 +20,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.window.LocalWindow
 import androidx.compose.ui.window.UndecoratedWindowResizer
 import androidx.compose.ui.window.WindowExceptionHandler
+import androidx.compose.ui.window.density
 import org.jetbrains.skiko.ClipComponent
 import org.jetbrains.skiko.GraphicsApi
 import org.jetbrains.skiko.OS
@@ -148,42 +149,79 @@ internal class ComposeWindowDelegate(
                 LocalWindow provides window,
                 LocalLayerContainer provides _pane
             ) {
-                val density = LocalDensity.current.density
-                Layout(
-                    {
-                        content()
-                        undecoratedWindowResizer.Content()
-                    },
-                    Modifier,
-                    measurePolicy = { measurables, constraints ->
-                        val contentMeasurable = measurables[0]
-                        val resizerMeasurable = measurables.getOrNull(1)
-
-                        val contentPlaceable = contentMeasurable.measure(constraints)
-                        val width: Int = max(constraints.minWidth, contentPlaceable.width)
-                        val height: Int = max(constraints.minHeight, contentPlaceable.height)
-
-                        val resizerPlaceable = resizerMeasurable?.let{
-                            val resizerWidth = (window.width * density).toInt()
-                            val resizerHeight = (window.height * density).toInt()
-                            it.measure(
-                                Constraints(
-                                    minWidth = resizerWidth,
-                                    minHeight = resizerHeight,
-                                    maxWidth = resizerWidth,
-                                    maxHeight = resizerHeight
-                                )
-                            )
-                        }
-
-                        layout(width, height){
-                            contentPlaceable.place(0, 0)
-                            resizerPlaceable?.place(0, 0)
-                        }
-                    }
-                )
+                WindowContentLayout(content)
             }
         }
+    }
+
+    @Composable
+    private fun WindowContentLayout(
+        content: @Composable () -> Unit
+    ){
+        Layout(
+            {
+                WindowUserContentLayout(content)
+                undecoratedWindowResizer.Content()
+            },
+            measurePolicy = { measurables, constraints ->
+                // Measure the content
+                val contentMeasurable = measurables[0]
+                val contentPlaceable = contentMeasurable.measure(constraints)
+                val width: Int = max(constraints.minWidth, contentPlaceable.width)
+                val height: Int = max(constraints.minHeight, contentPlaceable.height)
+
+                val resizerMeasurable = measurables.getOrNull(1)
+                val resizerPlaceable = resizerMeasurable?.let{
+                    val density = layer.component.density.density
+                    val resizerWidth = (window.width * density).toInt()
+                    val resizerHeight = (window.height * density).toInt()
+                    it.measure(
+                        Constraints(
+                            minWidth = resizerWidth,
+                            minHeight = resizerHeight,
+                            maxWidth = resizerWidth,
+                            maxHeight = resizerHeight
+                        )
+                    )
+                }
+
+                layout(width, height){
+                    contentPlaceable.place(0, 0)
+                    resizerPlaceable?.place(0, 0)
+                }
+            }
+        )
+    }
+
+    /**
+     * Wraps the user's content placed in the window into a single placeable, so that
+     * [WindowContentLayout] can find it and the [undecoratedWindowResizer] in the list of
+     * measurables.
+     */
+    @Composable
+    private fun WindowUserContentLayout(
+        content: @Composable () -> Unit
+    ){
+        Layout(
+            { content() },
+            measurePolicy = { measurables, constraints ->
+                val placeables = arrayOfNulls<Placeable>(measurables.size)
+                var width = constraints.minWidth
+                var height = constraints.minHeight
+                measurables.fastForEachIndexed { index, measurable ->
+                    val placeable = measurable.measure(constraints)
+                    placeables[index] = placeable
+                    width = max(width, placeable.width)
+                    height = max(height, placeable.height)
+                }
+
+                layout(width, height) {
+                    placeables.forEach { placeable ->
+                        placeable?.place(0, 0)
+                    }
+                }
+            }
+        )
     }
 
     fun dispose() {
