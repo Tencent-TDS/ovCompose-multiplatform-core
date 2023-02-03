@@ -21,14 +21,14 @@ import kotlin.test.assertEquals
 
 class ToCharArrayTest {
     @Test
-    fun `start from 0`() {
+    fun start_from_0() {
         val charArray = CharArray(2)
         "ab".toCharArray(charArray, 0, 0, 1)
         assertEquals('a', charArray[0])
     }
 
     @Test
-    fun `start from 1`() {
+    fun start_from_1() {
         val charArray = CharArray(2)
         "ab".toCharArray(charArray, 1, 1, 2)
         assertEquals('b', charArray[1])
