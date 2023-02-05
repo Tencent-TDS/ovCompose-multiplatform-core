@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.toSkiaRect
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.platform.TextToolbar
@@ -53,9 +52,9 @@ import platform.UIKit.UIScreen
 import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.UIKit.reloadInputViews
+import platform.UIKit.setBounds
 import platform.UIKit.setClipsToBounds
 import platform.UIKit.setNeedsDisplay
-import platform.UIKit.window
 import platform.darwin.NSObject
 
 // The only difference with macos' Window is that
@@ -89,16 +88,22 @@ internal actual class ComposeWindow : UIViewController {
             val keyboardInfo = arg.userInfo!!["UIKeyboardFrameEndUserInfoKey"] as NSValue
             val keyboardHeight = keyboardInfo.CGRectValue().useContents { size.height }
             val screenHeight = UIScreen.mainScreen.bounds.useContents { size.height }
+            val magicMultiplier = density.density - 1 // todo magic number
+            val viewY = UIScreen.mainScreen.coordinateSpace.convertPoint(
+                point = CGPointMake(0.0, 0.0),
+                fromCoordinateSpace = view.coordinateSpace
+            ).useContents { y } * magicMultiplier
             val focused = layer.getActiveFocusRect()
             if (focused != null) {
                 val focusedBottom = focused.bottom.value + getTopLeftOffset().y
-                val hiddenPartOfFocusedElement = focusedBottom + keyboardHeight - screenHeight
+                val hiddenPartOfFocusedElement =
+                    focusedBottom + keyboardHeight - screenHeight - viewY
                 if (hiddenPartOfFocusedElement > 0) {
                     // If focused element hidden by keyboard, then change UIView bounds.
                     // Focused element will be visible
                     view.setClipsToBounds(true)
                     val (width, height) = getViewFrameSize()
-                    view.layer.setBounds(
+                    view.setBounds(
                         CGRectMake(
                             x = 0.0,
                             y = hiddenPartOfFocusedElement,
@@ -246,7 +251,6 @@ internal actual class ComposeWindow : UIViewController {
 
     // viewDidUnload() is deprecated and not called.
     override fun viewDidDisappear(animated: Boolean) {
-        this.dispose()
         NSNotificationCenter.defaultCenter.removeObserver(
             observer = keyboardVisibilityListener,
             name = platform.UIKit.UIKeyboardWillShowNotification,
@@ -269,6 +273,11 @@ internal actual class ComposeWindow : UIViewController {
     ) {
         println("ComposeWindow.setContent")
         this.content = content
+    }
+
+    override fun viewDidUnload() {
+        super.viewDidUnload()
+        this.dispose()
     }
 
     actual fun dispose() {
