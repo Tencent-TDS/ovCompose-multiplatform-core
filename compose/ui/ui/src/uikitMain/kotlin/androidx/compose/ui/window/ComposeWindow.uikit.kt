@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.toSkiaRect
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.platform.TextToolbar
@@ -52,9 +53,9 @@ import platform.UIKit.UIScreen
 import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.UIKit.reloadInputViews
-import platform.UIKit.setBounds
 import platform.UIKit.setClipsToBounds
 import platform.UIKit.setNeedsDisplay
+import platform.UIKit.window
 import platform.darwin.NSObject
 
 // The only difference with macos' Window is that
