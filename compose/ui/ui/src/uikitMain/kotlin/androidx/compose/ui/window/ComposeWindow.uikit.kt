@@ -103,7 +103,7 @@ internal actual class ComposeWindow : UIViewController {
                     // Focused element will be visible
                     view.setClipsToBounds(true)
                     val (width, height) = getViewFrameSize()
-                    view.setBounds(
+                    view.layer.setBounds(
                         CGRectMake(
                             x = 0.0,
                             y = hiddenPartOfFocusedElement,
