@@ -164,15 +164,15 @@ actual class PointerEvent internal constructor(
 
     // Backwards compatibility for when PointerEvent was a data class
 
-    fun component1(): List<PointerInputChange> = changes
+    operator fun component1(): List<PointerInputChange> = changes
 
-    fun component2(): PointerButtons = buttons
+    operator fun component2(): PointerButtons = buttons
 
-    fun component3(): PointerKeyboardModifiers = keyboardModifiers
+    operator fun component3(): PointerKeyboardModifiers = keyboardModifiers
 
     // _type was internal, so no need for a component4
 
-    fun component5(): Any? = nativeEvent
+    operator fun component5(): Any? = nativeEvent
 
     // _button was internal, so no need for a component6
 
