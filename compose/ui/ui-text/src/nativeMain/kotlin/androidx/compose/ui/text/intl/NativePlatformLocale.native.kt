@@ -33,7 +33,7 @@ internal class NativeLocale(val locale: NSLocale) : PlatformLocale {
     override val region: String
         get() = locale.countryCode ?: "US"
 
-    // todo add unit tests to check IETF BCP47 in all platforms
+    // todo add tests to check IETF BCP47 on all platforms
     override fun toLanguageTag(): String = locale.localeIdentifier
 }
 
