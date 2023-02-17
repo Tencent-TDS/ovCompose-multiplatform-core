@@ -578,10 +578,8 @@ class ScrollbarTest {
                 press()
             }
 
-            // Advance the clock by a lot
-            rule.mainClock.advanceTimeBy(
-                DelayBeforeSecondScrollOnTrackPress + 10*DelayBetweenScrollsOnTrackPress
-            )
+            // Give enough time for many scrolls
+            rule.mainClock.advanceTimeBy(timeUntilScrollsByPressOnTrack(10))
             rule.onNodeWithTag("scrollbar").performMouseInput {
                 release()
             }
@@ -606,12 +604,89 @@ class ScrollbarTest {
             }
 
             // 3 page-down scrolls are required to reach the end.
-            // The 1st one is executed immediately.
-            // The 2nd one takes DelayBeforeSecondScrollOnTrackPress
-            // The 3rd one takes DelayBetweenScrollsOnTrackPress
-            rule.mainClock.advanceTimeBy(
-                DelayBeforeSecondScrollOnTrackPress + DelayBetweenScrollsOnTrackPress
-            )
+            rule.mainClock.advanceTimeBy(timeUntilScrollsByPressOnTrack(3))
+            rule.onNodeWithTag("scrollbar").performMouseInput {
+                release()
+            }
+
+            rule.awaitIdle()
+            rule.onNodeWithTag("box0").assertTopPositionInRootIsEqualTo(-300.dp)
+        }
+    }
+
+    @Theory
+    fun `press on track outside slider then move forward`(
+        scrollbarProvider: ScrollbarProvider
+    ) {
+        runBlocking(Dispatchers.Main) {
+            rule.setContent(scrollbarProvider) {
+                TestBox(size = 100.dp, childSize = 20.dp, childCount = 20, scrollbarWidth = 10.dp)
+            }
+            rule.awaitIdle()
+
+            rule.onNodeWithTag("scrollbar").performMouseInput {
+                moveTo(Offset(0f, 26f))
+                press()
+                moveTo(Offset(0f, 51f)) // Move immediately to allow 2 scrolls
+            }
+
+            // 2 page-down scrolls are required to reach 50-75 thumb range
+            rule.mainClock.advanceTimeBy(timeUntilScrollsByPressOnTrack(2))
+            rule.onNodeWithTag("scrollbar").performMouseInput {
+                release()
+            }
+
+            rule.awaitIdle()
+            rule.onNodeWithTag("box0").assertTopPositionInRootIsEqualTo(-200.dp)
+        }
+    }
+
+    @Theory
+    fun `press on track outside slider then move back`(
+        scrollbarProvider: ScrollbarProvider
+    ) {
+        runBlocking(Dispatchers.Main) {
+            rule.setContent(scrollbarProvider) {
+                TestBox(size = 100.dp, childSize = 20.dp, childCount = 20, scrollbarWidth = 10.dp)
+            }
+            rule.awaitIdle()
+
+            rule.onNodeWithTag("scrollbar").performMouseInput {
+                moveTo(Offset(0f, 51f))
+                press()
+                moveTo(Offset(0f, 26f)) // Move immediately to allow only a single scroll
+            }
+
+            // Give enough time for many scrolls
+            rule.mainClock.advanceTimeBy(timeUntilScrollsByPressOnTrack(10))
+            rule.onNodeWithTag("scrollbar").performMouseInput {
+                release()
+            }
+
+            // Expect only one scroll to have occurred
+            rule.awaitIdle()
+            rule.onNodeWithTag("box0").assertTopPositionInRootIsEqualTo(-100.dp)
+        }
+    }
+
+    @Theory
+    fun `press on track outside slider then move outside scrollbar`(
+        scrollbarProvider: ScrollbarProvider
+    ) {
+        runBlocking(Dispatchers.Main) {
+            rule.setContent(scrollbarProvider) {
+                TestBox(size = 100.dp, childSize = 20.dp, childCount = 20, scrollbarWidth = 10.dp)
+            }
+            rule.awaitIdle()
+
+            rule.onNodeWithTag("scrollbar").performMouseInput {
+                moveTo(Offset(0f, 99f))
+                press()
+                moveTo(Offset(-20f, 99f)) // Move outside the scrollbar
+            }
+
+            // 3 scrolls are needed to move to the bottom
+            rule.mainClock.advanceTimeBy(timeUntilScrollsByPressOnTrack(3))
             rule.onNodeWithTag("scrollbar").performMouseInput {
                 release()
             }
@@ -1600,3 +1675,14 @@ internal object TestConfig : ScrollConfig {
 
 private val PointerEvent.totalScrollDelta
     get() = this.changes.fastFold(Offset.Zero) { acc, c -> acc + c.scrollDelta }
+
+/**
+ * Returns the time needed for the given number of page-scrolls when pressing the scrollbar track
+ * outside the thumb.
+ */
+private fun timeUntilScrollsByPressOnTrack(count: Int) = when {
+    count <= 1 -> 0L
+    count == 2 -> DelayBeforeSecondScrollOnTrackPress
+    else -> DelayBeforeSecondScrollOnTrackPress + (count - 2) * DelayBetweenScrollsOnTrackPress
+}
+
