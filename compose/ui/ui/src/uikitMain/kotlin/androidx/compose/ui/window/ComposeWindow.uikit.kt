@@ -144,10 +144,6 @@ internal actual class ComposeWindow : UIViewController {
         }
     }
 
-    actual fun setTitle(title: String) {
-        println("TODO: set title to SkiaWindow")
-    }
-
     override fun loadView() {
         val skiaLayer = createSkiaLayer()
         val skikoUIView = SkikoUIView(skiaLayer).load()
