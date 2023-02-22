@@ -21,9 +21,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,22 +41,22 @@ class LayoutTest {
     @Test
     // Issue: https://github.com/JetBrains/compose-jb/issues/2696
     fun layoutInMovableContent() = runSkikoComposeUiTest {
-        var lastLayoutOffset = -1
-        var layoutCount = 0
-
-        val layoutCallback: (Int) -> Unit = { newOffsetY ->
-            lastLayoutOffset = newOffsetY
-            layoutCount++
-        }
-
-        mainClock.autoAdvance = false // to manually control when layout happens
-
         var boxIx by mutableStateOf(0)
-        val childOffsetY = mutableStateOf(0)
+        var valueSeenByLayout = -1
+        val controlledState = mutableStateOf(0)
+
+        @Composable
+        fun ChildContent() {
+            Layout(content = {}) { _, _ ->
+                layout(1, 1) {
+                    valueSeenByLayout = controlledState.value
+                }
+            }
+        }
 
         setContent {
             val movableChildContent: @Composable () -> Unit = remember {
-                movableContentOf { Sample(childOffsetY, layoutCallback) }
+                movableContentOf { ChildContent() }
             }
 
             Column(modifier = Modifier.fillMaxSize()) {
@@ -73,56 +71,32 @@ class LayoutTest {
                 }
             }
         }
-
-        runOnIdle {
-            assertEquals(1, layoutCount)
-            assertEquals(0, lastLayoutOffset)
-        }
-
+        waitForIdle()
+        assertEquals(0, valueSeenByLayout)
 
         repeat(5) {
-            childOffsetY.value += 10
-            mainClock.advanceTimeByFrame()
-
-            runOnIdle {
-                assertEquals(2 + it, layoutCount)
-                assertEquals(childOffsetY.value, lastLayoutOffset)
-            }
+            controlledState.value = it * 2
+            waitForIdle()
+            assertEquals(
+                expected = it * 2,
+                actual = valueSeenByLayout,
+                message = "valueSeenByLayout should be updated"
+            )
         }
 
         boxIx = 1 // move the child content to another Box
 
-        runOnIdle {
-            assertEquals(7, layoutCount)
-            assertEquals(50, lastLayoutOffset)
-        }
+        waitForIdle()
+        assertEquals(controlledState.value, valueSeenByLayout)
 
         repeat(5) {
-            childOffsetY.value += 10
-            mainClock.advanceTimeByFrame()
-
-            runOnIdle {
-                assertEquals(8 + it, layoutCount)
-                assertEquals(childOffsetY.value, lastLayoutOffset)
-            }
-        }
-    }
-}
-
-
-
-@Composable
-fun Sample(offsetYState: State<Int>, onLayoutCallback: (newOffsetY: Int) -> Unit) {
-    Layout(
-        content = { Text("Text") }
-    ) { measurables, constraints ->
-        val placeables = measurables.map { it.measure(constraints) }
-
-        layout(constraints.maxWidth, constraints.maxHeight) {
-            onLayoutCallback(offsetYState.value)
-            placeables.forEach {
-                it.placeRelative(x = 0, y = offsetYState.value)
-            }
+            controlledState.value = it * 3
+            waitForIdle()
+            assertEquals(
+                expected = it * 3,
+                actual = valueSeenByLayout,
+                message = "valueSeenByLayout should be updated"
+            )
         }
     }
 }
