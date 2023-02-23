@@ -43,6 +43,8 @@ import org.junit.Test
  * Tests for emulate input to the native window on various systems.
  *
  * Events were captured on each system via logging.
+ * All tests can run on all OS'es.
+ * The OS names in test names just represent an unique order of input events on these OS'es.
  */
 class WindowTypeTest {
     private var window: ComposeWindow? = null
