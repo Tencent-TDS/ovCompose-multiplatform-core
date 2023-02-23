@@ -62,17 +62,21 @@ abstract class AbstractDecoysLowering(
         }
     }
 
-    protected fun IrFunction.shouldBeRemapped(): Boolean {
-        val parentIsFunInterface = (parent as? IrClass).let {
+    private fun IrFunction.isSAM(): Boolean {
+        return (parent as? IrClass).let {
             it?.isInterface == true &&
                 it.isFun &&
                 (this as? IrSimpleFunction)?.modality == Modality.ABSTRACT
-        }
+        } || (this as? IrSimpleFunction)?.overriddenSymbols?.any {
+            it.owner.isSAM()
+        } == true
+    }
 
+    protected fun IrFunction.shouldBeRemapped(): Boolean {
         return !isLocalFunction() &&
             !isEnumConstructor() &&
             (hasComposableAnnotation() || hasComposableParameter()) &&
-            !parentIsFunInterface
+            !isSAM()
     }
 
     private fun IrFunction.isLocalFunction(): Boolean =
