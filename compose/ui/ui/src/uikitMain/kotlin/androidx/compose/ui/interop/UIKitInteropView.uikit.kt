@@ -73,7 +73,9 @@ fun <T : UIView> UIKitInteropView(
         }.drawBehind {
             drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)//draw transparent hole
         }
-    )
+    ) {
+        Box(Modifier)
+    }
 
     DisposableEffect(factory) {
         componentInfo.component = factory()
