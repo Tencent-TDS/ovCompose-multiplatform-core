@@ -16,79 +16,64 @@
 
 package androidx.compose.ui.interop
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusTarget
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.round
 import kotlinx.atomicfu.atomic
 import platform.CoreGraphics.CGRectMake
-import platform.UIKit.UIColor
-import platform.UIKit.UIView
-import platform.UIKit.addSubview
-import platform.UIKit.backgroundColor
-import platform.UIKit.insertSubview
-import platform.UIKit.removeFromSuperview
-import platform.UIKit.setFrame
+import platform.UIKit.*
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 
-val NoOpUpdate: UIView.() -> Unit = {}
+private val NoOpUpdate: UIView.() -> Unit = {}
 
 @Composable
-public fun <T : UIView> UIKitInteropView(
-    background: Color = Color.White,
-    factory: () -> T,
+fun <T : UIView> UIKitInteropView(
     modifier: Modifier = Modifier,
+    background: Color = Color.White,
     update: (T) -> Unit = NoOpUpdate,
     dispose: (T) -> Unit = {},
+    factory: () -> T,
 ) {
     val componentInfo = remember { ComponentInfo<T>() }
     val root = LocalLayerContainer.current
     val density = LocalDensity.current.density
-    val focusManager = LocalFocusManager.current//todo redundant
-    val focusSwitcher = remember { FocusSwitcher(componentInfo, focusManager) }
     var rectInPixels by remember { mutableStateOf(IntRect(0, 0, 0, 0)) }
-    var uiViewSize by remember { mutableStateOf(IntSize(0, 0)) }
     var localToWindowOffset: IntOffset by remember { mutableStateOf(IntOffset.Zero) }
     Box(
         modifier = modifier.onGloballyPositioned { childCoordinates ->
             val coordinates = childCoordinates.parentCoordinates!!
+            localToWindowOffset = coordinates.localToWindow(Offset.Zero).round()
             val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
             if (rectInPixels != newRectInPixels) {
                 val rect = newRectInPixels / density
                 componentInfo.container.setFrame(rect.toCGRect())
                 if (rectInPixels.width != newRectInPixels.width || rectInPixels.height != newRectInPixels.height) {
-                    componentInfo.component.setFrame(CGRectMake(0.0, 0.0, rect.width.toDouble(), rect.height.toDouble()))
+                    componentInfo.component.setFrame(
+                        CGRectMake(
+                            0.0,
+                            0.0,
+                            rect.width.toDouble(),
+                            rect.height.toDouble()
+                        )
+                    )
                 }
                 rectInPixels = newRectInPixels
             }
         }.drawBehind {
             drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)//draw transparent hole
         }
-    ) {
-        focusSwitcher.Content()
-    }
+    )
 
     DisposableEffect(factory) {
         componentInfo.component = factory()
@@ -108,75 +93,6 @@ public fun <T : UIView> UIKitInteropView(
         componentInfo.updater.update = update
     }
 }
-
-//<editor-fold desc="FocusSwitcher">
-private class FocusSwitcher<T : UIView>(
-    private val info: ComponentInfo<T>,
-    private val focusManager: FocusManager
-) {
-    private val backwardRequester = FocusRequester()
-    private val forwardRequester = FocusRequester()
-    private var isRequesting = false
-
-    fun moveBackward() {
-        try {
-            isRequesting = true
-            backwardRequester.requestFocus()
-        } finally {
-            isRequesting = false
-        }
-        focusManager.moveFocus(FocusDirection.Previous)
-    }
-
-    fun moveForward() {
-        try {
-            isRequesting = true
-            forwardRequester.requestFocus()
-        } finally {
-            isRequesting = false
-        }
-        focusManager.moveFocus(FocusDirection.Next)
-    }
-
-    @Composable
-    fun Content() {
-        Box(
-            Modifier
-                .focusRequester(backwardRequester)
-                .onFocusChanged {
-                    if (it.isFocused && !isRequesting) {
-                        focusManager.clearFocus(force = true)
-
-//                        val component = info.container.focusTraversalPolicy.getFirstComponent(info.container)
-//                        if (component != null) {
-//                            component.requestFocus(FocusEvent.Cause.TRAVERSAL_FORWARD)
-//                        } else {
-//                            moveForward()
-//                        }
-                    }
-                }
-                .focusTarget()
-        )
-        Box(
-            Modifier
-                .focusRequester(forwardRequester)
-                .onFocusChanged {
-                    if (it.isFocused && !isRequesting) {
-                        focusManager.clearFocus(force = true)
-
-//                        val component = info.container.focusTraversalPolicy.getLastComponent(info.container)
-//                        if (component != null) {
-//                            component.requestFocus(FocusEvent.Cause.TRAVERSAL_BACKWARD)
-//                        } else {
-//                            moveBackward()
-//                        }
-                    }
-                }
-                .focusTarget()
-        )
-    }
-}
-//</editor-fold>
 
 @Composable
 private fun Box(modifier: Modifier, content: @Composable () -> Unit = {}) {
