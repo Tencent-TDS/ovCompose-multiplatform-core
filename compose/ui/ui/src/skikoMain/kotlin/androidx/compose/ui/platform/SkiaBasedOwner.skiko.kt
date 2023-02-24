@@ -392,10 +392,6 @@ internal class SkiaBasedOwner(
         }
     }
 
-    // If pointerPosition is UIKitInterop, then Compose skip touches. And touches goes to UIKit view
-    fun hitInterop(pointerPosition: Offset, isTouchEvent: Boolean): Boolean =
-        pointerInputEventProcessor.hitInterop(pointerPosition, isTouchEvent)
-
     @Suppress("OVERRIDE_DEPRECATION")
     override fun processPointerInput(timeMillis: Long, pointers: List<TestPointerInputEventData>) {
         // TODO(https://github.com/JetBrains/compose-jb/issues/1846)

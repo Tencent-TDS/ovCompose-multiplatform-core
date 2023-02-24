@@ -480,6 +480,7 @@ if (isMultiplatformEnabled()) {
     includeProject(":compose:desktop:desktop:desktop-samples", "compose/desktop/desktop/samples", [BuildType.COMPOSE])
     includeProject(":compose:mpp", [BuildType.COMPOSE])
     includeProject(":compose:mpp:demo", [BuildType.COMPOSE])
+    includeProject(":compose:mpp:demo-uikit", [BuildType.COMPOSE])
 }
 includeProject(":compose:foundation", [BuildType.COMPOSE])
 includeProject(":compose:foundation:foundation", [BuildType.COMPOSE])
@@ -1046,9 +1047,3 @@ includeProject(":placeholder-tests")
 
 // Workaround for b/203825166
 includeBuild("placeholder")
-
-includeBuild("/Users/dim/Desktop/github/JetBrains/skiko2/skiko") {
-    dependencySubstitution {
-        substitute(module("org.jetbrains.skiko:skiko")).using(project(":"))
-    }
-}

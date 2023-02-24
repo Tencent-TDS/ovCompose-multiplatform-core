@@ -23,8 +23,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.toSkiaRect
 import androidx.compose.ui.interop.LocalLayerContainer
-import androidx.compose.ui.interop.SkikoBackendTextureToImage
-import androidx.compose.ui.interop.SkikoTouchEventHandler
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.platform.TextToolbar
@@ -158,14 +156,8 @@ internal actual class ComposeWindow : UIViewController {
 
     override fun loadView() {
         val skiaLayer = createSkiaLayer()
-        val skikoUIView = SkikoUIView(
-            skiaLayer = skiaLayer,
-//            hitTest = { point: Point, withEvent: UIEvent? ->
-//                val isInteropView = layer.scene.mainOwner?.hitInterop(Offset(point.x * density.density, point.y * density.density), true) ?: false
-//                !isInteropView
-//            },
-        ).load()
-        val rootView = UIView()
+        val skikoUIView = SkikoUIView(skiaLayer).load()
+        val rootView = UIView() // rootView needs to interop with UIKit
         rootView.addSubview(skikoUIView)
         view = rootView
         val uiKitTextInputService = UIKitTextInputService(
@@ -242,12 +234,6 @@ internal actual class ComposeWindow : UIViewController {
         layer.setContent(content = {
             CompositionLocalProvider(
                 LocalLayerContainer provides rootView,
-                SkikoTouchEventHandler provides {
-                    skiaLayer.skikoView?.onTouchEvent(it)
-                },
-                SkikoBackendTextureToImage provides { texture: GrBackendTexture ->
-                    skiaLayer.backendTextureToImage(texture)
-                },
             ) {
                 content()
             }
@@ -300,7 +286,7 @@ internal actual class ComposeWindow : UIViewController {
     // viewDidUnload() is deprecated and not called.
     override fun viewDidDisappear(animated: Boolean) {
         super.viewDidDisappear(animated)
-        this.dispose()
+        this.dispose()//todo
         NSNotificationCenter.defaultCenter.removeObserver(
             observer = keyboardVisibilityListener,
             name = platform.UIKit.UIKeyboardWillShowNotification,

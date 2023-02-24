@@ -887,23 +887,6 @@ internal class LayoutNode(
         )
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
-    internal fun hitTestLayout(
-        pointerPosition: Offset,
-        hitSemanticsEntities: HitTestResult<LayoutModifierNode>,
-        isTouchEvent: Boolean = true,
-        isInLayer: Boolean = true
-    ) {
-        val positionInWrapped = outerCoordinator.fromParentPosition(pointerPosition)
-        outerCoordinator.hitTest(
-            NodeCoordinator.LayoutInputSource,
-            positionInWrapped,
-            hitSemanticsEntities,
-            isTouchEvent = true,
-            isInLayer = isInLayer
-        )
-    }
-
     /**
      * Invoked when the parent placed the node. It will trigger the layout.
      */

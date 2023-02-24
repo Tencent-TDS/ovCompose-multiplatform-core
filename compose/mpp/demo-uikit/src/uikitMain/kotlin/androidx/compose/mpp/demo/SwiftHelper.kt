@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.interop
+package androidx.compose.mpp.demo
 
-import androidx.compose.runtime.compositionLocalOf
-import platform.UIKit.UIView
+import platform.UIKit.UIViewController
 
-internal val LocalLayerContainer = compositionLocalOf<UIView> {
-    error("CompositionLocal LayerContainer not provided")
+class SwiftHelper {
+    fun getViewController(): UIViewController = getViewControllerWithCompose()
 }

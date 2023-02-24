@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.interop
+import UIKit
 
-import androidx.compose.runtime.compositionLocalOf
-import platform.UIKit.UIView
+@UIApplicationMain
+class AppDelegate: UIResponder, UIApplicationDelegate {
 
-internal val LocalLayerContainer = compositionLocalOf<UIView> {
-    error("CompositionLocal LayerContainer not provided")
 }

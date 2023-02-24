@@ -38,7 +38,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.input.pointer.UIKitInteropModifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -163,18 +162,7 @@ import platform.darwin.dispatch_get_main_queue
 import platform.posix.getpagesize
 import platform.posix.posix_memalign
 
-const val MEASURE_TEXTURE_FPS = false
-const val ON_SIMULATOR = true
-const val BACKGROUND_THREAD = true
-val textureThreadContexts = List(3){newSingleThreadContext("texture-${Random.nextInt()}")}
-
-/**
- * On simulator available only private storage mode
- * https://developer.apple.com/documentation/metal/developing_metal_apps_that_run_in_simulator?language=objc
- */
-val metalResourceStorageMode = if (ON_SIMULATOR) MTLResourceStorageModePrivate else MTLResourceStorageModeShared
 val NoOpUpdate: UIView.() -> Unit = {}
-private val device = MTLCreateSystemDefaultDevice()!!//todo hardcode
 
 @Composable
 public fun <T : UIView> UIKitInteropView(
@@ -183,157 +171,18 @@ public fun <T : UIView> UIKitInteropView(
     modifier: Modifier = Modifier,
     update: (T) -> Unit = NoOpUpdate,
     dispose: (T) -> Unit = {},
-    useMetalTexture: Boolean = true,
-    useAlphaComponent: Boolean = true,
-    drawViewHierarchyInRect: Boolean = true,
-    useRasterization: Boolean = false,
-    interactive: Boolean = true,
 ) {
-    var previousUpdateTextureTime:Long by remember { mutableStateOf(getTimeNanos()) }
-    var averageUpdateTextureFps: Double by remember { mutableStateOf(40.0) }
-    var frameStart: Boolean by remember { mutableStateOf(false) }
-    val textureThreadContext: CoroutineContext = remember { textureThreadContexts.random() }
-
     val componentInfo = remember { ComponentInfo<T>() }
     val root = LocalLayerContainer.current
-    val skikoTouchEventHandler = SkikoTouchEventHandler.current
     val density = LocalDensity.current.density
-    val focusManager = LocalFocusManager.current
-    val backendTextureToImage = SkikoBackendTextureToImage.current
+    val focusManager = LocalFocusManager.current//todo redundant
     val focusSwitcher = remember { FocusSwitcher(componentInfo, focusManager) }
     var rectInPixels by remember { mutableStateOf(IntRect(0, 0, 0, 0)) }
     var uiViewSize by remember { mutableStateOf(IntSize(0, 0)) }
     var localToWindowOffset: IntOffset by remember { mutableStateOf(IntOffset.Zero) }
-    var cache: Cache? by remember { mutableStateOf(null) }
-    val mtlSkikoImage: Image? = remember(cache?.texture) {
-        cache?.texture?.let {
-            val skikoBackendTexture = GrBackendTexture.Companion.createFromMetalTexture(
-                mtlTexture = it,
-                width = it.width.toInt(),
-                height = it.height.toInt()
-            )
-            backendTextureToImage(skikoBackendTexture)
-        }
-    }
-    fun updateTexture() {
-        if (frameStart) return
-        frameStart = true
-
-        if(MEASURE_TEXTURE_FPS) {
-            val delta = -previousUpdateTextureTime + getTimeNanos().also { previousUpdateTextureTime = it }
-            val seconds = delta.toFloat() / 1E9
-            val fps = 1 / seconds
-            averageUpdateTextureFps = (averageUpdateTextureFps * 60 + fps) / 61
-
-            if (Random.nextInt(100) == 0) {
-                println("averageUpdateTextureFps: ${(averageUpdateTextureFps * 10).toInt() / 10.0}")
-            }
-        }
-
-//        println("update texture--------------------------------------------------------------------")
-        val uiView = componentInfo.component
-        val size = uiView.bounds().useContents { IntSize((size.width * density + 0.5).toInt(), (size.height * density + 0.5).toInt()) }
-        if (size.width != 0 && size.height != 0) {
-            val pixelFormat = MTLPixelFormatRGBA8Unorm
-            val pixelRowAlignment = device.minimumTextureBufferAlignmentForPixelFormat(pixelFormat)
-            val bytesPerRow = alignUp(size = size.width, align = pixelRowAlignment.toInt()) * 4 // 4 color components
-            val pagesize = getpagesize()
-            val allocationSize = alignUp(size = bytesPerRow * size.height, align = pagesize)
-
-            if (uiViewSize != size) {
-                uiViewSize = size
-                val descriptor = MTLTextureDescriptor.texture2DDescriptorWithPixelFormat(
-                    pixelFormat = pixelFormat,
-                    width = size.width.toULong(),
-                    height = size.height.toULong(),
-                    mipmapped = false
-                ).apply {
-                    if(!ON_SIMULATOR) {
-                        storageMode = metalResourceStorageMode
-                        // we are only going to read from this texture on GPU side
-                        usage = MTLTextureUsageShaderRead
-                    }
-                }
-                val textureMemoryPtr = nativeHeap.allocArray<ByteVar>(allocationSize)
-                //val textureMemoryPtr:CValuesRef<CPointerVarOf<COpaquePointer>> = cValue()
-                //posix_memalign(textureMemoryPtr, pagesize.toULong(), allocationSize.toULong())
-                //val textureMemoryPtr: CPointer<UByteVarOf<Byte>> = nativeHeap.allocArray<ByteVar>(allocationSize)
-                val textureRegion = MTLRegionMake2D(0, 0, size.width.toULong(), size.height.toULong())
-                val context = CGBitmapContextCreate(
-                    data = textureMemoryPtr,
-                    width = size.width.toULong(),
-                    height = size.height.toULong(),
-                    bitsPerComponent = 8,
-                    bytesPerRow = bytesPerRow.toULong(),
-                    space = CGColorSpaceCreateDeviceRGB(),
-                    bitmapInfo = if (useAlphaComponent) CGImageAlphaInfo.kCGImageAlphaPremultipliedLast.value else CGImageAlphaInfo.kCGImageAlphaNoneSkipLast.value
-                )
-                CGContextScaleCTM(context, density.toDouble(), density.toDouble())
-                val texture = if (ON_SIMULATOR) {
-                    device.newTextureWithDescriptor(descriptor)
-                } else {
-                    val buffer = device.newBufferWithBytesNoCopy(
-                        pointer = CGBitmapContextGetData(context),
-                        length = allocationSize.toULong(),
-                        options = metalResourceStorageMode,
-                        deallocator = null /*{ pointer, length in free(data) }*/
-                    )!!
-                    buffer.newTextureWithDescriptor(
-                        descriptor = descriptor,
-                        offset = 0,
-                        bytesPerRow = bytesPerRow.toULong() /*CGBitmapContextGetBytesPerRow(context)*/
-                    )
-                }
-                cache = Cache(
-                    textureMemoryPtr = textureMemoryPtr,
-                    context = context!!,
-                    textureRegion = textureRegion,
-                    descriptor = descriptor,
-                    texture = texture!!,
-                )
-            }
-            val cache = cache
-            if (cache != null) {
-                if (ON_SIMULATOR) {
-                    CGContextClearRect(cache.context, componentInfo.container.bounds())
-                }
-                if (drawViewHierarchyInRect) {
-                    //UIGraphicsBeginImageContext()
-                    UIGraphicsPushContext(cache.context)
-                    componentInfo.container.drawViewHierarchyInRect(
-                        rect = componentInfo.container.bounds(),
-                        afterScreenUpdates = false // todo warning in console
-                    )
-                    UIGraphicsPopContext()
-                    //UIGraphicsEndImageContext()
-                } else {
-                    componentInfo.container.layer.renderInContext(cache.context)
-                }
-//                        println("componentInfo.container.layer.contents: ${componentInfo.container.layer.contents}")
-                if (ON_SIMULATOR) {
-                    cache.texture.replaceRegion(
-                        region = cache.textureRegion,
-                        mipmapLevel = 0,
-                        withBytes = cache.textureMemoryPtr /*CGBitmapContextGetData(context)*/,
-                        bytesPerRow = bytesPerRow.toULong() /*CGBitmapContextGetBytesPerRow(context)*/
-                    )
-                }
-            }
-        }
-        frameStart = false
-    }
-    LaunchedEffect(Unit) {
-        withContext2(textureThreadContext) {
-            while (useMetalTexture) {
-                withFrameNanos { it }
-                updateTexture()
-            }
-        }
-    }
     Box(
         modifier = modifier.onGloballyPositioned { childCoordinates ->
             val coordinates = childCoordinates.parentCoordinates!!
-            localToWindowOffset = coordinates.localToWindow(Offset.Zero).round()
             val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
             if (rectInPixels != newRectInPixels) {
                 val rect = newRectInPixels / density
@@ -344,94 +193,28 @@ public fun <T : UIView> UIKitInteropView(
                 rectInPixels = newRectInPixels
             }
         }.drawBehind {
-            if (useMetalTexture) {
-                drawIntoCanvas { canvas->
-                    if (mtlSkikoImage != null) {
-                        canvas.drawRect(0f, 0f, uiViewSize.width.toFloat(), uiViewSize.height.toFloat(), Paint().apply {
-                            color = background
-                        })
-                        canvas.nativeCanvas.drawImage(mtlSkikoImage, 0f, 0f)
-                    }
-                }
-            } else {
-                drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)//draw transparent hole
-            }
-        }.let {
-            if (interactive) {
-                it.then(UIKitInteropModifier(rectInPixels.width, rectInPixels.height))
-            } else {
-                it
-            }
+            drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)//draw transparent hole
         }
     ) {
         focusSwitcher.Content()
     }
 
     DisposableEffect(factory) {
-        //todo focus listener like in Desktop: val focusListener = object : FocusListener {
         componentInfo.component = factory()
-        componentInfo.container = object : UIView(CGRectMake(0.0, 0.0, 0.0, 0.0)) {
-            override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
-                super.touchesBegan(touches, withEvent)
-                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.STARTED)
-            }
-
-            override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
-                super.touchesEnded(touches, withEvent)
-                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.ENDED)
-            }
-
-            override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
-                super.touchesMoved(touches, withEvent)
-                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.MOVED)
-            }
-
-            override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
-                super.touchesCancelled(touches, withEvent)
-                sendTouchEventToSkikoView(touches, SkikoTouchEventKind.CANCELLED)
-            }
-
-            private fun sendTouchEventToSkikoView(touches: Set<*>, kind: SkikoTouchEventKind) {
-                if (false) { //todo handle touches on container?
-                    val events: Array<SkikoTouchEvent> = touches.map {
-                        val event = it as UITouch
-                        val (x, y) = event.locationInView(null).useContents { x to y }
-                        val timestamp = (event.timestamp * 1_000).toLong()
-                        SkikoTouchEvent(x, y, kind, timestamp, event)
-                    }.toTypedArray()
-                    skikoTouchEventHandler(events)
-                }
-            }
-        }.apply {
-            layer.setShouldRasterize(useRasterization)
+        componentInfo.container = UIView().apply {
             addSubview(componentInfo.component)
-            //todo like in Desktop focusTraversalPolicy = object : LayoutFocusTraversalPolicy() {
         }
         componentInfo.updater = Updater(componentInfo.component, update)
         root.insertSubview(componentInfo.container, 0)
         onDispose {
-            val c = cache
-            cache = null
-            c?.clear(textureThreadContext)
             componentInfo.container.removeFromSuperview()
             componentInfo.updater.dispose()
             dispose(componentInfo.component)
-//            root.removeFocusListener(focusListener)
         }
     }
     SideEffect {
         componentInfo.container.backgroundColor = parseColor(background)
         componentInfo.updater.update = update
-    }
-}
-
-suspend fun withContext2(context: CoroutineContext, action: suspend  () -> Unit) {
-    if (BACKGROUND_THREAD) {
-        withContext(context) {
-            action()
-        }
-    } else {
-        action()
     }
 }
 
@@ -586,33 +369,3 @@ private class Updater<T : UIView>(
         isDisposed = true
     }
 }
-
-private class Cache(
-    /**
-     * Custom memory space to draw
-     * https://medium.com/@s1ddok/combine-the-power-of-coregraphics-and-metal-by-sharing-resource-memory-eabb4c1be615
-     */
-    val textureMemoryPtr: CPointer<UByteVarOf<Byte>>,
-    val context: CPointer<CGContext>,
-    val textureRegion: CValue<MTLRegion>,
-    val descriptor: MTLTextureDescriptor,
-    val texture: MTLTextureProtocol,
-) {
-    init {
-        println("create new cache, size: ${texture.width} x ${texture.height}")
-    }
-    fun clear(context: CoroutineContext) {
-        println("clear cache, size: ${texture.width} x ${texture.height}")
-        GlobalScope.launch {
-            withContext2(context) {
-                nativeHeap.free(textureMemoryPtr)
-            }
-        }
-    }
-}
-
-
-// measure texture memory performance on real device (CPU)
-// onGloballyPositioned skip
-// рисование через Skia слои
-

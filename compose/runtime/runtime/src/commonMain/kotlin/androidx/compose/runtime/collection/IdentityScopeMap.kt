@@ -58,29 +58,8 @@ internal class IdentityScopeMap<T : Any> {
      */
     @Suppress("NOTHING_TO_INLINE")
     private inline fun valueAt(index: Int): Any {
-        return values[valueOrder[index]]!!//todo PNE
+        return values[valueOrder[index]]!!
     }
-
-//    kfun:kotlin.Throwable#<init>(){} + 99
-//    kfun:kotlin.Exception#<init>(){} + 91
-//    kfun:kotlin.RuntimeException#<init>(){} + 91
-//    kfun:kotlin.NullPointerException#<init>(){} + 91
-//    ThrowNullPointerException + 131
-//    kfun:androidx.compose.runtime.collection.IdentityScopeMap.find#internal + 411
-//    kfun:androidx.compose.runtime.snapshots.SnapshotStateObserver.ObservedScopeMap.recordInvalidation#internal + 2167
-//    kfun:androidx.compose.runtime.snapshots.SnapshotStateObserver.<init>$lambda$1#internal + 603
-//    kfun:androidx.compose.runtime.snapshots.SnapshotStateObserver.$<init>$lambda$1$FUNCTION_REFERENCE$1342.invoke#internal + 151
-//    kfun:androidx.compose.runtime.snapshots.SnapshotStateObserver.$<init>$lambda$1$FUNCTION_REFERENCE$1342.$<bridge-UNNNN>invoke(kotlin.collections.Set<kotlin.Any>;androidx.compose.runtime.snapshots.Snapshot){}#internal + 151
-//    kfun:androidx.compose.runtime.snapshots.advanceGlobalSnapshot#internal + 1427
-//    kfun:androidx.compose.runtime.snapshots.advanceGlobalSnapshot#internal.117 + 171
-//    kfun:androidx.compose.runtime.snapshots.Snapshot.Companion#sendApplyNotifications(){} + 771
-//    kfun:androidx.compose.ui.platform.GlobalSnapshotManager.$ensureStarted$lambda$0COROUTINE$195.invokeSuspend#internal + 807
-//    kfun:kotlin.coroutines.native.internal.BaseContinuationImpl#resumeWith(kotlin.Result<kotlin.Any?>){} + 599
-//    kfun:kotlinx.coroutines.DispatchedTask#run(){} + 2831
-//    kfun:kotlinx.coroutines.DarwinGlobalQueueDispatcher.dispatch$lambda$0#internal + 155
-//    kfun:kotlinx.coroutines.DarwinGlobalQueueDispatcher.$dispatch$lambda$0$FUNCTION_REFERENCE$1386.invoke#internal + 95
-//    kfun:kotlinx.coroutines.DarwinGlobalQueueDispatcher.$dispatch$lambda$0$FUNCTION_REFERENCE$1386.$<bridge-UNN>invoke(){}#internal + 95
-//    _6f72672e6a6574627261696e732e6b6f746c696e783a6b6f746c696e782d636f726f7574696e65732d636f72652f6f70742f6275696c644167656e742f776f726b2f343465633665383530643563363366302f6b6f746c696e782d636f726f7574696e65732d636f72652f6e617469766544617277696e2f7372632f44697370617463686572732e6b74_knbridge677 + 279
 
     /**
      * Returns the [IdentityArraySet] for the value at the given [index] order in the map.

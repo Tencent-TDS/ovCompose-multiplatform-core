@@ -14,14 +14,20 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.interop
+import UIKit
+import SwiftUI
+import shared
 
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.unit.IntRect
-import platform.CoreGraphics.CGRectMake
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+    var window: UIWindow?
 
-internal fun Rect.toCGRect() =
-    CGRectMake(left.toDouble(), top.toDouble(), size.width.toDouble(), size.height.toDouble())
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        if let windowScene = scene as? UIWindowScene {
+            let window = UIWindow(windowScene: windowScene)
+            window.rootViewController = SwiftHelper().getViewController()
+            self.window = window
+            window.makeKeyAndVisible()
+        }
+    }
 
-internal operator fun IntRect.div(divider: Float) =
-    Rect(left / divider, top / divider, right / divider, bottom / divider)
+}
