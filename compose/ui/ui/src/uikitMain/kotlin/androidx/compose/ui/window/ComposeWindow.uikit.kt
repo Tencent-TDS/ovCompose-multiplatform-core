@@ -41,7 +41,6 @@ import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
-import org.jetbrains.skia.GrBackendTexture
 import org.jetbrains.skia.Point
 import org.jetbrains.skiko.SkikoUIView
 import org.jetbrains.skiko.TextActions
