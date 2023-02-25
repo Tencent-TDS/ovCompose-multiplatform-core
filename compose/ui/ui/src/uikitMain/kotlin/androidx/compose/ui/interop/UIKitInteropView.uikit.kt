@@ -16,7 +16,13 @@
 
 package androidx.compose.ui.interop
 
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -24,14 +30,24 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.round
 import kotlinx.atomicfu.atomic
 import platform.CoreGraphics.CGRectMake
-import platform.UIKit.*
+import platform.UIKit.UIColor
+import platform.UIKit.UIView
+import platform.UIKit.addSubview
+import platform.UIKit.backgroundColor
+import platform.UIKit.insertSubview
+import platform.UIKit.removeFromSuperview
+import platform.UIKit.setFrame
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 
@@ -50,8 +66,8 @@ fun <T : UIView> UIKitInteropView(
     val density = LocalDensity.current.density
     var rectInPixels by remember { mutableStateOf(IntRect(0, 0, 0, 0)) }
     var localToWindowOffset: IntOffset by remember { mutableStateOf(IntOffset.Zero) }
-    Box(
-        modifier = modifier.onGloballyPositioned { childCoordinates ->
+    Place(
+        modifier.onGloballyPositioned { childCoordinates ->
             val coordinates = childCoordinates.parentCoordinates!!
             localToWindowOffset = coordinates.localToWindow(Offset.Zero).round()
             val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
@@ -73,9 +89,7 @@ fun <T : UIView> UIKitInteropView(
         }.drawBehind {
             drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)//draw transparent hole
         }
-    ) {
-        Box(Modifier)
-    }
+    )
 
     DisposableEffect(factory) {
         componentInfo.component = factory()
@@ -97,22 +111,13 @@ fun <T : UIView> UIKitInteropView(
 }
 
 @Composable
-private fun Box(modifier: Modifier, content: @Composable () -> Unit = {}) {
-    Layout(
-        content = content,
-        modifier = modifier,
-        measurePolicy = { measurables, constraints ->
-            val placeables = measurables.map { it.measure(constraints) }
-            layout(
-                placeables.maxOfOrNull { it.width } ?: 0,
-                placeables.maxOfOrNull { it.height } ?: 0
-            ) {
-                placeables.forEach {
-                    it.place(0, 0)
-                }
-            }
-        }
-    )
+private fun Place(modifier: Modifier) {
+    Layout({}, measurePolicy = PlaceMeasurePolicy, modifier = modifier)
+}
+
+private object PlaceMeasurePolicy : MeasurePolicy {
+    override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints) =
+        layout(constraints.maxWidth, constraints.maxHeight) {}
 }
 
 private fun parseColor(color: Color): UIColor {
