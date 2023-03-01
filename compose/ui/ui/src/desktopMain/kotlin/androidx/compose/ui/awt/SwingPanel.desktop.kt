@@ -17,6 +17,7 @@ package androidx.compose.ui.awt
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
@@ -144,8 +145,10 @@ public fun <T : Component> SwingPanel(
         }
     }
 
-    SideEffect {
+    LaunchedEffect(background) {
         componentInfo.container.background = parseColor(background)
+    }
+    SideEffect {
         componentInfo.updater.update = update
     }
 }
