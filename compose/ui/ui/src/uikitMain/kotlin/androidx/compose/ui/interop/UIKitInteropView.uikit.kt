@@ -86,12 +86,7 @@ fun <T : UIView> UIKitInteropView(
                 componentInfo.container.setFrame(rect.toCGRect())
                 if (rectInPixels.width != newRectInPixels.width || rectInPixels.height != newRectInPixels.height) {
                     componentInfo.component.setFrame(
-                        CGRectMake(
-                            0.0,
-                            0.0,
-                            rect.width.toDouble(),
-                            rect.height.toDouble()
-                        )
+                        CGRectMake(0.0, 0.0, rect.width.toDouble(), rect.height.toDouble())
                     )
                 }
                 rectInPixels = newRectInPixels
