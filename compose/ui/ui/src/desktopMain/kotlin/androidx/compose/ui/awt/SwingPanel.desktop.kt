@@ -97,7 +97,7 @@ public fun <T : Component> SwingPanel(
         focusSwitcher.Content()
     }
 
-    DisposableEffect(factory) {
+    DisposableEffect(factory, update) {
         val focusListener = object : FocusListener {
             override fun focusGained(e: FocusEvent) {
                 if (componentInfo.container.isParentOf(e.oppositeComponent)) {
