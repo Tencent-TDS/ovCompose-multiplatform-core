@@ -97,7 +97,7 @@ fun <T : UIView> UIKitInteropView(
                 rectInPixels = newRectInPixels
             }
         }.drawBehind {
-            drawRect(Color.Transparent, blendMode = BlendMode.DstAtop)//draw transparent hole
+            drawRect(Color.Transparent, blendMode = BlendMode.DstAtop) // draw transparent hole
         }
     )
 
