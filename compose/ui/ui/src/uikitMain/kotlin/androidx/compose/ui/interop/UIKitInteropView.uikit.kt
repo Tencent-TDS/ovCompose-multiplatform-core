@@ -18,6 +18,7 @@ package androidx.compose.ui.interop
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -109,8 +110,10 @@ fun <T : UIView> UIKitInteropView(
             dispose(componentInfo.component)
         }
     }
-    SideEffect {
+    LaunchedEffect(background) {
         componentInfo.container.backgroundColor = parseColor(background)
+    }
+    SideEffect {
         componentInfo.updater.update = update
     }
 }
