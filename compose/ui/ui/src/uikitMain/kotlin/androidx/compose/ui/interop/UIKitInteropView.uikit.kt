@@ -101,7 +101,7 @@ fun <T : UIView> UIKitInteropView(
         }
     )
 
-    DisposableEffect(factory, update) {
+    DisposableEffect(factory) {
         componentInfo.component = factory()
         componentInfo.container = UIView().apply {
             addSubview(componentInfo.component)
