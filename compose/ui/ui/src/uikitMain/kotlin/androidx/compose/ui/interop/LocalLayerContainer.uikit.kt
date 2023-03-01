@@ -16,9 +16,9 @@
 
 package androidx.compose.ui.interop
 
-import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import platform.UIKit.UIView
 
-internal val LocalLayerContainer = compositionLocalOf<UIView> {
+internal val LocalLayerContainer = staticCompositionLocalOf<UIView> {
     error("CompositionLocal LayerContainer not provided")
 }

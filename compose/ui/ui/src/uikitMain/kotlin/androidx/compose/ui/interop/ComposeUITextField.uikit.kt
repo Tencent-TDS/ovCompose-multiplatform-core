@@ -15,8 +15,7 @@ import platform.UIKit.UITextField
  * @param value the input text to be shown in the text field.
  * @param onValueChange the callback that is triggered when the input service updates the text. An
  * updated text comes as a parameter of the callback
- *
- * //todo in the future, move to separate library
+ * todo in the future, move to separate library
  */
 @Composable
 fun ComposeUITextField(modifier: Modifier, value: String, onValueChange: (String) -> Unit) {
