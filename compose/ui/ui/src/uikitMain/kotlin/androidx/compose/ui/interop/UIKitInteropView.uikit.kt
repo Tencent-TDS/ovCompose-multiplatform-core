@@ -51,7 +51,9 @@ import platform.UIKit.setFrame
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 
-private val NoOpUpdate: UIView.() -> Unit = {}
+private val STUB_CALLBACK_WITH_RECEIVER: Any.() -> Unit = {}
+private val NoOpUpdate: UIView.() -> Unit = STUB_CALLBACK_WITH_RECEIVER
+private val NoOpDispose: UIView.() -> Unit = STUB_CALLBACK_WITH_RECEIVER
 
 /**
  * @param modifier The modifier to be applied to the layout. Size should be specified in modifier.
@@ -66,7 +68,7 @@ fun <T : UIView> UIKitInteropView(
     modifier: Modifier,
     background: Color = Color.White,
     update: (T) -> Unit = NoOpUpdate,
-    dispose: (T) -> Unit = {},
+    dispose: (T) -> Unit = NoOpDispose,
     factory: () -> T,
 ) {
     val componentInfo = remember { ComponentInfo<T>() }
