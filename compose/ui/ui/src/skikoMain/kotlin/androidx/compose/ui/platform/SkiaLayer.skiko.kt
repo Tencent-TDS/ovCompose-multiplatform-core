@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
+import kotlin.math.max
 import org.jetbrains.skia.ClipMode
 import org.jetbrains.skia.Picture
 import org.jetbrains.skia.PictureRecorder
@@ -174,7 +175,7 @@ internal class SkiaLayer(
         this.rotationX = rotationX
         this.rotationY = rotationY
         this.rotationZ = rotationZ
-        this.cameraDistance = cameraDistance
+        this.cameraDistance = max(cameraDistance, 0.001f)
         this.scaleX = scaleX
         this.scaleY = scaleY
         this.alpha = alpha
@@ -204,10 +205,16 @@ internal class SkiaLayer(
             scale(scaleX, scaleY)
         }
         matrix *= Matrix().apply {
+            /*
+             * TODO: check if we can avoid hard-coding DPI.
+             * Android hard-codes this value with "72.0",
+             * but it doesn't match behaviour on desktop platforms.
+             */
             // the camera location is passed in inches, set in pt
-            val depth = cameraDistance * 72f
+            val dpi = 96f / density.density
+            val depth = cameraDistance * dpi
             set(2, 3, -1f / depth)
-            set(2, 2, 0f);
+            set(2, 2, 0f)
         }
         matrix *= Matrix().apply {
             translate(x = pivotX + translationX, y = pivotY + translationY)
