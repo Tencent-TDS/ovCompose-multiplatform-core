@@ -155,6 +155,7 @@ private fun fontSizeInHierarchy(density: Density, base: Float, other: TextUnit):
 // SkTextStyle to be recalculated. Or we can have different densities in different windows.
 internal data class ComputedStyle(
     var textForegroundStyle: TextForegroundStyle,
+    var brushSize: Size?,
     var fontSize: Float,
     var fontWeight: FontWeight?,
     var fontStyle: FontStyle?,
@@ -170,8 +171,9 @@ internal data class ComputedStyle(
     var shadow: Shadow?
 ) {
 
-    constructor(density: Density, spanStyle: SpanStyle) : this(
+    constructor(density: Density, spanStyle: SpanStyle, brushSize: Size?) : this(
         textForegroundStyle = spanStyle.textForegroundStyle,
+        brushSize = brushSize,
         fontSize = with(density) { spanStyle.fontSize.toPx() },
         fontWeight = spanStyle.fontWeight,
         fontStyle = spanStyle.fontStyle,
@@ -199,9 +201,9 @@ internal data class ComputedStyle(
             if (color.isSpecified) {
                 res.color = color.toArgb()
             } else brush?.let { brush ->
+                val size = brushSize ?: return@let
                 val alpha = if (this.alpha.isNaN()) 1f else this.alpha
                 res.foreground = Paint().apply {
-                    val size = Size(100f, 100f) // FIXME: get actual size
                     brush.applyTo(size, asComposePaint(), alpha)
                 }
             }
@@ -294,6 +296,7 @@ internal class ParagraphBuilder(
     val fontFamilyResolver: FontFamily.Resolver,
     val text: String,
     var textStyle: TextStyle,
+    var brushSize: Size?,
     var ellipsis: String = "",
     var maxLines: Int = Int.MAX_VALUE,
     val spanStyles: List<Range<SpanStyle>>,
@@ -320,7 +323,7 @@ internal class ParagraphBuilder(
     @OptIn(ExperimentalTextApi::class)
     fun build(): SkParagraph {
         initialStyle = textStyle.toSpanStyle().withDefaultFontSize()
-        defaultStyle = ComputedStyle(density, initialStyle)
+        defaultStyle = ComputedStyle(density, initialStyle, brushSize)
         ops = makeOps(
             spanStyles,
             placeholders
@@ -500,7 +503,7 @@ internal class ParagraphBuilder(
 
     private fun mergeStyles(activeStyles: List<SpanStyle>): ComputedStyle {
         // there is always at least one active style
-        val style = ComputedStyle(density, activeStyles[0])
+        val style = ComputedStyle(density, activeStyles[0], brushSize)
         for (i in 1 until activeStyles.size) {
             style.merge(density, activeStyles[i])
         }

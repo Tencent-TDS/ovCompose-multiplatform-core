@@ -474,6 +474,7 @@ internal class SkiaParagraph(
     ) {
         paragraph = layouter.layoutParagraph(
             width = width,
+            height = height,
             maxLines = maxLines,
             ellipsis = ellipsisChar,
             brush = brush,

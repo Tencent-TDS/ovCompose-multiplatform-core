@@ -16,9 +16,11 @@
 
 package androidx.compose.ui.text.platform
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.asComposePaint
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
@@ -29,6 +31,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Density
+import org.jetbrains.skia.Paint
 import org.jetbrains.skia.paragraph.Paragraph
 
 /**
@@ -63,6 +66,7 @@ class ParagraphLayouter(
         fontFamilyResolver = fontFamilyResolver,
         text = text,
         textStyle = style,
+        brushSize = null,
         spanStyles = spanStyles,
         placeholders = placeholders,
         density = density,
@@ -104,6 +108,7 @@ class ParagraphLayouter(
     @ExperimentalTextApi
     fun layoutParagraph(
         width: Float,
+        height: Float,
         maxLines: Int = builder.maxLines,
         ellipsis: String = builder.ellipsis,
         brush: Brush? = builder.textStyle.brush,
@@ -126,15 +131,13 @@ class ParagraphLayouter(
                 shadow = shadow,
                 textDecoration = textDecoration
             )
+            builder.brushSize = Size(width, height)
             paragraphCache = null
         }
         return buildParagraph(builder, width)
     }
 
     private fun buildParagraph(builder: ParagraphBuilder, width: Float): Paragraph {
-        if (this.width != width) {
-            this.width = width
-        }
         val paragraph = paragraphCache
         return if (paragraph != null) {
             if (this.width != width) {
