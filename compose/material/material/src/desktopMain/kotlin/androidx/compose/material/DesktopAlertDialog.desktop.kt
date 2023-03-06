@@ -46,6 +46,7 @@ import androidx.compose.ui.window.rememberDialogState
 import java.awt.event.KeyEvent
 import androidx.compose.ui.window.Dialog as CoreDialog
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.type
 
@@ -149,7 +150,10 @@ fun AlertDialog(
     dialogProvider: AlertDialogProvider = PopupAlertDialogProvider
 ) {
     with(dialogProvider) {
-        AlertDialog(onDismissRequest = onDismissRequest) {
+        AlertDialog(
+            onDismissRequest = onDismissRequest,
+            shape = shape,
+        ) {
             AlertDialogContent(
                 buttons = buttons,
                 modifier = modifier.width(IntrinsicSize.Min),
@@ -179,6 +183,23 @@ interface AlertDialogProvider {
         onDismissRequest: () -> Unit,
         content: @Composable () -> Unit
     )
+
+    /**
+     * Dialog which will be used to place AlertDialog's [content].
+     *
+     * @param onDismissRequest Callback that will be called when the user closes the dialog
+     * @param shape The Dialog's shape
+     * @param content Content of the dialog
+     */
+    @Composable
+    fun AlertDialog(
+        onDismissRequest: () -> Unit,
+        shape: Shape,
+        content: @Composable () -> Unit
+    ) = AlertDialog(
+        onDismissRequest = onDismissRequest,
+        content = content
+    )
 }
 
 // TODO(https://github.com/JetBrains/compose-jb/issues/933): is it right to use Popup to show a
@@ -191,6 +212,19 @@ object PopupAlertDialogProvider : AlertDialogProvider {
     @Composable
     override fun AlertDialog(
         onDismissRequest: () -> Unit,
+        content: @Composable () -> Unit
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismissRequest,
+            shape = RectangleShape,
+            content = content
+        )
+    }
+
+    @Composable
+    override fun AlertDialog(
+        onDismissRequest: () -> Unit,
+        shape: Shape,
         content: @Composable () -> Unit
     ) {
         // Popups on the desktop are by default embedded in the component in which
@@ -229,13 +263,18 @@ object PopupAlertDialogProvider : AlertDialogProvider {
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Surface(Modifier.pointerInput(onDismissRequest) {
-                    detectTapGestures(onPress = {
-                        // Workaround to disable clicks on Surface background https://github.com/JetBrains/compose-jb/issues/2581
-                    })
-                }, elevation = 24.dp) {
-                    content()
-                }
+                Surface(
+                    modifier = Modifier.pointerInput(onDismissRequest) {
+                        detectTapGestures(onPress = {
+                            // Workaround to disable clicks on Surface background
+                            // https://github.com/JetBrains/compose-jb/issues/2581
+                        })
+                    },
+                    shape = shape,
+                    color = Color.Transparent,
+                    elevation = 24.dp,
+                    content = content
+                )
             }
         }
     }
@@ -256,6 +295,7 @@ object UndecoratedWindowAlertDialogProvider : AlertDialogProvider {
             onCloseRequest = onDismissRequest,
             state = rememberDialogState(width = Dp.Unspecified, height = Dp.Unspecified),
             undecorated = true,
+            transparent = true,
             resizable = false,
             onKeyEvent = {
                 if (it.key == Key.Escape) {
