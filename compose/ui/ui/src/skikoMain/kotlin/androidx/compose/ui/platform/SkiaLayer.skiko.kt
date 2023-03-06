@@ -207,8 +207,8 @@ internal class SkiaLayer(
         matrix *= Matrix().apply {
             // the camera location is passed in inches, set in pt
             val depth = cameraDistance * 72f
-            set(2, 3, -1f / depth)
-            set(2, 2, 0f)
+            set(row = 2, column = 3, v = -1f / depth)
+            set(row = 2, column = 2, v = 0f)
         }
         matrix *= Matrix().apply {
             translate(x = pivotX + translationX, y = pivotY + translationY)
