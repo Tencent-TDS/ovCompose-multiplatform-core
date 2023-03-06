@@ -18,22 +18,18 @@ package androidx.compose.ui.text.platform
 import org.jetbrains.skia.Font as SkFont
 import org.jetbrains.skia.FontStyle as SkFontStyle
 import org.jetbrains.skia.paragraph.Alignment as SkAlignment
-import org.jetbrains.skia.paragraph.BaselineMode
 import org.jetbrains.skia.paragraph.DecorationLineStyle as SkDecorationLineStyle
 import org.jetbrains.skia.paragraph.DecorationStyle as SkDecorationStyle
 import org.jetbrains.skia.paragraph.Direction as SkDirection
 import org.jetbrains.skia.paragraph.Paragraph as SkParagraph
 import org.jetbrains.skia.paragraph.ParagraphBuilder as SkParagraphBuilder
-import org.jetbrains.skia.paragraph.ParagraphStyle
-import org.jetbrains.skia.paragraph.PlaceholderAlignment
-import org.jetbrains.skia.paragraph.PlaceholderStyle
 import org.jetbrains.skia.paragraph.Shadow as SkShadow
-import org.jetbrains.skia.paragraph.StrutStyle
-import org.jetbrains.skia.paragraph.TextBox
-import org.jetbrains.skia.paragraph.TextStyle as SkTextStyle
 import org.jetbrains.skia.paragraph.TextIndent as SkTextIndent
+import org.jetbrains.skia.paragraph.TextStyle as SkTextStyle
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.asComposePaint
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.AnnotatedString.Range
@@ -59,6 +55,7 @@ import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextForegroundStyle
 import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -68,6 +65,12 @@ import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.unit.sp
 import org.jetbrains.skia.FontFeature
 import org.jetbrains.skia.Paint
+import org.jetbrains.skia.paragraph.BaselineMode
+import org.jetbrains.skia.paragraph.ParagraphStyle
+import org.jetbrains.skia.paragraph.PlaceholderAlignment
+import org.jetbrains.skia.paragraph.PlaceholderStyle
+import org.jetbrains.skia.paragraph.StrutStyle
+import org.jetbrains.skia.paragraph.TextBox
 
 private val DefaultFontSize = 16.sp
 
@@ -148,10 +151,10 @@ private fun fontSizeInHierarchy(density: Density, base: Float, other: TextUnit):
 }
 
 // Computed ComputedStyles always have font/letter size in pixels for particular `density`.
-// It's important because density could be changed in runtime and it should force
+// It's important because density could be changed in runtime, and it should force
 // SkTextStyle to be recalculated. Or we can have different densities in different windows.
 internal data class ComputedStyle(
-    var color: Color,
+    var textForegroundStyle: TextForegroundStyle,
     var fontSize: Float,
     var fontWeight: FontWeight?,
     var fontStyle: FontStyle?,
@@ -168,7 +171,7 @@ internal data class ComputedStyle(
 ) {
 
     constructor(density: Density, spanStyle: SpanStyle) : this(
-        color = spanStyle.color,
+        textForegroundStyle = spanStyle.textForegroundStyle,
         fontSize = with(density) { spanStyle.fontSize.toPx() },
         fontWeight = spanStyle.fontWeight,
         fontStyle = spanStyle.fontStyle,
@@ -192,14 +195,22 @@ internal data class ComputedStyle(
 
     fun toSkTextStyle(fontFamilyResolver: FontFamily.Resolver): SkTextStyle {
         val res = SkTextStyle()
-        if (color != Color.Unspecified) {
-            res.color = color.toArgb()
+        with(textForegroundStyle) {
+            if (color.isSpecified) {
+                res.color = color.toArgb()
+            } else brush?.let { brush ->
+                val alpha = if (this.alpha.isNaN()) 1f else this.alpha
+                res.foreground = Paint().apply {
+                    val size = Size(100f, 100f) // FIXME: get actual size
+                    brush.applyTo(size, asComposePaint(), alpha)
+                }
+            }
         }
         fontStyle?.let {
             res.fontStyle = it.toSkFontStyle()
         }
         textDecoration?.let {
-            res.decorationStyle = it.toSkDecorationStyle(this.color)
+            res.decorationStyle = it.toSkDecorationStyle(textForegroundStyle.color)
         }
         if (background != Color.Unspecified) {
             res.background = Paint().also {
@@ -241,9 +252,7 @@ internal data class ComputedStyle(
 
     fun merge(density: Density, other: SpanStyle) {
         val fontSize = fontSizeInHierarchy(density, fontSize, other.fontSize)
-        if (other.color.isSpecified) {
-            color = other.color
-        }
+        textForegroundStyle = other.textForegroundStyle
         other.fontFamily?.let { fontFamily = it }
         this.fontSize = fontSize
         other.fontWeight?.let { fontWeight = it }
@@ -326,7 +335,7 @@ internal class ParagraphBuilder(
             ps.ellipsis = ellipsis
         }
 
-        // this downcast is always safe because of sealed types and we control construction
+        // this downcast is always safe because of sealed types, and we control construction
         @OptIn(ExperimentalTextApi::class)
         val platformFontLoader = (fontFamilyResolver as FontFamilyResolverImpl).platformFontLoader
         val fontCollection = when (platformFontLoader) {
