@@ -19,6 +19,7 @@ package androidx.compose.ui.text
 import org.jetbrains.skia.Rect as SkRect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -430,19 +431,19 @@ internal class SkiaParagraph(
         shadow: Shadow?,
         textDecoration: TextDecoration?
     ) {
-        paragraph = layouter.layoutParagraph(
-            width = width,
-            maxLines = maxLines,
-            ellipsis = ellipsisChar,
-            color = color,
-            shadow = shadow,
-            textDecoration = textDecoration
-        )
-
+        paragraph = with(layouter) {
+            setTextStyle(
+                color = color,
+                shadow = shadow,
+                textDecoration = textDecoration
+            )
+            layoutParagraph(
+                width = width
+            )
+        }
         paragraph.paint(canvas.nativeCanvas, 0.0f, 0.0f)
     }
 
-    // TODO: Use DrawStyle.
     @ExperimentalTextApi
     override fun paint(
         canvas: Canvas,
@@ -451,18 +452,20 @@ internal class SkiaParagraph(
         textDecoration: TextDecoration?,
         drawStyle: DrawStyle?
     ) {
-        paragraph = layouter.layoutParagraph(
-            width = width,
-            maxLines = maxLines,
-            ellipsis = ellipsisChar,
-            color = color,
-            shadow = shadow,
-            textDecoration = textDecoration
-        )
+        paragraph = with(layouter) {
+            setTextStyle(
+                color = color,
+                shadow = shadow,
+                textDecoration = textDecoration
+            )
+            setDrawStyle(drawStyle)
+            layoutParagraph(
+                width = width
+            )
+        }
         paragraph.paint(canvas.nativeCanvas, 0.0f, 0.0f)
     }
 
-    // TODO: Use DrawStyle.
     @ExperimentalTextApi
     override fun paint(
         canvas: Canvas,
@@ -472,16 +475,19 @@ internal class SkiaParagraph(
         textDecoration: TextDecoration?,
         drawStyle: DrawStyle?
     ) {
-        paragraph = layouter.layoutParagraph(
-            width = width,
-            height = height,
-            maxLines = maxLines,
-            ellipsis = ellipsisChar,
-            brush = brush,
-            alpha = alpha,
-            shadow = shadow,
-            textDecoration = textDecoration
-        )
+        paragraph = with(layouter) {
+            setTextStyle(
+                brush = brush,
+                brushSize = Size(width, height),
+                alpha = alpha,
+                shadow = shadow,
+                textDecoration = textDecoration
+            )
+            setDrawStyle(drawStyle)
+            layoutParagraph(
+                width = width
+            )
+        }
         paragraph.paint(canvas.nativeCanvas, 0.0f, 0.0f)
     }
 }

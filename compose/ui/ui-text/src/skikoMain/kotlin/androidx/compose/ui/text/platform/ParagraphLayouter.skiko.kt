@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asComposePaint
+import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
@@ -78,23 +79,16 @@ class ParagraphLayouter(
     val defaultFont get() = builder.defaultFont
     val paragraphStyle get() = builder.paragraphStyle
 
-    fun layoutParagraph(
-        width: Float,
-        maxLines: Int = builder.maxLines,
-        ellipsis: String = builder.ellipsis,
-        color: Color = builder.textStyle.color,
-        shadow: Shadow? = builder.textStyle.shadow,
-        textDecoration: TextDecoration? = builder.textStyle.textDecoration,
-    ): Paragraph {
+    fun setTextStyle(
+        color: Color,
+        shadow: Shadow?,
+        textDecoration: TextDecoration?
+    ) {
         val actualColor = color.takeOrElse { builder.textStyle.color }
-        if (builder.maxLines != maxLines ||
-            builder.ellipsis != ellipsis ||
-            builder.textStyle.color != actualColor ||
+        if (builder.textStyle.color != actualColor ||
             builder.textStyle.shadow != shadow ||
             builder.textStyle.textDecoration != textDecoration
         ) {
-            builder.maxLines = maxLines
-            builder.ellipsis = ellipsis
             builder.textStyle = builder.textStyle.copy(
                 color = actualColor,
                 shadow = shadow,
@@ -102,42 +96,37 @@ class ParagraphLayouter(
             )
             paragraphCache = null
         }
-        return buildParagraph(builder, width)
     }
 
     @ExperimentalTextApi
-    fun layoutParagraph(
-        width: Float,
-        height: Float,
-        maxLines: Int = builder.maxLines,
-        ellipsis: String = builder.ellipsis,
-        brush: Brush? = builder.textStyle.brush,
-        alpha: Float = builder.textStyle.alpha,
-        shadow: Shadow? = builder.textStyle.shadow,
-        textDecoration: TextDecoration? = builder.textStyle.textDecoration,
-    ): Paragraph {
-        if (builder.maxLines != maxLines ||
-            builder.ellipsis != ellipsis ||
-            builder.textStyle.brush != brush ||
+    fun setTextStyle(
+        brush: Brush?,
+        brushSize: Size,
+        alpha: Float,
+        shadow: Shadow?,
+        textDecoration: TextDecoration?
+    ) {
+        if (builder.textStyle.brush != brush ||
             builder.textStyle.alpha != alpha ||
             builder.textStyle.shadow != shadow ||
             builder.textStyle.textDecoration != textDecoration
         ) {
-            builder.maxLines = maxLines
-            builder.ellipsis = ellipsis
             builder.textStyle = builder.textStyle.copy(
                 brush = brush,
                 alpha = alpha,
                 shadow = shadow,
                 textDecoration = textDecoration
             )
-            builder.brushSize = Size(width, height)
+            builder.brushSize = brushSize
             paragraphCache = null
         }
-        return buildParagraph(builder, width)
     }
 
-    private fun buildParagraph(builder: ParagraphBuilder, width: Float): Paragraph {
+    fun setDrawStyle(drawStyle: DrawStyle?) {
+        // TODO use it!
+    }
+
+    fun layoutParagraph(width: Float): Paragraph {
         val paragraph = paragraphCache
         return if (paragraph != null) {
             if (this.width != width) {
