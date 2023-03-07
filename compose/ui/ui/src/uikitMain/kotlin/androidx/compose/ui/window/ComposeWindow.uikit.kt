@@ -40,9 +40,11 @@ import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
+import kotlinx.cinterop.copy
 import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.SkikoUIView
 import org.jetbrains.skiko.TextActions
+import platform.CoreGraphics.CGFloat
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSize
@@ -54,12 +56,24 @@ import platform.Foundation.NSValue
 import platform.UIKit.CGRectValue
 import platform.UIKit.UIScreen
 import platform.UIKit.UIView
+import platform.UIKit.UIViewAutoresizing
+import platform.UIKit.UIViewAutoresizingFlexibleHeight
+import platform.UIKit.UIViewAutoresizingFlexibleWidth
 import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
+import platform.UIKit.addConstraint
 import platform.UIKit.addSubview
+import platform.UIKit.invalidateIntrinsicContentSize
+import platform.UIKit.leftAnchor
 import platform.UIKit.reloadInputViews
+import platform.UIKit.setAutoresizesSubviews
+import platform.UIKit.setAutoresizingMask
 import platform.UIKit.setClipsToBounds
+import platform.UIKit.setFrame
 import platform.UIKit.setNeedsDisplay
+import platform.UIKit.setNeedsLayout
+import platform.UIKit.setNeedsUpdateConstraints
+import platform.UIKit.viewWithTag
 import platform.UIKit.window
 import platform.darwin.NSObject
 
@@ -154,6 +168,10 @@ internal actual class ComposeWindow : UIViewController {
         val skikoUIView = SkikoUIView(skiaLayer).load()
         val rootView = UIView() // rootView needs to interop with UIKit
         rootView.addSubview(skikoUIView)
+        rootView.setAutoresizesSubviews(true)
+        skikoUIView.setAutoresizingMask(
+            UIViewAutoresizingFlexibleWidth or UIViewAutoresizingFlexibleHeight
+        )
         view = rootView
         val uiKitTextInputService = UIKitTextInputService(
             showSoftwareKeyboard = {
