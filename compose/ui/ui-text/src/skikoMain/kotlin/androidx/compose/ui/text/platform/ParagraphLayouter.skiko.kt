@@ -80,6 +80,20 @@ class ParagraphLayouter(
     val defaultFont get() = builder.defaultFont
     val paragraphStyle get() = builder.paragraphStyle
 
+    fun setParagraphStyle(
+        maxLines: Int,
+        ellipsis: String
+    ) {
+        if (builder.maxLines != maxLines ||
+            builder.ellipsis != ellipsis
+        ) {
+            builder.maxLines = maxLines
+            builder.ellipsis = ellipsis
+            paragraphCache = null
+        }
+    }
+
+
     fun setTextStyle(
         color: Color,
         shadow: Shadow?,

@@ -53,16 +53,19 @@ internal class SkiaParagraph(
 
     private val paragraphIntrinsics = intrinsics as SkiaParagraphIntrinsics
 
-    private val layouter = paragraphIntrinsics.layouter()
+    private val layouter = paragraphIntrinsics.layouter().apply {
+        setParagraphStyle(
+            maxLines = maxLines,
+            ellipsis = ellipsisChar
+        )
+    }
 
     /**
      * Paragraph isn't always immutable, it could be changed via [paint] method without
      * rerunning layout
      */
     private var paragraph = layouter.layoutParagraph(
-        width = width,
-        maxLines = maxLines,
-        ellipsis = ellipsisChar
+        width = width
     )
 
     init {
