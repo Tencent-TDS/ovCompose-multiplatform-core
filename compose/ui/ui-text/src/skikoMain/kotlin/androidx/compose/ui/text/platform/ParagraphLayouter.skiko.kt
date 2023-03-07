@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Density
+import kotlin.math.abs
 import org.jetbrains.skia.Paint
 import org.jetbrains.skia.paragraph.Paragraph
 
@@ -106,8 +107,12 @@ class ParagraphLayouter(
         shadow: Shadow?,
         textDecoration: TextDecoration?
     ) {
+        val actualSize = builder.brushSize
         if (builder.textStyle.brush != brush ||
-            builder.textStyle.alpha != alpha ||
+            actualSize == null ||
+            !actualSize.width.sameValueAs(brushSize.width) ||
+            !actualSize.height.sameValueAs(brushSize.height) ||
+            !builder.textStyle.alpha.sameValueAs(alpha) ||
             builder.textStyle.shadow != shadow ||
             builder.textStyle.textDecoration != textDecoration
         ) {
@@ -129,7 +134,7 @@ class ParagraphLayouter(
     fun layoutParagraph(width: Float): Paragraph {
         val paragraph = paragraphCache
         return if (paragraph != null) {
-            if (this.width != width) {
+            if (!this.width.sameValueAs(width)) {
                 this.width = width
                 paragraph.layout(width)
             }
@@ -141,4 +146,8 @@ class ParagraphLayouter(
             }
         }
     }
+}
+
+private fun Float.sameValueAs(other: Float) : Boolean {
+    return abs(this - other) < 0.00001f
 }
