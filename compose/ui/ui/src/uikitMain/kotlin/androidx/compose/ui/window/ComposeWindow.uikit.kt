@@ -21,7 +21,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.toSkiaRect
 import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.Platform
@@ -34,17 +33,14 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
 import androidx.compose.ui.unit.toOffset
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
-import kotlinx.cinterop.copy
 import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.SkikoUIView
 import org.jetbrains.skiko.TextActions
-import platform.CoreGraphics.CGFloat
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSize
@@ -56,25 +52,16 @@ import platform.Foundation.NSValue
 import platform.UIKit.CGRectValue
 import platform.UIKit.UIScreen
 import platform.UIKit.UIView
-import platform.UIKit.UIViewAutoresizing
 import platform.UIKit.UIViewAutoresizingFlexibleHeight
 import platform.UIKit.UIViewAutoresizingFlexibleWidth
 import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
-import platform.UIKit.addConstraint
 import platform.UIKit.addSubview
-import platform.UIKit.invalidateIntrinsicContentSize
-import platform.UIKit.leftAnchor
 import platform.UIKit.reloadInputViews
 import platform.UIKit.setAutoresizesSubviews
 import platform.UIKit.setAutoresizingMask
 import platform.UIKit.setClipsToBounds
-import platform.UIKit.setFrame
 import platform.UIKit.setNeedsDisplay
-import platform.UIKit.setNeedsLayout
-import platform.UIKit.setNeedsUpdateConstraints
-import platform.UIKit.viewWithTag
-import platform.UIKit.window
 import platform.darwin.NSObject
 
 fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
