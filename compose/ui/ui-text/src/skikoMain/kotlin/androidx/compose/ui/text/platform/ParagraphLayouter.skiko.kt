@@ -55,7 +55,7 @@ import org.jetbrains.skia.paragraph.Paragraph
  * reusedParagraph.layout(300f): 10.004400ms
  * builder.build().layout(300f): 23.421500ms
  */
-class ParagraphLayouter(
+internal class ParagraphLayouter(
     val text: String,
     textDirection: ResolvedTextDirection,
     style: TextStyle,
@@ -142,7 +142,7 @@ class ParagraphLayouter(
     }
 
     fun setDrawStyle(drawStyle: DrawStyle?) {
-        // TODO use it!
+        // TODO Implement applying DrawStyle
     }
 
     fun layoutParagraph(width: Float): Paragraph {
