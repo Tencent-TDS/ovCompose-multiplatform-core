@@ -21,13 +21,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.test.InternalTestApi
 import androidx.compose.ui.renderComposeScene
+import androidx.compose.ui.test.InternalTestApi
 import androidx.compose.ui.test.junit4.DesktopScreenshotTestRule
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import org.junit.Rule
 import org.junit.Test
@@ -66,49 +69,76 @@ class GraphicsLayerTest {
         screenshotRule.write(snapshot)
     }
 
-    @Test
-    fun rotationZ() {
-        val snapshot = renderComposeScene(width = 40, height = 40) {
-            Box(
-                Modifier
-                    .graphicsLayer(
-                        translationX = 10f,
-                        rotationZ = 90f,
-                        scaleX = 2f,
-                        scaleY = 0.5f,
-                        transformOrigin = TransformOrigin(0f, 0f)
-                    )
-                    .requiredSize(10f.dp, 10f.dp).background(Color.Red)
+    @Composable
+    fun testRotationBoxes(
+        rotationX: Float = 0f,
+        rotationY: Float = 0f,
+        rotationZ: Float = 0f
+    ) {
+        val size = DpSize(10.dp, 10.dp)
+        val backgroundBrush =
+            Brush.verticalGradient(
+                colors = listOf(Color.Red, Color.Blue)
             )
-            Box(
-                Modifier
-                    .graphicsLayer(
-                        translationX = 10f,
-                        translationY = 20f,
-                        rotationZ = 45f
+        Box(
+            Modifier
+                .graphicsLayer(
+                    translationX = 0f,
+                    translationY = 0f,
+                    rotationX = rotationX,
+                    rotationY = rotationY,
+                    rotationZ = rotationZ,
                     )
-                    .requiredSize(10f.dp, 10f.dp).background(Color.Blue)
-            )
-        }
-        screenshotRule.write(snapshot)
+                .requiredSize(size)
+                .background(brush = backgroundBrush)
+        )
+        Box(
+            Modifier
+                .graphicsLayer(
+                    translationX = 20f,
+                    translationY = 0f,
+                    rotationX = rotationX,
+                    rotationY = rotationY,
+                    rotationZ = rotationZ,
+                    transformOrigin = TransformOrigin(0f, 0f),
+                )
+                .requiredSize(size)
+                .background(brush = backgroundBrush)
+        )
+        Box(
+            Modifier
+                .graphicsLayer(
+                    translationX = 0f,
+                    translationY = 20f,
+                    rotationX = rotationX,
+                    rotationY = rotationY,
+                    rotationZ = rotationZ,
+                    cameraDistance = 0.1f
+                )
+                .requiredSize(size)
+                .background(brush = backgroundBrush)
+        )
+        Box(
+            Modifier
+                .graphicsLayer(
+                    translationX = 20f,
+                    translationY = 20f,
+                    rotationX = -rotationX,
+                    rotationY = -rotationY,
+                    rotationZ = -rotationZ,
+                    cameraDistance = 0.1f
+                )
+                .requiredSize(size)
+                .background(brush = backgroundBrush)
+        )
+
     }
 
     @Test
     fun rotationX() {
         val snapshot = renderComposeScene(width = 40, height = 40) {
-            Box(
-                Modifier
-                    .graphicsLayer(rotationX = 45f)
-                    .requiredSize(10f.dp, 10f.dp).background(Color.Blue)
-            )
-            Box(
-                Modifier
-                    .graphicsLayer(
-                        translationX = 20f,
-                        transformOrigin = TransformOrigin(0f, 0f),
-                        rotationX = 45f
-                    )
-                    .requiredSize(10f.dp, 10f.dp).background(Color.Blue)
+            testRotationBoxes(
+                rotationX = 45f,
             )
         }
         screenshotRule.write(snapshot)
@@ -117,19 +147,29 @@ class GraphicsLayerTest {
     @Test
     fun rotationY() {
         val snapshot = renderComposeScene(width = 40, height = 40) {
-            Box(
-                Modifier
-                    .graphicsLayer(rotationY = 45f)
-                    .requiredSize(10f.dp, 10f.dp).background(Color.Blue)
+            testRotationBoxes(
+                rotationY = 45f,
             )
-            Box(
-                Modifier
-                    .graphicsLayer(
-                        translationX = 20f,
-                        transformOrigin = TransformOrigin(0f, 0f),
-                        rotationY = 45f
-                    )
-                    .requiredSize(10f.dp, 10f.dp).background(Color.Blue)
+        }
+        screenshotRule.write(snapshot)
+    }
+    @Test
+    fun rotationZ() {
+        val snapshot = renderComposeScene(width = 40, height = 40) {
+            testRotationBoxes(
+                rotationZ = 45f,
+            )
+        }
+        screenshotRule.write(snapshot)
+    }
+
+    @Test
+    fun rotationXYZ() {
+        val snapshot = renderComposeScene(width = 40, height = 40) {
+            testRotationBoxes(
+                rotationX = 45f,
+                rotationY = 45f,
+                rotationZ = 45f,
             )
         }
         screenshotRule.write(snapshot)
