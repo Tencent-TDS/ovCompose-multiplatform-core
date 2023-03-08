@@ -21,6 +21,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -93,6 +94,11 @@ fun Modifier.onExternalDrag(
     }
     val window = LocalWindow.current ?: return@composed Modifier
 
+    val onDragStartState by rememberUpdatedState(onDragStart)
+    val onDragState by rememberUpdatedState(onDrag)
+    val onDragCancelState by rememberUpdatedState(onDragCancel)
+    val onDropState by rememberUpdatedState(onDrop)
+
     var componentBounds by remember { mutableStateOf<Rect?>(null) }
 
     var componentDragHandleId by remember { mutableStateOf<Int?>(null) }
@@ -106,7 +112,8 @@ fun Modifier.onExternalDrag(
             is AwtWindowDropTarget -> {
                 // if our drop target is already assigned simply add new drag handler for the current component
                 componentDragHandleId = currentDropTarget.installComponentDragHandler(
-                    currentComponentBounds, onDragStart, onDrag, onDragCancel, onDrop
+                    currentComponentBounds,
+                    onDragStartState, onDragState, onDragCancelState, onDropState
                 )
             }
 
@@ -114,7 +121,8 @@ fun Modifier.onExternalDrag(
                 // drop target is not installed for the window, so assign it and add new drag handler for the current component
                 val newDropTarget = AwtWindowDropTarget(window)
                 componentDragHandleId = newDropTarget.installComponentDragHandler(
-                    currentComponentBounds, onDragStart, onDrag, onDragCancel, onDrop
+                    currentComponentBounds,
+                    onDragStartState, onDragState, onDragCancelState, onDropState
                 )
                 window.dropTarget = newDropTarget
             }
