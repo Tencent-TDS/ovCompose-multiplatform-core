@@ -251,8 +251,9 @@ internal class AwtWindowDropTarget(
         onDrop: (DropData) -> Unit
     ): Int {
         isActive = true
-        handlers[idsCounter] = ComponentDragHandler(onDragStart, onDrag, onDragCancel, onDrop)
-        return idsCounter++
+        val handleId = idsCounter++
+        handlers[handleId] = ComponentDragHandler(onDragStart, onDrag, onDragCancel, onDrop)
+        return handleId
     }
 
     /**
