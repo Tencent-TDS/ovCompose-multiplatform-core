@@ -26,9 +26,9 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.toPainter
-import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.window.LocalWindow
@@ -93,20 +93,20 @@ fun Modifier.onExternalDrag(
     }
     val window = LocalWindow.current ?: return@composed Modifier
 
-    var componentCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    val boundsInWindow = componentCoordinates?.boundsInWindow()
+    var componentBounds by remember { mutableStateOf<Rect?>(null) }
 
     var componentDragHandleId by remember { mutableStateOf<Int?>(null) }
 
     // components drag handlers depend on the component position,
     // so we should reinstall handlers with a new component position when it was changed
-    DisposableEffect(window, boundsInWindow) {
-        val currentComponentCoordinates = componentCoordinates ?: return@DisposableEffect onDispose { }
+    DisposableEffect(window, componentBounds) {
+        val currentComponentBounds = componentBounds ?: return@DisposableEffect onDispose { }
+
         when (val currentDropTarget = window.dropTarget) {
             is AwtWindowDropTarget -> {
                 // if our drop target is already assigned simply add new drag handler for the current component
                 componentDragHandleId = currentDropTarget.installComponentDragHandler(
-                    currentComponentCoordinates, onDragStart, onDrag, onDragCancel, onDrop
+                    currentComponentBounds, onDragStart, onDrag, onDragCancel, onDrop
                 )
             }
 
@@ -114,7 +114,7 @@ fun Modifier.onExternalDrag(
                 // drop target is not installed for the window, so assign it and add new drag handler for the current component
                 val newDropTarget = AwtWindowDropTarget(window)
                 componentDragHandleId = newDropTarget.installComponentDragHandler(
-                    currentComponentCoordinates, onDragStart, onDrag, onDragCancel, onDrop
+                    currentComponentBounds, onDragStart, onDrag, onDragCancel, onDrop
                 )
                 window.dropTarget = newDropTarget
             }
@@ -137,7 +137,7 @@ fun Modifier.onExternalDrag(
 
     Modifier
         .onGloballyPositioned {
-            componentCoordinates = it
+            componentBounds = it.boundsInWindow()
         }
 }
 
@@ -166,15 +166,14 @@ internal class AwtWindowDropTarget(
         // notify components on window border that drag is started.
         onDragEnterWindow = { newWindowDragCoordinates ->
             for (handler in handlers.values) {
-                val isInside =
-                    isExternalDragInsideComponent(
-                        handler.componentCoordinates,
-                        newWindowDragCoordinates
-                    )
+                val isInside = isExternalDragInsideComponent(
+                    handler.componentBounds,
+                    newWindowDragCoordinates
+                )
                 if (isInside) {
                     handler.onDragStart(
                         calculateOffset(
-                            handler.componentCoordinates,
+                            handler.componentBounds,
                             newWindowDragCoordinates
                         )
                     )
@@ -185,7 +184,7 @@ internal class AwtWindowDropTarget(
         // drag moved inside window, we should calculate whether drag entered/exited components or just moved inside them
         onDragInsideWindow = { newWindowDragCoordinates ->
             for (handler in handlers.values) {
-                val componentCoordinates = handler.componentCoordinates
+                val componentCoordinates = handler.componentBounds
                 val oldDragCoordinates = windowDragCoordinates
 
                 val wasDragInside =
@@ -193,13 +192,10 @@ internal class AwtWindowDropTarget(
                 val newIsDragInside =
                     isExternalDragInsideComponent(componentCoordinates, newWindowDragCoordinates)
 
+                val dragOffset = calculateOffset(componentCoordinates, newWindowDragCoordinates)
+
                 if (!wasDragInside && newIsDragInside) {
-                    handler.onDragStart(
-                        calculateOffset(
-                            componentCoordinates,
-                            newWindowDragCoordinates
-                        )
-                    )
+                    handler.onDragStart(dragOffset)
                 }
 
                 if (wasDragInside && !newIsDragInside) {
@@ -207,7 +203,7 @@ internal class AwtWindowDropTarget(
                 }
 
                 if (newIsDragInside) {
-                    handler.onDrag(componentCoordinates.windowToLocal(newWindowDragCoordinates))
+                    handler.onDrag(dragOffset)
                 }
             }
             windowDragCoordinates = newWindowDragCoordinates
@@ -215,7 +211,7 @@ internal class AwtWindowDropTarget(
         // notify components on window border drag exited window
         onDragExit = {
             for (handler in handlers.values) {
-                val componentCoordinates = handler.componentCoordinates
+                val componentCoordinates = handler.componentBounds
                 val oldDragCoordinates = windowDragCoordinates
                 val wasDragInside =
                     isExternalDragInsideComponent(componentCoordinates, oldDragCoordinates)
@@ -229,11 +225,11 @@ internal class AwtWindowDropTarget(
         onDrop = {
             var anyDrops = false
             for (handler in handlers.values) {
-                if (isExternalDragInsideComponent(
-                        handler.componentCoordinates,
-                        windowDragCoordinates
-                    )
-                ) {
+                val isInside = isExternalDragInsideComponent(
+                    handler.componentBounds,
+                    windowDragCoordinates
+                )
+                if (isInside) {
                     handler.onDrop(it)
                     anyDrops = true
                 }
@@ -259,11 +255,11 @@ internal class AwtWindowDropTarget(
      * Subscribes on drag events for [window].
      * If drag is going and component is under pointer [onDragStart] can be called synchronously.
      *
-     * @param componentCoordinates coordinates of the component used to properly detect when drag entered/exited component
+     * @param componentBounds bounds of the component inside [Window] used to properly detect when drag entered/exited component
      * @return handler id that can be used later to remove subscription using [stopDragHandling]
      */
     fun installComponentDragHandler(
-        componentCoordinates: LayoutCoordinates,
+        componentBounds: Rect,
         onDragStart: (Offset) -> Unit,
         onDrag: (Offset) -> Unit,
         onDragCancel: () -> Unit,
@@ -271,10 +267,11 @@ internal class AwtWindowDropTarget(
     ): Int {
         isActive = true
 
-        handlers[idsCounter] = ComponentDragHandler(componentCoordinates, onDragStart, onDrag, onDragCancel, onDrop)
+        handlers[idsCounter] =
+            ComponentDragHandler(componentBounds, onDragStart, onDrag, onDragCancel, onDrop)
 
-        if (isExternalDragInsideComponent(componentCoordinates, windowDragCoordinates)) {
-            onDragStart(calculateOffset(componentCoordinates, windowDragCoordinates!!))
+        if (isExternalDragInsideComponent(componentBounds, windowDragCoordinates)) {
+            onDragStart(calculateOffset(componentBounds, windowDragCoordinates!!))
         }
         return idsCounter++
     }
@@ -289,7 +286,9 @@ internal class AwtWindowDropTarget(
      */
     fun stopDragHandling(handleId: Int) {
         val handler = handlers[handleId]
-        if (handler != null && isExternalDragInsideComponent(handler.componentCoordinates, windowDragCoordinates)) {
+        if (handler != null &&
+            isExternalDragInsideComponent(handler.componentBounds, windowDragCoordinates)
+        ) {
             handler.onDragCancel()
         }
         handlers.remove(handleId)
@@ -301,7 +300,7 @@ internal class AwtWindowDropTarget(
 
 
     private class ComponentDragHandler(
-        val componentCoordinates: LayoutCoordinates,
+        val componentBounds: Rect,
         val onDragStart: (Offset) -> Unit,
         val onDrag: (Offset) -> Unit,
         val onDragCancel: () -> Unit,
@@ -310,21 +309,21 @@ internal class AwtWindowDropTarget(
 
     companion object {
         private fun isExternalDragInsideComponent(
-            componentCoordinates: LayoutCoordinates?,
+            componentBounds: Rect?,
             windowDragCoordinates: Offset?
         ): Boolean {
-            if (componentCoordinates == null || windowDragCoordinates == null) {
+            if (componentBounds == null || windowDragCoordinates == null) {
                 return false
             }
 
-            return componentCoordinates.boundsInWindow().contains(windowDragCoordinates)
+            return componentBounds.contains(windowDragCoordinates)
         }
 
         private fun calculateOffset(
-            componentCoordinates: LayoutCoordinates,
+            componentBounds: Rect,
             windowDragCoordinates: Offset
         ): Offset {
-            return componentCoordinates.windowToLocal(windowDragCoordinates)
+            return windowDragCoordinates - componentBounds.topLeft
         }
     }
 }
