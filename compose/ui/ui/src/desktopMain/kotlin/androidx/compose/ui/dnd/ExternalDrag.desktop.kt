@@ -127,13 +127,9 @@ fun Modifier.onExternalDrag(
         onDispose {
             // stop drag events handling for this component when window is changed
             // or the component leaves the composition
-            val dropTarget = window.dropTarget
-            if (dropTarget is AwtWindowDropTarget) {
-                val handleIdToRemove = componentDragHandleId
-                if (handleIdToRemove != null) {
-                    dropTarget.stopDragHandling(handleIdToRemove)
-                }
-            }
+            val dropTarget = window.dropTarget as? AwtWindowDropTarget ?: return@onDispose
+            val handleIdToRemove = componentDragHandleId ?: return@onDispose
+            dropTarget.stopDragHandling(handleIdToRemove)
         }
     }
 
@@ -335,7 +331,7 @@ internal class AwtWindowDropTarget(
         /**
          * Notifies [handler] about drag events.
          *
-         * Note: this function is pure, so it doesn't update state of [ComponentDragHandler] or current drag position
+         * Note: this function is pure, so it doesn't update any states
          */
         private fun handleDragEvent(
             handler: ComponentDragHandler,
