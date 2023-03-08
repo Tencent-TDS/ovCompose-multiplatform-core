@@ -133,9 +133,8 @@ class ExternalDragTest {
         }
         awaitIdle()
 
-        assertThat(events.size).isEqualTo(2)
+        assertThat(events.size).isEqualTo(1)
         assertThat(events[0]).isEqualTo(DragStarted(Offset(70f, 1f)))
-        assertThat(events[1]).isEqualTo(Drag(Offset(70f, 1f)))
 
         exitApplication()
     }
@@ -191,9 +190,8 @@ class ExternalDragTest {
         assertThat(eventsComponent1.size).isEqualTo(2)
         assertThat(eventsComponent1.last()).isEqualTo(DragCancelled)
 
-        assertThat(eventsComponent2.size).isEqualTo(2)
-        assertThat(eventsComponent2[0]).isEqualTo(DragStarted(Offset(70f, 1f)))
-        assertThat(eventsComponent2[1]).isEqualTo(Drag(Offset(70f, 1f)))
+        assertThat(eventsComponent2.size).isEqualTo(1)
+        assertThat(eventsComponent2.last()).isEqualTo(DragStarted(Offset(70f, 1f)))
 
         val dropData = DropData.Text("Text", mimeType = "text/plain")
         window.dragEvents {
@@ -203,7 +201,7 @@ class ExternalDragTest {
 
         assertThat(eventsComponent1.size).isEqualTo(2)
 
-        assertThat(eventsComponent2.size).isEqualTo(3)
+        assertThat(eventsComponent2.size).isEqualTo(2)
         assertThat(eventsComponent2.last()).isEqualTo(TestDragEvent.Drop(dropData))
 
         exitApplication()
