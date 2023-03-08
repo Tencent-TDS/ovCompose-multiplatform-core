@@ -19,13 +19,17 @@ package androidx.compose.ui.dnd
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
@@ -234,6 +238,58 @@ class ExternalDragTest {
         componentIsVisible.value = false
         awaitIdle()
         assertThat(window.dropTarget.isActive).isEqualTo(false)
+    }
+
+    // https://github.com/JetBrains/compose-multiplatform-core/pull/391#discussion_r1128543475
+    @Test
+    fun `make drag area bigger on hover`() = runApplicationTest {
+        lateinit var window: ComposeWindow
+
+        val events = mutableListOf<TestDragEvent>()
+
+        launchApplication {
+            Window(
+                onCloseRequest = ::exitApplication,
+                state = rememberWindowState(width = 200.dp, height = 100.dp)
+            ) {
+                window = this.window
+                var width by remember { mutableStateOf(50.dp) }
+                Column {
+                    Box(
+                        modifier = Modifier
+                            .width(width)
+                            .fillMaxHeight()
+                            .onExternalDrag(
+                                onDragStart = {
+                                    // make box bigger on enter
+                                    events.add(DragStarted(it))
+                                    width = 100.dp
+                                },
+                                onDragCancel = {
+                                    // make box smalled when drag exited
+                                    events.add(DragCancelled)
+                                    width = 50.dp
+                                }
+                            )
+                    )
+                }
+            }
+        }
+
+        awaitIdle()
+        assertThat(events.size).isEqualTo(0)
+
+        window.dragEvents {
+            onDragEnterWindow(Offset(25f, 25f))
+        }
+
+        // only one event should be handled -- drag started, even if the component become bigger
+        //  since the pointer is always on the component
+        repeat(10) {
+            awaitIdle()
+            assertThat(events.size).isEqualTo(1)
+            assertThat(events.last()).isEqualTo(DragStarted(Offset(25f, 25f)))
+        }
     }
 
     private fun Window.dragEvents(eventsProvider: AwtWindowDragTargetListener.() -> Unit) {
