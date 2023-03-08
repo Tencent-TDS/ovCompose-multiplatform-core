@@ -165,7 +165,7 @@ internal class AwtWindowDropTarget(
         window,
         // notify components on window border that drag is started.
         onDragEnterWindow = { newWindowDragCoordinates ->
-            for ((_, handler) in handlers) {
+            for (handler in handlers.values) {
                 val isInside =
                     isExternalDragInsideComponent(
                         handler.componentCoordinates,
@@ -184,7 +184,7 @@ internal class AwtWindowDropTarget(
         },
         // drag moved inside window, we should calculate whether drag entered/exited components or just moved inside them
         onDragInsideWindow = { newWindowDragCoordinates ->
-            for ((_, handler) in handlers) {
+            for (handler in handlers.values) {
                 val componentCoordinates = handler.componentCoordinates
                 val oldDragCoordinates = windowDragCoordinates
 
@@ -214,7 +214,7 @@ internal class AwtWindowDropTarget(
         },
         // notify components on window border drag exited window
         onDragExit = {
-            for ((_, handler) in handlers) {
+            for (handler in handlers.values) {
                 val componentCoordinates = handler.componentCoordinates
                 val oldDragCoordinates = windowDragCoordinates
                 val wasDragInside =
@@ -228,7 +228,7 @@ internal class AwtWindowDropTarget(
         // notify all components under the pointer that drop happened
         onDrop = {
             var anyDrops = false
-            for ((_, handler) in handlers) {
+            for (handler in handlers.values) {
                 if (isExternalDragInsideComponent(
                         handler.componentCoordinates,
                         windowDragCoordinates
