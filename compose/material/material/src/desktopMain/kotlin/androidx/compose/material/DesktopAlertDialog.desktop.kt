@@ -178,6 +178,7 @@ interface AlertDialogProvider {
      * @param onDismissRequest Callback that will be called when the user closes the dialog
      * @param content Content of the dialog
      */
+    @Deprecated("Will be removed in 1.5; use the overload that takes the dialog shape")
     @Composable
     fun AlertDialog(
         onDismissRequest: () -> Unit,
@@ -191,6 +192,7 @@ interface AlertDialogProvider {
      * @param shape The Dialog's shape
      * @param content Content of the dialog
      */
+    @Suppress("DEPRECATION")
     @Composable
     fun AlertDialog(
         onDismissRequest: () -> Unit,
@@ -209,6 +211,8 @@ interface AlertDialogProvider {
  */
 @ExperimentalMaterialApi
 object PopupAlertDialogProvider : AlertDialogProvider {
+
+    @Deprecated("Will be removed in 1.5; use the overload that takes the dialog shape")
     @Composable
     override fun AlertDialog(
         onDismissRequest: () -> Unit,
@@ -285,6 +289,7 @@ object PopupAlertDialogProvider : AlertDialogProvider {
  */
 @ExperimentalMaterialApi
 object UndecoratedWindowAlertDialogProvider : AlertDialogProvider {
+    @Deprecated("Will be removed in 1.5; use the overload that takes the dialog shape")
     @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     override fun AlertDialog(
