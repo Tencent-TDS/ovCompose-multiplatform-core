@@ -93,7 +93,6 @@ internal class ParagraphLayouter(
         }
     }
 
-
     fun setTextStyle(
         color: Color,
         shadow: Shadow?,
