@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
@@ -39,8 +40,11 @@ import kotlin.time.DurationUnit.NANOSECONDS
 import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import org.jetbrains.skia.Bitmap
+import org.jetbrains.skia.Canvas
 import org.jetbrains.skia.Color
 import org.jetbrains.skia.Image
+import org.jetbrains.skia.ImageInfo
 import org.jetbrains.skia.Surface
 import org.jetbrains.skiko.currentNanoTime
 
@@ -110,13 +114,16 @@ class ImageComposeScene(
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
     content: @Composable () -> Unit = {},
 ) {
-    private val surface = Surface.makeRasterN32Premul(width, height)
+    private val bitmap = Bitmap().apply {
+        allocPixelsFlags(ImageInfo.makeN32Premul(width, height), true)
+    }
+    private val canvas = Canvas(bitmap)
 
     private val scene = ComposeScene(
         density = density,
         coroutineContext = coroutineContext
     ).apply {
-        constraints = Constraints(maxWidth = surface.width, maxHeight = surface.height)
+        constraints = Constraints(maxWidth = width, maxHeight = height)
         setContent(content = content)
     }
 
@@ -175,9 +182,10 @@ class ImageComposeScene(
      * animations in the content (or any other code, which uses [withFrameNanos]
      */
     fun render(nanoTime: Long = 0): Image {
-        surface.canvas.clear(Color.TRANSPARENT)
-        scene.render(surface.canvas, nanoTime)
-        return surface.makeImageSnapshot()
+        canvas.clear(Color.TRANSPARENT)
+        scene.render(canvas, nanoTime)
+        canvas.readPixels(bitmap, 0, 0)
+        return Image.makeFromBitmap(bitmap)
     }
 
     /**
