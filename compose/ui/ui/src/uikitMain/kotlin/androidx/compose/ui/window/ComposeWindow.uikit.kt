@@ -249,8 +249,12 @@ internal actual class ComposeWindow : UIViewController {
         val width = size.useContents { width } * scale
         val height = size.useContents { height } * scale
         layer.setSize(width.roundToInt(), height.roundToInt())
-        layer.layer.needRedraw()
+        layer.layer.needRedraw() // TODO: remove? the following block should be enough
         withTransitionCoordinator.animateAlongsideTransition(animation = null) {
+            // Docs: https://developer.apple.com/documentation/uikit/uiviewcontrollertransitioncoordinator/1619295-animatealongsidetransition
+            // Request a frame once more on animation completion.
+            // Consider adding redrawImmediately() in SkiaLayer for ios to sync with current frame.
+            // This fixes an interop use case when Compose is embedded in SwiftUi.
             layer.layer.needRedraw()
         }
         super.viewWillTransitionToSize(size, withTransitionCoordinator)
