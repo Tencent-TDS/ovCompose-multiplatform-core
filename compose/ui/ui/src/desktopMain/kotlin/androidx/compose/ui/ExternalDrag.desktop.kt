@@ -255,15 +255,13 @@ internal class AwtWindowDropTarget(
      * @param handleId id provided by [installComponentDragHandler] function
      */
     fun stopDragHandling(handleId: Int) {
-        val handler = handlers[handleId]
-        val componentBounds = componentBoundsHolder[handleId]
+        val handler = handlers.remove(handleId)
+        val componentBounds = componentBoundsHolder.remove(handleId)
         if (handler != null && componentBounds != null &&
             isExternalDragInsideComponent(componentBounds, windowDragCoordinates)
         ) {
             handler.onDragCancel()
         }
-        handlers.remove(handleId)
-        componentBoundsHolder.remove(handleId)
 
         if (handlers.isEmpty()) {
             isActive = false
