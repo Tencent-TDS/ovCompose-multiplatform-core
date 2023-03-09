@@ -250,6 +250,9 @@ internal actual class ComposeWindow : UIViewController {
         val height = size.useContents { height } * scale
         layer.setSize(width.roundToInt(), height.roundToInt())
         layer.layer.needRedraw()
+        withTransitionCoordinator.animateAlongsideTransition(animation = null) {
+            layer.layer.needRedraw()
+        }
         super.viewWillTransitionToSize(size, withTransitionCoordinator)
     }
 
