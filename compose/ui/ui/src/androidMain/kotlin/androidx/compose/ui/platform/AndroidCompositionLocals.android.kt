@@ -27,7 +27,6 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
 import androidx.compose.runtime.setValue
@@ -41,9 +40,7 @@ import androidx.savedstate.SavedStateRegistryOwner
  * The Android [Configuration]. The [Configuration] is useful for determining how to organize the
  * UI.
  */
-val LocalConfiguration = compositionLocalOf<Configuration>(
-    neverEqualPolicy()
-) {
+val LocalConfiguration = compositionLocalOf<Configuration> {
     noLocalProvidedFor("LocalConfiguration")
 }
 
@@ -87,14 +84,13 @@ internal fun ProvideAndroidCompositionLocals(
 ) {
     val view = owner
     val context = view.context
+    // Make a deep copy to compare to later, since the same configuration object will be mutated
+    // as part of configuration changes
     var configuration by remember {
-        mutableStateOf(
-            context.resources.configuration,
-            neverEqualPolicy()
-        )
+        mutableStateOf(Configuration(context.resources.configuration))
     }
 
-    owner.configurationChangeObserver = { configuration = it }
+    owner.configurationChangeObserver = { configuration = Configuration(it) }
 
     val uriHandler = remember { AndroidUriHandler(context) }
     val viewTreeOwners = owner.viewTreeOwners ?: throw IllegalStateException(
@@ -135,14 +131,15 @@ private fun obtainImageVectorCache(
     configuration: Configuration?
 ): ImageVectorCache {
     val imageVectorCache = remember { ImageVectorCache() }
-    var currentConfiguration = remember { configuration }
+    val currentConfiguration: Configuration = remember {
+        Configuration().apply { configuration?.let { this.setTo(it) } }
+    }
     val callbacks = remember {
         object : ComponentCallbacks2 {
             override fun onConfigurationChanged(configuration: Configuration) {
-                // If there is no configuration, assume all flags have changed.
-                val changedFlags = currentConfiguration?.updateFrom(configuration) ?: -0x1
+                val changedFlags = currentConfiguration.updateFrom(configuration)
                 imageVectorCache.prune(changedFlags)
-                currentConfiguration = configuration
+                currentConfiguration.setTo(configuration)
             }
 
             override fun onLowMemory() {

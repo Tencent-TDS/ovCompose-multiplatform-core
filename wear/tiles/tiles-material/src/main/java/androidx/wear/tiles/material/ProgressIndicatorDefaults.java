@@ -33,7 +33,6 @@ public class ProgressIndicatorDefaults {
     /**
      * The default padding for {@link CircularProgressIndicator}
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
@@ -42,7 +41,7 @@ public class ProgressIndicatorDefaults {
     /** The recommended colors for {@link CircularProgressIndicator}. */
     @NonNull
     public static final ProgressIndicatorColors DEFAULT_COLORS =
-            ProgressIndicatorColors.primaryProgressIndicatorColors(Colors.DEFAULT);
+            ProgressIndicatorColors.progressIndicatorColors(Colors.DEFAULT);
 
     static final float DEFAULT_GAP_LENGTH = 47.8f;
 

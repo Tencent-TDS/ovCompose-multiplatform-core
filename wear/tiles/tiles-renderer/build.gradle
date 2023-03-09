@@ -16,6 +16,7 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+import androidx.build.Publish
 import androidx.build.LibraryType
 
 plugins {
@@ -31,9 +32,11 @@ dependencies {
 
     implementation "androidx.concurrent:concurrent-futures:1.1.0"
     implementation "androidx.concurrent:concurrent-futures-ktx:1.1.0"
-    implementation "androidx.core:core:1.3.2"
+    implementation("androidx.core:core:1.7.0")
     implementation "androidx.wear:wear:1.2.0"
 
+    implementation(project(":wear:protolayout:protolayout"))
+    implementation(project(":wear:protolayout:protolayout-renderer"))
     implementation(project(":wear:tiles:tiles"))
     implementation(project(":wear:tiles:tiles-proto"))
     implementation(libs.kotlinCoroutinesCore)
@@ -44,7 +47,7 @@ dependencies {
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation("com.google.protobuf:protobuf-java:3.10.0")
+    androidTestImplementation(libs.protobuf)
 
     // I'm not 100% sure why, but androidTestImplementation doesn't appear to use the standard
     // results of a project build. This leads to it not using the shadow configuration from
@@ -61,8 +64,8 @@ dependencies {
     testImplementation(libs.testRules)
     testImplementation(libs.kotlinCoroutinesTest)
     testImplementation(libs.robolectric)
-    testImplementation(libs.mockitoCore)
-    testImplementation(libs.mockitoKotlin)
+    testImplementation(libs.mockitoCore4)
+    testImplementation(libs.mockitoKotlin4)
     testImplementation(libs.truth)
 }
 
@@ -84,16 +87,9 @@ android {
     namespace "androidx.wear.tiles.renderer"
 }
 
-// Allow usage of Kotlin's @OptIn.
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions {
-        freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
-    }
-}
-
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:3.10.0"
+        artifact = libs.protobufCompiler.get()
     }
 
     // Generates the java proto-lite code for the protos in this project. See
@@ -111,7 +107,7 @@ protobuf {
 androidx {
     name = "Android Wear Tiles Renderer"
     type = LibraryType.PUBLISHED_LIBRARY
-    mavenGroup = LibraryGroups.WEAR_TILES
+    publish = Publish.SNAPSHOT_AND_RELEASE
     inceptionYear = "2021"
     description = "Android Wear Tiles Renderer components. These components can be used to parse " +
             "and render an already constructed Wear Tile."

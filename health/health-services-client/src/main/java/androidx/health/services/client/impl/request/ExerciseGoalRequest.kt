@@ -18,14 +18,15 @@ package androidx.health.services.client.impl.request
 
 import android.os.Parcel
 import android.os.Parcelable
+import androidx.annotation.RestrictTo
 import androidx.health.services.client.data.ExerciseGoal
 
 /**
  * Request for adding a [ExerciseGoal] to an exercise.
  *
- * @hide
  */
-public data class ExerciseGoalRequest(val packageName: String, val exerciseGoal: ExerciseGoal) :
+@RestrictTo(RestrictTo.Scope.LIBRARY)
+public data class ExerciseGoalRequest(val packageName: String, val exerciseGoal: ExerciseGoal<*>) :
     Parcelable {
     override fun describeContents(): Int = 0
 
@@ -38,8 +39,8 @@ public data class ExerciseGoalRequest(val packageName: String, val exerciseGoal:
         @JvmField
         public val CREATOR: Parcelable.Creator<ExerciseGoalRequest> =
             object : Parcelable.Creator<ExerciseGoalRequest> {
-                @Suppress("deprecation")
                 override fun createFromParcel(source: Parcel): ExerciseGoalRequest? {
+                    @Suppress("DEPRECATION")
                     return ExerciseGoalRequest(
                         source.readString() ?: return null,
                         source.readParcelable(ExerciseGoal::class.java.classLoader) ?: return null,

@@ -16,6 +16,7 @@
 
 package androidx.viewpager.widget;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
@@ -234,12 +235,10 @@ public class ViewPager extends ViewGroup {
     private boolean mFakeDragging;
     private long mFakeDragBeginTime;
 
-    /** @hide */
     @VisibleForTesting
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @NonNull
     public EdgeEffect mLeftEdge;
-    /** @hide */
     @VisibleForTesting
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @NonNull
@@ -795,6 +794,7 @@ public class ViewPager extends ViewGroup {
      *                      {@link View#LAYER_TYPE_SOFTWARE}, or
      *                      {@link View#LAYER_TYPE_NONE}.
      */
+    @SuppressLint("LambdaLast")
     public void setPageTransformer(boolean reverseDrawingOrder,
             @Nullable PageTransformer transformer, int pageLayerType) {
         final boolean hasTransformer = transformer != null;
@@ -919,7 +919,7 @@ public class ViewPager extends ViewGroup {
     }
 
     @Override
-    protected boolean verifyDrawable(Drawable who) {
+    protected boolean verifyDrawable(@NonNull Drawable who) {
         return super.verifyDrawable(who) || who == mMarginDrawable;
     }
 
@@ -1439,6 +1439,7 @@ public class ViewPager extends ViewGroup {
     }
 
     @Override
+    @NonNull
     public Parcelable onSaveInstanceState() {
         Parcelable superState = super.onSaveInstanceState();
         SavedState ss = new SavedState(superState);
@@ -2489,7 +2490,7 @@ public class ViewPager extends ViewGroup {
     }
 
     @Override
-    public void draw(Canvas canvas) {
+    public void draw(@NonNull Canvas canvas) {
         super.draw(canvas);
         boolean needsInvalidate = false;
 
@@ -2531,7 +2532,7 @@ public class ViewPager extends ViewGroup {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
+    protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
 
         // Draw the margin drawable between pages if needed.
@@ -2773,7 +2774,7 @@ public class ViewPager extends ViewGroup {
      * @param y Y coordinate of the active touch point
      * @return true if child views of v can be scrolled by delta of dx.
      */
-    protected boolean canScroll(View v, boolean checkV, int dx, int x, int y) {
+    protected boolean canScroll(@NonNull View v, boolean checkV, int dx, int x, int y) {
         if (v instanceof ViewGroup) {
             final ViewGroup group = (ViewGroup) v;
             final int scrollX = v.getScrollX();
@@ -3203,7 +3204,7 @@ public class ViewPager extends ViewGroup {
             super(MATCH_PARENT, MATCH_PARENT);
         }
 
-        public LayoutParams(Context context, AttributeSet attrs) {
+        public LayoutParams(@NonNull Context context, @Nullable AttributeSet attrs) {
             super(context, attrs);
 
             final TypedArray a = context.obtainStyledAttributes(attrs, LAYOUT_ATTRS);

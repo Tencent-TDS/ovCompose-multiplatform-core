@@ -21,8 +21,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -31,9 +34,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -45,7 +48,9 @@ import androidx.wear.compose.foundation.CurvedLayout
 import androidx.wear.compose.foundation.CurvedModifier
 import androidx.wear.compose.foundation.CurvedScope
 import androidx.wear.compose.foundation.CurvedTextStyle
+import androidx.wear.compose.foundation.background
 import androidx.wear.compose.foundation.basicCurvedText
+import androidx.wear.compose.foundation.curvedBox
 import androidx.wear.compose.foundation.curvedColumn
 import androidx.wear.compose.foundation.curvedComposable
 import androidx.wear.compose.foundation.curvedRow
@@ -260,9 +265,9 @@ fun CurvedLayoutDirection() {
         if (layoutDirection) LayoutDirection.Rtl
         else LayoutDirection.Ltr
     CompositionLocalProvider(LocalLayoutDirection provides actualLayoutDirection) {
-        Box(modifier = Modifier.background(Color.White)) {
+        Box {
             Row(modifier = Modifier.align(Alignment.Center)) {
-                Text("LayoutDirection: ", style = TextStyle(color = Color.Black))
+                Text("LayoutDirection: ")
                 ToggleButton(
                     checked = layoutDirection,
                     onCheckedChange = { layoutDirection = !layoutDirection }
@@ -276,30 +281,110 @@ fun CurvedLayoutDirection() {
                         CurvedDirection.Angular.Reversed
                     )[topDown]
                 ) {
-                    basicCurvedText(
-                        "Before",
-                        CurvedTextStyle(
-                            fontSize = 24.sp
-                        ),
-                        modifier = CurvedModifier.padding(angular = 5.dp),
-                    )
-                    curvedColumn {
-                        repeat(3) {
-                            basicCurvedText("#$it")
+                    curvedRow(CurvedModifier.background(Color.White)) {
+                        basicCurvedText(
+                            "Before",
+                            CurvedTextStyle(
+                                fontSize = 24.sp
+                            ),
+                            modifier = CurvedModifier.padding(angular = 5.dp),
+                        )
+                        curvedColumn {
+                            repeat(3) {
+                                basicCurvedText("#$it")
+                            }
                         }
-                    }
-                    curvedRow {
-                        basicCurvedText(
-                            "after",
-                            modifier = CurvedModifier.padding(angular = 4.dp),
-                        )
-                        basicCurvedText(
-                            "end",
-                            modifier = CurvedModifier.padding(angular = 4.dp),
-                        )
+                        curvedRow {
+                            curvedComposable {
+                                Text(
+                                    "after",
+                                    modifier = Modifier.padding(4.dp),
+                                    color = Color.Black
+                                )
+                            }
+                            basicCurvedText(
+                                "end",
+                                modifier = CurvedModifier.padding(angular = 4.dp),
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+fun CurvedBoxDemo() {
+    CurvedLayout(
+        modifier = Modifier.fillMaxSize(),
+        anchor = 90f,
+    ) {
+        curvedBox(
+            modifier = CurvedModifier.background(Color.Red),
+            radialAlignment = CurvedAlignment.Radial.Inner,
+            angularAlignment = CurvedAlignment.Angular.End
+        ) {
+            curvedComposable {
+                Box(
+                    modifier = Modifier
+                        .width(60.dp)
+                        .height(40.dp)
+                        .background(Color.Green)
+                )
+            }
+            curvedComposable {
+                WhiteCircle()
+            }
+        }
+    }
+    CurvedLayout(
+        modifier = Modifier.fillMaxSize(),
+        anchor = 180f,
+    ) {
+        curvedBox(
+            modifier = CurvedModifier
+                .background(Color.Red)
+        ) {
+            curvedComposable {
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .background(Color.Green)
+                )
+            }
+            curvedComposable {
+                WhiteCircle()
+            }
+        }
+    }
+    CurvedLayout(modifier = Modifier.fillMaxSize()) {
+        curvedBox(
+            modifier = CurvedModifier.background(Color.Red),
+            radialAlignment = CurvedAlignment.Radial.Outer,
+            angularAlignment = CurvedAlignment.Angular.Start
+        ) {
+            curvedComposable {
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(60.dp)
+                        .background(Color.Green)
+                )
+            }
+            curvedComposable {
+                WhiteCircle()
+            }
+        }
+    }
+}
+
+@Composable
+private fun WhiteCircle() {
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .clip(CircleShape)
+            .background(Color.White)
+    )
 }

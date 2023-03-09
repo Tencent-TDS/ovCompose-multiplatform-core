@@ -31,9 +31,8 @@ import androidx.versionedparcelable.VersionedParcelize;
  * Data sent over AIDL during watch face creation for device characteristics that cannot change
  * dynamically.
  *
- * @hide
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @VersionedParcelize(allowSerialization = true)
 @SuppressLint("BanParcelableUsage") // TODO(b/169214666): Remove Parcelable
 public final class DeviceConfig implements VersionedParcelable, Parcelable {

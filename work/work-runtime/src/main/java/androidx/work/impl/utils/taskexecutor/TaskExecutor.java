@@ -16,16 +16,18 @@
 
 package androidx.work.impl.utils.taskexecutor;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.work.Configuration;
-import androidx.work.impl.utils.SerialExecutor;
 
 import java.util.concurrent.Executor;
+
+import kotlinx.coroutines.CoroutineDispatcher;
+import kotlinx.coroutines.ExecutorsKt;
 
 /**
  * Interface for executing common tasks in WorkManager.
  *
- * @hide
  */
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -33,20 +35,29 @@ public interface TaskExecutor {
     /**
      * @return The {@link Executor} for main thread task processing
      */
+    @NonNull
     Executor getMainThreadExecutor();
 
     /**
      * @param runnable {@link Runnable} to execute on a thread pool used
      *                 for internal book-keeping.
      */
-    default void executeOnTaskThread(Runnable runnable) {
+    default void executeOnTaskThread(@NonNull Runnable runnable) {
         getSerialTaskExecutor().execute(runnable);
     }
 
     /**
      * It wraps an executor passed in {@link Configuration#getTaskExecutor()}
      *
-     * @return The {@link SerialExecutor} for internal book-keeping
+     * Executor must guarantee a serial execution.
+     *
+     * @return The {@link Executor} for internal book-keeping
      */
+    @NonNull
     SerialExecutor getSerialTaskExecutor();
+
+    @NonNull
+    default CoroutineDispatcher getTaskCoroutineDispatcher() {
+        return ExecutorsKt.from(getSerialTaskExecutor());
+    }
 }

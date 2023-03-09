@@ -16,14 +16,12 @@
 
 package androidx.room.solver.shortcut.binderprovider
 
-import androidx.room.ext.L
-import androidx.room.ext.T
 import androidx.room.compiler.processing.XRawType
 import androidx.room.compiler.processing.XType
 import androidx.room.processor.Context
 import androidx.room.solver.RxType
 import androidx.room.solver.shortcut.binder.CallableInsertMethodBinder.Companion.createInsertBinder
-import androidx.room.solver.shortcut.binder.InsertMethodBinder
+import androidx.room.solver.shortcut.binder.InsertOrUpsertMethodBinder
 import androidx.room.vo.ShortcutQueryParameter
 
 /**
@@ -32,7 +30,7 @@ import androidx.room.vo.ShortcutQueryParameter
 open class RxCallableInsertMethodBinderProvider internal constructor(
     val context: Context,
     private val rxType: RxType
-) : InsertMethodBinderProvider {
+) : InsertOrUpsertMethodBinderProvider {
 
     /**
      * [Single] and [Maybe] are generics but [Completable] is not so each implementation of this
@@ -44,27 +42,27 @@ open class RxCallableInsertMethodBinderProvider internal constructor(
         declared.typeArguments.size == 1 && matchesRxType(declared)
 
     private fun matchesRxType(declared: XType): Boolean {
-        return declared.rawType.typeName == rxType.className
+        return declared.rawType.asTypeName() == rxType.className
     }
 
     override fun provide(
         declared: XType,
         params: List<ShortcutQueryParameter>
-    ): InsertMethodBinder {
+    ): InsertOrUpsertMethodBinder {
         val typeArg = extractTypeArg(declared)
         val adapter = context.typeAdapterStore.findInsertAdapter(typeArg, params)
         return createInsertBinder(typeArg, adapter) { callableImpl, _ ->
-            addStatement("return $T.fromCallable($L)", rxType.className, callableImpl)
+            addStatement("return %T.fromCallable(%L)", rxType.className, callableImpl)
         }
     }
 
     companion object {
         fun getAll(context: Context) = listOf(
-            RxCallableInsertMethodBinderProvider(context, RxType.RX2_SINGLE),
-            RxCallableInsertMethodBinderProvider(context, RxType.RX2_MAYBE),
+            RxSingleOrMaybeInsertMethodBinderProvider(context, RxType.RX2_SINGLE),
+            RxSingleOrMaybeInsertMethodBinderProvider(context, RxType.RX2_MAYBE),
             RxCompletableInsertMethodBinderProvider(context, RxType.RX2_COMPLETABLE),
-            RxCallableInsertMethodBinderProvider(context, RxType.RX3_SINGLE),
-            RxCallableInsertMethodBinderProvider(context, RxType.RX3_MAYBE),
+            RxSingleOrMaybeInsertMethodBinderProvider(context, RxType.RX3_SINGLE),
+            RxSingleOrMaybeInsertMethodBinderProvider(context, RxType.RX3_MAYBE),
             RxCompletableInsertMethodBinderProvider(context, RxType.RX3_COMPLETABLE)
         )
     }
@@ -76,15 +74,15 @@ private class RxCompletableInsertMethodBinderProvider(
 ) : RxCallableInsertMethodBinderProvider(context, rxType) {
 
     private val completableType: XRawType? by lazy {
-        context.processingEnv.findType(rxType.className)?.rawType
+        context.processingEnv.findType(rxType.className.canonicalName)?.rawType
     }
 
     /**
-     * Since Completable is not a generic, the supported return type should be Void.
+     * Since Completable is not a generic, the supported return type should be Void (nullable).
      * Like this, the generated Callable.call method will return Void.
      */
     override fun extractTypeArg(declared: XType): XType =
-        context.COMMON_TYPES.VOID
+        context.COMMON_TYPES.VOID.makeNullable()
 
     override fun matches(declared: XType): Boolean = isCompletable(declared)
 
@@ -94,4 +92,16 @@ private class RxCompletableInsertMethodBinderProvider(
         }
         return declared.rawType.isAssignableFrom(completableType!!)
     }
+}
+
+private class RxSingleOrMaybeInsertMethodBinderProvider(
+    context: Context,
+    rxType: RxType
+) : RxCallableInsertMethodBinderProvider(context, rxType) {
+
+    /**
+     * Since Maybe can have null values, the Callable returned must allow for null values.
+     */
+    override fun extractTypeArg(declared: XType): XType =
+        declared.typeArguments.first().makeNullable()
 }

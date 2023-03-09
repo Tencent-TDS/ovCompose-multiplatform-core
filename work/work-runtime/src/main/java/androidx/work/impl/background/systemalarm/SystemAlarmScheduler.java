@@ -16,6 +16,8 @@
 
 package androidx.work.impl.background.systemalarm;
 
+import static androidx.work.impl.model.WorkSpecKt.generationalId;
+
 import android.content.Context;
 import android.content.Intent;
 
@@ -28,7 +30,6 @@ import androidx.work.impl.model.WorkSpec;
 /**
  * A {@link Scheduler} that schedules work using {@link android.app.AlarmManager}.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class SystemAlarmScheduler implements Scheduler {
@@ -65,7 +66,8 @@ public class SystemAlarmScheduler implements Scheduler {
      */
     private void scheduleWorkSpec(@NonNull WorkSpec workSpec) {
         Logger.get().debug(TAG, "Scheduling work with workSpecId " + workSpec.id);
-        Intent scheduleIntent = CommandHandler.createScheduleWorkIntent(mContext, workSpec.id);
+        Intent scheduleIntent = CommandHandler.createScheduleWorkIntent(mContext,
+                generationalId(workSpec));
         mContext.startService(scheduleIntent);
     }
 }

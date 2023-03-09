@@ -40,6 +40,13 @@ android {
     buildFeatures {
         aidl = true
     }
+    buildTypes {
+        debug {
+            // Need to make sure androidx.tracing.Trace gets put in primary dex for legacy multidex
+            // as it is needed by androidx.test.runner.AndroidJUnitRunner
+            multiDexKeepFile file('multidex-config.txt')
+        }
+    }
     sourceSets {
         androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
         androidTest.assets.srcDirs += files("$projectDir/databases".toString())
@@ -106,6 +113,9 @@ dependencies {
     androidTestAnnotationProcessor project(path: ":room:room-compiler",
             configuration: "shadowAndImplementation")
 
+    androidTestImplementation(project(":annotation:annotation-experimental"))
+    androidTestImplementation(project(":arch:core:core-runtime"))
+    androidTestImplementation(project(":arch:core:core-common"))
     androidTestImplementation(project(":room:room-testing"))
     androidTestImplementation(project(":room:room-rxjava2"))
     androidTestImplementation(project(":room:room-rxjava3"))

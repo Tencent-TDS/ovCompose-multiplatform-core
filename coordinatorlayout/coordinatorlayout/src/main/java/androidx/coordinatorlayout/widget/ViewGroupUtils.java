@@ -25,10 +25,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 
 /**
- * @hide
  */
 @RestrictTo(LIBRARY)
 public class ViewGroupUtils {
@@ -73,7 +73,11 @@ public class ViewGroupUtils {
      * @param descendant descendant view to reference
      * @param out rect to set to the bounds of the descendant view
      */
-    public static void getDescendantRect(ViewGroup parent, View descendant, Rect out) {
+    public static void getDescendantRect(
+            @NonNull ViewGroup parent,
+            @NonNull View descendant,
+            @NonNull Rect out
+    ) {
         out.set(0, 0, descendant.getWidth(), descendant.getHeight());
         offsetDescendantRect(parent, descendant, out);
     }

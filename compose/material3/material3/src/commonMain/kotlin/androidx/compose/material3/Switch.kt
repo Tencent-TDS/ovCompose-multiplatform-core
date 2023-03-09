@@ -37,9 +37,9 @@ import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.tokens.SwitchTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -71,22 +71,21 @@ import kotlinx.coroutines.launch
  *
  * @sample androidx.compose.material3.samples.SwitchWithThumbIconSample
  *
- * @param checked whether or not this component is checked
- * @param onCheckedChange callback to be invoked when Switch is being clicked,
- * therefore the change of checked state is requested.  If null, then this is passive
- * and relies entirely on a higher-level component to control the "checked" state.
- * @param modifier Modifier to be applied to the switch layout
+ * @param checked whether or not this switch is checked
+ * @param onCheckedChange called when this switch is clicked. If `null`, then this switch will not
+ * be interactable, unless something else handles its input events and updates its state.
+ * @param modifier the [Modifier] to be applied to this switch
  * @param thumbContent content that will be drawn inside the thumb, expected to measure
  * [SwitchDefaults.IconSize]
- * @param enabled whether the component is enabled or grayed out
- * @param interactionSource the [MutableInteractionSource] representing the stream of
- * [Interaction]s for this Switch. You can create and pass in your own remembered
- * [MutableInteractionSource] if you want to observe [Interaction]s and customize the
- * appearance / behavior of this Switch in different [Interaction]s.
- * @param colors [SwitchColors] that will be used to determine the color of the thumb, track,
- * and border in different states. See [SwitchDefaults.colors].
+ * @param enabled controls the enabled state of this switch. When `false`, this component will not
+ * respond to user input, and it will appear visually disabled and disabled to accessibility
+ * services.
+ * @param colors [SwitchColors] that will be used to resolve the colors used for this switch in
+ * different states. See [SwitchDefaults.colors].
+ * @param interactionSource the [MutableInteractionSource] representing the stream of [Interaction]s
+ * for this switch. You can create and pass in your own `remember`ed instance to observe
+ * [Interaction]s and customize the appearance / behavior of this switch in different states.
  */
-// TODO: b/223858692 add m.io documentation
 @Composable
 @Suppress("ComposableLambdaParameterNaming", "ComposableLambdaParameterPosition")
 fun Switch(
@@ -95,8 +94,8 @@ fun Switch(
     modifier: Modifier = Modifier,
     thumbContent: (@Composable () -> Unit)? = null,
     enabled: Boolean = true,
-    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     colors: SwitchColors = SwitchDefaults.colors(),
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
 ) {
     val uncheckedThumbDiameter = if (thumbContent == null) {
         UncheckedThumbDiameter
@@ -111,24 +110,30 @@ fun Switch(
         { value -> if (value) maxBound else minBound }
     }
 
-    val offset = remember { Animatable(valueToOffset(checked)) }
+    val targetValue = valueToOffset(checked)
+    val offset = remember { Animatable(targetValue) }
+    val scope = rememberCoroutineScope()
+
     SideEffect {
         // min bound might have changed if the icon is only rendered in checked state.
         offset.updateBounds(lowerBound = minBound)
     }
 
-    val scope = rememberCoroutineScope()
+    DisposableEffect(checked) {
+        if (offset.targetValue != targetValue) {
+            scope.launch {
+                offset.animateTo(targetValue, AnimationSpec)
+            }
+        }
+        onDispose { }
+    }
+
     // TODO: Add Swipeable modifier b/223797571
     val toggleableModifier =
         if (onCheckedChange != null) {
             Modifier.toggleable(
                 value = checked,
-                onValueChange = { value: Boolean ->
-                    scope.launch {
-                        offset.animateTo(valueToOffset(value), AnimationSpec)
-                    }
-                    onCheckedChange(value)
-                },
+                onValueChange = onCheckedChange,
                 enabled = enabled,
                 role = Role.Switch,
                 interactionSource = interactionSource,
@@ -141,7 +146,11 @@ fun Switch(
     Box(
         modifier
             .then(
-                if (onCheckedChange != null) Modifier.minimumTouchTargetSize() else Modifier
+                if (onCheckedChange != null) {
+                    Modifier.minimumInteractiveComponentSize()
+                } else {
+                    Modifier
+                }
             )
             .then(toggleableModifier)
             .wrapContentSize(Alignment.Center)
@@ -160,52 +169,6 @@ fun Switch(
             thumbContent = thumbContent,
         )
     }
-}
-
-/**
- * Represents the colors used by a [Switch] in different states
- *
- * See [SwitchDefaults.colors] for the default implementation that follows Material
- * specifications.
- */
-@Stable
-interface SwitchColors {
-
-    /**
-     * Represents the color used for the switch's thumb, depending on [enabled] and [checked].
-     *
-     * @param enabled whether the [Switch] is enabled or not
-     * @param checked whether the [Switch] is checked or not
-     */
-    @Composable
-    fun thumbColor(enabled: Boolean, checked: Boolean): State<Color>
-
-    /**
-     * Represents the color used for the switch's track, depending on [enabled] and [checked].
-     *
-     * @param enabled whether the [Switch] is enabled or not
-     * @param checked whether the [Switch] is checked or not
-     */
-    @Composable
-    fun trackColor(enabled: Boolean, checked: Boolean): State<Color>
-
-    /**
-     * Represents the color used for the switch's border, depending on [enabled] and [checked].
-     *
-     * @param enabled whether the [Switch] is enabled or not
-     * @param checked whether the [Switch] is checked or not
-     */
-    @Composable
-    fun borderColor(enabled: Boolean, checked: Boolean): State<Color>
-
-    /**
-     * Represents the content color passed to the icon if used
-     *
-     * @param enabled whether the [Switch] is enabled or not
-     * @param checked whether the [Switch] is checked or not
-     */
-    @Composable
-    fun iconColor(enabled: Boolean, checked: Boolean): State<Color>
 }
 
 @Composable
@@ -246,7 +209,8 @@ private fun BoxScope.SwitchImpl(
     }
 
     val trackShape = SwitchTokens.TrackShape.toShape()
-    val modifier = Modifier.align(Alignment.Center)
+    val modifier = Modifier
+        .align(Alignment.Center)
         .width(SwitchWidth)
         .height(SwitchHeight)
         .border(
@@ -326,20 +290,20 @@ object SwitchDefaults {
         uncheckedTrackColor: Color = SwitchTokens.UnselectedTrackColor.toColor(),
         uncheckedBorderColor: Color = SwitchTokens.UnselectedFocusTrackOutlineColor.toColor(),
         uncheckedIconColor: Color = SwitchTokens.UnselectedIconColor.toColor(),
-        disabledCheckedThumbColor: Color = checkedThumbColor
+        disabledCheckedThumbColor: Color = SwitchTokens.DisabledSelectedHandleColor.toColor()
             .copy(alpha = SwitchTokens.DisabledSelectedHandleOpacity)
             .compositeOver(MaterialTheme.colorScheme.surface),
-        disabledCheckedTrackColor: Color = checkedTrackColor
+        disabledCheckedTrackColor: Color = SwitchTokens.DisabledSelectedTrackColor.toColor()
             .copy(alpha = SwitchTokens.DisabledTrackOpacity)
             .compositeOver(MaterialTheme.colorScheme.surface),
         disabledCheckedBorderColor: Color = Color.Transparent,
         disabledCheckedIconColor: Color = SwitchTokens.DisabledSelectedIconColor.toColor()
             .copy(alpha = SwitchTokens.DisabledSelectedIconOpacity)
             .compositeOver(MaterialTheme.colorScheme.surface),
-        disabledUncheckedThumbColor: Color = uncheckedThumbColor
-            .copy(alpha = SwitchTokens.DisabledSelectedHandleOpacity)
+        disabledUncheckedThumbColor: Color = SwitchTokens.DisabledUnselectedHandleColor.toColor()
+            .copy(alpha = SwitchTokens.DisabledUnselectedHandleOpacity)
             .compositeOver(MaterialTheme.colorScheme.surface),
-        disabledUncheckedTrackColor: Color = uncheckedTrackColor
+        disabledUncheckedTrackColor: Color = SwitchTokens.DisabledUnselectedTrackColor.toColor()
             .copy(alpha = SwitchTokens.DisabledTrackOpacity)
             .compositeOver(MaterialTheme.colorScheme.surface),
         disabledUncheckedBorderColor: Color =
@@ -349,7 +313,7 @@ object SwitchDefaults {
         disabledUncheckedIconColor: Color = SwitchTokens.DisabledUnselectedIconColor.toColor()
             .copy(alpha = SwitchTokens.DisabledUnselectedIconOpacity)
             .compositeOver(MaterialTheme.colorScheme.surface),
-    ): SwitchColors = DefaultSwitchColors(
+    ): SwitchColors = SwitchColors(
         checkedThumbColor = checkedThumbColor,
         checkedTrackColor = checkedTrackColor,
         checkedBorderColor = checkedBorderColor,
@@ -375,10 +339,13 @@ object SwitchDefaults {
 }
 
 /**
- * Default [SwitchColors] implementation.
+ * Represents the colors used by a [Switch] in different states
+ *
+ * See [SwitchDefaults.colors] for the default implementation that follows Material
+ * specifications.
  */
 @Immutable
-private class DefaultSwitchColors(
+class SwitchColors internal constructor(
     private val checkedThumbColor: Color,
     private val checkedTrackColor: Color,
     private val checkedBorderColor: Color,
@@ -395,9 +362,15 @@ private class DefaultSwitchColors(
     private val disabledUncheckedTrackColor: Color,
     private val disabledUncheckedBorderColor: Color,
     private val disabledUncheckedIconColor: Color
-) : SwitchColors {
+) {
+    /**
+     * Represents the color used for the switch's thumb, depending on [enabled] and [checked].
+     *
+     * @param enabled whether the [Switch] is enabled or not
+     * @param checked whether the [Switch] is checked or not
+     */
     @Composable
-    override fun thumbColor(enabled: Boolean, checked: Boolean): State<Color> {
+    internal fun thumbColor(enabled: Boolean, checked: Boolean): State<Color> {
         return rememberUpdatedState(
             if (enabled) {
                 if (checked) checkedThumbColor else uncheckedThumbColor
@@ -407,8 +380,14 @@ private class DefaultSwitchColors(
         )
     }
 
+    /**
+     * Represents the color used for the switch's track, depending on [enabled] and [checked].
+     *
+     * @param enabled whether the [Switch] is enabled or not
+     * @param checked whether the [Switch] is checked or not
+     */
     @Composable
-    override fun trackColor(enabled: Boolean, checked: Boolean): State<Color> {
+    internal fun trackColor(enabled: Boolean, checked: Boolean): State<Color> {
         return rememberUpdatedState(
             if (enabled) {
                 if (checked) checkedTrackColor else uncheckedTrackColor
@@ -418,8 +397,14 @@ private class DefaultSwitchColors(
         )
     }
 
+    /**
+     * Represents the color used for the switch's border, depending on [enabled] and [checked].
+     *
+     * @param enabled whether the [Switch] is enabled or not
+     * @param checked whether the [Switch] is checked or not
+     */
     @Composable
-    override fun borderColor(enabled: Boolean, checked: Boolean): State<Color> {
+    internal fun borderColor(enabled: Boolean, checked: Boolean): State<Color> {
         return rememberUpdatedState(
             if (enabled) {
                 if (checked) checkedBorderColor else uncheckedBorderColor
@@ -429,8 +414,14 @@ private class DefaultSwitchColors(
         )
     }
 
+    /**
+     * Represents the content color passed to the icon if used
+     *
+     * @param enabled whether the [Switch] is enabled or not
+     * @param checked whether the [Switch] is checked or not
+     */
     @Composable
-    override fun iconColor(enabled: Boolean, checked: Boolean): State<Color> {
+    internal fun iconColor(enabled: Boolean, checked: Boolean): State<Color> {
         return rememberUpdatedState(
             if (enabled) {
                 if (checked) checkedIconColor else uncheckedIconColor
@@ -442,9 +433,7 @@ private class DefaultSwitchColors(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other == null || this::class != other::class) return false
-
-        other as DefaultSwitchColors
+        if (other == null || other !is SwitchColors) return false
 
         if (checkedThumbColor != other.checkedThumbColor) return false
         if (checkedTrackColor != other.checkedTrackColor) return false

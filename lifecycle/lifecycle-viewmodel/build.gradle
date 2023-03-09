@@ -35,12 +35,8 @@ dependencies {
     api("androidx.annotation:annotation:1.1.0")
     api(libs.kotlinStdlib)
     testImplementation(libs.junit)
-    testImplementation(libs.mockitoCore)
+    testImplementation(libs.mockitoCore4)
     testImplementation(libs.truth)
-
-    constraints {
-        implementation(project(":lifecycle:lifecycle-viewmodel-savedstate"))
-    }
 
     androidTestImplementation("androidx.core:core-ktx:1.2.0")
     androidTestImplementation(libs.truth)
@@ -54,15 +50,6 @@ dependencies {
 androidx {
     name = "Android Lifecycle ViewModel"
     publish = Publish.SNAPSHOT_AND_RELEASE
-    mavenGroup = LibraryGroups.LIFECYCLE
     inceptionYear = "2017"
     description = "Android Lifecycle ViewModel"
-}
-
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions {
-        freeCompilerArgs += [
-                "-Xjvm-default=all",
-        ]
-    }
 }

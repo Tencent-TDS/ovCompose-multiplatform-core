@@ -199,7 +199,7 @@ public final class MediaRouter {
      * When this flag is specified, the media router will try to discover routes.
      * Although route discovery is intended to be efficient, checking for new routes may
      * result in some network activity and could slowly drain the battery.  Therefore
-     * applications should only specify {@link #CALLBACK_FLAG_REQUEST_DISCOVERY} when
+     * applications should only specify this flag when
      * they are running in the foreground and would like to provide the user with the
      * option of connecting to new routes.
      * </p><p>
@@ -277,9 +277,12 @@ public final class MediaRouter {
      * will no longer be performed on its behalf.
      * </p>
      *
+     * <p>Must be called on the main thread.
+     *
      * @return The media router instance for the context.  The application must hold
      * a strong reference to this object as long as it is in use.
      */
+    @MainThread
     @NonNull
     public static MediaRouter getInstance(@NonNull Context context) {
         if (context == null) {
@@ -310,10 +313,8 @@ public final class MediaRouter {
      *     <li>{@link androidx.mediarouter.app.MediaRouteControllerDialog}
      *     <li>{@link androidx.mediarouter.app.MediaRouteDiscoveryFragment}
      * </ul>
-     * Please make sure this is called in the main thread.
-     * @hide
+     *
      */
-    @MainThread
     @RestrictTo(LIBRARY_GROUP)
     public static void resetGlobalRouter() {
         if (sGlobal == null) {
@@ -325,9 +326,7 @@ public final class MediaRouter {
 
     /**
      * Gets the initialized global router.
-     * Please make sure this is called in the main thread.
      */
-    @MainThread
     static GlobalMediaRouter getGlobalRouter() {
         if (sGlobal == null) {
             return null;
@@ -339,7 +338,10 @@ public final class MediaRouter {
     /**
      * Gets information about the {@link MediaRouter.RouteInfo routes} currently known to
      * this media router.
+     *
+     * <p>Must be called on the main thread.
      */
+    @MainThread
     @NonNull
     public List<RouteInfo> getRoutes() {
         checkCallingThread();
@@ -348,6 +350,7 @@ public final class MediaRouter {
                 globalMediaRouter.getRoutes();
     }
 
+    @MainThread
     @Nullable
     RouteInfo getRoute(String uniqueId) {
         checkCallingThread();
@@ -358,7 +361,10 @@ public final class MediaRouter {
     /**
      * Gets information about the {@link MediaRouter.ProviderInfo route providers}
      * currently known to this media router.
+     *
+     * <p>Must be called on the main thread.
      */
+    @MainThread
     @NonNull
     public List<ProviderInfo> getProviders() {
         checkCallingThread();
@@ -373,8 +379,11 @@ public final class MediaRouter {
      * The system always provides a default route.
      * </p>
      *
+     * <p>Must be called on the main thread.
+     *
      * @return The default route, which is guaranteed to never be null.
      */
+    @MainThread
     @NonNull
     public RouteInfo getDefaultRoute() {
         checkCallingThread();
@@ -384,8 +393,11 @@ public final class MediaRouter {
     /**
      * Gets a bluetooth route for playing media content on the system.
      *
+     * <p>Must be called on the main thread.
+     *
      * @return A bluetooth route, if exist, otherwise null.
      */
+    @MainThread
     @Nullable
     public RouteInfo getBluetoothRoute() {
         checkCallingThread();
@@ -432,12 +444,15 @@ public final class MediaRouter {
      * }
      * </pre>
      *
+     * <p>Must be called on the main thread.
+     *
      * @return The selected route, which is guaranteed to never be null.
      *
      * @see RouteInfo#getControlFilters
      * @see RouteInfo#supportsControlCategory
      * @see RouteInfo#supportsControlRequest
      */
+    @MainThread
     @NonNull
     public RouteInfo getSelectedRoute() {
         checkCallingThread();
@@ -449,6 +464,8 @@ public final class MediaRouter {
      * selects the default route and returns it. If there is one live audio route
      * (usually Bluetooth A2DP), it will be selected instead of default route.
      *
+     * <p>Must be called on the main thread.
+     *
      * @param selector The selector to match.
      * @return The previously selected route if it matched the selector, otherwise the
      * newly selected default route which is guaranteed to never be null.
@@ -456,6 +473,7 @@ public final class MediaRouter {
      * @see MediaRouteSelector
      * @see RouteInfo#matchesSelector
      */
+    @MainThread
     @NonNull
     public RouteInfo updateSelectedRoute(@NonNull MediaRouteSelector selector) {
         if (selector == null) {
@@ -478,8 +496,11 @@ public final class MediaRouter {
     /**
      * Selects the specified route.
      *
+     * <p>Must be called on the main thread.
+     *
      * @param route The route to select.
      */
+    @MainThread
     public void selectRoute(@NonNull RouteInfo route) {
         if (route == null) {
             throw new IllegalArgumentException("route must not be null");
@@ -503,8 +524,11 @@ public final class MediaRouter {
      * <li>{@link MediaRouter#UNSELECT_REASON_ROUTE_CHANGED}</li>
      * </ul>
      *
+     * <p>Must be called on the main thread.
+     *
      * @param reason The reason for disconnecting the current route.
      */
+    @MainThread
     public void unselect(@UnselectReason int reason) {
         if (reason < MediaRouter.UNSELECT_REASON_UNKNOWN ||
                 reason > MediaRouter.UNSELECT_REASON_ROUTE_CHANGED) {
@@ -523,9 +547,9 @@ public final class MediaRouter {
 
     /**
      * Adds the specified route as a member to the current dynamic group.
-     * @hide
      */
     @RestrictTo(LIBRARY)
+    @MainThread
     public void addMemberToDynamicGroup(@NonNull RouteInfo route) {
         if (route == null) {
             throw new NullPointerException("route must not be null");
@@ -536,9 +560,9 @@ public final class MediaRouter {
 
     /**
      * Removes the specified route from the current dynamic group.
-     * @hide
      */
     @RestrictTo(LIBRARY)
+    @MainThread
     public void removeMemberFromDynamicGroup(@NonNull RouteInfo route) {
         if (route == null) {
             throw new NullPointerException("route must not be null");
@@ -549,9 +573,9 @@ public final class MediaRouter {
 
     /**
      * Transfers the current dynamic group to the specified route.
-     * @hide
      */
     @RestrictTo(LIBRARY)
+    @MainThread
     public void transferToRoute(@NonNull RouteInfo route) {
         if (route == null) {
             throw new NullPointerException("route must not be null");
@@ -575,6 +599,8 @@ public final class MediaRouter {
      * Use {@link #AVAILABILITY_FLAG_REQUIRE_MATCH} to require an actual match.
      * </p>
      *
+     * <p>Must be called on the main thread.
+     *
      * @param selector The selector to match.
      * @param flags Flags to control the determination of whether a route may be
      *            available. May be zero or some combination of
@@ -582,6 +608,7 @@ public final class MediaRouter {
      *            {@link #AVAILABILITY_FLAG_REQUIRE_MATCH}.
      * @return True if a matching route may be available.
      */
+    @MainThread
     public boolean isRouteAvailable(@NonNull MediaRouteSelector selector, int flags) {
         if (selector == null) {
             throw new IllegalArgumentException("selector must not be null");
@@ -598,11 +625,14 @@ public final class MediaRouter {
      * {@link #addCallback(MediaRouteSelector, Callback, int)} without flags.
      * </p>
      *
+     * <p>Must be called on the main thread.
+     *
      * @param selector A route selector that indicates the kinds of routes that the
      * callback would like to discover.
      * @param callback The callback to add.
      * @see #removeCallback
      */
+    @MainThread
     public void addCallback(@NonNull MediaRouteSelector selector, @NonNull Callback callback) {
         addCallback(selector, callback, 0);
     }
@@ -706,6 +736,8 @@ public final class MediaRouter {
      * }
      * </pre>
      *
+     * <p>Must be called on the main thread.
+     *
      * @param selector A route selector that indicates the kinds of routes that the
      * callback would like to discover.
      * @param callback The callback to add.
@@ -715,6 +747,7 @@ public final class MediaRouter {
      * @see #removeCallback
      */
     // TODO: Change the usages of addCallback() for changing flags when setCallbackFlags() is added.
+    @MainThread
     public void addCallback(@NonNull MediaRouteSelector selector, @NonNull Callback callback,
             @CallbackFlags int flags) {
         if (selector == null) {
@@ -767,9 +800,12 @@ public final class MediaRouter {
      * Removes the specified callback.  It will no longer receive events about
      * changes to media routes.
      *
+     * <p>Must be called on the main thread.
+     *
      * @param callback The callback to remove.
      * @see #addCallback
      */
+    @MainThread
     public void removeCallback(@NonNull Callback callback) {
         if (callback == null) {
             throw new IllegalArgumentException("callback must not be null");
@@ -799,6 +835,8 @@ public final class MediaRouter {
 
     /**
      * Sets a listener for receiving events when the selected route is about to be changed.
+     *
+     * <p>Must be called on the main thread.
      */
     @MainThread
     public void setOnPrepareTransferListener(@Nullable OnPrepareTransferListener listener) {
@@ -813,11 +851,14 @@ public final class MediaRouter {
      * instances within this process can use to discover routes.
      * </p>
      *
+     * <p>Must be called on the main thread.
+     *
      * @param providerInstance The media route provider instance to add.
      *
      * @see MediaRouteProvider
      * @see #removeCallback
      */
+    @MainThread
     public void addProvider(@NonNull MediaRouteProvider providerInstance) {
         if (providerInstance == null) {
             throw new IllegalArgumentException("providerInstance must not be null");
@@ -837,11 +878,14 @@ public final class MediaRouter {
      * instances within this process can use to discover routes.
      * </p>
      *
+     * <p>Must be called on the main thread.
+     *
      * @param providerInstance The media route provider instance to remove.
      *
      * @see MediaRouteProvider
      * @see #addCallback
      */
+    @MainThread
     public void removeProvider(@NonNull MediaRouteProvider providerInstance) {
         if (providerInstance == null) {
             throw new IllegalArgumentException("providerInstance must not be null");
@@ -863,8 +907,11 @@ public final class MediaRouter {
      * AudioManager.registerRemoteControlClient} method.
      * </p>
      *
+     * <p>Must be called on the main thread.
+     *
      * @param remoteControlClient The {@link android.media.RemoteControlClient} to register.
      */
+    @MainThread
     public void addRemoteControlClient(@NonNull Object remoteControlClient) {
         if (remoteControlClient == null) {
             throw new IllegalArgumentException("remoteControlClient must not be null");
@@ -880,9 +927,12 @@ public final class MediaRouter {
     /**
      * Removes a remote control client.
      *
+     * <p>Must be called on the main thread.
+     *
      * @param remoteControlClient The {@link android.media.RemoteControlClient}
      *            to unregister.
      */
+    @MainThread
     public void removeRemoteControlClient(@NonNull Object remoteControlClient) {
         if (remoteControlClient == null) {
             throw new IllegalArgumentException("remoteControlClient must not be null");
@@ -901,8 +951,11 @@ public final class MediaRouter {
      * {@link #addRemoteControlClient} when using media sessions. Set the
      * session to null to clear it.
      *
+     * <p>Must be called on the main thread.
+     *
      * @param mediaSession The {@link android.media.session.MediaSession} to use.
      */
+    @MainThread
     public void setMediaSession(@Nullable Object mediaSession) {
         checkCallingThread();
         if (DEBUG) {
@@ -917,8 +970,11 @@ public final class MediaRouter {
      * {@link #addRemoteControlClient} when using {@link MediaSessionCompat}.
      * Set the session to null to clear it.
      *
+     * <p>Must be called on the main thread.
+     *
      * @param mediaSession The {@link MediaSessionCompat} to use.
      */
+    @MainThread
     public void setMediaSessionCompat(@Nullable MediaSessionCompat mediaSession) {
         checkCallingThread();
         if (DEBUG) {
@@ -936,7 +992,10 @@ public final class MediaRouter {
     /**
      * Gets {@link MediaRouterParams parameters} of the media router service associated with this
      * media router.
+     *
+     * <p>Must be called on the main thread.
      */
+    @MainThread
     @Nullable
     public MediaRouterParams getRouterParams() {
         checkCallingThread();
@@ -948,15 +1007,18 @@ public final class MediaRouter {
      * Sets {@link MediaRouterParams parameters} of the media router service associated with this
      * media router.
      *
+     * <p>Must be called on the main thread.
+     *
      * @param params The parameter to set
      */
+    @MainThread
     public void setRouterParams(@Nullable MediaRouterParams params) {
         checkCallingThread();
         getGlobalRouter().setRouterParams(params);
     }
 
     /**
-     * Ensures that calls into the media router are on the correct thread.
+     * Throws an {@link IllegalStateException} if the calling thread is not the main thread.
      */
     static void checkCallingThread() {
         if (Looper.myLooper() != Looper.getMainLooper()) {
@@ -969,7 +1031,6 @@ public final class MediaRouter {
      * Returns whether the media transfer feature is enabled.
      *
      * @see MediaRouter
-     * @hide
      */
     @RestrictTo(LIBRARY)
     public static boolean isMediaTransferEnabled() {
@@ -980,7 +1041,6 @@ public final class MediaRouter {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY)
     public static boolean isGroupVolumeUxEnabled() {
@@ -1006,7 +1066,7 @@ public final class MediaRouter {
      */
     static boolean isTransferToLocalEnabled() {
         GlobalMediaRouter globalMediaRouter = getGlobalRouter();
-        return globalMediaRouter == null ? false : globalMediaRouter.isTransferToLocalEnabled();
+        return globalMediaRouter != null && globalMediaRouter.isTransferToLocalEnabled();
     }
 
     /**
@@ -1099,7 +1159,6 @@ public final class MediaRouter {
          * The default receiver device type of the route indicating the type is unknown.
          *
          * @see #getDeviceType
-         * @hide
          */
         @RestrictTo(LIBRARY)
         public static final int DEVICE_TYPE_UNKNOWN = 0;
@@ -1125,7 +1184,6 @@ public final class MediaRouter {
          * on a bluetooth device such as a bluetooth speaker.
          *
          * @see #getDeviceType
-         * @hide
          */
         @RestrictTo(LIBRARY)
         public static final int DEVICE_TYPE_BLUETOOTH = 3;
@@ -1155,7 +1213,6 @@ public final class MediaRouter {
         /**
          * The default presentation display id indicating no presentation display is associated
          * with the route.
-         * @hide
          */
         @RestrictTo(LIBRARY)
         public static final int PRESENTATION_DISPLAY_ID_NONE = -1;
@@ -1274,6 +1331,8 @@ public final class MediaRouter {
         /**
          * Returns true if this route is currently selected.
          *
+         * <p>Must be called on the main thread.
+         *
          * @return True if this route is currently selected.
          *
          * @see MediaRouter#getSelectedRoute
@@ -1282,6 +1341,7 @@ public final class MediaRouter {
         //   - If this route is a selected (non-group) route, it returns true.
         //   - If this route is a selected group route, it returns true.
         //   - If this route is a selected member route of a group, it returns false.
+        @MainThread
         public boolean isSelected() {
             checkCallingThread();
             return getGlobalRouter().getSelectedRoute() == this;
@@ -1290,10 +1350,13 @@ public final class MediaRouter {
         /**
          * Returns true if this route is the default route.
          *
+         * <p>Must be called on the main thread.
+         *
          * @return True if this route is the default route.
          *
          * @see MediaRouter#getDefaultRoute
          */
+        @MainThread
         public boolean isDefault() {
             checkCallingThread();
             return getGlobalRouter().getDefaultRoute() == this;
@@ -1302,10 +1365,13 @@ public final class MediaRouter {
         /**
          * Returns true if this route is a bluetooth route.
          *
+         * <p>Must be called on the main thread.
+         *
          * @return True if this route is a bluetooth route.
          *
          * @see MediaRouter#getBluetoothRoute
          */
+        @MainThread
         public boolean isBluetooth() {
             checkCallingThread();
             return getGlobalRouter().getBluetoothRoute() == this;
@@ -1344,10 +1410,13 @@ public final class MediaRouter {
          * Returns true if the route supports at least one of the capabilities
          * described by a media route selector.
          *
+         * <p>Must be called on the main thread.
+         *
          * @param selector The selector that specifies the capabilities to check.
          * @return True if the route supports at least one of the capabilities
          * described in the media route selector.
          */
+        @MainThread
         public boolean matchesSelector(@NonNull MediaRouteSelector selector) {
             if (selector == null) {
                 throw new IllegalArgumentException("selector must not be null");
@@ -1364,6 +1433,8 @@ public final class MediaRouter {
          * such as whether it supports live audio streaming or remote playback.
          * </p>
          *
+         * <p>Must be called on the main thread.
+         *
          * @param category A {@link MediaControlIntent media control} category
          * such as {@link MediaControlIntent#CATEGORY_LIVE_AUDIO},
          * {@link MediaControlIntent#CATEGORY_LIVE_VIDEO},
@@ -1374,6 +1445,7 @@ public final class MediaRouter {
          * @see MediaControlIntent
          * @see #getControlFilters
          */
+        @MainThread
         public boolean supportsControlCategory(@NonNull String category) {
             if (category == null) {
                 throw new IllegalArgumentException("category must not be null");
@@ -1397,6 +1469,8 @@ public final class MediaRouter {
          * can ask a route to perform.
          * </p>
          *
+         * <p>Must be called on the main thread.
+         *
          * @param category A {@link MediaControlIntent media control} category
          * such as {@link MediaControlIntent#CATEGORY_LIVE_AUDIO},
          * {@link MediaControlIntent#CATEGORY_LIVE_VIDEO},
@@ -1409,6 +1483,7 @@ public final class MediaRouter {
          * @see MediaControlIntent
          * @see #getControlFilters
          */
+        @MainThread
         public boolean supportsControlAction(@NonNull String category, @NonNull String action) {
             if (category == null) {
                 throw new IllegalArgumentException("category must not be null");
@@ -1436,12 +1511,15 @@ public final class MediaRouter {
          * actions such as starting remote playback of a media item.
          * </p>
          *
+         * <p>Must be called on the main thread.
+         *
          * @param intent A {@link MediaControlIntent media control intent}.
          * @return True if the route can handle the specified intent.
          *
          * @see MediaControlIntent
          * @see #getControlFilters
          */
+        @MainThread
         public boolean supportsControlRequest(@NonNull Intent intent) {
             if (intent == null) {
                 throw new IllegalArgumentException("intent must not be null");
@@ -1469,12 +1547,15 @@ public final class MediaRouter {
          * sent to unselected routes will fail.
          * </p>
          *
+         * <p>Must be called on the main thread.
+         *
          * @param intent A {@link MediaControlIntent media control intent}.
          * @param callback A {@link ControlRequestCallback} to invoke with the result
          * of the request, or null if no result is required.
          *
          * @see MediaControlIntent
          */
+        @MainThread
         public void sendControlRequest(@NonNull Intent intent,
                 @Nullable ControlRequestCallback callback) {
             if (intent == null) {
@@ -1516,7 +1597,6 @@ public final class MediaRouter {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY)
         public boolean isDefaultOrBluetooth() {
@@ -1596,8 +1676,11 @@ public final class MediaRouter {
          * no effect if the route is currently unselected.
          * </p>
          *
+         * <p>Must be called on the main thread.
+         *
          * @param volume The new volume value between 0 and {@link #getVolumeMax}.
          */
+        @MainThread
         public void requestSetVolume(int volume) {
             checkCallingThread();
             getGlobalRouter().requestSetVolume(this, Math.min(mVolumeMax, Math.max(0, volume)));
@@ -1610,8 +1693,11 @@ public final class MediaRouter {
          * no effect if the route is currently unselected.
          * </p>
          *
+         * <p>Must be called on the main thread.
+         *
          * @param delta The delta to add to the current volume.
          */
+        @MainThread
         public void requestUpdateVolume(int delta) {
             checkCallingThread();
             if (delta != 0) {
@@ -1642,12 +1728,15 @@ public final class MediaRouter {
          * {@link MediaControlIntent#CATEGORY_LIVE_VIDEO live video} routes.
          * </p>
          *
+         * <p>Must be called on the main thread.
+         *
          * @return The preferred presentation display to use when this route is
          * selected or null if none.
          *
          * @see MediaControlIntent#CATEGORY_LIVE_VIDEO
          * @see android.app.Presentation
          */
+        @MainThread
         @Nullable
         public Display getPresentationDisplay() {
             checkCallingThread();
@@ -1659,7 +1748,6 @@ public final class MediaRouter {
 
         /**
          * Gets the route's presentation display id, or -1 if none.
-         * @hide
          */
         @RestrictTo(LIBRARY)
         public int getPresentationDisplayId() {
@@ -1686,7 +1774,10 @@ public final class MediaRouter {
 
         /**
          * Selects this media route.
+         *
+         * <p>Must be called on the main thread.
          */
+        @MainThread
         public void select() {
             checkCallingThread();
             getGlobalRouter().selectRoute(this, MediaRouter.UNSELECT_REASON_ROUTE_CHANGED);
@@ -1694,7 +1785,6 @@ public final class MediaRouter {
 
         /**
          * Returns true if the route has one or more members
-         * @hide
          */
         @RestrictTo(LIBRARY)
         public boolean isGroup() {
@@ -1703,7 +1793,6 @@ public final class MediaRouter {
 
         /**
          * Gets the dynamic group state of the given route.
-         * @hide
          */
         @RestrictTo(LIBRARY)
         @Nullable
@@ -1721,7 +1810,6 @@ public final class MediaRouter {
         /**
          * Returns the routes in this group
          *
-         * @hide
          * @return The list of the routes in this group
          */
         @RestrictTo(LIBRARY)
@@ -1732,8 +1820,8 @@ public final class MediaRouter {
 
         /**
          *
-         * @hide
          */
+        @MainThread
         @RestrictTo(LIBRARY)
         @Nullable
         public DynamicGroupRouteController getDynamicGroupController() {
@@ -1751,23 +1839,23 @@ public final class MediaRouter {
         public String toString() {
             StringBuilder sb = new StringBuilder();
 
-            sb.append("MediaRouter.RouteInfo{ uniqueId=" + mUniqueId
-                    + ", name=" + mName
-                    + ", description=" + mDescription
-                    + ", iconUri=" + mIconUri
-                    + ", enabled=" + mEnabled
-                    + ", connectionState=" + mConnectionState
-                    + ", canDisconnect=" + mCanDisconnect
-                    + ", playbackType=" + mPlaybackType
-                    + ", playbackStream=" + mPlaybackStream
-                    + ", deviceType=" + mDeviceType
-                    + ", volumeHandling=" + mVolumeHandling
-                    + ", volume=" + mVolume
-                    + ", volumeMax=" + mVolumeMax
-                    + ", presentationDisplayId=" + mPresentationDisplayId
-                    + ", extras=" + mExtras
-                    + ", settingsIntent=" + mSettingsIntent
-                    + ", providerPackageName=" + mProvider.getPackageName());
+            sb.append("MediaRouter.RouteInfo{ uniqueId=").append(mUniqueId)
+                    .append(", name=").append(mName)
+                    .append(", description=").append(mDescription)
+                    .append(", iconUri=").append(mIconUri)
+                    .append(", enabled=").append(mEnabled)
+                    .append(", connectionState=").append(mConnectionState)
+                    .append(", canDisconnect=").append(mCanDisconnect)
+                    .append(", playbackType=").append(mPlaybackType)
+                    .append(", playbackStream=").append(mPlaybackStream)
+                    .append(", deviceType=").append(mDeviceType)
+                    .append(", volumeHandling=").append(mVolumeHandling)
+                    .append(", volume=").append(mVolume)
+                    .append(", volumeMax=").append(mVolumeMax)
+                    .append(", presentationDisplayId=").append(mPresentationDisplayId)
+                    .append(", extras=").append(mExtras)
+                    .append(", settingsIntent=").append(mSettingsIntent)
+                    .append(", providerPackageName=").append(mProvider.getPackageName());
             if (isGroup()) {
                 sb.append(", members=[");
                 final int count = mMemberRoutes.size();
@@ -1945,7 +2033,6 @@ public final class MediaRouter {
             return mDescriptorId;
         }
 
-        /** @hide */
         @RestrictTo(LIBRARY)
         @NonNull
         public MediaRouteProvider getProviderInstance() {
@@ -1983,7 +2070,6 @@ public final class MediaRouter {
 
         /**
          * Represents the dynamic group state of the {@link RouteInfo}.
-         * @hide
          */
         @RestrictTo(LIBRARY)
         public static final class DynamicGroupState {
@@ -1999,7 +2085,6 @@ public final class MediaRouter {
              *
              * @return The selection state of the route: {@link DynamicRouteDescriptor#UNSELECTED},
              * {@link DynamicRouteDescriptor#SELECTING}, or {@link DynamicRouteDescriptor#SELECTED}.
-             * @hide
              */
             @RestrictTo(LIBRARY)
             public int getSelectionState() {
@@ -2008,7 +2093,6 @@ public final class MediaRouter {
             }
 
             /**
-             * @hide
              */
             @RestrictTo(LIBRARY)
             public boolean isUnselectable() {
@@ -2016,7 +2100,6 @@ public final class MediaRouter {
             }
 
             /**
-             * @hide
              */
             @RestrictTo(LIBRARY)
             public boolean isGroupable() {
@@ -2024,7 +2107,6 @@ public final class MediaRouter {
             }
 
             /**
-             * @hide
              */
             @RestrictTo(LIBRARY)
             public boolean isTransferable() {
@@ -2054,8 +2136,11 @@ public final class MediaRouter {
 
         /**
          * Gets the provider's underlying {@link MediaRouteProvider} instance.
+         *
+         * <p>Must be called on the main thread.
          */
         @NonNull
+        @MainThread
         public MediaRouteProvider getProviderInstance() {
             checkCallingThread();
             return mProviderInstance;
@@ -2079,7 +2164,10 @@ public final class MediaRouter {
 
         /**
          * Gets the {@link MediaRouter.RouteInfo routes} published by this route provider.
+         *
+         * <p>Must be called on the main thread.
          */
+        @MainThread
         @NonNull
         public List<RouteInfo> getRoutes() {
             checkCallingThread();
@@ -2118,6 +2206,7 @@ public final class MediaRouter {
             return mDescriptor != null && mDescriptor.supportsDynamicGroupRoute();
         }
 
+        @NonNull
         @Override
         public String toString() {
             return "MediaRouter.RouteProviderInfo{ packageName=" + getPackageName()
@@ -2303,7 +2392,6 @@ public final class MediaRouter {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(LIBRARY)
         public void onRouterParamsChanged(@NonNull MediaRouter router,
@@ -2337,8 +2425,8 @@ public final class MediaRouter {
          * If a future is returned, until the future is completed,
          * the media continues to be played on the previous route.
          */
-        @Nullable
         @MainThread
+        @Nullable
         ListenableFuture<Void> onPrepareTransfer(@NonNull RouteInfo fromRoute,
                 @NonNull RouteInfo toRoute);
     }
@@ -2659,10 +2747,10 @@ public final class MediaRouter {
                     mRegisteredProviderWatcher.rescan();
                 }
 
-                boolean oldTransferToLocalEnabled = oldParams == null ? false :
-                        oldParams.isTransferToLocalEnabled();
-                boolean newTransferToLocalEnabled = params == null ? false :
-                        params.isTransferToLocalEnabled();
+                boolean oldTransferToLocalEnabled =
+                        oldParams != null && oldParams.isTransferToLocalEnabled();
+                boolean newTransferToLocalEnabled =
+                        params != null && params.isTransferToLocalEnabled();
 
                 if (oldTransferToLocalEnabled != newTransferToLocalEnabled) {
                     // Since the discovery request itself is not changed,
@@ -2953,7 +3041,6 @@ public final class MediaRouter {
         }
 
         /**
-         * @hide
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         public boolean isGroupVolumeUxEnabled() {
@@ -2983,7 +3070,7 @@ public final class MediaRouter {
         }
 
         @Override
-        public void removeProvider(MediaRouteProvider providerInstance) {
+        public void removeProvider(@NonNull MediaRouteProvider providerInstance) {
             ProviderInfo provider = findProviderInfo(providerInstance);
             if (provider != null) {
                 // 1. Unregister the provider callback.
@@ -3304,10 +3391,10 @@ public final class MediaRouter {
                 }
                 if (sGlobal == null) {
                     Log.w(TAG, "setSelectedRouteInternal is called while sGlobal is null: pkgName="
-                            + mApplicationContext.getPackageName() + ", callers=" + sb.toString());
+                            + mApplicationContext.getPackageName() + ", callers=" + sb);
                 } else {
                     Log.w(TAG, "Default route is selected while a BT route is available: pkgName="
-                            + mApplicationContext.getPackageName() + ", callers=" + sb.toString());
+                            + mApplicationContext.getPackageName() + ", callers=" + sb);
                 }
             }
 
@@ -3361,7 +3448,6 @@ public final class MediaRouter {
                 mSelectedRouteController = routeController;
                 mCallbackHandler.post(GlobalMediaRouter.CallbackHandler.MSG_ROUTE_SELECTED,
                             new Pair<>(null, route), unselectReason);
-                return;
             } else {
                 notifyTransfer(this, route, routeController, unselectReason,
                                 /*requestedRoute=*/null, /*memberRoutes=*/null);
@@ -3465,7 +3551,7 @@ public final class MediaRouter {
                 };
 
         @Override
-        public void onSystemRouteSelectedByDescriptorId(String id) {
+        public void onSystemRouteSelectedByDescriptorId(@NonNull String id) {
             // System route is selected, do not sync the route we selected before.
             mCallbackHandler.removeMessages(CallbackHandler.MSG_ROUTE_SELECTED);
             ProviderInfo provider = findProviderInfo(mSystemProvider);
@@ -4000,6 +4086,7 @@ public final class MediaRouter {
         /**
          * Notifies that preparation for transfer is finished.
          */
+        @MainThread
         void finishTransfer() {
             checkCallingThread();
 

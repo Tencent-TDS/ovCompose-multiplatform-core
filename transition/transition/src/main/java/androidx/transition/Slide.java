@@ -59,7 +59,6 @@ public class Slide extends Visibility {
     private CalculateSlide mSlideCalculator = sCalculateBottom;
     private int mSlideEdge = Gravity.BOTTOM;
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({Gravity.LEFT, Gravity.TOP, Gravity.RIGHT, Gravity.BOTTOM, Gravity.START, Gravity.END})
@@ -247,8 +246,8 @@ public class Slide extends Visibility {
 
     @Nullable
     @Override
-    public Animator onAppear(ViewGroup sceneRoot, View view,
-            TransitionValues startValues, TransitionValues endValues) {
+    public Animator onAppear(@NonNull ViewGroup sceneRoot, @NonNull View view,
+            @Nullable TransitionValues startValues, @Nullable TransitionValues endValues) {
         if (endValues == null) {
             return null;
         }
@@ -264,8 +263,8 @@ public class Slide extends Visibility {
 
     @Nullable
     @Override
-    public Animator onDisappear(ViewGroup sceneRoot, View view,
-            TransitionValues startValues, TransitionValues endValues) {
+    public Animator onDisappear(@NonNull ViewGroup sceneRoot, @NonNull View view,
+            @Nullable TransitionValues startValues, @Nullable TransitionValues endValues) {
         if (startValues == null) {
             return null;
         }

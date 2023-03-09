@@ -33,9 +33,8 @@ import androidx.wear.watchface.data.DeviceConfig;
 /**
  * Parameters for {@link IWatchFaceControlService#createHeadlessWatchFaceInstance}.
  *
- * @hide
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @VersionedParcelize
 @SuppressLint("BanParcelableUsage") // TODO(b/169214666): Remove Parcelable
 public class HeadlessWatchFaceInstanceParams implements VersionedParcelable, Parcelable {
@@ -65,7 +64,9 @@ public class HeadlessWatchFaceInstanceParams implements VersionedParcelable, Par
     /** Used by VersionedParcelable. */
     HeadlessWatchFaceInstanceParams() {}
 
-    /** @deprecated Use the other constructor instead. */
+    /**
+     * @deprecated Use the other constructor instead.
+     */
     @Deprecated
     public HeadlessWatchFaceInstanceParams(
             @NonNull ComponentName watchFaceName,

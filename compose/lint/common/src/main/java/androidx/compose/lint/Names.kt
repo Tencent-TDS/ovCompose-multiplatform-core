@@ -24,18 +24,21 @@ import kotlinx.metadata.ClassName
 object Names {
     object Animation {
         val PackageName = Package("androidx.compose.animation")
+        object Core {
+            val PackageName = Package("androidx.compose.animation.core")
+            val Animatable = Name(PackageName, "Animatable")
+        }
     }
     object AnimationCore {
         val PackageName = Package("androidx.compose.animation.core")
-    }
-    object Material {
-        val PackageName = Package("androidx.compose.material")
     }
     object Runtime {
         val PackageName = Package("androidx.compose.runtime")
 
         val Composable = Name(PackageName, "Composable")
         val CompositionLocal = Name(PackageName, "CompositionLocal")
+        val DerivedStateOf = Name(PackageName, "derivedStateOf")
+        val State = Name(PackageName, "State")
         val MutableState = Name(PackageName, "MutableState")
         val MutableStateOf = Name(PackageName, "mutableStateOf")
         val MutableStateListOf = Name(PackageName, "mutableStateListOf")
@@ -51,7 +54,25 @@ object Names {
             val PackageName = Package("androidx.compose.ui.layout")
             val ParentDataModifier = Name(PackageName, "ParentDataModifier")
         }
+
+        object Pointer {
+            val PackageName = Package(Ui.PackageName, "input.pointer")
+            val PointerInputScope = Name(PackageName, "PointerInputScope")
+            val PointerInputScopeModifier = Name(PackageName, "pointerInput")
+            val AwaitPointerEventScope = Name(PackageName, "awaitPointerEventScope")
+        }
+
+        object Unit {
+            val PackageName = Package("androidx.compose.ui.unit")
+            val Dp = Name(PackageName, "Dp")
+        }
+
+        object Node {
+            val PackageName = Package(Ui.PackageName, "node")
+            val CurrentValueOf = Name(PackageName, "currentValueOf")
+        }
     }
+
     object UiGraphics {
         val PackageName = Package("androidx.compose.ui.graphics")
         val Color = Name(PackageName, "Color")
@@ -110,6 +131,12 @@ class Name internal constructor(
  */
 fun Package(packageName: String): PackageName =
     PackageName(packageName.split("."))
+
+/**
+ * @return a [PackageName] with a Java-style (separated with `.`) [packageName].
+ */
+fun Package(packageName: PackageName, shortName: String): PackageName =
+    PackageName(packageName.segments + shortName.split("."))
 
 /**
  * @return a [Name] with the provided [pkg] and Java-style (separated with `.`) [shortName].

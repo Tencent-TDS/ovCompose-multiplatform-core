@@ -63,16 +63,15 @@ public final class MetadataRepo {
     /**
      * Typeface to be used to render emojis.
      */
-    private final Typeface mTypeface;
+    private final @NonNull Typeface mTypeface;
 
     /**
      * Constructor used for tests.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     MetadataRepo() {
-        mTypeface = null;
+        mTypeface = Typeface.DEFAULT;
         mMetadataList = null;
         mRootNode = new Node(DEFAULT_ROOT_SIZE);
         mEmojiCharArray = new char[0];
@@ -146,15 +145,13 @@ public final class MetadataRepo {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
-    Typeface getTypeface() {
+    @NonNull Typeface getTypeface() {
         return mTypeface;
     }
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     int getMetadataVersion() {
@@ -162,7 +159,6 @@ public final class MetadataRepo {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     Node getRootNode() {
@@ -170,7 +166,6 @@ public final class MetadataRepo {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public char[] getEmojiCharArray() {
@@ -178,7 +173,6 @@ public final class MetadataRepo {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public MetadataList getMetadataList() {
@@ -188,7 +182,6 @@ public final class MetadataRepo {
     /**
      * Add an EmojiMetadata to the index.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @VisibleForTesting
@@ -204,7 +197,6 @@ public final class MetadataRepo {
      * Trie node that holds mapping from emoji codepoint(s) to EmojiMetadata. A single codepoint
      * emoji is represented by a child of the root node.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     static class Node {

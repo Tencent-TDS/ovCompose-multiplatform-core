@@ -16,9 +16,7 @@
 
 package androidx.camera.extensions.internal.compat.workaround;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
-import androidx.camera.extensions.ExtensionMode;
 import androidx.camera.extensions.internal.compat.quirk.DeviceQuirks;
 import androidx.camera.extensions.internal.compat.quirk.ExtensionDisabledQuirk;
 
@@ -40,9 +38,7 @@ public class ExtensionDisabledValidator {
     /**
      * Checks whether extension should be disabled.
      */
-    public boolean shouldDisableExtension(@NonNull String cameraId,
-            @ExtensionMode.Mode int extensionMode, boolean isAdvancedInterface) {
-        return mQuirk != null && mQuirk.shouldDisableExtension(cameraId, extensionMode,
-                isAdvancedInterface);
+    public boolean shouldDisableExtension() {
+        return mQuirk != null && mQuirk.shouldDisableExtension();
     }
 }

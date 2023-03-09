@@ -35,6 +35,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.testutils.withActivity
+import androidx.testutils.withUse
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
@@ -44,11 +45,19 @@ import org.junit.runner.RunWith
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class DialogFragmentTest {
+
     @Suppress("DEPRECATION")
     @get:Rule
-    val activityTestRule = androidx.test.rule.ActivityTestRule(
-        EmptyFragmentTestActivity::class.java
-    )
+    val activityTestRule =
+        androidx.test.rule.ActivityTestRule(EmptyFragmentTestActivity::class.java)
+
+    // TODO(b/270722758): Add back in leak detection rule chain once leak addressed by platform
+    // Detect leaks BEFORE and AFTER activity is destroyed
+    /*
+    @get:Rule
+    val ruleChain: RuleChain = RuleChain.outerRule(DetectLeaksAfterTestSuccess())
+        .around(activityTestRule)
+     */
 
     @Test
     fun testDialogFragmentShows() {
@@ -270,7 +279,7 @@ class DialogFragmentTest {
 
     @Test
     fun testInflatedFragmentContainerViewDialogFragmentShowsNow() {
-        with(ActivityScenario.launch(EmptyFragmentTestActivity::class.java)) {
+       withUse(ActivityScenario.launch(EmptyFragmentTestActivity::class.java)) {
             val fragment = InflatedDialogFragment()
 
             withActivity {

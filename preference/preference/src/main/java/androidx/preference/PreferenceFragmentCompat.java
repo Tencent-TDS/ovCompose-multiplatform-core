@@ -18,6 +18,7 @@ package androidx.preference;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
@@ -324,6 +325,7 @@ public abstract class PreferenceFragmentCompat extends Fragment implements
      *
      * @return The {@link PreferenceManager} used by this fragment
      */
+    @SuppressLint("UnknownNullness")
     public PreferenceManager getPreferenceManager() {
         return mPreferenceManager;
     }
@@ -333,7 +335,11 @@ public abstract class PreferenceFragmentCompat extends Fragment implements
      *
      * @return The {@link PreferenceScreen} that is the root of the preference hierarchy
      */
+    @SuppressLint("UnknownNullness")
     public PreferenceScreen getPreferenceScreen() {
+        if (mPreferenceManager == null) {
+            return null;
+        }
         return mPreferenceManager.getPreferenceScreen();
     }
 
@@ -342,8 +348,9 @@ public abstract class PreferenceFragmentCompat extends Fragment implements
      *
      * @param preferenceScreen The root {@link PreferenceScreen} of the preference hierarchy
      */
-    public void setPreferenceScreen(PreferenceScreen preferenceScreen) {
-        if (mPreferenceManager.setPreferences(preferenceScreen) && preferenceScreen != null) {
+    public void setPreferenceScreen(
+            @SuppressLint("UnknownNullness") PreferenceScreen preferenceScreen) {
+        if (preferenceScreen != null && mPreferenceManager.setPreferences(preferenceScreen)) {
             onUnbindPreferences();
             mHavePrefs = true;
             if (mInitDone) {
@@ -534,18 +541,17 @@ public abstract class PreferenceFragmentCompat extends Fragment implements
 
     /**
      * Used by Settings.
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     protected void onBindPreferences() {}
 
     /**
      * Used by Settings.
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     protected void onUnbindPreferences() {}
 
+    @SuppressLint("UnknownNullness")
     public final RecyclerView getListView() {
         return mList;
     }
@@ -677,7 +683,6 @@ public abstract class PreferenceFragmentCompat extends Fragment implements
      * A wrapper for getParentFragment which is v17+. Used by the leanback preference lib.
      *
      * @return The {@link Fragment} to possibly use as a callback
-     * @hide
      */
     @Nullable
     @RestrictTo(LIBRARY_GROUP_PREFIX)

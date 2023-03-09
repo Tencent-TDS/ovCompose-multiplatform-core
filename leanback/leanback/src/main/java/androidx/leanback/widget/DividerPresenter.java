@@ -19,6 +19,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.leanback.R;
 
@@ -34,15 +36,15 @@ public class DividerPresenter extends Presenter {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public DividerPresenter(int layoutResourceId) {
         mLayoutResourceId = layoutResourceId;
     }
 
+    @NonNull
     @Override
-    public Presenter.ViewHolder onCreateViewHolder(ViewGroup parent) {
+    public Presenter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent) {
         View headerView = LayoutInflater.from(parent.getContext())
                 .inflate(mLayoutResourceId, parent, false);
 
@@ -50,11 +52,11 @@ public class DividerPresenter extends Presenter {
     }
 
     @Override
-    public void onBindViewHolder(Presenter.ViewHolder viewHolder, Object item) {
+    public void onBindViewHolder(@NonNull ViewHolder viewHolder, @Nullable Object item) {
     }
 
     @Override
-    public void onUnbindViewHolder(Presenter.ViewHolder viewHolder) {
+    public void onUnbindViewHolder(@NonNull ViewHolder viewHolder) {
     }
 
 }

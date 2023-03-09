@@ -21,23 +21,27 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
-import androidx.work.impl.utils.SerialExecutor;
+import androidx.work.impl.utils.SerialExecutorImpl;
 
 import java.util.concurrent.Executor;
 
+import kotlinx.coroutines.CoroutineDispatcher;
+import kotlinx.coroutines.ExecutorsKt;
+
 /**
  * Default Task Executor for executing common tasks in WorkManager
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class WorkManagerTaskExecutor implements TaskExecutor {
 
-    private final SerialExecutor mBackgroundExecutor;
+    private final SerialExecutorImpl mBackgroundExecutor;
+    private final CoroutineDispatcher mTaskDispatcher;
 
     public WorkManagerTaskExecutor(@NonNull Executor backgroundExecutor) {
         // Wrap it with a serial executor so we have ordering guarantees on commands
         // being executed.
-        mBackgroundExecutor = new SerialExecutor(backgroundExecutor);
+        mBackgroundExecutor = new SerialExecutorImpl(backgroundExecutor);
+        mTaskDispatcher = ExecutorsKt.from(mBackgroundExecutor);
     }
 
     final Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
@@ -50,13 +54,20 @@ public class WorkManagerTaskExecutor implements TaskExecutor {
     };
 
     @Override
+    @NonNull
     public Executor getMainThreadExecutor() {
         return mMainThreadExecutor;
     }
 
     @Override
     @NonNull
-    public SerialExecutor getSerialTaskExecutor() {
+    public SerialExecutorImpl getSerialTaskExecutor() {
         return mBackgroundExecutor;
+    }
+
+    @NonNull
+    @Override
+    public CoroutineDispatcher getTaskCoroutineDispatcher() {
+        return mTaskDispatcher;
     }
 }

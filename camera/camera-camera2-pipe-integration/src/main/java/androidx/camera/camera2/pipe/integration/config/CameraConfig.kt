@@ -18,7 +18,10 @@
 
 package androidx.camera.camera2.pipe.integration.config
 
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.params.StreamConfigurationMap
 import androidx.annotation.RequiresApi
+import androidx.annotation.VisibleForTesting
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.CameraPipe
@@ -26,12 +29,16 @@ import androidx.camera.camera2.pipe.integration.adapter.CameraControlAdapter
 import androidx.camera.camera2.pipe.integration.adapter.CameraInfoAdapter
 import androidx.camera.camera2.pipe.integration.adapter.CameraInternalAdapter
 import androidx.camera.camera2.pipe.integration.compat.Camera2CameraControlCompat
+import androidx.camera.camera2.pipe.integration.compat.CameraCompatModule
 import androidx.camera.camera2.pipe.integration.compat.EvCompCompat
 import androidx.camera.camera2.pipe.integration.compat.ZoomCompat
 import androidx.camera.camera2.pipe.integration.impl.CameraPipeCameraProperties
 import androidx.camera.camera2.pipe.integration.impl.CameraProperties
+import androidx.camera.camera2.pipe.integration.impl.ComboRequestListener
 import androidx.camera.camera2.pipe.integration.impl.EvCompControl
 import androidx.camera.camera2.pipe.integration.impl.FlashControl
+import androidx.camera.camera2.pipe.integration.impl.FocusMeteringControl
+import androidx.camera.camera2.pipe.integration.impl.State3AControl
 import androidx.camera.camera2.pipe.integration.impl.TorchControl
 import androidx.camera.camera2.pipe.integration.impl.UseCaseThreads
 import androidx.camera.camera2.pipe.integration.impl.ZoomControl
@@ -45,11 +52,12 @@ import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.Subcomponent
+import javax.inject.Named
+import javax.inject.Scope
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
-import javax.inject.Scope
 
 @Scope
 annotation class CameraScope
@@ -63,8 +71,9 @@ annotation class CameraScope
         EvCompCompat.Bindings::class,
         EvCompControl.Bindings::class,
         FlashControl.Bindings::class,
+        FocusMeteringControl.Bindings::class,
+        State3AControl.Bindings::class,
         TorchControl.Bindings::class,
-        Camera2CameraControl.Bindings::class,
         Camera2CameraControlCompat.Bindings::class,
     ],
     subcomponents = [UseCaseCameraComponent::class]
@@ -95,9 +104,35 @@ abstract class CameraModule {
             )
         }
 
+        @CameraScope
+        @Provides
+        fun provideCamera2CameraControl(
+            compat: Camera2CameraControlCompat,
+            threads: UseCaseThreads,
+            @VisibleForTesting
+            requestListener: ComboRequestListener,
+        ) = Camera2CameraControl.create(
+            compat,
+            threads,
+            requestListener
+        )
+
+        @CameraScope
         @Provides
         fun provideCameraMetadata(cameraPipe: CameraPipe, config: CameraConfig): CameraMetadata =
-            cameraPipe.cameras().awaitMetadata(config.cameraId)
+            checkNotNull(cameraPipe.cameras().awaitCameraMetadata(config.cameraId))
+
+        @CameraScope
+        @Provides
+        @Named("CameraId")
+        fun provideCameraIdString(config: CameraConfig): String = config.cameraId.value
+
+        @CameraScope
+        @Provides
+        fun provideStreamConfigurationMap(cameraMetadata: CameraMetadata): StreamConfigurationMap {
+            return cameraMetadata[CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP]
+                ?: throw IllegalArgumentException("Cannot retrieve SCALER_STREAM_CONFIGURATION_MAP")
+        }
     }
 
     @Binds
@@ -125,7 +160,8 @@ class CameraConfig(val cameraId: CameraId) {
 @Subcomponent(
     modules = [
         CameraModule::class,
-        CameraConfig::class
+        CameraConfig::class,
+        CameraCompatModule::class,
     ]
 )
 interface CameraComponent {

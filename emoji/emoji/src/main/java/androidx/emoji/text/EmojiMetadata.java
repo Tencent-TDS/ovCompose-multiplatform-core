@@ -36,7 +36,6 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * Information about a single emoji.
  *
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 @AnyThread
@@ -117,7 +116,7 @@ public class EmojiMetadata {
     /**
      * @return return typeface to be used to render this metadata
      */
-    public Typeface getTypeface() {
+    public @NonNull Typeface getTypeface() {
         return mMetadataRepo.getTypeface();
     }
 

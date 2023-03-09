@@ -63,7 +63,6 @@ public abstract class DeferrableSurface {
      * The exception that is returned by the ListenableFuture of {@link #getSurface()} if the
      * {@link Surface} backing the DeferrableSurface has already been closed.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     public static final class SurfaceClosedException extends Exception {
@@ -127,7 +126,7 @@ public abstract class DeferrableSurface {
     /**
      * Creates a new DeferrableSurface which has no use count.
      *
-     * @param size  the {@link Size} of the surface
+     * @param size   the {@link Size} of the surface
      * @param format the stream configuration format that the provided Surface will be used on.
      */
     public DeferrableSurface(@NonNull Size size, int format) {
@@ -256,7 +255,7 @@ public abstract class DeferrableSurface {
      * <p>This method is idempotent. Subsequent calls after the first invocation will have no
      * effect.
      */
-    public final void close() {
+    public void close() {
         // If this gets set, then the surface will terminate
         CallbackToFutureAdapter.Completer<Void> terminationCompleter = null;
         synchronized (mLock) {
@@ -332,11 +331,19 @@ public abstract class DeferrableSurface {
         return mPrescribedStreamFormat;
     }
 
-    /** @hide */
     @RestrictTo(Scope.TESTS)
     public int getUseCount() {
         synchronized (mLock) {
             return mUseCount;
+        }
+    }
+
+    /**
+     * Checks if the {@link DeferrableSurface} is closed
+     */
+    public boolean isClosed() {
+        synchronized (mLock) {
+            return mClosed;
         }
     }
 

@@ -25,7 +25,10 @@ import androidx.annotation.RestrictTo;
  * corresponding JavaScript script should be removed.
  *
  * @see WebViewCompat#addDocumentStartJavaScript(android.webkit.WebView, String, Set)
+ *
+ * TODO(swestphal): unhide when ready.
  */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public abstract class ScriptHandler {
     /**
      * Removes the corresponding script, it will take effect from next page load.
@@ -36,7 +39,6 @@ public abstract class ScriptHandler {
 
     /**
      * This class cannot be created by applications.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public ScriptHandler() {}

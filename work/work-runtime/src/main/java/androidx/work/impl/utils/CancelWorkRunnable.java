@@ -41,7 +41,6 @@ import java.util.UUID;
 /**
  * A {@link Runnable} to cancel work.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public abstract class CancelWorkRunnable implements Runnable {
@@ -51,6 +50,7 @@ public abstract class CancelWorkRunnable implements Runnable {
     /**
      * @return The {@link Operation} that encapsulates the state of the {@link CancelWorkRunnable}.
      */
+    @NonNull
     public Operation getOperation() {
         return mOperation;
     }
@@ -59,9 +59,9 @@ public abstract class CancelWorkRunnable implements Runnable {
     public void run() {
         try {
             runInternal();
-            mOperation.setState(Operation.SUCCESS);
+            mOperation.markState(Operation.SUCCESS);
         } catch (Throwable throwable) {
-            mOperation.setState(new Operation.State.FAILURE(throwable));
+            mOperation.markState(new Operation.State.FAILURE(throwable));
         }
     }
 
@@ -110,6 +110,7 @@ public abstract class CancelWorkRunnable implements Runnable {
      * @param workManagerImpl The {@link WorkManagerImpl} to use
      * @return A {@link CancelWorkRunnable} that cancels work for a specific id
      */
+    @NonNull
     public static CancelWorkRunnable forId(
             @NonNull final UUID id,
             @NonNull final WorkManagerImpl workManagerImpl) {
@@ -137,6 +138,7 @@ public abstract class CancelWorkRunnable implements Runnable {
      * @param workManagerImpl The {@link WorkManagerImpl} to use
      * @return A {@link CancelWorkRunnable} that cancels work for a specific tag
      */
+    @NonNull
     public static CancelWorkRunnable forTag(
             @NonNull final String tag,
             @NonNull final WorkManagerImpl workManagerImpl) {
@@ -169,6 +171,7 @@ public abstract class CancelWorkRunnable implements Runnable {
      * @param allowReschedule If {@code true}, reschedule pending workers at the end
      * @return A {@link CancelWorkRunnable} that cancels work labelled with a specific name
      */
+    @NonNull
     public static CancelWorkRunnable forName(
             @NonNull final String name,
             @NonNull final WorkManagerImpl workManagerImpl,
@@ -203,6 +206,7 @@ public abstract class CancelWorkRunnable implements Runnable {
      * @param workManagerImpl The {@link WorkManagerImpl} to use
      * @return A {@link CancelWorkRunnable} that cancels all work
      */
+    @NonNull
     public static CancelWorkRunnable forAll(@NonNull final WorkManagerImpl workManagerImpl) {
         return new CancelWorkRunnable() {
             @WorkerThread

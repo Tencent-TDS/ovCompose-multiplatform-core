@@ -31,9 +31,8 @@ import androidx.versionedparcelable.VersionedParcelize;
 /**
  * Parameters for {@link IWatchFaceControlService#GetUserStyleSchema}.
  *
- * @hide
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @VersionedParcelize
 @SuppressLint("BanParcelableUsage") // TODO(b/169214666): Remove Parcelable
 public class GetUserStyleSchemaParams implements VersionedParcelable, Parcelable {

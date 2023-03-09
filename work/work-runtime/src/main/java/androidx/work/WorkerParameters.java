@@ -50,9 +50,9 @@ public final class WorkerParameters {
     private @NonNull WorkerFactory mWorkerFactory;
     private @NonNull ProgressUpdater mProgressUpdater;
     private @NonNull ForegroundUpdater mForegroundUpdater;
+    private int mGeneration;
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public WorkerParameters(
@@ -61,6 +61,7 @@ public final class WorkerParameters {
             @NonNull Collection<String> tags,
             @NonNull RuntimeExtras runtimeExtras,
             @IntRange(from = 0) int runAttemptCount,
+            @IntRange(from = 0) int generation,
             @NonNull Executor backgroundExecutor,
             @NonNull TaskExecutor workTaskExecutor,
             @NonNull WorkerFactory workerFactory,
@@ -71,6 +72,7 @@ public final class WorkerParameters {
         mTags = new HashSet<>(tags);
         mRuntimeExtras = runtimeExtras;
         mRunAttemptCount = runAttemptCount;
+        mGeneration = generation;
         mBackgroundExecutor = backgroundExecutor;
         mWorkTaskExecutor = workTaskExecutor;
         mWorkerFactory = workerFactory;
@@ -155,7 +157,24 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
+     * Gets the generation of this Worker.
+     * <p>
+     * A work has multiple generations, if it was updated via
+     * {@link WorkManager#updateWork(WorkRequest)} or
+     * {@link WorkManager#enqueueUniquePeriodicWork(String,
+     * ExistingPeriodicWorkPolicy, PeriodicWorkRequest)} using
+     * {@link ExistingPeriodicWorkPolicy#UPDATE}.
+     * This worker can possibly be of an older generation rather than latest known,
+     * if an update has happened while this worker is running.
+     *
+     * @return a generation of this work.
+     */
+    @IntRange(from = 0)
+    public int getGeneration() {
+        return mGeneration;
+    }
+
+    /**
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull Executor getBackgroundExecutor() {
@@ -163,7 +182,6 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull TaskExecutor getTaskExecutor() {
@@ -171,7 +189,6 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull WorkerFactory getWorkerFactory() {
@@ -179,7 +196,6 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull ProgressUpdater getProgressUpdater() {
@@ -187,7 +203,6 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull ForegroundUpdater getForegroundUpdater() {
@@ -195,7 +210,6 @@ public final class WorkerParameters {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull RuntimeExtras getRuntimeExtras() {
@@ -205,7 +219,6 @@ public final class WorkerParameters {
     /**
      * Extra runtime information for Workers.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static class RuntimeExtras {
@@ -213,6 +226,7 @@ public final class WorkerParameters {
         public @NonNull List<Uri> triggeredContentUris = Collections.emptyList();
 
         @RequiresApi(28)
+        @Nullable
         public Network network;
     }
 }

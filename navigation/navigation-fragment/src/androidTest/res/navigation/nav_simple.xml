@@ -26,9 +26,15 @@
         android:id="@+id/empty_fragment"
         android:name="androidx.navigation.fragment.test.EmptyFragment"/>
     <fragment
+        android:id="@+id/empty_fragment_2"
+        android:name="androidx.navigation.fragment.test.EmptyFragment"/>
+    <fragment
         android:id="@+id/child_back_stack_fragment"
         android:name="androidx.navigation.fragment.ChildBackStackFragment"/>
     <dialog
         android:id="@+id/dialog_fragment"
         android:name="androidx.navigation.fragment.EmptyDialogFragment"/>
+    <dialog
+        android:id="@+id/testDialog_fragment"
+        android:name="androidx.navigation.fragment.TestDialogFragment"/>
 </navigation>

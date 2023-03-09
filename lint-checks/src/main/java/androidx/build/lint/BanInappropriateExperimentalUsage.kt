@@ -18,6 +18,7 @@
 
 package androidx.build.lint
 
+import com.android.tools.lint.client.api.JavaEvaluator
 import com.android.tools.lint.client.api.UElementHandler
 import com.android.tools.lint.detector.api.Category
 import com.android.tools.lint.detector.api.Detector
@@ -27,6 +28,10 @@ import com.android.tools.lint.detector.api.Issue
 import com.android.tools.lint.detector.api.JavaContext
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
+import com.android.tools.lint.model.DefaultLintModelMavenName
+import com.android.tools.lint.model.LintModelMavenName
+import com.intellij.psi.PsiCompiledElement
+import java.io.File
 import java.io.FileNotFoundException
 import org.jetbrains.uast.UAnnotated
 import org.jetbrains.uast.UAnnotation
@@ -72,12 +77,22 @@ class BanInappropriateExperimentalUsage : Detector(), Detector.UastScanner {
              */
             if (signature != null && APPLICATION_OPT_IN_ANNOTATIONS.contains(signature)) {
                 if (DEBUG) {
-                    println("Processing $signature annotation")
+                    println("Found an @OptIn annotation. Attempting to find markerClass element(s)")
                 }
 
                 val markerClass: UExpression? = node.findAttributeValue("markerClass")
                 if (markerClass != null) {
-                    getUElementsFromOptInMarkerClass(markerClass).forEach { uElement ->
+                    val markerClasses = getUElementsFromOptInMarkerClass(markerClass)
+
+                    if (DEBUG && markerClasses.isNotEmpty()) {
+                        println("Found ${markerClasses.size} markerClass(es): ")
+                    }
+
+                    markerClasses.forEach { uElement ->
+                        if (DEBUG) {
+                            println("Inspecting markerClass annotation " +
+                                uElement.getQualifiedName())
+                        }
                         inspectAnnotation(uElement, node)
                     }
                 }
@@ -130,8 +145,8 @@ class BanInappropriateExperimentalUsage : Detector(), Detector.UastScanner {
                 if (annotations.any { APPLICABLE_ANNOTATIONS.contains(it.qualifiedName) }) {
                     if (DEBUG) {
                         println(
-                            "${context.driver.mode}: used ${node.qualifiedName} in " +
-                                "${context.project}"
+                            "${context.driver.mode}: used ${annotation.getQualifiedName()} in " +
+                                context.project.mavenCoordinate.groupId
                         )
                     }
                     verifyUsageOfElementIsWithinSameGroup(
@@ -168,31 +183,89 @@ class BanInappropriateExperimentalUsage : Detector(), Detector.UastScanner {
         issue: Issue,
         atomicGroupList: List<String>,
     ) {
+
+        // Experimental annotations are permitted if they are in the allowlist
+        val annotationQualifiedName = annotation.getQualifiedName()
+        if (annotationQualifiedName != null && isAnnotationAlwaysAllowed(annotationQualifiedName)) {
+            return
+        }
+
         val evaluator = context.evaluator
+
+        // The location where the annotation is used
         val usageCoordinates = evaluator.getLibrary(usage) ?: context.project.mavenCoordinate
         val usageGroupId = usageCoordinates?.groupId
-        val annotationGroup = evaluator.getLibrary(annotation) ?: return
-        val annotationGroupId = annotationGroup.groupId
 
-        val isUsedInSameGroup = annotationGroupId == usageGroupId
-        val isUsedInDifferentArtifact = usageCoordinates.artifactId != annotationGroup.artifactId
-        val isAtomic = atomicGroupList.contains(usageGroupId)
-        if (!isUsedInSameGroup || (isUsedInSameGroup && isUsedInDifferentArtifact && !isAtomic)) {
-            if (DEBUG) {
-                println(
-                    "${context.driver.mode}: report usage of $annotationGroupId in $usageGroupId"
-                )
-            }
+        // The location where the annotation is declared
+        val annotationCoordinates = evaluator.getLibraryLocalMode(annotation)
+
+        // This should not happen; generate a lint report if it does
+        if (annotationCoordinates == null) {
             Incident(context)
-                .issue(issue)
+                .issue(NULL_ANNOTATION_GROUP_ISSUE)
                 .at(usage)
                 .message(
-                    "`Experimental` and `RequiresOptIn` APIs may only be used within the " +
-                        "same-version group where they were defined."
+                    "Could not find associated group for annotation " +
+                        "${annotation.getQualifiedName()}, which is used in " +
+                        "${context.project.mavenCoordinate.groupId}."
                 )
                 .report()
+            return
+        }
+
+        val annotationGroupId = annotationCoordinates.groupId
+
+        val isUsedInSameGroup = usageCoordinates.groupId == annotationCoordinates.groupId
+        val isUsedInSameArtifact = usageCoordinates.artifactId == annotationCoordinates.artifactId
+        val isAtomic = atomicGroupList.contains(usageGroupId)
+
+        /**
+         * Usage of experimental APIs is allowed in either of the following conditions:
+         *
+         * - Both the group ID and artifact ID in `usageCoordinates` and
+         *   `annotationCoordinates` match
+         * - The group IDs match, and that group ID is atomic
+         */
+        if ((isUsedInSameGroup && isUsedInSameArtifact) ||
+            (isUsedInSameGroup && isAtomic)) return
+
+        // Log inappropriate experimental usage
+        if (DEBUG) {
+            println(
+                "${context.driver.mode}: report usage of $annotationGroupId in $usageGroupId"
+            )
+        }
+        Incident(context)
+            .issue(issue)
+            .at(usage)
+            .message(
+                "`Experimental` and `RequiresOptIn` APIs may only be used within the " +
+                    "same-version group where they were defined."
+            )
+            .report()
+    }
+
+    /**
+     * An implementation of [JavaEvaluator.getLibrary] that attempts to use the JAR path when we
+     * can't find the project from the sourcePsi, even if the element isn't a compiled element.
+     */
+    private fun JavaEvaluator.getLibraryLocalMode(element: UElement): LintModelMavenName? {
+        if (element !is PsiCompiledElement) {
+            val coord = element.sourcePsi?.let { psi -> getProject(psi)?.mavenCoordinate }
+            if (coord != null) {
+                return coord
+            }
+        }
+        val findJarPath = findJarPath(element)
+        return if (findJarPath != null) {
+            val file = File(findJarPath)
+            getLibrary(file) ?: getMavenCoordinatesFromPath(file.path)
+        } else {
+            null
         }
     }
+
+    private fun UElement.getQualifiedName() = (this as UClass).qualifiedName
 
     companion object {
         private const val DEBUG = false
@@ -209,7 +282,7 @@ class BanInappropriateExperimentalUsage : Detector(), Detector.UastScanner {
         private const val JAVA_REQUIRES_OPT_IN_ANNOTATION =
             "androidx.annotation.RequiresOptIn"
 
-        private val APPLICABLE_ANNOTATIONS = listOf(
+        val APPLICABLE_ANNOTATIONS = listOf(
             JAVA_EXPERIMENTAL_ANNOTATION,
             KOTLIN_EXPERIMENTAL_ANNOTATION,
             JAVA_REQUIRES_OPT_IN_ANNOTATION,
@@ -238,5 +311,62 @@ class BanInappropriateExperimentalUsage : Detector(), Detector.UastScanner {
                 Scope.JAVA_FILE_SCOPE,
             ),
         )
+
+        val NULL_ANNOTATION_GROUP_ISSUE = Issue.create(
+            id = "NullAnnotationGroup",
+            briefDescription = "Maven group associated with an annotation could not be found",
+            explanation = "An annotation's group could not be found using `getProject` or " +
+                "`getLibrary`.",
+            category = Category.CORRECTNESS,
+            priority = 5,
+            severity = Severity.ERROR,
+            implementation = Implementation(
+                BanInappropriateExperimentalUsage::class.java,
+                Scope.JAVA_FILE_SCOPE,
+            ),
+        )
+
+        /**
+         * Checks to see if the given annotation is always allowed for use in @OptIn.
+         */
+        internal fun isAnnotationAlwaysAllowed(annotation: String): Boolean {
+            val allowedExperimentalAnnotations = listOf(
+                Regex("com\\.google\\.devtools\\.ksp\\.KspExperimental"),
+                Regex("kotlin\\..*"),
+                Regex("kotlinx\\..*"),
+                Regex("org.jetbrains.kotlin\\..*"),
+            )
+            return allowedExperimentalAnnotations.any {
+                annotation.matches(it)
+            }
+        }
+
+        /**
+         * Extracts the Maven coordinates from a given JAR path
+         *
+         * For example: given `<checkout root>/androidx/paging/paging-common/build/libs/paging-common-3.2.0-alpha01.jar`,
+         * this method will return a:
+         *
+         * - `groupId` of `androidx.paging`
+         * - `artifactId` of `paging-common`
+         * - `version` of `3.2.0-alpha01`
+         *
+         * @param jarFilePath the path to the JAR file
+         * @return a [LintModelMavenName] with the groupId, artifactId, and version parsed from the
+         *         path, or `null` if [jarFilePath] doesn't contain the string "androidx".
+         */
+        internal fun getMavenCoordinatesFromPath(jarFilePath: String): LintModelMavenName? {
+            val pathParts = jarFilePath.split("/")
+            val androidxIndex = pathParts.indexOf("androidx")
+            if (androidxIndex == -1) return null
+
+            val groupId = pathParts[androidxIndex] + "." + pathParts[androidxIndex + 1]
+            val artifactId = pathParts[androidxIndex + 2]
+
+            val filename = pathParts.last()
+            val version = filename.removePrefix("$artifactId-").removeSuffix(".jar")
+
+            return DefaultLintModelMavenName(groupId, artifactId, version)
+        }
     }
 }

@@ -58,6 +58,7 @@ import androidx.work.multiprocess.parcelable.ParcelableUpdateRequest;
 import androidx.work.multiprocess.parcelable.ParcelableWorkContinuationImpl;
 import androidx.work.multiprocess.parcelable.ParcelableWorkInfos;
 import androidx.work.multiprocess.parcelable.ParcelableWorkQuery;
+import androidx.work.multiprocess.parcelable.ParcelableWorkRequest;
 import androidx.work.multiprocess.parcelable.ParcelableWorkRequests;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -72,7 +73,6 @@ import java.util.concurrent.Executor;
  * The implementation of the {@link RemoteWorkManager} which sets up the
  * {@link android.content.ServiceConnection} and dispatches the request.
  *
- * @hide
  */
 @SuppressLint("BanKeepAnnotation")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -151,7 +151,13 @@ public class RemoteWorkManagerClient extends RemoteWorkManager {
             @NonNull String uniqueWorkName,
             @NonNull ExistingPeriodicWorkPolicy existingPeriodicWorkPolicy,
             @NonNull PeriodicWorkRequest periodicWork) {
-
+        if (existingPeriodicWorkPolicy == ExistingPeriodicWorkPolicy.UPDATE) {
+            ListenableFuture<byte[]> result = execute((iWorkManagerImpl, callback) -> {
+                byte[] request = ParcelConverters.marshall(new ParcelableWorkRequest(periodicWork));
+                iWorkManagerImpl.updateUniquePeriodicWorkRequest(uniqueWorkName, request, callback);
+            });
+            return map(result, sVoidMapper, mExecutor);
+        }
         WorkContinuation continuation = mWorkManager.createWorkContinuationForUniquePeriodicWork(
                 uniqueWorkName,
                 existingPeriodicWorkPolicy,
@@ -465,7 +471,6 @@ public class RemoteWorkManagerClient extends RemoteWorkManager {
     /**
      * The implementation of {@link ServiceConnection} that handles changes in the connection.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static class Session implements ServiceConnection {

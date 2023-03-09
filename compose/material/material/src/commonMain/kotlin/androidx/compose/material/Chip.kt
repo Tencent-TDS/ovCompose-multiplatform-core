@@ -69,8 +69,7 @@ import androidx.compose.ui.unit.dp
  * Alternatively, use Accompanist's [Flow Layouts](https://google.github.io/accompanist/flowlayout/)
  * to wrap chips to a new line.
  *
- * @param onClick called when the chip is clicked. If null, then this chip will be considered
- * read-only unless something else handles its input events and updates its state.
+ * @param onClick called when the chip is clicked.
  * @param modifier Modifier to be applied to the chip
  * @param enabled When disabled, chip will not respond to user input. It will also appear visually
  * disabled and disabled to accessibility services.
@@ -100,7 +99,7 @@ fun Chip(
     val contentColor by colors.contentColor(enabled)
     Surface(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.semantics { role = Role.Button },
         enabled = enabled,
         shape = shape,
         color = colors.backgroundColor(enabled).value,
@@ -202,6 +201,7 @@ fun FilterChip(
         selected = selected,
         onClick = onClick,
         modifier = modifier.semantics { role = Role.Checkbox },
+        enabled = enabled,
         shape = shape,
         color = colors.backgroundColor(enabled, selected).value,
         contentColor = contentColor.value.copy(1.0f),

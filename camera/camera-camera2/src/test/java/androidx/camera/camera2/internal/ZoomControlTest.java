@@ -60,8 +60,7 @@ import java.util.concurrent.ExecutionException;
 
 @RunWith(RobolectricTestRunner.class)
 @DoNotInstrument
-// Not able to write test for Robolectric API 30 because it is not added yet.
-@Config(minSdk = Build.VERSION_CODES.LOLLIPOP, maxSdk = Build.VERSION_CODES.Q)
+@Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 public class ZoomControlTest {
     private static final String CAMERA0_ID = "0";
     private static final String CAMERA1_ID = "1";
@@ -92,7 +91,8 @@ public class ZoomControlTest {
         CameraCharacteristics cameraCharacteristics =
                 cameraManager.getCameraCharacteristics(CAMERA0_ID);
         CameraCharacteristicsCompat characteristicsCompat =
-                CameraCharacteristicsCompat.toCameraCharacteristicsCompat(cameraCharacteristics);
+                CameraCharacteristicsCompat.toCameraCharacteristicsCompat(cameraCharacteristics,
+                        CAMERA0_ID);
 
         mCamera2CameraControlImpl = spy(new Camera2CameraControlImpl(characteristicsCompat,
                 CameraXExecutors.mainThreadExecutor(), CameraXExecutors.mainThreadExecutor(),
@@ -179,6 +179,16 @@ public class ZoomControlTest {
         assertThat(listenableFuture.isDone()).isTrue();
         // Future should have succeeded. Should not throw.
         listenableFuture.get();
+    }
+
+    @Test
+    @Config(minSdk = 30)
+    public void isAndroidRZoomSupported_canHandleAssertionError() {
+        CameraCharacteristicsCompat cameraCharacteristics = mock(CameraCharacteristicsCompat.class);
+        when(cameraCharacteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE))
+                .thenThrow(new AssertionError());
+
+        assertThat(ZoomControl.isAndroidRZoomSupported(cameraCharacteristics)).isEqualTo(false);
     }
 
     @Test
@@ -397,7 +407,7 @@ public class ZoomControlTest {
                         Context.CAMERA_SERVICE);
 
         return CameraCharacteristicsCompat.toCameraCharacteristicsCompat(
-                cameraManager.getCameraCharacteristics(cameraId));
+                cameraManager.getCameraCharacteristics(cameraId), cameraId);
     }
 
     @Test

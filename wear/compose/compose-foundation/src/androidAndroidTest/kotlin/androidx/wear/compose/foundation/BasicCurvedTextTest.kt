@@ -19,7 +19,6 @@ package androidx.wear.compose.foundation
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.sp
-import androidx.test.filters.FlakyTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -29,7 +28,6 @@ class BasicCurvedTextTest {
     val rule = createComposeRule()
 
     @Test
-    @FlakyTest(bugId = 227338558)
     fun modifying_curved_text_forces_curved_row_remeasure() {
         val capturedInfo = CapturedInfo()
         val text = mutableStateOf("Initial")
@@ -51,7 +49,7 @@ class BasicCurvedTextTest {
 
         rule.runOnIdle {
             // TODO(b/219885899): Investigate why we need the extra passes.
-            assertEquals(CapturedInfo(2, 3, 3), capturedInfo)
+            assertEquals(CapturedInfo(2, 3, 2), capturedInfo)
         }
     }
 }

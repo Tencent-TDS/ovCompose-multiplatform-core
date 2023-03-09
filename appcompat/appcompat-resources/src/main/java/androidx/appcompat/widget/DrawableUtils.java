@@ -35,7 +35,7 @@ import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
-import androidx.appcompat.graphics.drawable.DrawableWrapper;
+import androidx.appcompat.graphics.drawable.DrawableWrapperCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.graphics.drawable.WrappedDrawable;
 
@@ -43,7 +43,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-/** @hide */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public class DrawableUtils {
 
@@ -104,6 +103,11 @@ public class DrawableUtils {
      * there is a known issue in the given drawable's implementation.
      */
     public static boolean canSafelyMutateDrawable(@NonNull Drawable drawable) {
+        if (Build.VERSION.SDK_INT >= 17) {
+            // We'll never return false on API level >= 17, stop early.
+            return true;
+        }
+
         if (Build.VERSION.SDK_INT < 15 && drawable instanceof InsetDrawable) {
             return false;
         } else if (Build.VERSION.SDK_INT < 15 && drawable instanceof GradientDrawable) {
@@ -128,8 +132,8 @@ public class DrawableUtils {
             }
         } else if (drawable instanceof WrappedDrawable) {
             return canSafelyMutateDrawable(((WrappedDrawable) drawable).getWrappedDrawable());
-        } else if (drawable instanceof DrawableWrapper) {
-            return canSafelyMutateDrawable(((DrawableWrapper) drawable).getWrappedDrawable());
+        } else if (drawable instanceof DrawableWrapperCompat) {
+            return canSafelyMutateDrawable(((DrawableWrapperCompat) drawable).getDrawable());
         } else if (drawable instanceof ScaleDrawable) {
             return canSafelyMutateDrawable(((ScaleDrawable) drawable).getDrawable());
         }

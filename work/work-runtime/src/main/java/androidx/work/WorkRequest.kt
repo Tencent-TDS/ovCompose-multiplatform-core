@@ -39,7 +39,6 @@ abstract class WorkRequest internal constructor(
     /**
      * The [WorkSpec] associated with this unit of work.
      *
-     * @hide
      */
     @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     val workSpec: WorkSpec,
@@ -55,7 +54,6 @@ abstract class WorkRequest internal constructor(
      * Gets the string for the unique identifier associated with this unit of work.
      *
      * @return The string identifier for this unit of work
-     * @hide
      */
     @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     val stringId: String
@@ -72,6 +70,19 @@ abstract class WorkRequest internal constructor(
         internal var id: UUID = UUID.randomUUID()
         internal var workSpec: WorkSpec = WorkSpec(id.toString(), workerClass.name)
         internal val tags: MutableSet<String> = mutableSetOf(workerClass.name)
+
+        /**
+         * The id of the request.
+         *
+         * It is a useful for the creation of `WorkRequest` for the [WorkManager.updateWork],
+         * that uses `id` for identifying an work that should be updated.
+         */
+        @SuppressWarnings("SetterReturnsThis")
+        fun setId(id: UUID): B {
+            this.id = id
+            workSpec = WorkSpec(id.toString(), workSpec)
+            return thisObject
+        }
 
         /**
          * Sets the backoff policy and backoff delay for the work.  The default values are
@@ -260,8 +271,7 @@ abstract class WorkRequest internal constructor(
                 require(workSpec.initialDelay <= 0) { "Expedited jobs cannot be delayed" }
             }
             // Create a new id and WorkSpec so this WorkRequest.Builder can be used multiple times.
-            id = UUID.randomUUID()
-            workSpec = WorkSpec(id.toString(), workSpec)
+            setId(UUID.randomUUID())
             return returnValue
         }
 
@@ -274,7 +284,6 @@ abstract class WorkRequest internal constructor(
          *
          * @param state The [WorkInfo.State] to set
          * @return The current [Builder]
-         * @hide
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @VisibleForTesting
@@ -288,7 +297,6 @@ abstract class WorkRequest internal constructor(
          *
          * @param runAttemptCount The initial run attempt count
          * @return The current [Builder]
-         * @hide
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @VisibleForTesting
@@ -303,7 +311,6 @@ abstract class WorkRequest internal constructor(
          * @param periodStartTime the period start time in `timeUnit` units
          * @param timeUnit The [TimeUnit] for `periodStartTime`
          * @return The current [Builder]
-         * @hide
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @VisibleForTesting
@@ -318,7 +325,6 @@ abstract class WorkRequest internal constructor(
          * @param scheduleRequestedAt The time at which the scheduler scheduled a worker.
          * @param timeUnit The [TimeUnit] for `scheduleRequestedAt`
          * @return The current [Builder]
-         * @hide
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @VisibleForTesting

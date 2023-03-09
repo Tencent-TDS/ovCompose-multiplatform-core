@@ -276,9 +276,10 @@ class ComposeScene internal constructor(
         composition?.dispose()
         mainOwner?.dispose()
         val mainOwner = SkiaBasedOwner(
-            platformInputService,
-            component,
-            density,
+            platformInputService = platformInputService,
+            component = component,
+            density = density,
+            coroutineContext = recomposer.effectCoroutineContext,
             onPreviewKeyEvent = onPreviewKeyEvent,
             onKeyEvent = onKeyEvent
         )
@@ -439,6 +440,10 @@ class ComposeScene internal constructor(
      */
     fun sendKeyEvent(event: ComposeKeyEvent): Boolean = postponeInvalidation {
         return focusedOwner?.sendKeyEvent(event) == true
+    }
+
+    internal fun setCurrentKeyboardModifiers(modifiers: PointerKeyboardModifiers) {
+        mainOwner?.setCurrentKeyboardModifiers(modifiers)
     }
 
     internal fun onInputMethodEvent(event: Any) = this.onPlatformInputMethodEvent(event)

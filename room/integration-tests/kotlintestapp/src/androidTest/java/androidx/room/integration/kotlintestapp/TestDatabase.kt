@@ -18,26 +18,28 @@ package androidx.room.integration.kotlintestapp
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import androidx.room.androidx.room.integration.kotlintestapp.dao.UsersDao
-import androidx.room.androidx.room.integration.kotlintestapp.vo.User
 import androidx.room.integration.kotlintestapp.dao.AbstractDao
 import androidx.room.integration.kotlintestapp.dao.BooksDao
+import androidx.room.integration.kotlintestapp.dao.CounterDao
 import androidx.room.integration.kotlintestapp.dao.DependencyDao
 import androidx.room.integration.kotlintestapp.dao.DerivedDao
+import androidx.room.integration.kotlintestapp.dao.UsersDao
 import androidx.room.integration.kotlintestapp.vo.Author
 import androidx.room.integration.kotlintestapp.vo.Book
 import androidx.room.integration.kotlintestapp.vo.BookAuthor
+import androidx.room.integration.kotlintestapp.vo.Counter
 import androidx.room.integration.kotlintestapp.vo.DataClassFromDependency
 import androidx.room.integration.kotlintestapp.vo.EntityWithJavaPojoList
 import androidx.room.integration.kotlintestapp.vo.JavaEntity
 import androidx.room.integration.kotlintestapp.vo.NoArgClass
 import androidx.room.integration.kotlintestapp.vo.Publisher
+import androidx.room.integration.kotlintestapp.vo.User
 
 @Database(
     entities = [
         Book::class, Author::class, Publisher::class, BookAuthor::class,
         NoArgClass::class, DataClassFromDependency::class, JavaEntity::class,
-        EntityWithJavaPojoList::class, User::class
+        EntityWithJavaPojoList::class, User::class, Counter::class
     ],
     version = 1,
     exportSchema = false
@@ -53,4 +55,6 @@ abstract class TestDatabase : RoomDatabase() {
     abstract fun dependencyDao(): DependencyDao
 
     abstract fun abstractDao(): AbstractDao
+
+    abstract fun counterDao(): CounterDao
 }

@@ -43,7 +43,6 @@ import java.util.Set;
 
 /**
  * Parses information of static shortcuts from shortcuts.xml
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP)
 public class ShortcutXmlParser {
@@ -86,6 +85,7 @@ public class ShortcutXmlParser {
      * Returns a set of string which contains the ids of static shortcuts.
      */
     @NonNull
+    @SuppressWarnings("deprecation")
     private static Set<String> parseShortcutIds(@NonNull final Context context) {
         final Set<String> result = new HashSet<>();
         final Intent mainIntent = new Intent(Intent.ACTION_MAIN);

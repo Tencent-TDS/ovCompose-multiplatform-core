@@ -33,13 +33,13 @@ import androidx.annotation.RestrictTo;
  * implies that AppCompat shadows the platform's auto-size attributes. See
  * {@link androidx.resourceinspection.processor} for more details and a full mapping of attributes.
  *
- * @hide Internal use only
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public interface AutoSizeableTextView {
     /**
-     * @hide
+     * @deprecated do not use, overlarge scope and missing annotations
      */
+    @Deprecated
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     boolean PLATFORM_SUPPORTS_AUTOSIZE = Build.VERSION.SDK_INT >= 27;
 

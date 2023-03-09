@@ -50,7 +50,6 @@ public final class AsyncDifferConfig<T> {
         mDiffCallback = diffCallback;
     }
 
-    /** @hide */
     @SuppressWarnings("WeakerAccess")
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Nullable
@@ -89,16 +88,15 @@ public final class AsyncDifferConfig<T> {
          * If provided, defines the main thread executor used to dispatch adapter update
          * notifications on the main thread.
          * <p>
-         * If not provided, it will default to the main thread.
+         * If not provided or null, it will default to the main thread.
          *
          * @param executor The executor which can run tasks in the UI thread.
          * @return this
          *
-         * @hide
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         @NonNull
-        public Builder<T> setMainThreadExecutor(Executor executor) {
+        public Builder<T> setMainThreadExecutor(@Nullable Executor executor) {
             mMainThreadExecutor = executor;
             return this;
         }
@@ -107,14 +105,15 @@ public final class AsyncDifferConfig<T> {
          * If provided, defines the background executor used to calculate the diff between an old
          * and a new list.
          * <p>
-         * If not provided, defaults to two thread pool executor, shared by all ListAdapterConfigs.
+         * If not provided or null, defaults to two thread pool executor, shared by all
+         * ListAdapterConfigs.
          *
          * @param executor The background executor to run list diffing.
          * @return this
          */
         @SuppressWarnings({"unused", "WeakerAccess"})
         @NonNull
-        public Builder<T> setBackgroundThreadExecutor(Executor executor) {
+        public Builder<T> setBackgroundThreadExecutor(@Nullable Executor executor) {
             mBackgroundThreadExecutor = executor;
             return this;
         }
