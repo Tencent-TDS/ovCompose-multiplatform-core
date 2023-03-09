@@ -165,7 +165,7 @@ internal class AwtWindowDropTarget(
         window,
         // notify components on window border that drag is started.
         onDragEnterWindow = { newWindowDragCoordinates ->
-            forAllPositionedComponents { handler, componentBounds ->
+            forEachPositionedComponent { handler, componentBounds ->
                 handleDragEvent(
                     handler,
                     oldComponentBounds = componentBounds, currentComponentBounds = componentBounds,
@@ -178,7 +178,7 @@ internal class AwtWindowDropTarget(
         onDragInsideWindow = { newWindowDragCoordinates ->
             val oldDragCoordinates = windowDragCoordinates
             windowDragCoordinates = newWindowDragCoordinates
-            forAllPositionedComponents { handler, componentBounds ->
+            forEachPositionedComponent { handler, componentBounds ->
                 handleDragEvent(
                     handler,
                     oldComponentBounds = componentBounds, currentComponentBounds = componentBounds,
@@ -190,7 +190,7 @@ internal class AwtWindowDropTarget(
         onDragExit = {
             val oldDragCoordinates = windowDragCoordinates
             windowDragCoordinates = null
-            forAllPositionedComponents { handler, componentBounds ->
+            forEachPositionedComponent { handler, componentBounds ->
                 handleDragEvent(
                     handler,
                     oldComponentBounds = componentBounds, currentComponentBounds = componentBounds,
@@ -203,7 +203,7 @@ internal class AwtWindowDropTarget(
             var anyDrops = false
             val dropCoordinates = windowDragCoordinates
             windowDragCoordinates = null
-            forAllPositionedComponents { handler, componentBounds ->
+            forEachPositionedComponent { handler, componentBounds ->
                 val isInside = isExternalDragInsideComponent(componentBounds, dropCoordinates)
                 if (isInside) {
                     handler.onDrop(it)
@@ -289,7 +289,7 @@ internal class AwtWindowDropTarget(
         )
     }
 
-    private inline fun forAllPositionedComponents(action: (handler: ComponentDragHandler, bounds: Rect) -> Unit) {
+    private inline fun forEachPositionedComponent(action: (handler: ComponentDragHandler, bounds: Rect) -> Unit) {
         for ((handleId, handler) in handlers) {
             val bounds = componentBoundsHolder[handleId] ?: continue
             action(handler, bounds)
