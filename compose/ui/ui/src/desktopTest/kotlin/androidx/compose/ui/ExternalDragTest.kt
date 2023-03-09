@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.dnd
+package androidx.compose.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,12 +30,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.ExternalDragTest.TestDragEvent.Drag
+import androidx.compose.ui.ExternalDragTest.TestDragEvent.DragCancelled
+import androidx.compose.ui.ExternalDragTest.TestDragEvent.DragStarted
 import androidx.compose.ui.awt.ComposeWindow
-import androidx.compose.ui.dnd.ExternalDragTest.TestDragEvent.Drag
-import androidx.compose.ui.dnd.ExternalDragTest.TestDragEvent.DragCancelled
-import androidx.compose.ui.dnd.ExternalDragTest.TestDragEvent.DragStarted
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
