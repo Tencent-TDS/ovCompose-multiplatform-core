@@ -34,7 +34,6 @@ import com.google.gson.annotations.SerializedName
  * @property indices The list of indices
  * @property foreignKeys The list of foreign keys
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public open class EntityBundle(
@@ -68,8 +67,10 @@ public open class EntityBundle(
         public const val NEW_TABLE_PREFIX: String = "_new_"
     }
 
-    @Transient
-    public open val newTableName: String = NEW_TABLE_PREFIX + tableName
+    public open val newTableName: String
+        get() {
+            return NEW_TABLE_PREFIX + tableName
+        }
 
     @delegate:Transient
     public open val fieldsByColumnName: Map<String, FieldBundle> by lazy {
@@ -91,10 +92,10 @@ public open class EntityBundle(
     }
 
     /**
-     * @return Renames the table with {@link #getNewTableName()} to {@link #getTableName()}.
+     * @return Renames the table with [newTableName] to [tableName].
      */
     public open fun renameToOriginal(): String {
-        return "ALTER TABLE " + newTableName + " RENAME TO " + tableName
+        return "ALTER TABLE $newTableName RENAME TO $tableName"
     }
 
     /**

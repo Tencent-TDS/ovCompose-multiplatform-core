@@ -26,8 +26,9 @@ import androidx.wear.tiles.ActionBuilders.Action;
 import androidx.wear.tiles.ColorBuilders.ColorProp;
 import androidx.wear.tiles.DimensionBuilders.DpProp;
 import androidx.wear.tiles.TypeBuilders.BoolProp;
-import androidx.wear.tiles.proto.ModifiersProto;
-import androidx.wear.tiles.proto.TypesProto;
+import androidx.wear.protolayout.proto.ModifiersProto;
+import androidx.wear.protolayout.proto.TypesProto;
+import androidx.wear.protolayout.protobuf.ByteString;
 
 /** Builders for modifiers for composable layout elements. */
 public final class ModifiersBuilders {
@@ -63,14 +64,12 @@ public final class ModifiersBuilders {
             }
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static Clickable fromProto(@NonNull ModifiersProto.Clickable proto) {
             return new Clickable(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ModifiersProto.Clickable toProto() {
@@ -126,17 +125,15 @@ public final class ModifiersBuilders {
          */
         @NonNull
         public String getContentDescription() {
-            return mImpl.getContentDescription();
+            return mImpl.getObsoleteContentDescription();
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static Semantics fromProto(@NonNull ModifiersProto.Semantics proto) {
             return new Semantics(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ModifiersProto.Semantics toProto() {
@@ -156,7 +153,7 @@ public final class ModifiersBuilders {
              */
             @NonNull
             public Builder setContentDescription(@NonNull String contentDescription) {
-                mImpl.setContentDescription(contentDescription);
+                mImpl.setObsoleteContentDescription(contentDescription);
                 return this;
             }
 
@@ -237,14 +234,12 @@ public final class ModifiersBuilders {
             }
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static Padding fromProto(@NonNull ModifiersProto.Padding proto) {
             return new Padding(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ModifiersProto.Padding toProto() {
@@ -359,14 +354,12 @@ public final class ModifiersBuilders {
             }
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static Border fromProto(@NonNull ModifiersProto.Border proto) {
             return new Border(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ModifiersProto.Border toProto() {
@@ -419,14 +412,12 @@ public final class ModifiersBuilders {
             }
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static Corner fromProto(@NonNull ModifiersProto.Corner proto) {
             return new Corner(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ModifiersProto.Corner toProto() {
@@ -489,14 +480,12 @@ public final class ModifiersBuilders {
             }
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static Background fromProto(@NonNull ModifiersProto.Background proto) {
             return new Background(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ModifiersProto.Background toProto() {
@@ -535,6 +524,64 @@ public final class ModifiersBuilders {
             @NonNull
             public Background build() {
                 return Background.fromProto(mImpl.build());
+            }
+        }
+    }
+
+    /**
+     * Metadata about an element. For use by libraries building higher-level components only. This
+     * can be used to track component metadata.
+     */
+    public static final class ElementMetadata {
+        private final ModifiersProto.ElementMetadata mImpl;
+
+        private ElementMetadata(ModifiersProto.ElementMetadata impl) {
+            this.mImpl = impl;
+        }
+
+        /**
+         * Gets property describing the element with which it is associated. For use by libraries
+         * building higher-level components only. This can be used to track component metadata.
+         */
+        @NonNull
+        public byte[] getTagData() {
+            return mImpl.getTagData().toByteArray();
+        }
+
+        @RestrictTo(Scope.LIBRARY_GROUP)
+        @NonNull
+        public static ElementMetadata fromProto(@NonNull ModifiersProto.ElementMetadata proto) {
+            return new ElementMetadata(proto);
+        }
+
+        @RestrictTo(Scope.LIBRARY_GROUP)
+        @NonNull
+        public ModifiersProto.ElementMetadata toProto() {
+            return mImpl;
+        }
+
+        /** Builder for {@link ElementMetadata} */
+        public static final class Builder {
+            private final ModifiersProto.ElementMetadata.Builder mImpl =
+                    ModifiersProto.ElementMetadata.newBuilder();
+
+            public Builder() {}
+
+            /**
+             * Sets property describing the element with which it is associated. For use by
+             * libraries building higher-level components only. This can be used to track component
+             * metadata.
+             */
+            @NonNull
+            public Builder setTagData(@NonNull byte[] tagData) {
+                mImpl.setTagData(ByteString.copyFrom(tagData));
+                return this;
+            }
+
+            /** Builds an instance from accumulated values. */
+            @NonNull
+            public ElementMetadata build() {
+                return ElementMetadata.fromProto(mImpl.build());
             }
         }
     }
@@ -610,14 +657,25 @@ public final class ModifiersBuilders {
             }
         }
 
-        /** @hide */
+        /**
+         * Gets metadata about an element. For use by libraries building higher-level components
+         * only. This can be used to track component metadata.
+         */
+        @Nullable
+        public ElementMetadata getMetadata() {
+            if (mImpl.hasMetadata()) {
+                return ElementMetadata.fromProto(mImpl.getMetadata());
+            } else {
+                return null;
+            }
+        }
+
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static Modifiers fromProto(@NonNull ModifiersProto.Modifiers proto) {
             return new Modifiers(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ModifiersProto.Modifiers toProto() {
@@ -672,6 +730,16 @@ public final class ModifiersBuilders {
                 return this;
             }
 
+            /**
+             * Sets metadata about an element. For use by libraries building higher-level components
+             * only. This can be used to track component metadata.
+             */
+            @NonNull
+            public Builder setMetadata(@NonNull ElementMetadata metadata) {
+                mImpl.setMetadata(metadata.toProto());
+                return this;
+            }
+
             /** Builds an instance from accumulated values. */
             @NonNull
             public Modifiers build() {
@@ -717,14 +785,12 @@ public final class ModifiersBuilders {
             }
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static ArcModifiers fromProto(@NonNull ModifiersProto.ArcModifiers proto) {
             return new ArcModifiers(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ModifiersProto.ArcModifiers toProto() {
@@ -791,14 +857,12 @@ public final class ModifiersBuilders {
             }
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static SpanModifiers fromProto(@NonNull ModifiersProto.SpanModifiers proto) {
             return new SpanModifiers(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ModifiersProto.SpanModifiers toProto() {

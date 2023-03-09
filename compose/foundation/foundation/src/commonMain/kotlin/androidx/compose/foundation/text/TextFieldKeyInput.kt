@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.text
 
+import androidx.compose.foundation.text.selection.BaseTextPreparedSelection.Companion.NoCharacterFound
 import androidx.compose.foundation.text.selection.TextFieldPreparedSelection
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.foundation.text.selection.TextPreparedSelectionState
@@ -26,11 +27,11 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.key.utf16CodePoint
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.DeleteSurroundingTextCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.FinishComposingTextCommand
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 
@@ -55,8 +56,10 @@ internal class TextFieldKeyInput(
     val preparedSelectionState: TextPreparedSelectionState,
     val offsetMapping: OffsetMapping = OffsetMapping.Identity,
     val undoManager: UndoManager? = null,
+    private val keyCombiner: DeadKeyCombiner,
     private val keyMapping: KeyMapping = platformDefaultKeyMapping,
-    private val onValueChange: (TextFieldValue) -> Unit = {}
+    private val onValueChange: (TextFieldValue) -> Unit = {},
+    private val imeAction: ImeAction,
 ) {
     private fun List<EditCommand>.apply() {
         val newTextFieldValue = state.processor.apply(
@@ -72,14 +75,15 @@ internal class TextFieldKeyInput(
         listOf(this).apply()
     }
 
-    private fun typedCommand(event: KeyEvent): CommitTextCommand? =
-        if (event.isTypedEvent) {
-            val text = StringBuilder().appendCodePointX(event.utf16CodePoint)
-                .toString()
-            CommitTextCommand(text, 1)
-        } else {
-            null
+    private fun typedCommand(event: KeyEvent): CommitTextCommand? {
+        if (!event.isTypedEvent) {
+            return null
         }
+
+        val codePoint = keyCombiner.consume(event) ?: return null
+        val text = StringBuilder().appendCodePointX(codePoint).toString()
+        return CommitTextCommand(text, 1)
+    }
 
     fun process(event: KeyEvent): Boolean {
         typedCommand(event)?.let {
@@ -129,8 +133,17 @@ internal class TextFieldKeyInput(
                         )
                     }?.apply()
                 KeyCommand.DELETE_NEXT_CHAR -> {
+                    // Note that some software keyboards, such as Samsungs, go through this code
+                    // path instead of making calls on the InputConnection directly.
                     deleteIfSelectedOr {
-                        DeleteSurroundingTextCommand(0, getNextCharacterIndex() - selection.end)
+                        val nextCharacterIndex = getNextCharacterIndex()
+                        // If there's no next character, it means the cursor is at the end of the
+                        // text, and this should be a no-op. See b/199919707.
+                        if (nextCharacterIndex != NoCharacterFound) {
+                            DeleteSurroundingTextCommand(0, nextCharacterIndex - selection.end)
+                        } else {
+                            null
+                        }
                     }?.apply()
                 }
                 KeyCommand.DELETE_PREV_WORD ->
@@ -161,13 +174,13 @@ internal class TextFieldKeyInput(
                     if (!singleLine) {
                         CommitTextCommand("\n", 1).apply()
                     } else {
-                        consumed = false
+                        this@TextFieldKeyInput.state.onImeActionPerformed(imeAction)
                     }
                 KeyCommand.TAB ->
                     if (!singleLine) {
                         CommitTextCommand("\t", 1).apply()
                     } else {
-                        consumed = false
+                        consumed = false // let propagate to focus system
                     }
                 KeyCommand.SELECT_ALL -> selectAll()
                 KeyCommand.SELECT_LEFT_CHAR -> moveCursorLeft().selectMovement()
@@ -194,7 +207,9 @@ internal class TextFieldKeyInput(
                 KeyCommand.REDO -> {
                     undoManager?.redo()?.let { this@TextFieldKeyInput.onValueChange(it) }
                 }
-                KeyCommand.CHARACTER_PALETTE -> { showCharacterPalette() }
+                KeyCommand.CHARACTER_PALETTE -> {
+                    showCharacterPalette()
+                }
             }
         }
         undoManager?.forceNextSnapshot()
@@ -217,7 +232,6 @@ internal class TextFieldKeyInput(
     }
 }
 
-@Suppress("ModifierInspectorInfo")
 internal fun Modifier.textFieldKeyInput(
     state: TextFieldState,
     manager: TextFieldSelectionManager,
@@ -226,9 +240,11 @@ internal fun Modifier.textFieldKeyInput(
     editable: Boolean,
     singleLine: Boolean,
     offsetMapping: OffsetMapping,
-    undoManager: UndoManager
+    undoManager: UndoManager,
+    imeAction: ImeAction,
 ) = composed {
     val preparedSelectionState = remember { TextPreparedSelectionState() }
+    val keyCombiner = remember { DeadKeyCombiner() }
     val processor = TextFieldKeyInput(
         state = state,
         selectionManager = manager,
@@ -238,7 +254,9 @@ internal fun Modifier.textFieldKeyInput(
         offsetMapping = offsetMapping,
         preparedSelectionState = preparedSelectionState,
         undoManager = undoManager,
-        onValueChange = onValueChange
+        keyCombiner = keyCombiner,
+        onValueChange = onValueChange,
+        imeAction = imeAction,
     )
     Modifier.onKeyEvent(processor::process)
 }

@@ -112,19 +112,34 @@ internal fun CapturedInfo.checkPositionOnParent(
     )
 }
 
+internal fun CapturedInfo.checkPositionRelativeTo(
+    target: CapturedInfo,
+    expectedAngularPositionDegrees: Float,
+    expectedRadialPositionPx: Float
+) {
+    Assert.assertEquals(
+        expectedAngularPositionDegrees,
+        lastLayoutInfo!!.startAngleRadians - target.lastLayoutInfo!!.startAngleRadians,
+        FINE_FLOAT_TOLERANCE
+    )
+    Assert.assertEquals(
+        expectedRadialPositionPx,
+        target.lastLayoutInfo!!.outerRadius - lastLayoutInfo!!.outerRadius,
+        FINE_FLOAT_TOLERANCE
+    )
+}
+
 internal fun CurvedModifier.spy(capturedInfo: CapturedInfo) =
     this.then { wrapped -> SpyCurvedChildWrapper(capturedInfo, wrapped) }
 
 internal class SpyCurvedChildWrapper(private val capturedInfo: CapturedInfo, wrapped: CurvedChild) :
     BaseCurvedChildWrapper(wrapped) {
 
-    override fun CurvedMeasureScope.initializeMeasure(
-        measurables: List<Measurable>,
-        index: Int
-    ): Int = with(wrapped) {
-        capturedInfo.measuresCount++
-        initializeMeasure(measurables, index)
-    }
+    override fun CurvedMeasureScope.initializeMeasure(measurables: Iterator<Measurable>) =
+        with(wrapped) {
+            capturedInfo.measuresCount++
+            initializeMeasure(measurables)
+        }
 
     override fun doRadialPosition(
         parentOuterRadius: Float,

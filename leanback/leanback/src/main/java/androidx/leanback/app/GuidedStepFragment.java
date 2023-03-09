@@ -230,14 +230,12 @@ public class GuidedStepFragment extends Fragment implements GuidedActionAdapter.
 
     /**
      * Animation to slide the contents from the side (left/right).
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public static final int SLIDE_FROM_SIDE = 0;
 
     /**
      * Animation to slide the contents from the bottom.
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public static final int SLIDE_FROM_BOTTOM = 1;
@@ -246,7 +244,6 @@ public class GuidedStepFragment extends Fragment implements GuidedActionAdapter.
     private static final boolean DEBUG = false;
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public static class DummyFragment extends Fragment {
@@ -427,7 +424,7 @@ public class GuidedStepFragment extends Fragment implements GuidedActionAdapter.
      * Callback invoked when an action is focused (made to be the current selection) by the user.
      */
     @Override
-    public void onGuidedActionFocused(GuidedAction action) {
+    public void onGuidedActionFocused(@NonNull GuidedAction action) {
     }
 
     /**
@@ -1352,7 +1349,6 @@ public class GuidedStepFragment extends Fragment implements GuidedActionAdapter.
      * isn't available on platform v23 or earlier.
      *
      * For now clients(subclasses) can call this method inside the constructor.
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     public void setEntranceTransitionType(int transitionType) {

@@ -32,7 +32,6 @@ import com.google.auto.value.AutoValue;
  * {@link android.car.hardware.property.CarPropertyManager}. It should not be exposed to front-end
  * such as {@link androidx.car.app.hardware.info.AutomotiveCarInfo}.
  *
- * @hide
  */
 @AutoValue
 @RestrictTo(LIBRARY)
@@ -46,6 +45,15 @@ abstract class CarInternalError {
     static CarInternalError create(int propertyId, int areaId,
             @CarValue.StatusCode int errorCode) {
         return new AutoValue_CarInternalError(propertyId, areaId, errorCode);
+    }
+
+    /**
+     * @param propertyId    one of the values in {@link android.car.VehiclePropertyIds}
+     * @param errorCode     one of the values in {@link CarValue.StatusCode}
+     */
+    @NonNull
+    static CarInternalError create(int propertyId, @CarValue.StatusCode int errorCode) {
+        return new AutoValue_CarInternalError(propertyId, /*areaId=*/0, errorCode);
     }
 
     /** Returns one of the values in {@link android.car.VehiclePropertyIds}. */

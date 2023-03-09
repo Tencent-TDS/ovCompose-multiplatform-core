@@ -16,6 +16,7 @@
 
 package androidx.work.impl.utils;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.work.Operation;
 import androidx.work.impl.OperationImpl;
@@ -28,7 +29,6 @@ import androidx.work.impl.model.WorkSpecDao;
  * - Is finished (succeeded, failed, or cancelled)
  * - Has zero unfinished dependents
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class PruneWorkRunnable implements Runnable {
@@ -36,7 +36,7 @@ public class PruneWorkRunnable implements Runnable {
     private final WorkManagerImpl mWorkManagerImpl;
     private final OperationImpl mOperation;
 
-    public PruneWorkRunnable(WorkManagerImpl workManagerImpl) {
+    public PruneWorkRunnable(@NonNull WorkManagerImpl workManagerImpl) {
         mWorkManagerImpl = workManagerImpl;
         mOperation = new OperationImpl();
     }
@@ -44,6 +44,7 @@ public class PruneWorkRunnable implements Runnable {
     /**
      * @return The {@link Operation} that encapsulates the state of the {@link PruneWorkRunnable}.
      */
+    @NonNull
     public Operation getOperation() {
         return mOperation;
     }
@@ -55,9 +56,9 @@ public class PruneWorkRunnable implements Runnable {
             WorkDatabase workDatabase = mWorkManagerImpl.getWorkDatabase();
             WorkSpecDao workSpecDao = workDatabase.workSpecDao();
             workSpecDao.pruneFinishedWorkWithZeroDependentsIgnoringKeepForAtLeast();
-            mOperation.setState(Operation.SUCCESS);
+            mOperation.markState(Operation.SUCCESS);
         } catch (Throwable exception) {
-            mOperation.setState(new Operation.State.FAILURE(exception));
+            mOperation.markState(new Operation.State.FAILURE(exception));
         }
     }
 }

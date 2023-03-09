@@ -17,7 +17,7 @@
 package androidx.appcompat.widget;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
-import static androidx.core.widget.AutoSizeableTextView.PLATFORM_SUPPORTS_AUTOSIZE;
+import static androidx.appcompat.widget.ViewUtils.SDK_LEVEL_SUPPORTS_AUTOSIZE;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -248,7 +248,7 @@ class AppCompatTextHelper {
 
         mAutoSizeTextHelper.loadFromAttributes(attrs, defStyleAttr);
 
-        if (PLATFORM_SUPPORTS_AUTOSIZE) {
+        if (SDK_LEVEL_SUPPORTS_AUTOSIZE) {
             // Delegate auto-size functionality to the framework implementation.
             if (mAutoSizeTextHelper.getAutoSizeTextType()
                     != TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE) {
@@ -558,31 +558,27 @@ class AppCompatTextHelper {
         return null;
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        if (!PLATFORM_SUPPORTS_AUTOSIZE) {
+        if (!SDK_LEVEL_SUPPORTS_AUTOSIZE) {
             autoSizeText();
         }
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     void setTextSize(int unit, float size) {
-        if (!PLATFORM_SUPPORTS_AUTOSIZE) {
+        if (!SDK_LEVEL_SUPPORTS_AUTOSIZE) {
             if (!isAutoSizeEnabled()) {
                 setTextSizeInternal(unit, size);
             }
         }
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     void autoSizeText() {
         mAutoSizeTextHelper.autoSizeText();
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     boolean isAutoSizeEnabled() {
         return mAutoSizeTextHelper.isAutoSizeEnabled();

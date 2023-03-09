@@ -25,8 +25,7 @@ import java.util.LinkedHashSet
 /**
  * A base for tracking constraints and notifying listeners of changes.
  *
- * @param <T> the constraint data type observed by this tracker
- * @hide
+ * @param T the constraint data type observed by this tracker
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 abstract class ConstraintTracker<T> protected constructor(

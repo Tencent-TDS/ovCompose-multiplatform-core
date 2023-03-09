@@ -25,13 +25,14 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.Autofill
 import androidx.compose.ui.autofill.AutofillTree
-import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerIconService
+import androidx.compose.ui.modifier.ModifierLocalManager
 import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.modifier.modifierLocalProvider
@@ -40,13 +41,18 @@ import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.PlatformTextInputPluginRegistry
 import androidx.compose.ui.text.input.TextInputService
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import com.google.common.truth.Truth.assertThat
+import java.util.concurrent.Executors
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.asCoroutineDispatcher
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -279,9 +285,7 @@ class ModifierLocalConsumerEntityTest {
 
     private fun changeModifier(modifier: Modifier) {
         with(layoutNode) {
-            if (isAttached) { forEachLayoutNodeWrapper { it.detach() } }
             this.modifier = modifier
-            if (isAttached) { forEachLayoutNodeWrapper { it.attach() } }
             owner?.onEndApplyChanges()
         }
     }
@@ -292,6 +296,11 @@ class ModifierLocalConsumerEntityTest {
         @OptIn(InternalCoreApi::class)
         override var showLayoutBounds: Boolean = false
         override val snapshotObserver: OwnerSnapshotObserver = OwnerSnapshotObserver { it.invoke() }
+
+        override val modifierLocalManager: ModifierLocalManager = ModifierLocalManager(this)
+        override val coroutineContext: CoroutineContext =
+            Executors.newFixedThreadPool(3).asCoroutineDispatcher()
+
         override fun registerOnEndApplyChangesListener(listener: () -> Unit) {
             listeners += listener
         }
@@ -306,9 +315,17 @@ class ModifierLocalConsumerEntityTest {
             TODO("Not yet implemented")
         }
 
-        override fun onRequestMeasure(layoutNode: LayoutNode, forceRequest: Boolean) {}
-        override fun onAttach(node: LayoutNode) = node.forEachLayoutNodeWrapper { it.attach() }
-        override fun onDetach(node: LayoutNode) = node.forEachLayoutNodeWrapper { it.detach() }
+        override fun onRequestMeasure(
+            layoutNode: LayoutNode,
+            affectsLookahead: Boolean,
+            forceRequest: Boolean
+        ) {
+        }
+
+        override fun onAttach(node: LayoutNode) =
+            node.forEachNodeCoordinator { it.onLayoutNodeAttach() }
+
+        override fun onDetach(node: LayoutNode) {}
 
         override val root: LayoutNode
             get() = TODO("Not yet implemented")
@@ -330,9 +347,12 @@ class ModifierLocalConsumerEntityTest {
             get() = TODO("Not yet implemented")
         override val textInputService: TextInputService
             get() = TODO("Not yet implemented")
+        @OptIn(ExperimentalTextApi::class)
+        override val platformTextInputPluginRegistry: PlatformTextInputPluginRegistry
+            get() = TODO("Not yet implemented")
         override val pointerIconService: PointerIconService
             get() = TODO("Not yet implemented")
-        override val focusManager: FocusManager
+        override val focusOwner: FocusOwner
             get() = TODO("Not yet implemented")
         override val windowInfo: WindowInfo
             get() = TODO("Not yet implemented")
@@ -358,8 +378,16 @@ class ModifierLocalConsumerEntityTest {
 
         override fun createLayer(drawBlock: (Canvas) -> Unit, invalidateParentLayer: () -> Unit) =
             TODO("Not yet implemented")
-        override fun onRequestRelayout(layoutNode: LayoutNode, forceRequest: Boolean) =
+        override fun onRequestRelayout(
+            layoutNode: LayoutNode,
+            affectsLookahead: Boolean,
+            forceRequest: Boolean
+        ) = TODO("Not yet implemented")
+
+        override fun requestOnPositionedCallback(layoutNode: LayoutNode) {
             TODO("Not yet implemented")
+        }
+
         override fun calculatePositionInWindow(localPosition: Offset) =
             TODO("Not yet implemented")
         override fun calculateLocalPosition(positionInWindow: Offset) =
@@ -384,10 +412,10 @@ class ModifierLocalConsumerEntityTest {
     }
 }
 
-private fun LayoutNode.forEachLayoutNodeWrapper(action: (LayoutNodeWrapper) -> Unit) {
-    var layoutNodeWrapper: LayoutNodeWrapper? = outerLayoutNodeWrapper
-    while (layoutNodeWrapper != null) {
-        action.invoke(layoutNodeWrapper)
-        layoutNodeWrapper = layoutNodeWrapper.wrapped
+private fun LayoutNode.forEachNodeCoordinator(action: (NodeCoordinator) -> Unit) {
+    var coordinator: NodeCoordinator? = outerCoordinator
+    while (coordinator != null) {
+        action.invoke(coordinator)
+        coordinator = coordinator.wrapped
     }
 }

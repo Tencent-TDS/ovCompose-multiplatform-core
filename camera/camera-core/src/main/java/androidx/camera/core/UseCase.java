@@ -16,6 +16,13 @@
 
 package androidx.camera.core;
 
+import static androidx.camera.core.MirrorMode.MIRROR_MODE_FRONT_ON;
+import static androidx.camera.core.MirrorMode.MIRROR_MODE_OFF;
+import static androidx.camera.core.MirrorMode.MIRROR_MODE_ON;
+import static androidx.camera.core.impl.utils.TransformUtils.within360;
+import static androidx.camera.core.processing.TargetUtils.isSuperset;
+import static androidx.core.util.Preconditions.checkArgument;
+
 import android.annotation.SuppressLint;
 import android.graphics.Matrix;
 import android.graphics.Rect;
@@ -40,13 +47,16 @@ import androidx.camera.core.impl.DeferrableSurface;
 import androidx.camera.core.impl.ImageOutputConfig;
 import androidx.camera.core.impl.MutableOptionsBundle;
 import androidx.camera.core.impl.SessionConfig;
+import androidx.camera.core.impl.StreamSpec;
 import androidx.camera.core.impl.UseCaseConfig;
 import androidx.camera.core.impl.UseCaseConfigFactory;
 import androidx.camera.core.internal.TargetConfig;
 import androidx.camera.core.internal.utils.UseCaseConfigUtil;
+import androidx.camera.core.streamsharing.StreamSharing;
 import androidx.core.util.Preconditions;
 import androidx.lifecycle.LifecycleOwner;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -105,9 +115,9 @@ public abstract class UseCase {
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * The resolution assigned to the {@link UseCase} based on the attached camera.
+     * The {@link StreamSpec} assigned to the {@link UseCase} based on the attached camera.
      */
-    private Size mAttachedResolution;
+    private StreamSpec mAttachedStreamSpec;
 
     /**
      * The camera implementation provided Config. Its options has lowest priority and will be
@@ -122,8 +132,17 @@ public abstract class UseCase {
     @Nullable
     private Rect mViewPortCropRect;
 
+    /**
+     * The sensor to image buffer transform matrix.
+     */
+    @NonNull
+    private Matrix mSensorToBufferTransformMatrix = new Matrix();
+
     @GuardedBy("mCameraLock")
     private CameraInternal mCamera;
+
+    @Nullable
+    private CameraEffect mEffect;
 
     ////////////////////////////////////////////////////////////////////////////////////////////
     // [UseCase attached dynamic] - Can change but is only available when the UseCase is attached.
@@ -137,7 +156,6 @@ public abstract class UseCase {
      * Creates a named instance of the use case.
      *
      * @param currentConfig the configuration object used for this use case
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     protected UseCase(@NonNull UseCaseConfig<?> currentConfig) {
@@ -149,9 +167,8 @@ public abstract class UseCase {
      * Retrieve the default {@link UseCaseConfig} for the UseCase.
      *
      * @param applyDefaultConfig true if this is the base config applied to a UseCase.
-     * @param factory the factory that contains the default UseCases.
+     * @param factory            the factory that contains the default UseCases.
      * @return The UseCaseConfig or null if there is no default Config.
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @Nullable
@@ -162,7 +179,6 @@ public abstract class UseCase {
      * Create a {@link UseCaseConfig.Builder} for the UseCase.
      *
      * @param config the Config to initialize the builder
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
@@ -175,10 +191,8 @@ public abstract class UseCase {
      * @param extendedConfig      configs that take priority over the UseCase's default config
      * @param cameraDefaultConfig configs that have lower priority than the UseCase's default.
      *                            This Config comes from the camera implementation.
-     *
      * @throws IllegalArgumentException if there exists conflicts in the merged config that can
-     * not be resolved
-     * @hide
+     *                                  not be resolved
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
@@ -199,7 +213,7 @@ public abstract class UseCase {
         // over all options.
         for (Option<?> opt : mUseCaseConfig.listOptions()) {
             @SuppressWarnings("unchecked") // Options/values are being copied directly
-                    Option<Object> objectOpt = (Option<Object>) opt;
+            Option<Object> objectOpt = (Option<Object>) opt;
 
             mergedConfig.insertOption(objectOpt,
                     mUseCaseConfig.getOptionPriority(opt),
@@ -211,7 +225,7 @@ public abstract class UseCase {
             // just copy over all options.
             for (Option<?> opt : extendedConfig.listOptions()) {
                 @SuppressWarnings("unchecked") // Options/values are being copied directly
-                        Option<Object> objectOpt = (Option<Object>) opt;
+                Option<Object> objectOpt = (Option<Object>) opt;
                 if (objectOpt.getId().equals(TargetConfig.OPTION_TARGET_NAME.getId())) {
                     continue;
                 }
@@ -230,6 +244,13 @@ public abstract class UseCase {
             mergedConfig.removeOption(ImageOutputConfig.OPTION_TARGET_ASPECT_RATIO);
         }
 
+        // Forces disable ZSL when high resolution is enabled.
+        if (mergedConfig.containsOption(ImageOutputConfig.OPTION_RESOLUTION_SELECTOR)
+                && mergedConfig.retrieveOption(
+                ImageOutputConfig.OPTION_RESOLUTION_SELECTOR).isHighResolutionEnabled()) {
+            mergedConfig.insertOption(UseCaseConfig.OPTION_ZSL_DISABLED, true);
+        }
+
         return onMergeConfig(cameraInfo, getUseCaseConfigBuilder(mergedConfig));
     }
 
@@ -244,8 +265,7 @@ public abstract class UseCase {
      *                   resolution
      * @return the conflict resolved config
      * @throws IllegalArgumentException if there exists conflicts in the merged config that can
-     * not be resolved
-     * @hide
+     *                                  not be resolved
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
@@ -261,7 +281,6 @@ public abstract class UseCase {
      *                       {@link Surface#ROTATION_0}, {@link Surface#ROTATION_90},
      *                       {@link Surface#ROTATION_180}, or {@link Surface#ROTATION_270}.
      * @return true if the target rotation was changed.
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     protected boolean setTargetRotationInternal(
@@ -293,7 +312,6 @@ public abstract class UseCase {
      * Returns the rotation that the intended target resolution is expressed in.
      *
      * @return The rotation of the intended target.
-     * @hide
      */
     @SuppressLint("WrongConstant")
     @RestrictTo(Scope.LIBRARY_GROUP)
@@ -303,10 +321,40 @@ public abstract class UseCase {
     }
 
     /**
+     * Returns the mirror mode.
+     *
+     * <p>If mirror mode is not set, defaults to {@link MirrorMode#MIRROR_MODE_OFF}.
+     *
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @MirrorMode.Mirror
+    protected int getMirrorModeInternal() {
+        return ((ImageOutputConfig) mCurrentConfig).getMirrorMode(MIRROR_MODE_OFF);
+    }
+
+    /**
+     * Returns if the mirroring is required with the associated camera.
+     *
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    public boolean isMirroringRequired(@NonNull CameraInternal camera) {
+        int mirrorMode = getMirrorModeInternal();
+        switch (mirrorMode) {
+            case MIRROR_MODE_OFF:
+                return false;
+            case MIRROR_MODE_ON:
+                return true;
+            case MIRROR_MODE_FRONT_ON:
+                return camera.isFrontFacing();
+            default:
+                throw new AssertionError("Unknown mirrorMode: " + mirrorMode);
+        }
+    }
+
+    /**
      * Returns the target rotation set by apps explicitly.
      *
      * @return The rotation of the intended target.
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @ImageOutputConfig.OptionalRotationValue
@@ -316,21 +364,39 @@ public abstract class UseCase {
     }
 
     /**
-     * Gets the relative rotation degrees based on the target rotation.
+     * Gets the relative rotation degrees without mirroring.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @IntRange(from = 0, to = 359)
     protected int getRelativeRotation(@NonNull CameraInternal cameraInternal) {
-        return cameraInternal.getCameraInfoInternal().getSensorRotationDegrees(
+        return getRelativeRotation(cameraInternal, /*requireMirroring=*/false);
+    }
+
+    /**
+     * Gets the relative rotation degrees given whether the output should be mirrored.
+     *
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @IntRange(from = 0, to = 359)
+    protected int getRelativeRotation(@NonNull CameraInternal cameraInternal,
+            boolean requireMirroring) {
+        int rotation = cameraInternal.getCameraInfoInternal().getSensorRotationDegrees(
                 getTargetRotationInternal());
+        // Parent UseCase always mirror the stream if the child requires it. No camera transform
+        // means that the stream is copied by a parent, and if the child also requires mirroring,
+        // we know that the stream has been mirrored.
+        boolean inputStreamMirrored = !cameraInternal.getHasTransform() && requireMirroring;
+        if (inputStreamMirrored) {
+            // Flip rotation if the stream has been mirrored.
+            rotation = within360(-rotation);
+        }
+        return rotation;
     }
 
     /**
      * Sets the {@link SessionConfig} that will be used by the attached {@link Camera}.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     protected void updateSessionConfig(@NonNull SessionConfig sessionConfig) {
@@ -363,7 +429,6 @@ public abstract class UseCase {
     /**
      * Get the current {@link SessionConfig}.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
@@ -375,7 +440,6 @@ public abstract class UseCase {
      * Notify all {@link StateChangeCallback} that are listening to this UseCase that it has
      * transitioned to an active state.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     protected final void notifyActive() {
@@ -387,7 +451,6 @@ public abstract class UseCase {
      * Notify all {@link StateChangeCallback} that are listening to this UseCase that it has
      * transitioned to an inactive state.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     protected final void notifyInactive() {
@@ -399,7 +462,6 @@ public abstract class UseCase {
      * Notify all {@link StateChangeCallback} that are listening to this UseCase that the
      * settings have been updated.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     protected final void notifyUpdated() {
@@ -412,7 +474,6 @@ public abstract class UseCase {
      * Notify all {@link StateChangeCallback} that are listening to this UseCase that the use
      * case needs to be completely reset.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     protected final void notifyReset() {
@@ -425,7 +486,6 @@ public abstract class UseCase {
      * Notify all {@link StateChangeCallback} that are listening to this UseCase of its current
      * state.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     public final void notifyState() {
@@ -447,7 +507,6 @@ public abstract class UseCase {
      * Returns the camera ID for the currently attached camera, or throws an exception if no
      * camera is attached.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
@@ -459,7 +518,6 @@ public abstract class UseCase {
     /**
      * Checks whether the provided camera ID is the currently attached camera ID.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     protected boolean isCurrentCamera(@NonNull String cameraId) {
@@ -469,18 +527,17 @@ public abstract class UseCase {
         return Objects.equals(cameraId, getCameraId());
     }
 
-    /** @hide */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
     public String getName() {
-        return mCurrentConfig.getTargetName("<UnknownUseCase-" + this.hashCode() + ">");
+        return Objects.requireNonNull(
+                mCurrentConfig.getTargetName("<UnknownUseCase-" + hashCode() + ">"));
     }
 
     /**
      * Retrieves the configuration used by this use case.
      *
      * @return the configuration used by this use case.
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
@@ -491,7 +548,6 @@ public abstract class UseCase {
     /**
      * Returns the currently attached {@link Camera} or {@code null} if none is attached.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @Nullable
@@ -505,22 +561,31 @@ public abstract class UseCase {
      * Retrieves the currently attached surface resolution.
      *
      * @return the currently attached surface resolution for the given camera id.
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @Nullable
     public Size getAttachedSurfaceResolution() {
-        return mAttachedResolution;
+        return mAttachedStreamSpec != null ? mAttachedStreamSpec.getResolution() : null;
     }
 
     /**
-     * Offers suggested resolution for the UseCase.
+     * Retrieves the currently attached stream specification.
      *
-     * @hide
+     * @return the currently attached stream specification.
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
-    public void updateSuggestedResolution(@NonNull Size suggestedResolution) {
-        mAttachedResolution = onSuggestedResolutionUpdated(suggestedResolution);
+    @Nullable
+    public StreamSpec getAttachedStreamSpec() {
+        return mAttachedStreamSpec;
+    }
+
+    /**
+     * Offers suggested stream specification for the UseCase.
+     *
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    public void updateSuggestedStreamSpec(@NonNull StreamSpec suggestedStreamSpec) {
+        mAttachedStreamSpec = onSuggestedStreamSpecUpdated(suggestedStreamSpec);
     }
 
     /**
@@ -528,37 +593,56 @@ public abstract class UseCase {
      * CameraSelector, UseCase...)}.
      *
      * <p>Override to create necessary objects like {@link ImageReader} depending
-     * on the resolution.
+     * on the stream specification.
      *
-     * @param suggestedResolution The suggested resolution that depends on camera device
+     * @param suggestedStreamSpec The suggested stream specification that depends on camera device
      *                            capability and what and how many use cases will be bound.
-     * @return The resolution that finally used to create the SessionConfig to
+     * @return The stream specification that finally used to create the SessionConfig to
      * attach to the camera device.
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
-    protected abstract Size onSuggestedResolutionUpdated(@NonNull Size suggestedResolution);
+    protected StreamSpec onSuggestedStreamSpecUpdated(@NonNull StreamSpec suggestedStreamSpec) {
+        return suggestedStreamSpec;
+    }
 
     /**
      * Called when CameraControlInternal is attached into the UseCase. UseCase may need to
      * override this method to configure the CameraControlInternal here. Ex. Setting correct flash
      * mode by CameraControlInternal.setFlashMode to enable correct AE mode and flash state.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
-    protected void onCameraControlReady() {
+    public void onCameraControlReady() {
     }
 
     /**
-     * Called when use case is attaching to a camera.
+     * Binds use case to a camera.
      *
-     * @hide
+     * <p>Before a use case can receive frame data, it needs to establish association with the
+     * target camera first. An implementation of {@link CameraInternal} (e.g. a lifecycle camera
+     * or lifecycle-less camera) is provided when
+     * {@link #bindToCamera(CameraInternal, UseCaseConfig, UseCaseConfig)} is invoked, so that the
+     * use case can retrieve the necessary information from the camera to calculate and set up
+     * the configs.
+     *
+     * <p>The default, extended and camera config settings are also applied to the use case config
+     * in this stage. Subclasses can override {@link #onMergeConfig} to update the use case
+     * config for use case specific purposes.
+     *
+     * <p>Calling {@link #getCameraControl()} can retrieve a real {@link CameraControlInternal}
+     * implementation of the associated camera after this function is invoked. Otherwise, a fake
+     * no-op {@link CameraControlInternal} implementation is returned by
+     * {@link #getCameraControl()} function.
+     *
+     * <p>An {@link EventCallback} can be registered to receive
+     * {@link EventCallback#onBind(CameraInfo)} event which is invoked right after this function
+     * is executed.
+     *
      */
     @SuppressLint("WrongConstant")
     @RestrictTo(Scope.LIBRARY_GROUP)
-    public void onAttach(@NonNull CameraInternal camera,
+    public final void bindToCamera(@NonNull CameraInternal camera,
             @Nullable UseCaseConfig<?> extendedConfig,
             @Nullable UseCaseConfig<?> cameraConfig) {
         synchronized (mCameraLock) {
@@ -573,50 +657,61 @@ public abstract class UseCase {
 
         EventCallback eventCallback = mCurrentConfig.getUseCaseEventCallback(null);
         if (eventCallback != null) {
-            eventCallback.onAttach(camera.getCameraInfoInternal());
+            eventCallback.onBind(camera.getCameraInfoInternal());
         }
-        onAttached();
+        onBind();
     }
 
     /**
-     * Called in the end of onAttach().
+     * Called when use case is binding to a camera.
      *
-     * <p>Called after the use case is attached to a camera. After the use case is attached, the
-     * default config settings are also applied to the use case config. The sub classes should
-     * create the necessary objects to make the use case work correctly.
+     * <p>Subclasses can override this callback function to create the necessary objects to
+     * make the use case work correctly.
      *
-     * <p>When onAttached is called, then UseCase should run setup to make sure that the UseCase
-     * sets up the pipeline to receive data from the camera.
+     * <p>After this function is invoked, CameraX will also provide the selected resolution
+     * information to subclasses via {@link #onSuggestedStreamSpecUpdated}. Subclasses should
+     * override it to set up the pipeline according to the selected resolution, so that UseCase
+     * becomes ready to receive data from the camera.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
-    public void onAttached() {
+    public void onBind() {
     }
 
     /**
-     * Called when use case is detaching from a camera.
+     * Unbinds use case from a camera.
      *
-     * @hide
+     * <p>The use case de-associates from the camera. Before this function is invoked, the use
+     * case must have been detached from the camera. So that the {@link CameraInternal}
+     * implementation can remove the related resource (e.g. surface) from the working capture
+     * session. Then, when this function is invoked, the use case can also clear all objects and
+     * settings to initial state like it is never bound to a camera.
+     *
+     * <p>After this function is invoked, calling {@link #getCameraControl()} returns a fake no-op
+     * {@link CameraControlInternal} implementation.
+     *
+     * <p>An {@link EventCallback} can be registered to receive {@link EventCallback#onUnbind()}
+     * event which is invoked right after this function is executed.
+     *
      */
     @RestrictTo(Scope.LIBRARY)
-    public void onDetach(@NonNull CameraInternal camera) {
+    public final void unbindFromCamera(@NonNull CameraInternal camera) {
         // Do any cleanup required by the UseCase implementation
-        onDetached();
+        onUnbind();
 
         // Cleanup required for any type of UseCase
         EventCallback eventCallback = mCurrentConfig.getUseCaseEventCallback(null);
         if (eventCallback != null) {
-            eventCallback.onDetach();
+            eventCallback.onUnbind();
         }
 
         synchronized (mCameraLock) {
-            Preconditions.checkArgument(camera == mCamera);
+            checkArgument(camera == mCamera);
             removeStateChangeCallback(mCamera);
             mCamera = null;
         }
 
-        mAttachedResolution = null;
+        mAttachedStreamSpec = null;
         mViewPortCropRect = null;
 
         // Resets the mUseCaseConfig to the initial status when the use case was created to make
@@ -627,29 +722,37 @@ public abstract class UseCase {
     }
 
     /**
-     * Clears internal state of this use case.
+     * Called when use case is unbinding from a camera.
      *
-     * @hide
+     * <p>Subclasses can override this callback function to clear the objects created for
+     * their specific purposes.
+     *
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
-    public void onDetached() {
+    public void onUnbind() {
     }
 
     /**
      * Called when use case is attached to the camera. This method is called on main thread.
      *
-     * @hide
+     * <p>Once this function is invoked, the use case is attached to the {@link CameraInternal}
+     * implementation of the associated camera. CameraX starts to open the camera and capture
+     * session with the use case session config. The use case can receive the frame data from the
+     * camera after the capture session is configured.
+     *
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @CallSuper
     public void onStateAttached() {
-        onCameraControlReady();
     }
 
     /**
      * Called when use case is detached from the camera. This method is called on main thread.
      *
-     * @hide
+     * <p>Once this function is invoked, the use case is detached from the {@link CameraInternal}
+     * implementation of the associated camera. The use case no longer receives frame data from
+     * the camera.
+     *
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     public void onStateDetached() {
@@ -658,7 +761,6 @@ public abstract class UseCase {
     /**
      * Retrieves a previously attached {@link CameraControlInternal}.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @NonNull
@@ -674,17 +776,37 @@ public abstract class UseCase {
     /**
      * Sets the view port crop rect calculated at the time of binding.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
+    @CallSuper
     public void setViewPortCropRect(@NonNull Rect viewPortCropRect) {
         mViewPortCropRect = viewPortCropRect;
     }
 
     /**
+     * Sets the {@link CameraEffect} associated with this use case.
+     *
+     * @throws IllegalArgumentException if the effect targets are not supported by this use case.
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    public void setEffect(@Nullable CameraEffect effect) {
+        checkArgument(effect == null || isEffectTargetsSupported(effect.getTargets()));
+        mEffect = effect;
+    }
+
+    /**
+     * Gets the {@link CameraEffect} associated with this use case.
+     *
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @Nullable
+    public CameraEffect getEffect() {
+        return mEffect;
+    }
+
+    /**
      * Gets the view port crop rect.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @Nullable
@@ -695,16 +817,27 @@ public abstract class UseCase {
     /**
      * Sets the sensor to image buffer transform matrix.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
-    public void setSensorToBufferTransformMatrix(@NonNull Matrix sensorToBufferTransformMatrix) {}
+    @CallSuper
+    public void setSensorToBufferTransformMatrix(@NonNull Matrix sensorToBufferTransformMatrix) {
+        mSensorToBufferTransformMatrix = new Matrix(sensorToBufferTransformMatrix);
+    }
+
+    /**
+     * Gets the sensor to image buffer transform matrix.
+     *
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @NonNull
+    public Matrix getSensorToBufferTransformMatrix() {
+        return mSensorToBufferTransformMatrix;
+    }
 
     /**
      * Get image format for the use case.
      *
      * @return image format for the use case
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     public int getImageFormat() {
@@ -716,12 +849,11 @@ public abstract class UseCase {
      *
      * <p>The resolution information might change if the use case is unbound and then rebound or
      * the target rotation setting is changed. The application needs to call
-     * {@link #getResolutionInfo()} again to get the latest {@link ResolutionInfo} for the changes.
+     * {@code getResolutionInfo()} again to get the latest {@link ResolutionInfo} for the changes.
      *
      * @return the resolution information if the use case has been bound by the
      * {@link androidx.camera.lifecycle.ProcessCameraProvider#bindToLifecycle(LifecycleOwner
-     * , CameraSelector, UseCase...)} API, or null if the use case is not bound yet.
-     * @hide
+     *, CameraSelector, UseCase...)} API, or null if the use case is not bound yet.
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @Nullable
@@ -736,7 +868,6 @@ public abstract class UseCase {
      * <p>This allows the subclasses to return different {@link ResolutionInfo} according to its
      * different design.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     @Nullable
@@ -759,6 +890,47 @@ public abstract class UseCase {
         return ResolutionInfo.create(resolution, cropRect, rotationDegrees);
     }
 
+    /**
+     * A set of {@link CameraEffect.Targets} bitmasks supported by the {@link UseCase}.
+     *
+     * <p>To apply the {@link CameraEffect} on the {@link UseCase} or one of its ancestors,
+     * {@link CameraEffect#getTargets()} must be a superset of at least one of the bitmask. For
+     * example:
+     * <ul>
+     * <li>For {@link Preview}, the set only contains [PREVIEW]. {@link Preview} and its ancestors
+     * supports effects that are supersets of [PREVIEW]: PREVIEW, PREVIEW|VIDEO_CAPTURE, or
+     * PREVIEW|VIDEO_CAPTURE|IMAGE_CAPTURE. A {@link CameraEffect} that does not target PREVIEW
+     * cannot be applied to {@link Preview} or its ancestors.
+     * <li>For {@link StreamSharing}, the set contains [PREVIEW|VIDEO_CAPTURE].
+     * {@link StreamSharing} supports effects with targets PREVIEW|VIDEO_CAPTURE or
+     * PREVIEW|VIDEO_CAPTURE|IMAGE_CAPTURE.
+     * </ul>
+     *
+     * <p>The method returns an empty set if this {@link UseCase} does not support effects. By
+     * default, this method returns an empty set.
+     *
+     */
+    @NonNull
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    protected Set<Integer> getSupportedEffectTargets() {
+        return Collections.emptySet();
+    }
+
+    /**
+     * Returns whether the targets can be applied to this {@link UseCase} or one of its ancestors.
+     *
+     * @see #getSupportedEffectTargets()
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    public boolean isEffectTargetsSupported(@CameraEffect.Targets int effectTargets) {
+        for (Integer useCaseTargets : getSupportedEffectTargets()) {
+            if (isSuperset(effectTargets, useCaseTargets)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     enum State {
         /** Currently waiting for image data. */
         ACTIVE,
@@ -769,7 +941,6 @@ public abstract class UseCase {
     /**
      * Callback for when a {@link UseCase} transitions between active/inactive states.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     public interface StateChangeCallback {
@@ -810,24 +981,23 @@ public abstract class UseCase {
     }
 
     /**
-     * Callback for when a {@link UseCase} transitions between attach/detach states.
+     * Callback for when a {@link UseCase} transitions between bound/unbound states.
      *
-     * @hide
      */
     @RestrictTo(Scope.LIBRARY_GROUP)
     public interface EventCallback {
 
         /**
-         * Called when use case is attached to a camera.
+         * Called when use case is binding to a camera.
          *
          * @param cameraInfo that current used.
          */
-        void onAttach(@NonNull CameraInfo cameraInfo);
+        void onBind(@NonNull CameraInfo cameraInfo);
 
         /**
-         * Called when use case is detached from the camera to clear additional resources used
+         * Called when use case is unbinding from the camera to clear additional resources used
          * for the UseCase.
          */
-        void onDetach();
+        void onUnbind();
     }
 }

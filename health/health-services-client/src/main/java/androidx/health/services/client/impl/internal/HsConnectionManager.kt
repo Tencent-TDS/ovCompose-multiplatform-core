@@ -22,13 +22,14 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.Process
 import androidx.annotation.GuardedBy
+import androidx.annotation.RestrictTo
 import androidx.health.services.client.impl.ipc.internal.ConnectionManager
 
 /**
  * Utility to return an instance of connection manager.
  *
- * @hide
  */
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 public object HsConnectionManager {
 
     private val lock = Any()

@@ -32,7 +32,7 @@ interface XFieldElement : XVariableElement, XHasModifiers {
      *   * When running with KSP, the value will **NOT** be an [XTypeElement]. It will
      *   be an [KspSyntheticFileMemberContainer] if this property is coming from the classpath or
      *   [KspFileMemberContainer] if this property is in source. If you need the generated
-     *   synthetic java class name, you can use [XMemberContainer.className] property.
+     *   synthetic java class name, you can use [XMemberContainer.asClassName] property.
      */
     override val enclosingElement: XMemberContainer
 
@@ -40,7 +40,7 @@ interface XFieldElement : XVariableElement, XHasModifiers {
         get() = "$name in ${enclosingElement.fallbackLocationText}"
 
     /**
-     * Creates a new [XFieldElement] where containing element is replaced with [newContainer].
+     * The descriptor of this field in JVM.
      */
-    fun copyTo(newContainer: XTypeElement): XFieldElement
+    val jvmDescriptor: String
 }

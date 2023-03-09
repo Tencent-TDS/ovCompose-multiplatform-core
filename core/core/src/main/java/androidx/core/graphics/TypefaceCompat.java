@@ -26,6 +26,7 @@ import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.Handler;
 
+import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
@@ -38,6 +39,7 @@ import androidx.core.content.res.FontResourcesParserCompat.ProviderResourceEntry
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.provider.FontsContractCompat;
 import androidx.core.provider.FontsContractCompat.FontInfo;
+import androidx.core.util.Preconditions;
 
 /**
  * Helper for accessing features in {@link Typeface}.
@@ -72,7 +74,6 @@ public class TypefaceCompat {
      * Find from internal cache.
      *
      * @return null if not found.
-     * @hide
      */
     @Nullable
     @RestrictTo(LIBRARY)
@@ -85,7 +86,6 @@ public class TypefaceCompat {
      * Find from internal cache.
      *
      * @return null if not found.
-     * @hide
      * @deprecated Use {@link #findFromCache(Resources, int, String, int, int)} method
      */
     @Nullable
@@ -136,7 +136,6 @@ public class TypefaceCompat {
      * Create Typeface from XML resource which root node is font-family.
      *
      * @return null if failed to create.
-     * @hide
      */
     @Nullable
     @RestrictTo(LIBRARY)
@@ -193,7 +192,6 @@ public class TypefaceCompat {
      * Create Typeface from XML resource which root node is font-family.
      *
      * @return null if failed to create.
-     * @hide
      * @deprecated Use {@link #createFromResourcesFamilyXml(Context, FamilyResourceEntry,
      * Resources, int, String, int, int, ResourcesCompat.FontCallback, Handler, boolean)} method
      */
@@ -211,7 +209,6 @@ public class TypefaceCompat {
 
     /**
      * Used by Resources to load a font resource of type font file.
-     * @hide
      */
     @Nullable
     @RestrictTo(LIBRARY)
@@ -229,7 +226,6 @@ public class TypefaceCompat {
 
     /**
      * Used by Resources to load a font resource of type font file.
-     * @hide
      * @deprecated Use {@link #createFromResourcesFontFile(Context, Resources, int, String,
      * int, int)} method
      */
@@ -244,7 +240,6 @@ public class TypefaceCompat {
 
     /**
      * Create a Typeface from a given FontInfo list and a map that matches them to ByteBuffers.
-     * @hide
      */
     @Nullable
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -296,7 +291,54 @@ public class TypefaceCompat {
     }
 
     /**
-     * @hide
+     * Creates a typeface object that best matches the specified existing typeface and the specified
+     * weight and italic style
+     * <p>Below are numerical values and corresponding common weight names.</p>
+     * <table>
+     * <thead>
+     * <tr><th>Value</th><th>Common weight name</th></tr>
+     * </thead>
+     * <tbody>
+     * <tr><td>100</td><td>Thin</td></tr>
+     * <tr><td>200</td><td>Extra Light</td></tr>
+     * <tr><td>300</td><td>Light</td></tr>
+     * <tr><td>400</td><td>Normal</td></tr>
+     * <tr><td>500</td><td>Medium</td></tr>
+     * <tr><td>600</td><td>Semi Bold</td></tr>
+     * <tr><td>700</td><td>Bold</td></tr>
+     * <tr><td>800</td><td>Extra Bold</td></tr>
+     * <tr><td>900</td><td>Black</td></tr>
+     * </tbody>
+     * </table>
+     *
+     * <p>
+     * This method is thread safe.
+     * </p>
+     *
+     * @param family An existing {@link Typeface} object. In case of {@code null}, the default
+     *               typeface is used instead.
+     * @param weight The desired weight to be drawn.
+     * @param italic {@code true} if italic style is desired to be drawn. Otherwise, {@code false}
+     * @return A {@link Typeface} object for drawing specified weight and italic style. Never
+     *         returns {@code null}
+     *
+     * @see Typeface#getWeight()
+     * @see Typeface#isItalic()
+     */
+    @NonNull
+    public static Typeface create(@NonNull Context context, @Nullable Typeface family,
+            @IntRange(from = 1, to = 1000) int weight, boolean italic) {
+        if (context == null) {
+            throw new IllegalArgumentException("Context cannot be null");
+        }
+        Preconditions.checkArgumentInRange(weight, 1, 1000, "weight");
+        if (family == null) {
+            family = Typeface.DEFAULT;
+        }
+        return sTypefaceCompatImpl.createWeightStyle(context, family, weight, italic);
+    }
+
+    /**
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @VisibleForTesting
@@ -311,7 +353,6 @@ public class TypefaceCompat {
      * RestrictTo(LIBRARY) since it is used by the deprecated
      * {@link FontsContractCompat#getFontSync} function.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     public static class ResourcesCallbackAdapter extends FontsContractCompat.FontRequestCallback {

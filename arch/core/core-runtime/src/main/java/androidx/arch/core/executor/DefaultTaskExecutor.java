@@ -32,7 +32,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class DefaultTaskExecutor extends TaskExecutor {
@@ -56,12 +55,12 @@ public class DefaultTaskExecutor extends TaskExecutor {
     private volatile Handler mMainHandler;
 
     @Override
-    public void executeOnDiskIO(Runnable runnable) {
+    public void executeOnDiskIO(@NonNull Runnable runnable) {
         mDiskIO.execute(runnable);
     }
 
     @Override
-    public void postToMainThread(Runnable runnable) {
+    public void postToMainThread(@NonNull Runnable runnable) {
         if (mMainHandler == null) {
             synchronized (mLock) {
                 if (mMainHandler == null) {

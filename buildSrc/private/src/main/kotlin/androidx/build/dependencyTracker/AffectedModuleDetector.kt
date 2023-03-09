@@ -127,6 +127,7 @@ abstract class AffectedModuleDetector(
             val distDir = rootProject.getDistributionDirectory()
             val outputFile = distDir.resolve(LOG_FILE_NAME)
 
+            outputFile.writeText("")
             val logger = FileLogger(outputFile)
             logger.info("setup: enabled: $enabled")
             if (!enabled) {
@@ -135,7 +136,7 @@ abstract class AffectedModuleDetector(
                     { spec ->
                         val params = spec.parameters
                         params.acceptAll = true
-                        params.log = outputFile
+                        params.log = logger
                     }
                 )
                 logger.info("using AcceptAll")
@@ -151,7 +152,7 @@ abstract class AffectedModuleDetector(
             gradle.taskGraph.whenReady {
                 logger.lifecycle("projects evaluated")
                 val projectGraph = ProjectGraph(rootProject)
-                val dependencyTracker = DependencyTracker(rootProject, logger)
+                val dependencyTracker = DependencyTracker(rootProject, logger.toLogger())
                 val provider = setupWithParams(
                     rootProject,
                     { spec ->
@@ -159,7 +160,7 @@ abstract class AffectedModuleDetector(
                         params.rootDir = rootProject.projectDir
                         params.projectGraph = projectGraph
                         params.dependencyTracker = dependencyTracker
-                        params.log = outputFile
+                        params.log = logger
                         params.baseCommitOverride = baseCommitOverride
                         params.changeInfoPath = changeInfoPath
                         params.manifestPath = manifestPath
@@ -258,7 +259,7 @@ abstract class AffectedModuleDetectorLoader :
         var rootDir: File
         var projectGraph: ProjectGraph
         var dependencyTracker: DependencyTracker
-        var log: File
+        var log: FileLogger?
         var cobuiltTestPaths: Set<Set<String>>?
         var alwaysBuildIfExists: Set<String>?
         var ignoredPaths: Set<String>?
@@ -268,7 +269,7 @@ abstract class AffectedModuleDetectorLoader :
     }
 
     val detector: AffectedModuleDetector by lazy {
-        val logger = FileLogger(parameters.log)
+        val logger = parameters.log!!
         if (parameters.acceptAll) {
             AcceptAll(null)
         } else {
@@ -278,7 +279,7 @@ abstract class AffectedModuleDetectorLoader :
             }
             val gitClient = GitClient.create(
                 rootProjectDir = parameters.rootDir,
-                logger = logger,
+                logger = logger.toLogger(),
                 changeInfoPath = parameters.changeInfoPath.get(),
                 manifestPath = parameters.manifestPath.get()
             )
@@ -295,7 +296,7 @@ abstract class AffectedModuleDetectorLoader :
             AffectedModuleDetectorImpl(
                 projectGraph = parameters.projectGraph,
                 dependencyTracker = parameters.dependencyTracker,
-                logger = logger,
+                logger = logger.toLogger(),
                 cobuiltTestPaths = parameters.cobuiltTestPaths
                     ?: AffectedModuleDetectorImpl.COBUILT_TEST_PATHS,
                 alwaysBuildIfExists = parameters.alwaysBuildIfExists
@@ -593,26 +594,32 @@ class AffectedModuleDetectorImpl constructor(
                 ":benchmark:integration-tests:macrobenchmark-target"
             ), // link benchmark-macro's correctness test and its target
             setOf(
+                ":benchmark:integration-tests",
                 ":benchmark:integration-tests:macrobenchmark",
                 ":benchmark:integration-tests:macrobenchmark-target"
             ), // link benchmark's macrobenchmark and its target
             setOf(
+                ":compose:integration-tests",
                 ":compose:integration-tests:macrobenchmark",
                 ":compose:integration-tests:macrobenchmark-target"
             ),
             setOf(
+                ":emoji2:integration-tests",
                 ":emoji2:integration-tests:init-disabled-macrobenchmark",
                 ":emoji2:integration-tests:init-disabled-macrobenchmark-target",
             ),
             setOf(
+                ":emoji2:integration-tests",
                 ":emoji2:integration-tests:init-enabled-macrobenchmark",
                 ":emoji2:integration-tests:init-enabled-macrobenchmark-target",
             ),
             setOf(
+                ":wear:benchmark:integration-tests",
                 ":wear:benchmark:integration-tests:macrobenchmark",
                 ":wear:benchmark:integration-tests:macrobenchmark-target"
             ),
             setOf(
+                ":wear:compose:integration-tests",
                 ":wear:compose:integration-tests:macrobenchmark",
                 ":wear:compose:integration-tests:macrobenchmark-target"
             ),
@@ -622,11 +629,26 @@ class AffectedModuleDetectorImpl constructor(
                 ":compose:material:material:icons:generator",
                 ":compose:material:material-icons-extended"
             ),
+            // Link glance-appwidget macrobenchmark and its target.
+            setOf(
+                ":glance:glance-appwidget:integration-tests",
+                ":glance:glance-appwidget:integration-tests:macrobenchmark",
+                ":glance:glance-appwidget:integration-tests:macrobenchmark-target"
+            ),
+            setOf(
+                ":constraintlayout:constraintlayout-compose:integration-tests",
+                ":constraintlayout:constraintlayout-compose:integration-tests:macrobenchmark",
+                ":constraintlayout:constraintlayout-compose:integration-tests:macrobenchmark-target"
+            )
         )
 
         val IGNORED_PATHS = setOf(
             "docs/",
-            "development/"
+            "development/",
+            "playground-common/",
+            ".github/",
+            // since we only used AMD for device tests, versions do not affect test outcomes.
+            "libraryversions.toml",
         )
     }
 }

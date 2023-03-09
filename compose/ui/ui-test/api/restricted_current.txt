@@ -16,20 +16,8 @@ package androidx.compose.ui.test {
     method public static androidx.compose.ui.test.SemanticsNodeInteraction performTouchInput(androidx.compose.ui.test.SemanticsNodeInteraction, kotlin.jvm.functions.Function1<? super androidx.compose.ui.test.TouchInjectionScope,kotlin.Unit> block);
   }
 
-  public final class Actions_androidKt {
-  }
-
-  public final class AndroidAssertions_androidKt {
-  }
-
   public final class AndroidImageHelpers_androidKt {
     method @RequiresApi(android.os.Build.VERSION_CODES.O) public static androidx.compose.ui.graphics.ImageBitmap captureToImage(androidx.compose.ui.test.SemanticsNodeInteraction);
-  }
-
-  public final class AndroidInputDispatcher_androidKt {
-  }
-
-  public final class AndroidOutput_androidKt {
   }
 
   public final class AssertionsKt {
@@ -79,12 +67,6 @@ package androidx.compose.ui.test {
     ctor public ComposeTimeoutException(String? message);
   }
 
-  public final class ErrorMessagesKt {
-  }
-
-  public final class Expect_jvmKt {
-  }
-
   public final class FiltersKt {
     method public static androidx.compose.ui.test.SemanticsMatcher hasAnyAncestor(androidx.compose.ui.test.SemanticsMatcher matcher);
     method public static androidx.compose.ui.test.SemanticsMatcher hasAnyChild(androidx.compose.ui.test.SemanticsMatcher matcher);
@@ -97,6 +79,7 @@ package androidx.compose.ui.test {
     method public static androidx.compose.ui.test.SemanticsMatcher hasNoClickAction();
     method public static androidx.compose.ui.test.SemanticsMatcher hasNoScrollAction();
     method public static androidx.compose.ui.test.SemanticsMatcher hasParent(androidx.compose.ui.test.SemanticsMatcher matcher);
+    method public static androidx.compose.ui.test.SemanticsMatcher hasPerformImeAction();
     method public static androidx.compose.ui.test.SemanticsMatcher hasProgressBarRangeInfo(androidx.compose.ui.semantics.ProgressBarRangeInfo rangeInfo);
     method public static androidx.compose.ui.test.SemanticsMatcher hasScrollAction();
     method public static androidx.compose.ui.test.SemanticsMatcher hasScrollToIndexAction();
@@ -138,7 +121,7 @@ package androidx.compose.ui.test {
   @Deprecated public final class GestureScope {
     ctor @Deprecated public GestureScope(androidx.compose.ui.semantics.SemanticsNode node, androidx.compose.ui.test.TestContext testContext);
     method @Deprecated public long getVisibleSize();
-    property public final long visibleSize;
+    property @Deprecated public final long visibleSize;
     field @Deprecated @kotlin.PublishedApi internal final androidx.compose.ui.test.MultiModalInjectionScope delegateScope;
   }
 
@@ -184,13 +167,13 @@ package androidx.compose.ui.test {
     method @Deprecated public static void up(androidx.compose.ui.test.GestureScope, optional int pointerId);
   }
 
-  public interface IdlingResource {
+  @kotlin.jvm.JvmDefaultWithCompatibility public interface IdlingResource {
     method public default String? getDiagnosticMessageIfBusy();
     method public boolean isIdleNow();
     property public abstract boolean isIdleNow;
   }
 
-  public interface InjectionScope extends androidx.compose.ui.unit.Density {
+  @kotlin.jvm.JvmDefaultWithCompatibility public interface InjectionScope extends androidx.compose.ui.unit.Density {
     method public void advanceEventTime(optional long durationMillis);
     method public default float getBottom();
     method public default long getBottomCenter();
@@ -239,7 +222,7 @@ package androidx.compose.ui.test {
     method public static boolean performKeyPress(androidx.compose.ui.test.SemanticsNodeInteraction, android.view.KeyEvent keyEvent);
   }
 
-  public interface MainTestClock {
+  @kotlin.jvm.JvmDefaultWithCompatibility public interface MainTestClock {
     method public void advanceTimeBy(long milliseconds, optional boolean ignoreFrameDuration);
     method public void advanceTimeByFrame();
     method public void advanceTimeUntil(optional long timeoutMillis, kotlin.jvm.functions.Function0<java.lang.Boolean> condition);
@@ -248,9 +231,6 @@ package androidx.compose.ui.test {
     method public void setAutoAdvance(boolean);
     property public abstract boolean autoAdvance;
     property public abstract long currentTime;
-  }
-
-  public final class MouseInjectionScopeKt {
   }
 
   public sealed interface MultiModalInjectionScope extends androidx.compose.ui.test.InjectionScope {
@@ -319,7 +299,7 @@ package androidx.compose.ui.test {
     method public operator androidx.compose.ui.test.SemanticsNodeInteraction get(int index);
   }
 
-  public interface SemanticsNodeInteractionsProvider {
+  @kotlin.jvm.JvmDefaultWithCompatibility public interface SemanticsNodeInteractionsProvider {
     method public androidx.compose.ui.test.SemanticsNodeInteractionCollection onAllNodes(androidx.compose.ui.test.SemanticsMatcher matcher, optional boolean useUnmergedTree);
     method public androidx.compose.ui.test.SemanticsNodeInteraction onNode(androidx.compose.ui.test.SemanticsMatcher matcher, optional boolean useUnmergedTree);
   }
@@ -331,16 +311,7 @@ package androidx.compose.ui.test {
     property public final String description;
   }
 
-  public final class SemanticsSelectorKt {
-  }
-
   public final class TestContext {
-  }
-
-  public final class TestMonotonicFrameClock_jvmKt {
-  }
-
-  public final class TestOwnerKt {
   }
 
   public final class TextActionsKt {
@@ -350,7 +321,7 @@ package androidx.compose.ui.test {
     method public static void performTextReplacement(androidx.compose.ui.test.SemanticsNodeInteraction, String text);
   }
 
-  public interface TouchInjectionScope extends androidx.compose.ui.test.InjectionScope {
+  @kotlin.jvm.JvmDefaultWithCompatibility public interface TouchInjectionScope extends androidx.compose.ui.test.InjectionScope {
     method public void cancel(optional long delayMillis);
     method public androidx.compose.ui.geometry.Offset? currentPosition(optional int pointerId);
     method public void down(int pointerId, long position);
@@ -377,16 +348,6 @@ package androidx.compose.ui.test {
     method public static void swipeRight(androidx.compose.ui.test.TouchInjectionScope, optional float startX, optional float endX, optional long durationMillis);
     method public static void swipeUp(androidx.compose.ui.test.TouchInjectionScope, optional float startY, optional float endY, optional long durationMillis);
     method public static void swipeWithVelocity(androidx.compose.ui.test.TouchInjectionScope, long start, long end, float endVelocity, optional long durationMillis);
-  }
-
-  public final class UtilsKt {
-  }
-
-}
-
-package androidx.compose.ui.test.android {
-
-  public final class WindowCapture_androidKt {
   }
 
 }

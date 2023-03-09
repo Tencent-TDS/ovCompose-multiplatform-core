@@ -38,9 +38,8 @@ import java.util.List;
 /**
  * Parameters for {@link IWatchFaceControlService#createPendingInteractiveWatchFace}.
  *
- * @hide
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @VersionedParcelize(allowSerialization = true)
 @SuppressLint("BanParcelableUsage") // TODO(b/169214666): Remove Parcelable
 public class WallpaperInteractiveWatchFaceInstanceParams
@@ -71,21 +70,34 @@ public class WallpaperInteractiveWatchFaceInstanceParams
     @Nullable
     List<IdAndComplicationDataWireFormat> mIdAndComplicationDataWireFormats;
 
+    /** Reserved field */
+    @ParcelField(101)
+    @Nullable
+    String mAuxiliaryComponentClassName;
+
+    /** Reserved field */
+    @ParcelField(102)
+    @Nullable
+    String mAuxiliaryComponentPackageName;
+
     /** Used by VersionedParcelable. */
-    WallpaperInteractiveWatchFaceInstanceParams() {
-    }
+    WallpaperInteractiveWatchFaceInstanceParams() {}
 
     public WallpaperInteractiveWatchFaceInstanceParams(
             @NonNull String instanceId,
             @NonNull DeviceConfig deviceConfig,
             @NonNull WatchUiState watchUiState,
             @NonNull UserStyleWireFormat userStyle,
-            @Nullable List<IdAndComplicationDataWireFormat> idAndComplicationDataWireFormats) {
+            @Nullable List<IdAndComplicationDataWireFormat> idAndComplicationDataWireFormats,
+            @Nullable String auxiliaryComponentPackageName,
+            @Nullable String auxiliaryComponentClassName) {
         mInstanceId = instanceId;
         mDeviceConfig = deviceConfig;
         mWatchUiState = watchUiState;
         mUserStyle = userStyle;
         mIdAndComplicationDataWireFormats = idAndComplicationDataWireFormats;
+        mAuxiliaryComponentClassName = auxiliaryComponentClassName;
+        mAuxiliaryComponentPackageName = auxiliaryComponentPackageName;
     }
 
     @NonNull
@@ -118,8 +130,7 @@ public class WallpaperInteractiveWatchFaceInstanceParams
     }
 
     public void setIdAndComplicationDataWireFormats(
-            @Nullable List<IdAndComplicationDataWireFormat> idAndComplicationDataWireFormats
-    ) {
+            @Nullable List<IdAndComplicationDataWireFormat> idAndComplicationDataWireFormats) {
         mIdAndComplicationDataWireFormats = idAndComplicationDataWireFormats;
     }
 

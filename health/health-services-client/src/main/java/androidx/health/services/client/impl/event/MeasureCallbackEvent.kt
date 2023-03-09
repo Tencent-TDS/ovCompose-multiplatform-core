@@ -1,6 +1,7 @@
 package androidx.health.services.client.impl.event
 
 import android.os.Parcelable
+import androidx.annotation.RestrictTo
 import androidx.health.services.client.data.ProtoParcelable
 import androidx.health.services.client.impl.response.AvailabilityResponse
 import androidx.health.services.client.impl.response.DataPointsResponse
@@ -9,8 +10,8 @@ import androidx.health.services.client.proto.EventsProto.MeasureCallbackEvent as
 /**
  * An event representing a `MeasureCallback` invocation.
  *
- * @hide
  */
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 public class MeasureCallbackEvent(public override val proto: ListenerProto) :
     ProtoParcelable<ListenerProto>() {
 
@@ -20,16 +21,14 @@ public class MeasureCallbackEvent(public override val proto: ListenerProto) :
             MeasureCallbackEvent(ListenerProto.parseFrom(it))
         }
 
-        @JvmStatic
-        public fun createDataPointsUpdateEvent(
+        internal fun createDataPointsUpdateEvent(
             dataPointsResponse: DataPointsResponse
         ): MeasureCallbackEvent =
             MeasureCallbackEvent(
                 ListenerProto.newBuilder().setDataPointResponse(dataPointsResponse.proto).build()
             )
 
-        @JvmStatic
-        public fun createAvailabilityUpdateEvent(
+        internal fun createAvailabilityUpdateEvent(
             availability: AvailabilityResponse
         ): MeasureCallbackEvent =
             MeasureCallbackEvent(

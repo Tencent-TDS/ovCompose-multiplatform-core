@@ -28,7 +28,6 @@ import androidx.camera.core.impl.TagBundle;
 /**
  * A fake implementation of {@link CameraCaptureResult} where the values are settable.
  *
- * @hide
  */
 @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @RestrictTo(Scope.LIBRARY_GROUP)
@@ -41,23 +40,23 @@ public final class FakeCameraCaptureResult implements CameraCaptureResult {
     private long mTimestamp = -1L;
     private TagBundle mTag = TagBundle.emptyBundle();
 
-    public void setAfMode(CameraCaptureMetaData.AfMode mode) {
+    public void setAfMode(@NonNull CameraCaptureMetaData.AfMode mode) {
         mAfMode = mode;
     }
 
-    public void setAfState(CameraCaptureMetaData.AfState state) {
+    public void setAfState(@NonNull CameraCaptureMetaData.AfState state) {
         mAfState = state;
     }
 
-    public void setAeState(CameraCaptureMetaData.AeState state) {
+    public void setAeState(@NonNull CameraCaptureMetaData.AeState state) {
         mAeState = state;
     }
 
-    public void setAwbState(CameraCaptureMetaData.AwbState state) {
+    public void setAwbState(@NonNull CameraCaptureMetaData.AwbState state) {
         mAwbState = state;
     }
 
-    public void setFlashState(CameraCaptureMetaData.FlashState state) {
+    public void setFlashState(@NonNull CameraCaptureMetaData.FlashState state) {
         mFlashState = state;
     }
 
@@ -65,7 +64,7 @@ public final class FakeCameraCaptureResult implements CameraCaptureResult {
         mTimestamp = timestamp;
     }
 
-    public void setTag(TagBundle tag) {
+    public void setTag(@NonNull TagBundle tag) {
         mTag = tag;
     }
 
@@ -113,8 +112,8 @@ public final class FakeCameraCaptureResult implements CameraCaptureResult {
     /**
      * Builder for fake implementation of {@link CameraCaptureResult} where the values are settable.
      *
-     * @hide
      */
+    @SuppressWarnings("unused")
     @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     @RestrictTo(Scope.LIBRARY_GROUP)
     public static class Builder {

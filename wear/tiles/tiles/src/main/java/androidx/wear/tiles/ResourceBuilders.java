@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2021-2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@ package androidx.wear.tiles;
 
 import static androidx.annotation.Dimension.PX;
 
-import static java.util.stream.Collectors.toMap;
-
 import android.annotation.SuppressLint;
 
 import androidx.annotation.Dimension;
@@ -29,13 +27,16 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
-import androidx.wear.tiles.proto.ResourceProto;
-import androidx.wear.tiles.protobuf.ByteString;
+import androidx.wear.protolayout.proto.ResourceProto;
+import androidx.wear.protolayout.protobuf.ByteString;
+import androidx.wear.protolayout.protobuf.InvalidProtocolBufferException;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /** Builders for the resources for a layout. */
 public final class ResourceBuilders {
@@ -44,7 +45,6 @@ public final class ResourceBuilders {
     /**
      * Format describing the contents of an image data byte array.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef({IMAGE_FORMAT_UNDEFINED, IMAGE_FORMAT_RGB_565})
@@ -77,7 +77,6 @@ public final class ResourceBuilders {
             return mImpl.getResourceId();
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static AndroidImageResourceByResId fromProto(
@@ -85,7 +84,6 @@ public final class ResourceBuilders {
             return new AndroidImageResourceByResId(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ResourceProto.AndroidImageResourceByResId toProto() {
@@ -165,7 +163,6 @@ public final class ResourceBuilders {
             return mImpl.getFormat().getNumber();
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static InlineImageResource fromProto(
@@ -173,7 +170,6 @@ public final class ResourceBuilders {
             return new InlineImageResource(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ResourceProto.InlineImageResource toProto() {
@@ -271,14 +267,12 @@ public final class ResourceBuilders {
             }
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static ImageResource fromProto(@NonNull ResourceProto.ImageResource proto) {
             return new ImageResource(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ResourceProto.ImageResource toProto() {
@@ -346,22 +340,39 @@ public final class ResourceBuilders {
          */
         @NonNull
         public Map<String, ImageResource> getIdToImageMapping() {
-            return Collections.unmodifiableMap(
-                    mImpl.getIdToImageMap().entrySet().stream()
-                            .collect(
-                                    toMap(
-                                            Map.Entry::getKey,
-                                            f -> ImageResource.fromProto(f.getValue()))));
+            Map<String, ImageResource> map = new HashMap<>();
+            for (Entry<String, ResourceProto.ImageResource> entry :
+                    mImpl.getIdToImageMap().entrySet()) {
+                map.put(entry.getKey(), ImageResource.fromProto(entry.getValue()));
+            }
+            return Collections.unmodifiableMap(map);
         }
 
-        /** @hide */
+        /** Converts to byte array representation. */
+        @NonNull
+        @TilesExperimental
+        public byte[] toByteArray() {
+            return mImpl.toByteArray();
+        }
+
+        /** Converts from byte array representation. */
+        @SuppressWarnings("ProtoParseWithRegistry")
+        @Nullable
+        @TilesExperimental
+        public static Resources fromByteArray(@NonNull byte[] byteArray) {
+            try {
+                return fromProto(ResourceProto.Resources.parseFrom(byteArray));
+            } catch (InvalidProtocolBufferException e) {
+                return null;
+            }
+        }
+
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public static Resources fromProto(@NonNull ResourceProto.Resources proto) {
             return new Resources(proto);
         }
 
-        /** @hide */
         @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         public ResourceProto.Resources toProto() {

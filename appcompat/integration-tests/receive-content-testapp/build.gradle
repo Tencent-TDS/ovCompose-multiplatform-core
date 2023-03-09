@@ -31,9 +31,10 @@ dependencies {
     implementation(project(":appcompat:appcompat"))
     implementation(libs.constraintLayout)
     implementation(libs.guavaAndroid)
-    implementation(project(":recyclerview:recyclerview"))
+    implementation(projectOrArtifact(":recyclerview:recyclerview"))
     implementation(libs.material)
 
+    androidTestImplementation(projectOrArtifact(":lifecycle:lifecycle-common"))
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testRules)

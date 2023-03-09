@@ -17,29 +17,31 @@
 package androidx.camera.camera2.pipe.integration.adapter
 
 import android.content.Context
-import android.graphics.Point
 import android.hardware.camera2.CameraCaptureSession.CaptureCallback
 import android.hardware.camera2.CameraDevice
 import android.util.Size
-import android.view.Display
-import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.core.Log.debug
 import androidx.camera.camera2.pipe.core.Log.info
+import androidx.camera.camera2.pipe.integration.compat.workaround.setupHDRnet
+import androidx.camera.camera2.pipe.integration.compat.workaround.toggleHDRPlus
 import androidx.camera.camera2.pipe.integration.impl.Camera2ImplConfig
-import androidx.camera.camera2.pipe.integration.impl.asLandscape
-import androidx.camera.camera2.pipe.integration.impl.minByArea
-import androidx.camera.camera2.pipe.integration.impl.toSize
+import androidx.camera.camera2.pipe.integration.impl.DisplayInfoManager
+import androidx.camera.camera2.pipe.integration.impl.SESSION_PHYSICAL_CAMERA_ID_OPTION
+import androidx.camera.camera2.pipe.integration.impl.STREAM_USE_CASE_OPTION
 import androidx.camera.camera2.pipe.integration.interop.ExperimentalCamera2Interop
 import androidx.camera.core.impl.CameraCaptureCallback
 import androidx.camera.core.impl.CaptureConfig
 import androidx.camera.core.impl.Config
+import androidx.camera.core.impl.ImageCaptureConfig
 import androidx.camera.core.impl.ImageOutputConfig
 import androidx.camera.core.impl.MutableOptionsBundle
 import androidx.camera.core.impl.OptionsBundle
+import androidx.camera.core.impl.PreviewConfig
 import androidx.camera.core.impl.SessionConfig
 import androidx.camera.core.impl.UseCaseConfig
 import androidx.camera.core.impl.UseCaseConfigFactory
+import androidx.camera.core.impl.UseCaseConfigFactory.CaptureType
 
 /**
  * This class builds [Config] objects for a given [UseCaseConfigFactory.CaptureType].
@@ -50,11 +52,7 @@ import androidx.camera.core.impl.UseCaseConfigFactory
 @Suppress("DEPRECATION")
 @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
-
-    private val display: Display by lazy {
-        @Suppress("deprecation")
-        (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay!!
-    }
+    private val displayInfoManager by lazy { DisplayInfoManager(context) }
 
     init {
         if (context === context.applicationContext) {
@@ -73,7 +71,7 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
      * configuration cannot be produced.
      */
     override fun getConfig(
-        captureType: UseCaseConfigFactory.CaptureType,
+        captureType: CaptureType,
         captureMode: Int
     ): Config? {
         debug { "Creating config for $captureType" }
@@ -84,12 +82,13 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
         val mutableConfig = MutableOptionsBundle.create()
         val sessionBuilder = SessionConfig.Builder()
         when (captureType) {
-            UseCaseConfigFactory.CaptureType.IMAGE_CAPTURE,
-            UseCaseConfigFactory.CaptureType.PREVIEW,
-            UseCaseConfigFactory.CaptureType.IMAGE_ANALYSIS -> sessionBuilder.setTemplateType(
+            CaptureType.IMAGE_CAPTURE,
+            CaptureType.PREVIEW,
+            CaptureType.IMAGE_ANALYSIS -> sessionBuilder.setTemplateType(
                 CameraDevice.TEMPLATE_PREVIEW
             )
-            UseCaseConfigFactory.CaptureType.VIDEO_CAPTURE -> sessionBuilder.setTemplateType(
+
+            CaptureType.VIDEO_CAPTURE -> sessionBuilder.setTemplateType(
                 CameraDevice.TEMPLATE_RECORD
             )
         }
@@ -99,11 +98,12 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
         )
         val captureBuilder = CaptureConfig.Builder()
         when (captureType) {
-            UseCaseConfigFactory.CaptureType.IMAGE_CAPTURE ->
+            CaptureType.IMAGE_CAPTURE ->
                 captureBuilder.templateType = CameraDevice.TEMPLATE_STILL_CAPTURE
-            UseCaseConfigFactory.CaptureType.PREVIEW,
-            UseCaseConfigFactory.CaptureType.IMAGE_ANALYSIS,
-            UseCaseConfigFactory.CaptureType.VIDEO_CAPTURE ->
+
+            CaptureType.PREVIEW,
+            CaptureType.IMAGE_ANALYSIS,
+            CaptureType.VIDEO_CAPTURE ->
                 captureBuilder.templateType = CameraDevice.TEMPLATE_RECORD
         }
         mutableConfig.insertOption(
@@ -111,44 +111,36 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
             captureBuilder.build()
         )
 
-        // TODO: the ImageCaptureOptionUnpacker not porting yet. Will need porting the
-        //  ImageCaptureOptionUnpacker.
-
         // Only CAPTURE_TYPE_IMAGE_CAPTURE has its own ImageCaptureOptionUnpacker. Other
-        // capture types all use the standard Camera2CaptureOptionUnpacker.
+        // capture types all use the standard DefaultCaptureOptionsUnpacker.
         mutableConfig.insertOption(
             UseCaseConfig.OPTION_CAPTURE_CONFIG_UNPACKER,
-            DefaultCaptureOptionsUnpacker
+            if (captureType == CaptureType.IMAGE_CAPTURE) {
+                ImageCaptureOptionUnpacker.INSTANCE
+            } else {
+                DefaultCaptureOptionsUnpacker.INSTANCE
+            }
         )
         mutableConfig.insertOption(
             UseCaseConfig.OPTION_SESSION_CONFIG_UNPACKER,
             DefaultSessionOptionsUnpacker
         )
 
-        if (captureType == UseCaseConfigFactory.CaptureType.PREVIEW) {
+        if (captureType == CaptureType.PREVIEW) {
             mutableConfig.insertOption(
                 ImageOutputConfig.OPTION_MAX_RESOLUTION,
-                getPreviewSize()
+                displayInfoManager.previewSize
             )
         }
 
         mutableConfig.insertOption(
             ImageOutputConfig.OPTION_TARGET_ROTATION,
-            display.rotation
+            displayInfoManager.defaultDisplay.rotation
         )
         return OptionsBundle.from(mutableConfig)
     }
 
-    /**
-     * Returns the device's screen resolution, or 1080p, whichever is smaller.
-     */
-    private fun getPreviewSize(): Size? {
-        val displaySize = Point()
-        display.getRealSize(displaySize)
-        return minByArea(MAXIMUM_PREVIEW_SIZE, displaySize.toSize().asLandscape())
-    }
-
-    object DefaultCaptureOptionsUnpacker : CaptureConfig.OptionUnpacker {
+    open class DefaultCaptureOptionsUnpacker : CaptureConfig.OptionUnpacker {
         @OptIn(ExperimentalCamera2Interop::class)
         override fun unpack(config: UseCaseConfig<*>, builder: CaptureConfig.Builder) {
             val defaultCaptureConfig = config.getDefaultCaptureConfig(null)
@@ -185,11 +177,34 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
             // Copy extension keys
             builder.addImplementationOptions(camera2Config.captureRequestOptions)
         }
+
+        companion object {
+            val INSTANCE = DefaultCaptureOptionsUnpacker()
+        }
+    }
+
+    class ImageCaptureOptionUnpacker : DefaultCaptureOptionsUnpacker() {
+
+        override fun unpack(config: UseCaseConfig<*>, builder: CaptureConfig.Builder) {
+            super.unpack(config, builder)
+            require(config is ImageCaptureConfig) { "config is not ImageCaptureConfig" }
+            builder.addImplementationOptions(
+                Camera2ImplConfig.Builder().apply { toggleHDRPlus(config) }.build()
+            )
+        }
+
+        companion object {
+            val INSTANCE = ImageCaptureOptionUnpacker()
+        }
     }
 
     object DefaultSessionOptionsUnpacker : SessionConfig.OptionUnpacker {
         @OptIn(ExperimentalCamera2Interop::class)
-        override fun unpack(config: UseCaseConfig<*>, builder: SessionConfig.Builder) {
+        override fun unpack(
+            resolution: Size,
+            config: UseCaseConfig<*>,
+            builder: SessionConfig.Builder
+        ) {
             val defaultSessionConfig = config.getDefaultSessionConfig( /*valueIfMissing=*/null)
 
             var implOptions: Config = OptionsBundle.emptyBundle()
@@ -209,6 +224,11 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
             // Set any additional implementation options
             builder.setImplementationOptions(implOptions)
 
+            if (config is PreviewConfig) {
+                // Set the WYSIWYG preview for CAPTURE_TYPE_PREVIEW
+                builder.setupHDRnet(resolution)
+            }
+
             // Get Camera2 extended options
             val camera2Config = Camera2ImplConfig(config)
 
@@ -227,6 +247,24 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
             }
 
             // TODO: Copy CameraEventCallback (used for extension)
+
+            // Copy extended Camera2 configurations
+            val extendedConfig = MutableOptionsBundle.create().apply {
+                camera2Config.getPhysicalCameraId()?.let { physicalCameraId ->
+                    insertOption(
+                        SESSION_PHYSICAL_CAMERA_ID_OPTION,
+                        physicalCameraId
+                    )
+                }
+
+                camera2Config.getStreamUseCase()?.let { streamUseCase ->
+                    insertOption(
+                        STREAM_USE_CASE_OPTION,
+                        streamUseCase
+                    )
+                }
+            }
+            builder.addImplementationOptions(extendedConfig)
 
             // Copy extension keys
             builder.addImplementationOptions(camera2Config.captureRequestOptions)

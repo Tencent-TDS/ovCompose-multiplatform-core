@@ -17,6 +17,7 @@
 package androidx.arch.core.internal;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 
 import java.util.Iterator;
@@ -29,7 +30,6 @@ import java.util.WeakHashMap;
  *
  * @param <K> Key type
  * @param <V> Value type
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class SafeIterableMap<K, V> implements Iterable<Map.Entry<K, V>> {
@@ -39,9 +39,10 @@ public class SafeIterableMap<K, V> implements Iterable<Map.Entry<K, V>> {
     private Entry<K, V> mEnd;
     // using WeakHashMap over List<WeakReference>, so we don't have to manually remove
     // WeakReferences that have null in them.
-    private WeakHashMap<SupportRemove<K, V>, Boolean> mIterators = new WeakHashMap<>();
+    private final WeakHashMap<SupportRemove<K, V>, Boolean> mIterators = new WeakHashMap<>();
     private int mSize = 0;
 
+    @Nullable
     @SuppressWarnings("HiddenTypeParameter")
     protected Entry<K, V> get(K k) {
         Entry<K, V> currentNode = mStart;
@@ -147,6 +148,7 @@ public class SafeIterableMap<K, V> implements Iterable<Map.Entry<K, V>> {
      * @return an descending iterator, which doesn't include new elements added during an
      * iteration.
      */
+    @NonNull
     public Iterator<Map.Entry<K, V>> descendingIterator() {
         DescendingIterator<K, V> iterator = new DescendingIterator<>(mEnd, mStart);
         mIterators.put(iterator, false);
@@ -156,8 +158,8 @@ public class SafeIterableMap<K, V> implements Iterable<Map.Entry<K, V>> {
     /**
      * return an iterator with additions.
      */
+    @NonNull
     public IteratorWithAdditions iteratorWithAdditions() {
-        @SuppressWarnings("unchecked")
         IteratorWithAdditions iterator = new IteratorWithAdditions();
         mIterators.put(iterator, false);
         return iterator;
@@ -166,6 +168,7 @@ public class SafeIterableMap<K, V> implements Iterable<Map.Entry<K, V>> {
     /**
      * @return eldest added entry or null
      */
+    @Nullable
     public Map.Entry<K, V> eldest() {
         return mStart;
     }
@@ -173,10 +176,12 @@ public class SafeIterableMap<K, V> implements Iterable<Map.Entry<K, V>> {
     /**
      * @return newest added entry or null
      */
+    @Nullable
     public Map.Entry<K, V> newest() {
         return mEnd;
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
     public boolean equals(Object obj) {
         if (obj == this) {
@@ -205,9 +210,8 @@ public class SafeIterableMap<K, V> implements Iterable<Map.Entry<K, V>> {
     @Override
     public int hashCode() {
         int h = 0;
-        Iterator<Map.Entry<K, V>> i = iterator();
-        while (i.hasNext()) {
-            h += i.next().hashCode();
+        for (Map.Entry<K, V> kvEntry : this) {
+            h += kvEntry.hashCode();
         }
         return h;
     }
@@ -313,7 +317,6 @@ public class SafeIterableMap<K, V> implements Iterable<Map.Entry<K, V>> {
     }
 
     /**
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public class IteratorWithAdditions extends SupportRemove<K, V>
@@ -353,7 +356,13 @@ public class SafeIterableMap<K, V> implements Iterable<Map.Entry<K, V>> {
         }
     }
 
-    abstract static class SupportRemove<K, V> {
+    /**
+     *
+     * @param <K>
+     * @param <V>
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    public abstract static class SupportRemove<K, V> {
         abstract void supportRemove(@NonNull Entry<K, V> entry);
     }
 
@@ -392,7 +401,7 @@ public class SafeIterableMap<K, V> implements Iterable<Map.Entry<K, V>> {
             return mKey + "=" + mValue;
         }
 
-        @SuppressWarnings("ReferenceEquality")
+        @SuppressWarnings({"ReferenceEquality", "rawtypes"})
         @Override
         public boolean equals(Object obj) {
             if (obj == this) {

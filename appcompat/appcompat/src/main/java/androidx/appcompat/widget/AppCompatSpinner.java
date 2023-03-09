@@ -59,6 +59,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.appcompat.view.menu.ShowableListMenu;
+import androidx.core.util.ObjectsCompat;
 import androidx.core.view.TintableBackgroundView;
 import androidx.core.view.ViewCompat;
 import androidx.resourceinspection.annotation.AppCompatShadowedAttributes;
@@ -500,7 +501,6 @@ public class AppCompatSpinner extends Spinner implements TintableBackgroundView 
      * {@link androidx.core.view.ViewCompat#setBackgroundTintList(android.view.View,
      * ColorStateList)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -514,7 +514,6 @@ public class AppCompatSpinner extends Spinner implements TintableBackgroundView 
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#getBackgroundTintList(android.view.View)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -529,7 +528,6 @@ public class AppCompatSpinner extends Spinner implements TintableBackgroundView 
      * {@link androidx.core.view.ViewCompat#setBackgroundTintMode(android.view.View,
      * PorterDuff.Mode)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -543,7 +541,6 @@ public class AppCompatSpinner extends Spinner implements TintableBackgroundView 
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#getBackgroundTintMode(android.view.View)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -1129,7 +1126,7 @@ public class AppCompatSpinner extends Spinner implements TintableBackgroundView 
                 @NonNull android.widget.ThemedSpinnerAdapter themedSpinnerAdapter,
                 @Nullable Resources.Theme theme
         ) {
-            if (themedSpinnerAdapter.getDropDownViewTheme() != theme) {
+            if (!ObjectsCompat.equals(themedSpinnerAdapter.getDropDownViewTheme(), theme)) {
                 themedSpinnerAdapter.setDropDownViewTheme(theme);
             }
         }

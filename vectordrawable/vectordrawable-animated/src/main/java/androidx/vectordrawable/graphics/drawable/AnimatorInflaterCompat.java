@@ -62,7 +62,6 @@ import java.util.ArrayList;
  * to use this inflater with an XmlPullParser over a plain XML file at runtime;
  * it only works with an XmlPullParser returned from a compiled resource (R.
  * <em>something</em> file.)
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public class AnimatorInflaterCompat {
@@ -161,18 +160,6 @@ public class AnimatorInflaterCompat {
          * a new <code>PathParser.PathDataNode[]</code> will be allocated.
          */
         PathDataEvaluator() {
-        }
-
-        /**
-         * Create a PathDataEvaluator that reuses <code>nodeArray</code> for every evaluate() call.
-         * Caution must be taken to ensure that the value returned from
-         * {@link android.animation.ValueAnimator#getAnimatedValue()} is not cached, modified, or
-         * used across threads. The value will be modified on each <code>evaluate()</code> call.
-         *
-         * @param nodeArray The array to modify and return from <code>evaluate</code>.
-         */
-        PathDataEvaluator(PathParser.PathDataNode[] nodeArray) {
-            mNodeArray = nodeArray;
         }
 
         @Override

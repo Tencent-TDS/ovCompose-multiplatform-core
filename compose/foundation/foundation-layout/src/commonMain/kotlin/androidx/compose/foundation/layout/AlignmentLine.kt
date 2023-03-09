@@ -134,16 +134,31 @@ fun Modifier.paddingFrom(
  * [baseline of the last line of text in the content][LastBaseline] to the bottom of the layout
  * is [bottom].
  *
+ * When the modified layout is min height constrained and the padded layout is smaller than the
+ * constraint, the modified layout will satisfy the min constraint and the content will be
+ * positioned to satisfy the [top] requirement if specified, or the [bottom] requirement otherwise.
+ *
  * @see paddingFrom
  *
  * Example usage:
  * @sample androidx.compose.foundation.layout.samples.PaddingFromBaselineSampleDp
  */
 @Stable
-@Suppress("ModifierInspectorInfo")
 fun Modifier.paddingFromBaseline(top: Dp = Dp.Unspecified, bottom: Dp = Dp.Unspecified) = this
-    .then(if (bottom != Dp.Unspecified) paddingFrom(LastBaseline, after = bottom) else Modifier)
-    .then(if (top != Dp.Unspecified) paddingFrom(FirstBaseline, before = top) else Modifier)
+    .then(
+        if (top != Dp.Unspecified) {
+            Modifier.paddingFrom(FirstBaseline, before = top)
+        } else {
+            Modifier
+        }
+    )
+    .then(
+        if (bottom != Dp.Unspecified) {
+            Modifier.paddingFrom(LastBaseline, after = bottom)
+        } else {
+            Modifier
+        }
+    )
 
 /**
  * A [Modifier] that positions the content in a layout such that the distance from the top
@@ -152,19 +167,26 @@ fun Modifier.paddingFromBaseline(top: Dp = Dp.Unspecified, bottom: Dp = Dp.Unspe
  * [baseline of the last line of text in the content][LastBaseline] to the bottom of the layout
  * is [bottom].
  *
+ * When the modified layout is min height constrained and the padded layout is smaller than the
+ * constraint, the modified layout will satisfy the min constraint and the content will be
+ * positioned to satisfy the [top] requirement if specified, or the [bottom] requirement otherwise.
+ *
  * @see paddingFrom
  *
  * Example usage:
  * @sample androidx.compose.foundation.layout.samples.PaddingFromBaselineSampleTextUnit
  */
 @Stable
-@Suppress("ModifierInspectorInfo")
 fun Modifier.paddingFromBaseline(
     top: TextUnit = TextUnit.Unspecified,
     bottom: TextUnit = TextUnit.Unspecified
 ) = this
-    .then(if (!bottom.isUnspecified) paddingFrom(LastBaseline, after = bottom) else Modifier)
-    .then(if (!top.isUnspecified) paddingFrom(FirstBaseline, before = top) else Modifier)
+    .then(
+        if (!top.isUnspecified) Modifier.paddingFrom(FirstBaseline, before = top) else Modifier
+    )
+    .then(
+        if (!bottom.isUnspecified) Modifier.paddingFrom(LastBaseline, after = bottom) else Modifier
+    )
 
 private class AlignmentLineOffsetDp(
     val alignmentLine: AlignmentLine,

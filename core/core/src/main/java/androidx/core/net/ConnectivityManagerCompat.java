@@ -51,7 +51,6 @@ import java.lang.annotation.RetentionPolicy;
  */
 @SuppressWarnings("unused")
 public final class ConnectivityManagerCompat {
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Retention(RetentionPolicy.SOURCE)
     @IntDef(value = {
@@ -137,6 +136,7 @@ public final class ConnectivityManagerCompat {
      * potentially-stale value from
      * {@link ConnectivityManager#EXTRA_NETWORK_INFO}. May be {@code null}.
      */
+    @SuppressWarnings("deprecation")
     @SuppressLint("ReferencesDeprecated")
     @Nullable
     @RequiresPermission(Manifest.permission.ACCESS_NETWORK_STATE)

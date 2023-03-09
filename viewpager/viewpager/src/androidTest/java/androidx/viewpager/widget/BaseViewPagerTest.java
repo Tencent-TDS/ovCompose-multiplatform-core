@@ -37,6 +37,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
+import static androidx.testutils.SwipeExclusionRectsKt.setSystemExclusionRectsForEspressoSwipes;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -69,7 +70,6 @@ import android.widget.TextView;
 
 import androidx.test.espresso.ViewAction;
 import androidx.test.espresso.action.EspressoKey;
-import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.filters.MediumTest;
 import androidx.test.filters.SdkSuppress;
@@ -264,6 +264,7 @@ public abstract class BaseViewPagerTest<T extends Activity> {
     public void setUp() throws Exception {
         final T activity = mActivityTestRule.getActivity();
         mViewPager = (ViewPager) activity.findViewById(R.id.pager);
+        setSystemExclusionRectsForEspressoSwipes(mViewPager, true);
 
         ColorPagerAdapter adapter = new ColorPagerAdapter();
         adapter.add("Red", Color.RED);
@@ -1146,7 +1147,7 @@ public abstract class BaseViewPagerTest<T extends Activity> {
 
     @Test
     @LargeTest
-    @FlakyTest(bugId = 179887413)
+    @Ignore("b/179887413")
     public void testKeyboardNavigation() {
         ButtonPagerAdapter adapter = new ButtonPagerAdapter();
         adapter.add("Red", Color.RED);

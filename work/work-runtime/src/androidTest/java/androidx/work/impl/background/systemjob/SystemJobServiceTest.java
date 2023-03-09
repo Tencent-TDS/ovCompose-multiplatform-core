@@ -17,11 +17,13 @@
 package androidx.work.impl.background.systemjob;
 
 import static androidx.test.espresso.matcher.ViewMatchers.assertThat;
+import static androidx.work.impl.WorkManagerImplExtKt.createWorkManager;
+import static androidx.work.impl.WorkManagerImplExtKt.schedulers;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -36,6 +38,7 @@ import android.os.Build;
 import android.os.PersistableBundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.arch.core.executor.ArchTaskExecutor;
 import androidx.arch.core.executor.TaskExecutor;
 import androidx.test.core.app.ApplicationProvider;
@@ -53,6 +56,7 @@ import androidx.work.impl.Processor;
 import androidx.work.impl.Scheduler;
 import androidx.work.impl.WorkDatabase;
 import androidx.work.impl.WorkManagerImpl;
+import androidx.work.impl.constraints.trackers.Trackers;
 import androidx.work.impl.model.WorkSpecDao;
 import androidx.work.impl.utils.taskexecutor.InstantWorkTaskExecutor;
 import androidx.work.worker.InfiniteTestWorker;
@@ -62,7 +66,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 
@@ -107,20 +110,18 @@ public class SystemJobServiceTest extends WorkManagerTest {
                 .setExecutor(Executors.newSingleThreadExecutor())
                 .build();
         mScheduler = mock(Scheduler.class);
-        List<Scheduler> schedulers = Collections.singletonList(mScheduler);
         mProcessor = new Processor(
                 context,
                 configuration,
                 taskExecutor,
-                mDatabase,
-                schedulers);
+                mDatabase);
 
-        mWorkManagerImpl = new WorkManagerImpl(
-                context, configuration, taskExecutor, mDatabase, schedulers, mProcessor);
+        mWorkManagerImpl = createWorkManager(context, configuration, taskExecutor,
+                mDatabase, new Trackers(context, taskExecutor), mProcessor, schedulers(mScheduler));
         WorkManagerImpl.setDelegate(mWorkManagerImpl);
         mSystemJobServiceSpy = spy(new SystemJobService());
         doReturn(context).when(mSystemJobServiceSpy).getApplicationContext();
-        doNothing().when(mSystemJobServiceSpy).onExecuted(anyString(), anyBoolean());
+        doNothing().when(mSystemJobServiceSpy).onExecuted(any(), anyBoolean());
         mSystemJobServiceSpy.onCreate();
     }
 
@@ -286,6 +287,7 @@ public class SystemJobServiceTest extends WorkManagerTest {
         mDatabase.workSpecDao().insertWorkSpec(work.getWorkSpec());
     }
 
+    @RequiresApi(24)
     public static class ContentUriTriggerLoggingWorker extends Worker {
 
         static int sTimesUpdated = 0;
@@ -308,6 +310,7 @@ public class SystemJobServiceTest extends WorkManagerTest {
         }
     }
 
+    @RequiresApi(28)
     public static class NetworkLoggingWorker extends Worker {
 
         static int sTimesUpdated = 0;

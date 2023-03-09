@@ -36,7 +36,6 @@ import java.util.concurrent.Executor;
 /**
  * A class to hold static methods used by code generation in Room's Guava compatibility library.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @SuppressWarnings("unused") // Used in GuavaListenableFutureQueryResultBinder code generation.
@@ -53,6 +52,7 @@ public class GuavaRoom {
      *             RoomSQLiteQuery, boolean, CancellationSignal)}
      */
     @Deprecated
+    @SuppressLint("LambdaLast")
     public static <T> ListenableFuture<T> createListenableFuture(
             final Callable<T> callable,
             final RoomSQLiteQuery query,
@@ -69,6 +69,7 @@ public class GuavaRoom {
      *             RoomSQLiteQuery, boolean, CancellationSignal)}
      */
     @Deprecated
+    @SuppressLint("LambdaLast")
     public static <T> ListenableFuture<T> createListenableFuture(
             final RoomDatabase roomDatabase,
             final Callable<T> callable,
@@ -98,6 +99,7 @@ public class GuavaRoom {
      * {@link RoomDatabase}'s {@link java.util.concurrent.Executor}.
      */
     @NonNull
+    @SuppressLint("LambdaLast")
     public static <T> ListenableFuture<T> createListenableFuture(
             final @NonNull RoomDatabase roomDatabase,
             final boolean inTransaction,

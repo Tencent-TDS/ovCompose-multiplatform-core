@@ -9,6 +9,7 @@ dependencies {
     implementation("androidx.annotation:annotation:1.2.0")
 
     androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.testExtTruth)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
@@ -17,7 +18,6 @@ dependencies {
 androidx {
     name = "Android Support ExifInterface"
     publish = Publish.SNAPSHOT_AND_RELEASE
-    mavenGroup = LibraryGroups.EXIFINTERFACE
     inceptionYear = "2016"
     description = "Android Support ExifInterface"
 }

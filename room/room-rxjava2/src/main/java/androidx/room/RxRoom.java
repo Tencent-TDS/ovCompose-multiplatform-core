@@ -16,6 +16,8 @@
 
 package androidx.room;
 
+import android.annotation.SuppressLint;
+
 import androidx.annotation.RestrictTo;
 
 import java.util.Set;
@@ -43,6 +45,7 @@ import io.reactivex.schedulers.Schedulers;
 /**
  * Helper class to add RxJava2 support to Room.
  */
+@SuppressLint("PrivateConstructorForUtilityClass")
 @SuppressWarnings("WeakerAccess")
 public class RxRoom {
     /**
@@ -103,7 +106,6 @@ public class RxRoom {
      *
      * @deprecated Use {@link #createFlowable(RoomDatabase, boolean, String[], Callable)}
      *
-     * @hide
      */
     @Deprecated
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
@@ -116,7 +118,6 @@ public class RxRoom {
      * Helper method used by generated code to bind a Callable such that it will be run in
      * our disk io thread and will automatically block null values since RxJava2 does not like null.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public static <T> Flowable<T> createFlowable(final RoomDatabase database,
@@ -182,7 +183,6 @@ public class RxRoom {
      *
      * @deprecated Use {@link #createObservable(RoomDatabase, boolean, String[], Callable)}
      *
-     * @hide
      */
     @Deprecated
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
@@ -195,7 +195,6 @@ public class RxRoom {
      * Helper method used by generated code to bind a Callable such that it will be run in
      * our disk io thread and will automatically block null values since RxJava2 does not like null.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public static <T> Observable<T> createObservable(final RoomDatabase database,
@@ -218,10 +217,9 @@ public class RxRoom {
      * Helper method used by generated code to create a Single from a Callable that will ignore
      * the EmptyResultSetException if the stream is already disposed.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-    public static <T> Single<T> createSingle(final Callable<T> callable) {
+    public static <T> Single<T> createSingle(final Callable<? extends T> callable) {
         return Single.create(new SingleOnSubscribe<T>() {
             @Override
             public void subscribe(SingleEmitter<T> emitter) throws Exception {

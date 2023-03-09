@@ -47,7 +47,6 @@ import java.util.Map;
 
 /**
  * Implementation of the Typeface compat methods for API 26 and above.
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 @RequiresApi(26)
@@ -350,5 +349,21 @@ public class TypefaceCompatApi26Impl extends TypefaceCompatApi21Impl {
                 familyArray.getClass(), Integer.TYPE, Integer.TYPE);
         m.setAccessible(true);
         return m;
+    }
+
+    @NonNull
+    @Override
+    Typeface createWeightStyle(@NonNull Context context,
+            @NonNull Typeface base, int weight, boolean italic) {
+        Typeface out = null;
+        try {
+            out = WeightTypefaceApi26.createWeightStyle(base, weight, italic);
+        } catch (RuntimeException fallbackFailed) {
+            // ignore, fallback to legacy behavior
+        }
+        if (out == null) {
+            out = super.createWeightStyle(context, base, weight, italic);
+        }
+        return out;
     }
 }

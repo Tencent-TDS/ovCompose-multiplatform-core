@@ -18,8 +18,10 @@ package androidx.core.graphics;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
+import android.content.Context;
 import android.graphics.Typeface;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 
@@ -29,7 +31,6 @@ import java.lang.reflect.Method;
 
 /**
  * Implementation of the Typeface compat methods for API 28 and above.
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 @RequiresApi(28)
@@ -63,5 +64,12 @@ public class TypefaceCompatApi28Impl extends TypefaceCompatApi26Impl {
                 familyArray.getClass(), String.class, Integer.TYPE, Integer.TYPE);
         m.setAccessible(true);
         return m;
+    }
+
+    @NonNull
+    @Override
+    Typeface createWeightStyle(@NonNull Context context,
+            @NonNull Typeface base, int weight, boolean italic) {
+        return Typeface.create(base, weight, italic);
     }
 }

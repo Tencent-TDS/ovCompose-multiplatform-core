@@ -17,6 +17,7 @@
 package androidx.appcompat.widget;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
+import static androidx.appcompat.widget.ViewUtils.SDK_LEVEL_SUPPORTS_AUTOSIZE;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -41,6 +42,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.Px;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+import androidx.annotation.UiThread;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.graphics.TypefaceCompat;
 import androidx.core.text.PrecomputedTextCompat;
@@ -91,6 +93,9 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
     private AppCompatEmojiTextHelper mEmojiTextViewHelper;
 
     private boolean mIsSetTypefaceProcessing = false;
+
+    @Nullable
+    private SuperCaller mSuperCaller = null;
 
     @Nullable
     private Future<PrecomputedTextCompat> mPrecomputedTextFuture;
@@ -154,7 +159,6 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#setBackgroundTintList(android.view.View, ColorStateList)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -168,7 +172,6 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#getBackgroundTintList(android.view.View)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -182,7 +185,6 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#setBackgroundTintMode(android.view.View, PorterDuff.Mode)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -196,7 +198,6 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * This should be accessed via
      * {@link androidx.core.view.ViewCompat#getBackgroundTintMode(android.view.View)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -256,7 +257,7 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
 
     @Override
     public void setTextSize(int unit, float size) {
-        if (PLATFORM_SUPPORTS_AUTOSIZE) {
+        if (SDK_LEVEL_SUPPORTS_AUTOSIZE) {
             super.setTextSize(unit, size);
         } else {
             if (mTextHelper != null) {
@@ -268,7 +269,9 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
     @Override
     protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
         super.onTextChanged(text, start, lengthBefore, lengthAfter);
-        if (mTextHelper != null && !PLATFORM_SUPPORTS_AUTOSIZE && mTextHelper.isAutoSizeEnabled()) {
+        boolean useHelper = mTextHelper != null && !SDK_LEVEL_SUPPORTS_AUTOSIZE
+                && mTextHelper.isAutoSizeEnabled();
+        if (useHelper) {
             mTextHelper.autoSizeText();
         }
     }
@@ -278,14 +281,13 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * {@link androidx.core.widget.TextViewCompat#setAutoSizeTextTypeWithDefaults(
      *TextView, int)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
     public void setAutoSizeTextTypeWithDefaults(
             @TextViewCompat.AutoSizeTextType int autoSizeTextType) {
-        if (PLATFORM_SUPPORTS_AUTOSIZE) {
-            super.setAutoSizeTextTypeWithDefaults(autoSizeTextType);
+        if (SDK_LEVEL_SUPPORTS_AUTOSIZE) {
+            getSuperCaller().setAutoSizeTextTypeWithDefaults(autoSizeTextType);
         } else {
             if (mTextHelper != null) {
                 mTextHelper.setAutoSizeTextTypeWithDefaults(autoSizeTextType);
@@ -298,7 +300,6 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * {@link androidx.core.widget.TextViewCompat#setAutoSizeTextTypeUniformWithConfiguration(
      *TextView, int, int, int, int)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -307,9 +308,9 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
             int autoSizeMaxTextSize,
             int autoSizeStepGranularity,
             int unit) throws IllegalArgumentException {
-        if (PLATFORM_SUPPORTS_AUTOSIZE) {
-            super.setAutoSizeTextTypeUniformWithConfiguration(
-                    autoSizeMinTextSize, autoSizeMaxTextSize, autoSizeStepGranularity, unit);
+        if (SDK_LEVEL_SUPPORTS_AUTOSIZE) {
+            getSuperCaller().setAutoSizeTextTypeUniformWithConfiguration(autoSizeMinTextSize,
+                    autoSizeMaxTextSize, autoSizeStepGranularity, unit);
         } else {
             if (mTextHelper != null) {
                 mTextHelper.setAutoSizeTextTypeUniformWithConfiguration(
@@ -323,14 +324,13 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * {@link androidx.core.widget.TextViewCompat#setAutoSizeTextTypeUniformWithPresetSizes(
      *TextView, int[], int)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
     public void setAutoSizeTextTypeUniformWithPresetSizes(@NonNull int[] presetSizes, int unit)
             throws IllegalArgumentException {
-        if (PLATFORM_SUPPORTS_AUTOSIZE) {
-            super.setAutoSizeTextTypeUniformWithPresetSizes(presetSizes, unit);
+        if (SDK_LEVEL_SUPPORTS_AUTOSIZE) {
+            getSuperCaller().setAutoSizeTextTypeUniformWithPresetSizes(presetSizes, unit);
         } else {
             if (mTextHelper != null) {
                 mTextHelper.setAutoSizeTextTypeUniformWithPresetSizes(presetSizes, unit);
@@ -342,7 +342,6 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * This should be accessed via
      * {@link androidx.core.widget.TextViewCompat#getAutoSizeTextType(TextView)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
@@ -350,8 +349,9 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
     // Suppress lint error for TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM [WrongConstant]
     @SuppressLint("WrongConstant")
     public int getAutoSizeTextType() {
-        if (PLATFORM_SUPPORTS_AUTOSIZE) {
-            return super.getAutoSizeTextType() == TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM
+        if (SDK_LEVEL_SUPPORTS_AUTOSIZE) {
+            return getSuperCaller().getAutoSizeTextType() == TextView
+                    .AUTO_SIZE_TEXT_TYPE_UNIFORM
                     ? TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM
                     : TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE;
         } else {
@@ -366,13 +366,12 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * This should be accessed via
      * {@link androidx.core.widget.TextViewCompat#getAutoSizeStepGranularity(TextView)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
     public int getAutoSizeStepGranularity() {
-        if (PLATFORM_SUPPORTS_AUTOSIZE) {
-            return super.getAutoSizeStepGranularity();
+        if (SDK_LEVEL_SUPPORTS_AUTOSIZE) {
+            return getSuperCaller().getAutoSizeStepGranularity();
         } else {
             if (mTextHelper != null) {
                 return mTextHelper.getAutoSizeStepGranularity();
@@ -385,13 +384,12 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * This should be accessed via
      * {@link androidx.core.widget.TextViewCompat#getAutoSizeMinTextSize(TextView)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
     public int getAutoSizeMinTextSize() {
-        if (PLATFORM_SUPPORTS_AUTOSIZE) {
-            return super.getAutoSizeMinTextSize();
+        if (SDK_LEVEL_SUPPORTS_AUTOSIZE) {
+            return getSuperCaller().getAutoSizeMinTextSize();
         } else {
             if (mTextHelper != null) {
                 return mTextHelper.getAutoSizeMinTextSize();
@@ -404,13 +402,12 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * This should be accessed via
      * {@link androidx.core.widget.TextViewCompat#getAutoSizeMaxTextSize(TextView)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
     public int getAutoSizeMaxTextSize() {
-        if (PLATFORM_SUPPORTS_AUTOSIZE) {
-            return super.getAutoSizeMaxTextSize();
+        if (SDK_LEVEL_SUPPORTS_AUTOSIZE) {
+            return getSuperCaller().getAutoSizeMaxTextSize();
         } else {
             if (mTextHelper != null) {
                 return mTextHelper.getAutoSizeMaxTextSize();
@@ -423,13 +420,12 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * This should be accessed via
      * {@link androidx.core.widget.TextViewCompat#getAutoSizeTextAvailableSizes(TextView)}
      *
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
     public int[] getAutoSizeTextAvailableSizes() {
-        if (PLATFORM_SUPPORTS_AUTOSIZE) {
-            return super.getAutoSizeTextAvailableSizes();
+        if (SDK_LEVEL_SUPPORTS_AUTOSIZE) {
+            return getSuperCaller().getAutoSizeTextAvailableSizes();
         } else {
             if (mTextHelper != null) {
                 return mTextHelper.getAutoSizeTextAvailableSizes();
@@ -448,7 +444,7 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
     @Override
     public void setFirstBaselineToTopHeight(@Px @IntRange(from = 0) int firstBaselineToTopHeight) {
         if (Build.VERSION.SDK_INT >= 28) {
-            super.setFirstBaselineToTopHeight(firstBaselineToTopHeight);
+            getSuperCaller().setFirstBaselineToTopHeight(firstBaselineToTopHeight);
         } else {
             TextViewCompat.setFirstBaselineToTopHeight(this, firstBaselineToTopHeight);
         }
@@ -458,7 +454,7 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
     public void setLastBaselineToBottomHeight(
             @Px @IntRange(from = 0) int lastBaselineToBottomHeight) {
         if (Build.VERSION.SDK_INT >= 28) {
-            super.setLastBaselineToBottomHeight(lastBaselineToBottomHeight);
+            getSuperCaller().setLastBaselineToBottomHeight(lastBaselineToBottomHeight);
         } else {
             TextViewCompat.setLastBaselineToBottomHeight(this,
                     lastBaselineToBottomHeight);
@@ -559,7 +555,7 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
     @RequiresApi(api = 26)
     public void setTextClassifier(@Nullable TextClassifier textClassifier) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P || mTextClassifierHelper == null) {
-            super.setTextClassifier(textClassifier);
+            getSuperCaller().setTextClassifier(textClassifier);
             return;
         }
         mTextClassifierHelper.setTextClassifier(textClassifier);
@@ -571,13 +567,13 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * {@link android.view.textclassifier.TextClassificationManager}.
      */
     @Override
-    @NonNull
     @RequiresApi(api = 26)
+    @NonNull
     public TextClassifier getTextClassifier() {
         // The null check is necessary because getTextClassifier is called when we are invoking
         // the super class's constructor.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P || mTextClassifierHelper == null) {
-            return super.getTextClassifier();
+            return getSuperCaller().getTextClassifier();
         }
         return mTextClassifierHelper.getTextClassifier();
     }
@@ -681,7 +677,6 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTint
      * @see #setSupportCompoundDrawablesTintList(ColorStateList)
      *
-     * @hide
      */
     @Nullable
     @Override
@@ -705,7 +700,6 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTint
      * @see #getSupportCompoundDrawablesTintList()
      *
-     * @hide
      */
     @Override
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -724,7 +718,6 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTintMode
      * @see #setSupportCompoundDrawablesTintMode(PorterDuff.Mode)
      *
-     * @hide
      */
     @Nullable
     @Override
@@ -745,7 +738,6 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
      * @attr ref androidx.appcompat.R.styleable#AppCompatTextView_drawableTintMode
      * @see #setSupportCompoundDrawablesTintList(ColorStateList)
      *
-     * @hide
      */
     @Override
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -775,5 +767,114 @@ public class AppCompatTextView extends TextView implements TintableBackgroundVie
             mIsSetTypefaceProcessing = false;
         }
 
+    }
+
+    @UiThread
+    @RequiresApi(api = 26)
+    SuperCaller getSuperCaller() {
+        if (mSuperCaller == null) {
+            if (Build.VERSION.SDK_INT >= 28) {
+                mSuperCaller = new SuperCallerApi28();
+            } else if (Build.VERSION.SDK_INT >= 26) {
+                mSuperCaller = new SuperCallerApi26();
+            }
+        }
+        return mSuperCaller;
+    }
+
+
+
+    private interface SuperCaller {
+        // api 26
+        int getAutoSizeMaxTextSize();
+        int getAutoSizeMinTextSize();
+        int getAutoSizeStepGranularity();
+        int[] getAutoSizeTextAvailableSizes();
+        int getAutoSizeTextType();
+        TextClassifier getTextClassifier();
+        void setAutoSizeTextTypeUniformWithConfiguration(int autoSizeMinTextSize,
+                int autoSizeMaxTextSize, int autoSizeStepGranularity, int unit);
+        void setAutoSizeTextTypeUniformWithPresetSizes(int[] presetSizes, int unit);
+        void setAutoSizeTextTypeWithDefaults(int autoSizeTextType);
+        void setTextClassifier(@Nullable TextClassifier textClassifier);
+
+        // api 28
+        void setFirstBaselineToTopHeight(@Px int firstBaselineToTopHeight);
+        void setLastBaselineToBottomHeight(@Px int lastBaselineToBottomHeight);
+    }
+
+    @RequiresApi(api = 26)
+    class SuperCallerApi26 implements SuperCaller {
+        @Override
+        public int getAutoSizeMaxTextSize() {
+            return AppCompatTextView.super.getAutoSizeMaxTextSize();
+        }
+
+        @Override
+        public int getAutoSizeMinTextSize() {
+            return AppCompatTextView.super.getAutoSizeMinTextSize();
+        }
+
+        @Override
+        public int getAutoSizeStepGranularity() {
+            return AppCompatTextView.super.getAutoSizeStepGranularity();
+        }
+
+        @Override
+        public int[] getAutoSizeTextAvailableSizes() {
+            return AppCompatTextView.super.getAutoSizeTextAvailableSizes();
+        }
+
+        @Override
+        public int getAutoSizeTextType() {
+            return AppCompatTextView.super.getAutoSizeTextType();
+        }
+
+        @Override
+        public TextClassifier getTextClassifier() {
+            return AppCompatTextView.super.getTextClassifier();
+        }
+
+        @Override
+        public void setAutoSizeTextTypeUniformWithConfiguration(int autoSizeMinTextSize,
+                int autoSizeMaxTextSize, int autoSizeStepGranularity, int unit) {
+            AppCompatTextView.super.setAutoSizeTextTypeUniformWithConfiguration(autoSizeMinTextSize,
+                    autoSizeMaxTextSize, autoSizeStepGranularity, unit);
+        }
+
+        @Override
+        public void setAutoSizeTextTypeUniformWithPresetSizes(int[] presetSizes, int unit) {
+            AppCompatTextView.super.setAutoSizeTextTypeUniformWithPresetSizes(presetSizes, unit);
+        }
+
+        @Override
+        public void setAutoSizeTextTypeWithDefaults(int autoSizeTextType) {
+            AppCompatTextView.super.setAutoSizeTextTypeWithDefaults(autoSizeTextType);
+        }
+
+        @Override
+        public void setTextClassifier(@Nullable TextClassifier textClassifier) {
+            AppCompatTextView.super.setTextClassifier(textClassifier);
+        }
+
+        @Override
+        public void setFirstBaselineToTopHeight(int firstBaselineToTopHeight) {}
+
+        @Override
+        public void setLastBaselineToBottomHeight(int lastBaselineToBottomHeight) {}
+    }
+
+    @RequiresApi(api = 28)
+    class SuperCallerApi28 extends SuperCallerApi26 {
+
+        @Override
+        public void setFirstBaselineToTopHeight(@Px int firstBaselineToTopHeight) {
+            AppCompatTextView.super.setFirstBaselineToTopHeight(firstBaselineToTopHeight);
+        }
+
+        @Override
+        public void setLastBaselineToBottomHeight(@Px int lastBaselineToBottomHeight) {
+            AppCompatTextView.super.setLastBaselineToBottomHeight(lastBaselineToBottomHeight);
+        }
     }
 }

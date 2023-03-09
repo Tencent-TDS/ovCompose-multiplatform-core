@@ -34,9 +34,8 @@ import androidx.wear.watchface.style.data.UserStyleWireFormat;
 /**
  * Parameters for the various AIDL renderComplicationToBitmap commands.
  *
- * @hide
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @VersionedParcelize
 @SuppressLint("BanParcelableUsage") // TODO(b/169214666): Remove Parcelable
 public class ComplicationRenderParams implements VersionedParcelable, Parcelable {

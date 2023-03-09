@@ -17,8 +17,8 @@
 package androidx.paging
 
 import androidx.paging.PagingSource.LoadResult.Page.Companion.COUNT_UNDEFINED
-import com.nhaarman.mockitokotlin2.capture
-import com.nhaarman.mockitokotlin2.mock
+import org.mockito.kotlin.capture
+import org.mockito.kotlin.mock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -30,6 +30,7 @@ import org.junit.runners.JUnit4
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
+import kotlin.random.Random
 import kotlin.test.assertFailsWith
 
 @Suppress("DEPRECATION")
@@ -501,8 +502,8 @@ class ItemKeyedDataSourceTest {
             Item(
                 names[it % 10],
                 it,
-                Math.random() * 1000,
-                (Math.random() * 200).toInt().toString() + " fake st."
+                Random.nextDouble(1000.0),
+                Random.nextInt(200).toString() + " fake st."
             )
         }.sortedWith(ITEM_COMPARATOR)
     }

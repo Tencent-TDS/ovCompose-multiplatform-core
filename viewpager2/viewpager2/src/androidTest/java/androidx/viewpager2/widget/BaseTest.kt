@@ -75,6 +75,7 @@ import org.junit.Rule
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
+import org.junit.Assert.fail
 
 open class BaseTest {
     companion object {
@@ -120,7 +121,7 @@ open class BaseTest {
         val viewPager: ViewPager2 = activityTestRule.activity.findViewById(R.id.view_pager)
         activityTestRule.runOnUiThread {
             viewPager.orientation = orientation
-            viewPager.setSystemExclusionRectsForEspressoSwipes()
+            viewPager.setSystemExclusionRectsForEspressoSwipes(requestLayout = true)
         }
         onView(withId(R.id.view_pager)).check(matches(isDisplayed()))
 
@@ -147,7 +148,7 @@ open class BaseTest {
                 viewPager.orientation = orientation
                 viewPager.isUserInputEnabled = isUserInputEnabled
                 viewPager.adapter = adapterProvider(activity)
-                viewPager.setSystemExclusionRectsForEspressoSwipes()
+                viewPager.setSystemExclusionRectsForEspressoSwipes(requestLayout = false)
                 onCreateCallback(viewPager)
             }
             activity = activityTestRule.recreate()
@@ -734,7 +735,11 @@ fun tryNTimes(n: Int, resetBlock: () -> Unit, tryBlock: () -> Unit) {
             if (i < n - 1) {
                 Log.w(BaseTest.TAG, "Bad state, retrying block", e)
             } else {
-                throw AssertionError("Block hit bad state $n times", e)
+                val errorMessage = "Block hit bad state $n times"
+                when {
+                    Build.VERSION.SDK_INT >= 19 -> throw AssertionError(errorMessage, e)
+                    else -> fail(errorMessage)
+                }
             }
             resetBlock()
         }

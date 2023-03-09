@@ -16,6 +16,7 @@
 
 package androidx.work.impl;
 
+import static androidx.work.impl.WorkManagerImplExtKt.createTestWorkManager;
 import static androidx.work.worker.RandomSleepTestWorker.MAX_SLEEP_DURATION_MS;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -41,6 +42,7 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkContinuation;
 import androidx.work.WorkInfo;
 import androidx.work.impl.background.greedy.GreedyScheduler;
+import androidx.work.impl.model.WorkGenerationalId;
 import androidx.work.impl.model.WorkSpec;
 import androidx.work.impl.utils.taskexecutor.InstantWorkTaskExecutor;
 import androidx.work.impl.utils.taskexecutor.TaskExecutor;
@@ -110,8 +112,7 @@ public class WorkManagerImplLargeExecutorTest {
                 .setMaxSchedulerLimit(TEST_SCHEDULER_LIMIT)
                 .build();
         TaskExecutor taskExecutor = new InstantWorkTaskExecutor();
-        mWorkManagerImplSpy = spy(
-                new WorkManagerImpl(context, configuration, taskExecutor, true));
+        mWorkManagerImplSpy = spy(createTestWorkManager(context, configuration, taskExecutor));
 
         TrackingScheduler trackingScheduler =
                 new TrackingScheduler(context, configuration, mWorkManagerImplSpy);
@@ -119,8 +120,7 @@ public class WorkManagerImplLargeExecutorTest {
         Processor processor = new Processor(context,
                 configuration,
                 mWorkManagerImplSpy.getWorkTaskExecutor(),
-                mWorkManagerImplSpy.getWorkDatabase(),
-                Collections.singletonList((Scheduler) trackingScheduler));
+                mWorkManagerImplSpy.getWorkDatabase());
 
         when(mWorkManagerImplSpy.getSchedulers()).thenReturn(
                 Collections.singletonList((Scheduler) trackingScheduler));
@@ -190,7 +190,10 @@ public class WorkManagerImplLargeExecutorTest {
                 Context context,
                 Configuration configuration,
                 WorkManagerImpl workManagerImpl) {
-            super(context, configuration, workManagerImpl.getTrackers(), workManagerImpl);
+            super(context, configuration, workManagerImpl.getTrackers(),
+                    workManagerImpl.getProcessor(),
+                    new WorkLauncherImpl(workManagerImpl.getProcessor(),
+                            workManagerImpl.getWorkTaskExecutor()));
             mScheduledWorkSpecIds = new HashSet<>();
         }
 
@@ -207,12 +210,12 @@ public class WorkManagerImplLargeExecutorTest {
         }
 
         @Override
-        public void onExecuted(@NonNull String workSpecId, boolean needsReschedule) {
+        public void onExecuted(@NonNull WorkGenerationalId id, boolean needsReschedule) {
             synchronized (sLock) {
-                assertThat(mScheduledWorkSpecIds.contains(workSpecId), is(true));
-                mScheduledWorkSpecIds.remove(workSpecId);
+                assertThat(mScheduledWorkSpecIds.contains(id.getWorkSpecId()), is(true));
+                mScheduledWorkSpecIds.remove(id.getWorkSpecId());
             }
-            super.onExecuted(workSpecId, needsReschedule);
+            super.onExecuted(id, needsReschedule);
         }
     }
 }

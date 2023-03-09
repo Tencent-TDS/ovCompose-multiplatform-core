@@ -20,7 +20,13 @@ import static android.app.PendingIntent.FLAG_MUTABLE;
 import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
 import static android.text.TextUtils.isEmpty;
 
+import static androidx.work.impl.WorkManagerImplExtKt.createWorkManager;
+import static androidx.work.impl.WorkerUpdater.enqueueUniquelyNamedPeriodic;
 import static androidx.work.impl.foreground.SystemForegroundDispatcher.createCancelWorkIntent;
+import static androidx.work.impl.model.RawWorkInfoDaoKt.getWorkInfoPojosFlow;
+import static androidx.work.impl.model.WorkSpecDaoKt.getWorkStatusPojoFlowDataForIds;
+import static androidx.work.impl.model.WorkSpecDaoKt.getWorkStatusPojoFlowForName;
+import static androidx.work.impl.model.WorkSpecDaoKt.getWorkStatusPojoFlowForTag;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -42,18 +48,16 @@ import androidx.work.Logger;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.Operation;
 import androidx.work.PeriodicWorkRequest;
-import androidx.work.R;
 import androidx.work.WorkContinuation;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.WorkQuery;
 import androidx.work.WorkRequest;
-import androidx.work.WorkerParameters;
-import androidx.work.impl.background.greedy.GreedyScheduler;
 import androidx.work.impl.background.systemalarm.RescheduleReceiver;
 import androidx.work.impl.background.systemjob.SystemJobScheduler;
 import androidx.work.impl.constraints.trackers.Trackers;
 import androidx.work.impl.model.RawWorkInfoDao;
+import androidx.work.impl.model.WorkGenerationalId;
 import androidx.work.impl.model.WorkSpec;
 import androidx.work.impl.model.WorkSpecDao;
 import androidx.work.impl.utils.CancelWorkRunnable;
@@ -62,25 +66,23 @@ import androidx.work.impl.utils.LiveDataUtils;
 import androidx.work.impl.utils.PreferenceUtils;
 import androidx.work.impl.utils.PruneWorkRunnable;
 import androidx.work.impl.utils.RawQueries;
-import androidx.work.impl.utils.StartWorkRunnable;
 import androidx.work.impl.utils.StatusRunnable;
 import androidx.work.impl.utils.StopWorkRunnable;
 import androidx.work.impl.utils.futures.SettableFuture;
 import androidx.work.impl.utils.taskexecutor.TaskExecutor;
-import androidx.work.impl.utils.taskexecutor.WorkManagerTaskExecutor;
 import androidx.work.multiprocess.RemoteWorkManager;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import kotlinx.coroutines.flow.Flow;
+
 /**
  * A concrete implementation of {@link WorkManager}.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class WorkManagerImpl extends WorkManager {
@@ -88,6 +90,7 @@ public class WorkManagerImpl extends WorkManager {
     private static final String TAG = Logger.tagWithPrefix("WorkManagerImpl");
     public static final int MAX_PRE_JOB_SCHEDULER_API_LEVEL = 22;
     public static final int MIN_JOB_SCHEDULER_API_LEVEL = 23;
+    public static final int CONTENT_URI_TRIGGER_API_LEVEL = 24;
     public static final String REMOTE_WORK_MANAGER_CLIENT =
             "androidx.work.multiprocess.RemoteWorkManagerClient";
 
@@ -98,7 +101,7 @@ public class WorkManagerImpl extends WorkManager {
     private List<Scheduler> mSchedulers;
     private Processor mProcessor;
     private PreferenceUtils mPreferenceUtils;
-    private boolean mForceStopRunnableCompleted;
+    private boolean mForceStopRunnableCompleted = false;
     private BroadcastReceiver.PendingResult mRescheduleReceiverResult;
     private volatile RemoteWorkManager mRemoteWorkManager;
     private final Trackers mTrackers;
@@ -110,7 +113,6 @@ public class WorkManagerImpl extends WorkManager {
     /**
      * @param delegate The delegate for {@link WorkManagerImpl} for testing; {@code null} to use the
      *                 default instance
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static void setDelegate(@Nullable WorkManagerImpl delegate) {
@@ -123,7 +125,6 @@ public class WorkManagerImpl extends WorkManager {
      * Retrieves the singleton instance of {@link WorkManagerImpl}.
      *
      * @return The singleton instance of {@link WorkManagerImpl}
-     * @hide
      * @deprecated Call {@link WorkManagerImpl#getInstance(Context)} instead.
      */
     @Deprecated
@@ -140,7 +141,6 @@ public class WorkManagerImpl extends WorkManager {
     }
 
     /**
-     * @hide
      */
     @SuppressWarnings("deprecation")
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -154,7 +154,6 @@ public class WorkManagerImpl extends WorkManager {
      *
      * @param context A context for on-demand initialization.
      * @return The singleton instance of {@link WorkManagerImpl}
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static @NonNull WorkManagerImpl getInstance(@NonNull Context context) {
@@ -189,7 +188,6 @@ public class WorkManagerImpl extends WorkManager {
      *                any Context without risking a memory leak.
      * @param configuration The {@link Configuration} for used to set up WorkManager.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static void initialize(@NonNull Context context, @NonNull Configuration configuration) {
@@ -205,10 +203,7 @@ public class WorkManagerImpl extends WorkManager {
             if (sDelegatedInstance == null) {
                 context = context.getApplicationContext();
                 if (sDefaultInstance == null) {
-                    sDefaultInstance = new WorkManagerImpl(
-                            context,
-                            configuration,
-                            new WorkManagerTaskExecutor(configuration.getTaskExecutor()));
+                    sDefaultInstance = createWorkManager(context, configuration);
                 }
                 sDelegatedInstance = sDefaultInstance;
             }
@@ -218,89 +213,13 @@ public class WorkManagerImpl extends WorkManager {
     /**
      * Create an instance of {@link WorkManagerImpl}.
      *
-     * @param context The application {@link Context}
-     * @param configuration The {@link Configuration} configuration
-     * @param workTaskExecutor The {@link TaskExecutor} for running "processing" jobs, such as
-     *                         enqueueing, scheduling, cancellation, etc.
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public WorkManagerImpl(
-            @NonNull Context context,
-            @NonNull Configuration configuration,
-            @NonNull TaskExecutor workTaskExecutor) {
-        this(context,
-                configuration,
-                workTaskExecutor,
-                context.getResources().getBoolean(R.bool.workmanager_test_configuration));
-    }
-
-    /**
-     * Create an instance of {@link WorkManagerImpl}.
-     *
-     * @param context The application {@link Context}
-     * @param configuration The {@link Configuration} configuration
-     * @param workTaskExecutor The {@link TaskExecutor} for running "processing" jobs, such as
-     *                         enqueueing, scheduling, cancellation, etc.
-     * @param useTestDatabase {@code true} If using an in-memory test database
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public WorkManagerImpl(
-            @NonNull Context context,
-            @NonNull Configuration configuration,
-            @NonNull TaskExecutor workTaskExecutor,
-            boolean useTestDatabase) {
-        this(context,
-                configuration,
-                workTaskExecutor,
-                WorkDatabase.create(
-                        context.getApplicationContext(),
-                        workTaskExecutor.getSerialTaskExecutor(),
-                        useTestDatabase)
-        );
-    }
-
-    /**
-     * Create an instance of {@link WorkManagerImpl}.
-     *
      * @param context          The application {@link Context}
      * @param configuration    The {@link Configuration} configuration
      * @param workTaskExecutor The {@link TaskExecutor} for running "processing" jobs, such as
      *                         enqueueing, scheduling, cancellation, etc.
-     * @param database         The {@link WorkDatabase}
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public WorkManagerImpl(
-            @NonNull Context context,
-            @NonNull Configuration configuration,
-            @NonNull TaskExecutor workTaskExecutor,
-            @NonNull WorkDatabase database) {
-        Context applicationContext = context.getApplicationContext();
-        Logger.setLogger(new Logger.LogcatLogger(configuration.getMinimumLoggingLevel()));
-        mTrackers = new Trackers(applicationContext, workTaskExecutor);
-        List<Scheduler> schedulers =
-                createSchedulers(applicationContext, configuration, mTrackers);
-        Processor processor = new Processor(
-                context,
-                configuration,
-                workTaskExecutor,
-                database,
-                schedulers);
-        internalInit(context, configuration, workTaskExecutor, database, schedulers, processor);
-    }
-
-    /**
-     * Create an instance of {@link WorkManagerImpl}.
-     *
-     * @param context The application {@link Context}
-     * @param configuration The {@link Configuration} configuration
-     * @param workTaskExecutor The {@link TaskExecutor} for running "processing" jobs, such as
-     *                         enqueueing, scheduling, cancellation, etc.
-     * @param workDatabase The {@link WorkDatabase} instance
-     * @param processor The {@link Processor} instance
-     * @hide
+     * @param workDatabase     The {@link WorkDatabase} instance
+     * @param processor        The {@link Processor} instance
+     * @param trackers         Trackers
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public WorkManagerImpl(
@@ -309,14 +228,32 @@ public class WorkManagerImpl extends WorkManager {
             @NonNull TaskExecutor workTaskExecutor,
             @NonNull WorkDatabase workDatabase,
             @NonNull List<Scheduler> schedulers,
-            @NonNull Processor processor) {
-        mTrackers = new Trackers(context.getApplicationContext(), workTaskExecutor);
-        internalInit(context, configuration, workTaskExecutor, workDatabase, schedulers, processor);
+            @NonNull Processor processor,
+            @NonNull Trackers trackers) {
+        context = context.getApplicationContext();
+        // Check for direct boot mode
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && Api24Impl.isDeviceProtectedStorage(
+                context)) {
+            throw new IllegalStateException("Cannot initialize WorkManager in direct boot mode");
+        }
+        Logger.setLogger(new Logger.LogcatLogger(configuration.getMinimumLoggingLevel()));
+        mContext = context;
+        mWorkTaskExecutor = workTaskExecutor;
+        mWorkDatabase = workDatabase;
+        mProcessor = processor;
+        mTrackers = trackers;
+        mConfiguration = configuration;
+        mSchedulers = schedulers;
+        mPreferenceUtils = new PreferenceUtils(mWorkDatabase);
+        Schedulers.registerRescheduling(schedulers, mProcessor,
+                workTaskExecutor.getSerialTaskExecutor(), mWorkDatabase, configuration);
+
+        // Checks for app force stops.
+        mWorkTaskExecutor.executeOnTaskThread(new ForceStopRunnable(context, this));
     }
 
     /**
      * @return The application {@link Context} associated with this WorkManager.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @NonNull
@@ -326,7 +263,6 @@ public class WorkManagerImpl extends WorkManager {
 
     /**
      * @return The {@link WorkDatabase} instance associated with this WorkManager.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @NonNull
@@ -346,7 +282,6 @@ public class WorkManagerImpl extends WorkManager {
     /**
      * @return The {@link Scheduler}s associated with this WorkManager based on the device's
      * capabilities, SDK version, etc.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull List<Scheduler> getSchedulers() {
@@ -355,7 +290,6 @@ public class WorkManagerImpl extends WorkManager {
 
     /**
      * @return The {@link Processor} used to process background work.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull Processor getProcessor() {
@@ -364,7 +298,6 @@ public class WorkManagerImpl extends WorkManager {
 
     /**
      * @return the {@link TaskExecutor} used by the instance of {@link WorkManager}.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull TaskExecutor getWorkTaskExecutor() {
@@ -373,7 +306,6 @@ public class WorkManagerImpl extends WorkManager {
 
     /**
      * @return the {@link PreferenceUtils} used by the instance of {@link WorkManager}.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public @NonNull PreferenceUtils getPreferenceUtils() {
@@ -382,7 +314,6 @@ public class WorkManagerImpl extends WorkManager {
 
     /**
      * @return the {@link Trackers} used by {@link WorkManager}
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @NonNull
@@ -439,7 +370,9 @@ public class WorkManagerImpl extends WorkManager {
             @NonNull String uniqueWorkName,
             @NonNull ExistingPeriodicWorkPolicy existingPeriodicWorkPolicy,
             @NonNull PeriodicWorkRequest periodicWork) {
-
+        if (existingPeriodicWorkPolicy == ExistingPeriodicWorkPolicy.UPDATE) {
+            return enqueueUniquelyNamedPeriodic(this, uniqueWorkName, periodicWork);
+        }
         return createWorkContinuationForUniquePeriodicWork(
                 uniqueWorkName,
                 existingPeriodicWorkPolicy,
@@ -557,11 +490,25 @@ public class WorkManagerImpl extends WorkManager {
                 mWorkTaskExecutor);
     }
 
+    @NonNull
+    @Override
+    public Flow<WorkInfo> getWorkInfoByIdFlow(@NonNull UUID id) {
+        return getWorkStatusPojoFlowDataForIds(getWorkDatabase().workSpecDao(), id);
+    }
+
     @Override
     public @NonNull ListenableFuture<WorkInfo> getWorkInfoById(@NonNull UUID id) {
         StatusRunnable<WorkInfo> runnable = StatusRunnable.forUUID(this, id);
         mWorkTaskExecutor.getSerialTaskExecutor().execute(runnable);
         return runnable.getFuture();
+    }
+
+    @NonNull
+    @Override
+    public Flow<List<WorkInfo>> getWorkInfosByTagFlow(@NonNull String tag) {
+        WorkSpecDao workSpecDao = mWorkDatabase.workSpecDao();
+        return getWorkStatusPojoFlowForTag(workSpecDao,
+                mWorkTaskExecutor.getTaskCoroutineDispatcher(), tag);
     }
 
     @Override
@@ -595,6 +542,14 @@ public class WorkManagerImpl extends WorkManager {
                 mWorkTaskExecutor);
     }
 
+    @NonNull
+    @Override
+    public Flow<List<WorkInfo>> getWorkInfosForUniqueWorkFlow(@NonNull String uniqueWorkName) {
+        WorkSpecDao workSpecDao = mWorkDatabase.workSpecDao();
+        return getWorkStatusPojoFlowForName(workSpecDao,
+                mWorkTaskExecutor.getTaskCoroutineDispatcher(), uniqueWorkName);
+    }
+
     @Override
     @NonNull
     public ListenableFuture<List<WorkInfo>> getWorkInfosForUniqueWork(
@@ -621,12 +576,26 @@ public class WorkManagerImpl extends WorkManager {
 
     @NonNull
     @Override
+    public Flow<List<WorkInfo>> getWorkInfosFlow(@NonNull WorkQuery workQuery) {
+        RawWorkInfoDao rawWorkInfoDao = mWorkDatabase.rawWorkInfoDao();
+        return getWorkInfoPojosFlow(rawWorkInfoDao, mWorkTaskExecutor.getTaskCoroutineDispatcher(),
+                RawQueries.toRawQuery(workQuery));
+    }
+
+    @NonNull
+    @Override
     public ListenableFuture<List<WorkInfo>> getWorkInfos(
             @NonNull WorkQuery workQuery) {
         StatusRunnable<List<WorkInfo>> runnable =
                 StatusRunnable.forWorkQuerySpec(this, workQuery);
         mWorkTaskExecutor.getSerialTaskExecutor().execute(runnable);
         return runnable.getFuture();
+    }
+
+    @NonNull
+    @Override
+    public ListenableFuture<UpdateResult> updateWork(@NonNull WorkRequest request) {
+        return WorkerUpdater.updateWorkImpl(this, request);
     }
 
     LiveData<List<WorkInfo>> getWorkInfosById(@NonNull List<String> workSpecIds) {
@@ -640,7 +609,6 @@ public class WorkManagerImpl extends WorkManager {
     }
 
     /**
-     * @hide
      */
     @Nullable
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -663,53 +631,19 @@ public class WorkManagerImpl extends WorkManager {
     }
 
     /**
-     * @param workSpecId The {@link WorkSpec} id to start
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public void startWork(@NonNull WorkRunId workSpecId) {
-        startWork(workSpecId, null);
-    }
-
-    /**
-     * @param workSpecId The {@link WorkSpec} id to start
-     * @param runtimeExtras The {@link WorkerParameters.RuntimeExtras} associated with this work
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public void startWork(
-            @NonNull WorkRunId workSpecId,
-            @Nullable WorkerParameters.RuntimeExtras runtimeExtras) {
-        mWorkTaskExecutor
-                .executeOnTaskThread(
-                        new StartWorkRunnable(this, workSpecId, runtimeExtras));
-    }
-
-    /**
-     * @param workSpecId The {@link WorkSpec} id to stop
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public void stopWork(@NonNull WorkRunId workSpecId) {
-        mWorkTaskExecutor.executeOnTaskThread(new StopWorkRunnable(this, workSpecId, false));
-    }
-
-    /**
-     * @param workSpecId The {@link WorkSpec} id to stop when running in the context of a
+     * @param id The {@link WorkSpec} id to stop when running in the context of a
      *                   foreground service.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public void stopForegroundWork(@NonNull String workSpecId) {
-        mWorkTaskExecutor.executeOnTaskThread(new StopWorkRunnable(this,
-                new WorkRunId(workSpecId), true));
+    public void stopForegroundWork(@NonNull WorkGenerationalId id) {
+        mWorkTaskExecutor.executeOnTaskThread(new StopWorkRunnable(mProcessor,
+                new StartStopToken(id), true));
     }
 
     /**
      * Reschedules all the eligible work. Useful for cases like, app was force stopped or
      * BOOT_COMPLETED, TIMEZONE_CHANGED and TIME_SET for AlarmManager.
      *
-     * @hide
      */
     public void rescheduleEligibleWork() {
         // TODO (rahulrav@) Make every scheduler do its own cancelAll().
@@ -729,7 +663,6 @@ public class WorkManagerImpl extends WorkManager {
     /**
      * A way for {@link ForceStopRunnable} to tell {@link WorkManagerImpl} that it has completed.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public void onForceStopRunnableCompleted() {
@@ -748,7 +681,6 @@ public class WorkManagerImpl extends WorkManager {
      * after a call to {@link BroadcastReceiver#goAsync()}. Once {@link ForceStopRunnable} is done,
      * we can safely call {@link BroadcastReceiver.PendingResult#finish()}.
      *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public void setReschedulePendingResult(
@@ -760,60 +692,6 @@ public class WorkManagerImpl extends WorkManager {
                 mRescheduleReceiverResult = null;
             }
         }
-    }
-
-    /**
-     * Initializes an instance of {@link WorkManagerImpl}.
-     *
-     * @param context The application {@link Context}
-     * @param configuration The {@link Configuration} configuration
-     * @param workDatabase The {@link WorkDatabase} instance
-     * @param schedulers The {@link List} of {@link Scheduler}s to use
-     * @param processor The {@link Processor} instance
-     */
-    private void internalInit(@NonNull Context context,
-            @NonNull Configuration configuration,
-            @NonNull TaskExecutor workTaskExecutor,
-            @NonNull WorkDatabase workDatabase,
-            @NonNull List<Scheduler> schedulers,
-            @NonNull Processor processor) {
-
-        context = context.getApplicationContext();
-        mContext = context;
-        mConfiguration = configuration;
-        mWorkTaskExecutor = workTaskExecutor;
-        mWorkDatabase = workDatabase;
-        mSchedulers = schedulers;
-        mProcessor = processor;
-        mPreferenceUtils = new PreferenceUtils(workDatabase);
-        mForceStopRunnableCompleted = false;
-
-        // Check for direct boot mode
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && Api24Impl.isDeviceProtectedStorage(
-                context)) {
-            throw new IllegalStateException("Cannot initialize WorkManager in direct boot mode");
-        }
-
-        // Checks for app force stops.
-        mWorkTaskExecutor.executeOnTaskThread(new ForceStopRunnable(context, this));
-    }
-
-    /**
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @NonNull
-    public List<Scheduler> createSchedulers(
-            @NonNull Context context,
-            @NonNull Configuration configuration,
-            @NonNull Trackers trackers
-    ) {
-
-        return Arrays.asList(
-                Schedulers.createBestAvailableBackgroundScheduler(context, this),
-                // Specify the task executor directly here as this happens before internalInit.
-                // GreedyScheduler creates ConstraintTrackers and controllers eagerly.
-                new GreedyScheduler(context, configuration, trackers, this));
     }
 
     /**

@@ -18,58 +18,168 @@ package androidx.compose.foundation.lazy
 
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ParentDataModifier
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.node.LayoutModifierNode
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.ParentDataModifierNode
 import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.platform.InspectorValueInfo
-import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 
-internal data class LazyItemScopeImpl(
-    val density: Density,
-    val constraints: Constraints
-) : LazyItemScope {
-    private val maxWidth: Dp = with(density) { constraints.maxWidth.toDp() }
-    private val maxHeight: Dp = with(density) { constraints.maxHeight.toDp() }
+internal class LazyItemScopeImpl : LazyItemScope {
 
-    override fun Modifier.fillParentMaxSize(fraction: Float) = size(
-        maxWidth * fraction,
-        maxHeight * fraction
+    private var maxWidthState: MutableState<Int> = mutableStateOf(Int.MAX_VALUE)
+    private var maxHeightState: MutableState<Int> = mutableStateOf(Int.MAX_VALUE)
+
+    fun setMaxSize(width: Int, height: Int) {
+        maxWidthState.value = width
+        maxHeightState.value = height
+    }
+
+    override fun Modifier.fillParentMaxSize(fraction: Float) = then(
+        ParentSizeElement(
+            widthState = maxWidthState,
+            heightState = maxHeightState,
+            fraction = fraction,
+            inspectorName = "fillParentMaxSize"
+        )
     )
 
-    override fun Modifier.fillParentMaxWidth(fraction: Float) =
-        width(maxWidth * fraction)
+    override fun Modifier.fillParentMaxWidth(fraction: Float) = then(
+        ParentSizeElement(
+            widthState = maxWidthState,
+            fraction = fraction,
+            inspectorName = "fillParentMaxWidth"
+        )
+    )
 
-    override fun Modifier.fillParentMaxHeight(fraction: Float) =
-        height(maxHeight * fraction)
+    override fun Modifier.fillParentMaxHeight(fraction: Float) = then(
+        ParentSizeElement(
+            heightState = maxHeightState,
+            fraction = fraction,
+            inspectorName = "fillParentMaxHeight"
+        )
+    )
 
     @ExperimentalFoundationApi
     override fun Modifier.animateItemPlacement(animationSpec: FiniteAnimationSpec<IntOffset>) =
-        this.then(AnimateItemPlacementModifier(animationSpec, debugInspectorInfo {
-            name = "animateItemPlacement"
-            value = animationSpec
-        }))
+        this then AnimateItemPlacementElement(animationSpec)
 }
 
-private class AnimateItemPlacementModifier(
-    val animationSpec: FiniteAnimationSpec<IntOffset>,
-    inspectorInfo: InspectorInfo.() -> Unit,
-) : ParentDataModifier, InspectorValueInfo(inspectorInfo) {
-    override fun Density.modifyParentData(parentData: Any?): Any = animationSpec
+private class ParentSizeElement(
+    val fraction: Float,
+    val widthState: State<Int>? = null,
+    val heightState: State<Int>? = null,
+    val inspectorName: String
+) : ModifierNodeElement<ParentSizeNode>() {
+    override fun create(): ParentSizeNode {
+        return ParentSizeNode(
+            fraction = fraction,
+            widthState = widthState,
+            heightState = heightState
+        )
+    }
+
+    override fun update(node: ParentSizeNode): ParentSizeNode = node.also {
+        it.fraction = fraction
+        it.widthState = widthState
+        it.heightState = heightState
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is AnimateItemPlacementModifier) return false
+        if (other !is ParentSizeNode) return false
+        return fraction == other.fraction &&
+            widthState == other.widthState &&
+            heightState == other.heightState
+    }
+
+    override fun hashCode(): Int {
+        var result = widthState?.hashCode() ?: 0
+        result = 31 * result + (heightState?.hashCode() ?: 0)
+        result = 31 * result + fraction.hashCode()
+        return result
+    }
+
+    override fun InspectorInfo.inspectableProperties() {
+        name = inspectorName
+        value = fraction
+    }
+}
+
+private class ParentSizeNode(
+    var fraction: Float,
+    var widthState: State<Int>? = null,
+    var heightState: State<Int>? = null,
+) : LayoutModifierNode, Modifier.Node() {
+
+    override fun MeasureScope.measure(
+        measurable: Measurable,
+        constraints: Constraints
+    ): MeasureResult {
+        val width = widthState?.let {
+            if (it.value != Constraints.Infinity) {
+                (it.value * fraction).roundToInt()
+            } else {
+                Constraints.Infinity
+            }
+        } ?: Constraints.Infinity
+
+        val height = heightState?.let {
+            if (it.value != Constraints.Infinity) {
+                (it.value * fraction).roundToInt()
+            } else {
+                Constraints.Infinity
+            }
+        } ?: Constraints.Infinity
+        val childConstraints = Constraints(
+            minWidth = if (width != Constraints.Infinity) width else constraints.minWidth,
+            minHeight = if (height != Constraints.Infinity) height else constraints.minHeight,
+            maxWidth = if (width != Constraints.Infinity) width else constraints.maxWidth,
+            maxHeight = if (height != Constraints.Infinity) height else constraints.maxHeight,
+        )
+        val placeable = measurable.measure(childConstraints)
+        return layout(placeable.width, placeable.height) {
+            placeable.place(0, 0)
+        }
+    }
+}
+
+private class AnimateItemPlacementElement(
+    val animationSpec: FiniteAnimationSpec<IntOffset>
+) : ModifierNodeElement<AnimateItemPlacementNode>() {
+    override fun create(): AnimateItemPlacementNode = AnimateItemPlacementNode(animationSpec)
+
+    override fun update(node: AnimateItemPlacementNode): AnimateItemPlacementNode = node.also {
+        it.animationSpec = animationSpec
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is AnimateItemPlacementElement) return false
         return animationSpec != other.animationSpec
     }
 
     override fun hashCode(): Int {
         return animationSpec.hashCode()
     }
+
+    override fun InspectorInfo.inspectableProperties() {
+        name = "animateItemPlacement"
+        value = animationSpec
+    }
+}
+
+private class AnimateItemPlacementNode(
+    var animationSpec: FiniteAnimationSpec<IntOffset>
+) : Modifier.Node(), ParentDataModifierNode {
+    override fun Density.modifyParentData(parentData: Any?): Any = animationSpec
 }

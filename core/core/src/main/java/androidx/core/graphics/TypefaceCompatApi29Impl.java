@@ -38,7 +38,6 @@ import androidx.core.provider.FontsContractCompat;
 import java.io.IOException;
 import java.io.InputStream;
 
-/** @hide */
 @RestrictTo(LIBRARY_GROUP)
 @RequiresApi(29)
 public class TypefaceCompatApi29Impl extends TypefaceCompatBaseImpl {
@@ -178,5 +177,12 @@ public class TypefaceCompatApi29Impl extends TypefaceCompatBaseImpl {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    @NonNull
+    @Override
+    Typeface createWeightStyle(@NonNull Context context,
+            @NonNull Typeface base, int weight, boolean italic) {
+        return Typeface.create(base, weight, italic);
     }
 }

@@ -27,12 +27,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 
-import com.google.firebase.appindexing.builders.IndexableBuilder;
+import com.google.android.gms.appindex.builders.IndexableBuilder;
 
 /**
  * Builder for the Shortcut Corpus.
  *
- * @hide
  */
 @RestrictTo(LIBRARY)
 public class ShortcutBuilder extends IndexableBuilder<ShortcutBuilder> {

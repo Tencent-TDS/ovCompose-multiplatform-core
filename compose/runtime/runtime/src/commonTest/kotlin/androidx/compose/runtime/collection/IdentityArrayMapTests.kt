@@ -19,6 +19,8 @@ package androidx.compose.runtime.collection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 private class Key(val value: Int)
@@ -72,6 +74,24 @@ class IdentityArrayMapTests {
     }
 
     @Test
+    fun canRemoveKeys() {
+        val map = IdentityArrayMap<Key, Int>()
+        repeat(keys.size) {
+            map[keys[it]] = it
+        }
+        map.removeIf { key, _ -> key.value % 2 == 0 }
+        assertEquals(keys.size / 2, map.size)
+        for (i in 1 until keys.size step 2) {
+            assertEquals(i, map[keys[i]], "map key $i")
+        }
+        for (i in 0 until keys.size step 2) {
+            assertEquals(null, map[keys[i]], "map key $i")
+        }
+        map.removeIf { _, _ -> true }
+        assertEquals(0, map.size, "map is not empty after removing everything")
+    }
+
+    @Test
     fun canForEachKeysAndValues() {
         val map = IdentityArrayMap<Key, String>()
         repeat(100) {
@@ -96,9 +116,9 @@ class IdentityArrayMapTests {
         repeat(100) {
             assertEquals(100 - it, map.size)
             val removed = map.remove(keys[it])
-            assertTrue(removed, "Expected to remove key $it")
+            assertEquals(removed, it.toString(), "Expected to remove $it for ${keys[it]}")
             if (it > 0) {
-                assertFalse(
+                assertNull(
                     map.remove(keys[it - 1]),
                     "Expected item ${it - 1} to already be removed"
                 )
@@ -115,9 +135,20 @@ class IdentityArrayMapTests {
         repeat(16) {
             val key = keys[it]
             val removed = map.remove(key)
-            assertTrue(removed)
+            assertNotNull(removed)
             assertFalse(map.contains(key))
         }
         assertTrue(map.isEmpty())
+    }
+
+    @Test
+    fun canClear() {
+        val map = IdentityArrayMap<Key, String>()
+        repeat(16) {
+            map[keys[it]] = it.toString()
+        }
+        map.clear()
+        assertTrue(map.isEmpty())
+        assertEquals(0, map.size, "map size should be 0 after calling clear")
     }
 }

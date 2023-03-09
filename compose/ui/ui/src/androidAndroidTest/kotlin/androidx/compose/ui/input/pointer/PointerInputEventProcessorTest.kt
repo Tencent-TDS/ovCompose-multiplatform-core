@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.Autofill
 import androidx.compose.ui.autofill.AutofillTree
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -34,6 +34,7 @@ import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.modifier.ModifierLocalManager
 import androidx.compose.ui.node.InternalCoreApi
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.LayoutNodeDrawScope
@@ -47,8 +48,10 @@ import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.PlatformTextInputPluginRegistry
 import androidx.compose.ui.text.input.TextInputService
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -57,9 +60,13 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.minus
 import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.util.fastMaxBy
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
+import java.util.concurrent.Executors
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.asCoroutineDispatcher
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -143,9 +150,10 @@ class PointerInputEventProcessorTest {
             previousEvents += PointerInputEventData(
                 id = PointerId(index.toLong()),
                 uptime = index.toLong(),
-                position = Offset(offset.x + index, offset.y + index),
                 positionOnScreen = Offset(offset.x + index, offset.y + index),
+                position = Offset(offset.x + index, offset.y + index),
                 down = true,
+                pressure = 1.0f,
                 type = pointerType
             )
             val data = previousEvents.map {
@@ -160,7 +168,7 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log = pointerInputFilter.log.getOnPointerEventLog()
+        val log = pointerInputFilter.log.getOnPointerEventFilterLog()
 
         // Verify call count
         assertThat(log)
@@ -182,6 +190,67 @@ class PointerInputEventProcessorTest {
                 }
             }
         }
+    }
+
+    /**
+     * PointerInputEventProcessor doesn't currently support reentrancy and
+     * b/233209795 indicates that it is likely causing a crash. This test
+     * ensures that if we have reentrancy that we exit without handling
+     * the event. This test can be replaced with tests supporting reentrant
+     * behavior when reentrancy is supported.
+     */
+    @Test
+    fun noReentrancy() {
+        var reentrancyCount = 0
+        // Arrange
+        val reentrantPointerInputFilter = object : PointerInputFilter() {
+            override fun onPointerEvent(
+                pointerEvent: PointerEvent,
+                pass: PointerEventPass,
+                bounds: IntSize
+            ) {
+                if (pass != PointerEventPass.Initial) {
+                    return
+                }
+                if (reentrancyCount > 1) {
+                    // Don't allow infinite recursion. Just enough to break the test.
+                    return
+                }
+                val oldId = pointerEvent.changes.fastMaxBy { it.id.value }!!.id.value.toInt()
+                val event = PointerInputEvent(oldId + 1, 14, Offset.Zero, true)
+                // force a reentrant call
+                val result = pointerInputEventProcessor.process(event)
+                assertThat(result.anyMovementConsumed).isFalse()
+                assertThat(result.dispatchedToAPointerInputModifier).isFalse()
+                pointerEvent.changes.forEach { it.consume() }
+                reentrancyCount++
+            }
+
+            override fun onCancel() {
+            }
+        }
+
+        val layoutNode = LayoutNode(
+            0,
+            0,
+            500,
+            500,
+            PointerInputModifierImpl2(reentrantPointerInputFilter)
+        )
+
+        addToRoot(layoutNode)
+
+        // Act
+
+        val result =
+            pointerInputEventProcessor.process(PointerInputEvent(8712, 3, Offset.Zero, true))
+
+        // Assert
+
+        assertThat(reentrancyCount).isEqualTo(1)
+
+        assertThat(result.anyMovementConsumed).isFalse()
+        assertThat(result.dispatchedToAPointerInputModifier).isTrue()
     }
 
     @Test
@@ -222,7 +291,7 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log = pointerInputFilter.log.getOnPointerEventLog()
+        val log = pointerInputFilter.log.getOnPointerEventFilterLog()
 
         // Verify call count
         assertThat(log)
@@ -293,7 +362,7 @@ class PointerInputEventProcessorTest {
         val log =
             pointerInputFilter
                 .log
-                .getOnPointerEventLog()
+                .getOnPointerEventFilterLog()
                 .filter { it.pass == PointerEventPass.Initial }
 
         // Verify call count
@@ -347,7 +416,7 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        assertThat(pointerInputFilter.log.getOnPointerEventLog()).hasSize(0)
+        assertThat(pointerInputFilter.log.getOnPointerEventFilterLog()).hasSize(0)
     }
 
     @Test
@@ -415,7 +484,9 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val filteredLog = log.getOnPointerEventLog().filter { it.pass == PointerEventPass.Initial }
+        val filteredLog = log.getOnPointerEventFilterLog().filter {
+            it.pass == PointerEventPass.Initial
+        }
 
         when (numberOfChildrenHit) {
             3 -> {
@@ -512,7 +583,7 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log = pointerInputFilter.log.getOnPointerEventLog()
+        val log = pointerInputFilter.log.getOnPointerEventFilterLog()
 
         assertThat(log).hasSize(3)
         PointerInputChangeSubject
@@ -669,7 +740,7 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val filteredLog = log.getOnPointerEventLog()
+        val filteredLog = log.getOnPointerEventFilterLog()
 
         // Verify call count
         assertThat(filteredLog).hasSize(PointerEventPass.values().size * 3)
@@ -825,10 +896,12 @@ class PointerInputEventProcessorTest {
 
         // Verify call count
 
-        val child1Log =
-            log.getOnPointerEventLog().filter { it.pointerInputFilter === childPointerInputFilter1 }
-        val child2Log =
-            log.getOnPointerEventLog().filter { it.pointerInputFilter === childPointerInputFilter2 }
+        val child1Log = log.getOnPointerEventFilterLog().filter {
+            it.pointerInputFilter === childPointerInputFilter1
+        }
+        val child2Log = log.getOnPointerEventFilterLog().filter {
+            it.pointerInputFilter === childPointerInputFilter2
+        }
         assertThat(child1Log).hasSize(PointerEventPass.values().size)
         assertThat(child2Log).hasSize(PointerEventPass.values().size)
 
@@ -985,12 +1058,15 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val child1Log =
-            log.getOnPointerEventLog().filter { it.pointerInputFilter === childPointerInputFilter1 }
-        val child2Log =
-            log.getOnPointerEventLog().filter { it.pointerInputFilter === childPointerInputFilter2 }
-        val child3Log =
-            log.getOnPointerEventLog().filter { it.pointerInputFilter === childPointerInputFilter3 }
+        val child1Log = log.getOnPointerEventFilterLog().filter {
+            it.pointerInputFilter === childPointerInputFilter1
+        }
+        val child2Log = log.getOnPointerEventFilterLog().filter {
+            it.pointerInputFilter === childPointerInputFilter2
+        }
+        val child3Log = log.getOnPointerEventFilterLog().filter {
+            it.pointerInputFilter === childPointerInputFilter3
+        }
         assertThat(child1Log).hasSize(PointerEventPass.values().size)
         assertThat(child2Log).hasSize(PointerEventPass.values().size)
         assertThat(child3Log).hasSize(PointerEventPass.values().size)
@@ -1161,8 +1237,8 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log1 = childPointerInputFilter1.log.getOnPointerEventLog()
-        val log2 = childPointerInputFilter2.log.getOnPointerEventLog()
+        val log1 = childPointerInputFilter1.log.getOnPointerEventFilterLog()
+        val log2 = childPointerInputFilter2.log.getOnPointerEventFilterLog()
 
         // Verify call count
         assertThat(log1).hasSize(PointerEventPass.values().size)
@@ -1278,8 +1354,8 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log1 = childPointerInputFilter1.log.getOnPointerEventLog()
-        val log2 = childPointerInputFilter2.log.getOnPointerEventLog()
+        val log1 = childPointerInputFilter1.log.getOnPointerEventFilterLog()
+        val log2 = childPointerInputFilter2.log.getOnPointerEventFilterLog()
 
         // Verify call count
         assertThat(log1).hasSize(PointerEventPass.values().size)
@@ -1495,10 +1571,10 @@ class PointerInputEventProcessorTest {
 
         // Verify call values
 
-        val logTopLeft = pointerInputFilterTopLeft.log.getOnPointerEventLog()
-        val logTopRight = pointerInputFilterTopRight.log.getOnPointerEventLog()
-        val logBottomLeft = pointerInputFilterBottomLeft.log.getOnPointerEventLog()
-        val logBottomRight = pointerInputFilterBottomRight.log.getOnPointerEventLog()
+        val logTopLeft = pointerInputFilterTopLeft.log.getOnPointerEventFilterLog()
+        val logTopRight = pointerInputFilterTopRight.log.getOnPointerEventFilterLog()
+        val logBottomLeft = pointerInputFilterBottomLeft.log.getOnPointerEventFilterLog()
+        val logBottomRight = pointerInputFilterBottomRight.log.getOnPointerEventFilterLog()
 
         PointerEventPass.values().forEachIndexed { index, pass ->
             logTopLeft.verifyOnPointerEventCall(
@@ -1599,7 +1675,7 @@ class PointerInputEventProcessorTest {
                 )
             }
 
-        val log = singlePointerInputFilter.log.getOnPointerEventLog()
+        val log = singlePointerInputFilter.log.getOnPointerEventFilterLog()
 
         // Verify call count
         assertThat(log).hasSize(PointerEventPass.values().size)
@@ -1659,9 +1735,9 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log1 = pointerInputFilter1.log.getOnPointerEventLog()
-        val log2 = pointerInputFilter2.log.getOnPointerEventLog()
-        val log3 = pointerInputFilter3.log.getOnPointerEventLog()
+        val log1 = pointerInputFilter1.log.getOnPointerEventFilterLog()
+        val log2 = pointerInputFilter2.log.getOnPointerEventFilterLog()
+        val log3 = pointerInputFilter3.log.getOnPointerEventFilterLog()
 
         // Verify call count
         assertThat(log1).hasSize(PointerEventPass.values().size)
@@ -1739,7 +1815,7 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log = pointerInputFilter.log.getOnPointerEventLog()
+        val log = pointerInputFilter.log.getOnPointerEventFilterLog()
 
         // Verify call count
         assertThat(log).hasSize(PointerEventPass.values().size)
@@ -1833,10 +1909,10 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log1 = pointerInputFilter1.log.getOnPointerEventLog()
-        val log2 = pointerInputFilter2.log.getOnPointerEventLog()
-        val log3 = pointerInputFilter3.log.getOnPointerEventLog()
-        val log4 = pointerInputFilter4.log.getOnPointerEventLog()
+        val log1 = pointerInputFilter1.log.getOnPointerEventFilterLog()
+        val log2 = pointerInputFilter2.log.getOnPointerEventFilterLog()
+        val log3 = pointerInputFilter3.log.getOnPointerEventFilterLog()
+        val log4 = pointerInputFilter4.log.getOnPointerEventFilterLog()
 
         // Verify call count
         assertThat(log1).hasSize(PointerEventPass.values().size)
@@ -1903,8 +1979,8 @@ class PointerInputEventProcessorTest {
         pointerInputEventProcessor.process(down)
 
         // Assert
-        assertThat(pointerInputFilter2.log.getOnPointerEventLog()).hasSize(3)
-        assertThat(pointerInputFilter1.log.getOnPointerEventLog()).hasSize(0)
+        assertThat(pointerInputFilter2.log.getOnPointerEventFilterLog()).hasSize(3)
+        assertThat(pointerInputFilter1.log.getOnPointerEventFilterLog()).hasSize(0)
     }
 
     @Test
@@ -1927,7 +2003,7 @@ class PointerInputEventProcessorTest {
         pointerInputEventProcessor.process(down)
 
         // Assert
-        assertThat(pointerInputFilter1.log.getOnPointerEventLog()).hasSize(0)
+        assertThat(pointerInputFilter1.log.getOnPointerEventFilterLog()).hasSize(0)
     }
 
     // Cancel Handlers
@@ -1978,7 +2054,9 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log = pointerInputFilter.log.filter { it is OnPointerEventEntry || it is OnCancelEntry }
+        val log = pointerInputFilter.log.filter {
+            it is OnPointerEventFilterEntry || it is OnCancelFilterEntry
+        }
 
         // Verify call count
         assertThat(log).hasSize(PointerEventPass.values().size + 1)
@@ -2083,7 +2161,9 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log = pointerInputFilter.log.filter { it is OnPointerEventEntry || it is OnCancelEntry }
+        val log = pointerInputFilter.log.filter {
+            it is OnPointerEventFilterEntry || it is OnCancelFilterEntry
+        }
 
         // Verify call count
         assertThat(log).hasSize(PointerEventPass.values().size * 2 + 1)
@@ -2181,9 +2261,13 @@ class PointerInputEventProcessorTest {
         // Assert
 
         val log1 =
-            pointerInputFilter1.log.filter { it is OnPointerEventEntry || it is OnCancelEntry }
+            pointerInputFilter1.log.filter {
+                it is OnPointerEventFilterEntry || it is OnCancelFilterEntry
+            }
         val log2 =
-            pointerInputFilter2.log.filter { it is OnPointerEventEntry || it is OnCancelEntry }
+            pointerInputFilter2.log.filter {
+                it is OnPointerEventFilterEntry || it is OnCancelFilterEntry
+            }
 
         // Verify call count
         assertThat(log1).hasSize(PointerEventPass.values().size + 1)
@@ -2269,7 +2353,9 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log = pointerInputFilter.log.filter { it is OnPointerEventEntry || it is OnCancelEntry }
+        val log = pointerInputFilter.log.filter {
+            it is OnPointerEventFilterEntry || it is OnCancelFilterEntry
+        }
 
         // Verify call count
         assertThat(log).hasSize(PointerEventPass.values().size * 2 + 1)
@@ -2335,7 +2421,9 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log = pointerInputFilter.log.filter { it is OnPointerEventEntry || it is OnCancelEntry }
+        val log = pointerInputFilter.log.filter {
+            it is OnPointerEventFilterEntry || it is OnCancelFilterEntry
+        }
 
         // Verify call count
         assertThat(log).hasSize(PointerEventPass.values().size + 1)
@@ -2416,7 +2504,9 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val log = pointerInputFilter.log.filter { it is OnPointerEventEntry || it is OnCancelEntry }
+        val log = pointerInputFilter.log.filter {
+            it is OnPointerEventFilterEntry || it is OnCancelFilterEntry
+        }
 
         // Verify call count
         assertThat(log).hasSize(PointerEventPass.values().size * 2 + 1)
@@ -2501,8 +2591,8 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val parentLog = parentPointerInputFilter.log.getOnPointerEventLog()
-        val childLog = childPointerInputFilter.log.getOnPointerEventLog()
+        val parentLog = parentPointerInputFilter.log.getOnPointerEventFilterLog()
+        val childLog = childPointerInputFilter.log.getOnPointerEventFilterLog()
 
         // Verify call count
         assertThat(parentLog).hasSize(PointerEventPass.values().size * 2)
@@ -2591,8 +2681,8 @@ class PointerInputEventProcessorTest {
         pointerInputEventProcessor.process(up)
 
         // Assert
-        assertThat(childPointerInputFilter.log.getOnCancelLog()).hasSize(1)
-        assertThat(parentPointerInputFilter.log.getOnCancelLog()).hasSize(0)
+        assertThat(childPointerInputFilter.log.getOnCancelFilterLog()).hasSize(1)
+        assertThat(parentPointerInputFilter.log.getOnCancelFilterLog()).hasSize(0)
     }
 
     @Test
@@ -2657,8 +2747,8 @@ class PointerInputEventProcessorTest {
 
         // Assert
 
-        val parentLog = parentPointerInputFilter.log.getOnPointerEventLog()
-        val childLog = childPointerInputFilter.log.getOnPointerEventLog()
+        val parentLog = parentPointerInputFilter.log.getOnPointerEventFilterLog()
+        val childLog = childPointerInputFilter.log.getOnPointerEventFilterLog()
 
         // Verify call count
         assertThat(parentLog).hasSize(PointerEventPass.values().size * 2)
@@ -2748,8 +2838,8 @@ class PointerInputEventProcessorTest {
         pointerInputEventProcessor.process(up)
 
         // Assert
-        assertThat(childPointerInputFilter.log.getOnCancelLog()).hasSize(1)
-        assertThat(parentPointerInputFilter.log.getOnCancelLog()).hasSize(0)
+        assertThat(childPointerInputFilter.log.getOnCancelFilterLog()).hasSize(1)
+        assertThat(parentPointerInputFilter.log.getOnCancelFilterLog()).hasSize(0)
     }
 
     @Test
@@ -3053,7 +3143,9 @@ class PointerInputEventProcessorTest {
             )
             pointerInputEventProcessor.process(event)
 
-            with((pointerInputFilter.log.last() as OnPointerEventEntry).pointerEvent.buttons) {
+            with(
+                (pointerInputFilter.log.last() as OnPointerEventFilterEntry).pointerEvent.buttons
+            ) {
                 assertThat(isPrimaryPressed).isEqualTo(validator.primary)
                 assertThat(isSecondaryPressed).isEqualTo(validator.secondary)
                 assertThat(isTertiaryPressed).isEqualTo(validator.tertiary)
@@ -3139,7 +3231,7 @@ class PointerInputEventProcessorTest {
             )
             pointerInputEventProcessor.process(event)
 
-            val keyboardModifiers = (pointerInputFilter.log.last() as OnPointerEventEntry)
+            val keyboardModifiers = (pointerInputFilter.log.last() as OnPointerEventFilterEntry)
                 .pointerEvent.keyboardModifiers
             with(keyboardModifiers) {
                 assertThat(isCtrlPressed).isEqualTo(validator.control)
@@ -3165,18 +3257,20 @@ private class PointerInputModifierImpl2(override val pointerInputFilter: Pointer
 
 internal fun LayoutNode(x: Int, y: Int, x2: Int, y2: Int, modifier: Modifier = Modifier) =
     LayoutNode().apply {
-        this.modifier = Modifier.layout { measurable, constraints ->
-            val placeable = measurable.measure(constraints)
-            layout(placeable.width, placeable.height) {
-                placeable.place(x, y)
+        this.modifier = Modifier
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, placeable.height) {
+                    placeable.place(x, y)
+                }
             }
-        }.then(modifier)
+            .then(modifier)
         measurePolicy = object : LayoutNode.NoIntrinsicsMeasurePolicy("not supported") {
             override fun MeasureScope.measure(
                 measurables: List<Measurable>,
                 constraints: Constraints
             ): MeasureResult =
-                measureScope.layout(x2 - x, y2 - y) {
+                innerCoordinator.layout(x2 - x, y2 - y) {
                     measurables.forEach { it.measure(constraints).place(0, 0) }
                 }
         }
@@ -3216,9 +3310,12 @@ private class TestOwner : Owner {
         get() = Density(1f)
     override val textInputService: TextInputService
         get() = TODO("Not yet implemented")
+    @OptIn(ExperimentalTextApi::class)
+    override val platformTextInputPluginRegistry: PlatformTextInputPluginRegistry
+        get() = TODO("Not yet implemented")
     override val pointerIconService: PointerIconService
         get() = TODO("Not yet implemented")
-    override val focusManager: FocusManager
+    override val focusOwner: FocusOwner
         get() = TODO("Not yet implemented")
     override val windowInfo: WindowInfo
         get() = TODO("Not yet implemented")
@@ -3237,12 +3334,32 @@ private class TestOwner : Owner {
         get() = false
         set(@Suppress("UNUSED_PARAMETER") value) {}
 
-    override fun onRequestMeasure(layoutNode: LayoutNode, forceRequest: Boolean) {
-        delegate.requestRemeasure(layoutNode)
+    override fun onRequestMeasure(
+        layoutNode: LayoutNode,
+        affectsLookahead: Boolean,
+        forceRequest: Boolean
+    ) {
+        if (affectsLookahead) {
+            delegate.requestLookaheadRemeasure(layoutNode)
+        } else {
+            delegate.requestRemeasure(layoutNode)
+        }
     }
 
-    override fun onRequestRelayout(layoutNode: LayoutNode, forceRequest: Boolean) {
-        delegate.requestRelayout(layoutNode)
+    override fun onRequestRelayout(
+        layoutNode: LayoutNode,
+        affectsLookahead: Boolean,
+        forceRequest: Boolean
+    ) {
+        if (affectsLookahead) {
+            delegate.requestLookaheadRelayout(layoutNode)
+        } else {
+            delegate.requestRelayout(layoutNode)
+        }
+    }
+
+    override fun requestOnPositionedCallback(layoutNode: LayoutNode) {
+        TODO("Not yet implemented")
     }
 
     override fun onAttach(node: LayoutNode) {
@@ -3292,6 +3409,10 @@ private class TestOwner : Owner {
     override val viewConfiguration: ViewConfiguration
         get() = TODO("Not yet implemented")
     override val snapshotObserver = OwnerSnapshotObserver { it.invoke() }
+    override val modifierLocalManager: ModifierLocalManager = ModifierLocalManager(this)
+
+    override val coroutineContext: CoroutineContext =
+        Executors.newFixedThreadPool(3).asCoroutineDispatcher()
     override fun registerOnEndApplyChangesListener(listener: () -> Unit) {
         onEndListeners += listener
     }
@@ -3317,8 +3438,8 @@ private fun List<LogEntry>.verifyOnPointerEventCall(
     expectedBounds: IntSize? = null
 ) {
     val logEntry = this[index]
-    assertThat(logEntry).isInstanceOf(OnPointerEventEntry::class.java)
-    val entry = logEntry as OnPointerEventEntry
+    assertThat(logEntry).isInstanceOf(OnPointerEventFilterEntry::class.java)
+    val entry = logEntry as OnPointerEventFilterEntry
     if (expectedPif != null) {
         assertThat(entry.pointerInputFilter).isSameInstanceAs(expectedPif)
     }
@@ -3335,5 +3456,5 @@ private fun List<LogEntry>.verifyOnCancelCall(
     index: Int
 ) {
     val logEntry = this[index]
-    assertThat(logEntry).isInstanceOf(OnCancelEntry::class.java)
+    assertThat(logEntry).isInstanceOf(OnCancelFilterEntry::class.java)
 }

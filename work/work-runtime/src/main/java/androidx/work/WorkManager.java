@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import kotlinx.coroutines.flow.Flow;
+
 /**
  * WorkManager is the recommended library for persistent work.
  * Scheduled work is guaranteed to execute sometime after its {@link Constraints} are met.
@@ -523,6 +525,16 @@ public abstract class WorkManager {
     public abstract @NonNull LiveData<WorkInfo> getWorkInfoByIdLiveData(@NonNull UUID id);
 
     /**
+     * Gets a {@link Flow} of the {@link WorkInfo} for a given work id.
+     *
+     * @param id The id of the work
+     * @return A {@link Flow} of the {@link WorkInfo} associated with {@code id}; note that
+     *         this {@link WorkInfo} may be {@code null} if {@code id} is not known to
+     *         WorkManager.
+     */
+    public abstract @NonNull Flow<WorkInfo> getWorkInfoByIdFlow(@NonNull UUID id);
+
+    /**
      * Gets a {@link ListenableFuture} of the {@link WorkInfo} for a given work id.
      *
      * @param id The id of the work
@@ -540,6 +552,14 @@ public abstract class WorkManager {
      */
     public abstract @NonNull LiveData<List<WorkInfo>> getWorkInfosByTagLiveData(
             @NonNull String tag);
+
+    /**
+     * Gets a {@link Flow} of the {@link WorkInfo} for all work for a given tag.
+     *
+     * @param tag The tag of the work
+     * @return A {@link Flow} list of {@link WorkInfo} for work tagged with {@code tag}
+     */
+    public abstract @NonNull Flow<List<WorkInfo>> getWorkInfosByTagFlow(@NonNull String tag);
 
     /**
      * Gets a {@link ListenableFuture} of the {@link WorkInfo} for all work for a given tag.
@@ -560,6 +580,17 @@ public abstract class WorkManager {
      *         {@code uniqueWorkName}
      */
     public abstract @NonNull LiveData<List<WorkInfo>> getWorkInfosForUniqueWorkLiveData(
+            @NonNull String uniqueWorkName);
+
+    /**
+     * Gets a {@link Flow} of the {@link WorkInfo} for all work in a work chain with a given
+     * unique name.
+     *
+     * @param uniqueWorkName The unique name used to identify the chain of work
+     * @return A {@link Flow} of the {@link WorkInfo} for work in the chain named
+     *         {@code uniqueWorkName}
+     */
+    public abstract @NonNull Flow<List<WorkInfo>> getWorkInfosForUniqueWorkFlow(
             @NonNull String uniqueWorkName);
 
     /**
@@ -585,6 +616,17 @@ public abstract class WorkManager {
             @NonNull WorkQuery workQuery);
 
     /**
+     * Gets the {@link Flow} of the {@link List} of {@link WorkInfo} for all work
+     * referenced by the {@link WorkQuery} specification.
+     *
+     * @param workQuery The work query specification
+     * @return A {@link Flow} of the {@link List} of {@link WorkInfo} for work
+     * referenced by this {@link WorkQuery}.
+     */
+    public abstract @NonNull Flow<List<WorkInfo>> getWorkInfosFlow(
+            @NonNull WorkQuery workQuery);
+
+    /**
      * Gets the {@link ListenableFuture} of the {@link List} of {@link WorkInfo} for all work
      * referenced by the {@link WorkQuery} specification.
      *
@@ -596,7 +638,69 @@ public abstract class WorkManager {
             @NonNull WorkQuery workQuery);
 
     /**
-     * @hide
+     * Updates the work with the new specification. A {@link WorkRequest} passed as parameter
+     * must have an id set with {@link WorkRequest.Builder#setId(UUID)} that matches an id of the
+     * previously enqueued work.
+     * <p>
+     * It preserves enqueue time, e.g. if a work was enqueued 3 hours ago and had 6 hours long
+     * initial delay, after the update it would be still eligible for run in 3 hours, assuming
+     * that initial delay wasn't updated.
+     * <p>
+     * If the work being updated is currently running the returned ListenableFuture will be
+     * completed with {@link UpdateResult#APPLIED_FOR_NEXT_RUN}. In this case the current run won't
+     * be interrupted and will continue to rely on previous state of the request, e.g. using
+     * old constraints, tags etc. However, on the next run, e.g. retry of one-time Worker or
+     * another iteration of periodic worker, the new worker specification will be used.
+     * <p>
+     * If the one time work that is updated is already finished the returned ListenableFuture
+     * will be completed with {@link UpdateResult#NOT_APPLIED}.
+     * <p>
+     * If update can be applied immediately, e.g. the updated work isn't currently running,
+     * the returned ListenableFuture will be completed with
+     * {@link UpdateResult#APPLIED_IMMEDIATELY}.
+     * <p>
+     * If the work with the given id ({@code request.getId()}) doesn't exist the returned
+     * ListenableFuture will be completed exceptionally with {@link IllegalArgumentException}.
+     * <p>
+     * Worker type can't be changed, {@link OneTimeWorkRequest} can't be updated to
+     * {@link PeriodicWorkRequest} and otherwise, the returned ListenableFuture will be
+     * completed with {@link IllegalArgumentException}.
+     *
+     * @param request the new specification for the work.
+     * @return a {@link ListenableFuture} that will be successfully completed if the update was
+     * successful. The future will be completed with an exception if the work is already running
+     * or finished.
+     */
+    // consistent with already existent method like getWorkInfos() in WorkManager
+    @SuppressWarnings("AsyncSuffixFuture")
+    @NonNull
+    public abstract ListenableFuture<UpdateResult> updateWork(@NonNull WorkRequest request);
+
+    /**
+     * An enumeration of results for {@link WorkManager#updateWork(WorkRequest)} method.
+     */
+    public enum UpdateResult {
+        /**
+         * An update wasn't applied, because {@code Worker} has already finished.
+         */
+        NOT_APPLIED,
+        /**
+         * An update was successfully applied immediately, meaning
+         * the updated work wasn't currently running in the moment of the request.
+         * See {@link UpdateResult#APPLIED_FOR_NEXT_RUN} for the case of running worker.
+         */
+        APPLIED_IMMEDIATELY,
+        /**
+         * An update was successfully applied, but the worker being updated was running.
+         * This run isn't interrupted and will continue to rely on previous state of the
+         * request, e.g. using old constraints, tags etc. However, on the next run, e.g. retry of
+         * one-time Worker or another iteration of periodic worker, the new worker specification.
+         * will be used.
+         */
+        APPLIED_FOR_NEXT_RUN,
+    }
+
+    /**
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     protected WorkManager() {

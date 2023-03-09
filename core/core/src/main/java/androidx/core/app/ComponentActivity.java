@@ -28,8 +28,10 @@ import android.view.View;
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.collection.SimpleArrayMap;
+import androidx.core.os.BuildCompat;
 import androidx.core.view.KeyEventDispatcher;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
@@ -43,7 +45,6 @@ import androidx.lifecycle.ReportFragment;
  * lower level building blocks are included. Higher level components can then be used as needed
  * without enforcing a deep Activity class hierarchy or strong coupling between components.
  *
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP_PREFIX)
 public class ComponentActivity extends Activity implements
@@ -70,7 +71,6 @@ public class ComponentActivity extends Activity implements
      * <p>Note that these objects are not retained across configuration changes</p>
      *
      * @see #getExtraData
-     * @hide
      * @deprecated Use {@link View#setTag(int, Object)} with the window's decor view.
      */
     @SuppressWarnings("deprecation")
@@ -98,7 +98,6 @@ public class ComponentActivity extends Activity implements
      * Retrieves a previously set {@link ExtraData} by class name.
      *
      * @see #putExtraData
-     * @hide
      * @deprecated Use {@link View#getTag(int)} with the window's decor view.
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -115,7 +114,6 @@ public class ComponentActivity extends Activity implements
     }
 
     /**
-     * @hide
      * @param event
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
@@ -167,6 +165,7 @@ public class ComponentActivity extends Activity implements
         return !shouldSkipDump(args);
     }
 
+    @OptIn(markerClass = BuildCompat.PrereleaseSdkCheck.class)
     private static boolean shouldSkipDump(@Nullable String[] args) {
         if (args != null && args.length > 0) {
             // NOTE: values below are hardcoded on framework's Activity (like dumpInner())
@@ -177,13 +176,15 @@ public class ComponentActivity extends Activity implements
                     return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
                 case "--translation":
                     return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
+                case "--list-dumpables":
+                case "--dump-dumpable":
+                    return BuildCompat.isAtLeastT();
             }
         }
         return false;
     }
 
     /**
-     * @hide
      * @deprecated Store the object you want to save directly by using
      * {@link View#setTag(int, Object)} with the window's decor view.
      */

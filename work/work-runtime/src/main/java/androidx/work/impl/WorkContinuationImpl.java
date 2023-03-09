@@ -45,7 +45,6 @@ import java.util.Set;
 /**
  * A concrete implementation of {@link WorkContinuation}.
  *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class WorkContinuationImpl extends WorkContinuation {
@@ -73,6 +72,7 @@ public class WorkContinuationImpl extends WorkContinuation {
         return mName;
     }
 
+    @NonNull
     public ExistingWorkPolicy getExistingWorkPolicy() {
         return mExistingWorkPolicy;
     }
@@ -87,6 +87,7 @@ public class WorkContinuationImpl extends WorkContinuation {
         return mIds;
     }
 
+    @NonNull
     public List<String> getAllIds() {
         return mAllIds;
     }
@@ -102,6 +103,7 @@ public class WorkContinuationImpl extends WorkContinuation {
         mEnqueued = true;
     }
 
+    @Nullable
     public List<WorkContinuationImpl> getParents() {
         return mParents;
     }
@@ -216,7 +218,6 @@ public class WorkContinuationImpl extends WorkContinuation {
     /**
      * @return {@code true} If there are cycles in the {@link WorkContinuationImpl}.
 
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public boolean hasCycles() {
@@ -228,7 +229,6 @@ public class WorkContinuationImpl extends WorkContinuation {
      * @param visited      The {@link Set} of {@link androidx.work.impl.model.WorkSpec} ids
      *                     marked as visited.
      * @return {@code true} if the {@link WorkContinuationImpl} has a cycle.
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     private static boolean hasCycles(
@@ -269,11 +269,10 @@ public class WorkContinuationImpl extends WorkContinuation {
     /**
      * @return the {@link Set} of pre-requisites for a given {@link WorkContinuationImpl}.
      *
-     * @hide
      */
     @NonNull
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public static Set<String> prerequisitesFor(WorkContinuationImpl continuation) {
+    public static Set<String> prerequisitesFor(@NonNull WorkContinuationImpl continuation) {
         Set<String> preRequisites = new HashSet<>();
         List<WorkContinuationImpl> parents = continuation.getParents();
         if (parents != null && !parents.isEmpty()) {

@@ -161,7 +161,6 @@ public class BiometricPrompt {
 
     /**
      * An error code that may be returned during authentication.
-     * @hide
      */
     @IntDef({
         ERROR_HW_UNAVAILABLE,
@@ -230,6 +229,7 @@ public class BiometricPrompt {
         @Nullable private final Cipher mCipher;
         @Nullable private final Mac mMac;
         @Nullable private final android.security.identity.IdentityCredential mIdentityCredential;
+        @Nullable private final android.security.identity.PresentationSession mPresentationSession;
 
         /**
          * Creates a crypto object that wraps the given signature object.
@@ -241,6 +241,7 @@ public class BiometricPrompt {
             mCipher = null;
             mMac = null;
             mIdentityCredential = null;
+            mPresentationSession = null;
         }
 
         /**
@@ -253,6 +254,7 @@ public class BiometricPrompt {
             mCipher = cipher;
             mMac = null;
             mIdentityCredential = null;
+            mPresentationSession = null;
         }
 
         /**
@@ -265,6 +267,7 @@ public class BiometricPrompt {
             mCipher = null;
             mMac = mac;
             mIdentityCredential = null;
+            mPresentationSession = null;
         }
 
         /**
@@ -280,6 +283,23 @@ public class BiometricPrompt {
             mCipher = null;
             mMac = null;
             mIdentityCredential = identityCredential;
+            mPresentationSession = null;
+        }
+
+        /**
+         * Creates a crypto object that wraps the given presentation session object.
+         *
+         * @param presentationSession The presentation session to be associated with this crypto
+         *                           object.
+         */
+        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+        public CryptoObject(
+                @NonNull android.security.identity.PresentationSession presentationSession) {
+            mSignature = null;
+            mCipher = null;
+            mMac = null;
+            mIdentityCredential = null;
+            mPresentationSession = presentationSession;
         }
 
         /**
@@ -321,6 +341,17 @@ public class BiometricPrompt {
         @Nullable
         public android.security.identity.IdentityCredential getIdentityCredential() {
             return mIdentityCredential;
+        }
+
+        /**
+         * Gets the presentation session object associated with this crypto object.
+         *
+         * @return The presentation session, or {@code null} if none is associated with this object.
+         */
+        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+        @Nullable
+        public android.security.identity.PresentationSession getPresentationSession() {
+            return mPresentationSession;
         }
     }
 

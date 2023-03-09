@@ -26,7 +26,6 @@ import java.util.concurrent.Executor;
  * A static class that serves as a central point to execute common tasks.
  * <p>
  *
- * @hide This API is not final.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class ArchTaskExecutor extends TaskExecutor {
@@ -36,23 +35,15 @@ public class ArchTaskExecutor extends TaskExecutor {
     private TaskExecutor mDelegate;
 
     @NonNull
-    private TaskExecutor mDefaultTaskExecutor;
+    private final TaskExecutor mDefaultTaskExecutor;
 
     @NonNull
-    private static final Executor sMainThreadExecutor = new Executor() {
-        @Override
-        public void execute(Runnable command) {
-            getInstance().postToMainThread(command);
-        }
-    };
+    private static final Executor sMainThreadExecutor =
+            command -> getInstance().postToMainThread(command);
 
     @NonNull
-    private static final Executor sIOThreadExecutor = new Executor() {
-        @Override
-        public void execute(Runnable command) {
-            getInstance().executeOnDiskIO(command);
-        }
-    };
+    private static final Executor sIOThreadExecutor =
+            command -> getInstance().executeOnDiskIO(command);
 
     private ArchTaskExecutor() {
         mDefaultTaskExecutor = new DefaultTaskExecutor();
@@ -92,12 +83,12 @@ public class ArchTaskExecutor extends TaskExecutor {
     }
 
     @Override
-    public void executeOnDiskIO(Runnable runnable) {
+    public void executeOnDiskIO(@NonNull Runnable runnable) {
         mDelegate.executeOnDiskIO(runnable);
     }
 
     @Override
-    public void postToMainThread(Runnable runnable) {
+    public void postToMainThread(@NonNull Runnable runnable) {
         mDelegate.postToMainThread(runnable);
     }
 

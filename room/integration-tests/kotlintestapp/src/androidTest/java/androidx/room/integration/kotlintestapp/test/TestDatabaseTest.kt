@@ -18,14 +18,15 @@ package androidx.room.integration.kotlintestapp.test
 
 import androidx.arch.core.executor.testing.CountingTaskExecutorRule
 import androidx.room.Room
-import androidx.room.androidx.room.integration.kotlintestapp.dao.UsersDao
 import androidx.room.integration.kotlintestapp.TestDatabase
 import androidx.room.integration.kotlintestapp.dao.BooksDao
+import androidx.room.integration.kotlintestapp.dao.UsersDao
+import androidx.room.integration.kotlintestapp.testutil.TestObserver
 import androidx.test.core.app.ApplicationProvider
+import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
-import java.util.concurrent.TimeUnit
 
 abstract class TestDatabaseTest {
     @Rule
@@ -56,5 +57,11 @@ abstract class TestDatabaseTest {
 
     fun drain() {
         countingTaskExecutorRule.drainTasks(10, TimeUnit.SECONDS)
+    }
+
+    inner class LiveDataTestObserver<T> : TestObserver<T>() {
+        override fun drain() {
+            countingTaskExecutorRule.drainTasks(1, TimeUnit.MINUTES)
+        }
     }
 }

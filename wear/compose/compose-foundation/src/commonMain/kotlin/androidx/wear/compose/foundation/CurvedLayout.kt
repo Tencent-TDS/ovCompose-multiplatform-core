@@ -90,9 +90,10 @@ public value class AnchorType internal constructor(internal val ratio: Float) {
  * @param angularDirection Specify the direction the children are laid on. See
  * [CurvedDirection.Angular]. The default is [CurvedDirection.Angular.Normal], which is clockwise
  * under a LtR layout and counter clockwise on a RtL layout.
- * @param contentBuilder Specifies the content of this layout, currently there are 4 available
- * elements defined in foundations for this DSL: the sub-layouts [curvedRow] and [curvedColumn],
- * [basicCurvedText] and [curvedComposable] (used to add normal composables to curved layouts)
+ * @param contentBuilder Specifies the content of this layout, currently there are 5 available
+ * elements defined in foundations for this DSL: the sub-layouts [curvedBox], [curvedRow]
+ * and [curvedColumn], [basicCurvedText] and [curvedComposable]
+ * (used to add normal composables to curved layouts)
  */
 @Composable
 public fun CurvedLayout(
@@ -115,8 +116,8 @@ public fun CurvedLayout(
 
     Layout(
         modifier = modifier.drawWithContent {
-            drawContent()
             with(curvedRowChild) { draw() }
+            drawContent()
         },
 
         content = {
@@ -133,10 +134,11 @@ public fun CurvedLayout(
 
         // Give the curved row scope the information needed to measure and map measurables
         // to children.
-        with(CurvedMeasureScope(subDensity = this, curvedLayoutDirection)) {
+        with(CurvedMeasureScope(subDensity = this, curvedLayoutDirection, radius)) {
             with(curvedRowChild) {
-                val mapped = initializeMeasure(measurables, 0)
-                require(mapped == measurables.size)
+                val iterator = measurables.iterator()
+                initializeMeasure(iterator)
+                require(!iterator.hasNext())
             }
         }
 
@@ -170,7 +172,13 @@ internal class CurvedLayoutDirection(
     internal val angular: CurvedDirection.Angular,
     internal val layoutDirection: LayoutDirection
 ) {
+    // Check if the angular direction is clockwise, taking layoutDirection into account
     fun clockwise(): Boolean = angular.resolveClockwise(layoutDirection)
+
+    // Check if the angular direction is clockwise, ignoring layoutDirection
+    fun absoluteClockwise(): Boolean =
+        angular == CurvedDirection.Angular.Normal ||
+        angular == CurvedDirection.Angular.Clockwise
 
     fun outsideIn(): Boolean = radial == CurvedDirection.Radial.OutsideIn
 
@@ -259,7 +267,8 @@ internal class PartialLayoutInfo(
 // Similar to IntrinsicMeasureScope
 internal class CurvedMeasureScope(
     val subDensity: Density,
-    val curvedLayoutDirection: CurvedLayoutDirection
+    val curvedLayoutDirection: CurvedLayoutDirection,
+    val radius: Float
 ) : Density by subDensity
 
 /**
@@ -312,14 +321,8 @@ internal abstract class CurvedChild() {
      *
      * @param measurables: The measurables on the CurvedLayout, used to map to the compose-ui nodes
      * we generated in [SubComposition] as we walk the tree.
-     * @param index: The current index in the measurables array
-     * @return The new index in the measurables array, taking into account how many items we
-     * mapped.
      */
-    open fun CurvedMeasureScope.initializeMeasure(
-        measurables: List<Measurable>,
-        index: Int
-    ): Int = index
+    open fun CurvedMeasureScope.initializeMeasure(measurables: Iterator<Measurable>) { }
 
     /**
      * Compute the parent data required to give to the parent layout to properly size and position
@@ -409,8 +412,5 @@ internal abstract class CurvedChild() {
 internal fun Float.toRadians() = this * PI.toFloat() / 180f
 internal fun Float.toDegrees() = this * 180f / PI.toFloat()
 internal fun <T> Iterable<T>.sumOf(selector: (T) -> Float): Float = map(selector).sum()
-internal fun lerp(start: Float, stop: Float, fraction: Float): Float {
-    return (1 - fraction) * start + fraction * stop
-}
 internal fun offsetFromDistanceAndAngle(distance: Float, angle: Float) =
     Offset(distance * cos(angle), distance * sin(angle))
