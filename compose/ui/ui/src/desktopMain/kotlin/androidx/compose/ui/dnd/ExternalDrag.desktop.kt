@@ -148,8 +148,6 @@ fun Modifier.onExternalDrag(
  * Provides a way to subscribe on external drag for given [window] using [installComponentDragHandler]
  *
  * [Window] allows having only one [DropTarget], so this is the main [DropTarget] that handles all the drag subscriptions
- *
- * @VisibleForTesting
  */
 @OptIn(ExperimentalComposeUiApi::class)
 internal class AwtWindowDropTarget(
@@ -166,7 +164,6 @@ internal class AwtWindowDropTarget(
     // drag coordinates used to detect that drag entered/exited components
     private var windowDragCoordinates: Offset? = null
 
-    // @VisibleForTesting
     val dragTargetListener = AwtWindowDragTargetListener(
         window,
         // notify components on window border that drag is started.
@@ -364,7 +361,6 @@ internal class AwtWindowDropTarget(
     }
 }
 
-// @VisibleForTesting
 @OptIn(ExperimentalComposeUiApi::class)
 internal class AwtWindowDragTargetListener(
     private val window: Window,
