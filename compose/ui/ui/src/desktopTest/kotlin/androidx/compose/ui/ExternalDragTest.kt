@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.AwtWindowDragTargetListener.WindowDragState
 import androidx.compose.ui.ExternalDragTest.TestDragEvent.Drag
 import androidx.compose.ui.ExternalDragTest.TestDragEvent.DragCancelled
 import androidx.compose.ui.ExternalDragTest.TestDragEvent.DragStarted
@@ -73,14 +74,14 @@ class ExternalDragTest {
         assertThat(events.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragEnterWindow(Offset(50f, 50f))
+            onDragEnterWindow(TestWindowDragState(Offset(50f, 50f)))
         }
         awaitIdle()
         assertThat(events.size).isEqualTo(1)
         assertThat(events.last()).isEqualTo(DragStarted(Offset(50f, 50f)))
 
         window.dragEvents {
-            onDragInsideWindow(Offset(70f, 70f))
+            onDragInsideWindow(TestWindowDragState(Offset(70f, 70f)))
         }
         awaitIdle()
 
@@ -121,13 +122,13 @@ class ExternalDragTest {
         assertThat(events.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragEnterWindow(Offset(10f, 10f))
+            onDragEnterWindow(TestWindowDragState(Offset(10f, 10f)))
         }
         awaitIdle()
         assertThat(events.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragInsideWindow(Offset(70f, componentYOffset + 1f))
+            onDragInsideWindow(TestWindowDragState(Offset(70f, componentYOffset + 1f)))
         }
         awaitIdle()
 
@@ -172,7 +173,7 @@ class ExternalDragTest {
         assertThat(eventsComponent2.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragEnterWindow(Offset(10f, 10f))
+            onDragEnterWindow(TestWindowDragState(Offset(10f, 10f)))
         }
         awaitIdle()
         assertThat(eventsComponent1.size).isEqualTo(1)
@@ -181,7 +182,7 @@ class ExternalDragTest {
         assertThat(eventsComponent2.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragInsideWindow(Offset(70f, component2YOffset + 1f))
+            onDragInsideWindow(TestWindowDragState(Offset(70f, component2YOffset + 1f)))
         }
         awaitIdle()
 
@@ -193,14 +194,14 @@ class ExternalDragTest {
 
         val dropData = createTextDropData("Text")
         window.dragEvents {
-            onDrop(dropData)
+            onDrop(TestWindowDragState(Offset(70f, component2YOffset + 1f), dropData))
         }
         awaitIdle()
 
         assertThat(eventsComponent1.size).isEqualTo(2)
 
         assertThat(eventsComponent2.size).isEqualTo(2)
-        assertThat(eventsComponent2.last()).isEqualTo(TestDragEvent.Drop(dropData))
+        assertThat(eventsComponent2.last()).isEqualTo(TestDragEvent.Drop(Offset(70f, 1f), dropData))
 
         exitApplication()
     }
@@ -258,7 +259,7 @@ class ExternalDragTest {
                             .onExternalDrag(
                                 onDragStart = {
                                     // make box bigger on enter
-                                    events.add(DragStarted(it))
+                                    events.add(DragStarted(it.dragPosition))
                                     width = 100.dp
                                 },
                                 onDragCancel = {
@@ -276,7 +277,7 @@ class ExternalDragTest {
         assertThat(events.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragEnterWindow(Offset(25f, 25f))
+            onDragEnterWindow(TestWindowDragState(Offset(25f, 25f)))
         }
 
         // only one event should be handled -- drag started, even if the component become bigger
@@ -297,13 +298,13 @@ class ExternalDragTest {
     private fun Modifier.saveExternalDragEvents(events: MutableList<TestDragEvent>): Modifier {
         return this.onExternalDrag(
             onDragStart = {
-                events.add(DragStarted(it))
+                events.add(DragStarted(it.dragPosition, it.data))
             },
             onDrop = {
-                events.add(TestDragEvent.Drop(it))
+                events.add(TestDragEvent.Drop(it.dragPosition, it.data))
             },
             onDrag = {
-                events.add(Drag(it))
+                events.add(Drag(it.dragPosition, it.data))
             },
             onDragCancel = {
                 events.add(DragCancelled)
@@ -322,10 +323,29 @@ class ExternalDragTest {
         }
     }
 
+    private fun TestWindowDragState(offset: Offset, data: DropData = testDropData): WindowDragState {
+        return WindowDragState(offset, data)
+    }
+
     private sealed interface TestDragEvent {
-        data class DragStarted(val offset: Offset) : TestDragEvent
+        data class DragStarted(
+            val offset: Offset,
+            val data: DropData = testDropData
+        ) : TestDragEvent
+
         object DragCancelled : TestDragEvent
-        data class Drag(val offset: Offset) : TestDragEvent
-        data class Drop(val data: DropData) : TestDragEvent
+        data class Drag(val offset: Offset, val data: DropData = testDropData) : TestDragEvent
+        data class Drop(val offset: Offset, val data: DropData = testDropData) : TestDragEvent
+    }
+
+    companion object {
+        private val testDropData = object : DropData.Text {
+            override val mimeTypes: List<String> = listOf("text/plain")
+            override val bestMimeType: String = mimeTypes.first()
+
+            override fun readText(): String {
+                return "Test text"
+            }
+        }
     }
 }

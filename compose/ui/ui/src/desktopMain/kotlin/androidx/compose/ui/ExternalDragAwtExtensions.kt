@@ -26,7 +26,7 @@ import java.awt.image.BufferedImage
 import java.io.File
 
 @OptIn(ExperimentalComposeUiApi::class)
-internal fun Transferable.dropData(): DropData? {
+internal fun Transferable.dropData(): DropData {
     val mimeTypes = transferDataFlavors.map { it.mimeType }
     val bestTextFlavor = selectBestTextFlavor(transferDataFlavors)
 
@@ -38,9 +38,12 @@ internal fun Transferable.dropData(): DropData? {
 
         bestTextFlavor != null -> DropDataTextImpl(mimeTypes, bestTextFlavor, this)
 
-        else -> null
+        else -> UnknownDropData(mimeTypes)
     }
 }
+
+@OptIn(ExperimentalComposeUiApi::class)
+private class UnknownDropData(override val mimeTypes: List<String>) : DropData
 
 @OptIn(ExperimentalComposeUiApi::class)
 private class DropDataFilesListImpl(

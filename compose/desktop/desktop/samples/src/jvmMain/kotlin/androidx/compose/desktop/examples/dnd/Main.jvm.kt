@@ -69,7 +69,8 @@ fun main() = singleWindowApplication(
                         onDrag = {
 
                         },
-                        onDrop = { data ->
+                        onDrop = { state ->
+                            val data = state.data
                             text = data.toString()
                             if (data is DropData.Image) {
                                 painter = data.readImage()
