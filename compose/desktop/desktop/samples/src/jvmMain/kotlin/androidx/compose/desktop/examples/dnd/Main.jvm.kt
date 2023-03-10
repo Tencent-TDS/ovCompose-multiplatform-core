@@ -29,7 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.DropData
+import androidx.compose.ui.DragData
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -70,10 +70,10 @@ fun main() = singleWindowApplication(
 
                         },
                         onDrop = { state ->
-                            val data = state.data
-                            text = data.toString()
-                            if (data is DropData.Image) {
-                                painter = data.readImage()
+                            val dragData = state.dragData
+                            text = dragData.toString()
+                            if (dragData is DragData.Image) {
+                                painter = dragData.readImage()
                             }
                             isDragging = false
                         })

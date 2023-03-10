@@ -42,12 +42,12 @@ import java.awt.dnd.DropTargetEvent
 import java.awt.dnd.DropTargetListener
 
 /**
- * Represent data types drag and dropped to a component from outside an application.
+ * Represent data that is being dragged (or dropped) to a component from outside an application.
  */
 @ExperimentalComposeUiApi
-interface DropData {
+interface DragData {
     /**
-     * List of all MIME types for this [DropData].
+     * List of all MIME types for this [DragData].
      * The list is ordered from most richly descriptive to least descriptive.
      *
      * Some platform-specific mimeTypes can occur in the list. It may be changed in future versions.
@@ -57,7 +57,7 @@ interface DropData {
     /**
      * Represents list of files drag and dropped to a component.
      */
-    interface FilesList : DropData {
+    interface FilesList : DragData {
         /**
          * Returns list of file paths drag and droppped to an application in a URI format.
          */
@@ -67,7 +67,7 @@ interface DropData {
     /**
      * Represents an image drag and dropped to a component.
      */
-    interface Image : DropData {
+    interface Image : DragData {
         /**
          * Returns an image drag and dropped to an application as a [Painter] type.
          */
@@ -77,7 +77,7 @@ interface DropData {
     /**
      * Represent text drag and dropped to a component.
      */
-    interface Text : DropData {
+    interface Text : DragData {
         /**
          * Provides the best MIME type that describes text returned in [readText]
          */
@@ -90,19 +90,32 @@ interface DropData {
     }
 }
 
+/**
+ * Represent the current state of drag and drop to a component from outside an application.
+ * This state is passed to external drag callbacks.
+ *
+ * @see onExternalDrag
+ */
 @ExperimentalComposeUiApi
 interface ExternalDragState {
+    /**
+     * Position of the pointer relative to the component
+     */
     val dragPosition: Offset
-    val data: DropData
+
+    /**
+     * Data that it being dragged (or dropped) in a component bounds
+     */
+    val dragData: DragData
 }
 
 /**
  * Adds detector of external drag and drop (e.g. files DnD from Finder to an application)
  *
  * @param onDragStart will be called when the pointer with external content entered the component.
- * @param onDrag will be called for all drag events inside the component.
- * @param onDrop is called when the pointer is released with [DropData] the pointer held.
- * @param onDragExit is called if the pointer exited the component bounds
+ * @param onDrag will be called for pointer movements inside the component.
+ * @param onDragExit is called if the pointer exited the component bounds.
+ * @param onDrop is called when the pointer is released.
  */
 @ExperimentalComposeUiApi
 @Composable
@@ -234,7 +247,7 @@ internal class AwtWindowDropTarget(
                 )
                 if (isInside) {
                     val offset = calculateOffset(componentBounds, newDragState.dragPositionInWindow)
-                    handler.onDrop(ExternalDragStateImpl(offset, newDragState.data))
+                    handler.onDrop(ExternalDragStateImpl(offset, newDragState.dragData))
                     anyDrops = true
                 }
             }
@@ -329,7 +342,7 @@ internal class AwtWindowDropTarget(
 
     private data class ExternalDragStateImpl(
         override val dragPosition: Offset,
-        override val data: DropData
+        override val dragData: DragData
     ) : ExternalDragState
 
     companion object {
@@ -376,7 +389,7 @@ internal class AwtWindowDropTarget(
                     currentComponentBounds!!,
                     currentDragState!!.dragPositionInWindow
                 )
-                handler.onDragStart(ExternalDragStateImpl(dragOffset, currentDragState.data))
+                handler.onDragStart(ExternalDragStateImpl(dragOffset, currentDragState.dragData))
                 return
             }
 
@@ -390,7 +403,7 @@ internal class AwtWindowDropTarget(
                     currentComponentBounds!!,
                     currentDragState!!.dragPositionInWindow
                 )
-                handler.onDrag(ExternalDragStateImpl(dragOffset, currentDragState.data))
+                handler.onDrag(ExternalDragStateImpl(dragOffset, currentDragState.dragData))
                 return
             }
         }
@@ -411,7 +424,7 @@ internal class AwtWindowDragTargetListener(
         onDragEnterWindow(
             WindowDragState(
                 dtde.location.windowOffset(),
-                dtde.transferable.dropData()
+                dtde.transferable.dragData()
             )
         )
     }
@@ -420,7 +433,7 @@ internal class AwtWindowDragTargetListener(
         onDragInsideWindow(
             WindowDragState(
                 dtde.location.windowOffset(),
-                dtde.transferable.dropData()
+                dtde.transferable.dragData()
             )
         )
     }
@@ -446,7 +459,7 @@ internal class AwtWindowDragTargetListener(
 
         val transferable = dtde.transferable
         try {
-            onDrop(WindowDragState(dtde.location.windowOffset(), transferable.dropData()))
+            onDrop(WindowDragState(dtde.location.windowOffset(), transferable.dragData()))
             dtde.dropComplete(true)
         } catch (e: Exception) {
             onDragExit()
@@ -456,6 +469,6 @@ internal class AwtWindowDragTargetListener(
 
     data class WindowDragState(
         val dragPositionInWindow: Offset,
-        val data: DropData
+        val dragData: DragData
     )
 }

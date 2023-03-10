@@ -192,16 +192,16 @@ class ExternalDragTest {
         assertThat(eventsComponent2.size).isEqualTo(1)
         assertThat(eventsComponent2.last()).isEqualTo(DragStarted(Offset(70f, 1f)))
 
-        val dropData = createTextDropData("Text")
+        val dragData = createTextDragData("Text")
         window.dragEvents {
-            onDrop(TestWindowDragState(Offset(70f, component2YOffset + 1f), dropData))
+            onDrop(TestWindowDragState(Offset(70f, component2YOffset + 1f), dragData))
         }
         awaitIdle()
 
         assertThat(eventsComponent1.size).isEqualTo(2)
 
         assertThat(eventsComponent2.size).isEqualTo(2)
-        assertThat(eventsComponent2.last()).isEqualTo(TestDragEvent.Drop(Offset(70f, 1f), dropData))
+        assertThat(eventsComponent2.last()).isEqualTo(TestDragEvent.Drop(Offset(70f, 1f), dragData))
 
         exitApplication()
     }
@@ -298,13 +298,13 @@ class ExternalDragTest {
     private fun Modifier.saveExternalDragEvents(events: MutableList<TestDragEvent>): Modifier {
         return this.onExternalDrag(
             onDragStart = {
-                events.add(DragStarted(it.dragPosition, it.data))
+                events.add(DragStarted(it.dragPosition, it.dragData))
             },
             onDrop = {
-                events.add(TestDragEvent.Drop(it.dragPosition, it.data))
+                events.add(TestDragEvent.Drop(it.dragPosition, it.dragData))
             },
             onDrag = {
-                events.add(Drag(it.dragPosition, it.data))
+                events.add(Drag(it.dragPosition, it.dragData))
             },
             onDragExit = {
                 events.add(DragCancelled)
@@ -312,8 +312,8 @@ class ExternalDragTest {
         )
     }
 
-    private fun createTextDropData(text: String): DropData {
-        return object : DropData.Text {
+    private fun createTextDragData(text: String): DragData {
+        return object : DragData.Text {
             override val mimeTypes: List<String> = listOf("text/plain")
             override val bestMimeType: String = mimeTypes.first()
 
@@ -323,23 +323,23 @@ class ExternalDragTest {
         }
     }
 
-    private fun TestWindowDragState(offset: Offset, data: DropData = testDropData): WindowDragState {
-        return WindowDragState(offset, data)
+    private fun TestWindowDragState(offset: Offset, dragData: DragData = testDragData): WindowDragState {
+        return WindowDragState(offset, dragData)
     }
 
     private sealed interface TestDragEvent {
         data class DragStarted(
             val offset: Offset,
-            val data: DropData = testDropData
+            val dragData: DragData = testDragData
         ) : TestDragEvent
 
         object DragCancelled : TestDragEvent
-        data class Drag(val offset: Offset, val data: DropData = testDropData) : TestDragEvent
-        data class Drop(val offset: Offset, val data: DropData = testDropData) : TestDragEvent
+        data class Drag(val offset: Offset, val dragData: DragData = testDragData) : TestDragEvent
+        data class Drop(val offset: Offset, val dragData: DragData = testDragData) : TestDragEvent
     }
 
     companion object {
-        private val testDropData = object : DropData.Text {
+        private val testDragData = object : DragData.Text {
             override val mimeTypes: List<String> = listOf("text/plain")
             override val bestMimeType: String = mimeTypes.first()
 

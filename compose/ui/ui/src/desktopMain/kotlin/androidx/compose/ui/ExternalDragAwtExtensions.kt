@@ -26,30 +26,30 @@ import java.awt.image.BufferedImage
 import java.io.File
 
 @OptIn(ExperimentalComposeUiApi::class)
-internal fun Transferable.dropData(): DropData {
+internal fun Transferable.dragData(): DragData {
     val mimeTypes = transferDataFlavors.map { it.mimeType }
     val bestTextFlavor = selectBestTextFlavor(transferDataFlavors)
 
     return when {
         isDataFlavorSupported(DataFlavor.javaFileListFlavor) ->
-            DropDataFilesListImpl(mimeTypes, this)
+            DragDataFilesListImpl(mimeTypes, this)
 
-        isDataFlavorSupported(DataFlavor.imageFlavor) -> DropDataImageImpl(mimeTypes, this)
+        isDataFlavorSupported(DataFlavor.imageFlavor) -> DragDataImageImpl(mimeTypes, this)
 
-        bestTextFlavor != null -> DropDataTextImpl(mimeTypes, bestTextFlavor, this)
+        bestTextFlavor != null -> DragDataTextImpl(mimeTypes, bestTextFlavor, this)
 
-        else -> UnknownDropData(mimeTypes)
+        else -> UnknownDragData(mimeTypes)
     }
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
-private class UnknownDropData(override val mimeTypes: List<String>) : DropData
+private class UnknownDragData(override val mimeTypes: List<String>) : DragData
 
 @OptIn(ExperimentalComposeUiApi::class)
-private class DropDataFilesListImpl(
+private class DragDataFilesListImpl(
     override val mimeTypes: List<String>,
     private val transferable: Transferable
-) : DropData.FilesList {
+) : DragData.FilesList {
     override fun readFiles(): List<String> {
         val files = transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<*>
         return files.filterIsInstance<File>().map { it.toURI().toString() }
@@ -57,10 +57,10 @@ private class DropDataFilesListImpl(
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
-private class DropDataImageImpl(
+private class DragDataImageImpl(
     override val mimeTypes: List<String>,
     private val transferable: Transferable
-) : DropData.Image {
+) : DragData.Image {
     override fun readImage(): Painter {
         return (transferable.getTransferData(DataFlavor.imageFlavor) as Image).painter()
     }
@@ -84,11 +84,11 @@ private class DropDataImageImpl(
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
-private class DropDataTextImpl(
+private class DragDataTextImpl(
     override val mimeTypes: List<String>,
     private val bestTextFlavor: DataFlavor,
     private val transferable: Transferable
-) : DropData.Text {
+) : DragData.Text {
     override val bestMimeType: String = bestTextFlavor.mimeType
 
     override fun readText(): String {
