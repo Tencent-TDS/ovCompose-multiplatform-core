@@ -27,11 +27,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.isLinux
 import androidx.compose.ui.renderComposeScene
 import androidx.compose.ui.test.InternalTestApi
 import androidx.compose.ui.test.junit4.DesktopScreenshotTestRule
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -136,6 +138,11 @@ class GraphicsLayerTest {
 
     @Test
     fun rotationX() {
+
+        // TODO Remove once approximate comparison will be available. The problem: there is a difference
+        //  in antialiasing between platforms. The golden screenshot currently matches CI behaviour.
+        assumeTrue(isLinux)
+
         val snapshot = renderComposeScene(width = 40, height = 40) {
             testRotationBoxes(
                 rotationX = 45f,
@@ -146,6 +153,11 @@ class GraphicsLayerTest {
 
     @Test
     fun rotationY() {
+
+        // TODO Remove once approximate comparison will be available. The problem: there is a difference
+        //  in antialiasing between platforms. The golden screenshot currently matches CI behaviour.
+        assumeTrue(isLinux)
+
         val snapshot = renderComposeScene(width = 40, height = 40) {
             testRotationBoxes(
                 rotationY = 45f,
@@ -165,6 +177,11 @@ class GraphicsLayerTest {
 
     @Test
     fun rotationXYZ() {
+
+        // TODO Remove once approximate comparison will be available. The problem: there is a difference
+        //  in antialiasing between platforms. The golden screenshot currently matches CI behaviour.
+        assumeTrue(isLinux)
+
         val snapshot = renderComposeScene(width = 40, height = 40) {
             testRotationBoxes(
                 rotationX = 45f,
