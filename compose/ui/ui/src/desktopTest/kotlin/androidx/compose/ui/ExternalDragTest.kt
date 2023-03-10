@@ -191,7 +191,7 @@ class ExternalDragTest {
         assertThat(eventsComponent2.size).isEqualTo(1)
         assertThat(eventsComponent2.last()).isEqualTo(DragStarted(Offset(70f, 1f)))
 
-        val dropData = DropData.Text("Text", mimeType = "text/plain")
+        val dropData = createTextDropData("Text")
         window.dragEvents {
             onDrop(dropData)
         }
@@ -309,6 +309,17 @@ class ExternalDragTest {
                 events.add(DragCancelled)
             }
         )
+    }
+
+    private fun createTextDropData(text: String): DropData {
+        return object : DropData.Text {
+            override val mimeTypes: List<String> = listOf("text/plain")
+            override val bestMimeType: String = mimeTypes.first()
+
+            override fun readText(): String {
+                return text
+            }
+        }
     }
 
     private sealed interface TestDragEvent {

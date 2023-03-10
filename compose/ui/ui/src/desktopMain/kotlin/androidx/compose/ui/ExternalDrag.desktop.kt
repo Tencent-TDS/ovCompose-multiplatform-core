@@ -27,47 +27,66 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.toPainter
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.window.LocalWindow
 import androidx.compose.ui.window.density
-import java.awt.Image
 import java.awt.Point
 import java.awt.Window
-import java.awt.datatransfer.DataFlavor
-import java.awt.datatransfer.DataFlavor.selectBestTextFlavor
-import java.awt.datatransfer.Transferable
 import java.awt.dnd.DnDConstants
 import java.awt.dnd.DropTarget
 import java.awt.dnd.DropTargetDragEvent
 import java.awt.dnd.DropTargetDropEvent
 import java.awt.dnd.DropTargetEvent
 import java.awt.dnd.DropTargetListener
-import java.awt.image.BufferedImage
-import java.io.File
 
 /**
- * Represent data types drag and dropped to an application from outside.
+ * Represent data types drag and dropped to a component from outside an application.
  */
 @ExperimentalComposeUiApi
-sealed interface DropData {
+interface DropData {
     /**
-     * Represents list of files drag and dropped to an application in a raw [java.net.URI] format.
-     */
-    data class FilesList(val rawUris: List<String>) : DropData
-
-    /**
-     * Represents an image drag and dropped to an application.
-     */
-    data class Image(val painter: Painter) : DropData
-
-    /**
-     * Represent text drag and dropped to an application.
+     * List of all MIME types for this [DropData].
+     * The list is ordered from most richly descriptive to least descriptive.
      *
-     * @param mimeType mimeType of the [content] such as "text/plain", "text/html", etc.
+     * Some platform-specific mimeTypes can occur in the list. It may be changed in future versions.
      */
-    data class Text(val content: String, val mimeType: String?) : DropData
+    val mimeTypes: List<String>
+
+    /**
+     * Represents list of files drag and dropped to a component.
+     */
+    interface FilesList : DropData {
+        /**
+         * Returns list of file paths drag and droppped to an application in a URI format.
+         */
+        fun readFiles(): List<String>
+    }
+
+    /**
+     * Represents an image drag and dropped to a component.
+     */
+    interface Image : DropData {
+        /**
+         * Returns an image drag and dropped to an application as a [Painter] type.
+         */
+        fun readImage(): Painter
+    }
+
+    /**
+     * Represent text drag and dropped to a component.
+     */
+    interface Text : DropData {
+        /**
+         * Provides the best MIME type that describes text returned in [readText]
+         */
+        val bestMimeType: String
+
+        /**
+         * Returns a text dropped to an application.
+         */
+        fun readText(): String
+    }
 }
 
 /**
@@ -404,44 +423,5 @@ internal class AwtWindowDragTargetListener(
             onDragExit()
             dtde.dropComplete(false)
         }
-    }
-
-    private fun Transferable.dropData(): DropData? {
-        val bestTextFlavor = selectBestTextFlavor(transferDataFlavors)
-
-        return when {
-            isDataFlavorSupported(DataFlavor.javaFileListFlavor) -> {
-                val files = getTransferData(DataFlavor.javaFileListFlavor) as? List<*> ?: return null
-                DropData.FilesList(files.filterIsInstance<File>().map { it.toURI().toString() })
-            }
-
-            isDataFlavorSupported(DataFlavor.imageFlavor) -> {
-                val image = getTransferData(DataFlavor.imageFlavor) as? Image ?: return null
-                DropData.Image(image.painter())
-            }
-
-            bestTextFlavor != null -> {
-                val reader = bestTextFlavor.getReaderForText(this) ?: return null
-                DropData.Text(content = reader.readText(), mimeType = bestTextFlavor.mimeType)
-            }
-
-            else -> null
-        }
-    }
-
-    private fun Image.painter(): Painter {
-        if (this is BufferedImage) {
-            return this.toPainter()
-        }
-        val bufferedImage = BufferedImage(getWidth(null), getHeight(null), BufferedImage.TYPE_INT_ARGB)
-
-        val g2 = bufferedImage.createGraphics()
-        try {
-            g2.drawImage(this, 0, 0, null)
-        } finally {
-            g2.dispose()
-        }
-
-        return bufferedImage.toPainter()
     }
 }

@@ -72,7 +72,7 @@ fun main() = singleWindowApplication(
                         onDrop = { data ->
                             text = data.toString()
                             if (data is DropData.Image) {
-                                painter = data.painter
+                                painter = data.readImage()
                             }
                             isDragging = false
                         })
