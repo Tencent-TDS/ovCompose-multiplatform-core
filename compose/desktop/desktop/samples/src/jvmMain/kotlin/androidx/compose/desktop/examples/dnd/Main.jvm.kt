@@ -63,7 +63,7 @@ fun main() = singleWindowApplication(
                         onDragStart = {
                             isDragging = true
                         },
-                        onDragCancel = {
+                        onDragExit = {
                             isDragging = false
                         },
                         onDrag = {

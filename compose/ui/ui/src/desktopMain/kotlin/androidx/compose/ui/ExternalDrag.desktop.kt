@@ -102,7 +102,7 @@ interface ExternalDragState {
  * @param onDragStart will be called when the pointer with external content entered the component.
  * @param onDrag will be called for all drag events inside the component.
  * @param onDrop is called when the pointer is released with [DropData] the pointer held.
- * @param onDragCancel is called if the pointer exited the component bounds or unknown data was dropped.
+ * @param onDragExit is called if the pointer exited the component bounds
  */
 @ExperimentalComposeUiApi
 @Composable
@@ -110,7 +110,7 @@ fun Modifier.onExternalDrag(
     enabled: Boolean = true,
     onDragStart: (ExternalDragState) -> Unit = {},
     onDrag: (ExternalDragState) -> Unit = {},
-    onDragCancel: () -> Unit = {},
+    onDragExit: () -> Unit = {},
     onDrop: (ExternalDragState) -> Unit = {},
 ): Modifier = composed {
     if (!enabled) {
@@ -119,7 +119,7 @@ fun Modifier.onExternalDrag(
     val window = LocalWindow.current ?: return@composed Modifier
 
     val componentDragHandler = rememberUpdatedState(
-        AwtWindowDropTarget.ComponentDragHandler(onDragStart, onDrag, onDragCancel, onDrop)
+        AwtWindowDropTarget.ComponentDragHandler(onDragStart, onDrag, onDragExit, onDrop)
     )
 
     var componentDragHandleId by remember { mutableStateOf<Int?>(null) }

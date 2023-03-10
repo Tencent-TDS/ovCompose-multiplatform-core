@@ -262,7 +262,7 @@ class ExternalDragTest {
                                     events.add(DragStarted(it.dragPosition))
                                     width = 100.dp
                                 },
-                                onDragCancel = {
+                                onDragExit = {
                                     // make box smalled when drag exited
                                     events.add(DragCancelled)
                                     width = 50.dp
@@ -306,7 +306,7 @@ class ExternalDragTest {
             onDrag = {
                 events.add(Drag(it.dragPosition, it.data))
             },
-            onDragCancel = {
+            onDragExit = {
                 events.add(DragCancelled)
             }
         )
