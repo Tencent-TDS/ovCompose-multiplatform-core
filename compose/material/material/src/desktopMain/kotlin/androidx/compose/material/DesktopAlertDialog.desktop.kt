@@ -158,7 +158,7 @@ fun AlertDialog(
         ) { modifier ->
             AlertDialogContent(
                 buttons = buttons,
-                modifier = modifier.width(IntrinsicSize.Min),
+                modifier = modifier.width(IntrinsicSize.Max),
                 title = title,
                 text = text,
                 shape = shape,
