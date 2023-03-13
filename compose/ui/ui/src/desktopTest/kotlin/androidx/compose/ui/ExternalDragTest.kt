@@ -30,7 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.AwtWindowDragTargetListener.WindowDragState
+import androidx.compose.ui.AwtWindowDragTargetListener.WindowDragValue
 import androidx.compose.ui.ExternalDragTest.TestDragEvent.Drag
 import androidx.compose.ui.ExternalDragTest.TestDragEvent.DragCancelled
 import androidx.compose.ui.ExternalDragTest.TestDragEvent.DragStarted
@@ -74,14 +74,14 @@ class ExternalDragTest {
         assertThat(events.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragEnterWindow(TestWindowDragState(Offset(50f, 50f)))
+            onDragEnterWindow(TestWindowDragValue(Offset(50f, 50f)))
         }
         awaitIdle()
         assertThat(events.size).isEqualTo(1)
         assertThat(events.last()).isEqualTo(DragStarted(Offset(50f, 50f)))
 
         window.dragEvents {
-            onDragInsideWindow(TestWindowDragState(Offset(70f, 70f)))
+            onDragInsideWindow(TestWindowDragValue(Offset(70f, 70f)))
         }
         awaitIdle()
 
@@ -122,13 +122,13 @@ class ExternalDragTest {
         assertThat(events.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragEnterWindow(TestWindowDragState(Offset(10f, 10f)))
+            onDragEnterWindow(TestWindowDragValue(Offset(10f, 10f)))
         }
         awaitIdle()
         assertThat(events.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragInsideWindow(TestWindowDragState(Offset(70f, componentYOffset + 1f)))
+            onDragInsideWindow(TestWindowDragValue(Offset(70f, componentYOffset + 1f)))
         }
         awaitIdle()
 
@@ -173,7 +173,7 @@ class ExternalDragTest {
         assertThat(eventsComponent2.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragEnterWindow(TestWindowDragState(Offset(10f, 10f)))
+            onDragEnterWindow(TestWindowDragValue(Offset(10f, 10f)))
         }
         awaitIdle()
         assertThat(eventsComponent1.size).isEqualTo(1)
@@ -182,7 +182,7 @@ class ExternalDragTest {
         assertThat(eventsComponent2.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragInsideWindow(TestWindowDragState(Offset(70f, component2YOffset + 1f)))
+            onDragInsideWindow(TestWindowDragValue(Offset(70f, component2YOffset + 1f)))
         }
         awaitIdle()
 
@@ -194,7 +194,7 @@ class ExternalDragTest {
 
         val dragData = createTextDragData("Text")
         window.dragEvents {
-            onDrop(TestWindowDragState(Offset(70f, component2YOffset + 1f), dragData))
+            onDrop(TestWindowDragValue(Offset(70f, component2YOffset + 1f), dragData))
         }
         awaitIdle()
 
@@ -277,7 +277,7 @@ class ExternalDragTest {
         assertThat(events.size).isEqualTo(0)
 
         window.dragEvents {
-            onDragEnterWindow(TestWindowDragState(Offset(25f, 25f)))
+            onDragEnterWindow(TestWindowDragValue(Offset(25f, 25f)))
         }
 
         // only one event should be handled -- drag started, even if the component become bigger
@@ -312,8 +312,8 @@ class ExternalDragTest {
         )
     }
 
-    private fun TestWindowDragState(offset: Offset, dragData: DragData = testDragData): WindowDragState {
-        return WindowDragState(offset, dragData)
+    private fun TestWindowDragValue(offset: Offset, dragData: DragData = testDragData): WindowDragValue {
+        return WindowDragValue(offset, dragData)
     }
 
     private sealed interface TestDragEvent {

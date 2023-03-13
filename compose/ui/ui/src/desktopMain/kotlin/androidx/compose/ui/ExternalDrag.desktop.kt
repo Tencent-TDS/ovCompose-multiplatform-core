@@ -24,7 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.AwtWindowDragTargetListener.WindowDragState
+import androidx.compose.ui.AwtWindowDragTargetListener.WindowDragValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.painter.Painter
@@ -89,7 +89,7 @@ interface DragData {
  * @see onExternalDrag
  */
 @ExperimentalComposeUiApi
-interface ExternalDragState {
+interface ExternalDragValue {
     /**
      * Position of the pointer relative to the component
      */
@@ -113,10 +113,10 @@ interface ExternalDragState {
 @Composable
 fun Modifier.onExternalDrag(
     enabled: Boolean = true,
-    onDragStart: (ExternalDragState) -> Unit = {},
-    onDrag: (ExternalDragState) -> Unit = {},
+    onDragStart: (ExternalDragValue) -> Unit = {},
+    onDrag: (ExternalDragValue) -> Unit = {},
     onDragExit: () -> Unit = {},
-    onDrop: (ExternalDragState) -> Unit = {},
+    onDrop: (ExternalDragValue) -> Unit = {},
 ): Modifier = composed {
     if (!enabled) {
         return@composed Modifier
@@ -189,57 +189,57 @@ internal class AwtWindowDropTarget(
     private val componentBoundsHolder = mutableMapOf<Int, Rect>()
 
     // state of ongoing external drag and drop in the [window], contains pointer coordinates and data that is dragged
-    private var currentDragState: WindowDragState? = null
+    private var currentDragValue: WindowDragValue? = null
 
     val dragTargetListener = AwtWindowDragTargetListener(
         window,
         // notify components on window border that drag is started.
-        onDragEnterWindow = { newDragState ->
-            currentDragState = newDragState
+        onDragEnterWindow = { newDragValue ->
+            currentDragValue = newDragValue
             forEachPositionedComponent { handler, componentBounds ->
                 handleDragEvent(
                     handler,
                     oldComponentBounds = componentBounds, currentComponentBounds = componentBounds,
-                    oldDragState = null, currentDragState = newDragState,
+                    oldDragValue = null, currentDragValue = newDragValue,
                 )
             }
         },
         // drag moved inside window, we should calculate whether drag entered/exited components or just moved inside them
-        onDragInsideWindow = { newDragState ->
-            val oldDragState = currentDragState
-            currentDragState = newDragState
+        onDragInsideWindow = { newDragValue ->
+            val oldDragValue = currentDragValue
+            currentDragValue = newDragValue
             forEachPositionedComponent { handler, componentBounds ->
                 handleDragEvent(
                     handler,
                     oldComponentBounds = componentBounds, currentComponentBounds = componentBounds,
-                    oldDragState, newDragState
+                    oldDragValue, newDragValue
                 )
             }
         },
         // notify components on window border drag exited window
         onDragExit = {
-            val oldDragState = currentDragState
-            currentDragState = null
+            val oldDragValue = currentDragValue
+            currentDragValue = null
             forEachPositionedComponent { handler, componentBounds ->
                 handleDragEvent(
                     handler,
                     oldComponentBounds = componentBounds, currentComponentBounds = componentBounds,
-                    oldDragState = oldDragState, currentDragState = null
+                    oldDragValue = oldDragValue, currentDragValue = null
                 )
             }
         },
         // notify all components under the pointer that drop happened
-        onDrop = { newDragState ->
+        onDrop = { newDragValue ->
             var anyDrops = false
-            currentDragState = null
+            currentDragValue = null
             forEachPositionedComponent { handler, componentBounds ->
                 val isInside = isExternalDragInsideComponent(
                     componentBounds,
-                    newDragState.dragPositionInWindow
+                    newDragValue.dragPositionInWindow
                 )
                 if (isInside) {
-                    val offset = calculateOffset(componentBounds, newDragState.dragPositionInWindow)
-                    handler.onDrop(ExternalDragStateImpl(offset, newDragState.dragData))
+                    val offset = calculateOffset(componentBounds, newDragValue.dragPositionInWindow)
+                    handler.onDrop(ExternalDragValueImpl(offset, newDragValue.dragData))
                     anyDrops = true
                 }
             }
@@ -255,7 +255,7 @@ internal class AwtWindowDropTarget(
     override fun setActive(isActive: Boolean) {
         super.setActive(isActive)
         if (!isActive) {
-            currentDragState = null
+            currentDragValue = null
         }
     }
 
@@ -289,7 +289,7 @@ internal class AwtWindowDropTarget(
         val handler = handlers.remove(handleId)
         val componentBounds = componentBoundsHolder.remove(handleId)
         if (handler != null && componentBounds != null &&
-            isExternalDragInsideComponent(componentBounds, currentDragState?.dragPositionInWindow)
+            isExternalDragInsideComponent(componentBounds, currentDragValue?.dragPositionInWindow)
         ) {
             handler.value.onDragCancel()
         }
@@ -313,8 +313,8 @@ internal class AwtWindowDropTarget(
         val oldComponentBounds = componentBoundsHolder.put(handleId, newComponentBounds)
         handleDragEvent(
             handler.value, oldComponentBounds, newComponentBounds,
-            oldDragState = currentDragState,
-            currentDragState = currentDragState
+            oldDragValue = currentDragValue,
+            currentDragValue = currentDragValue
         )
     }
 
@@ -326,16 +326,16 @@ internal class AwtWindowDropTarget(
     }
 
     data class ComponentDragHandler(
-        val onDragStart: (ExternalDragState) -> Unit,
-        val onDrag: (ExternalDragState) -> Unit,
+        val onDragStart: (ExternalDragValue) -> Unit,
+        val onDrag: (ExternalDragValue) -> Unit,
         val onDragCancel: () -> Unit,
-        val onDrop: (ExternalDragState) -> Unit
+        val onDrop: (ExternalDragValue) -> Unit
     )
 
-    private data class ExternalDragStateImpl(
+    private data class ExternalDragValueImpl(
         override val dragPosition: Offset,
         override val dragData: DragData
-    ) : ExternalDragState
+    ) : ExternalDragValue
 
     companion object {
         private fun isExternalDragInsideComponent(
@@ -365,23 +365,23 @@ internal class AwtWindowDropTarget(
             handler: ComponentDragHandler,
             oldComponentBounds: Rect?,
             currentComponentBounds: Rect?,
-            oldDragState: WindowDragState?,
-            currentDragState: WindowDragState?,
+            oldDragValue: WindowDragValue?,
+            currentDragValue: WindowDragValue?,
         ) {
             val wasDragInside = isExternalDragInsideComponent(
                 oldComponentBounds,
-                oldDragState?.dragPositionInWindow
+                oldDragValue?.dragPositionInWindow
             )
             val newIsDragInside = isExternalDragInsideComponent(
                 currentComponentBounds,
-                currentDragState?.dragPositionInWindow
+                currentDragValue?.dragPositionInWindow
             )
             if (!wasDragInside && newIsDragInside) {
                 val dragOffset = calculateOffset(
                     currentComponentBounds!!,
-                    currentDragState!!.dragPositionInWindow
+                    currentDragValue!!.dragPositionInWindow
                 )
-                handler.onDragStart(ExternalDragStateImpl(dragOffset, currentDragState.dragData))
+                handler.onDragStart(ExternalDragValueImpl(dragOffset, currentDragValue.dragData))
                 return
             }
 
@@ -393,9 +393,9 @@ internal class AwtWindowDropTarget(
             if (newIsDragInside) {
                 val dragOffset = calculateOffset(
                     currentComponentBounds!!,
-                    currentDragState!!.dragPositionInWindow
+                    currentDragValue!!.dragPositionInWindow
                 )
-                handler.onDrag(ExternalDragStateImpl(dragOffset, currentDragState.dragData))
+                handler.onDrag(ExternalDragValueImpl(dragOffset, currentDragValue.dragData))
                 return
             }
         }
@@ -405,16 +405,16 @@ internal class AwtWindowDropTarget(
 @OptIn(ExperimentalComposeUiApi::class)
 internal class AwtWindowDragTargetListener(
     private val window: Window,
-    val onDragEnterWindow: (WindowDragState) -> Unit,
-    val onDragInsideWindow: (WindowDragState) -> Unit,
+    val onDragEnterWindow: (WindowDragValue) -> Unit,
+    val onDragInsideWindow: (WindowDragValue) -> Unit,
     val onDragExit: () -> Unit,
-    val onDrop: (WindowDragState) -> Boolean,
+    val onDrop: (WindowDragValue) -> Boolean,
 ) : DropTargetListener {
     private val density = window.density.density
 
     override fun dragEnter(dtde: DropTargetDragEvent) {
         onDragEnterWindow(
-            WindowDragState(
+            WindowDragValue(
                 dtde.location.windowOffset(),
                 dtde.transferable.dragData()
             )
@@ -423,7 +423,7 @@ internal class AwtWindowDragTargetListener(
 
     override fun dragOver(dtde: DropTargetDragEvent) {
         onDragInsideWindow(
-            WindowDragState(
+            WindowDragValue(
                 dtde.location.windowOffset(),
                 dtde.transferable.dragData()
             )
@@ -451,7 +451,7 @@ internal class AwtWindowDragTargetListener(
 
         val transferable = dtde.transferable
         try {
-            onDrop(WindowDragState(dtde.location.windowOffset(), transferable.dragData()))
+            onDrop(WindowDragValue(dtde.location.windowOffset(), transferable.dragData()))
             dtde.dropComplete(true)
         } catch (e: Exception) {
             onDragExit()
@@ -459,7 +459,7 @@ internal class AwtWindowDragTargetListener(
         }
     }
 
-    data class WindowDragState(
+    data class WindowDragValue(
         val dragPositionInWindow: Offset,
         val dragData: DragData
     )
