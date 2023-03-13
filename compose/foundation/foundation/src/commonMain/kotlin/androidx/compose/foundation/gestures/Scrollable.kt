@@ -45,6 +45,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.modifier.ModifierLocalProvider
@@ -58,6 +59,8 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastForEach
 import kotlin.math.abs
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
@@ -283,22 +286,45 @@ private fun Modifier.pointerScrollable(
 }
 
 private fun Modifier.mouseWheelScroll(
-    scrollingLogicState: State<ScrollingLogic>,
+    scrollLogic: State<ScrollingLogic>,
     mouseWheelScrollConfig: ScrollConfig,
-) = pointerInput(scrollingLogicState, mouseWheelScrollConfig) {
-    awaitPointerEventScope {
-        while (true) {
-            val event = awaitScrollEvent()
-            if (event.changes.fastAll { !it.isConsumed }) {
-                with(mouseWheelScrollConfig) {
-                    val scrollAmount = calculateMouseWheelScroll(event, size)
-                    with(scrollingLogicState.value) {
-                        val delta = scrollAmount.toFloat().reverseIfNeeded()
-                        val consumedDelta = scrollableState.dispatchRawDelta(delta)
-                        if (consumedDelta != 0f) {
-                            event.changes.fastForEach { it.consume() }
-                        }
+) = pointerInput(scrollLogic, mouseWheelScrollConfig) {
+    coroutineScope {
+        while (isActive) {
+            with(scrollLogic.value) {
+                // TODO Move progressResetTimeMillis to ScrollConfig
+                scrollWithProgress(scrollableState, progressResetTimeMillis = 100) { event ->
+                    val scrollAmount = with(mouseWheelScrollConfig) {
+                        calculateMouseWheelScroll(event, size)
                     }
+                    val consumedDelta = dispatchRawDelta(scrollAmount)
+                    if (consumedDelta != Offset.Zero) {
+                        event.changes.fastForEach { it.consume() }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private suspend fun PointerInputScope.scrollWithProgress(
+    scrollableState: ScrollableState,
+    progressResetTimeMillis: Long,
+    processScrollEvent: (PointerEvent) -> Unit
+) {
+    val event = awaitPointerEventScope {
+        awaitScrollEvent()
+    }
+    if (!event.changes.fastAll { !it.isConsumed }) {
+        return
+    }
+    scrollableState.scroll {
+        var followingEvent: PointerEvent? = event
+        while (followingEvent != null) {
+            processScrollEvent(followingEvent)
+            followingEvent = awaitPointerEventScope {
+                withTimeoutOrNull(progressResetTimeMillis) {
+                    awaitScrollEvent()
                 }
             }
         }
@@ -406,9 +432,13 @@ private class ScrollingLogic(
         return if (scrollableState.isScrollInProgress) {
             Offset.Zero
         } else {
-            scrollableState.dispatchRawDelta(scroll.toFloat().reverseIfNeeded())
-                .reverseIfNeeded().toOffset()
+            dispatchRawDelta(scroll)
         }
+    }
+
+    fun dispatchRawDelta(scroll: Offset): Offset {
+        return scrollableState.dispatchRawDelta(scroll.toFloat().reverseIfNeeded())
+            .reverseIfNeeded().toOffset()
     }
 
     suspend fun onDragStopped(initialVelocity: Velocity) {
