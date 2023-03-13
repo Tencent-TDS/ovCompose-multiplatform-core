@@ -312,17 +312,6 @@ class ExternalDragTest {
         )
     }
 
-    private fun createTextDragData(text: String): DragData {
-        return object : DragData.Text {
-            override val mimeTypes: List<String> = listOf("text/plain")
-            override val bestMimeType: String = mimeTypes.first()
-
-            override fun readText(): String {
-                return text
-            }
-        }
-    }
-
     private fun TestWindowDragState(offset: Offset, dragData: DragData = testDragData): WindowDragState {
         return WindowDragState(offset, dragData)
     }
@@ -339,12 +328,15 @@ class ExternalDragTest {
     }
 
     companion object {
-        private val testDragData = object : DragData.Text {
-            override val mimeTypes: List<String> = listOf("text/plain")
-            override val bestMimeType: String = mimeTypes.first()
+        private val testDragData = createTextDragData("Test text")
 
-            override fun readText(): String {
-                return "Test text"
+        private fun createTextDragData(text: String): DragData {
+            return object : DragData.Text {
+                override val bestMimeType: String = "text/plain"
+
+                override fun readText(): String {
+                    return text
+                }
             }
         }
     }

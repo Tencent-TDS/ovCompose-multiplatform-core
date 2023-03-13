@@ -27,27 +27,25 @@ import java.io.File
 
 @OptIn(ExperimentalComposeUiApi::class)
 internal fun Transferable.dragData(): DragData {
-    val mimeTypes = transferDataFlavors.map { it.mimeType }
     val bestTextFlavor = selectBestTextFlavor(transferDataFlavors)
 
     return when {
         isDataFlavorSupported(DataFlavor.javaFileListFlavor) ->
-            DragDataFilesListImpl(mimeTypes, this)
+            DragDataFilesListImpl(this)
 
-        isDataFlavorSupported(DataFlavor.imageFlavor) -> DragDataImageImpl(mimeTypes, this)
+        isDataFlavorSupported(DataFlavor.imageFlavor) -> DragDataImageImpl(this)
 
-        bestTextFlavor != null -> DragDataTextImpl(mimeTypes, bestTextFlavor, this)
+        bestTextFlavor != null -> DragDataTextImpl(bestTextFlavor, this)
 
-        else -> UnknownDragData(mimeTypes)
+        else -> UnknownDragData
     }
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
-private class UnknownDragData(override val mimeTypes: List<String>) : DragData
+private object UnknownDragData : DragData
 
 @OptIn(ExperimentalComposeUiApi::class)
 private class DragDataFilesListImpl(
-    override val mimeTypes: List<String>,
     private val transferable: Transferable
 ) : DragData.FilesList {
     override fun readFiles(): List<String> {
@@ -58,7 +56,6 @@ private class DragDataFilesListImpl(
 
 @OptIn(ExperimentalComposeUiApi::class)
 private class DragDataImageImpl(
-    override val mimeTypes: List<String>,
     private val transferable: Transferable
 ) : DragData.Image {
     override fun readImage(): Painter {
@@ -85,7 +82,6 @@ private class DragDataImageImpl(
 
 @OptIn(ExperimentalComposeUiApi::class)
 private class DragDataTextImpl(
-    override val mimeTypes: List<String>,
     private val bestTextFlavor: DataFlavor,
     private val transferable: Transferable
 ) : DragData.Text {

@@ -47,14 +47,6 @@ import java.awt.dnd.DropTargetListener
 @ExperimentalComposeUiApi
 interface DragData {
     /**
-     * List of all MIME types for this [DragData].
-     * The list is ordered from most richly descriptive to least descriptive.
-     *
-     * Some platform-specific mimeTypes can occur in the list. It may be changed in future versions.
-     */
-    val mimeTypes: List<String>
-
-    /**
      * Represents list of files drag and dropped to a component.
      */
     interface FilesList : DragData {
