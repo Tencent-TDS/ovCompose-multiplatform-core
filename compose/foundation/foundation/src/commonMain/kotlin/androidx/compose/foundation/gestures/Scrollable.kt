@@ -19,6 +19,7 @@ package androidx.compose.foundation.gestures
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.animateDecay
+import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.MutatePriority
@@ -28,6 +29,7 @@ import androidx.compose.foundation.gestures.Orientation.Horizontal
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,7 +47,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.modifier.ModifierLocalProvider
@@ -59,6 +60,7 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastForEach
 import kotlin.math.abs
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -285,46 +287,60 @@ private fun Modifier.pointerScrollable(
         .nestedScroll(nestedScrollConnection, nestedScrollDispatcher.value)
 }
 
+@Composable
 private fun Modifier.mouseWheelScroll(
     scrollLogic: State<ScrollingLogic>,
     mouseWheelScrollConfig: ScrollConfig,
-) = pointerInput(scrollLogic, mouseWheelScrollConfig) {
-    coroutineScope {
+): Modifier {
+    val channel = remember { Channel<MouseWheelEvent>(capacity = Channel.UNLIMITED) }
+    LaunchedEffect(scrollLogic) {
         while (isActive) {
-            with(scrollLogic.value) {
-                // TODO Move progressResetTimeMillis to ScrollConfig
-                scrollWithProgress(scrollableState, progressResetTimeMillis = 100) { event ->
-                    val scrollAmount = with(mouseWheelScrollConfig) {
-                        calculateMouseWheelScroll(event, size)
-                    }
-                    val consumedDelta = dispatchRawDelta(scrollAmount)
-                    if (consumedDelta != Offset.Zero) {
-                        event.changes.fastForEach { it.consume() }
+            val event = channel.receive()
+            if (event is MouseWheelEvent.MouseWheelDelta) {
+                with(scrollLogic.value) {
+                    scrollableState.scroll {
+                        var requiredAnimation = true
+                        var target = event.delta.toFloat()
+                        var lastValue = 0f
+                        val anim = AnimationState(0f)
+                        while (requiredAnimation) {
+                            requiredAnimation = false
+                            anim.animateTo(target,
+                                sequentialAnimation = true) {
+                                    val coercedValue = if (target > 0) {
+                                        value.coerceAtMost(target)
+                                    } else {
+                                        value.coerceAtLeast(target)
+                                    }
+                                    val delta = coercedValue - lastValue
+                                    dispatchScroll(delta.toOffset(), Drag)
+                                    lastValue += delta
+
+                                    val next = channel.tryReceive().getOrNull()
+                                    if (next is MouseWheelEvent.MouseWheelDelta) {
+                                        target += next.delta.toFloat()
+                                        requiredAnimation = true
+                                        cancelAnimation()
+                                    }
+                                }
+                        }
                     }
                 }
             }
         }
     }
-}
-
-private suspend fun PointerInputScope.scrollWithProgress(
-    scrollableState: ScrollableState,
-    progressResetTimeMillis: Long,
-    processScrollEvent: (PointerEvent) -> Unit
-) {
-    val event = awaitPointerEventScope {
-        awaitScrollEvent()
-    }
-    if (!event.changes.fastAll { !it.isConsumed }) {
-        return
-    }
-    scrollableState.scroll {
-        var followingEvent: PointerEvent? = event
-        while (followingEvent != null) {
-            processScrollEvent(followingEvent)
-            followingEvent = awaitPointerEventScope {
-                withTimeoutOrNull(progressResetTimeMillis) {
+    return pointerInput(scrollLogic, mouseWheelScrollConfig) {
+        coroutineScope {
+            while (isActive) {
+                val event = awaitPointerEventScope {
                     awaitScrollEvent()
+                }
+                if (event.changes.fastAll { !it.isConsumed }) {
+                    val delta = with(mouseWheelScrollConfig) {
+                        calculateMouseWheelScroll(event, size)
+                    }
+                    channel.trySend(MouseWheelEvent.MouseWheelDelta(delta))
+                    event.changes.fastForEach { it.consume() }
                 }
             }
         }
@@ -337,6 +353,10 @@ private suspend fun AwaitPointerEventScope.awaitScrollEvent(): PointerEvent {
         event = awaitPointerEvent()
     } while (event.type != PointerEventType.Scroll)
     return event
+}
+
+private sealed class MouseWheelEvent {
+    class MouseWheelDelta(val delta: Offset) : MouseWheelEvent()
 }
 
 @OptIn(ExperimentalFoundationApi::class)
