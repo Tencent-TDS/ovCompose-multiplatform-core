@@ -89,17 +89,16 @@ interface DragData {
  * @see onExternalDrag
  */
 @ExperimentalComposeUiApi
-interface ExternalDragValue {
+class ExternalDragValue internal constructor(
     /**
      * Position of the pointer relative to the component
      */
-    val dragPosition: Offset
-
+    val dragPosition: Offset,
     /**
      * Data that it being dragged (or dropped) in a component bounds
      */
     val dragData: DragData
-}
+)
 
 /**
  * Adds detector of external drag and drop (e.g. files DnD from Finder to an application)
@@ -239,7 +238,7 @@ internal class AwtWindowDropTarget(
                 )
                 if (isInside) {
                     val offset = calculateOffset(componentBounds, newDragValue.dragPositionInWindow)
-                    handler.onDrop(ExternalDragValueImpl(offset, newDragValue.dragData))
+                    handler.onDrop(ExternalDragValue(offset, newDragValue.dragData))
                     anyDrops = true
                 }
             }
@@ -332,11 +331,6 @@ internal class AwtWindowDropTarget(
         val onDrop: (ExternalDragValue) -> Unit
     )
 
-    private data class ExternalDragValueImpl(
-        override val dragPosition: Offset,
-        override val dragData: DragData
-    ) : ExternalDragValue
-
     companion object {
         private fun isExternalDragInsideComponent(
             componentBounds: Rect?,
@@ -381,7 +375,7 @@ internal class AwtWindowDropTarget(
                     currentComponentBounds!!,
                     currentDragValue!!.dragPositionInWindow
                 )
-                handler.onDragStart(ExternalDragValueImpl(dragOffset, currentDragValue.dragData))
+                handler.onDragStart(ExternalDragValue(dragOffset, currentDragValue.dragData))
                 return
             }
 
@@ -395,7 +389,7 @@ internal class AwtWindowDropTarget(
                     currentComponentBounds!!,
                     currentDragValue!!.dragPositionInWindow
                 )
-                handler.onDrag(ExternalDragValueImpl(dragOffset, currentDragValue.dragData))
+                handler.onDrag(ExternalDragValue(dragOffset, currentDragValue.dragData))
                 return
             }
         }
