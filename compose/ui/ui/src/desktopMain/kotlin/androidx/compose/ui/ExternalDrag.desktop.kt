@@ -18,6 +18,7 @@ package androidx.compose.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -89,6 +90,7 @@ interface DragData {
  * @see onExternalDrag
  */
 @ExperimentalComposeUiApi
+@Immutable
 class ExternalDragValue internal constructor(
     /**
      * Position of the pointer relative to the component
