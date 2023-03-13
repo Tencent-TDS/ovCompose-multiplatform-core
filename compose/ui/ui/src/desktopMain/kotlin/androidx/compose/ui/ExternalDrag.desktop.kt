@@ -91,7 +91,7 @@ interface DragData {
  */
 @ExperimentalComposeUiApi
 @Immutable
-class ExternalDragValue internal constructor(
+class ExternalDragValue(
     /**
      * Position of the pointer relative to the component
      */
