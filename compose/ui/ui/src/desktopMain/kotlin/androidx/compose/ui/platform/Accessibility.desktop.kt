@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,8 @@ import kotlinx.coroutines.delay
 
 internal class AccessibilityControllerImpl(
     private val owner: SemanticsOwner,
-    val desktopComponent: PlatformComponent
+    val desktopComponent: PlatformComponent,
+    private val onFocusRequested: (ComposeAccessible) -> Unit
 ) : AccessibilityController {
     private var currentNodesInvalidated = true
     var _currentNodes: Map<Int, ComposeAccessible> = emptyMap()
@@ -44,8 +45,6 @@ internal class AccessibilityControllerImpl(
             }
             return _currentNodes
         }
-
-    var onFocusRequested: ((ComposeAccessible) -> Unit)? = null
 
     @Suppress("UNUSED_PARAMETER")
     fun fireNewNodeEvent(accessible: ComposeAccessible) {}
@@ -86,7 +85,7 @@ internal class AccessibilityControllerImpl(
                                 ACCESSIBLE_STATE_PROPERTY,
                                 null, AccessibleState.FOCUSED
                             )
-                            onFocusRequested?.invoke(component)
+                            onFocusRequested(component)
                         } else {
                             component.accessibleContext.firePropertyChange(
                                 ACCESSIBLE_STATE_PROPERTY,

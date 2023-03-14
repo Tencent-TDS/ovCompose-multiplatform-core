@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,19 +48,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.layoutDirection
-import kotlinx.coroutines.CoroutineExceptionHandler
-import org.jetbrains.skia.Canvas
-import org.jetbrains.skiko.MainUIDispatcher
-import org.jetbrains.skiko.SkiaLayer
-import org.jetbrains.skiko.SkikoView
 import java.awt.Component
-import java.awt.ComponentOrientation
+import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Point
 import java.awt.Toolkit
 import java.awt.Window
 import java.awt.event.FocusEvent
+import java.awt.event.FocusListener
 import java.awt.event.InputEvent
 import java.awt.event.InputMethodEvent
 import java.awt.event.InputMethodListener
@@ -78,11 +74,14 @@ import javax.accessibility.AccessibleContext
 import javax.swing.SwingUtilities
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
-import java.awt.Cursor
-import java.awt.event.FocusListener
+import kotlinx.coroutines.CoroutineExceptionHandler
+import org.jetbrains.skia.Canvas
+import org.jetbrains.skiko.MainUIDispatcher
+import org.jetbrains.skiko.SkiaLayer
 import org.jetbrains.skiko.SkiaLayerAnalytics
-import org.jetbrains.skiko.hostOs
 import org.jetbrains.skiko.SkikoInput
+import org.jetbrains.skiko.SkikoView
+import org.jetbrains.skiko.hostOs
 
 internal class ComposeLayer(
     private val skiaLayerAnalytics: SkiaLayerAnalytics
@@ -118,7 +117,9 @@ internal class ComposeLayer(
         }
 
         override fun accessibilityController(owner: SemanticsOwner) =
-            AccessibilityControllerImpl(owner, _component)
+            AccessibilityControllerImpl(owner, _component, onFocusRequested = {
+                _component.requestNativeFocusOnAccessible(it)
+            })
 
         override val windowInfo = WindowInfoImpl()
 
@@ -198,14 +199,8 @@ internal class ComposeLayer(
     private fun makeAccessible(component: Component) = object : Accessible {
         override fun getAccessibleContext(): AccessibleContext? {
             if (a11yDisabled) return null
-            val controller =
-                scene.mainOwner?.accessibilityController as? AccessibilityControllerImpl
-            controller?.onFocusRequested = {
-                _component.requestNativeFocusOnAccessible(it)
-            }
-            val accessible = controller?.rootAccessible
-            accessible?.getAccessibleContext()?.accessibleParent = component.parent as Accessible
-            return accessible?.getAccessibleContext()
+            val controller = scene.focusedOwner?.accessibilityController as? AccessibilityControllerImpl
+            return controller?.rootAccessible?.getAccessibleContext()
         }
     }
 
