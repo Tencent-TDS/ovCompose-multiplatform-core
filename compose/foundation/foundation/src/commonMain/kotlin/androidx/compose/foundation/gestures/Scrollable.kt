@@ -57,7 +57,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
-import androidx.compose.ui.util.fastAll
+import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
 import kotlin.math.abs
 import kotlinx.coroutines.channels.Channel
@@ -352,25 +352,28 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
 
 private fun Modifier.mouseWheelInput(
     mouseWheelScrollConfig: ScrollConfig,
-    onMouseWheel: (Offset) -> Boolean
+    onMouseWheel: suspend (Offset) -> Boolean
 ) = pointerInput(mouseWheelScrollConfig) {
     coroutineScope {
         while (isActive) {
             val event = awaitPointerEventScope {
                 awaitScrollEvent()
             }
-            if (event.changes.fastAll { !it.isConsumed }) {
+            if (!event.isConsumed) {
                 val delta = with(mouseWheelScrollConfig) {
                     calculateMouseWheelScroll(event, size)
                 }
                 val consumed = onMouseWheel(delta)
                 if (consumed) {
-                    event.changes.fastForEach { it.consume() }
+                    event.consume()
                 }
             }
         }
     }
 }
+
+private inline val PointerEvent.isConsumed: Boolean get() = changes.fastAny { it.isConsumed }
+private inline fun PointerEvent.consume() = changes.fastForEach { it.consume() }
 
 private suspend fun AwaitPointerEventScope.awaitScrollEvent(): PointerEvent {
     var event: PointerEvent
