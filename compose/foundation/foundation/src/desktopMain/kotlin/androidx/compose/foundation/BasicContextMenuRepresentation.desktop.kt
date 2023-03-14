@@ -36,8 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.awt.ComposePanel
+import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
@@ -54,8 +54,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.round
 import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.rememberCursorPositionProvider
+import androidx.compose.ui.window.popupPositionProviderAtPosition
 import java.awt.Component
 import java.awt.MouseInfo
 import javax.swing.JMenuItem
@@ -101,14 +102,17 @@ class DefaultContextMenuRepresentation(
     @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     override fun Representation(state: ContextMenuState, items: () -> List<ContextMenuItem>) {
-        val isOpen = state.status is ContextMenuState.Status.Open
-        if (isOpen) {
+        val status = state.status
+        if (status is ContextMenuState.Status.Open) {
             var focusManager: FocusManager? by mutableStateOf(null)
             var inputModeManager: InputModeManager? by mutableStateOf(null)
+
             Popup(
                 focusable = true,
                 onDismissRequest = { state.status = ContextMenuState.Status.Closed },
-                popupPositionProvider = rememberCursorPositionProvider(),
+                popupPositionProvider = popupPositionProviderAtPosition(
+                    positionPx = status.rect.center.round()
+                ),
                 onKeyEvent = {
                     if (it.type == KeyEventType.KeyDown) {
                         when (it.key.nativeKeyCode) {

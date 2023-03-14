@@ -40,8 +40,11 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.round
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.popupPositionProviderAtPosition
 import androidx.compose.ui.window.rememberCursorPositionProvider
 import androidx.compose.ui.window.rememberComponentRectPositionProvider
 import kotlinx.coroutines.delay
@@ -104,6 +107,7 @@ fun TooltipArea(
 ) {
     var parentBounds by remember { mutableStateOf(Rect.Zero) }
     var popupPosition by remember { mutableStateOf(Offset.Zero) }
+    var cursorPosition by remember { mutableStateOf(Offset.Zero) }
     var isVisible by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var job: Job? by remember { mutableStateOf(null) }
@@ -133,6 +137,7 @@ fun TooltipArea(
             .onPointerEvent(PointerEventType.Enter) { startShowing() }
             .onPointerEvent(PointerEventType.Move) {
                 hideIfNotHovered(parentBounds.topLeft + it.position)
+                cursorPosition = it.position
             }
             .onPointerEvent(PointerEventType.Exit) {
                 hideIfNotHovered(parentBounds.topLeft + it.position)
@@ -147,7 +152,7 @@ fun TooltipArea(
         if (isVisible) {
             @OptIn(ExperimentalFoundationApi::class)
             Popup(
-                popupPositionProvider = tooltipPlacement.positionProvider(),
+                popupPositionProvider = tooltipPlacement.positionProvider(cursorPosition.round()),
                 onDismissRequest = { isVisible = false }
             ) {
                 Box(
@@ -204,8 +209,22 @@ interface TooltipPlacement {
     /**
      * Returns [PopupPositionProvider] implementation.
      */
+    @Deprecated(
+        message = "Use the overload that takes a cursor position; will be removed in Compose 1.5"
+    )
     @Composable
     fun positionProvider(): PopupPositionProvider
+
+    /**
+     * Returns [PopupPositionProvider] implementation.
+     *
+     * @param cursorPosition The position of the mouse cursor relative to the tooltip area.
+     */
+    @Suppress("DEPRECATION")
+    @Composable
+    fun positionProvider(cursorPosition: IntOffset): PopupPositionProvider {
+        return positionProvider()
+    }
 
     /**
      * [TooltipPlacement] implementation for providing a [PopupPositionProvider] that calculates
@@ -221,11 +240,21 @@ interface TooltipPlacement {
         private val alignment: Alignment = Alignment.BottomEnd,
         private val windowMargin: Dp = 4.dp
     ) : TooltipPlacement {
+
+        @Suppress("OVERRIDE_DEPRECATION")
         @Composable
-        override fun positionProvider() = rememberCursorPositionProvider(
+        override fun positionProvider(): PopupPositionProvider = rememberCursorPositionProvider(
             offset,
             alignment,
             windowMargin
+        )
+
+        @Composable
+        override fun positionProvider(cursorPosition: IntOffset) = popupPositionProviderAtPosition(
+            positionPx = cursorPosition,
+            offset = offset,
+            alignment = alignment,
+            windowMargin = windowMargin
         )
     }
 
@@ -243,6 +272,7 @@ interface TooltipPlacement {
         private val alignment: Alignment = Alignment.BottomCenter,
         private val offset: DpOffset = DpOffset.Zero
     ) : TooltipPlacement {
+        @Suppress("OVERRIDE_DEPRECATION")
         @Composable
         override fun positionProvider() = rememberComponentRectPositionProvider(
             anchor,
