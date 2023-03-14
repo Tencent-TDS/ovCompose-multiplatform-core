@@ -18,8 +18,10 @@ package androidx.compose.foundation.gestures
 
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.DecayAnimationSpec
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateTo
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.MutatePriority
@@ -305,7 +307,17 @@ private fun Modifier.animatedMouseWheelScroll(
         while (isActive) {
             val event = channel.receive()
             scrollLogic.value.animatedDispatchScroll(event) {
-                channel.tryReceive().getOrNull()
+                var result = Offset.Zero
+                var offset = channel.tryReceive().getOrNull()
+                while (offset != null) {
+                    result += offset
+                    offset = channel.tryReceive().getOrNull()
+                }
+                if (result != Offset.Zero) {
+                    result
+                } else {
+                    null
+                }
             }
         }
     }
@@ -319,15 +331,25 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
     eventDelta: Offset,
     tryReceiveNext: () -> Offset?
 ) {
+    var target = eventDelta.toFloat()
+    tryReceiveNext()?.let {
+        target += it.toFloat()
+    }
+    if (abs(target) < 0.5f) {
+        return
+    }
     scrollableState.scroll {
         var requiredAnimation = true
-        var target = eventDelta.toFloat()
         var lastValue = 0f
         val anim = AnimationState(0f)
         while (requiredAnimation) {
             requiredAnimation = false
             anim.animateTo(
                 target,
+                animationSpec = tween(
+                    durationMillis = 50,
+                    easing = LinearEasing
+                ),
                 sequentialAnimation = true
             ) {
                 val coercedValue = if (target > 0) {
@@ -336,13 +358,16 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
                     value.coerceAtLeast(target)
                 }
                 val delta = coercedValue - lastValue
-                dispatchScroll(delta.toOffset(), Drag)
+                val notConsumedDelta = dispatchScroll(delta.toOffset(), Drag)
+                if (notConsumedDelta != Offset.Zero) {
+                    cancelAnimation()
+                    return@animateTo
+                }
                 lastValue += delta
 
-                val next = tryReceiveNext()
-                if (next != null) {
-                    target += next.toFloat()
-                    requiredAnimation = true
+                tryReceiveNext()?.let {
+                    target += it.toFloat()
+                    requiredAnimation = abs(target - lastValue) >= 0.5f
                     cancelAnimation()
                 }
             }
