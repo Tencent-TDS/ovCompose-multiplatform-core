@@ -283,63 +283,88 @@ private fun Modifier.pointerScrollable(
         },
         canDrag = { down -> down.type != PointerType.Mouse }
     )
-        .mouseWheelScroll(scrollLogic, scrollConfig)
+        .animatedMouseWheelScroll(scrollLogic, scrollConfig)
         .nestedScroll(nestedScrollConnection, nestedScrollDispatcher.value)
 }
 
 @Composable
-private fun Modifier.mouseWheelScroll(
+private fun Modifier.rawMouseWheelScroll(
+    scrollLogic: State<ScrollingLogic>,
+    mouseWheelScrollConfig: ScrollConfig,
+) = mouseWheelInput(mouseWheelScrollConfig) {
+    scrollLogic.value.dispatchRawDelta(it) != Offset.Zero
+}
+
+@Composable
+private fun Modifier.animatedMouseWheelScroll(
     scrollLogic: State<ScrollingLogic>,
     mouseWheelScrollConfig: ScrollConfig,
 ): Modifier {
-    val channel = remember { Channel<MouseWheelEvent>(capacity = Channel.UNLIMITED) }
+    val channel = remember { Channel<Offset>(capacity = Channel.UNLIMITED) }
     LaunchedEffect(scrollLogic) {
         while (isActive) {
             val event = channel.receive()
-            if (event is MouseWheelEvent.MouseWheelDelta) {
-                with(scrollLogic.value) {
-                    scrollableState.scroll {
-                        var requiredAnimation = true
-                        var target = event.delta.toFloat()
-                        var lastValue = 0f
-                        val anim = AnimationState(0f)
-                        while (requiredAnimation) {
-                            requiredAnimation = false
-                            anim.animateTo(target,
-                                sequentialAnimation = true) {
-                                    val coercedValue = if (target > 0) {
-                                        value.coerceAtMost(target)
-                                    } else {
-                                        value.coerceAtLeast(target)
-                                    }
-                                    val delta = coercedValue - lastValue
-                                    dispatchScroll(delta.toOffset(), Drag)
-                                    lastValue += delta
+            scrollLogic.value.animatedDispatchScroll(event) {
+                channel.tryReceive().getOrNull()
+            }
+        }
+    }
+    return mouseWheelInput(mouseWheelScrollConfig) {
+        channel.trySend(it)
+        true
+    }
+}
 
-                                    val next = channel.tryReceive().getOrNull()
-                                    if (next is MouseWheelEvent.MouseWheelDelta) {
-                                        target += next.delta.toFloat()
-                                        requiredAnimation = true
-                                        cancelAnimation()
-                                    }
-                                }
-                        }
-                    }
+private suspend fun ScrollingLogic.animatedDispatchScroll(
+    eventDelta: Offset,
+    tryReceiveNext: () -> Offset?
+) {
+    scrollableState.scroll {
+        var requiredAnimation = true
+        var target = eventDelta.toFloat()
+        var lastValue = 0f
+        val anim = AnimationState(0f)
+        while (requiredAnimation) {
+            requiredAnimation = false
+            anim.animateTo(
+                target,
+                sequentialAnimation = true
+            ) {
+                val coercedValue = if (target > 0) {
+                    value.coerceAtMost(target)
+                } else {
+                    value.coerceAtLeast(target)
+                }
+                val delta = coercedValue - lastValue
+                dispatchScroll(delta.toOffset(), Drag)
+                lastValue += delta
+
+                val next = tryReceiveNext()
+                if (next != null) {
+                    target += next.toFloat()
+                    requiredAnimation = true
+                    cancelAnimation()
                 }
             }
         }
     }
-    return pointerInput(scrollLogic, mouseWheelScrollConfig) {
-        coroutineScope {
-            while (isActive) {
-                val event = awaitPointerEventScope {
-                    awaitScrollEvent()
+}
+
+private fun Modifier.mouseWheelInput(
+    mouseWheelScrollConfig: ScrollConfig,
+    onMouseWheel: (Offset) -> Boolean
+) = pointerInput(mouseWheelScrollConfig) {
+    coroutineScope {
+        while (isActive) {
+            val event = awaitPointerEventScope {
+                awaitScrollEvent()
+            }
+            if (event.changes.fastAll { !it.isConsumed }) {
+                val delta = with(mouseWheelScrollConfig) {
+                    calculateMouseWheelScroll(event, size)
                 }
-                if (event.changes.fastAll { !it.isConsumed }) {
-                    val delta = with(mouseWheelScrollConfig) {
-                        calculateMouseWheelScroll(event, size)
-                    }
-                    channel.trySend(MouseWheelEvent.MouseWheelDelta(delta))
+                val consumed = onMouseWheel(delta)
+                if (consumed) {
                     event.changes.fastForEach { it.consume() }
                 }
             }
@@ -353,10 +378,6 @@ private suspend fun AwaitPointerEventScope.awaitScrollEvent(): PointerEvent {
         event = awaitPointerEvent()
     } while (event.type != PointerEventType.Scroll)
     return event
-}
-
-private sealed class MouseWheelEvent {
-    class MouseWheelDelta(val delta: Offset) : MouseWheelEvent()
 }
 
 @OptIn(ExperimentalFoundationApi::class)
