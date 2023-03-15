@@ -59,11 +59,13 @@ actual fun runComposeUiTest(block: ComposeUiTest.() -> Unit) {
 @ExperimentalTestApi
 fun runSkikoComposeUiTest(
     size: Size = Size(1024.0f, 768.0f),
+    density: Density = Density(1f),
     block: SkikoComposeUiTest.() -> Unit
 ) {
     SkikoComposeUiTest(
         width = size.width.roundToInt(),
-        height = size.height.roundToInt()
+        height = size.height.roundToInt(),
+        density = density
     ).runTest(block)
 }
 
@@ -71,10 +73,9 @@ fun runSkikoComposeUiTest(
 @OptIn(ExperimentalCoroutinesApi::class, InternalTestApi::class)
 class SkikoComposeUiTest(
     width: Int = 1024,
-    height: Int = 768
+    height: Int = 768,
+    override val density: Density = Density(1f)
 ) : ComposeUiTest {
-
-    override val density = Density(1f, 1f)
 
     private val textInputService = object : PlatformTextInputService {
         var onEditCommand: ((List<EditCommand>) -> Unit)? = null
