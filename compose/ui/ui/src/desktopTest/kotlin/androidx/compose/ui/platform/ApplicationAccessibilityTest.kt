@@ -35,15 +35,17 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.launchApplication
 import androidx.compose.ui.window.runApplicationTest
+import java.awt.Point
 import java.awt.event.MouseEvent
 import javax.accessibility.AccessibleContext
 import javax.swing.JLayeredPane
+import javax.swing.SwingUtilities
 import org.jetbrains.skiko.SkiaLayer
 import org.junit.Test
 
 class ApplicationAccessibilityTest {
     @Test
-    fun `popup text is accessible`() = runApplicationTest {
+    fun `popup text is accessible on hover`() = runApplicationTest {
         lateinit var window: ComposeWindow
         val clickCount = mutableStateOf<Int>(0)
         var popupButtonClicked = false
@@ -92,7 +94,7 @@ class ApplicationAccessibilityTest {
         awaitIdle()
         assertThat(clickCount.value).isEqualTo(1)
 
-        checkCurrentAccessible(window) {
+        checkAccessibleOnPoint(window, 20, 20) {
             assertThat(accessibleName).isEqualTo("Accessible button")
         }
 
@@ -110,17 +112,18 @@ class ApplicationAccessibilityTest {
         awaitIdle()
         assertThat(popupButtonClicked).isEqualTo(true)
 
-        checkCurrentAccessible(window) {
+        checkAccessibleOnPoint(window, 20, 20) {
             assertThat(accessibleName).isEqualTo("Accessible popup button")
         }
     }
 
-    private inline fun checkCurrentAccessible(
+    private inline fun checkAccessibleOnPoint(
         window: ComposeWindow,
+        x: Int,
+        y: Int,
         check: AccessibleContext.() -> Unit
     ) {
-        val canvas = window.findSkiaLayer().canvas
-        val context = canvas.accessibleContext
+        val context = SwingUtilities.getAccessibleAt(window.findSkiaLayer().canvas, Point(x, y)).accessibleContext
         check(context)
     }
 
