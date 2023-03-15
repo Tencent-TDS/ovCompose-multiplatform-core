@@ -285,6 +285,7 @@ private fun Modifier.pointerScrollable(
         },
         canDrag = { down -> down.type != PointerType.Mouse }
     )
+        // TODO Make animation configurable
         .animatedMouseWheelScroll(scrollLogic, scrollConfig)
         .nestedScroll(nestedScrollConnection, nestedScrollDispatcher.value)
 }
@@ -309,6 +310,7 @@ private fun Modifier.animatedMouseWheelScroll(
             val event = channel.receive()
             isAnimationRunning = true
             scrollLogic.value.animatedDispatchScroll(event) {
+                // Sum delta from all pending events to avoid multiple animation restarts.
                 channel.sumOrNull()
             }
             isAnimationRunning = false
@@ -320,6 +322,8 @@ private fun Modifier.animatedMouseWheelScroll(
             if (isAnimationRunning) {
                 channel.trySend(delta).isSuccess
             } else {
+                // Try to apply small delta immediately to conditionally consume
+                // an input event and to avoid useless animation.
                 tryToScrollBySmallDelta(delta) {
                     channel.trySend(it).isSuccess
                 }
@@ -349,6 +353,7 @@ private suspend fun ScrollingLogic.tryToScrollBySmallDelta(
     var isConsumed = false
     scrollableState.scroll {
         isConsumed = if (abs(delta) > threshold) {
+            // Gather possibility to scroll by applying a piece of required delta.
             val testDelta = if (delta > 0f) 1f else -1f
             val consumedDelta = scrollBy(testDelta)
             !consumedDelta.isAboutZero() && fallback(delta - testDelta)
@@ -380,6 +385,7 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
             anim.animateTo(
                 target,
                 animationSpec = tween(
+                    // TODO Make duration configurable
                     durationMillis = 50,
                     easing = LinearEasing
                 ),
