@@ -302,40 +302,75 @@ private fun Modifier.animatedMouseWheelScroll(
     scrollLogic: State<ScrollingLogic>,
     mouseWheelScrollConfig: ScrollConfig,
 ): Modifier {
-    val channel = remember { Channel<Offset>(capacity = Channel.UNLIMITED) }
+    var isAnimationRunning = false
+    val channel = remember { Channel<Float>(capacity = Channel.UNLIMITED) }
     LaunchedEffect(scrollLogic) {
         while (isActive) {
             val event = channel.receive()
+            isAnimationRunning = true
             scrollLogic.value.animatedDispatchScroll(event) {
-                var result = Offset.Zero
-                var offset = channel.tryReceive().getOrNull()
-                while (offset != null) {
-                    result += offset
-                    offset = channel.tryReceive().getOrNull()
-                }
-                if (result != Offset.Zero) {
-                    result
-                } else {
-                    null
+                channel.getSumOrNull()
+            }
+            isAnimationRunning = false
+        }
+    }
+    return mouseWheelInput(mouseWheelScrollConfig) {
+        with(scrollLogic.value) {
+            val delta = it.toFloat()
+            if (isAnimationRunning) {
+                channel.trySend(delta).isSuccess
+            } else {
+                tryToScrollSmallDelta(delta) {
+                    channel.trySend(delta).isSuccess
                 }
             }
         }
     }
-    return mouseWheelInput(mouseWheelScrollConfig) {
-        channel.trySend(it)
-        true
+}
+
+private fun Channel<Float>.getSumOrNull(): Float? {
+    val elements = buildList {
+        do {
+            val element = tryReceive().getOrNull()?.also {
+                add(it)
+            }
+        } while (element != null)
+    }
+    return if (elements.isEmpty()) {
+        null
+    } else {
+        elements.sum()
     }
 }
 
-private suspend fun ScrollingLogic.animatedDispatchScroll(
-    eventDelta: Offset,
-    tryReceiveNext: () -> Offset?
-) {
-    var target = eventDelta.toFloat()
-    tryReceiveNext()?.let {
-        target += it.toFloat()
+private suspend fun ScrollingLogic.tryToScrollSmallDelta(
+    delta: Float,
+    threshold: Float = 4f,
+    fallback: (Float) -> Boolean
+): Boolean {
+    var isConsumed = false
+    scrollableState.scroll {
+        isConsumed = if (abs(delta) > threshold) {
+            val testDelta = if (delta > 0f) 1f else -1f
+            val consumedDelta = scrollBy(testDelta.reverseIfNeeded())
+            !consumedDelta.isAboutZero() && fallback(delta - testDelta)
+        } else {
+            val consumedDelta = scrollBy(delta.reverseIfNeeded())
+            !consumedDelta.isAboutZero()
+        }
     }
-    if (abs(target) < 0.5f) {
+    return isConsumed
+}
+
+private suspend fun ScrollingLogic.animatedDispatchScroll(
+    eventDelta: Float,
+    tryReceiveNext: () -> Float?
+) {
+    var target = eventDelta
+    tryReceiveNext()?.let {
+        target += it
+    }
+    if (target.isAboutZero()) {
         return
     }
     scrollableState.scroll {
@@ -352,22 +387,18 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
                 ),
                 sequentialAnimation = true
             ) {
-                val coercedValue = if (target > 0) {
-                    value.coerceAtMost(target)
-                } else {
-                    value.coerceAtLeast(target)
+                val delta = value - lastValue
+                if (!delta.isAboutZero()) {
+                    val consumedDelta = dispatchScroll(delta.toOffset(), Drag)
+                    if (consumedDelta != Offset.Zero) {
+                        cancelAnimation()
+                        return@animateTo
+                    }
+                    lastValue += delta
                 }
-                val delta = coercedValue - lastValue
-                val notConsumedDelta = dispatchScroll(delta.toOffset(), Drag)
-                if (notConsumedDelta != Offset.Zero) {
-                    cancelAnimation()
-                    return@animateTo
-                }
-                lastValue += delta
-
                 tryReceiveNext()?.let {
-                    target += it.toFloat()
-                    requiredAnimation = abs(target - lastValue) >= 0.5f
+                    target += it
+                    requiredAnimation = !(target - lastValue).isAboutZero()
                     cancelAnimation()
                 }
             }
@@ -399,6 +430,7 @@ private fun Modifier.mouseWheelInput(
 
 private inline val PointerEvent.isConsumed: Boolean get() = changes.fastAny { it.isConsumed }
 private inline fun PointerEvent.consume() = changes.fastForEach { it.consume() }
+private inline fun Float.isAboutZero(): Boolean = abs(this) < 0.5f
 
 private suspend fun AwaitPointerEventScope.awaitScrollEvent(): PointerEvent {
     var event: PointerEvent
