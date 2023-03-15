@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ class ComposeWindow @ExperimentalComposeUiApi constructor(
         graphicsConfiguration: GraphicsConfiguration? = null
     ) : this(graphicsConfiguration, SkiaLayerAnalytics.Empty)
 
-    private val delegate = ComposeWindowDelegate(this, ::isUndecorated, skiaLayerAnalytics)
+    internal val delegate = ComposeWindowDelegate(this, ::isUndecorated, skiaLayerAnalytics)
 
     init {
         contentPane.add(delegate.pane)

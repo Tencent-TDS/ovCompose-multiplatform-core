@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Button
 import androidx.compose.material.Text
@@ -33,37 +34,35 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowTestScope
 import androidx.compose.ui.window.launchApplication
 import androidx.compose.ui.window.runApplicationTest
 import java.awt.Point
+import java.awt.Window
 import java.awt.event.MouseEvent
+import javax.accessibility.AccessibleComponent
 import javax.accessibility.AccessibleContext
-import javax.swing.JLayeredPane
-import javax.swing.SwingUtilities
-import org.jetbrains.skiko.SkiaLayer
 import org.junit.Test
 
 class ApplicationAccessibilityTest {
     @Test
     fun `popup text is accessible on hover`() = runApplicationTest {
         lateinit var window: ComposeWindow
-        val clickCount = mutableStateOf<Int>(0)
-        var popupButtonClicked = false
+        val showPopup = mutableStateOf(false)
 
         launchApplication {
             Window(onCloseRequest = {}) {
                 window = this.window
-                // show popup on second click, first click is to focus button
                 Button(
                     modifier = Modifier.size(100.dp),
                     onClick = {
-                        clickCount.value++
+                        showPopup.value = true
                     }
                 ) {
                     Text("Accessible button")
                 }
 
-                if (clickCount.value >= 2) {
+                if (showPopup.value) {
                     // show popup on top of the accessible button
                     val position = object : PopupPositionProvider {
                         override fun calculatePosition(
@@ -71,13 +70,11 @@ class ApplicationAccessibilityTest {
                             windowSize: IntSize,
                             layoutDirection: LayoutDirection,
                             popupContentSize: IntSize
-                        ): IntOffset = IntOffset.Zero
+                        ): IntOffset = IntOffset(0, 25)
                     }
-                    Popup(position, focusable = true) {
+                    Popup(position, focusable = false) {
                         Button(
-                            onClick = {
-                                popupButtonClicked = true
-                            },
+                            onClick = {},
                             modifier = Modifier.size(100.dp)
                         ) {
                             Text("Accessible popup button")
@@ -87,32 +84,20 @@ class ApplicationAccessibilityTest {
             }
         }
         awaitIdle()
-        // focus button
-        window.sendMouseEvent(MouseEvent.MOUSE_PRESSED, 20, 20, MouseEvent.BUTTON1_DOWN_MASK)
-        awaitIdle()
-        window.sendMouseEvent(MouseEvent.MOUSE_RELEASED, 20, 20)
-        awaitIdle()
-        assertThat(clickCount.value).isEqualTo(1)
 
         checkAccessibleOnPoint(window, 20, 20) {
             assertThat(accessibleName).isEqualTo("Accessible button")
         }
 
         // open popup
-        window.sendMouseEvent(MouseEvent.MOUSE_PRESSED, 20, 20, MouseEvent.BUTTON1_DOWN_MASK)
-        awaitIdle()
-        window.sendMouseEvent(MouseEvent.MOUSE_RELEASED, 20, 20)
-        awaitIdle()
-        assertThat(clickCount.value).isEqualTo(2)
+        clickOnPoint(window, 20, 20)
+        assertThat(showPopup.value).isEqualTo(true)
 
-        // focus popup button
-        window.sendMouseEvent(MouseEvent.MOUSE_PRESSED, 20, 20, MouseEvent.BUTTON1_DOWN_MASK)
-        awaitIdle()
-        window.sendMouseEvent(MouseEvent.MOUSE_RELEASED, 20, 20)
-        awaitIdle()
-        assertThat(popupButtonClicked).isEqualTo(true)
+        checkAccessibleOnPoint(window, 5, 5) {
+            assertThat(accessibleName).isEqualTo("Accessible button")
+        }
 
-        checkAccessibleOnPoint(window, 20, 20) {
+        checkAccessibleOnPoint(window, 5, 50) {
             assertThat(accessibleName).isEqualTo("Accessible popup button")
         }
     }
@@ -123,13 +108,16 @@ class ApplicationAccessibilityTest {
         y: Int,
         check: AccessibleContext.() -> Unit
     ) {
-        val context = SwingUtilities.getAccessibleAt(window.findSkiaLayer().canvas, Point(x, y)).accessibleContext
-        check(context)
+        val sceneAccessible = window.delegate.layer.sceneAccessible
+        val accessibleComponent = sceneAccessible.accessibleContext as AccessibleComponent
+        val accessibleComponentAtPoint = accessibleComponent.getAccessibleAt(Point(x, y))
+
+        check(accessibleComponentAtPoint.accessibleContext)
     }
 
-    private fun ComposeWindow.findSkiaLayer(): SkiaLayer {
-        // TODO: This function shouldn't use implementation details
-        val pane = contentPane.components.filterIsInstance<JLayeredPane>().first()
-        return pane.components.filterIsInstance<SkiaLayer>().first()
+    private suspend fun WindowTestScope.clickOnPoint(window: Window, x: Int, y: Int) {
+        window.sendMouseEvent(MouseEvent.MOUSE_PRESSED, x, y, MouseEvent.BUTTON1_DOWN_MASK)
+        window.sendMouseEvent(MouseEvent.MOUSE_RELEASED, x, y)
+        awaitIdle()
     }
 }

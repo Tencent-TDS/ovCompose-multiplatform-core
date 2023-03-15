@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.ComposeSceneAccessible
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.platform.PlatformComponent
 import androidx.compose.ui.platform.PlatformInput
+import androidx.compose.ui.platform.SkiaBasedOwner
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.semantics.SemanticsOwner
@@ -87,6 +88,15 @@ internal class ComposeLayer(
     private val skiaLayerAnalytics: SkiaLayerAnalytics
 ) {
     private var isDisposed = false
+
+    internal val sceneAccessible = ComposeSceneAccessible(
+        rootsProvider = {
+            scene.roots.filterIsInstance<SkiaBasedOwner>()
+        },
+        mainRootProvider = {
+            scene.mainOwner
+        }
+    )
 
     private val _component = ComponentImpl()
     val component: SkiaLayer get() = _component
@@ -191,10 +201,11 @@ internal class ComposeLayer(
      */
     private var keyboardModifiersRequireUpdate = false
 
-    private val sceneAccessible = ComposeSceneAccessible(scene)
-
     private inner class ComponentImpl :
-        SkiaLayer(externalAccessibleFactory = { sceneAccessible }, analytics = skiaLayerAnalytics),
+        SkiaLayer(
+            externalAccessibleFactory = { sceneAccessible },
+            analytics = skiaLayerAnalytics
+        ),
         Accessible, PlatformComponent {
         var currentInputMethodRequests: InputMethodRequests? = null
 
