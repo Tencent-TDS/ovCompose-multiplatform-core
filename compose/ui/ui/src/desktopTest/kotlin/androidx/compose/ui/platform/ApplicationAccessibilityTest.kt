@@ -16,7 +16,9 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Button
 import androidx.compose.material.Text
@@ -42,6 +44,8 @@ import java.awt.Window
 import java.awt.event.MouseEvent
 import javax.accessibility.AccessibleComponent
 import javax.accessibility.AccessibleContext
+import kotlin.test.assertNotEquals
+import org.junit.Ignore
 import org.junit.Test
 
 class ApplicationAccessibilityTest {
@@ -99,6 +103,91 @@ class ApplicationAccessibilityTest {
 
         checkAccessibleOnPoint(window, 5, 50) {
             assertThat(accessibleName).isEqualTo("Accessible popup button")
+        }
+    }
+
+    @Test
+    fun `accessibility of multiple components`() = runApplicationTest {
+        lateinit var window: ComposeWindow
+
+        launchApplication {
+            Window(onCloseRequest = {}) {
+                window = this.window
+                Column {
+                    Button(
+                        onClick = {},
+                        modifier = Modifier.size(20.dp),
+                    ) {
+                        Text("Accessible button 1")
+                    }
+                    Button(
+                        onClick = {},
+                        modifier = Modifier.size(20.dp),
+                    ) {
+                        Text("Accessible button 2")
+                    }
+                }
+            }
+        }
+        awaitIdle()
+
+        checkAccessibleOnPoint(window, 10, 10) {
+            assertThat(accessibleName).isEqualTo("Accessible button 1")
+        }
+
+        checkAccessibleOnPoint(window, 5, 22) {
+            assertThat(accessibleName).isEqualTo("Accessible button 2")
+        }
+    }
+
+    // TODO: component under popup shouldn't be read by screen reader
+    //  but current implementation does it
+    //  (see ComposeSceneAccessible.ComposeSceneAccessibleContext.getAccessibleAt)
+    @Ignore
+    @Test
+    fun `hover popup when there is a component under it`() = runApplicationTest {
+        lateinit var window: ComposeWindow
+
+        launchApplication {
+            Window(onCloseRequest = {}) {
+                window = this.window
+                Column {
+                    Button(
+                        onClick = {},
+                        modifier = Modifier.size(20.dp),
+                    ) {
+                        Text("button under popup")
+                    }
+                    val popupPosition = object : PopupPositionProvider {
+                        override fun calculatePosition(
+                            anchorBounds: IntRect,
+                            windowSize: IntSize,
+                            layoutDirection: LayoutDirection,
+                            popupContentSize: IntSize
+                        ): IntOffset = IntOffset.Zero
+                    }
+                    Popup(popupPosition) {
+                        Column {
+                            Spacer(Modifier.height(30.dp))
+                            Button(
+                                onClick = {},
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Text("popup button")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        awaitIdle()
+
+        checkAccessibleOnPoint(window, 5, 32) {
+            assertThat(accessibleName).isEqualTo("popup button")
+        }
+
+        checkAccessibleOnPoint(window, 5, 5) {
+            assertNotEquals("button under popup", accessibleName)
         }
     }
 
