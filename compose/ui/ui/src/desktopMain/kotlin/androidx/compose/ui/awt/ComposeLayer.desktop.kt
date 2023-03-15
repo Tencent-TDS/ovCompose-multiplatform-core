@@ -34,6 +34,7 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.platform.AccessibilityControllerImpl
+import androidx.compose.ui.platform.ComposeSceneAccessible
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.platform.PlatformComponent
 import androidx.compose.ui.platform.PlatformInput
@@ -70,7 +71,6 @@ import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
 import java.awt.im.InputMethodRequests
 import javax.accessibility.Accessible
-import javax.accessibility.AccessibleContext
 import javax.swing.SwingUtilities
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
@@ -191,21 +191,11 @@ internal class ComposeLayer(
      */
     private var keyboardModifiersRequireUpdate = false
 
-    private val a11yDisabled by lazy {
-        System.getProperty("compose.accessibility.enable") == "false" ||
-        System.getenv("COMPOSE_DISABLE_ACCESSIBILITY") != null
-    }
-
-    private fun makeAccessible(component: Component) = object : Accessible {
-        override fun getAccessibleContext(): AccessibleContext? {
-            if (a11yDisabled) return null
-            val controller = scene.focusedOwner?.accessibilityController as? AccessibilityControllerImpl
-            return controller?.rootAccessible?.getAccessibleContext()
-        }
-    }
+    private val sceneAccessible = ComposeSceneAccessible(scene)
 
     private inner class ComponentImpl :
-        SkiaLayer(externalAccessibleFactory = ::makeAccessible, analytics = skiaLayerAnalytics), Accessible, PlatformComponent {
+        SkiaLayer(externalAccessibleFactory = { sceneAccessible }, analytics = skiaLayerAnalytics),
+        Accessible, PlatformComponent {
         var currentInputMethodRequests: InputMethodRequests? = null
 
         private var window: Window? = null
