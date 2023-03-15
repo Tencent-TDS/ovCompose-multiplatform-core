@@ -309,41 +309,39 @@ private fun Modifier.animatedMouseWheelScroll(
             val event = channel.receive()
             isAnimationRunning = true
             scrollLogic.value.animatedDispatchScroll(event) {
-                channel.getSumOrNull()
+                channel.sumOrNull()
             }
             isAnimationRunning = false
         }
     }
     return mouseWheelInput(mouseWheelScrollConfig) {
         with(scrollLogic.value) {
-            val delta = it.toFloat()
+            val delta = it.reverseIfNeeded().toFloat()
             if (isAnimationRunning) {
                 channel.trySend(delta).isSuccess
             } else {
-                tryToScrollSmallDelta(delta) {
-                    channel.trySend(delta).isSuccess
+                tryToScrollBySmallDelta(delta) {
+                    channel.trySend(it).isSuccess
                 }
             }
         }
     }
 }
 
-private fun Channel<Float>.getSumOrNull(): Float? {
-    val elements = buildList {
-        do {
-            val element = tryReceive().getOrNull()?.also {
-                add(it)
-            }
-        } while (element != null)
-    }
-    return if (elements.isEmpty()) {
-        null
-    } else {
-        elements.sum()
-    }
+private fun Channel<Float>.sumOrNull(): Float? {
+    val elements = untilNull { tryReceive().getOrNull() }.toList()
+    return if (elements.isEmpty()) null else elements.sum()
 }
 
-private suspend fun ScrollingLogic.tryToScrollSmallDelta(
+private fun <E> untilNull(builderAction: () -> E?) = sequence<E> {
+    do {
+        val element = builderAction()?.also {
+            yield(it)
+        }
+    } while (element != null)
+}
+
+private suspend fun ScrollingLogic.tryToScrollBySmallDelta(
     delta: Float,
     threshold: Float = 4f,
     fallback: (Float) -> Boolean
@@ -352,10 +350,10 @@ private suspend fun ScrollingLogic.tryToScrollSmallDelta(
     scrollableState.scroll {
         isConsumed = if (abs(delta) > threshold) {
             val testDelta = if (delta > 0f) 1f else -1f
-            val consumedDelta = scrollBy(testDelta.reverseIfNeeded())
+            val consumedDelta = scrollBy(testDelta)
             !consumedDelta.isAboutZero() && fallback(delta - testDelta)
         } else {
-            val consumedDelta = scrollBy(delta.reverseIfNeeded())
+            val consumedDelta = scrollBy(delta)
             !consumedDelta.isAboutZero()
         }
     }
@@ -389,8 +387,8 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
             ) {
                 val delta = value - lastValue
                 if (!delta.isAboutZero()) {
-                    val consumedDelta = dispatchScroll(delta.toOffset(), Drag)
-                    if (consumedDelta != Offset.Zero) {
+                    val consumedDelta = scrollBy(delta)
+                    if (consumedDelta.isAboutZero()) {
                         cancelAnimation()
                         return@animateTo
                     }
