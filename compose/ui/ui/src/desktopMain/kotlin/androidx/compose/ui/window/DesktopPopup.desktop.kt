@@ -146,12 +146,9 @@ private class PopupPositionProviderAtOffset(
         if (y + popupContentSize.height > windowSize.height - windowMarginPx) {
             y -= popupContentSize.height + anchor.height
         }
-        if (x < windowMarginPx) {
-            x = windowMarginPx
-        }
-        if (y < windowMarginPx) {
-            y = windowMarginPx
-        }
+        x = x.coerceAtLeast(windowMarginPx)
+        y = y.coerceAtLeast(windowMarginPx)
+
         return IntOffset(x, y)
     }
 }

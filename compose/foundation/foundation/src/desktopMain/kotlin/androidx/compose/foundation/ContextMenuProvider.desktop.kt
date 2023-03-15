@@ -102,6 +102,10 @@ private val LocalContextMenuData = staticCompositionLocalOf<ContextMenuData?> {
 /**
  * Detects events that open a context menu (mouse right-clicks).
  *
+ * @param key The pointer input handling coroutine will be cancelled and **re-started** when
+ * [contextMenuOpenDetector] is recomposed with a different [key].
+ * @param enabled Whether to enable the detection.
+ * @param isOpen Whether the context menu intended to be opened is currently open.
  * @param onOpen Invoked when a context menu opening event is detected, with the local offset it
  * should be opened at.
  */
@@ -123,8 +127,7 @@ fun Modifier.contextMenuOpenDetector(
                 }
             }
         }
-    }
-    else {
+    } else {
         this
     }
 }
