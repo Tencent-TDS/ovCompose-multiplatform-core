@@ -31,6 +31,22 @@ import javax.accessibility.AccessibleContext
 import javax.accessibility.AccessibleRole
 import javax.accessibility.AccessibleStateSet
 
+/**
+ * This is a root [Accessible] for a [androidx.compose.ui.ComposeScene]
+ *
+ * It provides [AccessibleContext] to Swing accessibility support.
+ * This context has no parents and provides [ComposeAccessible] as its children.
+ *
+ * The main purpose of this class is to support screen readers that read text under the mouse (not only, but mostly).
+ * To support it [accessibleContext] provides custom [ComposeSceneAccessibleContext.getAccessibleAt] implementation.
+ *
+ * @param rootsProvider provider of all the skia roots such as main window, popups etc.
+ * @param mainRootProvider provider of a main skia root
+ * those size, bounds, location are used for [androidx.compose.ui.ComposeScene] accessibility
+ *
+ * @see AccessibilityControllerImpl
+ * @see ComposeAccessible
+ */
 internal class ComposeSceneAccessible(
     private val rootsProvider: () -> List<SkiaBasedOwner>,
     private val mainRootProvider: () -> SkiaBasedOwner?
@@ -59,6 +75,13 @@ internal class ComposeSceneAccessible(
             return (mainOwner()?.accessibilityController as? AccessibilityControllerImpl)?.rootAccessible
         }
 
+        /**
+         * This function is used by Swing accessibility support to get accessible under a [Point]
+         * For example, it is used by screen reader to read text under a cursor.
+         *
+         * To support that [ComposeSceneAccessibleContext] goes through all skia roots in a [androidx.compose.ui.ComposeScene]
+         * and finds the best [Accessible] under the pointer.
+         */
         override fun getAccessibleAt(p: Point): Accessible? {
             val controllers = allOwners()
                 .map { it.accessibilityController }
