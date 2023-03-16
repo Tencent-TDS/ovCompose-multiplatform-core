@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.platform.ComposeSceneAccessible.ComposeSceneAccessibleContext
 import java.awt.Color
 import java.awt.Cursor
 import java.awt.Dimension
@@ -39,6 +40,12 @@ import javax.accessibility.AccessibleStateSet
  *
  * The main purpose of this class is to support screen readers that read text under the mouse (not only, but mostly).
  * To support it [accessibleContext] provides custom [ComposeSceneAccessibleContext.getAccessibleAt] implementation.
+ *
+ * Note about a11y for focus-based tools (e.g. VoiceOver).
+ * Now focus-based tools are supported on [org.jetbrains.skiko.HardwareLayer] side.
+ * When Compose's [androidx.compose.ui.semantics.SemanticsNode] is focused
+ * [AccessibilityControllerImpl.onFocusRequested] is called and
+ * [org.jetbrains.skiko.HardwareLayer] provides mapped [ComposeAccessible] to accessibility tool.
  *
  * @param rootsProvider provider of all the skia roots such as main window, popups etc.
  * @param mainRootProvider provider of a main skia root
