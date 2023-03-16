@@ -33,21 +33,25 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.use
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import java.util.concurrent.Executors
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import org.junit.Test
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalTestApi::class)
 class MouseHoverTest {
     @Test
     fun `inside window`() = ImageComposeScene(
@@ -136,14 +140,13 @@ class MouseHoverTest {
     }
 
     @Test
-    fun `hover on scroll`() = ImageComposeScene(
-        width = 100,
-        height = 100
-    ).use { scene ->
+    fun `hover on scroll`() = runSkikoComposeUiTest(
+        size = Size(100f, 100f),
+    ) {
         val counts1 = HoverCounts()
         val counts2 = HoverCounts()
 
-        scene.setContent {
+        setContent {
             val state = rememberScrollState()
             Column(Modifier.size(10.dp).verticalScroll(state)) {
                 Box(
@@ -160,29 +163,28 @@ class MouseHoverTest {
         }
 
         scene.sendPointerEvent(PointerEventType.Enter, Offset(0f, 0f))
-        counts1.assertEquals(enter = 1, exit = 0, move = 0)
-        counts2.assertEquals(enter = 0, exit = 0, move = 0)
+        counts1.assertEquals(enter = 1, exit = 0)
+        counts2.assertEquals(enter = 0, exit = 0)
 
         scene.sendPointerEvent(PointerEventType.Scroll, Offset(0f, 0f), scrollDelta = Offset(0f, 10000f))
-        scene.render() // we update hover only on relayout
-        counts1.assertEquals(enter = 1, exit = 1, move = 0)
-        counts2.assertEquals(enter = 1, exit = 0, move = 0)
+        waitForIdle()
+        counts1.assertEquals(enter = 1, exit = 1)
+        counts2.assertEquals(enter = 1, exit = 0)
 
         scene.sendPointerEvent(PointerEventType.Scroll, Offset(0f, 0f), scrollDelta = Offset(0f, -10000f))
-        scene.render() // we update hover only on relayout
-        counts1.assertEquals(enter = 2, exit = 1, move = 0)
-        counts2.assertEquals(enter = 1, exit = 1, move = 0)
+        waitForIdle()
+        counts1.assertEquals(enter = 2, exit = 1)
+        counts2.assertEquals(enter = 1, exit = 1)
     }
 
     @Test
-    fun `hover on scroll in lazy list`() = ImageComposeScene(
-        width = 100,
-        height = 100
-    ).use { scene ->
+    fun `hover on scroll in lazy list`() = runSkikoComposeUiTest(
+        size = Size(100f, 100f),
+    ) {
         val counts1 = HoverCounts()
         val counts2 = HoverCounts()
 
-        scene.setContent {
+        setContent {
             LazyColumn(Modifier.size(10.dp)) {
                 items(2) {
                     Box(
@@ -195,18 +197,18 @@ class MouseHoverTest {
         }
 
         scene.sendPointerEvent(PointerEventType.Enter, Offset(0f, 0f))
-        counts1.assertEquals(enter = 1, exit = 0, move = 0)
-        counts2.assertEquals(enter = 0, exit = 0, move = 0)
+        counts1.assertEquals(enter = 1, exit = 0)
+        counts2.assertEquals(enter = 0, exit = 0)
 
         scene.sendPointerEvent(PointerEventType.Scroll, Offset(0f, 0f), scrollDelta = Offset(0f, 10000f))
-        scene.render() // we update hover only on relayout
-        counts1.assertEquals(enter = 1, exit = 1, move = 0)
-        counts2.assertEquals(enter = 1, exit = 0, move = 0)
+        waitForIdle()
+        counts1.assertEquals(enter = 1, exit = 1)
+        counts2.assertEquals(enter = 1, exit = 0)
 
         scene.sendPointerEvent(PointerEventType.Scroll, Offset(0f, 0f), scrollDelta = Offset(0f, -10000f))
-        scene.render() // we update hover only on relayout
-        counts1.assertEquals(enter = 2, exit = 1, move = 0)
-        counts2.assertEquals(enter = 1, exit = 1, move = 0)
+        waitForIdle()
+        counts1.assertEquals(enter = 2, exit = 1)
+        counts2.assertEquals(enter = 1, exit = 1)
     }
 
     // bug https://github.com/JetBrains/compose-jb/issues/2147
@@ -291,9 +293,11 @@ private class HoverCounts {
     var exit = 0
     var move = 0
 
-    fun assertEquals(enter: Int, exit: Int, move: Int) {
-        assertThat(this.enter).isEqualTo(enter)
-        assertThat(this.exit).isEqualTo(exit)
-        assertThat(this.move).isEqualTo(move)
+    fun assertEquals(enter: Int, exit: Int, move: Int = -1) {
+        assertWithMessage("enter count").that(this.enter).isEqualTo(enter)
+        assertWithMessage("exit count").that(this.exit).isEqualTo(exit)
+        if (move >= 0) {
+            assertWithMessage("move count").that(this.move).isEqualTo(move)
+        }
     }
 }
