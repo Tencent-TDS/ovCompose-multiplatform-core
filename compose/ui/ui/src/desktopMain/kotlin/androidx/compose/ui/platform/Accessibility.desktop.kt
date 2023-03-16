@@ -31,6 +31,16 @@ import javax.accessibility.AccessibleContext.ACCESSIBLE_TEXT_PROPERTY
 import javax.accessibility.AccessibleState
 import kotlinx.coroutines.delay
 
+/**
+ * This class provides a mapping from compose tree of [owner] to tree of [ComposeAccessible],
+ * so that each [SemanticsNode] has [ComposeAccessible].
+ *
+ * @param onFocusRequested a callback that will be called with [ComposeAccessible]
+ * when a [SemanticsNode] from [owner] received a focus
+ *
+ * @see ComposeSceneAccessible
+ * @see ComposeAccessible
+ */
 internal class AccessibilityControllerImpl(
     private val owner: SemanticsOwner,
     val desktopComponent: PlatformComponent,
@@ -67,18 +77,21 @@ internal class AccessibilityControllerImpl(
                             prev, entry.value
                         )
                     }
+
                     SemanticsProperties.EditableText -> {
                         component.accessibleContext.firePropertyChange(
                             ACCESSIBLE_TEXT_PROPERTY,
                             prev, entry.value
                         )
                     }
+
                     SemanticsProperties.TextSelectionRange -> {
                         component.accessibleContext.firePropertyChange(
                             ACCESSIBLE_CARET_PROPERTY,
                             prev, (entry.value as TextRange).start
                         )
                     }
+
                     SemanticsProperties.Focused ->
                         if (entry.value as Boolean) {
                             component.accessibleContext.firePropertyChange(
@@ -92,6 +105,7 @@ internal class AccessibilityControllerImpl(
                                 AccessibleState.FOCUSED, null
                             )
                         }
+
                     SemanticsProperties.ToggleableState -> {
                         when (entry.value as ToggleableState) {
                             ToggleableState.On ->
@@ -99,6 +113,7 @@ internal class AccessibilityControllerImpl(
                                     ACCESSIBLE_STATE_PROPERTY,
                                     null, AccessibleState.CHECKED
                                 )
+
                             ToggleableState.Off, ToggleableState.Indeterminate ->
                                 component.accessibleContext.firePropertyChange(
                                     ACCESSIBLE_STATE_PROPERTY,
