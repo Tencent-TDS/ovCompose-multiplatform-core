@@ -21,7 +21,6 @@ package androidx.compose.ui.input.mouse
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -35,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
@@ -59,12 +59,12 @@ class MouseHoverTest {
         height = 100,
         density = Density(2f)
     ).use { scene ->
-        val counts = HoverCounts()
+        val counts = EventCounter()
 
         scene.setContent {
             Box(
                 modifier = Modifier
-                    .pointerMove(counts)
+                    .countPointerEvents(counts)
                     .size(10.dp, 20.dp)
             )
         }
@@ -86,12 +86,12 @@ class MouseHoverTest {
         height = 100,
         density = Density(2f)
     ).use { scene ->
-        val counts = HoverCounts()
+        val counts = EventCounter()
 
         scene.setContent {
             Box(
                 modifier = Modifier
-                    .pointerMove(counts)
+                    .countPointerEvents(counts)
                     .size(10.dp, 20.dp)
             )
         }
@@ -108,19 +108,19 @@ class MouseHoverTest {
         width = 100,
         height = 100
     ).use { scene ->
-        val counts1 = HoverCounts()
-        val counts2 = HoverCounts()
+        val counts1 = EventCounter()
+        val counts2 = EventCounter()
 
         scene.setContent {
             Column {
                 Box(
                     modifier = Modifier
-                        .pointerMove(counts1)
+                        .countPointerEvents(counts1)
                         .size(10.dp, 20.dp)
                 )
                 Box(
                     modifier = Modifier
-                        .pointerMove(counts2)
+                        .countPointerEvents(counts2)
                         .size(10.dp, 20.dp)
                 )
             }
@@ -143,20 +143,20 @@ class MouseHoverTest {
     fun `hover on scroll`() = runSkikoComposeUiTest(
         size = Size(100f, 100f),
     ) {
-        val counts1 = HoverCounts()
-        val counts2 = HoverCounts()
+        val counts1 = EventCounter()
+        val counts2 = EventCounter()
 
         setContent {
             val state = rememberScrollState()
             Column(Modifier.size(10.dp).verticalScroll(state)) {
                 Box(
                     modifier = Modifier
-                        .pointerMove(counts1)
+                        .countPointerEvents(counts1)
                         .size(10.dp, 10.dp)
                 )
                 Box(
                     modifier = Modifier
-                        .pointerMove(counts2)
+                        .countPointerEvents(counts2)
                         .size(10.dp, 10.dp)
                 )
             }
@@ -181,15 +181,15 @@ class MouseHoverTest {
     fun `hover on scroll in lazy list`() = runSkikoComposeUiTest(
         size = Size(100f, 100f),
     ) {
-        val counts1 = HoverCounts()
-        val counts2 = HoverCounts()
+        val counts1 = EventCounter()
+        val counts2 = EventCounter()
 
         setContent {
             LazyColumn(Modifier.size(10.dp)) {
                 items(2) {
                     Box(
                         modifier = Modifier
-                            .pointerMove(if (it == 0) counts1 else counts2)
+                            .countPointerEvents(if (it == 0) counts1 else counts2)
                             .size(10.dp, 10.dp)
                     )
                 }
@@ -273,25 +273,29 @@ class MouseHoverTest {
     }
 }
 
-private fun Modifier.pointerMove(
-    counts: HoverCounts,
+private fun Modifier.countPointerEvents(
+    counts: EventCounter,
 ): Modifier = pointerInput(counts) {
     awaitPointerEventScope {
         while (true) {
             val event = awaitPointerEvent()
-            when (event.type) {
-                PointerEventType.Move -> counts.move++
-                PointerEventType.Enter -> counts.enter++
-                PointerEventType.Exit -> counts.exit++
-            }
+            counts.onPointerEvent(event)
         }
     }
 }
 
-private class HoverCounts {
-    var enter = 0
-    var exit = 0
-    var move = 0
+private class EventCounter {
+    private var enter = 0
+    private var exit = 0
+    private var move = 0
+
+    fun onPointerEvent(event: PointerEvent) {
+        when (event.type) {
+            PointerEventType.Move -> move++
+            PointerEventType.Enter -> enter++
+            PointerEventType.Exit -> exit++
+        }
+    }
 
     fun assertEquals(enter: Int, exit: Int, move: Int = -1) {
         assertWithMessage("enter count").that(this.enter).isEqualTo(enter)
