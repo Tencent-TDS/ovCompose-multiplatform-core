@@ -134,10 +134,13 @@ fun TooltipArea(
     Box(
         modifier = modifier
             .onGloballyPositioned { parentBounds = it.boundsInWindow() }
-            .onPointerEvent(PointerEventType.Enter) { startShowing() }
-            .onPointerEvent(PointerEventType.Move) {
-                hideIfNotHovered(parentBounds.topLeft + it.position)
+            .onPointerEvent(PointerEventType.Enter) {
                 cursorPosition = it.position
+                startShowing()
+            }
+            .onPointerEvent(PointerEventType.Move) {
+                cursorPosition = it.position
+                hideIfNotHovered(parentBounds.topLeft + it.position)
             }
             .onPointerEvent(PointerEventType.Exit) {
                 hideIfNotHovered(parentBounds.topLeft + it.position)

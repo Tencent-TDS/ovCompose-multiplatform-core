@@ -357,12 +357,12 @@ class DropdownMenuState(initialStatus: Status = Status.Closed) {
  */
 fun Modifier.contextMenuOpenDetector(
     state: DropdownMenuState,
-    enabled: Boolean = true
+    enabled: Boolean = true,
 ): Modifier {
     return if (enabled) {
         this.contextMenuOpenDetector(
             key = state,
-            isOpen = state.status is DropdownMenuState.Status.Open
+            enabled = enabled && (state.status is DropdownMenuState.Status.Closed)
         ) { pointerPosition ->
             state.status = DropdownMenuState.Status.Open(pointerPosition.round())
         }

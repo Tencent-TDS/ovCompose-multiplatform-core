@@ -105,17 +105,15 @@ private val LocalContextMenuData = staticCompositionLocalOf<ContextMenuData?> {
  * @param key The pointer input handling coroutine will be cancelled and **re-started** when
  * [contextMenuOpenDetector] is recomposed with a different [key].
  * @param enabled Whether to enable the detection.
- * @param isOpen Whether the context menu intended to be opened is currently open.
  * @param onOpen Invoked when a context menu opening event is detected, with the local offset it
  * should be opened at.
  */
 fun Modifier.contextMenuOpenDetector(
     key: Any? = Unit,
     enabled: Boolean = true,
-    isOpen: Boolean,
     onOpen: (Offset) -> Unit
 ): Modifier {
-    return if (enabled && !isOpen) {
+    return if (enabled) {
         this.pointerInput(key) {
             forEachGesture {
                 awaitPointerEventScope {
@@ -137,8 +135,7 @@ private fun Modifier.contextMenuOpenDetector(
     enabled: Boolean = true
 ): Modifier = this.contextMenuOpenDetector(
     key = state,
-    enabled = enabled,
-    isOpen = state.status is ContextMenuState.Status.Open
+    enabled = enabled && (state.status is ContextMenuState.Status.Closed),
 ) { pointerPosition ->
     state.status = ContextMenuState.Status.Open(Rect(pointerPosition, 0f))
 }
