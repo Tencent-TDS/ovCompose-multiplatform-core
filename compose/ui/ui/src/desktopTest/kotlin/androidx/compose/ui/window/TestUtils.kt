@@ -63,7 +63,7 @@ internal fun runApplicationTest(
             val exceptionHandler = TestExceptionHandler()
             withExceptionHandler(exceptionHandler) {
                 val scope = WindowTestScope(this, useDelay, hasAnimations, exceptionHandler)
-                try{
+                try {
                     scope.body()
                 } finally {
                     scope.exitTestApplication()
@@ -123,7 +123,10 @@ internal class WindowTestScope(
     }
 
     // Overload `launchApplication` to prohibit calling it from tests
-    @Suppress("unused")
+    @Deprecated(
+        "Do not use `launchApplication` from tests; use `launchTestApplication` instead",
+        level = DeprecationLevel.ERROR
+    )
     fun launchApplication(
         @Suppress("UNUSED_PARAMETER") content: @Composable ApplicationScope.() -> Unit
     ): Nothing {
