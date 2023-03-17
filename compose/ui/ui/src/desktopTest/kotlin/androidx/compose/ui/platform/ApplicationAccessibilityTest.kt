@@ -20,13 +20,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Text
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.assertThat
 import androidx.compose.ui.awt.ComposeWindow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.isEqualTo
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.sendMouseEvent
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
@@ -37,6 +44,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowTestScope
+import androidx.compose.ui.window.density
 import androidx.compose.ui.window.runApplicationTest
 import java.awt.Point
 import java.awt.Window
@@ -47,7 +55,8 @@ import kotlin.test.assertNotEquals
 import org.junit.Ignore
 import org.junit.Test
 
-class ApplicationAccessibilityTest {
+@OptIn(ExperimentalMaterialApi::class)
+internal class ApplicationAccessibilityTest {
     @Test
     fun `popup text is accessible on hover`() = runApplicationTest {
         lateinit var window: ComposeWindow
@@ -190,6 +199,88 @@ class ApplicationAccessibilityTest {
         }
     }
 
+    // https://github.com/JetBrains/compose-multiplatform/issues/2185
+    @Test
+    fun `drop-down menu accessibility`() = runApplicationTest {
+        lateinit var window: ComposeWindow
+        var firstItemPositionPx: Offset? = null
+        var secondItemPositionPx: Offset? = null
+
+        launchTestApplication {
+            Window(onCloseRequest = {}) {
+                window = this.window
+                DropdownMenu(true, onDismissRequest = {}) {
+                    DropdownMenuItem(onClick = {}) {
+                        Text("item 1", modifier = Modifier.onGloballyPositioned {
+                            firstItemPositionPx = it.positionInWindow()
+                        })
+                    }
+                    DropdownMenuItem(onClick = {}) {
+                        Text("item 2", modifier = Modifier.onGloballyPositioned {
+                            secondItemPositionPx = it.positionInWindow()
+                        })
+                    }
+                }
+            }
+        }
+        awaitIdle()
+
+        val firstItemPosition = firstItemPositionPx!!.toAwtPoint(window)
+        val secondItemPosition = secondItemPositionPx!!.toAwtPoint(window)
+
+        checkAccessibleOnPoint(window, firstItemPosition.x + 2, firstItemPosition.y + 2) {
+            assertThat(accessibleName).isEqualTo("item 1")
+        }
+
+        checkAccessibleOnPoint(window, secondItemPosition.x + 2, secondItemPosition.y + 2) {
+            assertThat(accessibleName).isEqualTo("item 2")
+        }
+    }
+
+    // https://github.com/JetBrains/compose-multiplatform/issues/2120
+    @Test
+    fun `alert dialog accessibility`() = runApplicationTest {
+        lateinit var window: ComposeWindow
+        var buttonPositionPx: Offset? = null
+        var textPositionPx: Offset? = null
+
+        launchTestApplication {
+            Window(onCloseRequest = {}) {
+                window = this.window
+                (AlertDialog(
+                    onDismissRequest = { },
+                    title = { Text("Alert Dialog") },
+                    text = {
+                        Text(
+                            "Alert Dialog Text",
+                            modifier = Modifier
+                                .onGloballyPositioned { textPositionPx = it.positionInWindow() }
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {},
+                            modifier = Modifier
+                                .onGloballyPositioned { buttonPositionPx = it.positionInWindow() }
+                        ) { Text("Alert Dialog Button") }
+                    }
+                ))
+            }
+        }
+        awaitIdle()
+
+        val textPosition = textPositionPx!!.toAwtPoint(window)
+        val buttonPosition = buttonPositionPx!!.toAwtPoint(window)
+
+        checkAccessibleOnPoint(window, textPosition.x + 2, textPosition.y + 2) {
+            assertThat(accessibleName).isEqualTo("Alert Dialog Text")
+        }
+
+        checkAccessibleOnPoint(window, buttonPosition.x + 2, buttonPosition.y + 2) {
+            assertThat(accessibleName).isEqualTo("Alert Dialog Button")
+        }
+    }
+
     private inline fun checkAccessibleOnPoint(
         window: ComposeWindow,
         x: Int,
@@ -207,5 +298,9 @@ class ApplicationAccessibilityTest {
         window.sendMouseEvent(MouseEvent.MOUSE_PRESSED, x, y, MouseEvent.BUTTON1_DOWN_MASK)
         window.sendMouseEvent(MouseEvent.MOUSE_RELEASED, x, y)
         awaitIdle()
+    }
+
+    private fun Offset.toAwtPoint(window: ComposeWindow): Point = with(window.density) {
+        return Point(x.toDp().value.toInt(), y.toDp().value.toInt())
     }
 }
