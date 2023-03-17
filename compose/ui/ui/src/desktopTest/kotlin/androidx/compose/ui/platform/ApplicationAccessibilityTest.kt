@@ -37,7 +37,6 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowTestScope
-import androidx.compose.ui.window.launchApplication
 import androidx.compose.ui.window.runApplicationTest
 import java.awt.Point
 import java.awt.Window
@@ -54,7 +53,7 @@ class ApplicationAccessibilityTest {
         lateinit var window: ComposeWindow
         val showPopup = mutableStateOf(false)
 
-        launchApplication {
+        launchTestApplication {
             Window(onCloseRequest = {}) {
                 window = this.window
                 Button(
@@ -110,7 +109,7 @@ class ApplicationAccessibilityTest {
     fun `accessibility of multiple components`() = runApplicationTest {
         lateinit var window: ComposeWindow
 
-        launchApplication {
+        launchTestApplication {
             Window(onCloseRequest = {}) {
                 window = this.window
                 Column {
@@ -148,7 +147,7 @@ class ApplicationAccessibilityTest {
     fun `hover popup when there is a component under it`() = runApplicationTest {
         lateinit var window: ComposeWindow
 
-        launchApplication {
+        launchTestApplication {
             Window(onCloseRequest = {}) {
                 window = this.window
                 Column {
