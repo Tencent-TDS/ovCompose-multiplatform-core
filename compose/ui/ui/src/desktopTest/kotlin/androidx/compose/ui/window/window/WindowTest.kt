@@ -523,7 +523,7 @@ class WindowTest {
 
         launchTestApplication {
             Window(
-                onCloseRequest = ::exitApplication,
+                onCloseRequest = { },
                 state = rememberWindowState(width = Dp.Unspecified, height = Dp.Unspecified),
                 undecorated = true,
                 resizable = true,
@@ -536,8 +536,6 @@ class WindowTest {
         awaitIdle()
         assertEquals(32, window?.width)
         assertEquals(32, window?.height)
-
-        window?.dispatchEvent(WindowEvent(window, WindowEvent.WINDOW_CLOSING))
     }
 
 }
