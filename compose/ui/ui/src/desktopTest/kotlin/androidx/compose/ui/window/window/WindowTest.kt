@@ -463,6 +463,38 @@ class WindowTest {
     }
 
     @Test(timeout = 30000)
+    fun `should draw before window is visible with unspecified size`() = runApplicationTest {
+        var isComposed = false
+        var isDrawn = false
+        var isVisibleOnFirstComposition = false
+        var isVisibleOnFirstDraw = false
+
+        launchTestApplication {
+            val windowState = rememberWindowState(size = DpSize.Unspecified)
+            Window(
+                onCloseRequest = ::exitApplication,
+                state = windowState
+            ) {
+                if (!isComposed) {
+                    isVisibleOnFirstComposition = window.isVisible
+                    isComposed = true
+                }
+
+                Canvas(Modifier.size(400.dp, 400.dp)) {
+                    if (!isDrawn) {
+                        isVisibleOnFirstDraw = window.isVisible
+                        isDrawn = true
+                    }
+                }
+            }
+        }
+
+        awaitIdle()
+        assertThat(isVisibleOnFirstComposition).isFalse()
+        assertThat(isVisibleOnFirstDraw).isFalse()
+    }
+
+    @Test(timeout = 30000)
     fun `Window should override density provided by application`() = runApplicationTest {
         val customDensity = Density(3.14f)
         var actualDensity: Density? = null
