@@ -40,11 +40,9 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.round
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
-import androidx.compose.ui.window.popupPositionProviderAtPosition
+import androidx.compose.ui.window.rememberPopupPositionProviderAtPosition
 import androidx.compose.ui.window.rememberCursorPositionProvider
 import androidx.compose.ui.window.rememberComponentRectPositionProvider
 import kotlinx.coroutines.delay
@@ -155,7 +153,7 @@ fun TooltipArea(
         if (isVisible) {
             @OptIn(ExperimentalFoundationApi::class)
             Popup(
-                popupPositionProvider = tooltipPlacement.positionProvider(cursorPosition.round()),
+                popupPositionProvider = tooltipPlacement.positionProvider(cursorPosition),
                 onDismissRequest = { isVisible = false }
             ) {
                 Box(
@@ -225,7 +223,7 @@ interface TooltipPlacement {
      */
     @Suppress("DEPRECATION")
     @Composable
-    fun positionProvider(cursorPosition: IntOffset): PopupPositionProvider {
+    fun positionProvider(cursorPosition: Offset): PopupPositionProvider {
         return positionProvider()
     }
 
@@ -247,18 +245,19 @@ interface TooltipPlacement {
         @Suppress("OVERRIDE_DEPRECATION")
         @Composable
         override fun positionProvider(): PopupPositionProvider = rememberCursorPositionProvider(
-            offset,
-            alignment,
-            windowMargin
-        )
-
-        @Composable
-        override fun positionProvider(cursorPosition: IntOffset) = popupPositionProviderAtPosition(
-            positionPx = cursorPosition,
             offset = offset,
             alignment = alignment,
             windowMargin = windowMargin
         )
+
+        @Composable
+        override fun positionProvider(cursorPosition: Offset) =
+            rememberPopupPositionProviderAtPosition(
+                positionPx = cursorPosition,
+                offset = offset,
+                alignment = alignment,
+                windowMargin = windowMargin
+            )
     }
 
     /**

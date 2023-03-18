@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.awt.LocalLayerContainer
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -27,21 +28,23 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.round
 import java.awt.MouseInfo
 import javax.swing.SwingUtilities.convertPointFromScreen
+import kotlin.math.roundToInt
 
 /**
  * Returns a remembered value of the mouse cursor position.
  */
 @Composable
-private fun rememberCursorPosition(): IntOffset {
+private fun rememberCursorPosition(): Offset {
     val component = LocalLayerContainer.current
     return remember {
         val awtMousePosition = MouseInfo.getPointerInfo().location
         convertPointFromScreen(awtMousePosition, component)
-        IntOffset(
-            (awtMousePosition.x * component.density.density).toInt(),
-            (awtMousePosition.y * component.density.density).toInt()
+        Offset(
+            (awtMousePosition.x * component.density.density),
+            (awtMousePosition.y * component.density.density)
         )
     }
 }
@@ -59,17 +62,19 @@ fun rememberCursorPositionProvider(
     alignment: Alignment = Alignment.BottomEnd,
     windowMargin: Dp = 4.dp
 ): PopupPositionProvider = with(LocalDensity.current) {
+    val offsetPx = Offset(offset.x.toPx(), offset.y.toPx())
     val windowMarginPx = windowMargin.roundToPx()
-    val offsetPx = IntOffset(offset.x.roundToPx(), offset.y.roundToPx())
     val cursorPosition = rememberCursorPosition()
 
-    PopupPositionProviderAtOffset(
-        anchorPx = cursorPosition,
-        isAnchorRelative = false,
-        offsetPx = offsetPx,
-        alignment = alignment,
-        windowMarginPx = windowMarginPx
-    )
+    return remember(cursorPosition, offsetPx, alignment, windowMarginPx){
+        PopupPositionProviderAtOffset(
+            anchorPx = cursorPosition,
+            isAnchorRelative = false,
+            offsetPx = offsetPx,
+            alignment = alignment,
+            windowMarginPx = windowMarginPx
+        )
+    }
 }
 
 /**
@@ -81,22 +86,24 @@ fun rememberCursorPositionProvider(
  * @param windowMargin Defines the area within the window that limits the placement of the popup.
  */
 @Composable
-fun popupPositionProviderAtPosition(
-    positionPx: IntOffset,
+fun rememberPopupPositionProviderAtPosition(
+    positionPx: Offset,
     offset: DpOffset = DpOffset.Zero,
     alignment: Alignment = Alignment.BottomEnd,
     windowMargin: Dp = 4.dp
 ): PopupPositionProvider = with(LocalDensity.current) {
+    val offsetPx = Offset(offset.x.toPx(), offset.y.toPx())
     val windowMarginPx = windowMargin.roundToPx()
-    val offsetPx = positionPx + IntOffset(offset.x.roundToPx(), offset.y.roundToPx())
 
-    PopupPositionProviderAtOffset(
-        anchorPx = offsetPx,
-        isAnchorRelative = true,
-        offsetPx = IntOffset.Zero,
-        alignment = alignment,
-        windowMarginPx = windowMarginPx
-    )
+    remember(positionPx, offsetPx, alignment, windowMarginPx) {
+        PopupPositionProviderAtOffset(
+            anchorPx = positionPx,
+            isAnchorRelative = true,
+            offsetPx = offsetPx,
+            alignment = alignment,
+            windowMarginPx = windowMarginPx
+        )
+    }
 }
 
 /**
@@ -111,13 +118,12 @@ fun popupPositionProviderAtPosition(
  * in pixels.
  */
 private class PopupPositionProviderAtOffset(
-    val anchorPx: IntOffset,
+    val anchorPx: Offset,
     val isAnchorRelative: Boolean,
-    val offsetPx: IntOffset,
+    val offsetPx: Offset,
     val alignment: Alignment = Alignment.BottomEnd,
     val windowMarginPx: Int,
 ): PopupPositionProvider {
-
     override fun calculatePosition(
         anchorBounds: IntRect,
         windowSize: IntSize,
@@ -125,7 +131,8 @@ private class PopupPositionProviderAtOffset(
         popupContentSize: IntSize
     ): IntOffset {
         val anchor = IntRect(
-            offset = anchorPx + (if (isAnchorRelative) anchorBounds.topLeft else IntOffset.Zero),
+            offset = anchorPx.round() +
+                (if (isAnchorRelative) anchorBounds.topLeft else IntOffset.Zero),
             size = IntSize.Zero)
         val tooltipArea = IntRect(
             IntOffset(
@@ -146,10 +153,10 @@ private class PopupPositionProviderAtOffset(
         if (y + popupContentSize.height > windowSize.height - windowMarginPx) {
             y -= popupContentSize.height + anchor.height
         }
-        x = x.coerceAtLeast(windowMarginPx)
-        y = y.coerceAtLeast(windowMarginPx)
+        x = x.coerceAtLeast(windowMarginPx.toFloat())
+        y = y.coerceAtLeast(windowMarginPx.toFloat())
 
-        return IntOffset(x, y)
+        return IntOffset(x.roundToInt(), y.roundToInt())
     }
 }
 

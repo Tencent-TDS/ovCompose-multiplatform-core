@@ -17,6 +17,7 @@
 package androidx.compose.material
 
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.contextMenuOpenDetector
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.ColumnScope
@@ -35,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.InputModeManager
@@ -50,11 +52,10 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.round
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
-import androidx.compose.ui.window.popupPositionProviderAtPosition
 import androidx.compose.ui.window.rememberCursorPositionProvider
+import androidx.compose.ui.window.rememberPopupPositionProviderAtPosition
 import java.awt.event.KeyEvent
 
 /**
@@ -89,7 +90,6 @@ import java.awt.event.KeyEvent
  * tapping outside the menu's bounds
  * @param offset [DpOffset] to be added to the position of the menu
  */
-@Suppress("ModifierParameter")
 @Composable
 fun DropdownMenu(
     expanded: Boolean,
@@ -129,12 +129,10 @@ fun DropdownMenu(
 }
 
 /**
- * A [DropdownMenu] behaves similarly to [Popup] and will use the current position of the mouse
- * cursor to position itself on screen.
+ * A variant of a dropdown menu that accepts a [DropdownMenuState] instead of directly using the
+ * mouse position.
  *
- * The [content] of a [DropdownMenu] will typically be [DropdownMenuItem]s, as well as custom
- * content. Using [DropdownMenuItem]s will result in a menu that matches the Material
- * specification for menus.
+ * Typically, it should be combined with [Modifier.contextMenuOpenDetector] via state-hoisting.
  *
  * @param state The open/closed state of the menu.
  * @param onDismissRequest Called when the user requests to dismiss the menu, such as by
@@ -150,7 +148,7 @@ fun DropdownMenu(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val status = state.status
-    var position: IntOffset? by remember{ mutableStateOf(null) }
+    var position: Offset? by remember { mutableStateOf(null) }
     val expandedStates = remember { MutableTransitionState(false) }
     expandedStates.targetState = status is DropdownMenuState.Status.Open
 
@@ -162,7 +160,7 @@ fun DropdownMenu(
     if (expandedStates.currentState || expandedStates.targetState) {
         OpenDropdownMenu(
             expandedStates = expandedStates,
-            popupPositionProvider = popupPositionProviderAtPosition(position!!),
+            popupPositionProvider = rememberPopupPositionProviderAtPosition(position!!),
             onDismissRequest = onDismissRequest,
             focusable = focusable,
             modifier = modifier,
@@ -174,7 +172,6 @@ fun DropdownMenu(
 /**
  * The implementation of a [DropdownMenu] in its open state.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun OpenDropdownMenu(
     expandedStates: MutableTransitionState<Boolean>,
@@ -243,7 +240,7 @@ fun DropdownMenuItem(
     )
 }
 
-@ExperimentalComposeUiApi
+@OptIn(ExperimentalComposeUiApi::class)
 private fun handlePopupOnKeyEvent(
     keyEvent: androidx.compose.ui.input.key.KeyEvent,
     onDismissRequest: () -> Unit,
@@ -321,7 +318,7 @@ class DropdownMenuState(initialStatus: Status = Status.Closed) {
     @Immutable
     sealed class Status {
 
-        class Open(val position: IntOffset) : Status() {
+        class Open(val position: Offset) : Status() {
 
             override fun equals(other: Any?): Boolean {
                 if (this === other)
@@ -355,6 +352,8 @@ class DropdownMenuState(initialStatus: Status = Status.Closed) {
  * A [Modifier] that detects events that should typically open a context menu (mouse right-clicks)
  * and modify the given [DropdownMenuState] accordingly.
  */
+@ExperimentalMaterialApi
+@OptIn(ExperimentalFoundationApi::class)
 fun Modifier.contextMenuOpenDetector(
     state: DropdownMenuState,
     enabled: Boolean = true,
@@ -364,7 +363,7 @@ fun Modifier.contextMenuOpenDetector(
             key = state,
             enabled = enabled && (state.status is DropdownMenuState.Status.Closed)
         ) { pointerPosition ->
-            state.status = DropdownMenuState.Status.Open(pointerPosition.round())
+            state.status = DropdownMenuState.Status.Open(pointerPosition)
         }
     } else {
         this

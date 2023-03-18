@@ -108,6 +108,7 @@ private val LocalContextMenuData = staticCompositionLocalOf<ContextMenuData?> {
  * @param onOpen Invoked when a context menu opening event is detected, with the local offset it
  * should be opened at.
  */
+@ExperimentalFoundationApi
 fun Modifier.contextMenuOpenDetector(
     key: Any? = Unit,
     enabled: Boolean = true,
@@ -130,6 +131,7 @@ fun Modifier.contextMenuOpenDetector(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 private fun Modifier.contextMenuOpenDetector(
     state: ContextMenuState,
     enabled: Boolean = true

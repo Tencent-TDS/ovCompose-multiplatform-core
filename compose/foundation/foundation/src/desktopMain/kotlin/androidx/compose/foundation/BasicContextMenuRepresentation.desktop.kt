@@ -54,9 +54,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.round
 import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.popupPositionProviderAtPosition
+import androidx.compose.ui.window.rememberPopupPositionProviderAtPosition
 import java.awt.Component
 import java.awt.MouseInfo
 import javax.swing.JMenuItem
@@ -65,7 +64,7 @@ import javax.swing.SwingUtilities
 import javax.swing.event.PopupMenuEvent
 import javax.swing.event.PopupMenuListener
 
-// Design of basic represenation is from Material specs:
+// Design of basic representation is from Material specs:
 // https://material.io/design/interaction/states.html#hover
 // https://material.io/components/menus#specs
 
@@ -110,8 +109,8 @@ class DefaultContextMenuRepresentation(
             Popup(
                 focusable = true,
                 onDismissRequest = { state.status = ContextMenuState.Status.Closed },
-                popupPositionProvider = popupPositionProviderAtPosition(
-                    positionPx = status.rect.center.round()
+                popupPositionProvider = rememberPopupPositionProviderAtPosition(
+                    positionPx = status.rect.center
                 ),
                 onKeyEvent = {
                     if (it.type == KeyEventType.KeyDown) {
