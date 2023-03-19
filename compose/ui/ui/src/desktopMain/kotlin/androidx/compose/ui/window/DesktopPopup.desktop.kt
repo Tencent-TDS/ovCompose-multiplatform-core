@@ -18,6 +18,7 @@ package androidx.compose.ui.window
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.awt.LocalLayerContainer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
@@ -56,6 +57,7 @@ private fun rememberCursorPosition(): Offset {
  * @param alignment The alignment of the popup relative to the current cursor position.
  * @param windowMargin Defines the area within the window that limits the placement of the popup.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun rememberCursorPositionProvider(
     offset: DpOffset = DpOffset.Zero,
@@ -67,9 +69,9 @@ fun rememberCursorPositionProvider(
     val cursorPosition = rememberCursorPosition()
 
     return remember(cursorPosition, offsetPx, alignment, windowMarginPx){
-        PopupPositionProviderAtOffset(
-            anchorPx = cursorPosition,
-            isAnchorRelative = false,
+        PopupPositionProviderAtPosition(
+            positionPx = cursorPosition,
+            isRelativeToAnchor = false,
             offsetPx = offsetPx,
             alignment = alignment,
             windowMarginPx = windowMarginPx
@@ -85,6 +87,7 @@ fun rememberCursorPositionProvider(
  * @param alignment The alignment of the popup relative to desired position.
  * @param windowMargin Defines the area within the window that limits the placement of the popup.
  */
+@ExperimentalComposeUiApi
 @Composable
 fun rememberPopupPositionProviderAtPosition(
     positionPx: Offset,
@@ -96,9 +99,9 @@ fun rememberPopupPositionProviderAtPosition(
     val windowMarginPx = windowMargin.roundToPx()
 
     remember(positionPx, offsetPx, alignment, windowMarginPx) {
-        PopupPositionProviderAtOffset(
-            anchorPx = positionPx,
-            isAnchorRelative = true,
+        PopupPositionProviderAtPosition(
+            positionPx = positionPx,
+            isRelativeToAnchor = true,
             offsetPx = offsetPx,
             alignment = alignment,
             windowMarginPx = windowMarginPx
@@ -109,17 +112,18 @@ fun rememberPopupPositionProviderAtPosition(
 /**
  * A [PopupPositionProvider] that positions the popup at the given offsets and alignment.
  *
- * @param anchorPx The offset of the popup's anchor, in pixels.
- * @param isAnchorRelative Whether [anchorPx] is relative to the anchor bounds passed to
+ * @param positionPx The offset of the popup's location, in pixels.
+ * @param isRelativeToAnchor Whether [positionPx] is relative to the anchor bounds passed to
  * [calculatePosition]. If `false`, it is relative to the window.
  * @param offsetPx Extra offset to be added to the position of the popup, in pixels.
  * @param alignment The alignment of the popup relative to desired position.
  * @param windowMarginPx Defines the area within the window that limits the placement of the popup,
  * in pixels.
  */
-private class PopupPositionProviderAtOffset(
-    val anchorPx: Offset,
-    val isAnchorRelative: Boolean,
+@ExperimentalComposeUiApi
+class PopupPositionProviderAtPosition(
+    val positionPx: Offset,
+    val isRelativeToAnchor: Boolean,
     val offsetPx: Offset,
     val alignment: Alignment = Alignment.BottomEnd,
     val windowMarginPx: Int,
@@ -131,8 +135,8 @@ private class PopupPositionProviderAtOffset(
         popupContentSize: IntSize
     ): IntOffset {
         val anchor = IntRect(
-            offset = anchorPx.round() +
-                (if (isAnchorRelative) anchorBounds.topLeft else IntOffset.Zero),
+            offset = positionPx.round() +
+                (if (isRelativeToAnchor) anchorBounds.topLeft else IntOffset.Zero),
             size = IntSize.Zero)
         val tooltipArea = IntRect(
             IntOffset(

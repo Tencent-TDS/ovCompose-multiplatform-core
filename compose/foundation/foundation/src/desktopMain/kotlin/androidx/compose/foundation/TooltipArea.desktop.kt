@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -250,6 +251,7 @@ interface TooltipPlacement {
             windowMargin = windowMargin
         )
 
+        @OptIn(ExperimentalComposeUiApi::class)
         @Composable
         override fun positionProvider(cursorPosition: Offset) =
             rememberPopupPositionProviderAtPosition(

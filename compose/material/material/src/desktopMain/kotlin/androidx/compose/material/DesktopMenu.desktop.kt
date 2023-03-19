@@ -139,6 +139,7 @@ fun DropdownMenu(
  * tapping outside the menu's bounds
  *
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun DropdownMenu(
     state: DropdownMenuState,
