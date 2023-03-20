@@ -33,10 +33,12 @@ import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
@@ -303,7 +305,7 @@ private fun Modifier.animatedMouseWheelScroll(
     scrollLogic: State<ScrollingLogic>,
     mouseWheelScrollConfig: ScrollConfig,
 ): Modifier {
-    var isAnimationRunning = false
+    var isAnimationRunning by remember { mutableStateOf(false) }
     val channel = remember { Channel<Float>(capacity = Channel.UNLIMITED) }
     LaunchedEffect(scrollLogic) {
         while (isActive) {
@@ -386,7 +388,7 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
                 target,
                 animationSpec = tween(
                     // TODO Make duration configurable
-                    durationMillis = 50,
+                    durationMillis = 100,
                     easing = LinearEasing
                 ),
                 sequentialAnimation = true
