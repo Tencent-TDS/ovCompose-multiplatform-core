@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
@@ -442,7 +443,11 @@ class WindowTest {
         var isVisibleOnFirstDraw = false
 
         launchTestApplication {
-            Window(onCloseRequest = ::exitApplication) {
+            val windowSize = DpSize(400.dp, 300.dp)
+            Window(
+                onCloseRequest = ::exitApplication,
+                state = WindowState(size = windowSize)
+            ) {
                 if (!isComposed) {
                     isVisibleOnFirstComposition = window.isVisible
                     isComposed = true
@@ -453,9 +458,21 @@ class WindowTest {
                         isVisibleOnFirstDraw = window.isVisible
                         isDrawn = true
                     }
+
+                    // Make sure we're drawn at the correct size
+                    val windowInsets = window.insets.let {
+                        // The AWT coordinates are scaled, so they're Dp
+                        DpSize(
+                            width = (it.left + it.right).dp,
+                            height = (it.top + it.bottom).dp
+                        )
+                    }
+                    val expectedSizePx = (windowSize - windowInsets).toSize()
+                    assertEquals(expectedSizePx, size)
                 }
             }
         }
+
 
         awaitIdle()
         assertThat(isVisibleOnFirstComposition).isFalse()
@@ -470,21 +487,24 @@ class WindowTest {
         var isVisibleOnFirstDraw = false
 
         launchTestApplication {
-            val windowState = rememberWindowState(size = DpSize.Unspecified)
             Window(
                 onCloseRequest = ::exitApplication,
-                state = windowState
+                state = WindowState(size = DpSize.Unspecified)
             ) {
                 if (!isComposed) {
                     isVisibleOnFirstComposition = window.isVisible
                     isComposed = true
                 }
 
-                Canvas(Modifier.size(400.dp, 400.dp)) {
+                val canvasSize = DpSize(400.dp, 300.dp)
+                Canvas(Modifier.size(canvasSize)) {
                     if (!isDrawn) {
                         isVisibleOnFirstDraw = window.isVisible
                         isDrawn = true
                     }
+
+                    // Make sure we're drawn at the correct size
+                    assertEquals(size, canvasSize.toSize())
                 }
             }
         }

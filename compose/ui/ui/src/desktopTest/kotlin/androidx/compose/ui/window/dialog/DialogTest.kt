@@ -44,14 +44,16 @@ import androidx.compose.ui.sendKeyEvent
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogState
 import androidx.compose.ui.window.rememberDialogState
 import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
-import org.junit.Test
 import java.awt.Dimension
 import java.awt.event.KeyEvent
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import kotlin.test.assertEquals
+import org.junit.Test
 
 @OptIn(ExperimentalComposeUiApi::class)
 class DialogTest {
@@ -527,7 +529,11 @@ class DialogTest {
         var isVisibleOnFirstDraw = false
 
         launchTestApplication {
-            Dialog(onCloseRequest = ::exitApplication) {
+            val dialogSize = DpSize(400.dp, 300.dp)
+            Dialog(
+                onCloseRequest = ::exitApplication,
+                state = DialogState(size = dialogSize)
+            ) {
                 if (!isComposed) {
                     isVisibleOnFirstComposition = window.isVisible
                     isComposed = true
@@ -538,6 +544,52 @@ class DialogTest {
                         isVisibleOnFirstDraw = window.isVisible
                         isDrawn = true
                     }
+
+                    // Make sure we're drawn at the correct size
+                    val dialogInsets = window.insets.let {
+                        // The AWT coordinates are scaled, so they're Dp
+                        DpSize(
+                            width = (it.left + it.right).dp,
+                            height = (it.top + it.bottom).dp
+                        )
+                    }
+                    val expectedSizePx = (dialogSize - dialogInsets).toSize()
+                    assertEquals(expectedSizePx, size)
+                }
+            }
+        }
+
+        awaitIdle()
+        assertThat(isVisibleOnFirstComposition).isFalse()
+        assertThat(isVisibleOnFirstDraw).isFalse()
+    }
+
+    @Test(timeout = 30000)
+    fun `should draw before dialog is visible with unspecified size`() = runApplicationTest {
+        var isComposed = false
+        var isDrawn = false
+        var isVisibleOnFirstComposition = false
+        var isVisibleOnFirstDraw = false
+
+        launchTestApplication {
+            Dialog(
+                onCloseRequest = ::exitApplication,
+                state = DialogState(size = DpSize.Unspecified)
+            ) {
+                if (!isComposed) {
+                    isVisibleOnFirstComposition = window.isVisible
+                    isComposed = true
+                }
+
+                val canvasSize = DpSize(400.dp, 300.dp)
+                Canvas(Modifier.size(canvasSize)) {
+                    if (!isDrawn) {
+                        isVisibleOnFirstDraw = window.isVisible
+                        isDrawn = true
+                    }
+
+                    // Make sure we're drawn at the correct size
+                    assertEquals(size, canvasSize.toSize())
                 }
             }
         }
