@@ -85,17 +85,26 @@ internal fun Window.setSizeSafely(size: DpSize) {
         screenBounds.height
     }
 
-    if (!isWidthSpecified || !isHeightSpecified) {
-        preferredSize = Dimension(width, height)
+    preferredSize = Dimension(width, height)
+
+    // Make the window displayable (attached to the peer).
+    // We only *need* this for the case where width or height are unspecified, but we do it
+    // regardless in order to not introduce an inconsistency in the state of the window
+    if (!isDisplayable) {
         pack()
-        // if we set null, getPreferredSize will return the default inner size determined by
-        // the inner components (see the description of setPreferredSize)
+    }
+
+    var computedPreferredSize: Dimension? = null
+    if (!isWidthSpecified || !isHeightSpecified) {
+        // We set preferred size to null, and then call getPreferredSize, which will compute the
+        // actual preferred size determined by the content (see the description of setPreferredSize)
         preferredSize = null
+        computedPreferredSize = preferredSize
     }
 
     setSize(
-        if (isWidthSpecified) width else preferredSize.width,
-        if (isHeightSpecified) height else preferredSize.height,
+        if (isWidthSpecified) width else computedPreferredSize!!.width,
+        if (isHeightSpecified) height else computedPreferredSize!!.height,
     )
 }
 
@@ -156,18 +165,11 @@ internal fun Window.setIcon(painter: Painter?) {
     setIconImage(painter?.toAwtImage(density, layoutDirection, iconSize))
 }
 
-internal fun Window.makeDisplayable() {
-    val oldPreferredSize = preferredSize
-    val oldLocation = location
-    preferredSize = size
-    try {
-        pack()
-    } finally {
-        preferredSize = oldPreferredSize
-        // pack() messes with location in case of multiple displays with different densities,
-        // so we restore it to the value before pack()
-        location = oldLocation
-    }
+internal fun Window.forceComposeAndLayout() {
+    if (!isDisplayable)
+        error("Can only be called when the window is displayable")
+
+    revalidate()
 }
 
 internal class ListenerOnWindowRef<T>(
