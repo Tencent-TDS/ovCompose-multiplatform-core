@@ -88,11 +88,7 @@ internal fun Window.setSizeSafely(size: DpSize) {
     preferredSize = Dimension(width, height)
 
     // Make the window displayable (attached to the peer).
-    // We only *need* this for the case where width or height are unspecified, but we do it
-    // regardless in order to not introduce an inconsistency in the state of the window
-    if (!isDisplayable) {
-        pack()
-    }
+    pack()
 
     var computedPreferredSize: Dimension? = null
     if (!isWidthSpecified || !isHeightSpecified) {
@@ -106,6 +102,12 @@ internal fun Window.setSizeSafely(size: DpSize) {
         if (isWidthSpecified) width else computedPreferredSize!!.width,
         if (isHeightSpecified) height else computedPreferredSize!!.height,
     )
+
+    if (computedPreferredSize != null) {
+        // If we set a computed size on the window, the size of ComposeLayer has been set
+        // (in pack()) to the screen bounds. This re-sets it to the updated values
+        revalidate()
+    }
 }
 
 internal fun Window.setPositionSafely(
@@ -163,13 +165,6 @@ private val iconSize = Size(32f, 32f)
 
 internal fun Window.setIcon(painter: Painter?) {
     setIconImage(painter?.toAwtImage(density, layoutDirection, iconSize))
-}
-
-internal fun Window.forceComposeAndLayout() {
-    if (!isDisplayable)
-        error("Can only be called when the window is displayable")
-
-    revalidate()
 }
 
 internal class ListenerOnWindowRef<T>(

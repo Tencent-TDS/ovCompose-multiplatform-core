@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.ComponentUpdater
 import androidx.compose.ui.util.componentListenerRef
-import androidx.compose.ui.util.forceComposeAndLayout
 import androidx.compose.ui.util.setIcon
 import androidx.compose.ui.util.setPositionSafely
 import androidx.compose.ui.util.setSizeSafely
@@ -417,8 +416,7 @@ fun Window(
 
             // If displaying for the first time, make sure we draw the first frame before making
             // the window visible, to avoid showing the window background
-            if (it.isDisplayable && !wasDisplayable) {
-                it.forceComposeAndLayout()
+            if (!wasDisplayable) {
                 it.contentPane.paint(it.contentPane.graphics)
             }
         }
