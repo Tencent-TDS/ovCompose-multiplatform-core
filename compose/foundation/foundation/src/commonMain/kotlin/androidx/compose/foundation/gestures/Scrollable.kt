@@ -237,6 +237,13 @@ object ScrollableDefaults {
 }
 
 internal interface ScrollConfig {
+
+    /**
+     * Enables animated transition of scroll on mouse wheel events.
+     */
+    val isSmoothScrollingEnabled: Boolean
+        get() = true
+
     fun Density.calculateMouseWheelScroll(event: PointerEvent, bounds: IntSize): Offset
 }
 
@@ -286,10 +293,13 @@ private fun Modifier.pointerScrollable(
             }
         },
         canDrag = { down -> down.type != PointerType.Mouse }
-    )
-        // TODO Make animation configurable
-        .animatedMouseWheelScroll(scrollLogic, scrollConfig)
-        .nestedScroll(nestedScrollConnection, nestedScrollDispatcher.value)
+    ).let {
+        if (scrollConfig.isSmoothScrollingEnabled) {
+            animatedMouseWheelScroll(scrollLogic, scrollConfig)
+        } else {
+            rawMouseWheelScroll(scrollLogic, scrollConfig)
+        }
+    }.nestedScroll(nestedScrollConnection, nestedScrollDispatcher.value)
 }
 
 @Composable

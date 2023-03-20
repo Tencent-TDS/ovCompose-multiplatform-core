@@ -43,11 +43,16 @@ internal val LocalScrollConfig = compositionLocalOf {
 }
 
 @Composable
-internal actual fun platformScrollConfig() = LocalScrollConfig.current
+internal actual fun platformScrollConfig(): ScrollConfig = LocalScrollConfig.current
+
+internal interface DesktopScrollConfig : ScrollConfig {
+    override val isSmoothScrollingEnabled: Boolean
+        get() = System.getProperty("compose.scrolling.smooth.enabled") != "false"
+}
 
 // TODO(demin): is this formula actually correct? some experimental values don't fit
 //  the formula
-internal object LinuxGnomeConfig : ScrollConfig {
+internal object LinuxGnomeConfig : DesktopScrollConfig {
     // the formula was determined experimentally based on Ubuntu Nautilus behaviour
     override fun Density.calculateMouseWheelScroll(event: PointerEvent, bounds: IntSize): Offset {
         return if (event.shouldScrollByPage) {
@@ -61,7 +66,7 @@ internal object LinuxGnomeConfig : ScrollConfig {
     }
 }
 
-internal object WindowsWinUIConfig : ScrollConfig {
+internal object WindowsWinUIConfig : DesktopScrollConfig {
     // the formula was determined experimentally based on Windows Start behaviour
     override fun Density.calculateMouseWheelScroll(event: PointerEvent, bounds: IntSize): Offset {
         return if (event.shouldScrollByPage) {
@@ -75,7 +80,7 @@ internal object WindowsWinUIConfig : ScrollConfig {
     }
 }
 
-internal object MacOSCocoaConfig : ScrollConfig {
+internal object MacOSCocoaConfig : DesktopScrollConfig {
     // the formula was determined experimentally based on MacOS Finder behaviour
     // MacOS driver will send events with accelerating delta
     override fun Density.calculateMouseWheelScroll(event: PointerEvent, bounds: IntSize): Offset {
