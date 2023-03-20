@@ -16,7 +16,7 @@
 
 package androidx.compose.material
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.internal.keyEvent
 import androidx.compose.runtime.CompositionLocalProvider
@@ -73,7 +73,7 @@ class DesktopAlertDialogTest {
                 @OptIn(ExperimentalMaterialApi::class)
                 AlertDialog(
                     onDismissRequest = {},
-                    title = { Text("AlerDialog") },
+                    title = { Text("AlertDialog") },
                     text = { Text("Apply?") },
                     confirmButton = { Button(onClick = {}) { Text("Apply") } },
                     modifier = Modifier.size(dialogSize.width.dp, dialogSize.height.dp)
@@ -97,7 +97,7 @@ class DesktopAlertDialogTest {
                 @OptIn(ExperimentalMaterialApi::class)
                 AlertDialog(
                     onDismissRequest = { dismissCount++ },
-                    title = { Text("AlerDialog") },
+                    title = { Text("AlertDialog") },
                     text = { Text("Apply?") },
                     confirmButton = { Button(onClick = {}) { Text("Apply") } },
                     modifier = Modifier.size(dialogSize.width.dp, dialogSize.height.dp)
@@ -130,14 +130,13 @@ class DesktopAlertDialogTest {
         // background.
         val screenshot = renderComposeScene(400, 400){
             AlertDialog(
-                modifier = Modifier
-                    .size(width = 400.dp, height = 100.dp)
-                    .padding(horizontal = 150.dp),
+                modifier = Modifier.size(width = 400.dp, height = 100.dp),
                 onDismissRequest = {},
                 title = {},
                 text = {},
                 dismissButton = {},
                 confirmButton = {},
+                dialogPadding = PaddingValues(horizontal = 150.dp)
             )
         }
 
