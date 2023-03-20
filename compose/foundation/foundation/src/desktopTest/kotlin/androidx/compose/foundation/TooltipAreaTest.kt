@@ -55,7 +55,6 @@ internal class TooltipAreaTest {
             }
         }
 
-
         rule.onNodeWithTag("elementWithTooltip").performMouseInput {
             moveTo(Offset(30f, 40f))
         }

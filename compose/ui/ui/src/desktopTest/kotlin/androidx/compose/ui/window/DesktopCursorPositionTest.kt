@@ -78,7 +78,6 @@ internal class DesktopCursorPositionTest {
                 }
             }
         }
-        rule.waitForIdle()
 
         rule.onNodeWithTag("testBox").performMouseInput {
             moveTo(Offset(30f, 40f))
