@@ -427,7 +427,7 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
                 val delta = value - lastValue
                 if (!delta.isAboutZero()) {
                     val consumedDelta = scrollBy(delta)
-                    if (consumedDelta.isAboutZero()) {
+                    if (!(delta - consumedDelta).isAboutZero()) {
                         cancelAnimation()
                         return@animateTo
                     }
