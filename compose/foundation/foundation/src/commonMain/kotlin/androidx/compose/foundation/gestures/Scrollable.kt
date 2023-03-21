@@ -299,7 +299,7 @@ private fun Modifier.pointerScrollable(
             }
         },
         canDrag = { down -> down.type != PointerType.Mouse }
-    ).let {
+    ).run {
         if (scrollConfig.isSmoothScrollingEnabled) {
             animatedMouseWheelScroll(scrollLogic, scrollConfig)
         } else {
