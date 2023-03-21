@@ -56,15 +56,18 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.modifier.ModifierLocalProvider
 import androidx.compose.ui.modifier.modifierLocalOf
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
@@ -309,9 +312,9 @@ private fun Modifier.pointerScrollable(
 private fun Modifier.rawMouseWheelScroll(
     scrollLogic: State<ScrollingLogic>,
     mouseWheelScrollConfig: ScrollConfig,
-) = mouseWheelInput(scrollLogic, mouseWheelScrollConfig) {
+) = mouseWheelInput(scrollLogic, mouseWheelScrollConfig) { event ->
     val delta = with(mouseWheelScrollConfig) {
-        calculateMouseWheelScroll(it, size)
+        calculateMouseWheelScroll(event, size)
     }
     scrollLogic.value.dispatchRawDelta(delta) != Offset.Zero
 }
@@ -321,24 +324,25 @@ private fun Modifier.animatedMouseWheelScroll(
     scrollLogic: State<ScrollingLogic>,
     mouseWheelScrollConfig: ScrollConfig,
 ): Modifier {
+    val density = LocalDensity.current.density
     var isAnimationRunning by remember { mutableStateOf(false) }
     val channel = remember { Channel<Float>(capacity = Channel.UNLIMITED) }
     LaunchedEffect(scrollLogic) {
         while (isActive) {
             val event = channel.receive()
             isAnimationRunning = true
-            scrollLogic.value.animatedDispatchScroll(event) {
+            scrollLogic.value.animatedDispatchScroll(event, speed = 1f * density) {
                 // Sum delta from all pending events to avoid multiple animation restarts.
                 channel.sumOrNull()
             }
             isAnimationRunning = false
         }
     }
-    return mouseWheelInput(scrollLogic, mouseWheelScrollConfig) {
+    return mouseWheelInput(scrollLogic, mouseWheelScrollConfig) { event ->
         val scrollDelta = with(mouseWheelScrollConfig) {
-            calculateMouseWheelScroll(it, size)
+            calculateMouseWheelScroll(event, size)
         }
-        if (mouseWheelScrollConfig.isPreciseWheelScroll(it)) {
+        if (mouseWheelScrollConfig.isPreciseWheelScroll(event)) {
             // In case of high-resolution wheel, such as a freely rotating wheel with no notches
             // or trackpads, delta should apply directly without any delays.
             scrollLogic.value.dispatchRawDelta(scrollDelta) != Offset.Zero
@@ -349,7 +353,7 @@ private fun Modifier.animatedMouseWheelScroll(
             } else {
                 // Try to apply small delta immediately to conditionally consume
                 // an input event and to avoid useless animation.
-                tryToScrollBySmallDelta(delta) {
+                tryToScrollBySmallDelta(delta, threshold = 10.dp.toPx()) {
                     channel.trySend(it).isSuccess
                 }
             }
@@ -372,14 +376,14 @@ private fun <E> untilNull(builderAction: () -> E?) = sequence<E> {
 
 private suspend fun ScrollingLogic.tryToScrollBySmallDelta(
     delta: Float,
-    threshold: Float = 4f,
+    threshold: Float = 10f,
     fallback: (Float) -> Boolean
 ): Boolean {
     var isConsumed = false
     scrollableState.scroll {
         isConsumed = if (abs(delta) > threshold) {
             // Gather possibility to scroll by applying a piece of required delta.
-            val testDelta = if (delta > 0f) 1f else -1f
+            val testDelta = if (delta > 0f) threshold else -threshold
             val consumedDelta = scrollBy(testDelta)
             !consumedDelta.isAboutZero() && fallback(delta - testDelta)
         } else {
@@ -392,6 +396,8 @@ private suspend fun ScrollingLogic.tryToScrollBySmallDelta(
 
 private suspend fun ScrollingLogic.animatedDispatchScroll(
     eventDelta: Float,
+    speed: Float = 1f,
+    maxDurationMillis: Int = 100,
     tryReceiveNext: () -> Float?
 ) {
     var target = eventDelta
@@ -407,11 +413,13 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
         val anim = AnimationState(0f)
         while (requiredAnimation) {
             requiredAnimation = false
+            val durationMillis = (abs(target - anim.value) / speed)
+                .roundToInt()
+                .coerceAtMost(maxDurationMillis)
             anim.animateTo(
                 target,
                 animationSpec = tween(
-                    // TODO Make duration configurable
-                    durationMillis = 100,
+                    durationMillis = durationMillis,
                     easing = LinearEasing
                 ),
                 sequentialAnimation = true
