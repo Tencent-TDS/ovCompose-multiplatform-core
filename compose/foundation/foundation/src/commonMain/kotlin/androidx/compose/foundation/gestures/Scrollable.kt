@@ -51,6 +51,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.modifier.ModifierLocalProvider
@@ -242,7 +243,9 @@ internal interface ScrollConfig {
      * Enables animated transition of scroll on mouse wheel events.
      */
     val isSmoothScrollingEnabled: Boolean
-        get() = true
+        get() = false
+
+    fun isPreciseWheelScroll(event: PointerEvent): Boolean = false
 
     fun Density.calculateMouseWheelScroll(event: PointerEvent, bounds: IntSize): Offset
 }
@@ -306,8 +309,11 @@ private fun Modifier.pointerScrollable(
 private fun Modifier.rawMouseWheelScroll(
     scrollLogic: State<ScrollingLogic>,
     mouseWheelScrollConfig: ScrollConfig,
-) = mouseWheelInput(mouseWheelScrollConfig) {
-    scrollLogic.value.dispatchRawDelta(it) != Offset.Zero
+) = mouseWheelInput(scrollLogic, mouseWheelScrollConfig) {
+    val delta = with(mouseWheelScrollConfig) {
+        calculateMouseWheelScroll(it, size)
+    }
+    scrollLogic.value.dispatchRawDelta(delta) != Offset.Zero
 }
 
 @Composable
@@ -328,9 +334,16 @@ private fun Modifier.animatedMouseWheelScroll(
             isAnimationRunning = false
         }
     }
-    return mouseWheelInput(mouseWheelScrollConfig) {
-        with(scrollLogic.value) {
-            val delta = it.reverseIfNeeded().toFloat()
+    return mouseWheelInput(scrollLogic, mouseWheelScrollConfig) {
+        val scrollDelta = with(mouseWheelScrollConfig) {
+            calculateMouseWheelScroll(it, size)
+        }
+        if (mouseWheelScrollConfig.isPreciseWheelScroll(it)) {
+            // In case of high-resolution wheel, such as a freely rotating wheel with no notches
+            // or trackpads, delta should apply directly without any delays.
+            scrollLogic.value.dispatchRawDelta(scrollDelta) != Offset.Zero
+        } else with(scrollLogic.value) {
+            val delta = scrollDelta.reverseIfNeeded().toFloat()
             if (isAnimationRunning) {
                 channel.trySend(delta).isSuccess
             } else {
@@ -423,19 +436,17 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
 }
 
 private fun Modifier.mouseWheelInput(
-    mouseWheelScrollConfig: ScrollConfig,
-    onMouseWheel: suspend (Offset) -> Boolean
-) = pointerInput(mouseWheelScrollConfig) {
+    key1: Any?,
+    key2: Any?,
+    onMouseWheel: suspend PointerInputScope.(PointerEvent) -> Boolean
+) = pointerInput(key1, key2) {
     coroutineScope {
         while (isActive) {
             val event = awaitPointerEventScope {
                 awaitScrollEvent()
             }
             if (!event.isConsumed) {
-                val delta = with(mouseWheelScrollConfig) {
-                    calculateMouseWheelScroll(event, size)
-                }
-                val consumed = onMouseWheel(delta)
+                val consumed = onMouseWheel(event)
                 if (consumed) {
                     event.consume()
                 }

@@ -20,7 +20,6 @@ import androidx.compose.foundation.DesktopPlatform
 import androidx.compose.foundation.fastFold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -28,6 +27,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import java.awt.event.MouseWheelEvent
+import kotlin.math.abs
 import kotlin.math.sqrt
 
 // TODO(demin): Chrome on Windows/Linux uses different scroll strategy
@@ -48,6 +48,8 @@ internal actual fun platformScrollConfig(): ScrollConfig = LocalScrollConfig.cur
 internal interface DesktopScrollConfig : ScrollConfig {
     override val isSmoothScrollingEnabled: Boolean
         get() = System.getProperty("compose.scrolling.smooth.enabled") != "false"
+
+    override fun isPreciseWheelScroll(event: PointerEvent): Boolean = event.isPreciseWheelRotation
 }
 
 // TODO(demin): is this formula actually correct? some experimental values don't fit
@@ -111,3 +113,9 @@ private val PointerEvent.shouldScrollByPage
 
 private val PointerEvent.totalScrollDelta
     get() = this.changes.fastFold(Offset.Zero) { acc, c -> acc + c.scrollDelta }
+
+private val PointerEvent.isPreciseWheelRotation
+    get() = (awtEventOrNull as? MouseWheelEvent)?.isPreciseWheelRotation ?: false
+
+private val MouseWheelEvent.isPreciseWheelRotation
+    get() = abs(preciseWheelRotation - wheelRotation.toDouble()) > 0.001
