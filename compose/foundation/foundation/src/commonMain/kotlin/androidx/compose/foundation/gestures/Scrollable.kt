@@ -346,6 +346,16 @@ private fun Modifier.animatedMouseWheelScroll(
             // In case of high-resolution wheel, such as a freely rotating wheel with no notches
             // or trackpads, delta should apply directly without any delays.
             scrollLogic.value.dispatchRawDelta(scrollDelta) != Offset.Zero
+
+            /*
+             * TODO Set isScrollInProgress to true in case of touchpad.
+             *  Dispatching raw delta doesn't cause a progress indication even with wrapping in
+             *  `scrollableState.scroll` block, since it applies the change within single frame.
+             *  Touchpads emit just multiple mouse wheel events, so detecting start and end of this
+             *  "gesture" is not straight forward.
+             *  Ideally it should be resolved by catching real touches from input device instead of
+             *  introducing a timeout (after each event before resetting progress flag).
+             */
         } else with(scrollLogic.value) {
             val delta = scrollDelta.reverseIfNeeded().toFloat()
             if (isAnimationRunning) {
