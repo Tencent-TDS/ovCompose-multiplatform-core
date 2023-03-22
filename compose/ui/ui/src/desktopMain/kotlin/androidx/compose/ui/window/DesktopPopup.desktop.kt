@@ -54,9 +54,13 @@ fun rememberCursorPositionProvider(
     offset: DpOffset = DpOffset.Zero,
     alignment: Alignment = Alignment.BottomEnd,
     windowMargin: Dp = 4.dp
-): PopupPositionProvider = with(LocalDensity.current) {
-    val offsetPx = Offset(offset.x.toPx(), offset.y.toPx())
-    val windowMarginPx = windowMargin.roundToPx()
+): PopupPositionProvider {
+    val offsetPx = with(LocalDensity.current) {
+        Offset(offset.x.toPx(), offset.y.toPx())
+    }
+    val windowMarginPx = with(LocalDensity.current) {
+        windowMargin.roundToPx()
+    }
     val cursorPosition = rememberCursorPosition()
 
     if (cursorPosition == null) {
