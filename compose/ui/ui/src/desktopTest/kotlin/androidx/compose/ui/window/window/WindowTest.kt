@@ -35,19 +35,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.LeakDetector
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
 import java.awt.Dimension
 import java.awt.GraphicsEnvironment
+import java.awt.Toolkit
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import kotlin.test.assertEquals
@@ -56,6 +60,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.skiko.MainUIDispatcher
 import org.junit.Assume.assumeFalse
+import org.junit.Ignore
 import org.junit.Test
 
 class WindowTest {
@@ -435,83 +440,92 @@ class WindowTest {
         }
     }
 
-    @Test(timeout = 30000)
-    fun `should draw before window is visible`() = runApplicationTest {
+    private fun testDrawingBeforeWindowIsVisible(
+        windowState: WindowState,
+        canvasSizeModifier: Modifier,
+        expectedCanvasSize: FrameWindowScope.() -> DpSize
+    ) = runApplicationTest {
         var isComposed = false
         var isDrawn = false
         var isVisibleOnFirstComposition = false
         var isVisibleOnFirstDraw = false
+        var actualCanvasSize: Size? = null
+        var expectedCanvasSizePx: Size? = null
 
         launchTestApplication {
-            val windowSize = DpSize(400.dp, 300.dp)
             Window(
                 onCloseRequest = ::exitApplication,
-                state = WindowState(size = windowSize)
+                state = windowState
             ) {
                 if (!isComposed) {
                     isVisibleOnFirstComposition = window.isVisible
                     isComposed = true
                 }
 
-                Canvas(Modifier.fillMaxSize()) {
+                Canvas(canvasSizeModifier) {
                     if (!isDrawn) {
                         isVisibleOnFirstDraw = window.isVisible
                         isDrawn = true
-                    }
 
-                    // Make sure we're drawn at the correct size
-                    val windowInsets = window.insets.let {
-                        // The AWT coordinates are scaled, so they're Dp
-                        DpSize(
-                            width = (it.left + it.right).dp,
-                            height = (it.top + it.bottom).dp
-                        )
+                        actualCanvasSize = size
+                        expectedCanvasSizePx = expectedCanvasSize().toSize()
                     }
-                    val expectedSizePx = (windowSize - windowInsets).toSize()
-                    assertEquals(expectedSizePx, size)
                 }
             }
         }
 
-
         awaitIdle()
+
+        assertThat(isComposed)
+        assertThat(isDrawn)
         assertThat(isVisibleOnFirstComposition).isFalse()
         assertThat(isVisibleOnFirstDraw).isFalse()
+        assertEquals(expectedCanvasSizePx, actualCanvasSize)
     }
 
     @Test(timeout = 30000)
-    fun `should draw before window is visible with unspecified size`() = runApplicationTest {
-        var isComposed = false
-        var isDrawn = false
-        var isVisibleOnFirstComposition = false
-        var isVisibleOnFirstDraw = false
+    fun `should draw before window is visible`() {
+        val windowSize = DpSize(400.dp, 300.dp)
+        testDrawingBeforeWindowIsVisible(
+            windowState = WindowState(size = windowSize),
+            canvasSizeModifier = Modifier.fillMaxSize(),
+            expectedCanvasSize = { windowSize - window.insets.toSize() }
+        )
+    }
 
-        launchTestApplication {
-            Window(
-                onCloseRequest = ::exitApplication,
-                state = WindowState(size = DpSize.Unspecified)
-            ) {
-                if (!isComposed) {
-                    isVisibleOnFirstComposition = window.isVisible
-                    isComposed = true
-                }
+    @Test(timeout = 30000)
+    fun `should draw before window with unspecified size is visible`() {
+        val canvasSize = DpSize(400.dp, 300.dp)
+        testDrawingBeforeWindowIsVisible(
+            windowState = WindowState(size = DpSize.Unspecified),
+            canvasSizeModifier = Modifier.size(canvasSize),
+            expectedCanvasSize = { canvasSize }
+        )
+    }
 
-                val canvasSize = DpSize(400.dp, 300.dp)
-                Canvas(Modifier.size(canvasSize)) {
-                    if (!isDrawn) {
-                        isVisibleOnFirstDraw = window.isVisible
-                        isDrawn = true
-                    }
+    // Unfortunately it doesn't appear to be possible to draw the first frame in a maximized
+    // window before it's visible, while at the same time having the WindowState define the
+    // "floating" size and position to which it will go when un-maximized.
+    // The reason for that is that in order to draw the first frame in time, we need to `pack()` the
+    // window before showing it, but this breaks setting the "floating" state.
+    // So we don't attempt to draw the first frame in time.
+    @Ignore
+    @Test(timeout = 30000)
+    fun `should draw before maximized window is visible`() {
+        testDrawingBeforeWindowIsVisible(
+            windowState = WindowState(
+                size = DpSize(400.dp, 300.dp),
+                placement = WindowPlacement.Maximized
+            ),
+            canvasSizeModifier = Modifier.fillMaxSize(),
+            expectedCanvasSize = {
+                val gfxConf = window.graphicsConfiguration
+                val screenSize = gfxConf.screenSize()
+                val screenInsets = Toolkit.getDefaultToolkit().getScreenInsets(gfxConf).toSize()
 
-                    // Make sure we're drawn at the correct size
-                    assertEquals(size, canvasSize.toSize())
-                }
+                screenSize - screenInsets - window.insets.toSize()
             }
-        }
-
-        awaitIdle()
-        assertThat(isVisibleOnFirstComposition).isFalse()
-        assertThat(isVisibleOnFirstDraw).isFalse()
+        )
     }
 
     @Test(timeout = 30000)

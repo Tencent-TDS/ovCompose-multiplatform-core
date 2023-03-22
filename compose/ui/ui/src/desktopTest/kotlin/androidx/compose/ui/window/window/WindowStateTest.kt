@@ -449,6 +449,33 @@ class WindowStateTest {
     }
 
     @Test
+    fun `window state size and position determine unmaximized state`() = runApplicationTest {
+        val state = WindowState(
+            size = DpSize(201.dp, 203.dp),
+            position = WindowPosition(196.dp, 257.dp),
+            placement = WindowPlacement.Maximized
+        )
+        var window: ComposeWindow? = null
+
+        launchTestApplication {
+            Window(onCloseRequest = {}, state) {
+                window = this.window
+            }
+        }
+
+        awaitIdle()
+        assertThat(window?.placement).isEqualTo(WindowPlacement.Maximized)
+        assertThat(window?.size).isNotEqualTo(Dimension(201, 203))
+        assertThat(window?.location).isNotEqualTo(Point(196, 257))
+
+        state.placement = WindowPlacement.Floating
+        awaitIdle()
+        assertThat(window?.placement).isEqualTo(WindowPlacement.Floating)
+        assertThat(window?.size).isEqualTo(Dimension(201, 203))
+        assertThat(window?.location).isEqualTo(Point(196, 257))
+    }
+
+    @Test
     fun `maximize window before show`() = runApplicationTest(useDelay = isLinux) {
         val state = WindowState(
             size = DpSize(200.dp, 200.dp),
