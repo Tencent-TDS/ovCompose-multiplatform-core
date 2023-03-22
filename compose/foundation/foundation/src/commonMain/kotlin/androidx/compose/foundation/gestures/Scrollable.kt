@@ -353,7 +353,7 @@ private fun Modifier.animatedMouseWheelScroll(
             } else {
                 // Try to apply small delta immediately to conditionally consume
                 // an input event and to avoid useless animation.
-                tryToScrollBySmallDelta(delta, threshold = 10.dp.toPx()) {
+                tryToScrollBySmallDelta(delta, threshold = 4.dp.toPx()) {
                     channel.trySend(it).isSuccess
                 }
             }
@@ -376,7 +376,7 @@ private fun <E> untilNull(builderAction: () -> E?) = sequence<E> {
 
 private suspend fun ScrollingLogic.tryToScrollBySmallDelta(
     delta: Float,
-    threshold: Float = 10f,
+    threshold: Float = 4f,
     fallback: (Float) -> Boolean
 ): Boolean {
     var isConsumed = false
