@@ -449,7 +449,9 @@ class WindowStateTest {
     }
 
     @Test
-    fun `window state size and position determine unmaximized state`() = runApplicationTest {
+    fun `window state size and position determine unmaximized state`() = runApplicationTest(
+        useDelay = isLinux || isMacOs
+    ) {
         val state = WindowState(
             size = DpSize(201.dp, 203.dp),
             position = WindowPosition(196.dp, 257.dp),
