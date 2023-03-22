@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import kotlin.math.sqrt
+import kotlin.test.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -230,6 +231,47 @@ class DesktopScrollableTest {
 
         waitForIdle()
         assertThat(column.offset).isEqualTo(0f)
+    }
+
+    @Test
+    fun smoothScrollingDisabled() = runSkikoComposeUiTest(
+        size = size,
+        density = density
+    ) {
+        with(LinuxGnomeConfig) {
+            // Enabled by default
+            assertTrue(isSmoothScrollingEnabled)
+            isSmoothScrollingEnabled = false
+        }
+
+        val context = TestColumn()
+        setContent {
+            CompositionLocalProvider(
+                LocalScrollConfig provides LinuxGnomeConfig
+            ) {
+                Box(
+                    Modifier
+                        .scrollable(
+                            orientation = Orientation.Vertical,
+                            state = context.controller()
+                        )
+                        .size(10.dp, 20.dp)
+                )
+            }
+        }
+
+        scene.sendPointerEvent(
+            eventType = PointerEventType.Scroll,
+            position = Offset.Zero,
+            scrollDelta = Offset(0f, -5f),
+            nativeEvent = awtWheelEvent(),
+        )
+
+        // Check without waitForIdle
+        assertThat(context.offset).isWithin(0.1f).of(5f * scrollLineLinux(20.dp))
+
+        // Restore state
+        LinuxGnomeConfig.isSmoothScrollingEnabled = true
     }
 
     private class TestColumn {

@@ -46,9 +46,8 @@ internal val LocalScrollConfig = compositionLocalOf<ScrollConfig> {
 internal actual fun platformScrollConfig(): ScrollConfig = LocalScrollConfig.current
 
 internal abstract class DesktopScrollConfig : ScrollConfig {
-    override val isSmoothScrollingEnabled by lazy {
-        System.getProperty("compose.scrolling.smooth.enabled") != "false"
-    }
+    override var isSmoothScrollingEnabled = System.getProperty("compose.scrolling.smooth.enabled") != "false"
+        internal set
 
     override fun isPreciseWheelScroll(event: PointerEvent): Boolean = event.isPreciseWheelRotation
 }
