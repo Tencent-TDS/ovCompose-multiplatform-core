@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -173,7 +173,8 @@ abstract class AndroidXRootImplPlugin : Plugin<Project> {
         AffectedModuleDetector.configure(gradle, this)
 
         // Needs to be called before evaluationDependsOnChildren in usingMaxDepVersions block
-        publishInspectionArtifacts()
+        // Not needed for JetBrains Fork
+        // publishInspectionArtifacts()
         registerOwnersServiceTasks()
 
         // If useMaxDepVersions is set, iterate through all the project and substitute any androidx

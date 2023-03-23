@@ -335,6 +335,7 @@ def includeProject(name, filePath, List<BuildType> filter = []) {
     }
 }
 
+includeProject(":benchmark:benchmark-gradle-plugin", "benchmark/gradle-plugin", [BuildType.MAIN, BuildType.COMPOSE])
 includeProject(":compose:animation", [BuildType.COMPOSE])
 includeProject(":compose:animation:animation", [BuildType.COMPOSE])
 includeProject(":compose:animation:animation-lint", [BuildType.COMPOSE])
@@ -481,3 +482,5 @@ includeProject(":internal-testutils-navigation", "testutils/testutils-navigation
 includeProject(":internal-testutils-paging", "testutils/testutils-paging", [BuildType.MAIN, BuildType.COMPOSE])
 includeProject(":internal-testutils-gradle-plugin", "testutils/testutils-gradle-plugin", [BuildType.MAIN, BuildType.FLAN, BuildType.COMPOSE, BuildType.TOOLS])
 includeProject(":internal-testutils-mockito", "testutils/testutils-mockito", [BuildType.MAIN, BuildType.MEDIA, BuildType.FLAN, BuildType.COMPOSE, BuildType.WEAR])
+
+includeProject(":inspection:inspection-gradle-plugin", [BuildType.MAIN, BuildType.COMPOSE])
