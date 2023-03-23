@@ -158,3 +158,21 @@ internal class WindowTestScope(
         exceptionHandler.throwIfCaught()
     }
 }
+
+
+suspend fun testUntilSucceeds(
+    maxTimes: Int,
+    waitBetween: suspend () -> Unit = { delay(1000) },
+    block: () -> Unit
+) {
+    repeat(maxTimes-1) {
+        try {
+            block()
+            return
+        } catch (ignored: AssertionError){
+            waitBetween()
+        }
+    }
+
+    block()  // Fail for real
+}
