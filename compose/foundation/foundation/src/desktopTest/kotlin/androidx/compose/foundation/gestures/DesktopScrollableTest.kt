@@ -243,35 +243,36 @@ class DesktopScrollableTest {
             assertTrue(isSmoothScrollingEnabled)
             isSmoothScrollingEnabled = false
         }
-
-        val context = TestColumn()
-        setContent {
-            CompositionLocalProvider(
-                LocalScrollConfig provides LinuxGnomeConfig
-            ) {
-                Box(
-                    Modifier
-                        .scrollable(
-                            orientation = Orientation.Vertical,
-                            state = context.controller()
-                        )
-                        .size(10.dp, 20.dp)
-                )
+        try {
+            val context = TestColumn()
+            setContent {
+                CompositionLocalProvider(
+                    LocalScrollConfig provides LinuxGnomeConfig
+                ) {
+                    Box(
+                        Modifier
+                            .scrollable(
+                                orientation = Orientation.Vertical,
+                                state = context.controller()
+                            )
+                            .size(10.dp, 20.dp)
+                    )
+                }
             }
+
+            scene.sendPointerEvent(
+                eventType = PointerEventType.Scroll,
+                position = Offset.Zero,
+                scrollDelta = Offset(0f, -5f),
+                nativeEvent = awtWheelEvent(),
+            )
+
+            // Check without waitForIdle
+            assertThat(context.offset).isWithin(0.1f).of(5f * scrollLineLinux(20.dp))
+        } finally {
+            // Restore state
+            LinuxGnomeConfig.isSmoothScrollingEnabled = true
         }
-
-        scene.sendPointerEvent(
-            eventType = PointerEventType.Scroll,
-            position = Offset.Zero,
-            scrollDelta = Offset(0f, -5f),
-            nativeEvent = awtWheelEvent(),
-        )
-
-        // Check without waitForIdle
-        assertThat(context.offset).isWithin(0.1f).of(5f * scrollLineLinux(20.dp))
-
-        // Restore state
-        LinuxGnomeConfig.isSmoothScrollingEnabled = true
     }
 
     private class TestColumn {
