@@ -134,7 +134,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             androidAndroidTest.dependencies {
                 implementation(project(":compose:material:material:material-samples"))
                 implementation(project(":compose:test-utils"))
-                implementation(project(":test:screenshot:screenshot"))
+                implementation(androidxArtifact(":test:screenshot:screenshot"))
 
                 implementation(libs.testRules)
                 implementation(libs.testRunner)

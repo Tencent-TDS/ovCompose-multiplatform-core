@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -140,6 +140,9 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         project.configureProjectVersionValidation(extension)
         project.registerProjectOrArtifact()
 
+        // extension to download latest androidx artifacts instead of depending on project modules
+        project.registerAndroidxArtifact()
+
         project.configurations.create("samples")
         project.validateMultiplatformPluginHasNotBeenApplied()
     }
@@ -170,6 +173,17 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                 )
             )
         }
+    }
+
+    private fun Project.registerAndroidxArtifact() {
+        extra.set(
+            ANDROIDX_ARTIFACT_EXT_NAME,
+            KotlinClosure1<String, Any>(
+                function = {
+                    androidxArtifact(this)
+                }
+            )
+        )
     }
 
     /**
@@ -839,6 +853,31 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
          * Fail the build if a non-Studio task runs longer than expected
          */
         const val TASK_TIMEOUT_MINUTES = 60L
+
+        private fun androidxArtifact(path: String): Any {
+            val sections = path.split(":")
+
+            if (sections[0].isNotEmpty()) {
+                throw GradleException(
+                    "Expected projectOrArtifact path to start with empty section but got $path"
+                )
+            }
+
+            // Typically androidx projects have 3 sections, compose has 4.
+            if (sections.size >= 3) {
+                val group = sections
+                    // Filter empty sections as many declarations start with ':'
+                    .filter { it.isNotBlank() }
+                    // Last element is the artifact.
+                    .dropLast(1)
+                    .joinToString(".")
+                return "androidx.$group:${sections.last()}:$SNAPSHOT_MARKER"
+            }
+
+            throw GradleException("projectOrArtifact cannot find/replace project $path")
+        }
+
+        private const val SNAPSHOT_MARKER = "latest.release"
     }
 }
 
@@ -1097,3 +1136,4 @@ fun removeLineAndColumnAttributes(baseline: String): String = baseline.replace(
 )
 
 const val PROJECT_OR_ARTIFACT_EXT_NAME = "projectOrArtifact"
+const val ANDROIDX_ARTIFACT_EXT_NAME = "androidxArtifact"

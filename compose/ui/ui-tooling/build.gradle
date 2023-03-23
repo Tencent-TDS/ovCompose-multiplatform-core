@@ -107,8 +107,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 // Outside of androidx this is resolved via constraint added to lifecycle-common,
                 // but it doesn't work in androidx.
                 // See aosp/1804059
-                implementation(project(":lifecycle:lifecycle-common-java8"))
-                implementation(project(":lifecycle:lifecycle-viewmodel-savedstate"))
+                implementation(androidxArtifact(":lifecycle:lifecycle-common-java8"))
+                implementation(androidxArtifact(":lifecycle:lifecycle-viewmodel-savedstate"))
 
                 implementation(libs.junit)
                 implementation(libs.testRunner)
@@ -119,7 +119,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.truth)
                 implementation(libs.kotlinReflect)
                 implementation(project(":compose:animation:animation-tooling-internal"))
-                implementation(project(":lifecycle:lifecycle-viewmodel-compose"))
+                implementation(androidxArtifact(":lifecycle:lifecycle-viewmodel-compose"))
                 implementation(project(":compose:runtime:runtime-livedata"))
             }
         }
