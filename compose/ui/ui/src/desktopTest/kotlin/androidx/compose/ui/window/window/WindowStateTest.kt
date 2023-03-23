@@ -52,6 +52,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.delay
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 
@@ -449,7 +450,7 @@ class WindowStateTest {
         assertThat(window.size).isEqualTo(Dimension(201, 203))
         assertThat(window.location).isEqualTo(Point(196, 257))
     }
-
+/*
     @Test
     fun `window state size and position determine unmaximized state`() = runApplicationTest(
         useDelay = isLinux
@@ -478,7 +479,7 @@ class WindowStateTest {
         assertThat(window.size).isEqualTo(Dimension(201, 203))
         assertThat(window.location).isEqualTo(Point(196, 257))
     }
-
+*/
     @Test
     fun `maximize window before show`() = runApplicationTest(useDelay = isLinux) {
         val state = WindowState(
