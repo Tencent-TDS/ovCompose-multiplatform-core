@@ -395,10 +395,10 @@ private suspend fun ScrollingLogic.tryToScrollBySmallDelta(
             // Gather possibility to scroll by applying a piece of required delta.
             val testDelta = if (delta > 0f) threshold else -threshold
             val consumedDelta = scrollBy(testDelta)
-            !consumedDelta.isAboutZero() && fallback(delta - testDelta)
+            consumedDelta != 0f && fallback(delta - testDelta)
         } else {
             val consumedDelta = scrollBy(delta)
-            !consumedDelta.isAboutZero()
+            consumedDelta != 0f
         }
     }
     return isConsumed
