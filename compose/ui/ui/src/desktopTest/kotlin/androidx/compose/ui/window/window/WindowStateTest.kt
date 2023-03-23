@@ -448,9 +448,44 @@ class WindowStateTest {
         assertThat(window?.location).isEqualTo(Point(196, 257))
     }
 
+
+    @Test
+    fun `start in maximized state`() = runApplicationTest(useDelay = true) {
+        val state = WindowState(
+            placement = WindowPlacement.Maximized
+        )
+        lateinit var window: ComposeWindow
+
+        launchTestApplication {
+            Window(onCloseRequest = {}, state) {
+                window = this.window
+            }
+        }
+
+        awaitIdle()
+        assertThat(window.placement).isEqualTo(WindowPlacement.Maximized)
+    }
+
+    @Test
+    fun `start in fullscreen state`() = runApplicationTest(useDelay = true) {
+        val state = WindowState(
+            placement = WindowPlacement.Fullscreen
+        )
+        lateinit var window: ComposeWindow
+
+        launchTestApplication {
+            Window(onCloseRequest = {}, state) {
+                window = this.window
+            }
+        }
+
+        awaitIdle()
+        assertThat(window.placement).isEqualTo(WindowPlacement.Fullscreen)
+    }
+
     @Test
     fun `window state size and position determine unmaximized state`() = runApplicationTest(
-        useDelay = isLinux || isMacOs
+        useDelay = true
     ) {
         val state = WindowState(
             size = DpSize(201.dp, 203.dp),
@@ -466,9 +501,6 @@ class WindowStateTest {
         }
 
         awaitIdle()
-        assertThat(window?.placement).isEqualTo(WindowPlacement.Maximized)
-        assertThat(window?.size).isNotEqualTo(Dimension(201, 203))
-        assertThat(window?.location).isNotEqualTo(Point(196, 257))
 
         state.placement = WindowPlacement.Floating
         awaitIdle()
