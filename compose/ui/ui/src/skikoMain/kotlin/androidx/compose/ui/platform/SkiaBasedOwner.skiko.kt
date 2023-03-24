@@ -52,8 +52,6 @@ import androidx.compose.ui.input.key.KeyInputModifier
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.PointerButtons
-import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.PointerIconDefaults
 import androidx.compose.ui.input.pointer.PointerIconService
@@ -61,7 +59,6 @@ import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.pointer.PointerInputEventProcessor
 import androidx.compose.ui.input.pointer.PositionCalculator
 import androidx.compose.ui.input.pointer.ProcessResult
-import androidx.compose.ui.input.pointer.TestPointerInputEventData
 import androidx.compose.ui.layout.RootMeasurePolicy
 import androidx.compose.ui.modifier.ModifierLocalManager
 import androidx.compose.ui.node.InternalCoreApi
@@ -270,7 +267,7 @@ internal class SkiaBasedOwner(
         if (
             measureAndLayoutDelegate.measureAndLayout {
                 if (sendPointerUpdate) {
-                    pointerPositionUpdater.needUpdate()
+                    pointerPositionUpdater.needSendMove()
                 }
             }
         ) {
@@ -282,7 +279,7 @@ internal class SkiaBasedOwner(
 
     override fun measureAndLayout(layoutNode: LayoutNode, constraints: Constraints) {
         measureAndLayoutDelegate.measureAndLayout(layoutNode, constraints)
-        pointerPositionUpdater.needUpdate()
+        pointerPositionUpdater.needSendMove()
         measureAndLayoutDelegate.dispatchOnPositionedCallbacks()
         contentSize = computeContentSize()
     }
@@ -392,23 +389,6 @@ internal class SkiaBasedOwner(
         }
     }
 
-    @Suppress("OVERRIDE_DEPRECATION")
-    override fun processPointerInput(timeMillis: Long, pointers: List<TestPointerInputEventData>) {
-        // TODO(https://github.com/JetBrains/compose-jb/issues/1846)
-        //  we should route test events through ComposeScene, not through SkiaBasedOwner
-        measureAndLayout()
-        val isPressed = pointers.any { it.down }
-        processPointerInput(
-            PointerInputEvent(
-                PointerEventType.Unknown,
-                timeMillis,
-                pointers.map { it.toPointerInputEventData() },
-                if (isPressed) PointerButtons(isPrimaryPressed = true) else PointerButtons(),
-                button = null
-            )
-        )
-    }
-
     override fun onEndApplyChanges() {
         clearInvalidObservations()
 
@@ -448,7 +428,7 @@ internal class SkiaBasedOwner(
         override var current: PointerIcon = PointerIconDefaults.Default
 
         override fun requestUpdate() {
-            pointerPositionUpdater.needUpdate()
+            pointerPositionUpdater.needSendMove()
         }
     }
 }
