@@ -1,0 +1,28 @@
+<!--
+  Copyright 2023 The Android Open Source Project
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
+
+<root>
+    <item name="androidx.annotation.VisibleForTesting int otherwise()">
+        <annotation name="androidx.annotation.IntDef">
+            <val name="value" val="{androidx.annotation.VisibleForTesting.PRIVATE, androidx.annotation.VisibleForTesting.PACKAGE_PRIVATE, androidx.annotation.VisibleForTesting.PROTECTED, androidx.annotation.VisibleForTesting.NONE}" />
+        </annotation>
+    </item>
+    <item name="androidx.annotation.Dimension int unit()">
+        <annotation name="androidx.annotation.IntDef">
+            <val name="value" val="{androidx.annotation.Dimension.DP, androidx.annotation.Dimension.PX, androidx.annotation.Dimension.SP}" />
+        </annotation>
+    </item>
+</root>

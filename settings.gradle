@@ -467,6 +467,16 @@ includeProject(":compose:ui:ui:integration-tests:ui-demos", [BuildType.COMPOSE])
 includeProject(":compose:ui:ui:ui-samples", "compose/ui/ui/samples", [BuildType.COMPOSE])
 
 
+includeProject(":annotation:annotation", [BuildType.COMPOSE])
+includeProject(":annotation:annotation-sampled", [BuildType.COMPOSE])
+includeProject(":inspection:inspection", [BuildType.MAIN, BuildType.COMPOSE])
+includeProject(":inspection:inspection-testing", [BuildType.MAIN, BuildType.COMPOSE])
+includeProject(":test:screenshot:screenshot", [BuildType.COMPOSE])
+includeProject(":test:screenshot:screenshot-proto", [BuildType.COMPOSE])
+includeProject(":tracing:tracing")
+includeProject(":tracing:tracing-perfetto")
+includeProject(":tracing:tracing-perfetto-binary")
+includeProject(":tracing:tracing-perfetto-common")
 /////////////////////////////
 //
 // Testing libraries
