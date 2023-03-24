@@ -40,7 +40,6 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.window.runApplicationTest
-import androidx.compose.ui.window.testUntilSucceeds
 import com.google.common.truth.Truth.assertThat
 import java.awt.Dimension
 import java.awt.Point
@@ -52,7 +51,6 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.delay
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 
@@ -450,11 +448,19 @@ class WindowStateTest {
         assertThat(window.size).isEqualTo(Dimension(201, 203))
         assertThat(window.location).isEqualTo(Point(196, 257))
     }
-/*
+
     @Test
-    fun `window state size and position determine unmaximized state`() = runApplicationTest(
-        useDelay = isLinux
-    ) {
+    fun `window state size and position determine unmaximized state`() = runApplicationTest {
+        // On Linux the behaviour generally works, but this test fails because the size after
+        // un-maximizing it not exactly as expected. Perhaps the window insets are not included
+        // somewhere in AWT.
+        // Specifically on our CI (which is also Linux), however, it fails because the initial
+        // placement fails to be Maximized. The `maximize window before show` test fails the same
+        // way.
+        // Haven't actually tested on Windows; if you run it, and it doesn't pass, replace with
+        // assumeTrue(isMacOs), or investigate/fix.
+        assumeTrue(!isLinux)
+
         val state = WindowState(
             size = DpSize(201.dp, 203.dp),
             position = WindowPosition(196.dp, 257.dp),
@@ -469,9 +475,7 @@ class WindowStateTest {
         }
 
         awaitIdle()
-        testUntilSucceeds(5){
-            assertThat(window.placement).isEqualTo(WindowPlacement.Maximized)
-        }
+        assertThat(window.placement).isEqualTo(WindowPlacement.Maximized)
 
         state.placement = WindowPlacement.Floating
         awaitIdle()
@@ -479,9 +483,11 @@ class WindowStateTest {
         assertThat(window.size).isEqualTo(Dimension(201, 203))
         assertThat(window.location).isEqualTo(Point(196, 257))
     }
-*/
+
     @Test
     fun `maximize window before show`() = runApplicationTest(useDelay = isLinux) {
+        // This fails on our Linux CI; the window reports WindowPlacement.Floating.
+        // But testing in an actual Ubuntu 22 system, it succeeds.
         val state = WindowState(
             size = DpSize(200.dp, 200.dp),
             position = WindowPosition(Alignment.Center),
