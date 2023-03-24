@@ -53,7 +53,40 @@ sqldelight = "1.3.0"
 retrofit = "2.7.2"
 wire = "4.4.1"
 
+# Libraries for Android Compose target
+activity = "1.7.0"
+benchmark = "1.1.1"
+core = "1.9.0"
+customview = "1.0.0"
+lifecycle = "2.6.1"
+navigation = "2.5.3"
+paging = "3.1.1"
+pagingCompose = "1.0.0-alpha18"
+recyclerview = "1.3.0"
+tracing = "1.1.0"
+
 [libraries]
+
+# Libraries for Android Compose target (keep their naming, since it is used by registerAndroidxArtifact)
+androidxactivitycompose = { module = "androidx.activity:activity-compose", version = "activity" }
+androidxbenchmarkjunit4 = { module = "androidx.benchmark:benchmark-junit4", version = "benchmark" }
+androidxbenchmarkmacro = { module = "androidx.benchmark:benchmark-macro", version = "benchmark" }
+androidxbenchmarkmacrojunit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version = "benchmark" }
+androidxcore = { module = "androidx.core:core", version = "core" }
+androidxcustomviewpoolingcontainer = { module = "androidx.customview:customview-poolingcontainer", version = "customview" }
+androidxlifecyclecommonjava8 = { module = "androidx.lifecycle:lifecycle-common-java8", version = "lifecycle" }
+androidxlifecycleviewmodelcompose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version = "lifecycle" }
+androidxlifecycleviewmodelsavedstate = { module = "androidx.lifecycle:lifecycle-viewmodel-savedstate", version = "lifecycle" }
+androidxnavigationcommon = { module = "androidx.navigation:navigation-common", version = "navigation" }
+androidxnavigationcompose = { module = "androidx.navigation:navigation-compose", version = "navigation" }
+androidxnavigationtesting = { module = "androidx.navigation:navigation-testing", version = "navigation" }
+androidxpagingcommon = { module = "androidx.paging:paging-common", version = "paging" }
+androidxpagingcompose = { module = "androidx.paging:paging-compose", version = "pagingCompose" }
+androidxrecyclerview = { module = "androidx.recyclerview:recyclerview", version = "recyclerview" }
+androidxtracingperfetto = { module = "androidx.tracing:tracing-perfetto", version = "tracing" }
+androidxtracingperfettobinary = { module = "androidx.tracing:tracing-perfetto-binary", version = "tracing" }
+
+# Other Libraries
 androidAccessibilityFramework = { module = "com.google.android.apps.common.testing.accessibility.framework:accessibility-test-framework", version = { strictly = "2.1" } }
 androidBuilderModelMin = { module = "com.android.tools.build:builder-model", version.ref = "androidGradlePluginMin" }
 androidGradlePluginz = { module = "com.android.tools.build:gradle", version.ref = "androidGradlePlugin" }

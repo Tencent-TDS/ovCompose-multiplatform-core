@@ -180,7 +180,9 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
             ANDROIDX_ARTIFACT_EXT_NAME,
             KotlinClosure1<String, Any>(
                 function = {
-                    androidxArtifact(this)
+                    val (_, moduleName) = this.trim(':').split(":")
+                    val libraryName = "androidx" + moduleName.replace(":", "").replace("-", "")
+                    getLibraryByName(libraryName)
                 }
             )
         )
@@ -853,31 +855,6 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
          * Fail the build if a non-Studio task runs longer than expected
          */
         const val TASK_TIMEOUT_MINUTES = 60L
-
-        private fun androidxArtifact(path: String): Any {
-            val sections = path.split(":")
-
-            if (sections[0].isNotEmpty()) {
-                throw GradleException(
-                    "Expected projectOrArtifact path to start with empty section but got $path"
-                )
-            }
-
-            // Typically androidx projects have 3 sections, compose has 4.
-            if (sections.size >= 3) {
-                val group = sections
-                    // Filter empty sections as many declarations start with ':'
-                    .filter { it.isNotBlank() }
-                    // Last element is the artifact.
-                    .dropLast(1)
-                    .joinToString(".")
-                return "androidx.$group:${sections.last()}:$SNAPSHOT_MARKER"
-            }
-
-            throw GradleException("projectOrArtifact cannot find/replace project $path")
-        }
-
-        private const val SNAPSHOT_MARKER = "latest.release"
     }
 }
 
