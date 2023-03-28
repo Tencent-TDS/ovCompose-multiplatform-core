@@ -42,7 +42,6 @@ import javax.swing.JFrame
 import kotlin.random.Random
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.skiko.MainUIDispatcher
-import org.jetbrains.skiko.hostOs
 import org.junit.Assume
 import org.junit.Test
 
@@ -718,8 +717,6 @@ class ComposeFocusTest {
 
 fun runFocusTest(action: suspend FocusTestScope.() -> Unit) {
     Assume.assumeFalse(GraphicsEnvironment.getLocalGraphicsEnvironment().isHeadlessInstance)
-    // on macOs if we run all tests, the window starts unfocused, so tests fail
-    Assume.assumeFalse(hostOs.isMacOS)
     runBlocking(MainUIDispatcher) {
         val scope = FocusTestScope()
         try {
