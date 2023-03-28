@@ -64,7 +64,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.InternalTestApi
 import androidx.compose.ui.test.MouseInjectionScope
-import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertTopPositionInRootIsEqualTo
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
@@ -1080,7 +1079,7 @@ class ScrollbarTest {
         rule.testLazyContentWithLineSpacing("box0", "box17")
     }
 
-    @OptIn(InternalTestApi::class, ExperimentalComposeUiApi::class)
+    @OptIn(InternalTestApi::class)
     private fun ComposeTestRule.performMouseScroll(x: Int, y: Int, delta: Float) {
         (this as DesktopComposeTestRule).scene.sendPointerEvent(
             PointerEventType.Scroll,
@@ -1530,8 +1529,8 @@ private fun ComposeContentTestRule.setContent(
 }
 
 internal object TestConfig : ScrollConfig {
-    // the formula was determined experimentally based on MacOS Finder behaviour
-    // MacOS driver will send events with accelerating delta
+    // the formula was determined experimentally based on macOS Finder behaviour
+    // macOS driver will send events with accelerating delta
     override fun Density.calculateMouseWheelScroll(event: PointerEvent, bounds: IntSize): Offset {
         return -event.totalScrollDelta * 10.dp.toPx()
     }
