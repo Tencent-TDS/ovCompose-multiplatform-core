@@ -61,7 +61,11 @@ fun Window.sendKeyEvent(
     code: Int,
     char: Char = code.toChar(),
     id: Int = KeyEvent.KEY_PRESSED,
-    location: Int = KeyEvent.KEY_LOCATION_STANDARD,
+    location: Int =
+        if (id == KeyEvent.KEY_TYPED)
+            KeyEvent.KEY_LOCATION_UNKNOWN
+        else
+            KeyEvent.KEY_LOCATION_STANDARD,
     modifiers: Int = 0
 ): Boolean {
     val event = KeyEvent(
@@ -77,6 +81,16 @@ fun Window.sendKeyEvent(
     mostRecentFocusOwner!!.dispatchEvent(event)
     return event.isConsumed
 }
+
+fun Window.sendKeyTypedEvent(
+    char: Char,
+    modifiers: Int = 0
+) = sendKeyEvent(
+    code = 0,
+    char = char,
+    id = KeyEvent.KEY_TYPED,
+    modifiers = modifiers
+)
 
 fun Window.sendInputEvent(
     text: String?,

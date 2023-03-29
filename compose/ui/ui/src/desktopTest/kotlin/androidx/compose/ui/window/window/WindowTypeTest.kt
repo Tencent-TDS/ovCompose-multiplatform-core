@@ -27,24 +27,23 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.sendInputEvent
 import androidx.compose.ui.sendKeyEvent
+import androidx.compose.ui.sendKeyTypedEvent
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowTestScope
 import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
-import java.awt.event.KeyEvent.KEY_LOCATION_UNKNOWN
 import java.awt.event.KeyEvent.KEY_PRESSED
 import java.awt.event.KeyEvent.KEY_RELEASED
-import java.awt.event.KeyEvent.KEY_TYPED
 import org.junit.Test
 
 /**
  * Tests for emulate input to the native window on various systems.
  *
  * Events were captured on each system via logging.
- * All tests can run on all OS'es.
- * The OS names in test names just represent an unique order of input events on these OS'es.
+ * All tests can run on all OSes.
+ * The OS names in test names just represent a unique order of input events on these OSes.
  */
 class WindowTypeTest {
     private var window: ComposeWindow? = null
@@ -54,43 +53,43 @@ class WindowTypeTest {
     fun `q, w, space, backspace 4x (English)`() = runTypeTest {
         // q
         window?.sendKeyEvent(81, 'q', KEY_PRESSED)
-        window?.sendKeyEvent(0, 'q', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent('q')
         window?.sendKeyEvent(81, 'q', KEY_RELEASED)
         assert(text, "q", selection = TextRange(1), composition = null)
 
         // w
         window?.sendKeyEvent(87, 'w', KEY_PRESSED)
-        window?.sendKeyEvent(0, 'w', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent('w')
         window?.sendKeyEvent(87, 'w', KEY_RELEASED)
         assert(text, "qw", selection = TextRange(2), composition = null)
 
         // space
         window?.sendKeyEvent(32, ' ', KEY_PRESSED)
-        window?.sendKeyEvent(0, ' ', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(' ')
         window?.sendKeyEvent(32, ' ', KEY_RELEASED)
         assert(text, "qw ", selection = TextRange(3), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "qw", selection = TextRange(2), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "q", selection = TextRange(1), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -99,43 +98,43 @@ class WindowTypeTest {
     fun `q, w, space, backspace 4x (Russian)`() = runTypeTest {
         // q
         window?.sendKeyEvent(81, 'й', KEY_PRESSED)
-        window?.sendKeyEvent(0, 'й', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent('й')
         window?.sendKeyEvent(81, 'й', KEY_RELEASED)
         assert(text, "й", selection = TextRange(1), composition = null)
 
         // w
         window?.sendKeyEvent(87, 'ц', KEY_PRESSED)
-        window?.sendKeyEvent(0, 'ц', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent('ц')
         window?.sendKeyEvent(87, 'ц', KEY_RELEASED)
         assert(text, "йц", selection = TextRange(2), composition = null)
 
         // space
         window?.sendKeyEvent(32, ' ', KEY_PRESSED)
-        window?.sendKeyEvent(0, ' ', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(' ')
         window?.sendKeyEvent(32, ' ', KEY_RELEASED)
         assert(text, "йц ", selection = TextRange(3), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "йц", selection = TextRange(2), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "й", selection = TextRange(1), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -144,43 +143,43 @@ class WindowTypeTest {
     fun `f, g, space, backspace 4x (Arabic)`() = runTypeTest {
         // q
         window?.sendKeyEvent(70, 'ب', KEY_PRESSED)
-        window?.sendKeyEvent(0, 'ب', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent('ب')
         window?.sendKeyEvent(70, 'ب', KEY_RELEASED)
         assert(text, "ب", selection = TextRange(1), composition = null)
 
         // w
         window?.sendKeyEvent(71, 'ل', KEY_PRESSED)
-        window?.sendKeyEvent(0, 'ل', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent('ل')
         window?.sendKeyEvent(71, 'ل', KEY_RELEASED)
         assert(text, "بل", selection = TextRange(2), composition = null)
 
         // space
         window?.sendKeyEvent(32, ' ', KEY_PRESSED)
-        window?.sendKeyEvent(0, ' ', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(' ')
         window?.sendKeyEvent(32, ' ', KEY_RELEASED)
         assert(text, "بل ", selection = TextRange(3), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "بل", selection = TextRange(2), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "ب", selection = TextRange(1), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -200,33 +199,33 @@ class WindowTypeTest {
 
         // space
         window?.sendInputEvent(null, 0)
-        window?.sendKeyEvent(0, 'ㅈ', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent('ㅈ')
         window?.sendKeyEvent(32, ' ', KEY_PRESSED)
-        window?.sendKeyEvent(0, ' ', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(' ')
         window?.sendKeyEvent(32, ' ', KEY_RELEASED)
         assert(text, "ㅂㅈ ", selection = TextRange(3), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "ㅂㅈ", selection = TextRange(2), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "ㅂ", selection = TextRange(1), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -252,13 +251,13 @@ class WindowTypeTest {
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -277,27 +276,27 @@ class WindowTypeTest {
 
         // space
         window?.sendInputEvent(null, 0)
-        window?.sendKeyEvent(0, 'ㅀ', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent('ㅀ')
         window?.sendKeyEvent(32, ' ', KEY_PRESSED)
-        window?.sendKeyEvent(0, ' ', KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(' ')
         window?.sendKeyEvent(32, ' ', KEY_RELEASED)
         assert(text, "ㅀ ", selection = TextRange(2), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "ㅀ", selection = TextRange(1), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -327,7 +326,7 @@ class WindowTypeTest {
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -354,25 +353,25 @@ class WindowTypeTest {
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "ㅂㅈ", selection = TextRange(2), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "ㅂ", selection = TextRange(1), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -395,19 +394,19 @@ class WindowTypeTest {
         window?.sendInputEvent("ㅈ", 0)
         window?.sendInputEvent("ㅈ", 1)
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "ㅂ", selection = TextRange(1), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -433,19 +432,19 @@ class WindowTypeTest {
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "쇼", selection = TextRange(1), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -471,13 +470,13 @@ class WindowTypeTest {
         window?.sendInputEvent("ㅅ", 0)
         window?.sendInputEvent("ㅅ", 1)
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -500,31 +499,31 @@ class WindowTypeTest {
         window?.sendInputEvent(null, 0)
         window?.sendInputEvent("ㅈ", 1)
         window?.sendKeyEvent(32, ' ', KEY_PRESSED)
-        window?.sendKeyEvent(0, ' ', KEY_TYPED)
+        window?.sendKeyTypedEvent(' ')
         window?.sendKeyEvent(32, ' ', KEY_RELEASED)
         assert(text, "ㅂㅈ ", selection = TextRange(3), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "ㅂㅈ", selection = TextRange(2), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "ㅂ", selection = TextRange(1), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -549,19 +548,19 @@ class WindowTypeTest {
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "請", selection = TextRange(1), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -591,7 +590,7 @@ class WindowTypeTest {
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -615,19 +614,19 @@ class WindowTypeTest {
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "请", selection = TextRange(1), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
@@ -656,7 +655,7 @@ class WindowTypeTest {
 
         // backspace
         window?.sendKeyEvent(8, Char(8), KEY_PRESSED)
-        window?.sendKeyEvent(0, Char(8), KEY_TYPED, KEY_LOCATION_UNKNOWN)
+        window?.sendKeyTypedEvent(Char(8))
         window?.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assert(text, "", selection = TextRange(0), composition = null)
     }
