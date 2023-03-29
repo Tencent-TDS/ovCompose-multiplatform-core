@@ -660,7 +660,10 @@ class WindowTypeTest {
         assert(text, "", selection = TextRange(0), composition = null)
     }
 
-    private fun runTypeTest(body: suspend WindowTestScope.() -> Unit) = runApplicationTest(hasAnimations = true) {
+    private fun runTypeTest(body: suspend WindowTestScope.() -> Unit) = runApplicationTest(
+        hasAnimations = true,
+        animationsDelayMillis = 100
+    ) {
         launchTestApplication {
             Window(onCloseRequest = ::exitApplication) {
                 this@WindowTypeTest.window = this.window
