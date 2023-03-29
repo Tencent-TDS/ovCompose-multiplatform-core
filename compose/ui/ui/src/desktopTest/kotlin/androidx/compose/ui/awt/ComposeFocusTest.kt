@@ -46,6 +46,7 @@ import org.junit.Assume
 import org.junit.Test
 
 class ComposeFocusTest {
+
     @Test
     fun `compose window`() = runFocusTest {
         val window = ComposeWindow().disposeOnEnd()
@@ -743,12 +744,14 @@ class FocusTestScope {
     suspend fun pressNextFocusKey() {
         val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
         focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_PRESSED, 0, 0, KeyEvent.VK_TAB, '\t'))
+        focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_RELEASED, 0, 0, KeyEvent.VK_TAB, '\t'))
         awaitEDT()
     }
 
     suspend fun pressPreviousFocusKey() {
         val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
         focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_PRESSED, 0, KeyEvent.SHIFT_DOWN_MASK, KeyEvent.VK_TAB, '\t'))
+        focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_RELEASED, 0, KeyEvent.SHIFT_DOWN_MASK, KeyEvent.VK_TAB, '\t'))
         awaitEDT()
     }
 }
