@@ -196,7 +196,7 @@ fun Component.performClick() {
  * New scheduled tasks in these tasks also will be performed
  */
 suspend fun awaitEDT() {
-    // Most of the work usually is done after the first yield(), almost all of the work -
+    // Most of the work usually is done after the first yield(), almost all the work -
     // after fourth yield()
     repeat(100) {
         yield()
