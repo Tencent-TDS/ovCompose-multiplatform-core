@@ -39,7 +39,7 @@ private class JSOverscrollEffect() : OverscrollEffect {
         source: NestedScrollSource,
         performScroll: (Offset) -> Offset
     ): Offset {
-        // JS for now not using drag touches to apply scroll. But it maybe for mobile browsers.
+        // JS doesn't yet use drag touches to apply scrolling. But it might be for mobile browsers.
         performScroll(delta)
         return Offset.Zero
     }
@@ -48,7 +48,7 @@ private class JSOverscrollEffect() : OverscrollEffect {
         velocity: Velocity,
         performFling: suspend (Velocity) -> Velocity
     ) {
-        // JS for now not using drag touches to apply scroll. But it maybe for mobile browsers.
+        // JS doesn't yet use drag touches to apply scrolling. But it might be for mobile browsers.
         performFling(velocity)
     }
 
