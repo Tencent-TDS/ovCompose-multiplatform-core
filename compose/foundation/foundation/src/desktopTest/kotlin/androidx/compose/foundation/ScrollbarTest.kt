@@ -613,7 +613,6 @@ class ScrollbarTest {
     }
 
     @Theory
-    @Suppress("JUnitMalformedDeclaration")
     fun `dynamically change content then drag slider to the end`(
         scrollbarProvider: ScrollbarProvider
     ) {
@@ -643,7 +642,7 @@ class ScrollbarTest {
     }
 
     @Theory
-    @Suppress("SameParameterValue", "JUnitMalformedDeclaration")
+    @Suppress("SameParameterValue")
     fun `scroll by less than one page in lazy list`(scrollbarProvider: ScrollbarProvider) {
         lateinit var state: LazyListState
 
@@ -667,7 +666,7 @@ class ScrollbarTest {
     }
 
     @Theory
-    @Suppress("SameParameterValue", "JUnitMalformedDeclaration")
+    @Suppress("SameParameterValue")
     fun `scroll in reversed lazy list`(scrollbarProvider: ScrollbarProvider) {
         lateinit var state: LazyListState
 
@@ -691,7 +690,7 @@ class ScrollbarTest {
     }
 
     @Theory
-    @Suppress("SameParameterValue", "JUnitMalformedDeclaration")
+    @Suppress("SameParameterValue")
     fun `scroll by more than one page in lazy list`(scrollbarProvider: ScrollbarProvider) {
         lateinit var state: LazyListState
 
@@ -714,7 +713,7 @@ class ScrollbarTest {
     }
 
     @Theory
-    @Suppress("SameParameterValue", "JUnitMalformedDeclaration")
+    @Suppress("SameParameterValue")
     fun `scroll outside of scrollbar bounds in lazy list`(scrollbarProvider: ScrollbarProvider) {
         lateinit var state: LazyListState
 
