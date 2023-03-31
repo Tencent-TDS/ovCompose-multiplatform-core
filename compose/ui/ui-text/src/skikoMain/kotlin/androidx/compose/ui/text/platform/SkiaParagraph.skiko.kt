@@ -184,7 +184,7 @@ internal data class ComputedStyle(
             setBrush(textForegroundStyle.brush, brushSize, textForegroundStyle.alpha)
             setDrawStyle(drawStyle)
             blendMode = this@ComputedStyle.blendMode
-            return@let it.takeIf { shader != null || style != PaintingStyle.Fill }
+            return@let it.takeIf { shader != null || style != PaintingStyle.Fill || !it.isSrcOver }
         }
     }
 
