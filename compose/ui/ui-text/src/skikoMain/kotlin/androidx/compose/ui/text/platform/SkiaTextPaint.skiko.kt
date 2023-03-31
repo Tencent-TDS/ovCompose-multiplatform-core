@@ -35,7 +35,7 @@ internal fun Paint.setBrush(brush: Brush?, size: Size, alpha: Float = Float.NaN)
         brush.applyTo(
             size,
             this,
-            if (alpha.isNaN()) this.alpha else alpha.coerceIn(0f, 1f)
+            if (alpha.isNaN()) 1f else alpha.coerceIn(0f, 1f)
         )
     } else if (brush == null) {
         shader = null
