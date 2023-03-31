@@ -38,14 +38,15 @@ private class NativeOverscrollEffect() : OverscrollEffect {
         source: NestedScrollSource,
         performScroll: (Offset) -> Offset
     ): Offset {
-        performScroll(delta)
-        return Offset.Zero
+        val overscrollDelta = Offset.Zero // TODO: implement similar to Android
+        return overscrollDelta + performScroll(delta)
     }
 
     override suspend fun applyToFling(
         velocity: Velocity,
         performFling: suspend (Velocity) -> Velocity
     ) {
+        // TODO: implement similar to Android
         performFling(velocity)
     }
 

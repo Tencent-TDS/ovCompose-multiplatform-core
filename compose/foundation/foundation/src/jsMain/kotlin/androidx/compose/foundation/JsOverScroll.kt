@@ -40,8 +40,8 @@ private class JSOverscrollEffect() : OverscrollEffect {
         performScroll: (Offset) -> Offset
     ): Offset {
         // JS doesn't yet use drag touches to apply scrolling. But it might be for mobile browsers.
-        performScroll(delta)
-        return Offset.Zero
+        val overscrollDelta = Offset.Zero // TODO: implement similar to Android
+        return overscrollDelta + performScroll(delta)
     }
 
     override suspend fun applyToFling(
@@ -49,6 +49,7 @@ private class JSOverscrollEffect() : OverscrollEffect {
         performFling: suspend (Velocity) -> Velocity
     ) {
         // JS doesn't yet use drag touches to apply scrolling. But it might be for mobile browsers.
+        // TODO: implement similar to Android
         performFling(velocity)
     }
 
