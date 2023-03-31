@@ -33,13 +33,14 @@ internal actual fun rememberOverscrollEffect(): OverscrollEffect {
 
 @OptIn(ExperimentalFoundationApi::class)
 private class DesktopEdgeEffectOverscrollEffect() : OverscrollEffect {
-    // TODO: [1.4 Update] Implement new API properly and remove commented old code
 
     override fun applyToScroll(
         delta: Offset,
         source: NestedScrollSource,
         performScroll: (Offset) -> Offset
     ): Offset {
+        // JS for now not using drag touches to apply scroll. But it maybe for mobile browsers.
+        TODO("on native we just call performScroll(delta)")
         return Offset.Zero
     }
 
@@ -47,7 +48,8 @@ private class DesktopEdgeEffectOverscrollEffect() : OverscrollEffect {
         velocity: Velocity,
         performFling: suspend (Velocity) -> Velocity
     ) {
-
+        // JS for now not using drag touches to apply scroll. But it maybe for mobile browsers.
+        TODO("on native we just call performFling(velocity)")
     }
 
 
