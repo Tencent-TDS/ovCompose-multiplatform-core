@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 
 // Copied from AndroidTextPaint.
 
-internal fun Paint.setBrush(brush: Brush?, size: Size, alpha: Float = Float.NaN) {
+internal fun Paint.applyBrush(brush: Brush?, size: Size, alpha: Float = Float.NaN) {
     // if size is unspecified and brush is not null, nothing should be done.
     // it basically means brush is given but size is not yet calculated at this time.
     if ((brush is SolidColor && brush.value.isSpecified) ||
@@ -42,7 +42,7 @@ internal fun Paint.setBrush(brush: Brush?, size: Size, alpha: Float = Float.NaN)
     }
 }
 
-internal fun Paint.setDrawStyle(drawStyle: DrawStyle?) {
+internal fun Paint.applyDrawStyle(drawStyle: DrawStyle?) {
     when (drawStyle) {
         Fill, null -> {
             // Stroke properties such as strokeWidth, strokeMiter are not re-set because

@@ -181,8 +181,8 @@ internal data class ComputedStyle(
     private fun toTextPaint(): Paint? = Paint().let {
         with(it.asComposePaint()) {
             color = textForegroundStyle.color
-            setBrush(textForegroundStyle.brush, brushSize, textForegroundStyle.alpha)
-            setDrawStyle(drawStyle)
+            applyBrush(textForegroundStyle.brush, brushSize, textForegroundStyle.alpha)
+            applyDrawStyle(drawStyle)
             blendMode = this@ComputedStyle.blendMode
             return@let it.takeIf { shader != null || style != PaintingStyle.Fill || !it.isSrcOver }
         }
@@ -309,7 +309,9 @@ internal class ParagraphBuilder(
      * of active styles is being compiled into single SkParagraph's style for every chunk of text
      */
     fun build(): SkParagraph {
-        initialStyle = textStyle.toSpanStyle().withReplacements()
+        initialStyle = textStyle.toSpanStyle().copyWithDefaultFontSize(
+            drawStyle = drawStyle
+        )
         defaultStyle = ComputedStyle(density, initialStyle, brushSize, blendMode)
         ops = makeOps(
             spanStyles,
@@ -575,7 +577,7 @@ private fun TextUnit.orDefaultFontSize() = when {
 }
 
 @OptIn(ExperimentalTextApi::class)
-private fun SpanStyle.withReplacements(): SpanStyle {
+private fun SpanStyle.copyWithDefaultFontSize(drawStyle: DrawStyle? = null): SpanStyle {
     val fontSize = this.fontSize.orDefaultFontSize()
     val letterSpacing = when {
         this.letterSpacing.isEm -> fontSize * this.letterSpacing.value
@@ -584,7 +586,7 @@ private fun SpanStyle.withReplacements(): SpanStyle {
     return this.copy(
         fontSize = fontSize,
         letterSpacing = letterSpacing,
-        drawStyle = this.drawStyle
+        drawStyle = drawStyle
     )
 }
 
