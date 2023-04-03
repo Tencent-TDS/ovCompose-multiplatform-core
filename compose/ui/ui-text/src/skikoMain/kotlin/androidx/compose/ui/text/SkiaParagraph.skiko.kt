@@ -179,25 +179,17 @@ internal class SkiaParagraph(
     }
 
     override fun getLineHeight(lineIndex: Int) =
-        if (lineIndex !in lineMetrics.indices) {
-            0f
-        } else lineMetrics[lineIndex].height.toFloat()
+        lineMetrics.getOrNull(lineIndex)?.height?.toFloat() ?: 0f
 
     override fun getLineWidth(lineIndex: Int) =
-        if (lineIndex !in lineMetrics.indices) {
-            0f
-        } else lineMetrics[lineIndex].width.toFloat()
+        lineMetrics.getOrNull(lineIndex)?.width?.toFloat() ?: 0f
 
     override fun getLineStart(lineIndex: Int) =
-        if (lineIndex !in lineMetrics.indices) {
-            0
-        } else lineMetrics[lineIndex].startIndex
+        lineMetrics.getOrNull(lineIndex)?.startIndex ?: 0
 
-    override fun getLineEnd(lineIndex: Int, visibleEnd: Boolean) =
-        if (lineIndex !in lineMetrics.indices) {
-            0
-        } else if (visibleEnd) {
-            val metrics = lineMetrics[lineIndex]
+    override fun getLineEnd(lineIndex: Int, visibleEnd: Boolean): Int {
+        val metrics = lineMetrics.getOrNull(lineIndex) ?: return 0
+        return if (visibleEnd) {
             // workarounds for https://bugs.chromium.org/p/skia/issues/detail?id=11321 :(
             // we are waiting for fixes
             if (lineIndex > 0 && metrics.startIndex < lineMetrics[lineIndex - 1].endIndex) {
@@ -211,8 +203,9 @@ internal class SkiaParagraph(
                 metrics.endExcludingWhitespaces
             }
         } else {
-            lineMetrics[lineIndex].endIndex
+            metrics.endIndex
         }
+    }
 
     override fun isLineEllipsized(lineIndex: Int) = false
 
