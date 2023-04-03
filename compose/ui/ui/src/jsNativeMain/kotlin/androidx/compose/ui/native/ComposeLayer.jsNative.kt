@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.focusRect
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.toCompose
 import androidx.compose.ui.input.pointer.PointerType
@@ -40,6 +39,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.ExperimentalUnitApi
 import androidx.compose.ui.unit.toDpRect
+import org.jetbrains.skia.Point
 import org.jetbrains.skiko.SkikoInput
 import org.jetbrains.skiko.currentNanoTime
 
@@ -140,12 +140,16 @@ internal class ComposeLayer(
     }
 
     fun getActiveFocusRect(): DpRect? {
-        val activeFocusModifier = scene.mainOwner?.focusManager?.getActiveFocusModifier()
-        if (activeFocusModifier?.parent == null) {
-            return null // Ignore root FocusModifier
-        }
-        return activeFocusModifier.focusRect().toDpRect(density)
+        // TODO: [1.4 Update] Check that new solution is valid
+        val focusRect = scene.mainOwner?.focusOwner?.getFocusRect() ?: return null
+        return focusRect.toDpRect(density)
     }
+
+    fun hitInteropView(point: Point, isTouchEvent: Boolean): Boolean =
+        scene.mainOwner?.hitInteropView(
+            pointerPosition = Offset(point.x * density.density, point.y * density.density),
+            isTouchEvent = isTouchEvent,
+        ) ?: false
 
     fun setContent(
         onPreviewKeyEvent: (ComposeKeyEvent) -> Boolean = { false },

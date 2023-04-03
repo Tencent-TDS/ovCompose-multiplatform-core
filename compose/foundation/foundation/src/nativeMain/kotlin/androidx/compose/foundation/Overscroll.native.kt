@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,28 +27,29 @@ import androidx.compose.ui.unit.Velocity
 @Composable
 internal actual fun rememberOverscrollEffect(): OverscrollEffect {
     return remember {
-        DesktopEdgeEffectOverscrollEffect()
+        NativeOverscrollEffect() // TODO: Split between UIKit and MacOS
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-private class DesktopEdgeEffectOverscrollEffect() : OverscrollEffect {
-    override fun consumePreScroll(
-        scrollDelta: Offset,
-        source: NestedScrollSource
-    ): Offset = Offset.Zero
+private class NativeOverscrollEffect() : OverscrollEffect {
+    override fun applyToScroll(
+        delta: Offset,
+        source: NestedScrollSource,
+        performScroll: (Offset) -> Offset
+    ): Offset {
+        val overscrollDelta = Offset.Zero // TODO: implement similar to Android
+        return overscrollDelta + performScroll(delta)
+    }
 
-    override fun consumePostScroll(
-        initialDragDelta: Offset,
-        overscrollDelta: Offset,
-        source: NestedScrollSource
-    ) {}
+    override suspend fun applyToFling(
+        velocity: Velocity,
+        performFling: suspend (Velocity) -> Velocity
+    ) {
+        // TODO: implement similar to Android
+        performFling(velocity)
+    }
 
-    override suspend fun consumePreFling(velocity: Velocity): Velocity = Velocity.Zero
-
-    override suspend fun consumePostFling(velocity: Velocity) {}
-
-    override var isEnabled = false
     override val isInProgress = false
     override val effectModifier = Modifier
 }
