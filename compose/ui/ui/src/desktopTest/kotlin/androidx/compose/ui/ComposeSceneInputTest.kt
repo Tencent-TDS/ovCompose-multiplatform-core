@@ -65,7 +65,12 @@ class ComposeSceneInputTest {
             overlappedPopup.Content()
             independentPopup.Content()
         }
-        scene.render() // Popup has 2-frame layout passes. Call it to avoid synthetic events
+
+        // Popup takes two iterations to complete its layout, so we need to run render an extra time
+        // TODO(maryanovsky): Remove this when https://github.com/JetBrains/compose-jb/issues/2726
+        //                    is completed.
+        while (scene.hasInvalidations())
+            scene.render()
 
         scene.sendPointerEvent(PointerEventType.Enter, Offset(-10f, -10f))
         background.events.assertReceivedNoEvents()

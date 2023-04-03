@@ -27,7 +27,7 @@ import kotlin.test.Test
 class SyntheticEventSenderTest {
     @Test
     fun `mouse, shouldn't generate new events if order is correct`() {
-        syntheticEvents(
+        eventsSentBy(
             mouseEvent(Enter, 10f, 20f, pressed = false),
             mouseEvent(Press, 10f, 20f, pressed = true),
             mouseEvent(Move, 10f, 30f, pressed = true),
@@ -36,7 +36,7 @@ class SyntheticEventSenderTest {
             mouseEvent(Press, 10f, 40f, pressed = true),
             mouseEvent(Release, 10f, 40f, pressed = false),
             mouseEvent(Exit, -1f, -1f, pressed = false),
-        ) shouldEqual listOf(
+        ) positionAndDownShouldEqual listOf(
             mouseEvent(Enter, 10f, 20f, pressed = false),
             mouseEvent(Press, 10f, 20f, pressed = true),
             mouseEvent(Move, 10f, 30f, pressed = true),
@@ -50,7 +50,7 @@ class SyntheticEventSenderTest {
 
     @Test
     fun `mouse, should generate new move before non-move if position isn't the same`() {
-        syntheticEvents(
+        eventsSentBy(
             mouseEvent(Enter, 10f, 20f, pressed = false),
             mouseEvent(Press, 10f, 25f, pressed = true),
             mouseEvent(Move, 10f, 30f, pressed = true),
@@ -59,7 +59,7 @@ class SyntheticEventSenderTest {
             mouseEvent(Press, 10f, 45f, pressed = true),
             mouseEvent(Release, 10f, 50f, pressed = false),
             mouseEvent(Exit, -1f, -1f, pressed = false),
-        ) shouldEqual listOf(
+        ) positionAndDownShouldEqual listOf(
             mouseEvent(Enter, 10f, 20f, pressed = false),
             mouseEvent(Move, 10f, 25f, pressed = false),
             mouseEvent(Press, 10f, 25f, pressed = true),
@@ -75,7 +75,7 @@ class SyntheticEventSenderTest {
         )
     }
 
-    private fun syntheticEvents(
+    private fun eventsSentBy(
         vararg inputEvents: PointerInputEvent
     ): List<PointerInputEvent> {
         val received = mutableListOf<PointerInputEvent>()

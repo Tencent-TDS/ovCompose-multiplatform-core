@@ -152,24 +152,29 @@ internal fun mouseEvent(
     buttons = PointerButtons(isPrimaryPressed = pressed)
 )
 
-internal infix fun List<PointerInputEvent>.shouldEqual(expected: List<PointerInputEvent>) {
-    assertContentEquals(expected.toList().map { it.formatEssential() }, toList().map { it.formatEssential() })
+internal infix fun List<PointerInputEvent>.positionAndDownShouldEqual(
+    expected: List<PointerInputEvent>
+) {
+    assertContentEquals(
+        expected.map { it.formatPositionAndDown() },
+        map { it.formatPositionAndDown() }
+    )
 }
 
-internal fun PointerInputEvent.formatEssential(): String {
+internal fun PointerInputEvent.formatPositionAndDown(): String {
     val pointers = if (pointers.size == 1) {
-        pointers.first().formatEssential()
+        pointers.first().formatPositionAndDown()
     } else {
         pointers.joinToString(" ") {
             val id = it.id.value
-            val data = it.formatEssential()
+            val data = it.formatPositionAndDown()
             "$id-$data"
         }
     }
     return "$eventType $pointers"
 }
 
-internal fun PointerInputEventData.formatEssential(): String {
+internal fun PointerInputEventData.formatPositionAndDown(): String {
     val x = position.x.toInt()
     val y = position.y.toInt()
     val down = if (down) "down" else "up"

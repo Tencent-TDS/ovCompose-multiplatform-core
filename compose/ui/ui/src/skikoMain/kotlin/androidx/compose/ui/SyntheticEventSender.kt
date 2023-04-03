@@ -55,13 +55,17 @@ internal class SyntheticEventSender(
         sendSyntheticMove(previousEvent)
     }
 
-    private fun sendSyntheticMove(pointerSourceEvent: PointerInputEvent) {
+    /**
+     * @param pointersSourceEvent the event which we treat as a source of the pointers
+     */
+    private fun sendSyntheticMove(pointersSourceEvent: PointerInputEvent) {
         val previousEvent = previousEvent ?: return
-        val idToPosition = pointerSourceEvent.pointers.associate { it.id to it.position }
+        val idToPosition = pointersSourceEvent.pointers.associate { it.id to it.position }
         sendInternal(
-            previousEvent.copySynthetic(PointerEventType.Move) {
-                copySynthetic(position = idToPosition[id] ?: position)
-            }
+            previousEvent.copySynthetic(
+                type = PointerEventType.Move,
+                pointer = { it.copySynthetic(position = idToPosition[it.id] ?: it.position) },
+            )
         )
     }
 
@@ -96,10 +100,11 @@ internal class SyntheticEventSender(
         }
     }
 
-    // we don't use copy here to not forget to nullify properties that shouldn't be in a synthetic event
+    // we don't use copy here to not forget to nullify properties that shouldn't be in
+    // a synthetic event
     private fun PointerInputEvent.copySynthetic(
         type: PointerEventType,
-        pointer: PointerInputEventData.() -> PointerInputEventData,
+        pointer: (PointerInputEventData) -> PointerInputEventData,
     ) = PointerInputEvent(
         eventType = type,
         pointers = pointers.map(pointer),

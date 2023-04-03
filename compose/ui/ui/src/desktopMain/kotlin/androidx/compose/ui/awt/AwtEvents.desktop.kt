@@ -9,7 +9,7 @@ import androidx.compose.ui.input.pointer.PointerEvent
  * Null if:
  * - the native event is sent by another framework (when Compose UI is embed into it)
  * - there is no native event (in tests, for example)
- * - there was a synthetic move event sent by compose on relayout
+ * - there was a synthetic move event sent by compose on re-layout
  * - there was a synthetic move event sent by compose when move is missing between two non-move events
  *
  * Always check for null when you want to handle the native event.
