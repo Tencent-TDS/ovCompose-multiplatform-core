@@ -64,7 +64,7 @@ internal class SyntheticEventSender(
         sendInternal(
             previousEvent.copySynthetic(
                 type = PointerEventType.Move,
-                pointer = { it.copySynthetic(position = idToPosition[it.id] ?: it.position) },
+                copyPointer = { it.copySynthetic(position = idToPosition[it.id] ?: it.position) },
             )
         )
     }
@@ -104,10 +104,10 @@ internal class SyntheticEventSender(
     // a synthetic event
     private fun PointerInputEvent.copySynthetic(
         type: PointerEventType,
-        pointer: (PointerInputEventData) -> PointerInputEventData,
+        copyPointer: (PointerInputEventData) -> PointerInputEventData,
     ) = PointerInputEvent(
         eventType = type,
-        pointers = pointers.map(pointer),
+        pointers = pointers.map(copyPointer),
         uptime = uptime,
         nativeEvent = null,
         buttons = buttons,
