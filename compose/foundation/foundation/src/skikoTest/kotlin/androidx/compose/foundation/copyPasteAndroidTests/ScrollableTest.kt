@@ -2332,28 +2332,6 @@ class ScrollableTest {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-private val NoOpOverscrollEffect = object : OverscrollEffect {
-    override fun applyToScroll(
-        delta: Offset,
-        source: NestedScrollSource,
-        performScroll: (Offset) -> Offset
-    ): Offset {
-        return Offset.Zero
-    }
-
-    override suspend fun applyToFling(
-        velocity: Velocity,
-        performFling: suspend (Velocity) -> Velocity
-    ) {
-    }
-
-    override val isInProgress: Boolean
-        get() = false
-
-    override val effectModifier: Modifier get() = Modifier
-}
-
 // Very low tolerance on the difference
 internal val VelocityTrackerCalculationThreshold = 1
 
