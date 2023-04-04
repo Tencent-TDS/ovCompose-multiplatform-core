@@ -307,7 +307,7 @@ class ComposeSceneTest {
 
         scene.sendPointerEvent(PointerEventType.Move, Offset(-1f, -1f))
         scene.sendPointerEvent(PointerEventType.Exit, Offset(-1f, -1f))
-        awaitNextRender()
+        skipRenders()
         screenshotRule.snap(surface, "frame3_onMouseReleased")
 
         scene.sendPointerEvent(PointerEventType.Enter, Offset(1f, 1f))
