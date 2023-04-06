@@ -16,21 +16,12 @@
 
 package androidx.compose.mpp.demo
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material.Checkbox
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.ComposeUIViewController
 
 // TODO This module is just a proxy to run the demo from mpp:demo. Figure out how to get rid of it.
 //  If it is removed, there is no available configuration in IDE
 fun getViewControllerWithCompose() = ComposeUIViewController {
-    Column {
-        var checked1 by remember { mutableStateOf(false) }
-        Checkbox(checked1, { checked1 = it })
-        var checked2 by remember { mutableStateOf(false) }
-        Checkbox(checked2, { checked2 = it })
-    }
+    val app = remember() { App() }
+    app.Content()
 }
