@@ -18,17 +18,17 @@ package androidx.compose.mpp.demo
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
+import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun RoundedCornerCrashOnJS() {
-    Button(
+    Surface(
         modifier = Modifier.size(100.dp),
         shape = RoundedCornerShape(0.dp, 9.dp, 9.dp, 9.dp),
-        onClick = { }
+        elevation = 1.dp,
     ) {
 
     }
