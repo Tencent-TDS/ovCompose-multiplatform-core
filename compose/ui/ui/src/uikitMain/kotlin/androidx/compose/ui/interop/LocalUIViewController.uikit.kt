@@ -25,5 +25,5 @@ import platform.UIKit.UIViewController
  * Please use it careful and don't remove another views.
  */
 val LocalUIViewController = staticCompositionLocalOf<UIViewController> {
-    error("CompositionLocal LayerContainer not provided")
+    error("LocalUIViewController LayerContainer not provided")
 }
