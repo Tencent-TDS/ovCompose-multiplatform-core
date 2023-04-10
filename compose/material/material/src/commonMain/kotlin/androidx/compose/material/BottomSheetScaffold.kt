@@ -495,16 +495,16 @@ private fun BottomSheetScaffoldLayout(
         }[0].measure(looseConstraints)
         val sheetOffsetY = sheetOffset().roundToInt()
         val topBarPlaceable = topBar?.let {
-            subcompose(BottomSheetScaffoldLayoutSlot.TopBar) { topBar() }[0]
-                .measure(looseConstraints)
+            subcompose(BottomSheetScaffoldLayoutSlot.TopBar) { topBar() }
+                .getOrNull(0)?.measure(looseConstraints)
         }
         val topBarHeight = topBarPlaceable?.height ?: 0
         val bodyConstraints = looseConstraints.copy(maxHeight = layoutHeight - topBarHeight)
         val bodyPlaceable = subcompose(BottomSheetScaffoldLayoutSlot.Body) {
             body(PaddingValues(bottom = sheetPeekHeight))
-        }[0].measure(bodyConstraints)
+        }.getOrNull(0)?.measure(bodyConstraints)
         val fabPlaceable = floatingActionButton?.let { fab ->
-            subcompose(BottomSheetScaffoldLayoutSlot.Fab, fab)[0].measure(looseConstraints)
+            subcompose(BottomSheetScaffoldLayoutSlot.Fab, fab).getOrNull(0)?.measure(looseConstraints)
         }
         val fabWidth = fabPlaceable?.width ?: 0
         val fabHeight = fabPlaceable?.height ?: 0
@@ -516,8 +516,8 @@ private fun BottomSheetScaffoldLayout(
         val fabOffsetY = if (sheetPeekHeight.toPx() < fabHeight / 2) {
             sheetOffsetY - fabHeight - FabSpacing.roundToPx()
         } else sheetOffsetY - (fabHeight / 2)
-        val snackbarPlaceable = subcompose(BottomSheetScaffoldLayoutSlot.Snackbar, snackbarHost)[0]
-            .measure(looseConstraints)
+        val snackbarPlaceable = subcompose(BottomSheetScaffoldLayoutSlot.Snackbar, snackbarHost)
+            .getOrNull(0)?.measure(looseConstraints)
         val snackbarOffsetX = (layoutWidth - snackbarPlaceable.width) / 2
         val snackbarOffsetY = when (sheetState.currentValue) {
             Collapsed -> fabOffsetY - snackbarPlaceable.height
@@ -525,11 +525,11 @@ private fun BottomSheetScaffoldLayout(
         }
         layout(layoutWidth, layoutHeight) {
             // Placement order is important for elevation
-            bodyPlaceable.placeRelative(0, topBarHeight)
+            bodyPlaceable?.placeRelative(0, topBarHeight)
             topBarPlaceable?.placeRelative(0, 0)
             sheetPlaceable.placeRelative(0, sheetOffsetY)
             fabPlaceable?.placeRelative(fabOffsetX, fabOffsetY)
-            snackbarPlaceable.placeRelative(snackbarOffsetX, snackbarOffsetY)
+            snackbarPlaceable?.placeRelative(snackbarOffsetX, snackbarOffsetY)
         }
     }
 }
