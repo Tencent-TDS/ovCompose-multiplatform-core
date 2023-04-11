@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun RoundedCornerCrashOnJS() {
     // Crash happens in ShadowUtils.drawShadow(
+    // Related issue https://github.com/JetBrains/compose-multiplatform/issues/3013
     Box(
         modifier = Modifier
             .size(100.dp)
