@@ -83,7 +83,7 @@ internal class ApplicationAccessibilityTest {
         }
         awaitIdle()
 
-        checkAccessibleOnPoint(window, 20, 20) {
+        withAccessibleAt(window, 20, 20) {
             assertThat(accessibleName).isEqualTo("Accessible button")
         }
 
@@ -91,11 +91,11 @@ internal class ApplicationAccessibilityTest {
         clickOnPoint(window, 20, 20)
         assertThat(showPopup.value).isEqualTo(true)
 
-        checkAccessibleOnPoint(window, 5, 5) {
+        withAccessibleAt(window, 5, 5) {
             assertThat(accessibleName).isEqualTo("Accessible button")
         }
 
-        checkAccessibleOnPoint(window, 5, 50) {
+        withAccessibleAt(window, 5, 50) {
             assertThat(accessibleName).isEqualTo("Accessible popup button")
         }
     }
@@ -125,11 +125,11 @@ internal class ApplicationAccessibilityTest {
         }
         awaitIdle()
 
-        checkAccessibleOnPoint(window, 10, 10) {
+        withAccessibleAt(window, 10, 10) {
             assertThat(accessibleName).isEqualTo("Accessible button 1")
         }
 
-        checkAccessibleOnPoint(window, 5, 22) {
+        withAccessibleAt(window, 5, 22) {
             assertThat(accessibleName).isEqualTo("Accessible button 2")
         }
     }
@@ -176,11 +176,11 @@ internal class ApplicationAccessibilityTest {
         }
         awaitIdle()
 
-        checkAccessibleOnPoint(window, 5, 32) {
+        withAccessibleAt(window, 5, 32) {
             assertThat(accessibleName).isEqualTo("popup button")
         }
 
-        checkAccessibleOnPoint(window, 5, 5) {
+        withAccessibleAt(window, 5, 5) {
             assertNotEquals("button under popup", accessibleName)
         }
     }
@@ -214,11 +214,11 @@ internal class ApplicationAccessibilityTest {
         val firstItemPosition = firstItemPositionPx!!.toAwtPoint(window)
         val secondItemPosition = secondItemPositionPx!!.toAwtPoint(window)
 
-        checkAccessibleOnPoint(window, firstItemPosition.x + 2, firstItemPosition.y + 2) {
+        withAccessibleAt(window, firstItemPosition.x + 2, firstItemPosition.y + 2) {
             assertThat(accessibleName).isEqualTo("item 1")
         }
 
-        checkAccessibleOnPoint(window, secondItemPosition.x + 2, secondItemPosition.y + 2) {
+        withAccessibleAt(window, secondItemPosition.x + 2, secondItemPosition.y + 2) {
             assertThat(accessibleName).isEqualTo("item 2")
         }
     }
@@ -262,16 +262,16 @@ internal class ApplicationAccessibilityTest {
         val textPosition = textPositionPx!!.toAwtPoint(window)
         val buttonTextPosition = buttonTextPositionPx!!.toAwtPoint(window)
 
-        checkAccessibleOnPoint(window, textPosition.x + 2, textPosition.y + 2) {
+        withAccessibleAt(window, textPosition.x + 2, textPosition.y + 2) {
             assertThat(accessibleName).isEqualTo("Alert Dialog Text")
         }
 
-        checkAccessibleOnPoint(window, buttonTextPosition.x + 2, buttonTextPosition.y + 2) {
+        withAccessibleAt(window, buttonTextPosition.x + 2, buttonTextPosition.y + 2) {
             assertThat(accessibleName).isEqualTo("Alert Dialog Button")
         }
     }
 
-    private inline fun checkAccessibleOnPoint(
+    private inline fun withAccessibleAt(
         window: ComposeWindow,
         x: Int,
         y: Int,
