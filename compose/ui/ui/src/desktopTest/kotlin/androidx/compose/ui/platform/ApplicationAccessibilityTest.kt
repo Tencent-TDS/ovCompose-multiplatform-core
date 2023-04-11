@@ -277,8 +277,7 @@ class ApplicationAccessibilityTest {
         y: Int,
         check: AccessibleContext.() -> Unit
     ) {
-        val sceneAccessible = window.delegate.layer.sceneAccessible
-        val accessibleComponent = sceneAccessible.accessibleContext as AccessibleComponent
+        val accessibleComponent = window.windowAccessible.accessibleContext as AccessibleComponent
         val accessibleComponentAtPoint = accessibleComponent.getAccessibleAt(Point(x, y))
 
         check(accessibleComponentAtPoint.accessibleContext)

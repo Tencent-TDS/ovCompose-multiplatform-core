@@ -22,14 +22,14 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.WindowPlacement
-import org.jetbrains.skiko.GraphicsApi
 import java.awt.Component
 import java.awt.GraphicsConfiguration
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
 import java.awt.event.MouseWheelListener
+import javax.accessibility.Accessible
 import javax.swing.JFrame
-import org.jetbrains.skiko.ExperimentalSkikoApi
+import org.jetbrains.skiko.GraphicsApi
 import org.jetbrains.skiko.SkiaLayerAnalytics
 
 /**
@@ -58,7 +58,11 @@ class ComposeWindow @ExperimentalComposeUiApi constructor(
         graphicsConfiguration: GraphicsConfiguration? = null
     ) : this(graphicsConfiguration, SkiaLayerAnalytics.Empty)
 
-    internal val delegate = ComposeWindowDelegate(this, ::isUndecorated, skiaLayerAnalytics)
+    private val delegate = ComposeWindowDelegate(this, ::isUndecorated, skiaLayerAnalytics)
+
+    // Don't override the accessible context of JFrame, since accessibility work through HardwareLayer
+    internal val windowAccessible: Accessible
+        get() = delegate.windowAccessible
 
     init {
         contentPane.add(delegate.pane)

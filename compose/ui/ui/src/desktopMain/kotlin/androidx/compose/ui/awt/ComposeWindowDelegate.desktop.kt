@@ -30,21 +30,13 @@ import androidx.compose.ui.window.LocalWindow
 import androidx.compose.ui.window.UndecoratedWindowResizer
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
-import java.awt.Color
-import java.awt.Component
-import java.awt.Container
-import java.awt.FocusTraversalPolicy
-import java.awt.Window
+import java.awt.*
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
 import java.awt.event.MouseWheelListener
+import javax.accessibility.Accessible
 import javax.swing.JLayeredPane
-import org.jetbrains.skiko.ClipComponent
-import org.jetbrains.skiko.GraphicsApi
-import org.jetbrains.skiko.OS
-import org.jetbrains.skiko.SkiaLayer
-import org.jetbrains.skiko.SkiaLayerAnalytics
-import org.jetbrains.skiko.hostOs
+import org.jetbrains.skiko.*
 
 internal class ComposeWindowDelegate(
     private val window: Window,
@@ -58,10 +50,12 @@ internal class ComposeWindowDelegate(
     // so we nullify layer on dispose, to prevent keeping
     // big objects in memory (like the whole LayoutNode tree of the window)
     private var _layer: ComposeLayer? = ComposeLayer(skiaLayerAnalytics)
-    internal val layer
+    private val layer
         get() = requireNotNull(_layer) {
             "ComposeLayer is disposed"
         }
+    internal val windowAccessible: Accessible
+        get() = layer.sceneAccessible
     val undecoratedWindowResizer = UndecoratedWindowResizer(window)
 
     private val _pane = object : JLayeredPane() {
