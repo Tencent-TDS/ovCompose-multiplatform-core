@@ -233,7 +233,7 @@ internal class ApplicationAccessibilityTest {
         launchTestApplication {
             Window(onCloseRequest = {}) {
                 window = this.window
-                (AlertDialog(
+                AlertDialog(
                     onDismissRequest = { },
                     title = { Text("Alert Dialog") },
                     text = {
@@ -254,7 +254,7 @@ internal class ApplicationAccessibilityTest {
                             )
                         }
                     }
-                ))
+                )
             }
         }
         awaitIdle()
