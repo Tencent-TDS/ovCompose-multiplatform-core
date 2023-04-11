@@ -42,7 +42,7 @@ import org.junit.Ignore
 import org.junit.Test
 
 @OptIn(ExperimentalMaterialApi::class)
-internal class ApplicationAccessibilityTest {
+class ApplicationAccessibilityTest {
     @Test
     fun `popup text is accessible on hover`() = runApplicationTest {
         lateinit var window: ComposeWindow
