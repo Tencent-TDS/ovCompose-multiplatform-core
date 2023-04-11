@@ -16,20 +16,23 @@
 
 package androidx.compose.mpp.demo
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun RoundedCornerCrashOnJS() {
-    Surface(
-        modifier = Modifier.size(100.dp),
-        shape = RoundedCornerShape(0.dp, 9.dp, 9.dp, 9.dp),
-        elevation = 1.dp,
+    Box(
+        modifier = Modifier
+            .size(100.dp)
+            .graphicsLayer {
+                shadowElevation = 5.dp.toPx()
+                shape = RoundedCornerShape(0.dp, 9.dp, 9.dp, 9.dp)
+            }
     ) {
-
     }
 }
