@@ -44,7 +44,7 @@ import javax.accessibility.AccessibleStateSet
  * Note about a11y for focus-based tools (e.g. VoiceOver).
  * Now focus-based tools are supported on [org.jetbrains.skiko.HardwareLayer] side.
  * When Compose's [androidx.compose.ui.semantics.SemanticsNode] is focused
- * [AccessibilityControllerImpl.onFocusRequested] is called and
+ * [AccessibilityControllerImpl.onFocusReceived] is called and
  * [org.jetbrains.skiko.HardwareLayer] provides mapped [ComposeAccessible] to accessibility tool.
  *
  * @param rootsProvider provider of all the skia roots such as main window, popups etc.

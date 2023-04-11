@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.layoutDirection
-import java.awt.Component
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
@@ -127,7 +126,7 @@ internal class ComposeLayer(
         }
 
         override fun accessibilityController(owner: SemanticsOwner) =
-            AccessibilityControllerImpl(owner, _component, onFocusRequested = {
+            AccessibilityControllerImpl(owner, _component, onFocusReceived = {
                 _component.requestNativeFocusOnAccessible(it)
             })
 

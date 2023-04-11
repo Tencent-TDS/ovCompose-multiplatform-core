@@ -25,9 +25,7 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.TextRange
 import javax.accessibility.Accessible
 import javax.accessibility.AccessibleComponent
-import javax.accessibility.AccessibleContext.ACCESSIBLE_CARET_PROPERTY
-import javax.accessibility.AccessibleContext.ACCESSIBLE_STATE_PROPERTY
-import javax.accessibility.AccessibleContext.ACCESSIBLE_TEXT_PROPERTY
+import javax.accessibility.AccessibleContext.*
 import javax.accessibility.AccessibleState
 import kotlinx.coroutines.delay
 
@@ -35,7 +33,7 @@ import kotlinx.coroutines.delay
  * This class provides a mapping from compose tree of [owner] to tree of [ComposeAccessible],
  * so that each [SemanticsNode] has [ComposeAccessible].
  *
- * @param onFocusRequested a callback that will be called with [ComposeAccessible]
+ * @param onFocusReceived a callback that will be called with [ComposeAccessible]
  * when a [SemanticsNode] from [owner] received a focus
  *
  * @see ComposeSceneAccessible
@@ -44,7 +42,7 @@ import kotlinx.coroutines.delay
 internal class AccessibilityControllerImpl(
     private val owner: SemanticsOwner,
     val desktopComponent: PlatformComponent,
-    private val onFocusRequested: (ComposeAccessible) -> Unit
+    private val onFocusReceived: (ComposeAccessible) -> Unit
 ) : AccessibilityController {
     private var currentNodesInvalidated = true
     var _currentNodes: Map<Int, ComposeAccessible> = emptyMap()
@@ -98,7 +96,7 @@ internal class AccessibilityControllerImpl(
                                 ACCESSIBLE_STATE_PROPERTY,
                                 null, AccessibleState.FOCUSED
                             )
-                            onFocusRequested(component)
+                            onFocusReceived(component)
                         } else {
                             component.accessibleContext.firePropertyChange(
                                 ACCESSIBLE_STATE_PROPERTY,
