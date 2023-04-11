@@ -20,12 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Button
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.assertThat
@@ -35,17 +30,8 @@ import androidx.compose.ui.isEqualTo
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.sendMouseEvent
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupPositionProvider
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.WindowTestScope
-import androidx.compose.ui.window.density
-import androidx.compose.ui.window.runApplicationTest
+import androidx.compose.ui.unit.*
+import androidx.compose.ui.window.*
 import java.awt.Point
 import java.awt.Window
 import java.awt.event.MouseEvent
@@ -241,7 +227,7 @@ internal class ApplicationAccessibilityTest {
     @Test
     fun `alert dialog accessibility`() = runApplicationTest {
         lateinit var window: ComposeWindow
-        var buttonPositionPx: Offset? = null
+        var buttonTextPositionPx: Offset? = null
         var textPositionPx: Offset? = null
 
         launchTestApplication {
@@ -258,11 +244,15 @@ internal class ApplicationAccessibilityTest {
                         )
                     },
                     confirmButton = {
-                        Button(
-                            onClick = {},
-                            modifier = Modifier
-                                .onGloballyPositioned { buttonPositionPx = it.positionInWindow() }
-                        ) { Text("Alert Dialog Button") }
+                        Button(onClick = {}) {
+                            Text(
+                                "Alert Dialog Button",
+                                modifier = Modifier
+                                    .onGloballyPositioned {
+                                        buttonTextPositionPx = it.positionInWindow()
+                                    }
+                            )
+                        }
                     }
                 ))
             }
@@ -270,13 +260,13 @@ internal class ApplicationAccessibilityTest {
         awaitIdle()
 
         val textPosition = textPositionPx!!.toAwtPoint(window)
-        val buttonPosition = buttonPositionPx!!.toAwtPoint(window)
+        val buttonTextPosition = buttonTextPositionPx!!.toAwtPoint(window)
 
         checkAccessibleOnPoint(window, textPosition.x + 2, textPosition.y + 2) {
             assertThat(accessibleName).isEqualTo("Alert Dialog Text")
         }
 
-        checkAccessibleOnPoint(window, buttonPosition.x + 2, buttonPosition.y + 2) {
+        checkAccessibleOnPoint(window, buttonTextPosition.x + 2, buttonTextPosition.y + 2) {
             assertThat(accessibleName).isEqualTo("Alert Dialog Button")
         }
     }
