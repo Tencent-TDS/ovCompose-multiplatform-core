@@ -17,20 +17,10 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.platform.ComposeSceneAccessible.ComposeSceneAccessibleContext
-import java.awt.Color
-import java.awt.Cursor
-import java.awt.Dimension
-import java.awt.Font
-import java.awt.FontMetrics
-import java.awt.Point
-import java.awt.Rectangle
+import java.awt.*
 import java.awt.event.FocusListener
-import java.util.Locale
-import javax.accessibility.Accessible
-import javax.accessibility.AccessibleComponent
-import javax.accessibility.AccessibleContext
-import javax.accessibility.AccessibleRole
-import javax.accessibility.AccessibleStateSet
+import java.util.*
+import javax.accessibility.*
 
 /**
  * This is a root [Accessible] for a [androidx.compose.ui.ComposeScene]
@@ -161,6 +151,7 @@ internal class ComposeSceneAccessible(
         override fun isEnabled(): Boolean = true
 
         override fun requestFocus() {
+            // DO NOTHING
         }
 
         override fun getAccessibleRole(): AccessibleRole {
@@ -171,23 +162,20 @@ internal class ComposeSceneAccessible(
             return AccessibleStateSet()
         }
 
-        // ---------------------------
-        // NOT IMPLEMENTED
-
         override fun setLocation(p: Point?) {
-            // NOT IMPLEMENTED
+            // DO NOTHING
         }
 
         override fun setBounds(r: Rectangle?) {
-            // NOT IMPLEMENTED
+            // DO NOTHING
         }
 
         override fun setSize(d: Dimension?) {
-            // NOT IMPLEMENTED
+            // DO NOTHING
         }
 
         override fun setVisible(b: Boolean) {
-            // NOT IMPLEMENTED
+            // DO NOTHING
         }
 
         override fun getBackground(): Color? {
@@ -195,7 +183,7 @@ internal class ComposeSceneAccessible(
         }
 
         override fun setBackground(c: Color?) {
-            // NOT IMPLEMENTED
+            // DO NOTHING
         }
 
         override fun getForeground(): Color? {
@@ -203,7 +191,7 @@ internal class ComposeSceneAccessible(
         }
 
         override fun setForeground(c: Color?) {
-            // NOT IMPLEMENTED
+            // DO NOTHING
         }
 
         override fun getCursor(): Cursor? {
@@ -211,7 +199,7 @@ internal class ComposeSceneAccessible(
         }
 
         override fun setCursor(cursor: Cursor?) {
-            // NOT IMPLEMENTED
+            // DO NOTHING
         }
 
         override fun getFont(): Font? {
@@ -219,7 +207,7 @@ internal class ComposeSceneAccessible(
         }
 
         override fun setFont(f: Font?) {
-            // NOT IMPLEMENTED
+            // DO NOTHING
         }
 
         override fun getFontMetrics(f: Font?): FontMetrics? {
@@ -227,15 +215,15 @@ internal class ComposeSceneAccessible(
         }
 
         override fun setEnabled(b: Boolean) {
-            // NOT IMPLEMENTED
+            // DO NOTHING
         }
 
         override fun addFocusListener(l: FocusListener?) {
-            // NOT IMPLEMENTED
+            // DO NOTHING
         }
 
         override fun removeFocusListener(l: FocusListener?) {
-            // NOT IMPLEMENTED
+            // DO NOTHING
         }
     }
 }
