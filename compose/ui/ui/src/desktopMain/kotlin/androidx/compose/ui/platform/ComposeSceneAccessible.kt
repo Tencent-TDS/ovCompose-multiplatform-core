@@ -38,6 +38,7 @@ import javax.accessibility.*
  * [org.jetbrains.skiko.HardwareLayer] provides mapped [ComposeAccessible] to accessibility tool.
  *
  * @param rootsProvider provider of all the skia roots such as main window, popups etc.
+ * in order from first opened to the last.
  * @param mainRootProvider provider of a main skia root
  * those size, bounds, location are used for [androidx.compose.ui.ComposeScene] accessibility
  *

@@ -26,21 +26,8 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.AwtCursor
-import androidx.compose.ui.input.pointer.PointerButton
-import androidx.compose.ui.input.pointer.PointerButtons
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
-import androidx.compose.ui.input.pointer.PointerType
-import androidx.compose.ui.platform.AccessibilityControllerImpl
-import androidx.compose.ui.platform.ComposeSceneAccessible
-import androidx.compose.ui.platform.Platform
-import androidx.compose.ui.platform.PlatformComponent
-import androidx.compose.ui.platform.PlatformInput
-import androidx.compose.ui.platform.SkiaBasedOwner
-import androidx.compose.ui.platform.ViewConfiguration
-import androidx.compose.ui.platform.WindowInfoImpl
+import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.platform.*
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.toPointerKeyboardModifiers
 import androidx.compose.ui.unit.Constraints
@@ -50,25 +37,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.layoutDirection
+import java.awt.*
 import java.awt.Cursor
-import java.awt.Dimension
-import java.awt.Graphics
-import java.awt.Point
-import java.awt.Toolkit
-import java.awt.Window
-import java.awt.event.FocusEvent
-import java.awt.event.FocusListener
-import java.awt.event.InputEvent
-import java.awt.event.InputMethodEvent
-import java.awt.event.InputMethodListener
-import java.awt.event.KeyAdapter
+import java.awt.event.*
 import java.awt.event.KeyEvent
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
-import java.awt.event.MouseMotionAdapter
-import java.awt.event.MouseWheelEvent
-import java.awt.event.WindowEvent
-import java.awt.event.WindowFocusListener
 import java.awt.im.InputMethodRequests
 import javax.accessibility.Accessible
 import javax.swing.SwingUtilities
@@ -76,12 +48,8 @@ import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineExceptionHandler
 import org.jetbrains.skia.Canvas
-import org.jetbrains.skiko.MainUIDispatcher
+import org.jetbrains.skiko.*
 import org.jetbrains.skiko.SkiaLayer
-import org.jetbrains.skiko.SkiaLayerAnalytics
-import org.jetbrains.skiko.SkikoInput
-import org.jetbrains.skiko.SkikoView
-import org.jetbrains.skiko.hostOs
 
 internal class ComposeLayer(
     private val skiaLayerAnalytics: SkiaLayerAnalytics
@@ -89,12 +57,8 @@ internal class ComposeLayer(
     private var isDisposed = false
 
     internal val sceneAccessible = ComposeSceneAccessible(
-        rootsProvider = {
-            scene.roots.filterIsInstance<SkiaBasedOwner>()
-        },
-        mainRootProvider = {
-            scene.mainOwner
-        }
+        rootsProvider = { scene.owners },
+        mainRootProvider = { scene.mainOwner }
     )
 
     private val _component = ComponentImpl()
