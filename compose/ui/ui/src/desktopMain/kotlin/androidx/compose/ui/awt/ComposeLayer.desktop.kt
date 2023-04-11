@@ -57,8 +57,8 @@ internal class ComposeLayer(
     private var isDisposed = false
 
     internal val sceneAccessible = ComposeSceneAccessible(
-        rootsProvider = { scene.owners },
-        mainRootProvider = { scene.mainOwner }
+        ownersProvider = { scene.owners.asReversed() },
+        mainOwnerProvider = { scene.mainOwner }
     )
 
     private val _component = ComponentImpl()

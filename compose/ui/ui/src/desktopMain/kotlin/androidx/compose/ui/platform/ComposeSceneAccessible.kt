@@ -37,17 +37,17 @@ import javax.accessibility.*
  * [AccessibilityControllerImpl.onFocusReceived] is called and
  * [org.jetbrains.skiko.HardwareLayer] provides mapped [ComposeAccessible] to accessibility tool.
  *
- * @param rootsProvider provider of all the skia roots such as main window, popups etc.
- * in order from first opened to the last.
- * @param mainRootProvider provider of a main skia root
+ * @param ownersProvider provider of all the skia owners such as main window, popups etc.
+ * in order from **last opened** to the **first opened**.
+ * @param mainOwnerProvider provider of a main skia owner
  * those size, bounds, location are used for [androidx.compose.ui.ComposeScene] accessibility
  *
  * @see AccessibilityControllerImpl
  * @see ComposeAccessible
  */
 internal class ComposeSceneAccessible(
-    private val rootsProvider: () -> List<SkiaBasedOwner>,
-    private val mainRootProvider: () -> SkiaBasedOwner?
+    private val ownersProvider: () -> List<SkiaBasedOwner>,
+    private val mainOwnerProvider: () -> SkiaBasedOwner?
 ) : Accessible {
     private val a11yDisabled by lazy {
         System.getProperty("compose.accessibility.enable") == "false" ||
@@ -55,7 +55,7 @@ internal class ComposeSceneAccessible(
     }
 
     private val accessibleContext by lazy {
-        ComposeSceneAccessibleContext(rootsProvider, mainRootProvider)
+        ComposeSceneAccessibleContext(ownersProvider, mainOwnerProvider)
     }
 
     override fun getAccessibleContext(): AccessibleContext? {
@@ -81,10 +81,9 @@ internal class ComposeSceneAccessible(
          * and finds the best [Accessible] under the pointer.
          */
         override fun getAccessibleAt(p: Point): Accessible? {
-            val controllers = allOwners()
-                .map { it.accessibilityController }
-                .filterIsInstance<AccessibilityControllerImpl>()
-            for (controller in controllers.reversed()) {
+            for (owner in allOwners()) {
+                val controller = owner.accessibilityController as? AccessibilityControllerImpl
+                    ?: continue
                 val rootAccessible = controller.rootAccessible
                 val context =
                     rootAccessible.getAccessibleContext() as? AccessibleComponent
