@@ -21,13 +21,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.interop.LocalLayerContainer
+import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.native.ComposeLayer
+import androidx.compose.ui.platform.*
+import androidx.compose.ui.platform.DefaultInputModeManager
 import androidx.compose.ui.platform.Platform
-import androidx.compose.ui.platform.TextToolbar
-import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.platform.UIKitTextInputService
-import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
@@ -237,6 +238,8 @@ internal actual class ComposeWindow : UIViewController {
                     else
                         TextToolbarStatus.Hidden
             }
+
+            override val inputModeManager = DefaultInputModeManager(InputMode.Touch)
         }
         layer = ComposeLayer(
             layer = skiaLayer,
@@ -247,6 +250,7 @@ internal actual class ComposeWindow : UIViewController {
         layer.setContent(content = {
             CompositionLocalProvider(
                 LocalLayerContainer provides rootView,
+                LocalUIViewController provides this,
             ) {
                 content()
             }

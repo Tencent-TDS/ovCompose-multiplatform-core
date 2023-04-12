@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package androidx.compose.ui.native
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.CoroutineDispatcher
+package androidx.compose.ui.interop
 
-internal actual fun getMainDispatcher(): CoroutineDispatcher = Dispatchers.Main
+import androidx.compose.runtime.staticCompositionLocalOf
+import platform.UIKit.UIViewController
 
+/**
+ * public value to get UIViewController of Compose window for library authors.
+ * Maybe useful for features, like VideoPlayer and Bottom menus.
+ * Please use it careful and don't remove another views.
+ */
+val LocalUIViewController = staticCompositionLocalOf<UIViewController> {
+    error("CompositionLocal UIViewController not provided")
+}

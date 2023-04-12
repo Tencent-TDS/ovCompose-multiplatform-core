@@ -23,8 +23,9 @@ import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.focusRect
 import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.pointer.toCompose
+import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.toCompose
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.unit.Density
 import kotlinx.coroutines.CoroutineDispatcher
@@ -33,17 +34,13 @@ import org.jetbrains.skiko.SkiaLayer
 import org.jetbrains.skiko.SkikoView
 import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoPointerEvent
-import org.jetbrains.skiko.SkikoTouchEvent
-import org.jetbrains.skiko.SkikoTouchEventKind
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.DpRect
-import androidx.compose.ui.unit.ExperimentalUnitApi
 import androidx.compose.ui.unit.toDpRect
 import org.jetbrains.skia.Point
 import org.jetbrains.skiko.SkikoInput
 import org.jetbrains.skiko.currentNanoTime
 
-@OptIn(ExperimentalUnitApi::class)
 internal class ComposeLayer(
     internal val layer: SkiaLayer,
     platform: Platform,
@@ -67,34 +64,40 @@ internal class ComposeLayer(
             scene.sendKeyEvent(KeyEvent(event))
         }
 
-        override fun onTouchEvent(events: Array<SkikoTouchEvent>) {
-            val event = events.first()
-            when (event.kind) {
-                SkikoTouchEventKind.STARTED,
-                SkikoTouchEventKind.MOVED,
-                SkikoTouchEventKind.CANCELLED,
-                SkikoTouchEventKind.ENDED -> {
-                    val scale = density.density
-                    scene.sendPointerEvent(
-                        eventType = event.kind.toCompose(),
-                        position = Offset(
-                            x = event.x.toFloat() * scale,
-                            y = event.y.toFloat() * scale
-                        ) - getTopLeftOffset(),
-                        timeMillis = currentMillis(),
-                        type = PointerType.Touch,
-                        nativeEvent = event
-                    )
-                }
-
-                SkikoTouchEventKind.UNKNOWN -> {
-                    TODO("onTouchEvent, event.kind is SkikoTouchEventKind.UNKNOWN")
-                }
+        @OptIn(ExperimentalComposeUiApi::class)
+        override fun onPointerEvent(event: SkikoPointerEvent) {
+            if (supportsMultitouch) {
+                onPointerEventWithMultitouch(event)
+            } else {
+                // macos and web don't work properly when using onPointerEventWithMultitouch
+                onPointerEventNoMultitouch(event)
             }
         }
 
         @OptIn(ExperimentalComposeUiApi::class)
-        override fun onPointerEvent(event: SkikoPointerEvent) {
+        private fun onPointerEventWithMultitouch(event: SkikoPointerEvent) {
+            val scale = density.density
+            val topLeftOffset = getTopLeftOffset()
+            scene.sendPointerEvent(
+                eventType = event.kind.toCompose(),
+                pointers = event.pointers.map {
+                    ComposeScene.Pointer(
+                        id = PointerId(it.id),
+                        position = Offset(
+                            x = it.x.toFloat() * scale,
+                            y = it.y.toFloat() * scale
+                        ) - topLeftOffset,
+                        pressed = it.pressed,
+                        type = it.device.toCompose(),
+                        pressure = it.pressure.toFloat(),
+                    )
+                },
+                timeMillis = event.timestamp,
+                nativeEvent = event
+            )
+        }
+
+        private fun onPointerEventNoMultitouch(event: SkikoPointerEvent) {
             val scale = density.density
             scene.sendPointerEvent(
                 eventType = event.kind.toCompose(),
@@ -109,7 +112,7 @@ internal class ComposeLayer(
         }
     }
 
-    val view = ComponentImpl()
+    private val view = ComponentImpl()
 
     init {
         layer.skikoView = view
@@ -183,3 +186,6 @@ internal class ComposeLayer(
 internal expect fun getMainDispatcher(): CoroutineDispatcher
 
 private fun currentMillis() = (currentNanoTime() / 1E6).toLong()
+
+
+internal expect val supportsMultitouch: Boolean

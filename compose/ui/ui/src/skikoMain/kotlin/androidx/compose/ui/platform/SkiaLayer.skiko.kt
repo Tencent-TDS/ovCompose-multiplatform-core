@@ -63,8 +63,6 @@ internal class SkiaLayer(
     private var shadowElevation: Float = 0f
     private var ambientShadowColor: Color = DefaultShadowColor
     private var spotShadowColor: Color = DefaultShadowColor
-
-    // TODO: [1.4 Update] check that compositingStrategy is properly used after merge
     private var compositingStrategy: CompositingStrategy = CompositingStrategy.Auto
 
     override fun destroy() {
@@ -254,11 +252,10 @@ internal class SkiaLayer(
             } else {
                 canvas.save()
             }
-            val skiaCanvas = canvas as SkiaBackedCanvas
-            if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
-                skiaCanvas.alphaMultiplier = alpha
+            canvas.alphaMultiplier = if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
+                alpha
             } else {
-                skiaCanvas.alphaMultiplier = 1.0f
+                1.0f
             }
 
             drawBlock(canvas)
