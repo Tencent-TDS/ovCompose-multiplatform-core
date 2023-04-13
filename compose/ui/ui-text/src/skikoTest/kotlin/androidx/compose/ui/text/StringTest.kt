@@ -16,10 +16,21 @@
 
 package androidx.compose.ui.text
 
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.intl.LocaleList
 import kotlin.test.*
 
 class StringTest {
+
+    @Test
+    fun emptyStringTransformations() {
+        val empty = ""
+
+        assertEquals(empty.toUpperCase(Locale.current), empty)
+        assertEquals(empty.toLowerCase(Locale.current), empty)
+        assertEquals(empty.capitalize(Locale.current), empty)
+        assertEquals(empty.decapitalize(Locale.current), empty)
+    }
 
     @Test
     fun twoCharactersRepresentedAsSingleUnicodeLetter() {
