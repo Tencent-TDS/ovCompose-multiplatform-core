@@ -16,13 +16,9 @@
 package androidx.compose.ui.text.platform
 
 import androidx.compose.ui.text.Cache
-import androidx.compose.ui.text.ExpireAfterAccessCache
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontListFontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.util.fastForEach
 import org.jetbrains.skia.Data
 import org.jetbrains.skia.Typeface as SkTypeface
 
