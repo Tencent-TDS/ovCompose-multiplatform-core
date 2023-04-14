@@ -18,6 +18,11 @@ package androidx.compose.ui.text
 
 // Extremely simple Cache interface which is enough for ui.text needs
 internal interface Cache<K, V> {
-    // get a value for [key] or load it by [loader] if doesn't exist
+    // get a value for [key] or load it by [loader] if it doesn't exist
     fun get(key: K, loader: (K) -> V): V
 }
+
+/**
+ * Cache with weak keys.
+ */
+internal expect class WeakKeysCache<K, V>() : Cache<K, V>

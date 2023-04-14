@@ -30,7 +30,7 @@ private const val twoSecondsInNanos = 2_000_000_000
 private const val tenMillisInNanos = 10_000_000
 
 @RunWith(JUnit4::class)
-class CacheTest {
+class ExpireAfterAccessCacheTest {
     private val time = MockedTimeProvider()
     private val cache = ExpireAfterAccessCache<String, String>(
         expireAfterNanos = 1_000_000_000L, // 1 second

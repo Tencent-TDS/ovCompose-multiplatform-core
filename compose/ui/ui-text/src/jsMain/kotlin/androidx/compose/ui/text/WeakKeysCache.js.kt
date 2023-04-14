@@ -14,8 +14,12 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.text.platform
+package androidx.compose.ui.text
 
-internal expect class Cache<K, V : Any>() {
-    fun getOrPut(key: K, default: (K) -> V): V
+internal actual class WeakKeysCache<K, V> : Cache<K, V> {
+    // TODO Use WeakMap once available https://youtrack.jetbrains.com/issue/KT-44309
+    private val cache = HashMap<K, V>()
+
+    override fun get(key: K, loader: (K) -> V): V =
+        cache.getOrPut(key) { loader(key) }
 }

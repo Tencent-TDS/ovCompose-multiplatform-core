@@ -13,22 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package androidx.compose.ui.text.platform
 
-import kotlin.native.ref.WeakReference
+package androidx.compose.ui.text
 
-internal actual class Cache<K, V : Any> {
-    private val cache = HashMap<K, WeakReference<V>>()
+import kotlin.test.assertEquals
+import org.junit.Test
 
-    actual fun getOrPut(key: K, default: (K) -> V): V {
-        val value = cache[key]?.value
-        return if (value == null) {
-            val answer = default(key)
-            cache[key] = WeakReference(answer)
-            answer
-        } else {
-            value
-        }
+class WeakKeysCacheTest {
+
+    data class MyKey(val ref: Int)
+
+    @Test
+    fun clearOnGC() {
+        val cache = WeakKeysCache<MyKey, Int>()
+        var created = 0
+        assertEquals(1, cache.get(MyKey(42)) { ++created })
+        assertEquals(1, cache.get(MyKey(42)) { ++created })
+        System.gc()
+        assertEquals(2, cache.get(MyKey(42)) { ++created })
+        assertEquals(2, cache.get(MyKey(42)) { ++created })
     }
 }
-

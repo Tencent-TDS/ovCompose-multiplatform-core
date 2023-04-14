@@ -13,9 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package androidx.compose.ui.text.platform
+package androidx.compose.ui.text
 
-internal actual class Cache<K, V : Any> {
-    // TODO
-    actual fun getOrPut(key: K, default: (K) -> V): V = default(key)
+internal actual class WeakKeysCache<K, V> : Cache<K, V> {
+    // TODO Use WeakHashMap once available https://youtrack.jetbrains.com/issue/KT-48075
+    private val cache = HashMap<K, V>()
+
+    override fun get(key: K, loader: (K) -> V): V =
+        cache.getOrPut(key) { loader(key) }
 }
+
