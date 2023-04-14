@@ -18,8 +18,5 @@ package androidx.compose.ui.text
 
 internal actual class WeakKeysCache<K, V> : Cache<K, V> {
     // TODO Use WeakMap once available https://youtrack.jetbrains.com/issue/KT-44309
-    private val cache = HashMap<K, V>()
-
-    override fun get(key: K, loader: (K) -> V): V =
-        cache.getOrPut(key) { loader(key) }
+    override fun get(key: K, loader: (K) -> V): V = loader(key)
 }

@@ -20,8 +20,7 @@ import kotlin.test.assertEquals
 import org.junit.Test
 
 class WeakKeysCacheTest {
-
-    data class MyKey(val ref: Int)
+    data class MyKey(val v: Int)
 
     @Test
     fun clearOnGC() {

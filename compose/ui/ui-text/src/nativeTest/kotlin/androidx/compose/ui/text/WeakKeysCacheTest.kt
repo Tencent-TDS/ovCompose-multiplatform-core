@@ -22,7 +22,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class WeakKeysCacheTest {
-    data class MyKey(val ref: Int)
+    data class MyKey(val v: Int)
 
     @Test
     @Ignore // It should pass once implementation of WeakKeysCache fixed
