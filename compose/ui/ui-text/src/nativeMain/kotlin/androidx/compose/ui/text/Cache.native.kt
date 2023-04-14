@@ -16,7 +16,9 @@
 
 package androidx.compose.ui.text
 
-internal actual class WeakKeysCache<K, V> : Cache<K, V> {
-    // TODO Use WeakMap once available https://youtrack.jetbrains.com/issue/KT-44309
+// TODO Use WeakHashMap once available https://youtrack.jetbrains.com/issue/KT-48075
+internal actual typealias WeakKeysCache<K, V> = NoCache<K, V>
+
+internal class NoCache<K, V> : Cache<K, V> {
     override fun get(key: K, loader: (K) -> V): V = loader(key)
 }
