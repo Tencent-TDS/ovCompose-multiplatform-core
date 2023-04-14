@@ -193,20 +193,6 @@ fun Font(
     style: FontStyle = FontStyle.Normal
 ): Font = FileFont(file, weight, style)
 
-internal actual fun FontListFontFamily.makeAlias(): String {
-    val digest = MessageDigest.getInstance("SHA-256")
-    fonts.fastForEach { font ->
-        when (font) {
-            is PlatformFont -> {
-                digest.update(font.identity.toByteArray())
-            }
-        }
-    }
-    return "-compose-${digest.digest().toHexString()}"
-}
-
-private fun ByteArray.toHexString() = joinToString("") { "%02x".format(it) }
-
 internal actual fun loadTypeface(font: Font): SkTypeface {
     if (font !is PlatformFont) {
         throw IllegalArgumentException("Unsupported font type: $font")

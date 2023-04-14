@@ -107,10 +107,6 @@ fun Typeface(typeface: SkTypeface, alias: String? = null): Typeface {
     return SkiaBackedTypeface(alias, typeface)
 }
 
-// TODO: may be have an expect for MessageDigest?
-// It has the static .getInstance() method, how would that work?
-internal expect fun FontListFontFamily.makeAlias(): String
-
 @Suppress("DEPRECATION", "OverridingDeprecatedMember")
 @Deprecated(
     "Replaced with PlatformFontLoader during the introduction of async fonts, all usages" +

@@ -60,10 +60,6 @@ internal actual val GenericFontFamiliesMapping by lazy {
     }
 }
 
-internal actual fun FontListFontFamily.makeAlias(): String {
-    TODO("implement native FontListFontFamily.makeAlias()")
-}
-
 internal actual fun loadTypeface(font: Font): SkTypeface {
     if (font !is PlatformFont) {
         throw IllegalArgumentException("Unsupported font type: $font")
