@@ -16,9 +16,37 @@
 
 package androidx.compose.ui.text
 
-// TODO Use WeakHashMap once available https://youtrack.jetbrains.com/issue/KT-48075
-internal actual typealias WeakKeysCache<K, V> = NoCache<K, V>
+import kotlin.native.ref.WeakReference
 
-internal class NoCache<K, V> : Cache<K, V> {
-    override fun get(key: K, loader: (K) -> V): V = loader(key)
+internal actual class WeakKeysCache<K : Any, V> : Cache<K, V> {
+    // TODO Use WeakHashMap once available https://youtrack.jetbrains.com/issue/KT-48075
+    private val cache = HashMap<Key<K>, V>()
+
+    override fun get(key: K, loader: (K) -> V): V {
+        clean()
+        return cache.getOrPut(Key(key)) { loader(key) }
+    }
+
+    private fun clean() {
+        cache.keys
+            .filter { !it.isAvailable }
+            .forEach {
+                cache.remove(it)
+            }
+    }
+
+    private class Key<K : Any>(key: K) {
+        private val ref = WeakReference(key)
+        private val hash: Int = key.hashCode()
+
+        val isAvailable get() = ref.value != null
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            other as Key<*>
+            return ref.value == other.ref.value
+        }
+
+        override fun hashCode(): Int = hash
+    }
 }

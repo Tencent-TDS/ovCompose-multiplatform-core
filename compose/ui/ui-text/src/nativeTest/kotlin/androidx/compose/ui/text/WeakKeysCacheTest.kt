@@ -17,22 +17,29 @@
 package androidx.compose.ui.text
 
 import kotlin.native.internal.GC
+import kotlin.native.ref.WeakReference
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class WeakKeysCacheTest {
     data class MyKey(val v: Int)
 
     @Test
-    @Ignore // It should pass once implementation of WeakKeysCache fixed
     fun clearOnGC() {
         val cache = WeakKeysCache<MyKey, Int>()
         var created = 0
-        assertEquals(1, cache.get(MyKey(42)) { ++created })
-        assertEquals(1, cache.get(MyKey(42)) { ++created })
+
+        // Accessing to weak reference creates strong one in stack now.
+        // So to make GC work, wrap it into separate function.
+        fun checkCache(expected: Int) {
+            assertEquals(expected, cache.get(MyKey(42)) { ++created })
+            assertEquals(expected, cache.get(MyKey(42)) { ++created })
+        }
+        checkCache(1)
         GC.collect()
-        assertEquals(2, cache.get(MyKey(42)) { ++created })
-        assertEquals(2, cache.get(MyKey(42)) { ++created })
+        checkCache(2)
     }
+
 }
