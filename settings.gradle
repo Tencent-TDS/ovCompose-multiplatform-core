@@ -43,7 +43,7 @@ if (!isJBFork) {
 
 // Makes strong assumptions about the project structure.
 def prebuiltsRoot = new File(
-        buildscript.sourceFile.parentFile.parentFile.parentFile,
+        buildscript.sourceFile.parentFile,
         "prebuilts"
 ).absolutePath
 def rootProjectRepositories
