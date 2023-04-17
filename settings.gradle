@@ -6,7 +6,7 @@ import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 pluginManagement {
     repositories {
         maven {
-            url = new File(buildscript.sourceFile.parent + "/../../prebuilts/androidx/external").getCanonicalFile()
+            url = new File(buildscript.sourceFile.parent + "/prebuilts/androidx/external").getCanonicalFile()
         }
         def isJBFork = true
         if (isJBFork) {
@@ -1111,7 +1111,7 @@ includeProject(":media2:media2-session:version-compat-tests:common", [BuildType.
 //
 /////////////////////////////
 
-File externalRoot = new File(rootDir, "../../external")
+File externalRoot = new File(rootDir, "external")
 
 includeProject(":icing", new File(externalRoot, "icing"), [BuildType.MAIN])
 includeProject(":icing:nativeLib", new File(externalRoot, "icing/nativeLib"), [BuildType.MAIN])

@@ -30,7 +30,7 @@ File getExternalProjectPath() {
         }
         return path.getCanonicalFile()
     } else {
-        return new File(scriptDir, "../../external").getCanonicalFile()
+        return new File(scriptDir, "external").getCanonicalFile()
     }
 }
 
