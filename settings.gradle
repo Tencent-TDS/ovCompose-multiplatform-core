@@ -1134,3 +1134,5 @@ includeProject(":placeholder-tests")
 
 // Workaround for b/203825166
 includeBuild("placeholder")
+
+includeProject(":mpp", [BuildType.COMPOSE])
