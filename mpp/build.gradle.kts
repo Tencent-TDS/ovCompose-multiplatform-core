@@ -16,13 +16,9 @@ buildscript {
     }
 }
 
-fun Task.dependsOnComposeTask(name: String) {
-    dependsOn(project.composeBuild?.task(name) ?: return)
-}
-
 open class ComposePublishingTask : AbstractComposePublishingTask() {
     override fun dependsOnComposeTask(task: String) {
-        dependsOn(project.composeBuild?.task(task) ?: return)
+        dependsOn(task)
     }
 }
 
@@ -115,95 +111,91 @@ tasks.register("publishComposeJbExtendedIconsToMavenLocal", ComposePublishingTas
 }
 
 tasks.register("testComposeJbDesktop") {
-    dependsOnComposeTask(":compose:desktop:desktop:jvmTest")
-    dependsOnComposeTask(":compose:animation:animation:desktopTest")
-    dependsOnComposeTask(":compose:animation:animation-core:desktopTest")
-    dependsOnComposeTask(":compose:ui:ui:desktopTest")
-    dependsOnComposeTask(":compose:ui:ui-graphics:desktopTest")
-    dependsOnComposeTask(":compose:ui:ui-text:desktopTest")
-    dependsOnComposeTask(":compose:ui:ui-test-junit4:desktopTest")
-    dependsOnComposeTask(":compose:foundation:foundation:desktopTest")
-    dependsOnComposeTask(":compose:foundation:foundation-layout:desktopTest")
-    dependsOnComposeTask(":compose:material:material:desktopTest")
-    dependsOnComposeTask(":compose:material:material-ripple:desktopTest")
-    dependsOnComposeTask(":compose:runtime:runtime:desktopTest")
-    dependsOnComposeTask(":compose:runtime:runtime-saveable:desktopTest")
+    dependsOn(":compose:desktop:desktop:jvmTest")
+    dependsOn(":compose:animation:animation:desktopTest")
+    dependsOn(":compose:animation:animation-core:desktopTest")
+    dependsOn(":compose:ui:ui:desktopTest")
+    dependsOn(":compose:ui:ui-graphics:desktopTest")
+    dependsOn(":compose:ui:ui-text:desktopTest")
+    dependsOn(":compose:ui:ui-test-junit4:desktopTest")
+    dependsOn(":compose:foundation:foundation:desktopTest")
+    dependsOn(":compose:foundation:foundation-layout:desktopTest")
+    dependsOn(":compose:material:material:desktopTest")
+    dependsOn(":compose:material:material-ripple:desktopTest")
+    dependsOn(":compose:runtime:runtime:desktopTest")
+    dependsOn(":compose:runtime:runtime-saveable:desktopTest")
 }
 
 tasks.register("testComposeJbWeb") {
-    dependsOnComposeTask(":compose:runtime:runtime:jsTest")
+    dependsOn(":compose:runtime:runtime:jsTest")
 }
 
 tasks.register("testUIKit") {
     val subtaskName =
         if (System.getProperty("os.arch") == "aarch64") "uikitSimArm64Test" else "uikitX64Test"
-    dependsOnComposeTask(":compose:ui:ui-text:$subtaskName")
-    dependsOnComposeTask(":compose:ui:ui:$subtaskName")
-}
-
-tasks.register("buildNativeDemo") {
-    dependsOnComposeTask(":compose:native:demo:assemble")
+    dependsOn(":compose:ui:ui-text:$subtaskName")
+    dependsOn(":compose:ui:ui:$subtaskName")
 }
 
 tasks.register("testRuntimeNative") {
-    dependsOnComposeTask(":compose:runtime:runtime:macosX64Test")
+    dependsOn(":compose:runtime:runtime:macosX64Test")
 }
 
 tasks.register("testComposeModules") { // used in https://github.com/JetBrains/androidx/tree/jb-main/.github/workflows
     // TODO: download robolectrict to run ui:ui:test
-    // dependsOnComposeTask(":compose:ui:ui:test")
+    // dependsOn(":compose:ui:ui:test")
 
-    dependsOnComposeTask(":compose:ui:ui-graphics:test")
-    dependsOnComposeTask(":compose:ui:ui-geometry:test")
-    dependsOnComposeTask(":compose:ui:ui-unit:test")
-    dependsOnComposeTask(":compose:ui:ui-util:test")
-    dependsOnComposeTask(":compose:runtime:runtime:test")
-    dependsOnComposeTask(":compose:runtime:runtime-saveable:test")
-    dependsOnComposeTask(":compose:material:material:test")
-    dependsOnComposeTask(":compose:material:material-ripple:test")
-    dependsOnComposeTask(":compose:foundation:foundation:test")
-    dependsOnComposeTask(":compose:animation:animation:test")
-    dependsOnComposeTask(":compose:animation:animation-core:test")
-    dependsOnComposeTask(":compose:animation:animation-core:test")
+    dependsOn(":compose:ui:ui-graphics:test")
+    dependsOn(":compose:ui:ui-geometry:test")
+    dependsOn(":compose:ui:ui-unit:test")
+    dependsOn(":compose:ui:ui-util:test")
+    dependsOn(":compose:runtime:runtime:test")
+    dependsOn(":compose:runtime:runtime-saveable:test")
+    dependsOn(":compose:material:material:test")
+    dependsOn(":compose:material:material-ripple:test")
+    dependsOn(":compose:foundation:foundation:test")
+    dependsOn(":compose:animation:animation:test")
+    dependsOn(":compose:animation:animation-core:test")
+    dependsOn(":compose:animation:animation-core:test")
 
     // TODO: enable ui:ui-text:test
-    // dependsOnComposeTask(":compose:ui:ui-text:test")
+    // dependsOn(":compose:ui:ui-text:test")
     // compose/out/androidx/compose/ui/ui-text/build/intermediates/tmp/manifest/test/debug/tempFile1ProcessTestManifest10207049054096217572.xml Error:
     // android:exported needs to be explicitly specified for <activity>. Apps targeting Android 12 and higher are required to specify an explicit value for `android:exported` when the corresponding component has an intent filter defined.
 }
 
 tasks.register("run") {
-    dependsOnComposeTask(":compose:desktop:desktop:desktop-samples:run")
+    dependsOn(":compose:desktop:desktop:desktop-samples:run")
 }
 
 for (i in 1..3) {
     tasks.register("run$i") {
-        dependsOnComposeTask(":compose:desktop:desktop:desktop-samples:run$i")
+        dependsOn(":compose:desktop:desktop:desktop-samples:run$i")
     }
 }
 
 tasks.register("runSwing") {
-    dependsOnComposeTask(":compose:desktop:desktop:desktop-samples:runSwing")
+    dependsOn(":compose:desktop:desktop:desktop-samples:runSwing")
 }
 
 tasks.register("runWindowApi") {
-    dependsOnComposeTask(":compose:desktop:desktop:desktop-samples:runWindowApi")
+    dependsOn(":compose:desktop:desktop:desktop-samples:runWindowApi")
 }
 
 tasks.register("runVsync") {
-    dependsOnComposeTask(":compose:desktop:desktop:desktop-samples:runVsync")
+    dependsOn(":compose:desktop:desktop:desktop-samples:runVsync")
 }
 
 tasks.register("runLayout") {
-    dependsOnComposeTask(":compose:desktop:desktop:desktop-samples:runLayout")
+    dependsOn(":compose:desktop:desktop:desktop-samples:runLayout")
 }
 
 tasks.register("runMppJs") {
-    dependsOnComposeTask(":compose:mpp:demo:jsRun")
+    dependsOn(":compose:mpp:demo:jsRun")
 }
 
 tasks.register("runMppMacos") {
-    dependsOnComposeTask(":compose:mpp:demo:runDebugExecutableMacosX64")
+    dependsOn(":compose:mpp:demo:runDebugExecutableMacosX64")
 }
 
 val mavenCentral = MavenCentralProperties(project)
