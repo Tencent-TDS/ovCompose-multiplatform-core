@@ -30,19 +30,42 @@ Run tests for UIKit:
 ### Run samples
 Run jvm desktop sample:
 ```bash
-./gradlew :mpp:run
+./gradlew :compose:mpp:demo:runDesktop
 ```
 another jvm desktop samples:
 ```bash
-./gradlew :mpp:run1 :mpp:run2 :mpp:run3 :mpp:runSwing :mpp:runWindowApi :mpp:runVsync :mpp:runLayout
+./gradlew :compose:desktop:desktop:desktop-samples:run1
+```
+```bash
+./gradlew :compose:desktop:desktop:desktop-samples:run2
+```
+```bash
+./gradlew :compose:desktop:desktop:desktop-samples:run3
+```
+```bash
+./gradlew :compose:desktop:desktop:desktop-samples:runSwing
+```
+```bash
+./gradlew :compose:desktop:desktop:desktop-samples:runWindowApi
+```
+```bash
+./gradlew :compose:desktop:desktop:desktop-samples:runVsync
+```
+```bash
+./gradlew :compose:desktop:desktop:desktop-samples:runLayout
 ```
 
 Run wasm sample:
 ```bash
-./gradlew :mpp:runMppJs
+./gradlew :compose:mpp:demo:jsRun
 ```
 
-Run native macos sample:
+Run native macos X64 sample:
 ```bash
-./gradlew :mpp:runMppMacos
+./gradlew :compose:mpp:demo:runDebugExecutableMacosX64
+```
+
+Run native macos Arm64 sample:
+```bash
+./gradlew :compose:mpp:demo:runDebugExecutableMacosArm64
 ```

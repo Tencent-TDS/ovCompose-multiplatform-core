@@ -130,11 +130,6 @@ tasks.register("testWeb") {
     dependsOn(":compose:runtime:runtime:jsTest")
 }
 
-tasks.register("testAll") {
-    dependsOn(":mpp:testComposeJbDesktop")
-    dependsOn(":mpp:testComposeJbWeb")
-}
-
 tasks.register("testUIKit") {
     val subtaskName =
         if (System.getProperty("os.arch") == "aarch64") "uikitSimArm64Test" else "uikitX64Test"
@@ -167,40 +162,6 @@ tasks.register("testComposeModules") { // used in https://github.com/JetBrains/a
     // dependsOn(":compose:ui:ui-text:test")
     // compose/out/androidx/compose/ui/ui-text/build/intermediates/tmp/manifest/test/debug/tempFile1ProcessTestManifest10207049054096217572.xml Error:
     // android:exported needs to be explicitly specified for <activity>. Apps targeting Android 12 and higher are required to specify an explicit value for `android:exported` when the corresponding component has an intent filter defined.
-}
-
-tasks.register("run") {
-    dependsOn(":compose:desktop:desktop:desktop-samples:run")
-}
-
-for (i in 1..3) {
-    tasks.register("run$i") {
-        dependsOn(":compose:desktop:desktop:desktop-samples:run$i")
-    }
-}
-
-tasks.register("runSwing") {
-    dependsOn(":compose:desktop:desktop:desktop-samples:runSwing")
-}
-
-tasks.register("runWindowApi") {
-    dependsOn(":compose:desktop:desktop:desktop-samples:runWindowApi")
-}
-
-tasks.register("runVsync") {
-    dependsOn(":compose:desktop:desktop:desktop-samples:runVsync")
-}
-
-tasks.register("runLayout") {
-    dependsOn(":compose:desktop:desktop:desktop-samples:runLayout")
-}
-
-tasks.register("runMppJs") {
-    dependsOn(":compose:mpp:demo:jsRun")
-}
-
-tasks.register("runMppMacos") {
-    dependsOn(":compose:mpp:demo:runDebugExecutableMacosX64")
 }
 
 val mavenCentral = MavenCentralProperties(project)
