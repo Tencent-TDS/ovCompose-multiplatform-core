@@ -20,6 +20,7 @@ import androidx.compose.ui.text.AnnotatedString.Range
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.intl.LocaleList
+import androidx.compose.ui.text.intl.isRtl
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Density
@@ -88,20 +89,24 @@ internal class SkiaParagraphIntrinsics(
         return when (textDirection ?: TextDirection.Content) {
             TextDirection.Ltr -> ResolvedTextDirection.Ltr
             TextDirection.Rtl -> ResolvedTextDirection.Rtl
-            TextDirection.Content -> contentBasedTextDirection() ?: localeBasedTextDirection(localeList?.firstOrNull())
-            TextDirection.ContentOrLtr -> contentBasedTextDirection() ?: ResolvedTextDirection.Ltr
-            TextDirection.ContentOrRtl -> contentBasedTextDirection() ?: ResolvedTextDirection.Rtl
+            TextDirection.Content -> contentBasedTextDirection(text) { localeBasedTextDirection(localeList?.firstOrNull()) }
+            TextDirection.ContentOrLtr -> contentBasedTextDirection(text) { ResolvedTextDirection.Ltr }
+            TextDirection.ContentOrRtl -> contentBasedTextDirection(text) { ResolvedTextDirection.Rtl }
             else -> error("Invalid TextDirection.")
         }
     }
+}
 
-    private fun contentBasedTextDirection() = when (text.isRtl()) {
+private fun contentBasedTextDirection(text: String, fallback: () -> ResolvedTextDirection) =
+    when (text.isRtl()) {
         false -> ResolvedTextDirection.Ltr
         true -> ResolvedTextDirection.Rtl
-        else -> null
+        else -> fallback()
     }
 
-    // TODO Get data if locale is RTL (for example from ICU)
-    private fun localeBasedTextDirection(locale: Locale? = null) =
+private fun localeBasedTextDirection(locale: Locale?) =
+    if ((locale ?: Locale.current).platformLocale.isRtl()) {
+        ResolvedTextDirection.Rtl
+    } else {
         ResolvedTextDirection.Ltr
-}
+    }
