@@ -10,77 +10,39 @@
 3. [Windows] Download Android SDK via [Android Studio](https://developer.android.com/studio/intro/update#sdk-manager) and specify it in ANDROID_SDK_ROOT environment variable. Components, their versions and folder structure should be the same as in downloaded via script `./jbdeps/android-sdk/downloadAndroidSdk` SDK for other platforms.
 4. Specify Gradle JVM to use JDK 17 in InteliJ IDEA Preferences (`Build, Execution, Deployment -> Build Tools -> Gradle`)
 
-## Scripts
-Publish artifacts to the local directory `out/build/support_repo/org/jetbrains/compose`:
-```
-export COMPOSE_CUSTOM_VERSION=0.0.0-custom
-./scripts/publish
-```
-(on Windows it doesn't build at the moment, the issue is in the line `packageInspector(project, project(":compose:ui:ui-inspection")` in `compose/frameworks/support/compose/ui/ui/build.gradle`)
-
-Publish extended icons:
-```bash
-./scripts/publishExtendedIcons
-```
-
 ### Run tests
 
 Run tests for Desktop:
 ```bash
-./scripts/testDesktop
+./gradlew :mpp:testDesktop
 ```
 
 Run tests for Web:
 ```bash
-./scripts/testWeb
+./gradlew :mpp:testWeb
 ```
 
 Run tests for UIKit:
 ```bash
-./scripts/testUIKit
-```
-
-Run tests for Android:
-```bash
-./scripts/testAndroidUnit.sh
-```
-```bash
-./scripts/testAndroidInEmulator.sh # first run android simulator or connect device
+./gradlew :mpp:testUIKit
 ```
 
 ### Run samples
 Run jvm desktop sample:
 ```bash
-./scripts/runGradle run
+./gradlew :mpp:run
 ```
 another jvm desktop samples:
 ```bash
-./scripts/runGradle run1 run2 run3 runSwing runWindowApi runVsync runLayout
+./gradlew :mpp:run1 :mpp:run2 :mpp:run3 :mpp:runSwing :mpp:runWindowApi :mpp:runVsync :mpp:runLayout
 ```
 
 Run wasm sample:
 ```bash
-./scripts/runGradle runMppJs
+./gradlew :mpp:runMppJs
 ```
 
 Run native macos sample:
 ```bash
-./scripts/runGradle runMppMacos
-```
-
-## Multiplatform build to mavenLocal
-
-```bash
-export COMPOSE_CUSTOM_VERSION=0.0.0-custom-version &&\
-./scripts/publishToMavenLocal -Pcompose.platforms=all &&\
-./scripts/publishGradlePluginToMavenLocal
-```
-`-Pcompose.platforms=all` could be replace with comma-separated list of platforms, such as `js,jvm,androidDebug,androidRelease,macosx64,uikit`.
-
-## Publish additional libraries to mavenLocal
-```bash
-export COMPOSE_CUSTOM_VERSION=0.0.0-custom-version &&\
-./scripts/publishWebComponentsToMavenLocal &&\
-./scripts/publishExtendedIconsToMavenLocal -Pcompose.platforms=all &&\
-./scripts/publishComponentsToMavenLocal
+./gradlew :mpp:runMppMacos
 ```

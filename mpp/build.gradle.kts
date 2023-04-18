@@ -110,7 +110,7 @@ tasks.register("publishComposeJbExtendedIconsToMavenLocal", ComposePublishingTas
     iconsPublications()
 }
 
-tasks.register("testComposeJbDesktop") {
+tasks.register("testDesktop") {
     dependsOn(":compose:desktop:desktop:jvmTest")
     dependsOn(":compose:animation:animation:desktopTest")
     dependsOn(":compose:animation:animation-core:desktopTest")
@@ -126,7 +126,7 @@ tasks.register("testComposeJbDesktop") {
     dependsOn(":compose:runtime:runtime-saveable:desktopTest")
 }
 
-tasks.register("testComposeJbWeb") {
+tasks.register("testWeb") {
     dependsOn(":compose:runtime:runtime:jsTest")
 }
 
