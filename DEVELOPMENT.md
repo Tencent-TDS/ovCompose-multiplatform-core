@@ -35,13 +35,13 @@ Run jvm desktop sample:
 another jvm desktop samples:
 ```bash
 ./gradlew \
-  :compose:mpp:demo:run1 \
-  :compose:mpp:demo:run2 \
-  :compose:mpp:demo:run3 \
-  :compose:mpp:demo:runSwing \
-  :compose:mpp:demo:runWindowApi \
-  :compose:mpp:demo:runVsync \
-  :compose:mpp:demo:runLayout
+  :compose:desktop:desktop:desktop-samples:run1 \
+  :compose:desktop:desktop:desktop-samples:run2 \
+  :compose:desktop:desktop:desktop-samples:run3 \
+  :compose:desktop:desktop:desktop-samples:runSwing \
+  :compose:desktop:desktop:desktop-samples:runWindowApi \
+  :compose:desktop:desktop:desktop-samples:runVsync \
+  :compose:desktop:desktop:desktop-samples:runLayout
 ```
 
 Run wasm sample:
