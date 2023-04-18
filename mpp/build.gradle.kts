@@ -110,9 +110,36 @@ tasks.register("publishComposeJbExtendedIconsToMavenLocal", ComposePublishingTas
     iconsPublications()
 }
 
+tasks.register("testDesktop") {
+    dependsOn(":compose:desktop:desktop:jvmTest")
+    dependsOn(":compose:animation:animation:desktopTest")
+    dependsOn(":compose:animation:animation-core:desktopTest")
+    dependsOn(":compose:ui:ui:desktopTest")
+    dependsOn(":compose:ui:ui-graphics:desktopTest")
+    dependsOn(":compose:ui:ui-text:desktopTest")
+    dependsOn(":compose:ui:ui-test-junit4:desktopTest")
+    dependsOn(":compose:foundation:foundation:desktopTest")
+    dependsOn(":compose:foundation:foundation-layout:desktopTest")
+    dependsOn(":compose:material:material:desktopTest")
+    dependsOn(":compose:material:material-ripple:desktopTest")
+    dependsOn(":compose:runtime:runtime:desktopTest")
+    dependsOn(":compose:runtime:runtime-saveable:desktopTest")
+}
+
+tasks.register("testWeb") {
+    dependsOn(":compose:runtime:runtime:jsTest")
+}
+
 tasks.register("testAll") { //todo maybe deprecated?
     dependsOn(":mpp:testComposeJbDesktop") // not found this task
     dependsOn(":mpp:testComposeJbWeb") // not found this task
+}
+
+tasks.register("testUIKit") {
+    val subtaskName =
+        if (System.getProperty("os.arch") == "aarch64") "uikitSimArm64Test" else "uikitX64Test"
+    dependsOn(":compose:ui:ui-text:$subtaskName")
+    dependsOn(":compose:ui:ui:$subtaskName")
 }
 
 tasks.register("testRuntimeNative") {

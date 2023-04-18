@@ -14,39 +14,17 @@
 
 Run tests for Desktop:
 ```bash
-./gradlew \
-  :compose:desktop:desktop:jvmTest \
-  :compose:animation:animation:desktopTest \
-  :compose:animation:animation-core:desktopTest \
-  :compose:ui:ui:desktopTest \
-  :compose:ui:ui-graphics:desktopTest \
-  :compose:ui:ui-text:desktopTest \
-  :compose:ui:ui-test-junit4:desktopTest \
-  :compose:foundation:foundation:desktopTest \
-  :compose:foundation:foundation-layout:desktopTest \
-  :compose:material:material:desktopTest \
-  :compose:material:material-ripple:desktopTest \
-  :compose:runtime:runtime:desktopTest \
-  :compose:runtime:runtime-saveable:desktopTest
+./gradlew :mpp:testDesktop
 ```
 
 Run tests for Web:
 ```bash
-./gradlew :compose:runtime:runtime:jsTest
+./gradlew :mpp:testWeb
 ```
 
-Run tests for UIKit X64:
+Run tests for UIKit:
 ```bash
-./gradlew \
-  :compose:ui:ui-text:uikitX64Test \
-  :compose:ui:ui:uikitX64Test
-```
-
-Run tests for UIKit Arm64:
-```bash
-./gradlew \
-  :compose:ui:ui-text:uikitSimArm64Test \
-  :compose:ui:ui:uikitSimArm64Test
+./gradlew :mpp:testUIKit
 ```
 
 ### Run samples
