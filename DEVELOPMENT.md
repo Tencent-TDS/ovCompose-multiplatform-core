@@ -14,35 +14,69 @@
 
 Run tests for Desktop:
 ```bash
-./gradlew :mpp:testDesktop
+./gradlew \
+  :compose:desktop:desktop:jvmTest \
+  :compose:animation:animation:desktopTest \
+  :compose:animation:animation-core:desktopTest \
+  :compose:ui:ui:desktopTest \
+  :compose:ui:ui-graphics:desktopTest \
+  :compose:ui:ui-text:desktopTest \
+  :compose:ui:ui-test-junit4:desktopTest \
+  :compose:foundation:foundation:desktopTest \
+  :compose:foundation:foundation-layout:desktopTest \
+  :compose:material:material:desktopTest \
+  :compose:material:material-ripple:desktopTest \
+  :compose:runtime:runtime:desktopTest \
+  :compose:runtime:runtime-saveable:desktopTest
 ```
 
 Run tests for Web:
 ```bash
-./gradlew :mpp:testWeb
+./gradlew :compose:runtime:runtime:jsTest
 ```
 
-Run tests for UIKit:
+Run tests for UIKit X64:
 ```bash
-./gradlew :mpp:testUIKit
+./gradlew \
+  :compose:ui:ui-text:uikitX64Test \
+  :compose:ui:ui:uikitX64Test
+```
+
+Run tests for UIKit Arm64:
+```bash
+./gradlew \
+  :compose:ui:ui-text:uikitSimArm64Test \
+  :compose:ui:ui:uikitSimArm64Test
 ```
 
 ### Run samples
 Run jvm desktop sample:
 ```bash
-./gradlew :mpp:run
+./gradlew :compose:mpp:demo:run
 ```
 another jvm desktop samples:
 ```bash
-./gradlew :mpp:run1 :mpp:run2 :mpp:run3 :mpp:runSwing :mpp:runWindowApi :mpp:runVsync :mpp:runLayout
+./gradlew \
+  :compose:mpp:demo:run1 \
+  :compose:mpp:demo:run2 \
+  :compose:mpp:demo:run3 \
+  :compose:mpp:demo:runSwing \
+  :compose:mpp:demo:runWindowApi \
+  :compose:mpp:demo:runVsync \
+  :compose:mpp:demo:runLayout
 ```
 
 Run wasm sample:
 ```bash
-./gradlew :mpp:runMppJs
+./gradlew :compose:mpp:demo:jsRun
 ```
 
-Run native macos sample:
+Run native macos X64 sample:
 ```bash
-./gradlew :mpp:runMppMacos
+./gradlew :compose:mpp:demo:runDebugExecutableMacosX64
+```
+
+Run native macos Arm64 sample:
+```bash
+./gradlew :compose:mpp:demo:runDebugExecutableMacosArm64
 ```
