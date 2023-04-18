@@ -130,11 +130,6 @@ tasks.register("testWeb") {
     dependsOn(":compose:runtime:runtime:jsTest")
 }
 
-tasks.register("testAll") { //todo maybe deprecated?
-    dependsOn(":mpp:testComposeJbDesktop") // not found this task
-    dependsOn(":mpp:testComposeJbWeb") // not found this task
-}
-
 tasks.register("testUIKit") {
     val subtaskName =
         if (System.getProperty("os.arch") == "aarch64") "uikitSimArm64Test" else "uikitX64Test"
