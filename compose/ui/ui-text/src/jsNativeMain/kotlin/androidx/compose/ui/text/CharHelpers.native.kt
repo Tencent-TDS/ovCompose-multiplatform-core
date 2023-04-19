@@ -15,6 +15,20 @@
  */
 package androidx.compose.ui.text
 
+import org.jetbrains.skia.icu.CharDirection
 
-// TODO: implement native contentBasedTextDirection
-internal actual fun isRtlCodePoint(codePoint: Int): Boolean? = null
+
+internal actual fun isRtlCodePoint(codePoint: Int): Boolean? {
+    return when (CharDirection.of(codePoint)) {
+        CharDirection.RIGHT_TO_LEFT,
+        CharDirection.RIGHT_TO_LEFT_ARABIC,
+        CharDirection.RIGHT_TO_LEFT_EMBEDDING,
+        CharDirection.RIGHT_TO_LEFT_OVERRIDE -> true
+
+        CharDirection.LEFT_TO_RIGHT,
+        CharDirection.LEFT_TO_RIGHT_EMBEDDING,
+        CharDirection.LEFT_TO_RIGHT_OVERRIDE -> false
+
+        else -> null
+    }
+}

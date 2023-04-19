@@ -18,8 +18,15 @@ package androidx.compose.ui.text
 
 internal actual fun isRtlCodePoint(codePoint: Int): Boolean? {
     return when (codePoint.getDirectionality()) {
-        CharDirectionality.LEFT_TO_RIGHT -> false
-        CharDirectionality.RIGHT_TO_LEFT, CharDirectionality.RIGHT_TO_LEFT_ARABIC -> true
+        CharDirectionality.RIGHT_TO_LEFT,
+        CharDirectionality.RIGHT_TO_LEFT_ARABIC,
+        CharDirectionality.RIGHT_TO_LEFT_EMBEDDING,
+        CharDirectionality.RIGHT_TO_LEFT_OVERRIDE -> true
+
+        CharDirectionality.LEFT_TO_RIGHT,
+        CharDirectionality.LEFT_TO_RIGHT_EMBEDDING,
+        CharDirectionality.LEFT_TO_RIGHT_OVERRIDE -> false
+
         else -> null
     }
 }
