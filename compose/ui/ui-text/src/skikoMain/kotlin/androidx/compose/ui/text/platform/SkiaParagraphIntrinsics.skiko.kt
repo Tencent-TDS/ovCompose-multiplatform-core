@@ -97,10 +97,17 @@ internal class SkiaParagraphIntrinsics(
     }
 }
 
+/**
+ * Determine the paragraph direction by the first strong directional character. If no strong
+ * character is found, fallback() will be called.
+ *
+ * This is the standard Unicode Bidirectional Algorithm (steps P2 and P3).
+ * See https://www.unicode.org/reports/tr9/
+ */
 private fun contentBasedTextDirection(text: String, fallback: () -> ResolvedTextDirection) =
-    when (text.isRtl()) {
-        false -> ResolvedTextDirection.Ltr
-        true -> ResolvedTextDirection.Rtl
+    when (text.firstStrongDirectionType()) {
+        StrongDirectionType.Ltr -> ResolvedTextDirection.Ltr
+        StrongDirectionType.Rtl -> ResolvedTextDirection.Rtl
         else -> fallback()
     }
 

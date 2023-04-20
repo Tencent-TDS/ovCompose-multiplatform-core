@@ -15,24 +15,24 @@
  */
 package androidx.compose.ui.text
 
-
-internal actual fun isRtlCodePoint(codePoint: Int): Boolean? {
-    return when (codePoint.getDirectionality()) {
-        CharDirectionality.RIGHT_TO_LEFT,
-        CharDirectionality.RIGHT_TO_LEFT_ARABIC,
-        CharDirectionality.RIGHT_TO_LEFT_EMBEDDING,
-        CharDirectionality.RIGHT_TO_LEFT_OVERRIDE -> true
-
-        CharDirectionality.LEFT_TO_RIGHT,
-        CharDirectionality.LEFT_TO_RIGHT_EMBEDDING,
-        CharDirectionality.LEFT_TO_RIGHT_OVERRIDE -> false
-
-        else -> null
-    }
-}
+internal actual fun strongDirectionType(codePoint: Int): StrongDirectionType =
+    codePoint.getDirectionality().toStrongDirectionType()
 
 /**
  * Get the Unicode directionality of a character.
  */
 private fun Int.getDirectionality(): CharDirectionality =
     CharDirectionality.valueOf(Character.getDirectionality(this).toInt())
+
+/**
+ * Get strong (R, L or AL) direction type.
+ * See https://www.unicode.org/reports/tr9/
+ */
+private fun CharDirectionality.toStrongDirectionType() = when (this) {
+    CharDirectionality.LEFT_TO_RIGHT -> StrongDirectionType.Ltr
+
+    CharDirectionality.RIGHT_TO_LEFT,
+    CharDirectionality.RIGHT_TO_LEFT_ARABIC -> StrongDirectionType.Rtl
+
+    else -> StrongDirectionType.None
+}

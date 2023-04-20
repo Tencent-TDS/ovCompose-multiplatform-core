@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.text
 
+import kotlin.jvm.JvmInline
 import org.jetbrains.skia.BreakIterator
 
 internal actual fun String.findPrecedingBreak(index: Int): Int {
@@ -30,17 +31,32 @@ internal actual fun String.findFollowingBreak(index: Int): Int {
     return it.following(index)
 }
 
-internal expect fun isRtlCodePoint(codePoint: Int): Boolean?
+/**
+ * See https://www.unicode.org/reports/tr9/
+ */
+@JvmInline
+internal value class StrongDirectionType private constructor(val value: Int) {
+    companion object {
+        val None = StrongDirectionType(0)
+        val Ltr = StrongDirectionType(1)
+        val Rtl = StrongDirectionType(2)
+    }
+}
+
+internal expect fun strongDirectionType(codePoint: Int): StrongDirectionType
 
 /**
  * Determine direction based on the first strong directional character.
  * Only considers the characters outside isolate pairs.
  */
-internal fun String.isRtl(): Boolean? {
+internal fun String.firstStrongDirectionType(): StrongDirectionType {
     for (codePoint in codePointsOutsideDirectionalIsolate) {
-        isRtlCodePoint(codePoint)?.let { return it }
+        return when (val strongDirectionType = strongDirectionType(codePoint)) {
+            StrongDirectionType.None -> continue
+            else -> strongDirectionType
+        }
     }
-    return null
+    return StrongDirectionType.None
 }
 
 /**

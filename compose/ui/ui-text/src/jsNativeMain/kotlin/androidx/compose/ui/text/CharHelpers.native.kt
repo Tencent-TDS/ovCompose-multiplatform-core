@@ -18,17 +18,18 @@ package androidx.compose.ui.text
 import org.jetbrains.skia.icu.CharDirection
 
 
-internal actual fun isRtlCodePoint(codePoint: Int): Boolean? {
-    return when (CharDirection.of(codePoint)) {
-        CharDirection.RIGHT_TO_LEFT,
-        CharDirection.RIGHT_TO_LEFT_ARABIC,
-        CharDirection.RIGHT_TO_LEFT_EMBEDDING,
-        CharDirection.RIGHT_TO_LEFT_OVERRIDE -> true
+internal actual fun strongDirectionType(codePoint: Int): StrongDirectionType =
+    CharDirection.of(codePoint).toStrongDirectionType()
 
-        CharDirection.LEFT_TO_RIGHT,
-        CharDirection.LEFT_TO_RIGHT_EMBEDDING,
-        CharDirection.LEFT_TO_RIGHT_OVERRIDE -> false
+/**
+ * Get strong (R, L or AL) direction type.
+ * See https://www.unicode.org/reports/tr9/
+ */
+private fun Int.toStrongDirectionType() = when (this) {
+    CharDirection.LEFT_TO_RIGHT -> StrongDirectionType.Ltr
 
-        else -> null
-    }
+    CharDirection.RIGHT_TO_LEFT,
+    CharDirection.RIGHT_TO_LEFT_ARABIC -> StrongDirectionType.Rtl
+
+    else -> StrongDirectionType.None
 }
