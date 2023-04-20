@@ -79,6 +79,7 @@ private val String.codePoints get() = sequence {
     }
 }
 
+// TODO Remove once it's available in common stdlib https://youtrack.jetbrains.com/issue/KT-23251
 private fun String.codePointAt(index: Int): Int {
     val high = this[index]
     if (high.isHighSurrogate() && index + 1 < this.length) {
@@ -101,4 +102,5 @@ private fun Char.Companion.toCodePoint(high: Char, low: Char): Int =
  */
 private const val MIN_SUPPLEMENTARY_CODE_POINT: Int = 0x10000
 
+// TODO Remove once it's available in common stdlib https://youtrack.jetbrains.com/issue/KT-23251
 private fun Int.charCount(): Int = if (this >= MIN_SUPPLEMENTARY_CODE_POINT) 2 else 1
