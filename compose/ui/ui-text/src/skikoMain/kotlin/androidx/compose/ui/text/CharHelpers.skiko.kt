@@ -69,7 +69,7 @@ private val PUSH_DIRECTIONAL_ISOLATE_RANGE: IntRange = 0x2066..0x2068
 /**
  * U+2069 POP DIRECTIONAL ISOLATE (PDI)
  */
-private const val POP_DIRECTIONAL_ISOLATE_CODE_POINT: Int = 0x10000
+private const val POP_DIRECTIONAL_ISOLATE_CODE_POINT: Int = 0x2069
 
 private val String.codePointsOutsideDirectionalIsolate get() = sequence {
     var openIsolateCount = 0
