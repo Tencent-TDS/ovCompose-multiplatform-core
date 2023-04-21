@@ -167,7 +167,7 @@ internal fun LazyLayoutMeasureScope.measureStaggeredGrid(
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-private class LazyStaggeredGridMeasureContext(
+internal class LazyStaggeredGridMeasureContext(
     val state: LazyStaggeredGridState,
     val itemProvider: LazyStaggeredGridItemProvider,
     val resolvedSlotSums: IntArray,
@@ -873,7 +873,7 @@ private inline fun LazyStaggeredGridMeasureContext.calculateExtraItems(
 }
 
 @JvmInline
-private value class SpanRange private constructor(val packedValue: Long) {
+internal value class SpanRange private constructor(val packedValue: Long) {
     constructor(lane: Int, span: Int) : this(packInts(lane, lane + span))
 
     inline val start get(): Int = unpackInt1(packedValue)
@@ -970,7 +970,7 @@ private fun LazyStaggeredGridMeasureContext.findPreviousItemIndex(item: Int, lan
     laneInfo.findPreviousItemIndex(item, lane)
 
 @OptIn(ExperimentalFoundationApi::class)
-private class LazyStaggeredGridMeasureProvider(
+internal class LazyStaggeredGridMeasureProvider(
     private val isVertical: Boolean,
     private val itemProvider: LazyLayoutItemProvider,
     private val measureScope: LazyLayoutMeasureScope,
@@ -997,7 +997,7 @@ private class LazyStaggeredGridMeasureProvider(
 }
 
 // This interface allows to avoid autoboxing on index param
-private fun interface MeasuredItemFactory {
+internal fun interface MeasuredItemFactory {
     fun createItem(
         index: Int,
         lane: Int,
@@ -1007,7 +1007,7 @@ private fun interface MeasuredItemFactory {
     ): LazyStaggeredGridMeasuredItem
 }
 
-private class LazyStaggeredGridMeasuredItem(
+internal class LazyStaggeredGridMeasuredItem(
     val index: Int,
     val key: Any,
     val placeables: List<Placeable>,
@@ -1055,7 +1055,7 @@ private class LazyStaggeredGridMeasuredItem(
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-private class LazyStaggeredGridPositionedItem(
+internal class LazyStaggeredGridPositionedItem(
     override val offset: IntOffset,
     override val index: Int,
     override val lane: Int,
