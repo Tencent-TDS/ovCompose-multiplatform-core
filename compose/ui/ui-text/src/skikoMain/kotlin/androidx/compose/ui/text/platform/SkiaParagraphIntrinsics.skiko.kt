@@ -51,7 +51,7 @@ internal class SkiaParagraphIntrinsics(
     private val density: Density,
     private val fontFamilyResolver: FontFamily.Resolver
 ) : ParagraphIntrinsics {
-    val textDirection = resolveTextDirection(style.textDirection, style.localeList)
+    val textDirection = resolveTextDirection(text, style.textDirection, style.localeList)
 
     private var layouter: ParagraphLayouter? = newLayouter()
 
@@ -81,19 +81,20 @@ internal class SkiaParagraphIntrinsics(
         minIntrinsicWidth = ceil(para.minIntrinsicWidth)
         maxIntrinsicWidth = ceil(para.maxIntrinsicWidth)
     }
+}
 
-    private fun resolveTextDirection(
-        textDirection: TextDirection? = null,
-        localeList: LocaleList? = null
-    ): ResolvedTextDirection {
-        return when (textDirection ?: TextDirection.Content) {
-            TextDirection.Ltr -> ResolvedTextDirection.Ltr
-            TextDirection.Rtl -> ResolvedTextDirection.Rtl
-            TextDirection.Content -> contentBasedTextDirection(text) { localeBasedTextDirection(localeList?.firstOrNull()) }
-            TextDirection.ContentOrLtr -> contentBasedTextDirection(text) { ResolvedTextDirection.Ltr }
-            TextDirection.ContentOrRtl -> contentBasedTextDirection(text) { ResolvedTextDirection.Rtl }
-            else -> error("Invalid TextDirection.")
-        }
+internal fun resolveTextDirection(
+    text: String,
+    textDirection: TextDirection? = null,
+    localeList: LocaleList? = null
+): ResolvedTextDirection {
+    return when (textDirection ?: TextDirection.Content) {
+        TextDirection.Ltr -> ResolvedTextDirection.Ltr
+        TextDirection.Rtl -> ResolvedTextDirection.Rtl
+        TextDirection.Content -> contentBasedTextDirection(text) { localeBasedTextDirection(localeList?.firstOrNull()) }
+        TextDirection.ContentOrLtr -> contentBasedTextDirection(text) { ResolvedTextDirection.Ltr }
+        TextDirection.ContentOrRtl -> contentBasedTextDirection(text) { ResolvedTextDirection.Rtl }
+        else -> error("Invalid TextDirection.")
     }
 }
 
