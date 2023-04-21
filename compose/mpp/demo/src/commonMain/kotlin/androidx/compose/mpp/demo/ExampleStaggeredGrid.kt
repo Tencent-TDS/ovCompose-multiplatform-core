@@ -31,6 +31,7 @@ import kotlin.random.Random
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ExampleStaggeredGrid() {
+    //TODO This code is not compiles on iOS
     LazyVerticalStaggeredGrid(
         StaggeredGridCells.Fixed(3),
         contentPadding = PaddingValues(8.dp),
