@@ -140,6 +140,15 @@ task runFocusTest(type: JavaExec) {
         compilation.runtimeDependencyFiles
 }
 
+task runTextDirectionTest(type: JavaExec) {
+    dependsOn(":compose:desktop:desktop:jar")
+    main = "androidx.compose.desktop.examples.textdirection.Main_jvmKt"
+    def compilation = kotlin.jvm().compilations["main"]
+    classpath =
+            compilation.output.allOutputs +
+                    compilation.runtimeDependencyFiles
+}
+
 task run {
     dependsOn("run1")
 }
