@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-package androidx.compose.desktop.examples.textdirection
+package androidx.compose.mpp.demo
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
@@ -33,17 +36,12 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.window.singleWindowApplication
 
 val LabelWidth = 150.dp
 val LineHeight = 20.dp
 
-fun main() = singleWindowApplication {
-    App()
-}
-
 @Composable
-fun App() {
+fun TextDirection() {
     MaterialTheme {
         val state = rememberScrollState()
         Column(Modifier
