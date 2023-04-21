@@ -36,6 +36,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import java.awt.PopupMenu
 import java.awt.SystemTray
 import java.awt.TrayIcon
+import java.awt.event.MouseEvent
+import java.awt.event.MouseListener
 
 // In fact, this size doesn't affect anything on Windows/Linux, because they request what they
 // need, and not what we provide. It only affects macOs. This size will be scaled in asAwtImage to
@@ -74,6 +76,7 @@ val isTraySupported: Boolean get() = SystemTray.isSupported()
  * If it doesn't contain any items then context menu will not be shown.
  * @param onAction Action performed when user clicks on the tray icon (double click on Windows,
  * right click on macOs)
+ * @param onClick Action performed when user clicks on the tray icon (click on Windows)
  */
 @Suppress("unused")
 @Composable
@@ -82,6 +85,7 @@ fun ApplicationScope.Tray(
     state: TrayState = rememberTrayState(),
     tooltip: String? = null,
     onAction: () -> Unit = {},
+    onClick: () -> Unit = {},
     menu: @Composable MenuScope.() -> Unit = {}
 ) {
     if (!isTraySupported) {
@@ -116,7 +120,19 @@ fun ApplicationScope.Tray(
     val tray = remember {
         TrayIcon(awtIcon).apply {
             isImageAutoSize = true
-
+            addMouseListener(
+                object : MouseListener {
+                    override fun mouseClicked(p0: MouseEvent?) {
+                        if(p0?.button == MouseEvent.BUTTON1) { // Detect if it is a left mouse button click
+                            onClick()
+                        }
+                    }
+                    override fun mousePressed(p0: MouseEvent?) { }
+                    override fun mouseReleased(p0: MouseEvent?) { }
+                    override fun mouseEntered(p0: MouseEvent?) { }
+                    override fun mouseExited(p0: MouseEvent?) { }
+                }
+            )
             addActionListener {
                 currentOnAction()
             }
