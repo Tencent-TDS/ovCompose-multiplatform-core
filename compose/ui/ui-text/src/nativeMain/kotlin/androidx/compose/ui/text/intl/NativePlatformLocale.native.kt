@@ -35,7 +35,10 @@ internal class NativeLocale(val locale: NSLocale) : PlatformLocale {
 internal actual fun createPlatformLocaleDelegate(): PlatformLocaleDelegate =
     object : PlatformLocaleDelegate {
         override val current: LocaleList
-            get() = LocaleList(listOf(Locale(NativeLocale(NSLocale.currentLocale))))
+            get() {
+                val locale = NSLocale(NSLocale.preferredLanguages.first() as String)
+                return LocaleList(listOf(Locale(NativeLocale(locale))))
+            }
 
 
         override fun parseLanguageTag(languageTag: String): PlatformLocale {
