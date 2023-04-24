@@ -1054,6 +1054,9 @@ internal class LazyStaggeredGridMeasuredItem(
         )
 }
 
+// TODO should be private.
+//  This is workaround of bug https://youtrack.jetbrains.com/issue/KT-54028/Native-JS-Using-private-object-implementing-a-sealed-interface-causes-a-linker-error
+//  Change back to private after Kotlin 1.9.0
 @OptIn(ExperimentalFoundationApi::class)
 internal class LazyStaggeredGridPositionedItem(
     override val offset: IntOffset,
