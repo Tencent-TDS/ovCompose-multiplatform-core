@@ -23,7 +23,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 // Adopted copy of compose/ui/ui-text/src/test/java/androidx/compose/ui/text/AnnotatedStringTransformTest.kt
-class AnnotatedStringTransformTest {
+class AnnotatedStringTransformSkikoTest {
 
     private val spanStyle1 = SpanStyle(fontSize = 8.sp)
     private val spanStyle2 = SpanStyle(fontSize = 16.sp)
