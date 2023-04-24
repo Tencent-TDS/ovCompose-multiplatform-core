@@ -59,13 +59,4 @@ class SortedSetTest {
         val set = sortedSetOf(compareBy { it.length }, "B", "AAA", "DD")
         assertEquals(listOf("B", "DD", "AAA"), set)
     }
-
-    @Test
-    fun containsIsBasedOnEquality() {
-        val set = sortedSetOf(compareBy { it.length }, "B", "CC", "AA", "AAA")
-        assertTrue(set.contains("CC"))
-        assertFalse(set.contains("DD"))
-        assertTrue(set.contains("AA"))
-        assertTrue(set.contains("AAA"))
-    }
 }

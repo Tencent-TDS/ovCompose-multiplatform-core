@@ -43,27 +43,7 @@ internal actual class SortedSet<E> actual constructor(
 
     actual fun contains(element: E): Boolean {
         val index = list.binarySearch(element, comparator)
-        if (index !in list.indices) {
-            return false
-        }
-        if (list[index] == element) {
-            return true
-        }
-        return findInEquals(index, element, 1) || findInEquals(index, element, -1)
-    }
-
-    private tailrec fun findInEquals(index: Int, element: E, direction: Int): Boolean {
-        val next = index + direction
-        if (next !in list.indices) {
-            return false
-        }
-        if (comparator.compare(element, list[next]) != 0) {
-            return false
-        }
-        if (list[next] == element) {
-            return true
-        }
-        return findInEquals(next, element, direction)
+        return index in list.indices && list[index] == element
     }
 
     actual fun isEmpty(): Boolean = list.isEmpty()
