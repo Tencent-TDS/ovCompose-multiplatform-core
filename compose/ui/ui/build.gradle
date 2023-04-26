@@ -318,6 +318,8 @@ androidx {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     tasks.findByName("desktopTest").configure {
         systemProperties["GOLDEN_PATH"] = project.rootDir.absolutePath + "/golden"
+        maxParallelForks = Runtime.runtime.availableProcessors() ?: 1
+        forkEvery = 20
     }
 }
 
