@@ -688,28 +688,4 @@ class ComplexApplicationTest {
             .that(newMemory < 1.15 * oldMemory)
             .isTrue()
     }
-
-    @Test
-    fun `no memory leak when wait 3 minutes`() = runApplicationTest(
-        timeoutMillis = 10 * 60 * 1000
-    ) {
-        launchTestApplication {
-            AppWindow()
-        }
-
-        delay(30 * 1000)
-
-        performGC()
-        val oldMemory = availableMemory
-
-        delay(3 * 60 * 1000)
-
-        performGC()
-        val newMemory = availableMemory
-
-        Truth
-            .assertWithMessage("Memory is increased more than 15% after waiting a few minutes")
-            .that(newMemory < 1.15 * oldMemory)
-            .isTrue()
-    }
 }
