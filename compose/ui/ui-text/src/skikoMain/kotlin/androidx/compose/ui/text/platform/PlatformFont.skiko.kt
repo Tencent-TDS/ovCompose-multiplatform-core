@@ -200,5 +200,56 @@ internal class FontCache {
         }
 }
 
-internal expect val GenericFontFamiliesMapping: Map<String, List<String>>
+internal enum class Platform {
+    Unknown,
+    Linux,
+    Windows,
+    MacOS,
+    IOS,
+    TvOS,
+    WatchOS,
+}
+
+internal expect fun currentPlatform(): Platform
 internal expect fun loadTypeface(font: Font): SkTypeface
+
+internal val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
+    when (currentPlatform()) {
+        Platform.Linux ->
+            mapOf(
+                FontFamily.SansSerif.name to listOf("Noto Sans", "DejaVu Sans"),
+                FontFamily.Serif.name to listOf("Noto Serif", "DejaVu Serif", "Times New Roman"),
+                FontFamily.Monospace.name to listOf("Noto Sans Mono", "DejaVu Sans Mono"),
+                // better alternative?
+                FontFamily.Cursive.name to listOf("Comic Sans MS")
+            )
+        Platform.Windows ->
+            mapOf(
+                FontFamily.SansSerif.name to listOf("Arial"),
+                FontFamily.Serif.name to listOf("Times New Roman"),
+                FontFamily.Monospace.name to listOf("Consolas"),
+                FontFamily.Cursive.name to listOf("Comic Sans MS")
+            )
+        Platform.MacOS ->
+            mapOf(
+                FontFamily.SansSerif.name to listOf("System Font", "Helvetica Neue", "Helvetica"),
+                FontFamily.Serif.name to listOf("Times"),
+                FontFamily.Monospace.name to listOf("Courier"),
+                FontFamily.Cursive.name to listOf("Apple Chancery")
+            )
+        Platform.IOS, Platform.TvOS, Platform.WatchOS ->
+            mapOf(
+                FontFamily.SansSerif.name to listOf("System Font", "Helvetica Neue", "Helvetica"),
+                FontFamily.Serif.name to listOf("Times"),
+                FontFamily.Monospace.name to listOf("Courier"),
+                FontFamily.Cursive.name to listOf("Apple Chancery")
+            )
+        Platform.Unknown ->
+            mapOf(
+                FontFamily.SansSerif.name to listOf("Arial"),
+                FontFamily.Serif.name to listOf("Times New Roman"),
+                FontFamily.Monospace.name to listOf("Consolas"),
+                FontFamily.Cursive.name to listOf("Comic Sans MS")
+            )
+    }
+}
