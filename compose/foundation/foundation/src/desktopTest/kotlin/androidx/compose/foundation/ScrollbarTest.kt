@@ -346,7 +346,7 @@ class ScrollbarTest {
                 assertEquals(0, scrollState.value)
             },
             assertDraggedBy = { pixelAmount ->
-                assertEquals((4*pixelAmount).toInt(), scrollState.value)
+                assertEquals((4 * pixelAmount).toInt(), scrollState.value)
             },
             assertPageDown = {
                 assertEquals(200, scrollState.value)
@@ -774,7 +774,7 @@ class ScrollbarTest {
                 rule.onNodeWithTag("box0").assertTopPositionInRootIsEqualTo(0.dp)
             },
             assertDraggedBy = { pixelAmount ->
-                rule.onNodeWithTag("box0").assertTopPositionInRootIsEqualTo((-2*pixelAmount).dp)
+                rule.onNodeWithTag("box0").assertTopPositionInRootIsEqualTo((-2 * pixelAmount).dp)
             },
             assertPageDown = {
                 rule.onNodeWithTag("box30").assertTopPositionInRootIsEqualTo(0.dp)
@@ -1031,7 +1031,7 @@ class ScrollbarTest {
                 onNodeWithTag(firstBoxTag).assertTopPositionInRootIsEqualTo(0.dp)
             },
             assertDraggedBy = { pixelAmount ->
-                onNodeWithTag(firstBoxTag).assertTopPositionInRootIsEqualTo((-2*pixelAmount).dp)
+                onNodeWithTag(firstBoxTag).assertTopPositionInRootIsEqualTo((-2 * pixelAmount).dp)
             },
             assertPageDown = {
                 onNodeWithTag(lastBoxTag).assertTopPositionInRootIsEqualTo(80.dp)
@@ -1144,7 +1144,8 @@ class ScrollbarTest {
                 rule.onNodeWithTag("box0").assertTopPositionInRootIsEqualTo(0.dp)
             },
             assertDraggedBy = { pixelAmount ->
-                rule.onNodeWithTag("box5").assertTopPositionInRootIsEqualTo((100-pixelAmount*2).dp)
+                rule.onNodeWithTag("box5")
+                    .assertTopPositionInRootIsEqualTo((100 - pixelAmount * 2).dp)
             },
             assertPageDown = {
                 rule.onNodeWithTag("box5").assertTopPositionInRootIsEqualTo(0.dp)
@@ -1184,7 +1185,7 @@ class ScrollbarTest {
             },
             assertDraggedBy = { pixelAmount ->
                 rule.onNodeWithTag("box1_0")
-                    .assertTopPositionInRootIsEqualTo((20 - 2*pixelAmount).dp)
+                    .assertTopPositionInRootIsEqualTo((20 - 2 * pixelAmount).dp)
             },
             assertPageDown = {
                 rule.onNodeWithTag("box2_0").assertTopPositionInRootIsEqualTo(20.dp)
