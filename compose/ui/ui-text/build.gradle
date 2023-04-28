@@ -253,3 +253,9 @@ project.afterEvaluate {
 //        enabled = false
 //    }
 }
+
+project.tasks.configureEach {
+    if (name == "compileJsWasmMainKotlinMetadata") {
+        enabled = false
+    }
+}
