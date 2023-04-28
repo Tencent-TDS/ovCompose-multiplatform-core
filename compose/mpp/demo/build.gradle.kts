@@ -56,6 +56,7 @@ kotlin {
         binaries.executable()
     }
     wasm() {
+        moduleName = "mpp-demo"
         browser {
             commonWebpackConfig {
                 devServer = (devServer ?: KotlinWebpackConfig.DevServer()).copy(

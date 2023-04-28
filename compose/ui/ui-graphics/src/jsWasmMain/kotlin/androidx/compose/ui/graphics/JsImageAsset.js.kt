@@ -16,17 +16,21 @@
 
 package androidx.compose.ui.graphics
 
-import org.khronos.webgl.ArrayBuffer
-import org.khronos.webgl.ArrayBufferView
-import org.khronos.webgl.Int32Array
-import org.khronos.webgl.Uint8Array
-import org.khronos.webgl.get
+internal actual fun ByteArray.putBytesInto(array: IntArray, offset: Int, length: Int) {
+   if (offset < 0 || length < 0 || offset + length > array.size) {
+      throw IndexOutOfBoundsException("Invalid offset or length")
+   }
 
-internal actual fun ByteArray.putBytesInto(array: IntArray, offset: Int, length: Int): Unit {
-   val byteBuffer = Uint8Array(this.toTypedArray()).buffer
-   val intArray = Int32Array(byteBuffer, offset, length)
-   for (i in 0 until intArray.length) {
-      array[i] = intArray[i]
+   if (length * 4 > this.size) {
+      throw IndexOutOfBoundsException("ByteArray not big enough to hold the requested number of integers")
+   }
+
+   for (i in 0 until length) {
+      val byteIndex = i * 4
+      array[offset + i] = (this[byteIndex].toInt() and 0xFF) or
+          ((this[byteIndex + 1].toInt() and 0xFF) shl 8) or
+          ((this[byteIndex + 2].toInt() and 0xFF) shl 16) or
+          ((this[byteIndex + 3].toInt() and 0xFF) shl 24)
    }
 }
 

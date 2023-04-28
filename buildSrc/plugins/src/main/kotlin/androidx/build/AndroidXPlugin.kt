@@ -41,20 +41,20 @@ class AndroidXPlugin : Plugin<Project> {
             val conf = it
             conf.resolutionStrategy.eachDependency {
                 if (it.requested.module.name.contains("kotlin-stdlib")) {
-                     it.useVersion("1.8.20-RC2")
+//                     it.useVersion("1.9.0-dev-6584")
                 }
                 val isWasm = conf.name.contains("wasm", true)
 
                 if (it.requested.module.group == "org.jetbrains.kotlinx" &&
                     it.requested.module.name.contains("kotlinx-coroutines", true)
                 ) {
-                    if (isWasm) it.useVersion("1.7.0-Beta-wasm0")
+                    if (isWasm) it.useVersion("1.7.0-RC-wasm0")
                 }
 
                 if (it.requested.module.group == "org.jetbrains.kotlinx" &&
                     it.requested.module.name.contains("atomicfu", true)
                 ) {
-                    if (isWasm) it.useVersion("0.18.5-wasm0")
+                    if (isWasm) it.useVersion("0.20.2-wasm0")
                 }
             }
         }

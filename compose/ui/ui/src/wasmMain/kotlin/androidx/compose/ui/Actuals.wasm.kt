@@ -19,10 +19,10 @@ package androidx.compose.ui
 import org.jetbrains.skiko.SkiaLayer
 
 @JsFun("x => { try { Object.getPrototypeOf(x) } catch(e) { return true; }; return false; }")
-private external fun isNotJs(x: Any): Boolean
+private external fun isNotJs(x: JsAny): Boolean
 
 @JsFun("(a, b) => Object.getPrototypeOf(a).constructor == Object.getPrototypeOf(b).constructor")
-private external fun areObjectsOfSameTypeJsImpl(a: Any, b: Any): Boolean
+private external fun areObjectsOfSameTypeJsImpl(a: JsAny, b: JsAny): Boolean
 
 
 internal actual fun areObjectsOfSameType(a: Any, b: Any): Boolean {

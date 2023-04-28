@@ -64,10 +64,10 @@ actual class AtomicReference<V> actual constructor(private var value: V) {
 }
 
 @JsFun("(obj, index) => obj[index]")
-private external fun dynamicGetInt(obj: Dynamic, index: String): Int?
+private external fun dynamicGetInt(obj: JsAny, index: String): Int?
 
 @JsFun("(obj) => typeof obj")
-private external fun jsTypeOf(a: Any?): String
+private external fun jsTypeOf(a: JsAny?): String
 
 internal actual fun identityHashCode(instance: Any?): Int {
     if (instance == null) {
@@ -100,7 +100,7 @@ return (obj) => {
 }
 })()"""
 )
-private external fun getIdentityHashCode(instance: Any): Int
+private external fun getIdentityHashCode(instance: JsAny): Int
 
 actual annotation class TestOnly
 
