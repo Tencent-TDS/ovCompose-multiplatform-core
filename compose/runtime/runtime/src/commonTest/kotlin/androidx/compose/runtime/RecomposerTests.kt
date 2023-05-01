@@ -412,7 +412,6 @@ class RecomposerTests {
         assertEquals(2, recompositions)
 
         // The Recomposer should have received notification for the node's state.
-        @Suppress("RemoveExplicitTypeArguments")
         assertContentEquals(listOf(setOf(countFromEffect)), applications)
     }
 }
