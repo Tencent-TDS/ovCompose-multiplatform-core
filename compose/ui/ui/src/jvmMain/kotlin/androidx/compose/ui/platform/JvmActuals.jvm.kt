@@ -16,7 +16,12 @@
 
 package androidx.compose.ui.platform
 
-internal actual typealias AtomicInt = java.util.concurrent.atomic.AtomicInteger
+internal actual class AtomicInt actual constructor(value: Int) {
+    private val backing = java.util.concurrent.atomic.AtomicInteger(value)
+    actual fun addAndGet(delta: Int): Int = backing.addAndGet(delta)
+    actual fun compareAndSet(expected: Int, new: Int): Boolean =
+        backing.compareAndSet(expected, new)
+}
 
 internal actual fun simpleIdentityToString(obj: Any, name: String?): String {
     val className = name ?: if (obj::class.java.isAnonymousClass) {

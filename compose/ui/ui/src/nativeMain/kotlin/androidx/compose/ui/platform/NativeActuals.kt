@@ -16,7 +16,12 @@
 
 package androidx.compose.ui.platform
 
-internal actual typealias AtomicInt = kotlin.native.concurrent.AtomicInt
+internal actual class AtomicInt actual constructor(value: Int) {
+    private val backing = kotlin.native.concurrent.AtomicInt(value)
+
+    actual fun addAndGet(delta: Int): Int = backing.addAndGet(delta)
+    actual fun compareAndSet(expected: Int, new: Int): Boolean = backing.compareAndSet(expected, new)
+}
 
 internal actual fun Any.nativeClass(): Any = this::class
 
