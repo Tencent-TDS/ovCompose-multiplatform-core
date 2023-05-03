@@ -104,7 +104,8 @@ internal actual class ComposeWindow : UIViewController {
 
     private val fontScale: Float
         get() {
-            val contentSizeCategory = traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
+            val contentSizeCategory =
+                traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
 
             return uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
         }
