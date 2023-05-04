@@ -341,19 +341,13 @@ private fun Modifier.slideOnKeyEvents(
             }
 
             KeyEventType.KeyUp -> {
-                when {
-                    it.isDirectionDown,
-                    it.isDirectionUp,
-                    it.isDirectionRight,
-                    it.isDirectionLeft,
-                    it.isHome,
-                    it.isMoveEnd,
-                    it.isPgUp,
-                    it.isPgDn -> {
-                        onValueChangeFinishedState.value?.invoke()
-                        true
-                    }
-                    else -> false
+                if (it.isDirectionDown || it.isDirectionUp || it.isDirectionRight
+                    || it.isDirectionLeft || it.isHome || it.isMoveEnd || it.isPgUp || it.isPgDn
+                ) {
+                    onValueChangeFinishedState.value?.invoke()
+                    true
+                } else {
+                    false
                 }
             }
             else -> false
