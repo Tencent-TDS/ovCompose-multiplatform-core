@@ -268,7 +268,7 @@ internal class SkiaParagraph(
 
     private fun getBoxForwardByOffset(offset: Int): TextBox? {
         checkOffsetIsValid(offset)
-        var to = offset + 1
+        var to = offset + 1 // TODO: Use unicode code points (CodePoint.charCount() instead of +1)
         while (to <= text.length) {
             val box = paragraph.getRectsForRange(
                 offset, to,
@@ -277,7 +277,7 @@ internal class SkiaParagraph(
             if (box != null) {
                 return box
             }
-            to += 1
+            to += 1 // TODO: Use unicode code points (CodePoint.charCount() instead of +1)
         }
         return null
     }
@@ -315,6 +315,7 @@ internal class SkiaParagraph(
                             val rect = SkRect(width, box.rect.bottom, width, bottom)
                             TextBox(rect, box.direction)
                         } else {
+                            // TODO: Use unicode code points (CodePoint.charCount() instead of +1)
                             val nextBox =  paragraph.getRectsForRange(
                                 offset, offset + 1,
                                 RectHeightMode.STRUT, RectWidthMode.TIGHT
@@ -334,6 +335,7 @@ internal class SkiaParagraph(
     }
 
     override fun getParagraphDirection(offset: Int): ResolvedTextDirection =
+        // TODO: It should be position based (direction isolate for example)
         paragraphIntrinsics.textDirection
 
     override fun getBidiRunDirection(offset: Int): ResolvedTextDirection =
@@ -403,7 +405,7 @@ internal class SkiaParagraph(
 
             // For RTL blocks, the position is still not correct, so we have to subtract 1 from the returned result
             if (!isNeutralChar && getBoxBackwardByOffset(correctedGlyphPosition)?.direction == Direction.RTL) {
-                correctedGlyphPosition -= 1
+                correctedGlyphPosition -= 1 // TODO Check if it should be CodePoint.charCount()
             }
         }
 
@@ -418,13 +420,16 @@ internal class SkiaParagraph(
     override fun getWordBoundary(offset: Int): TextRange {
         checkOffsetIsValid(offset)
 
-        // TODO: Port punctuation handling from android.
         // To match with Android implementation it should return:
         // - empty range if offset is between spaces
         // - previous word if offset right after that
+        // - TODO: punctuation doesn't divide words
+        //   NOTE: Android punctuation handling has some issues at the moment, so it doesn't clear
+        //         what expected behavior is.
 
-        // TODO: Use unicode code point, not char (possible surrogate).
-        // Char.isLetterOrDigit cannot be used because it's not unicode code point.
+        // Android uses `isLetterOrDigit` for codepoints, but we have it only for chars.
+        // Using `Char.isWhitespace` instead because whitespaces are not supplementary code units.
+        // TODO: Replace chars to code units to make this code future proof.
         if (offset < text.length && text[offset].isWhitespace()) {
             // If it's whitespace, we're sure that it's not surrogate.
             return if (offset > 0 && !text[offset - 1].isWhitespace()) {
@@ -432,7 +437,9 @@ internal class SkiaParagraph(
             } else TextRange(offset, offset)
         }
 
-        // Skia (ICU) word iterator should handle unicode correctly.
+        // Skia paragraph should handle unicode correctly, but it doesn't match Android behavior.
+        // It uses ICU's BreakIterator under the hood, so we can use
+        // `BreakIterator.makeWordInstance()` without calling skia's `getWordBoundary` at all.
         return paragraph.getWordBoundary(offset).toTextRange()
     }
 
