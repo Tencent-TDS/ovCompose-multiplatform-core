@@ -13,23 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package androidx.compose.ui.window
 
-import androidx.compose.runtime.Composable
+package kotlinx.test
 
-fun Window(
-    title: String = "JetpackNativeWindow",
-    content: @Composable () -> Unit = { }
-
-) {
-    ComposeWindow().apply {
-        setContent(content)
-    }
-}
-
-internal expect class ComposeWindow() {
-    fun setContent(
-        content: @Composable () -> Unit
-    )
-    fun dispose()
-}
+actual typealias IgnoreJsTarget = kotlin.test.Ignore
+actual typealias IgnoreNativeTarget = DoNothing
+actual typealias IgnoreJsAndNative = kotlin.test.Ignore
