@@ -350,9 +350,7 @@ private fun Modifier.slideOnKeyEvents(
                     false
                 }
             }
-            else -> {
-                false
-            }
+            else -> false
         }
     }
 }
