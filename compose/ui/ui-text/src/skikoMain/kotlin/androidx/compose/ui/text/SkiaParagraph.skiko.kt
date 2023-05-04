@@ -397,9 +397,10 @@ internal class SkiaParagraph(
             correctedGlyphPosition = paragraph.getGlyphPositionAtCoordinate(leftX + 1f, position.y).position
         } else if (position.x >= rightX) { // when clicked to the right of a text line
             correctedGlyphPosition = paragraph.getGlyphPositionAtCoordinate(rightX - 1f, position.y).position
+            val isNeutralChar = if (correctedGlyphPosition in text.indices) {
+                text.codePointAt(correctedGlyphPosition).isNeutralDirection()
+            } else false
 
-            // TODO: Use unicode code points
-            val isNeutralChar = text.getOrNull(correctedGlyphPosition)?.isNeutralDirection() ?: false
             // For RTL blocks, the position is still not correct, so we have to subtract 1 from the returned result
             if (!isNeutralChar && getBoxBackwardByOffset(correctedGlyphPosition)?.direction == Direction.RTL) {
                 correctedGlyphPosition -= 1
