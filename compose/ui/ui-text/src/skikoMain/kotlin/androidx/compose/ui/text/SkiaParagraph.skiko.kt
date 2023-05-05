@@ -430,7 +430,7 @@ internal class SkiaParagraph(
         // Android uses `isLetterOrDigit` for codepoints, but we have it only for chars.
         // Using `Char.isWhitespace` instead because whitespaces are not supplementary code units.
         // TODO: Replace chars to code units to make this code future proof.
-        if (offset < text.length && text[offset].isWhitespace()) {
+        if (offset < text.length && text[offset].isWhitespace() || offset == text.length) {
             // If it's whitespace, we're sure that it's not surrogate.
             return if (offset > 0 && !text[offset - 1].isWhitespace()) {
                 paragraph.getWordBoundary(offset - 1).toTextRange()

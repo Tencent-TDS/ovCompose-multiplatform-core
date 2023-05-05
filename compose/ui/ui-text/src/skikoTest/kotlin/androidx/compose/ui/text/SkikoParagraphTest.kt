@@ -38,6 +38,7 @@ class SkikoParagraphTest {
             paragraph.getWordBoundary(-1)
         }
     }
+
     @Test
     fun getWordBoundary_out_of_boundary_too_big() {
         val text = "text"
@@ -46,6 +47,17 @@ class SkikoParagraphTest {
         assertFailsWith<IllegalArgumentException> {
             paragraph.getWordBoundary(text.length + 1)
         }
+    }
+
+    @Test
+    fun getWordBoundary_length() {
+        val text = "text"
+        val paragraph = simpleParagraph(text)
+
+        assertEquals(
+            TextRange(0, text.length),
+            paragraph.getWordBoundary(text.length)
+        )
     }
 
     @Test
@@ -105,6 +117,33 @@ class SkikoParagraphTest {
         assertEquals(
             TextRange(text.indexOf('d') + 2, text.indexOf('d') + 2),
             paragraph.getWordBoundary(text.indexOf('d') + 2)
+        )
+    }
+
+    @Test
+    fun getWordBoundary_no_break_space() {
+        val text = "abc\u00A0def\u202Fghi"
+        val paragraph = simpleParagraph(text)
+
+        assertEquals(
+            TextRange(text.indexOf('a'), text.indexOf('c') + 1),
+            paragraph.getWordBoundary(text.indexOf('b'))
+        )
+        assertEquals(
+            TextRange(text.indexOf('a'), text.indexOf('c') + 1),
+            paragraph.getWordBoundary(text.indexOf('\u00A0'))
+        )
+        assertEquals(
+            TextRange(text.indexOf('d'), text.length),
+            paragraph.getWordBoundary(text.indexOf('d'))
+        )
+        assertEquals(
+            TextRange(text.indexOf('d'), text.length),
+            paragraph.getWordBoundary(text.indexOf('\u202F'))
+        )
+        assertEquals(
+            TextRange(text.indexOf('d'), text.length),
+            paragraph.getWordBoundary(text.length)
         )
     }
 
