@@ -430,7 +430,7 @@ class ComposeUiSkikoTestTest {
 
     // See https://github.com/JetBrains/compose-multiplatform/issues/3117
     @Test
-    fun recompositionCompletesBeforeSetContentReturns() = repeat(300) {
+    fun recompositionCompletesBeforeSetContentReturns() = repeat(1000) {
         runSkikoComposeUiTest {
             var globalValue by atomic(0)
             setContent {
