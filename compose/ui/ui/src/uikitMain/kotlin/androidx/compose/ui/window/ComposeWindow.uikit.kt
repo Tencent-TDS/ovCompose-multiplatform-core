@@ -170,6 +170,16 @@ internal actual class ComposeWindow : UIViewController {
         }
     }
 
+    @Suppress("unused")
+    @ObjCAction
+    fun viewSafeAreaInsetsDidChange() {
+//        (this as UIViewController).viewSafeAreaInsetsDidChange()
+        val uiEdgesInsets: UIEdgeInsets = view.safeAreaInsets.useContents { this }
+        with(uiEdgesInsets) {
+            println("top: $top, bottom: $bottom, left: $left, right: $right")
+        }
+    }
+
     override fun loadView() {
         val skiaLayer = createSkiaLayer()
         val skikoUIView = SkikoUIView(
