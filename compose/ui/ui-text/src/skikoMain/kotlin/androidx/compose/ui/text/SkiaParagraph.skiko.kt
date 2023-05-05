@@ -516,7 +516,7 @@ internal class SkiaParagraph(
     /**
      * Check if the given offset is in the given range.
      */
-    private fun checkOffsetIsValid(offset: Int) {
+    private inline fun checkOffsetIsValid(offset: Int) {
         require(offset in 0..text.length) {
             ("Invalid offset: $offset. Valid range is [0, ${text.length}]")
         }
