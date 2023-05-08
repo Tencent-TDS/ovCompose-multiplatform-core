@@ -230,19 +230,14 @@ internal val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
                 FontFamily.Monospace.name to listOf("Consolas"),
                 FontFamily.Cursive.name to listOf("Comic Sans MS")
             )
-        Platform.MacOS ->
+        Platform.MacOS, Platform.IOS, Platform.TvOS, Platform.WatchOS ->
             mapOf(
-                FontFamily.SansSerif.name to listOf("System Font", "Helvetica Neue", "Helvetica"),
-                FontFamily.Serif.name to listOf("Times"),
-                FontFamily.Monospace.name to listOf("Courier"),
-                FontFamily.Cursive.name to listOf("Apple Chancery")
-            )
-        Platform.IOS, Platform.TvOS, Platform.WatchOS ->
-            mapOf(
-                FontFamily.SansSerif.name to listOf("Helvetica"),
-                FontFamily.Serif.name to listOf("Times New Roman"),
-                FontFamily.Monospace.name to listOf("Menlo", "Courier"),
-                FontFamily.Cursive.name to listOf("Snell Roundhand")
+                // .AppleSystem* aliases is the only legal way to get default SF and NY fonts.
+                FontFamily.SansSerif.name to listOf(".AppleSystemUIFont", "Helvetica Neue", "Helvetica"),
+                FontFamily.Serif.name to listOf(".AppleSystemUIFontSerif", "Times", "Times New Roman"),
+                FontFamily.Monospace.name to listOf(".AppleSystemUIFontMonospaced", "Menlo", "Courier"),
+                // Safari "font-family: cursive" real font names from macOS and iOS.
+                FontFamily.Cursive.name to listOf("Apple Chancery", "Snell Roundhand")
             )
         Platform.Unknown ->
             mapOf(
