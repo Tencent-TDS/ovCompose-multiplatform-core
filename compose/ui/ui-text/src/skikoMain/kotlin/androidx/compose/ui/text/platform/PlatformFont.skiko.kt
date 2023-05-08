@@ -239,10 +239,10 @@ internal val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
             )
         Platform.IOS, Platform.TvOS, Platform.WatchOS ->
             mapOf(
-                FontFamily.SansSerif.name to listOf("System Font", "Helvetica Neue", "Helvetica"),
-                FontFamily.Serif.name to listOf("Times"),
-                FontFamily.Monospace.name to listOf("Courier"),
-                FontFamily.Cursive.name to listOf("Apple Chancery")
+                FontFamily.SansSerif.name to listOf("Helvetica"),
+                FontFamily.Serif.name to listOf("Times New Roman"),
+                FontFamily.Monospace.name to listOf("Menlo", "Courier"),
+                FontFamily.Cursive.name to listOf("Snell Roundhand")
             )
         Platform.Unknown ->
             mapOf(
