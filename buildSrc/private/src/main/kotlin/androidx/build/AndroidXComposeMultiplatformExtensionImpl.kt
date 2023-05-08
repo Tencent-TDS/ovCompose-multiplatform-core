@@ -25,7 +25,10 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.internal.publication.DefaultMavenPublication
-import org.gradle.api.attributes.Usage
+import org.gradle.api.tasks.Copy
+import org.gradle.kotlin.dsl.creating
+import org.gradle.kotlin.dsl.dependencies
+import org.gradle.kotlin.dsl.getValue
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.DependencyConstraint
@@ -44,12 +47,23 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.gradle.kotlin.dsl.create
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
+import org.tomlj.Toml
 
 open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     val project: Project
 ) : AndroidXComposeMultiplatformExtension() {
     private val multiplatformExtension =
         project.extensions.getByType(KotlinMultiplatformExtension::class.java)
+
+    private val skikoVersion: String
+
+    init {
+        val toml = Toml.parse(
+            project.rootProject.projectDir.resolve("gradle/libs.versions.toml").toPath()
+        )
+        skikoVersion = toml.getTable("versions")!!.getString("skiko")!!
+        println("Skiko version = $skikoVersion")
+    }
 
     override val isKotlinWasmTargetEnabled: Boolean
         get() = project.properties["kotlinWasmEnabled"] == "true"
@@ -93,11 +107,65 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         if (!isKotlinWasmTargetEnabled) return@run
         wasm {
             d8()
+            browser {
+                testTask {
+                    it.useKarma {
+                        useChromeHeadless()
+                        useConfigDirectory(
+                            project.rootProject.projectDir.resolve("mpp/karma.config.d/wasm")
+                        )
+                    }
+                }
+            }
+        }
+
+        val resourcesDir = "${project.buildDir}/resources"
+        val skikoWasm by project.configurations.creating
+
+        project.dependencies {
+            skikoWasm("org.jetbrains.skiko:skiko-js-wasm-runtime:${skikoVersion}")
+        }
+
+        val unzipTask = project.tasks.register("unzipSkikoForKWasm", Copy::class.java) {
+            it.destinationDir = project.file(resourcesDir)
+            it.from(skikoWasm.map { project.zipTree(it) })
+        }
+
+        val loadTestsTask = project.tasks.register("loadTests", Copy::class.java) {
+            it.destinationDir = project.file(resourcesDir)
+            it.from(
+                project.rootProject.projectDir.resolve(
+                    "mpp/load-wasm-tests/load-test-template.mjs"
+                )
+            )
+            it.filter {
+                it.replace("{module-name}", getDashedProjectName())
+            }
+        }
+
+        project.tasks.getByName("wasmTestProcessResources").apply {
+            dependsOn(loadTestsTask)
+        }
+
+        project.tasks.getByName("wasmBrowserTest").apply {
+            dependsOn(unzipTask)
         }
 
         val commonMain = sourceSets.getByName("commonMain")
         val wasmMain = sourceSets.getByName("wasmMain")
         wasmMain.dependsOn(commonMain)
+
+        sourceSets.getByName("wasmTest").also {
+            it.resources.setSrcDirs(it.resources.srcDirs)
+            it.resources.srcDirs(unzipTask.map { it.destinationDir })
+        }
+    }
+
+    private fun getDashedProjectName(p: Project = project): String {
+        if (p == project.rootProject) {
+            return p.name
+        }
+        return getDashedProjectName(p = p.parent!!) + "-" + p.name
     }
 
     override fun darwin(): Unit = multiplatformExtension.run {

@@ -230,6 +230,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             }
             nativeTest.dependsOn(jsNativeTest)
             jsTest.dependsOn(jsNativeTest)
+            wasmTest.dependsOn(jsNativeTest)
 
             configureEach {
                 languageSettings.optIn("androidx.compose.ui.text.ExperimentalTextApi")

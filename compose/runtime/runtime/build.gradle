@@ -95,10 +95,10 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             browser() {
                 testTask {
                     testLogging.showStandardStreams = true
-                    useKarma {
-                        useChromeHeadless()
-                        useFirefox()
-                    }
+//                    useKarma {
+//                        useChromeHeadless()
+//                        useFirefox()
+//                    }
                 }
             }
         }
