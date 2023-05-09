@@ -14,6 +14,7 @@ if command -v xcodegen >/dev/null 2>&1; then
   fi
 
   xcodegen
+  open $projPath
 else
   # xcodegen does not exist
   echo "Error: xcodegen not found. Please install it using 'brew install xcodegen'."
