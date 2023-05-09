@@ -304,6 +304,9 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             jsTest {
                 dependsOn(skikoTest)
             }
+            wasmTest {
+                dependsOn(skikoTest)
+            }
 
             desktopTest.dependencies {
                 implementation(libs.truth)
