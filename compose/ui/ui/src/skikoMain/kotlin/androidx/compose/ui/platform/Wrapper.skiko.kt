@@ -28,8 +28,7 @@ import androidx.compose.ui.node.LayoutNode
 /**
  * Composes the given composable into [SkiaBasedOwner]
  *
- * @param parent The parent composition reference to coordinate scheduling of composition updates
- *        If null then default root composition will be used.
+ * @param parent The parent composition reference to coordinate scheduling of composition updates.
  * @param getCompositionLocalContext getter for retrieving the top-level composition local context.
  * Can be backed by `mutableStateOf` to dynamically change top-level locals.
  * @param content A `@Composable` function declaring the UI contents
@@ -37,6 +36,7 @@ import androidx.compose.ui.node.LayoutNode
 @OptIn(ExperimentalComposeUiApi::class)
 internal fun SkiaBasedOwner.setContent(
     parent: CompositionContext,
+    isMainOwner: Boolean,
     getCompositionLocalContext: () -> CompositionLocalContext? = { null },
     content: @Composable () -> Unit
 ): Composition {
@@ -46,6 +46,7 @@ internal fun SkiaBasedOwner.setContent(
         getCompositionLocalContext().provide {
             ProvideCommonCompositionLocals(
                 owner = owner,
+                isMainOwner = isMainOwner,
                 uriHandler = remember { PlatformUriHandler() },
                 content = content
             )

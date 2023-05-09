@@ -376,8 +376,9 @@ class ComposeScene internal constructor(
         )
         attach(mainOwner)
         composition = mainOwner.setContent(
-            parentComposition ?: recomposer,
-            { compositionLocalContext }
+            parent = parentComposition ?: recomposer,
+            isMainOwner = true,
+            getCompositionLocalContext = { compositionLocalContext }
         ) {
             CompositionLocalProvider(
                 LocalComposeScene provides this,

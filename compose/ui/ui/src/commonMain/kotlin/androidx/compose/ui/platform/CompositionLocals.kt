@@ -188,31 +188,40 @@ internal val LocalPointerIconService = staticCompositionLocalOf<PointerIconServi
 @Composable
 internal fun ProvideCommonCompositionLocals(
     owner: Owner,
+    isMainOwner: Boolean,
     uriHandler: UriHandler,
     content: @Composable () -> Unit
 ) {
     CompositionLocalProvider(
-        LocalAccessibilityManager provides owner.accessibilityManager,
-        LocalAutofill provides owner.autofill,
-        LocalAutofillTree provides owner.autofillTree,
-        LocalClipboardManager provides owner.clipboardManager,
-        LocalDensity provides owner.density,
         LocalFocusManager provides owner.focusOwner,
-        @Suppress("DEPRECATION") LocalFontLoader
-            providesDefault @Suppress("DEPRECATION") owner.fontLoader,
-        LocalFontFamilyResolver providesDefault owner.fontFamilyResolver,
-        LocalHapticFeedback provides owner.hapticFeedBack,
-        LocalInputModeManager provides owner.inputModeManager,
-        LocalLayoutDirection provides owner.layoutDirection,
-        LocalTextInputService provides owner.textInputService,
-        LocalPlatformTextInputPluginRegistry provides owner.platformTextInputPluginRegistry,
-        LocalTextToolbar provides owner.textToolbar,
-        LocalUriHandler provides uriHandler,
-        LocalViewConfiguration provides owner.viewConfiguration,
         LocalWindowInfo provides owner.windowInfo,
         LocalPointerIconService provides owner.pointerIconService,
-        content = content
-    )
+    ){
+        // It's possible that more locals need to be provided for a non-main owner
+        if (isMainOwner){
+            CompositionLocalProvider(
+                LocalAccessibilityManager provides owner.accessibilityManager,
+                LocalAutofill provides owner.autofill,
+                LocalAutofillTree provides owner.autofillTree,
+                LocalClipboardManager provides owner.clipboardManager,
+                LocalDensity provides owner.density,
+                @Suppress("DEPRECATION") LocalFontLoader
+                    providesDefault @Suppress("DEPRECATION") owner.fontLoader,
+                LocalFontFamilyResolver providesDefault owner.fontFamilyResolver,
+                LocalHapticFeedback provides owner.hapticFeedBack,
+                LocalInputModeManager provides owner.inputModeManager,
+                LocalLayoutDirection provides owner.layoutDirection,
+                LocalTextInputService provides owner.textInputService,
+                LocalPlatformTextInputPluginRegistry provides owner.platformTextInputPluginRegistry,
+                LocalTextToolbar provides owner.textToolbar,
+                LocalUriHandler provides uriHandler,
+                LocalViewConfiguration provides owner.viewConfiguration,
+                content = content
+            )
+        }
+        else
+            content()
+    }
 }
 
 private fun noLocalProvidedFor(name: String): Nothing {

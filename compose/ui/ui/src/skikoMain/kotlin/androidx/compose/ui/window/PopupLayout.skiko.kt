@@ -79,7 +79,7 @@ internal fun PopupLayout(
         )
         scene.attach(owner)
 
-        val composition = owner.setContent(parent = parentComposition) {
+        val composition = owner.setContent(parent = parentComposition, isMainOwner = false) {
             Layout(
                 content = content,
                 measurePolicy = { measurables, constraints ->

@@ -41,9 +41,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.use
 import com.google.common.truth.Truth.assertThat
@@ -72,6 +74,20 @@ class DesktopPopupTest {
         }
 
         assertThat(actualLocalValue).isEqualTo(3)
+    }
+
+    @Test
+    fun `LocalLayoutDirection is seen in popup`() {
+        lateinit var layoutDirectionInPopup: LayoutDirection
+        rule.setContent {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Popup{
+                    layoutDirectionInPopup = LocalLayoutDirection.current
+                }
+            }
+        }
+
+        assertThat(layoutDirectionInPopup).isEqualTo(LayoutDirection.Rtl)
     }
 
     @Test
