@@ -38,8 +38,8 @@ fun InsetsSample() {
         Text(
             "IME",
             Modifier.align(Alignment.BottomCenter)
-                .background(Color.Yellow)
                 .windowInsetsPadding(WindowInsets.Companion.ime)
+                .background(Color.Yellow)
         )
 
         Text(

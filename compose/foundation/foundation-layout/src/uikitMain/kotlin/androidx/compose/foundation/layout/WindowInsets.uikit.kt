@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window._stateKeyboardHeight
 
 /**
@@ -62,7 +63,7 @@ val WindowInsets.Companion.iosSafeArea: WindowInsets
 val WindowInsets.Companion.ime: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = WindowInsets(bottom = _stateKeyboardHeight.value.toInt())
+    get() = WindowInsets(bottom = _stateKeyboardHeight.value.dp)
 
 @OptIn(ExperimentalLayoutApi::class)
 val _imeMutableWindowInset = MutableWindowInsets(WindowInsets(0,0,0,0))

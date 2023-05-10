@@ -110,6 +110,7 @@ internal actual class ComposeWindow : UIViewController {
         fun keyboardWillShow(arg: NSNotification) {
             val keyboardInfo = arg.userInfo!!["UIKeyboardFrameEndUserInfoKey"] as NSValue
             val keyboardHeight = keyboardInfo.CGRectValue().useContents { size.height }
+            _stateKeyboardHeight.value = keyboardHeight.toFloat()
             val screenHeight = UIScreen.mainScreen.bounds.useContents { size.height }
 
             val magicMultiplier = density.density - 1 // todo magic number
@@ -117,8 +118,6 @@ internal actual class ComposeWindow : UIViewController {
                 point = CGPointMake(0.0, 0.0),
                 fromCoordinateSpace = view.coordinateSpace
             ).useContents { y } * magicMultiplier
-
-            _stateKeyboardHeight.value = keyboardHeight.toFloat()
 
             val focused = layer.getActiveFocusRect()
 //            if (focused != null) {
@@ -153,12 +152,13 @@ internal actual class ComposeWindow : UIViewController {
         fun keyboardWillHide(arg: NSNotification) {
             val (width, height) = getViewFrameSize()
             view.layer.setBounds(CGRectMake(0.0, 0.0, width.toDouble(), height.toDouble()))
+            _stateKeyboardHeight.value = 0f
         }
 
         @Suppress("unused")
         @ObjCAction
         fun keyboardDidHide(arg: NSNotification) {
-            _stateKeyboardHeight.value = 0f
+
         }
     }
 
