@@ -21,6 +21,10 @@ import shared
 struct ContentView: View {
     var body: some View {
         ComposeView().ignoresSafeArea(.all)
+//        NavigationView {
+//            ComposeView().ignoresSafeArea(.keyboard)
+//                    .navigationTitle("Title").navigationBarTitleDisplayMode(.inline).statusBar(hidden: false)
+//        }.toolbar(.visible, for: .tabBar)
     }
 }
 

@@ -43,6 +43,11 @@ import androidx.compose.ui.unit.dp
 //        setTag(R.id.consume_window_insets_tag, value)
 //    }
 
+val WindowInsets.Companion.iosSafeAreaTop: WindowInsets get() = TODO()
+val WindowInsets.Companion.iosSafeAreaBottom: WindowInsets get() = TODO()
+val WindowInsets.Companion.iosSafeAreaLeft: WindowInsets get() = TODO()
+val WindowInsets.Companion.iosSafeAreaRight: WindowInsets get() = TODO()
+
 /**
  * This insets represents the iOS SafeArea
  */
@@ -65,7 +70,6 @@ val WindowInsets.Companion.iosSafeArea: WindowInsets
  * `AndroidManifest.xml` file and call `WindowCompat.setDecorFitsSystemWindows(window, false)`
  * in their [android.app.Activity.onCreate].
  */
-@OptIn(ExperimentalLayoutApi::class)
 val WindowInsets.Companion.ime: WindowInsets
     @Composable
     @NonRestartableComposable

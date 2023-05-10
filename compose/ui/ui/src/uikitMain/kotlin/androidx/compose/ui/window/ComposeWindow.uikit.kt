@@ -159,15 +159,13 @@ internal actual class ComposeWindow : UIViewController {
         @Suppress("unused")
         @ObjCAction
         fun keyboardWillHide(arg: NSNotification) {
-            val (width, height) = getViewFrameSize()
-            view.layer.setBounds(CGRectMake(0.0, 0.0, width.toDouble(), height.toDouble()))
-            _stateKeyboardHeight.value = 0f
+
         }
 
         @Suppress("unused")
         @ObjCAction
         fun keyboardDidHide(arg: NSNotification) {
-
+            _stateKeyboardHeight.value = 0f
         }
     }
 
@@ -175,15 +173,18 @@ internal actual class ComposeWindow : UIViewController {
     @ObjCAction
     fun viewSafeAreaInsetsDidChange() {
 //        (this as UIViewController).viewSafeAreaInsetsDidChange()
-        val sizes = view.safeAreaInsets.useContents {
+        view.safeAreaInsets.useContents {
             stateSafeArea.value = TopBottomLeftRight(
                 top = top.toFloat(),
                 bottom = bottom.toFloat(),
                 left = left.toFloat(),
                 right = right.toFloat(),
             )
+            println("view.safeAreaInsets: top: $top, bottom: $bottom, left: $left, right: $right")
         }
-        println("sizes: $sizes")
+        view.directionalLayoutMargins.useContents {
+            println("view.directionalLayoutMargins: top: $top, bottom: $bottom,  leading: $leading, trailing: $trailing")
+        }
     }
 
     override fun loadView() {
