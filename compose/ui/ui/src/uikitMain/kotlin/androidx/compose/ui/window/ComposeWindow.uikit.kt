@@ -18,6 +18,7 @@ package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -79,6 +80,8 @@ fun Application(
     content: @Composable () -> Unit = { }
 ):UIViewController = ComposeUIViewController(content)
 
+val _stateKeyboardHeight = mutableStateOf(0f)
+
 @ExportObjCClass
 internal actual class ComposeWindow : UIViewController {
     @OverrideInit
@@ -108,37 +111,41 @@ internal actual class ComposeWindow : UIViewController {
             val keyboardInfo = arg.userInfo!!["UIKeyboardFrameEndUserInfoKey"] as NSValue
             val keyboardHeight = keyboardInfo.CGRectValue().useContents { size.height }
             val screenHeight = UIScreen.mainScreen.bounds.useContents { size.height }
+
             val magicMultiplier = density.density - 1 // todo magic number
             val viewY = UIScreen.mainScreen.coordinateSpace.convertPoint(
                 point = CGPointMake(0.0, 0.0),
                 fromCoordinateSpace = view.coordinateSpace
             ).useContents { y } * magicMultiplier
+
+            _stateKeyboardHeight.value = keyboardHeight.toFloat()
+
             val focused = layer.getActiveFocusRect()
-            if (focused != null) {
-                val focusedBottom = focused.bottom.value + getTopLeftOffset().y
-                val hiddenPartOfFocusedElement =
-                    focusedBottom + keyboardHeight - screenHeight - viewY
-                if (hiddenPartOfFocusedElement > 0) {
-                    // If focused element hidden by keyboard, then change UIView bounds.
-                    // Focused element will be visible
-                    val focusedTop = focused.top.value
-                    val composeOffsetY = if (hiddenPartOfFocusedElement < focusedTop) {
-                        hiddenPartOfFocusedElement
-                    } else {
-                        maxOf(focusedTop, 0f).toDouble()
-                    }
-                    view.setClipsToBounds(true)
-                    val (width, height) = getViewFrameSize()
-                    view.layer.setBounds(
-                        CGRectMake(
-                            x = 0.0,
-                            y = composeOffsetY,
-                            width = width.toDouble(),
-                            height = height.toDouble()
-                        )
-                    )
-                }
-            }
+//            if (focused != null) {
+//                val focusedBottom = focused.bottom.value + getTopLeftOffset().y
+//                val hiddenPartOfFocusedElement =
+//                    focusedBottom + keyboardHeight - screenHeight - viewY
+//                if (hiddenPartOfFocusedElement > 0) {
+//                    // If focused element hidden by keyboard, then change UIView bounds.
+//                    // Focused element will be visible
+//                    val focusedTop = focused.top.value
+//                    val composeOffsetY = if (hiddenPartOfFocusedElement < focusedTop) {
+//                        hiddenPartOfFocusedElement
+//                    } else {
+//                        maxOf(focusedTop, 0f).toDouble()
+//                    }
+//                    view.setClipsToBounds(true)
+//                    val (width, height) = getViewFrameSize()
+//                    view.layer.setBounds(
+//                        CGRectMake(
+//                            x = 0.0,
+//                            y = composeOffsetY,
+//                            width = width.toDouble(),
+//                            height = height.toDouble()
+//                        )
+//                    )
+//                }
+//            }
         }
 
         @Suppress("unused")
@@ -151,7 +158,7 @@ internal actual class ComposeWindow : UIViewController {
         @Suppress("unused")
         @ObjCAction
         fun keyboardDidHide(arg: NSNotification) {
-            view.setClipsToBounds(false)
+            _stateKeyboardHeight.value = 0f
         }
     }
 
@@ -183,7 +190,7 @@ internal actual class ComposeWindow : UIViewController {
             skikoUIView.leadingAnchor.constraintEqualToAnchor(rootView.leadingAnchor),
             skikoUIView.trailingAnchor.constraintEqualToAnchor(rootView.trailingAnchor),
             skikoUIView.topAnchor.constraintEqualToAnchor(rootView.topAnchor),
-            skikoUIView.bottomAnchor.constraintEqualToAnchor(rootView.bottomAnchor)
+            skikoUIView.bottomAnchor.constraintEqualToAnchor(rootView.bottomAnchor),
         ))
 
         view = rootView

@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window._stateKeyboardHeight
 
 /**
  * Indicates whether access to [WindowInsets] within the [content][ComposeView.setContent]
@@ -57,10 +58,14 @@ val WindowInsets.Companion.iosSafeArea: WindowInsets
  * `AndroidManifest.xml` file and call `WindowCompat.setDecorFitsSystemWindows(window, false)`
  * in their [android.app.Activity.onCreate].
  */
+@OptIn(ExperimentalLayoutApi::class)
 val WindowInsets.Companion.ime: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = TODO()
+    get() = WindowInsets(bottom = _stateKeyboardHeight.value.toInt())
+
+@OptIn(ExperimentalLayoutApi::class)
+val _imeMutableWindowInset = MutableWindowInsets(WindowInsets(0,0,0,0))
 
 ///**
 // * The insets that include areas where gestures may be confused with other input,
