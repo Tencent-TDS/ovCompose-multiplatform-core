@@ -16,29 +16,50 @@
 
 package androidx.compose.ui.text.intl
 
-//TODO: Implement JsLocale
-internal class JsLocale(val locale: Any) : PlatformLocale {
+internal class JsLocale(val locale: IntlLocale) : PlatformLocale {
+
+    constructor(languageTag: String): this(languageTag.toIntlLocale())
+
     override val language: String
-        get() = ""//locale.languageCode!!
+        get() = locale.language
 
     override val script: String
-        get() = ""//locale.scriptCode!!
+        get() = locale.script ?: ""
 
     override val region: String
-        get() = ""//locale.countryCode!!
+        get() = locale.region ?: ""
 
-    override fun toLanguageTag(): String = TODO("implement native toLanguageTag") // locale.toLanguageTag()
+    override fun toLanguageTag(): String = locale.baseName
 }
 
 internal actual fun createPlatformLocaleDelegate(): PlatformLocaleDelegate =
     object : PlatformLocaleDelegate {
         override val current: LocaleList
-            get() = LocaleList(listOf(Locale(JsLocale(Any()))))
+            get() = LocaleList(
+                listOf(Locale(JsLocale(currentLanguageTag())))
+            )
 
 
         override fun parseLanguageTag(languageTag: String): PlatformLocale {
-            return JsLocale(Any())
+            return JsLocale(languageTag)
         }
     }
 
-internal actual fun PlatformLocale.isRtl(): Boolean = false // TODO
+
+private val rtlLanguagesSet = setOf("ar", "fa", "he", "iw", "ji", "ur", "yi")
+
+// Implemented according to ComponentOrientation.getOrientation (AWT),
+// since there is no js API for this.
+internal actual fun PlatformLocale.isRtl(): Boolean = this.language in rtlLanguagesSet
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale
+internal external interface IntlLocale {
+    val language: String
+    val script: String?
+    val region: String?
+    val baseName: String
+}
+
+internal expect fun parseLanguageTagToIntlLocale(languageTag: String): IntlLocale
+internal expect fun currentLanguageTag(): String
+private fun String.toIntlLocale(): IntlLocale = parseLanguageTagToIntlLocale(this)
