@@ -60,7 +60,9 @@ internal actual fun ActualStringDelegate(): PlatformStringDelegate =
     JsStringDelegate()
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLocaleUpperCase
-internal expect fun toLocaleUpperCase(text: String, locale: String): String
+internal fun toLocaleUpperCase(text: String, locale: String): String =
+    js("text.toLocaleUpperCase(locale)")
 
 //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/toLocaleLowerCase
-internal expect fun toLocaleLowerCase(text: String, locale: String): String
+internal fun toLocaleLowerCase(text: String, locale: String): String =
+    js("text.toLocaleLowerCase(locale)")
