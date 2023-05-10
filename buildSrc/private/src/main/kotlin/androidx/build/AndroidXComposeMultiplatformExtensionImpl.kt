@@ -148,6 +148,18 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         }
 
         project.tasks.getByName("wasmBrowserTest").apply {
+            doFirst {
+                // TODO: remove doFirst - it's a workaround for https://youtrack.jetbrains.com/issue/KT-58293
+                val name = getDashedProjectName() + "-wasm-test"
+                val fileName = "$name.uninstantiated.mjs"
+                project.rootProject.buildDir.resolve(
+                    "js/packages/$name/kotlin/$fileName"
+                ).also { file ->
+                    val oldContent = file.readText()
+                    val newContent = oldContent.replace("(jsException) =>", "(e) =>")
+                    file.writeText(newContent)
+                }
+            }
             dependsOn(unzipTask)
         }
 
