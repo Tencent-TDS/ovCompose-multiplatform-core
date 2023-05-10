@@ -193,11 +193,14 @@ internal fun ProvideCommonCompositionLocals(
     content: @Composable () -> Unit
 ) {
     CompositionLocalProvider(
+        // Locals that depend on the owner itself should be overridden always (regardless of whether
+        // this owner is the main one) are ones that .
         LocalFocusManager provides owner.focusOwner,
         LocalWindowInfo provides owner.windowInfo,
         LocalPointerIconService provides owner.pointerIconService,
     ){
-        // It's possible that more locals need to be provided for a non-main owner
+        // If any of the locals below start depending on the owner, they should be moved to the
+        // block above.
         if (isMainOwner){
             CompositionLocalProvider(
                 LocalAccessibilityManager provides owner.accessibilityManager,
