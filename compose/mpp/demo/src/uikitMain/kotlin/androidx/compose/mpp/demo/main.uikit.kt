@@ -31,7 +31,7 @@ fun InsetsSample() {
     Box(Modifier.fillMaxSize()) {
         Box(
             Modifier.fillMaxSize()
-                .windowInsetsTopHeight(WindowInsets.Companion.iosSafeArea)
+                .windowInsetsPadding(WindowInsets.Companion.iosSafeArea)
                 .background(Color.LightGray)
         )
 
