@@ -43,10 +43,25 @@ import androidx.compose.ui.unit.dp
 //        setTag(R.id.consume_window_insets_tag, value)
 //    }
 
-val WindowInsets.Companion.iosSafeAreaTop: WindowInsets get() = TODO()
-val WindowInsets.Companion.iosSafeAreaBottom: WindowInsets get() = TODO()
-val WindowInsets.Companion.iosSafeAreaLeft: WindowInsets get() = TODO()
-val WindowInsets.Companion.iosSafeAreaRight: WindowInsets get() = TODO()
+val WindowInsets.Companion.iosSafeAreaTop: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = TODO()
+
+val WindowInsets.Companion.iosSafeAreaBottom: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = TODO()
+
+val WindowInsets.Companion.iosSafeAreaLeft: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = TODO()
+
+val WindowInsets.Companion.iosSafeAreaRight: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = TODO()
 
 /**
  * This insets represents the iOS SafeArea
