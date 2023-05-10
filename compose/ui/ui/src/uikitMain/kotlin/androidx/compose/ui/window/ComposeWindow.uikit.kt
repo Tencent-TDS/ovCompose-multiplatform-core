@@ -19,6 +19,7 @@ package androidx.compose.ui.window
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.*
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -61,6 +62,13 @@ private val uiContentSizeCategoryToFontScaleMap = mapOf(
     // UIContentSizeCategoryUnspecified
 )
 
+data class TopBottomLeftRight(
+    val top: Float = 0f,
+    val bottom: Float = 0f,
+    val left: Float = 0f,
+    val right: Float = 0f,
+)
+
 fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
     ComposeWindow().apply {
         setContent(content)
@@ -78,12 +86,13 @@ fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
 fun Application(
     title: String = "JetpackNativeWindow",
     content: @Composable () -> Unit = { }
-):UIViewController = ComposeUIViewController(content)
-
-val _stateKeyboardHeight = mutableStateOf(0f)
+): UIViewController = ComposeUIViewController(content)
 
 @ExportObjCClass
 internal actual class ComposeWindow : UIViewController {
+
+    private val stateSafeArea = mutableStateOf(TopBottomLeftRight())
+
     @OverrideInit
     actual constructor() : super(nibName = null, bundle = null)
 
@@ -165,19 +174,13 @@ internal actual class ComposeWindow : UIViewController {
     @Suppress("unused")
     @ObjCAction
     fun viewSafeAreaInsetsDidChange() {
-        data class TopBottomLeftRight(
-            val top:Double,
-            val bottom:Double,
-            val left:Double,
-            val right:Double,
-        )
 //        (this as UIViewController).viewSafeAreaInsetsDidChange()
         val sizes = view.safeAreaInsets.useContents {
-            TopBottomLeftRight(
-                top = top,
-                bottom = bottom,
-                left = left,
-                right = right
+            stateSafeArea.value = TopBottomLeftRight(
+                top = top.toFloat(),
+                bottom = bottom.toFloat(),
+                left = left.toFloat(),
+                right = right.toFloat(),
             )
         }
         println("sizes: $sizes")
@@ -282,6 +285,7 @@ internal actual class ComposeWindow : UIViewController {
             CompositionLocalProvider(
                 LocalLayerContainer provides rootView,
                 LocalUIViewController provides this,
+                LocalSafeArea provides stateSafeArea.value,
             ) {
                 content()
             }

@@ -29,12 +29,25 @@ fun IosDemo() {
 @Composable
 fun InsetsSample() {
     Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier.fillMaxSize()
+                .windowInsetsPadding(WindowInsets.Companion.iosSafeArea)
+                .background(Color.LightGray)
+        )
+
         Column(Modifier.align(Alignment.Center)) {
             TextField("TextField", {})
             Button({}) {
                 Text("Button")
             }
         }
+        Text(
+            "SafeAreaTop",
+            Modifier.align(Alignment.TopCenter)
+                .windowInsetsPadding(WindowInsets.Companion.iosSafeArea)
+                .background(Color.Yellow)
+        )
+
         Text(
             "IME",
             Modifier.align(Alignment.BottomCenter)

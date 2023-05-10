@@ -24,10 +24,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.LocalSafeArea
+import androidx.compose.ui._stateKeyboardHeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window._stateKeyboardHeight
 
 /**
  * Indicates whether access to [WindowInsets] within the [content][ComposeView.setContent]
@@ -48,7 +49,12 @@ import androidx.compose.ui.window._stateKeyboardHeight
 val WindowInsets.Companion.iosSafeArea: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = TODO()
+    get() = WindowInsets(
+        top = LocalSafeArea.current.top.dp,
+        bottom = LocalSafeArea.current.bottom.dp,
+        left = LocalSafeArea.current.left.dp,
+        right = LocalSafeArea.current.right.dp,
+    )
 
 /**
  * On API level 23 (M) and above, the soft keyboard can be
