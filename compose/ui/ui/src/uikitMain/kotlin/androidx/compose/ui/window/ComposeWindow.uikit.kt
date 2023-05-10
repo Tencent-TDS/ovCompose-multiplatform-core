@@ -165,11 +165,22 @@ internal actual class ComposeWindow : UIViewController {
     @Suppress("unused")
     @ObjCAction
     fun viewSafeAreaInsetsDidChange() {
+        data class TopBottomLeftRight(
+            val top:Double,
+            val bottom:Double,
+            val left:Double,
+            val right:Double,
+        )
 //        (this as UIViewController).viewSafeAreaInsetsDidChange()
-        val uiEdgesInsets: UIEdgeInsets = view.safeAreaInsets.useContents { this }
-        with(uiEdgesInsets) {
-            println("top: $top, bottom: $bottom, left: $left, right: $right")
+        val sizes = view.safeAreaInsets.useContents {
+            TopBottomLeftRight(
+                top = top,
+                bottom = bottom,
+                left = left,
+                right = right
+            )
         }
+        println("sizes: $sizes")
     }
 
     override fun loadView() {
