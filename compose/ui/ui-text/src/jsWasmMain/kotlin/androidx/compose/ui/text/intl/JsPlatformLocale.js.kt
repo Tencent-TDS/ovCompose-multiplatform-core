@@ -64,8 +64,6 @@ internal external interface IntlLocale {
 
 internal fun parseLanguageTagToIntlLocale(languageTag: String): IntlLocale = js("new Intl.Locale(languageTag)")
 
-internal fun currentLanguageTag(): String = js("window.navigator.language")
-
 internal expect fun userPreferredLanguages(): List<String>
 
 private fun String.toIntlLocale(): IntlLocale = parseLanguageTagToIntlLocale(this)
