@@ -402,11 +402,10 @@ internal data class DesktopDropdownMenuPositionProvider(
             else -> this
         }
 
-        fun Int.coerceWithSizeIntoRange(size: Int, min: Int, max: Int) =
-            if (isLtr)
-                coerceWithSizeIntoRangePreferMin(size, min, max)
-            else
-                coerceWithSizeIntoRangePreferMax(size, min, max)
+        fun Int.coerceWithSizeIntoRange(size: Int, min: Int, max: Int) = when {
+            isLtr -> coerceWithSizeIntoRangePreferMin(size, min, max)
+            else -> coerceWithSizeIntoRangePreferMax(size, min, max)
+        }
 
         // The min margin above and below the menu, relative to the screen.
         val verticalMargin = with(density) { MenuVerticalMargin.roundToPx() }
@@ -415,10 +414,12 @@ internal data class DesktopDropdownMenuPositionProvider(
         val contentOffsetY = with(density) { contentOffset.y.roundToPx() }
 
         // Compute horizontal position.
-        val preferredX = if (isLtr)
+        val preferredX = if (isLtr) {
             anchorBounds.left + contentOffsetX
-        else
+        }
+        else {
             anchorBounds.right - contentOffsetX - popupContentSize.width
+        }
         val x = preferredX.coerceWithSizeIntoRange(
             size = popupContentSize.width,
             min = 0,
