@@ -36,7 +36,9 @@ internal actual fun createPlatformLocaleDelegate(): PlatformLocaleDelegate =
     object : PlatformLocaleDelegate {
         override val current: LocaleList
             get() = LocaleList(
-                listOf(Locale(JsLocale(currentLanguageTag())))
+                userPreferredLanguages().map {
+                    Locale(JsLocale(it))
+                }
             )
 
 
@@ -61,6 +63,9 @@ internal external interface IntlLocale {
 }
 
 internal fun parseLanguageTagToIntlLocale(languageTag: String): IntlLocale = js("new Intl.Locale(languageTag)")
+
 internal fun currentLanguageTag(): String = js("window.navigator.language")
+
+internal expect fun userPreferredLanguages(): List<String>
 
 private fun String.toIntlLocale(): IntlLocale = parseLanguageTagToIntlLocale(this)
