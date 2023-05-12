@@ -855,39 +855,55 @@ private val CoordinateTolerance = if (isLinux) LinuxCoordinateTolerance else 0
 private fun assertCoordinatesApproximatelyEqual(
     expected: Point,
     actual: Point,
-){
+) {
     if (((expected.x - actual.x).absoluteValue > CoordinateTolerance) ||
-        (expected.y - actual.y).absoluteValue > CoordinateTolerance)
-        throw AssertionError("Expected <$expected> with absolute tolerance" +
-            " <$CoordinateTolerance>, actual <$actual>.")
+        ((expected.y - actual.y).absoluteValue > CoordinateTolerance)
+    ) {
+        throw AssertionError(
+            "Expected <$expected> with absolute tolerance" +
+                " <$CoordinateTolerance>, actual <$actual>."
+        )
+    }
 }
 
 private fun assertSizesApproximatelyEqual(
     expected: Dimension,
     actual: Dimension,
-){
+) {
     if (((expected.width - actual.width).absoluteValue > CoordinateTolerance) ||
-        (expected.height - actual.height).absoluteValue > CoordinateTolerance)
-        throw AssertionError("Expected <$expected> with absolute tolerance" +
-            " <$CoordinateTolerance>, actual <$actual>.")
+        ((expected.height - actual.height).absoluteValue > CoordinateTolerance)
+    ) {
+        throw AssertionError(
+            "Expected <$expected> with absolute tolerance" +
+                " <$CoordinateTolerance>, actual <$actual>."
+        )
+    }
 }
 
 private fun assertCoordinatesNotApproximatelyEqual(
     expected: Point,
     actual: Point,
-){
+) {
     if (((expected.x - actual.x).absoluteValue <= CoordinateTolerance) &&
-        (expected.y - actual.y).absoluteValue <= CoordinateTolerance)
-        throw AssertionError("Expected <$expected> to not equal actual <$actual> with absolute" +
-            " tolerance <$CoordinateTolerance>")
+        ((expected.y - actual.y).absoluteValue <= CoordinateTolerance)
+    ) {
+        throw AssertionError(
+            "Expected <$expected> to not equal actual <$actual> with absolute" +
+                " tolerance <$CoordinateTolerance>"
+        )
+    }
 }
 
 private fun assertSizesNotApproximatelyEqual(
     expected: Dimension,
     actual: Dimension,
-){
+) {
     if (((expected.width - actual.width).absoluteValue <= CoordinateTolerance) &&
-        (expected.height - actual.height).absoluteValue <= CoordinateTolerance)
-        throw AssertionError("Expected <$expected> to not equal actual <$actual> with absolute" +
-            " tolerance <$CoordinateTolerance>")
+        ((expected.height - actual.height).absoluteValue <= CoordinateTolerance)
+    ) {
+        throw AssertionError(
+            "Expected <$expected> to not equal actual <$actual> with absolute" +
+                " tolerance <$CoordinateTolerance>"
+        )
+    }
 }
