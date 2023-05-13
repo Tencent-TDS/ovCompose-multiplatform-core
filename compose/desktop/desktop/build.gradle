@@ -78,6 +78,10 @@ tasks.findByName("jvmTest").configure {
     systemProperties["GOLDEN_PATH"] = getGoldenPath(project).toString()
 }
 
+tasks.withType(Test).configureEach {
+    maxParallelForks = 1
+}
+
 androidx {
     name = "Jetpack Compose desktop implementation"
     type = LibraryType.PUBLISHED_LIBRARY
