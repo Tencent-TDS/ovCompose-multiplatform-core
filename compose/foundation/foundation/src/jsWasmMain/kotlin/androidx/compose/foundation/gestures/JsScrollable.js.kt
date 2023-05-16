@@ -32,6 +32,10 @@ import org.jetbrains.skiko.SkikoPointerEventKind
 internal actual fun platformScrollConfig(): ScrollConfig = JsConfig
 
 private object JsConfig : ScrollConfig {
+
+    override val isSmoothScrollingEnabled: Boolean
+        get() = true
+
     override fun Density.calculateMouseWheelScroll(event: PointerEvent, bounds: IntSize): Offset {
         val totalScrollDelta = event.totalScrollDelta
 
