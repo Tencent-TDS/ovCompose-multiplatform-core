@@ -75,6 +75,7 @@ class DesktopPopupTest {
         assertThat(actualLocalValue).isEqualTo(3)
     }
 
+    // https://github.com/JetBrains/compose-multiplatform/issues/3142
     @Test
     fun `pass LayoutDirection to popup`() {
         lateinit var localLayoutDirection: LayoutDirection

@@ -111,7 +111,7 @@ internal fun PopupLayout(
             owner.dispose()
         }
     }
-    LaunchedEffect(density, layoutDirection) {
+    SideEffect {
         owner.density = density
         owner.layoutDirection = layoutDirection
     }
