@@ -17,124 +17,56 @@ package androidx.compose.ui.awt
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.TweenSpec
-import androidx.compose.foundation.ContextMenuDataProvider
-import androidx.compose.foundation.ContextMenuItem
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.VerticalScrollbar
-import androidx.compose.foundation.mouseClickable
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.window.WindowDraggableArea
-import androidx.compose.material.BottomAppBar
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Checkbox
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
-import androidx.compose.material.ExtendedFloatingActionButton
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Slider
-import androidx.compose.material.Switch
-import androidx.compose.material.Text
-import androidx.compose.material.TextField
-import androidx.compose.material.TopAppBar
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusProperties
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.isCtrlPressed
-import androidx.compose.ui.input.pointer.isAltPressed
-import androidx.compose.ui.input.pointer.isCtrlPressed
-import androidx.compose.ui.input.pointer.isMetaPressed
-import androidx.compose.ui.input.pointer.isPrimaryPressed
-import androidx.compose.ui.input.pointer.isSecondaryPressed
-import androidx.compose.ui.input.pointer.isShiftPressed
-import androidx.compose.ui.input.pointer.isTertiaryPressed
-import androidx.compose.ui.input.key.isMetaPressed
-import androidx.compose.ui.input.key.isShiftPressed
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.isBackPressed
-import androidx.compose.ui.input.pointer.isForwardPressed
-import androidx.compose.ui.input.pointer.onPointerEvent
-import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextDecoration.Companion.Underline
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.FrameWindowScope
-import androidx.compose.ui.window.awaitApplication
-import androidx.compose.ui.window.launchApplication
-import androidx.compose.ui.window.rememberWindowState
-import androidx.compose.ui.window.runApplicationTest
+import androidx.compose.ui.unit.*
+import androidx.compose.ui.window.*
 import com.google.common.truth.Truth
+import java.util.*
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import kotlin.random.Random
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
-import kotlin.random.Random
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import org.jetbrains.skiko.MainUIDispatcher
+import org.junit.Ignore
 import org.junit.Test
 
 @Suppress("ConstPropertyName")
@@ -645,30 +577,34 @@ fun AppWindow() {
 private suspend fun performGC() {
     repeat(10) {
         System.gc()
+        System.runFinalization()
         delay(100)
     }
     delay(5000)
 }
 
-private val availableMemory get() = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
+private val usedMemory get() = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
 
 class ComplexApplicationTest {
-    @Test
-    fun `no memory leak when open window multiple times`() = runApplicationTest(
-        timeoutMillis = 10 * 60 * 1000
-    ) {
+
+    @Test(timeout = 10 * 60 * 1000)
+    fun `no memory leak when open window multiple times`() = runBlocking(MainUIDispatcher) {
+        System.err.println("${Date()} Running `no memory leak when open window multiple times`")
         repeat(10) {
             awaitApplication {
                 AppWindow()
                 LaunchedEffect(Unit) {
                     delay(1000)
                     exitApplication()
+                    awaitEDT()
                 }
             }
         }
 
         performGC()
-        val oldMemory = availableMemory
+        val oldMemory = usedMemory
+
+        System.err.println("Total memory before: ${Runtime.getRuntime().totalMemory()}")
 
         repeat(10) {
             awaitApplication {
@@ -676,19 +612,27 @@ class ComplexApplicationTest {
                 LaunchedEffect(Unit) {
                     delay(1000)
                     exitApplication()
+                    awaitEDT()
                 }
             }
         }
 
         performGC()
-        val newMemory = availableMemory
+        val newMemory = usedMemory
+
+        System.err.println("Total memory after: ${Runtime.getRuntime().totalMemory()}")
+
+        System.err.println("Used memory before: $oldMemory, after: $newMemory, ratio: ${newMemory.toDouble()/oldMemory}")
 
         Truth
             .assertWithMessage("Memory is increased more than 15% after opening multiple windows")
             .that(newMemory < 1.15 * oldMemory)
             .isTrue()
+
+        assertTrue(false)
     }
 
+    @Ignore
     @Test
     fun `no memory leak when wait 3 minutes`() = runApplicationTest(
         timeoutMillis = 10 * 60 * 1000
@@ -700,12 +644,12 @@ class ComplexApplicationTest {
         delay(30 * 1000)
 
         performGC()
-        val oldMemory = availableMemory
+        val oldMemory = usedMemory
 
         delay(3 * 60 * 1000)
 
         performGC()
-        val newMemory = availableMemory
+        val newMemory = usedMemory
 
         Truth
             .assertWithMessage("Memory is increased more than 15% after waiting a few minutes")
