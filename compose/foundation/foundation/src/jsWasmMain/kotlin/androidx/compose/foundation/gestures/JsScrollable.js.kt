@@ -45,7 +45,7 @@ private object JsConfig : ScrollConfig {
         // 2. Provides satisfactory UI behavior
         // In future iterations, this value could be refined to enhance UI behavior.
         // However, keep in mind that any modifications would also necessitate adjustments to the corresponding tests.
-        return Offset(x = totalScrollDelta.x, y = totalScrollDelta.y) * -1f
+        return totalScrollDelta * -1f
     }
 }
 
