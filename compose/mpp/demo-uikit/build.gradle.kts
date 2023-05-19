@@ -104,6 +104,8 @@ apple {
         sceneDelegateClass = "SceneDelegate"
         launchStoryboard = "LaunchScreen"
 
+        // TODO: extend applePlugin to have make it possible to add 'CADisableMinimumFrameDurationOnPhone' set to 'YES' in plist in generated project
+
         dependencies {
             // Here we can add additional dependencies to Swift sourceSet
         }
