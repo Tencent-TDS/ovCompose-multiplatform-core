@@ -68,7 +68,7 @@ fun WithScaffold() {
     val isScaffoldPaddingState = remember { mutableStateOf(false) }
     val isKeyboardInsetState = remember { mutableStateOf(false) }
     val isSafeAreaInsetState = remember { mutableStateOf(false) }
-    val isChatState = remember { mutableStateOf(true) }
+    val isChatState = remember { mutableStateOf(false) }
     val isBigTextFieldState = remember { mutableStateOf(false) }
 
     val appBarState = rememberTopAppBarState()
