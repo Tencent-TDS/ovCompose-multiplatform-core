@@ -29,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
@@ -129,7 +128,7 @@ fun WithScaffold() {
         }
 
         Box(
-            Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.commonSafeArea)
+            Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)
                 .padding(innerPadding)
         ) {
             SwitchEnumState(
@@ -294,7 +293,7 @@ fun ContentKeyboardInset() = Box(Modifier.fillMaxSize()) {
 fun ContentSafeAreaInset() = Box(Modifier.fillMaxSize().background(Color.Red.copy(0.2f))) {
     Box(
         Modifier.fillMaxSize()
-            .windowInsetsPadding(WindowInsets.commonSafeArea)
+            .windowInsetsPadding(WindowInsets.systemBars)
             .background(Color.Green.copy(0.4f))
     )
 }

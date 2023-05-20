@@ -17,41 +17,17 @@
 package androidx.compose.foundation.layout
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.NonRestartableComposable
-import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.LocalSafeArea
 import androidx.compose.ui._stateKeyboardHeight
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
-/**
- * Indicates whether access to [WindowInsets] within the [content][ComposeView.setContent]
- * should consume the Android  [android.view.WindowInsets]. The default value is `true`, meaning
- * that access to [WindowInsets.Companion] will consume the Android WindowInsets.
- *
- * This property should be set prior to first composition.
- */
-//var ComposeView.consumeWindowInsets: Boolean
-//    get() = getTag(R.id.consume_window_insets_tag) as? Boolean ?: true
-//    set(value) {
-//        setTag(R.id.consume_window_insets_tag, value)
-//    }
-
-val WindowInsets.Companion.commonSafeArea: WindowInsets //TODO commonMain
-    @Composable
-    @NonRestartableComposable
-    get() = iosSafeArea
+private val EmptyInset = WindowInsets(0, 0, 0, 0)
 
 /**
- * This insets represents the iOS SafeArea
+ * This insets represents iosSafeAreas.
  */
-val WindowInsets.Companion.iosSafeArea: WindowInsets
+private val WindowInsets.Companion.iosSafeAreas: WindowInsets
     @Composable
     @NonRestartableComposable
     get() = WindowInsets(
@@ -62,38 +38,118 @@ val WindowInsets.Companion.iosSafeArea: WindowInsets
     )
 
 /**
- * On API level 23 (M) and above, the soft keyboard can be
- * detected and [ime] will update when it shows. On API 30 (R) and above, the [ime] insets will
- * animate synchronously with the actual IME animation.
- *
- * Developers should set `android:windowSoftInputMode="adjustResize"` in their
- * `AndroidManifest.xml` file and call `WindowCompat.setDecorFitsSystemWindows(window, false)`
- * in their [android.app.Activity.onCreate].
+ * An insets type representing the window of a caption bar.
+ * It is useless for iOS.
+ */
+val WindowInsets.Companion.captionBar get() = EmptyInset
+
+/**
+ * This insets represents the area that the
+ * display cutout (e.g. for camera) is and important content should be excluded from.
+ */
+val WindowInsets.Companion.displayCutout: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = TODO("TODO displayCutout inset")
+
+/**
+ * An insets type representing the window of an "input method",
+ * For iOS IME representing the software keyboard.
+ * TODO Animation doesn't work on iOS yet
  */
 val WindowInsets.Companion.ime: WindowInsets
     @Composable
     @NonRestartableComposable
     get() = WindowInsets(bottom = _stateKeyboardHeight.value.dp)
 
-@OptIn(ExperimentalLayoutApi::class)
-val _imeMutableWindowInset = MutableWindowInsets(WindowInsets(0,0,0,0))
+/**
+ * These insets represents the space where system gestures have priority over application gestures.
+ */
+val WindowInsets.Companion.mandatorySystemGestures: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = TODO("")
 
-///**
-// * The insets that include areas where gestures may be confused with other input,
-// * including [system gestures][systemGestures],
-// * [mandatory system gestures][mandatorySystemGestures],
-// * [rounded display areas][waterfall], and [tappable areas][tappableElement].
-// */
-//val WindowInsets.Companion.safeGestures: WindowInsets
-//    @Composable
-//    @NonRestartableComposable
-//    get() = WindowInsetsHolder.current().safeGestures
-//
-///**
-// * The insets that include all areas that may be drawn over or have gesture confusion,
-// * including everything in [safeDrawing] and [safeGestures].
-// */
-//val WindowInsets.Companion.safeContent: WindowInsets
-//    @Composable
-//    @NonRestartableComposable
-//    get() = WindowInsetsHolder.current().safeContent
+/**
+ * These insets represent where system UI places navigation bars.
+ * Interactive UI should avoid the navigation bars area.
+ */
+val WindowInsets.Companion.navigationBars: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = TODO("")
+
+/**
+ * TODO
+ */
+val WindowInsets.Companion.statusBars: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = TODO("")
+
+/**
+ * This insets represents all system bars. Includes {@link #statusBars()}, {@link #captionBar()} as well as
+ * {@link #navigationBars()}, but not {@link #ime()}.
+ */
+val WindowInsets.Companion.systemBars: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = iosSafeAreas
+
+/**
+ * TODO
+ */
+val WindowInsets.Companion.systemGestures: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = TODO()
+
+/**
+ * TODO copy/paste doc
+ * Returns the tappable element insets.
+ * <p>The tappable element insets represent how much tappable elements <b>must at least</b> be
+ * inset to remain both tappable and visually unobstructed by persistent system windows.
+ * <p>This may be smaller than {@link #getSystemWindowInsets()} if the system window is
+ * largely transparent and lets through simple taps (but not necessarily more complex gestures).
+ */
+val WindowInsets.Companion.tappableElement: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = TODO()
+
+/**
+ * The insets for the curved areas in a waterfall display.
+ * It is useless for iOS.
+ */
+val WindowInsets.Companion.waterfall: WindowInsets get() = EmptyInset
+
+/**
+ * The insets that include areas where content may be covered by other drawn content.
+ * This includes all [system bars][systemBars], [display cutout][displayCutout], and
+ * [soft keyboard][ime].
+ */
+val WindowInsets.Companion.safeDrawing
+    @Composable
+    @NonRestartableComposable
+    get() = systemBars.union(ime).union(displayCutout)
+
+/**
+ * The insets that include areas where gestures may be confused with other input,
+ * including [system gestures][systemGestures],
+ * [mandatory system gestures][mandatorySystemGestures],
+ * [rounded display areas][waterfall], and [tappable areas][tappableElement].
+ */
+val WindowInsets.Companion.safeGestures: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = tappableElement.union(mandatorySystemGestures).union(systemGestures).union(waterfall)
+
+/**
+ * The insets that include all areas that may be drawn over or have gesture confusion,
+ * including everything in [safeDrawing] and [safeGestures].
+ */
+val WindowInsets.Companion.safeContent: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    get() = safeDrawing.union(safeGestures)
+

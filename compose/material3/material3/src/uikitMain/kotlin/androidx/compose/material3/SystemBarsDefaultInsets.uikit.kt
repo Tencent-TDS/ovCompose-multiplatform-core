@@ -17,9 +17,9 @@
 package androidx.compose.material3
 
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.iosSafeArea
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.runtime.Composable
 
 @Composable
 internal actual fun WindowInsets.Companion.systemBarsForVisualComponents(): WindowInsets =
-    WindowInsets.iosSafeArea
+    WindowInsets.systemBars
