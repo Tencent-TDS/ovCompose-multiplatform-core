@@ -85,6 +85,7 @@ fun <T : UIView> UIKitView(
     // TODO: adapt UIKitView to reuse inside LazyColumn like in AndroidView:
     //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
     val componentInfo = remember { ComponentInfo<T>() }
+    val view = remember { factory() }
     val root = LocalLayerContainer.current
     val density = LocalDensity.current.density
     var rectInPixels by remember { mutableStateOf(IntRect(0, 0, 0, 0)) }
@@ -116,8 +117,8 @@ fun <T : UIView> UIKitView(
         }
     )
 
-    DisposableEffect(factory, onRelease) {
-        componentInfo.component = factory()
+    DisposableEffect(Unit) {
+        componentInfo.component = view
         componentInfo.container = UIView().apply {
             addSubview(componentInfo.component)
         }
@@ -129,6 +130,7 @@ fun <T : UIView> UIKitView(
             onRelease(componentInfo.component)
         }
     }
+
     LaunchedEffect(background) {
         if (background == Color.Unspecified) {
             componentInfo.container.backgroundColor = root.backgroundColor
@@ -136,6 +138,7 @@ fun <T : UIView> UIKitView(
             componentInfo.container.backgroundColor = parseColor(background)
         }
     }
+
     SideEffect {
         componentInfo.updater.update = update
     }
