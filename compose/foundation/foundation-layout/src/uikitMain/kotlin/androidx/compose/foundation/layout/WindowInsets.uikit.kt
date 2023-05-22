@@ -19,9 +19,8 @@ package androidx.compose.foundation.layout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.NonRestartableComposable
 import androidx.compose.ui.*
+import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.unit.dp
-import platform.UIKit.UIDeviceOrientation
-import platform.UIKit.interfaceOrientation
 
 private val EmptyInset = WindowInsets(0, 0, 0, 0)
 
@@ -51,23 +50,11 @@ val WindowInsets.Companion.captionBar get() = EmptyInset
 val WindowInsets.Companion.displayCutout: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = when (LocalUIDeviceOrientationState.current.value) {
-        UIDeviceOrientation.UIDeviceOrientationPortrait ->
-            iosSafeAreas.only(WindowInsetsSides.Top)
-
-        /** TODO: On PortraitUpsideDown orientation Compose draws like on previous orientation.
-         *   But, we can override interfaceOrientation in UIViewController to control it after Kotlin 1.8.20
-         */
-        UIDeviceOrientation.UIDeviceOrientationPortraitUpsideDown ->
-            EmptyInset
-
-        UIDeviceOrientation.UIDeviceOrientationLandscapeLeft ->
-            iosSafeAreas.only(WindowInsetsSides.Left)
-
-        UIDeviceOrientation.UIDeviceOrientationLandscapeRight ->
-            iosSafeAreas.only(WindowInsetsSides.Right)
-
-        else -> iosSafeAreas.only(WindowInsetsSides.Top)
+    get() = when (LocalInterfaceOrientationState.current.value) {
+        InterfaceOrientation.Portrait -> iosSafeAreas.only(WindowInsetsSides.Top)
+        InterfaceOrientation.PortraitUpsideDown -> iosSafeAreas.only(WindowInsetsSides.Bottom)
+        InterfaceOrientation.LandscapeLeft -> iosSafeAreas.only(WindowInsetsSides.Right)
+        InterfaceOrientation.LandscapeRight -> iosSafeAreas.only(WindowInsetsSides.Left)
     }
 
 /**
@@ -86,7 +73,7 @@ val WindowInsets.Companion.ime: WindowInsets
 val WindowInsets.Companion.mandatorySystemGestures: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = TODO("")
+    get() = iosSafeAreas.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom)
 
 /**
  * These insets represent where system UI places navigation bars.
@@ -95,19 +82,22 @@ val WindowInsets.Companion.mandatorySystemGestures: WindowInsets
 val WindowInsets.Companion.navigationBars: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = TODO("")
+    get() = iosSafeAreas.only(WindowInsetsSides.Bottom)
 
 /**
- * TODO
+ * This insets represents status bar
  */
 val WindowInsets.Companion.statusBars: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = TODO("")
+    get() = when (LocalInterfaceOrientationState.current.value) {
+        InterfaceOrientation.Portrait -> iosSafeAreas.only(WindowInsetsSides.Top)
+        else -> EmptyInset
+    }
 
 /**
- * This insets represents all system bars. Includes {@link #statusBars()}, {@link #captionBar()} as well as
- * {@link #navigationBars()}, but not {@link #ime()}.
+ * This insets represents all system bars.
+ * Includes [statusBars], [captionBar] as well as [navigationBars], but not [ime].
  */
 val WindowInsets.Companion.systemBars: WindowInsets
     @Composable
@@ -115,25 +105,22 @@ val WindowInsets.Companion.systemBars: WindowInsets
     get() = iosSafeAreas
 
 /**
- * TODO
+ * The systemGestures insets represent the area of a window where system gestures have
+ * priority and may consume some or all touch input, e.g. due to the system bar
+ * occupying it, or it being reserved for touch-only gestures.
  */
 val WindowInsets.Companion.systemGestures: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = TODO()
+    get() = iosSafeAreas.add(WindowInsets(16.dp, 16.dp, 16.dp, 16.dp))
 
 /**
- * TODO copy/paste doc
  * Returns the tappable element insets.
- * <p>The tappable element insets represent how much tappable elements <b>must at least</b> be
- * inset to remain both tappable and visually unobstructed by persistent system windows.
- * <p>This may be smaller than {@link #getSystemWindowInsets()} if the system window is
- * largely transparent and lets through simple taps (but not necessarily more complex gestures).
  */
 val WindowInsets.Companion.tappableElement: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = TODO()
+    get() = iosSafeAreas.only(WindowInsetsSides.Top)
 
 /**
  * The insets for the curved areas in a waterfall display.

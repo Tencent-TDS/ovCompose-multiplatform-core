@@ -17,7 +17,7 @@
 package androidx.compose.ui
 
 import androidx.compose.runtime.*
-import platform.UIKit.UIDeviceOrientation
+import androidx.compose.ui.uikit.InterfaceOrientation
 
 val _stateKeyboardHeight = mutableStateOf(0f)
 
@@ -41,6 +41,6 @@ val LocalSafeAreaRightState = staticCompositionLocalOf<State<Float>> {
     error("CompositionLocal LocalSafeAreaRightState not provided")
 }
 
-val LocalUIDeviceOrientationState = staticCompositionLocalOf<State<UIDeviceOrientation>> {
+val LocalInterfaceOrientationState = staticCompositionLocalOf<State<InterfaceOrientation>> {
     error("CompositionLocal LocalUIDeviceOrientationState not provided")
 }

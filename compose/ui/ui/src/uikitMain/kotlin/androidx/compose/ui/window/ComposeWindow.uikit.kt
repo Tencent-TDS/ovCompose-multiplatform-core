@@ -29,6 +29,7 @@ import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.input.PlatformTextInputService
+import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.unit.*
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
@@ -88,7 +89,9 @@ internal actual class ComposeWindow : UIViewController {
     private val safeAreaBottomState = mutableStateOf(0f)
     private val safeAreaLeftState = mutableStateOf(0f)
     private val safeAreaRightState = mutableStateOf(0f)
-    private val uiDeviceOrientationState = mutableStateOf(UIDevice.currentDevice.orientation)
+    private val interfaceOrientationState = mutableStateOf(
+        InterfaceOrientation.getStatusBarOrientation()
+    )
 
     @OverrideInit
     actual constructor() : super(nibName = null, bundle = null)
@@ -140,7 +143,8 @@ internal actual class ComposeWindow : UIViewController {
         @Suppress("UNUSED_PARAMETER")
         @ObjCAction
         fun orientationDidChange(arg: NSNotification) {
-            uiDeviceOrientationState.value = UIDevice.currentDevice.orientation
+            InterfaceOrientation.getStatusBarOrientation()
+            interfaceOrientationState.value = InterfaceOrientation.getStatusBarOrientation()
         }
     }
 
@@ -265,7 +269,7 @@ internal actual class ComposeWindow : UIViewController {
                 LocalSafeAreaBottomState provides safeAreaBottomState,
                 LocalSafeAreaLeftState provides safeAreaLeftState,
                 LocalSafeAreaRightState provides safeAreaRightState,
-                LocalUIDeviceOrientationState provides uiDeviceOrientationState,
+                LocalInterfaceOrientationState provides interfaceOrientationState,
             ) {
                 content()
             }
