@@ -61,13 +61,6 @@ private val uiContentSizeCategoryToFontScaleMap = mapOf(
     // UIContentSizeCategoryUnspecified
 )
 
-data class TopBottomLeftRight(
-    val top: Float = 0f,
-    val bottom: Float = 0f,
-    val left: Float = 0f,
-    val right: Float = 0f,
-)
-
 fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
     ComposeWindow().apply {
         setContent(content)
@@ -90,7 +83,12 @@ fun Application(
 @ExportObjCClass
 internal actual class ComposeWindow : UIViewController {
 
-    private val stateSafeArea = mutableStateOf(TopBottomLeftRight())
+    private val keyboardOverlapHeightState = mutableStateOf(0f)
+    private val safeAreaTopState = mutableStateOf(0f)
+    private val safeAreaBottomState = mutableStateOf(0f)
+    private val safeAreaLeftState = mutableStateOf(0f)
+    private val safeAreaRightState = mutableStateOf(0f)
+    private val uiDeviceOrientationState = mutableStateOf(UIDevice.currentDevice.orientation)
 
     @OverrideInit
     actual constructor() : super(nibName = null, bundle = null)
@@ -127,31 +125,38 @@ internal actual class ComposeWindow : UIViewController {
             val bottomIndent = screenHeight - composeViewBottomY
 
             if (bottomIndent < keyboardHeight) {
-                _stateKeyboardHeight.value = (keyboardHeight - bottomIndent).toFloat()
+                keyboardOverlapHeightState.value = (keyboardHeight - bottomIndent).toFloat()
             }
         }
 
         @Suppress("unused")
         @ObjCAction
         fun keyboardDidHide(arg: NSNotification) {
-            _stateKeyboardHeight.value = 0f
+            keyboardOverlapHeightState.value = 0f
+        }
+    }
+
+    private val orientationListener = object : NSObject() {
+        @Suppress("UNUSED_PARAMETER")
+        @ObjCAction
+        fun orientationDidChange(arg: NSNotification) {
+            uiDeviceOrientationState.value = UIDevice.currentDevice.orientation
         }
     }
 
     @Suppress("unused")
     @ObjCAction
     fun viewSafeAreaInsetsDidChange() {
-//        (this as UIViewController).viewSafeAreaInsetsDidChange()
+        // super.viewSafeAreaInsetsDidChange() // TODO: call super after Kotlin 1.8.20
         view.safeAreaInsets.useContents {
-            stateSafeArea.value = TopBottomLeftRight(
-                top = top.toFloat(),
-                bottom = bottom.toFloat(),
-                left = left.toFloat(),
-                right = right.toFloat(),
-            )
+            safeAreaTopState.value = top.toFloat()
+            safeAreaBottomState.value = bottom.toFloat()
+            safeAreaLeftState.value = left.toFloat()
+            safeAreaRightState.value = right.toFloat()
             println("view.safeAreaInsets: top: $top, bottom: $bottom, left: $left, right: $right")
         }
         view.directionalLayoutMargins.useContents {
+            //todo safe gestures?
             println("view.directionalLayoutMargins: top: $top, bottom: $bottom,  leading: $leading, trailing: $trailing")
         }
     }
@@ -255,7 +260,12 @@ internal actual class ComposeWindow : UIViewController {
             CompositionLocalProvider(
                 LocalLayerContainer provides rootView,
                 LocalUIViewController provides this,
-                LocalSafeArea provides stateSafeArea.value,
+                LocalKeyboardOverlapHeightState provides keyboardOverlapHeightState,
+                LocalSafeAreaTopState provides safeAreaTopState,
+                LocalSafeAreaBottomState provides safeAreaBottomState,
+                LocalSafeAreaLeftState provides safeAreaLeftState,
+                LocalSafeAreaRightState provides safeAreaRightState,
+                LocalUIDeviceOrientationState provides uiDeviceOrientationState,
             ) {
                 content()
             }
@@ -305,43 +315,50 @@ internal actual class ComposeWindow : UIViewController {
         layer.setSize((width * scale).roundToInt(), (height * scale).roundToInt())
     }
 
-    override fun viewDidLoad() {
-        super.viewDidLoad()
-        traitCollection.userInterfaceStyle == UIUserInterfaceStyle.UIUserInterfaceStyleDark
-    }
-
     override fun viewDidAppear(animated: Boolean) {
         super.viewDidAppear(animated)
         NSNotificationCenter.defaultCenter.addObserver(
             observer = keyboardVisibilityListener,
             selector = NSSelectorFromString(keyboardVisibilityListener::keyboardDidShow.name + ":"),
-            name = platform.UIKit.UIKeyboardDidShowNotification,
+            name = UIKeyboardDidShowNotification,
             `object` = null
         )
         NSNotificationCenter.defaultCenter.addObserver(
             observer = keyboardVisibilityListener,
             selector = NSSelectorFromString(keyboardVisibilityListener::keyboardDidHide.name + ":"),
-            name = platform.UIKit.UIKeyboardDidHideNotification,
+            name = UIKeyboardDidHideNotification,
+            `object` = null
+        )
+        NSNotificationCenter.defaultCenter.addObserver(
+            observer = orientationListener,
+            selector = NSSelectorFromString(orientationListener::orientationDidChange.name + ":"),
+            name = UIDeviceOrientationDidChangeNotification,
             `object` = null
         )
     }
 
     // viewDidUnload() is deprecated and not called.
     override fun viewDidDisappear(animated: Boolean) {
+        // TODO call dispose() function, but check how it will works with SwiftUI interop between different screens.
         super.viewDidDisappear(animated)
         NSNotificationCenter.defaultCenter.removeObserver(
             observer = keyboardVisibilityListener,
-            name = platform.UIKit.UIKeyboardWillShowNotification,
+            name = UIKeyboardWillShowNotification,
             `object` = null
         )
         NSNotificationCenter.defaultCenter.removeObserver(
             observer = keyboardVisibilityListener,
-            name = platform.UIKit.UIKeyboardWillHideNotification,
+            name = UIKeyboardWillHideNotification,
             `object` = null
         )
         NSNotificationCenter.defaultCenter.removeObserver(
             observer = keyboardVisibilityListener,
-            name = platform.UIKit.UIKeyboardDidHideNotification,
+            name = UIKeyboardDidHideNotification,
+            `object` = null
+        )
+        NSNotificationCenter.defaultCenter.removeObserver(
+            observer = keyboardVisibilityListener,
+            name = UIDeviceOrientationDidChangeNotification,
             `object` = null
         )
     }
@@ -356,11 +373,6 @@ internal actual class ComposeWindow : UIViewController {
         content: @Composable () -> Unit
     ) {
         this.content = content
-    }
-
-    override fun viewDidUnload() {
-        super.viewDidUnload()
-        this.dispose()
     }
 
     actual fun dispose() {

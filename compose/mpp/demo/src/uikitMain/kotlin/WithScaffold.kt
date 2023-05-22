@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -40,12 +41,27 @@ import androidx.compose.ui.unit.sp
 import kotlin.random.Random
 
 val themeState = mutableStateOf(Theme.SystemTheme)
-val topState = mutableStateOf(Top.TopBarWithGradient)
+val topState = mutableStateOf(Top.Empty)
 val bottomState = mutableStateOf(Bottom.Empty)
 
 enum class Theme { SystemTheme, DarkTheme, LightTheme, }
 enum class Top { Empty, TopBarBasic, TopBarWithGradient, CollapsingTopBar, }
 enum class Bottom { Empty, Tabs, }
+enum class Insets {
+    captionBar,
+    displayCutout,
+    ime,
+    mandatorySystemGestures,
+    navigationBars,
+    statusBars,
+    systemBars,
+    systemGestures,
+    tappableElement,
+    waterfall,
+    safeDrawing,
+    safeGestures,
+    safeContent,
+}
 
 @Composable
 fun WithMaterialThemeAndScaffold() {
@@ -64,11 +80,10 @@ fun WithMaterialThemeAndScaffold() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WithScaffold() {
-    val isScaffoldPaddingState = remember { mutableStateOf(false) }
-    val isKeyboardInsetState = remember { mutableStateOf(false) }
-    val isSafeAreaInsetState = remember { mutableStateOf(false) }
-    val isChatState = remember { mutableStateOf(false) }
-    val isBigTextFieldState = remember { mutableStateOf(false) }
+    val isScaffoldPaddingState = rememberSaveable { mutableStateOf(false) }
+    val isInsetsState = rememberSaveable { mutableStateOf(false) }
+    val isChatState = rememberSaveable { mutableStateOf(false) }
+    val isBigTextFieldState = rememberSaveable { mutableStateOf(false) }
 
     val appBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(appBarState)
@@ -89,7 +104,7 @@ fun WithScaffold() {
             when (bottomState.value) {
                 Bottom.Empty -> {}
                 Bottom.Tabs -> BottomAppBar {
-                    val tabState = remember { mutableStateOf(0) }
+                    val tabState = rememberSaveable { mutableStateOf(0) }
                     TabRow(selectedTabIndex = tabState.value) {
                         listOf(
                             "Home" to Icons.Default.Home,
@@ -148,8 +163,7 @@ fun WithScaffold() {
                         Switch(state.value, { state.value = it })
                     }
                 SwitchBooleanState(isScaffoldPaddingState, "ScaffoldPadding")
-                SwitchBooleanState(isKeyboardInsetState, "KeyboardInset")
-                SwitchBooleanState(isSafeAreaInsetState, "SafeAreaInset")
+                SwitchBooleanState(isInsetsState, "Insets")
                 SwitchBooleanState(isChatState, "Chat")
                 SwitchBooleanState(isBigTextFieldState, "BigTextField")
             }
@@ -162,11 +176,8 @@ fun WithScaffold() {
         }
     }
 
-    if (isSafeAreaInsetState.value) {
-        ContentSafeAreaInset()
-    }
-    if (isKeyboardInsetState.value) {
-        ContentKeyboardInset()
+    if (isInsetsState.value) {
+        ContentInsets()
     }
 
 }
@@ -269,33 +280,44 @@ fun ContentBigText(innerPadding: PaddingValues) {
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun ContentKeyboardInset() = Box(Modifier.fillMaxSize()) {
+fun ContentInsets() = Box(Modifier.fillMaxSize()) {
+    val insetsState = rememberSaveable { mutableStateOf(Insets.ime) }
+    val current = when (insetsState.value) {
+        Insets.captionBar -> WindowInsets.captionBar
+        Insets.displayCutout -> WindowInsets.displayCutout
+        Insets.ime -> WindowInsets.ime
+        Insets.mandatorySystemGestures -> WindowInsets.mandatorySystemGestures
+        Insets.navigationBars -> WindowInsets.navigationBars
+        Insets.statusBars -> WindowInsets.statusBars
+        Insets.systemBars -> WindowInsets.systemBars
+        Insets.systemGestures -> WindowInsets.systemGestures
+        Insets.tappableElement -> WindowInsets.tappableElement
+        Insets.waterfall -> WindowInsets.waterfall
+        Insets.safeDrawing -> WindowInsets.safeDrawing
+        Insets.safeGestures -> WindowInsets.safeGestures
+        Insets.safeContent -> WindowInsets.safeContent
+    }
+    Box(Modifier.fillMaxSize().background(Color.Red.copy(0.5f)))
+    Box(Modifier.fillMaxSize()
+        .windowInsetsPadding(current)
+        .border(8.dp, Color.Green)
+        .background(Color.Green.copy(alpha = 0.5f))
+    )
+
+    SwitchEnumState(
+        Insets.values(),
+        insetsState,
+        Modifier.align(Alignment.TopStart).windowInsetsPadding(WindowInsets.systemBars).padding(16.dp)
+    )
     val keyboardController = LocalSoftwareKeyboardController.current
     Column(Modifier.align(Alignment.Center)) {
         BasicText(
             "Hide keyboard",
             Modifier.clickable { keyboardController?.hide() }.focusable(true)
-                .background(Color.Red.copy(0.5f))
+                .background(Color.Gray.copy(0.5f))
         )
         BasicTextField("Show keyboard", {}, Modifier.background(Color.Green.copy(0.3f)))
     }
-    Text(
-        "WindowInsets.ime",
-        Modifier.align(Alignment.BottomStart)
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.ime)
-            .background(Color.Green.copy(0.5f))
-            .padding(bottom = 5.dp)
-    )
-}
-
-@Composable
-fun ContentSafeAreaInset() = Box(Modifier.fillMaxSize().background(Color.Red.copy(0.2f))) {
-    Box(
-        Modifier.fillMaxSize()
-            .windowInsetsPadding(WindowInsets.systemBars)
-            .background(Color.Green.copy(0.4f))
-    )
 }
 
 @Composable

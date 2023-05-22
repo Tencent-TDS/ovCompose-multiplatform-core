@@ -16,12 +16,31 @@
 
 package androidx.compose.ui
 
-import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.window.TopBottomLeftRight
+import androidx.compose.runtime.*
+import platform.UIKit.UIDeviceOrientation
 
 val _stateKeyboardHeight = mutableStateOf(0f)
 
-val LocalSafeArea = compositionLocalOf<TopBottomLeftRight> {
-    error("CompositionLocal SafeArea not provided")
+val LocalKeyboardOverlapHeightState = staticCompositionLocalOf<State<Float>> {
+    error("CompositionLocal LocalKeyboardOverlapHeight not provided")
+}
+
+val LocalSafeAreaTopState = staticCompositionLocalOf<State<Float>> {
+    error("CompositionLocal LocalSafeAreaTopState not provided")
+}
+
+val LocalSafeAreaBottomState = staticCompositionLocalOf<State<Float>> {
+    error("CompositionLocal LocalSafeAreaBottomState not provided")
+}
+
+val LocalSafeAreaLeftState = staticCompositionLocalOf<State<Float>> {
+    error("CompositionLocal LocalSafeAreaLeftState not provided")
+}
+
+val LocalSafeAreaRightState = staticCompositionLocalOf<State<Float>> {
+    error("CompositionLocal LocalSafeAreaRightState not provided")
+}
+
+val LocalUIDeviceOrientationState = staticCompositionLocalOf<State<UIDeviceOrientation>> {
+    error("CompositionLocal LocalUIDeviceOrientationState not provided")
 }

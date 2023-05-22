@@ -18,9 +18,10 @@ package androidx.compose.foundation.layout
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.NonRestartableComposable
-import androidx.compose.ui.LocalSafeArea
-import androidx.compose.ui._stateKeyboardHeight
+import androidx.compose.ui.*
 import androidx.compose.ui.unit.dp
+import platform.UIKit.UIDeviceOrientation
+import platform.UIKit.interfaceOrientation
 
 private val EmptyInset = WindowInsets(0, 0, 0, 0)
 
@@ -31,10 +32,10 @@ private val WindowInsets.Companion.iosSafeAreas: WindowInsets
     @Composable
     @NonRestartableComposable
     get() = WindowInsets(
-        top = LocalSafeArea.current.top.dp,
-        bottom = LocalSafeArea.current.bottom.dp,
-        left = LocalSafeArea.current.left.dp,
-        right = LocalSafeArea.current.right.dp,
+        top = LocalSafeAreaTopState.current.value.dp,
+        bottom = LocalSafeAreaBottomState.current.value.dp,
+        left = LocalSafeAreaLeftState.current.value.dp,
+        right = LocalSafeAreaRightState.current.value.dp,
     )
 
 /**
@@ -50,7 +51,24 @@ val WindowInsets.Companion.captionBar get() = EmptyInset
 val WindowInsets.Companion.displayCutout: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = TODO("TODO displayCutout inset")
+    get() = when (LocalUIDeviceOrientationState.current.value) {
+        UIDeviceOrientation.UIDeviceOrientationPortrait ->
+            iosSafeAreas.only(WindowInsetsSides.Top)
+
+        /** TODO: On PortraitUpsideDown orientation Compose draws like on previous orientation.
+         *   But, we can override interfaceOrientation in UIViewController to control it after Kotlin 1.8.20
+         */
+        UIDeviceOrientation.UIDeviceOrientationPortraitUpsideDown ->
+            EmptyInset
+
+        UIDeviceOrientation.UIDeviceOrientationLandscapeLeft ->
+            iosSafeAreas.only(WindowInsetsSides.Left)
+
+        UIDeviceOrientation.UIDeviceOrientationLandscapeRight ->
+            iosSafeAreas.only(WindowInsetsSides.Right)
+
+        else -> iosSafeAreas.only(WindowInsetsSides.Top)
+    }
 
 /**
  * An insets type representing the window of an "input method",
@@ -60,7 +78,7 @@ val WindowInsets.Companion.displayCutout: WindowInsets
 val WindowInsets.Companion.ime: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = WindowInsets(bottom = _stateKeyboardHeight.value.dp)
+    get() = WindowInsets(bottom = LocalKeyboardOverlapHeightState.current.value.dp)
 
 /**
  * These insets represents the space where system gestures have priority over application gestures.
