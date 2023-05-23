@@ -64,7 +64,7 @@ enum class Insets {
 }
 
 @Composable
-fun WithMaterialThemeAndScaffold() {
+fun ApplicationLayoutExamples() {
     val isDarkTheme = when (themeState.value) {
         Theme.SystemTheme -> isSystemInDarkTheme()
         Theme.DarkTheme -> true
@@ -139,7 +139,7 @@ fun WithScaffold() {
         }
 
         if (isBigTextFieldState.value) {
-            ContentBigText(innerPadding)
+            ContentBigTextField(innerPadding)
         }
 
         Box(
@@ -259,7 +259,7 @@ fun ContentChat(innerPadding: PaddingValues) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContentBigText(innerPadding: PaddingValues) {
+fun ContentBigTextField(innerPadding: PaddingValues) {
     val textState = remember {
         mutableStateOf(
             buildString {
