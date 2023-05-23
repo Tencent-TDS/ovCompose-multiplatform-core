@@ -187,7 +187,7 @@ internal actual class ComposeWindow : UIViewController {
             skikoUIView.leadingAnchor.constraintEqualToAnchor(rootView.leadingAnchor),
             skikoUIView.trailingAnchor.constraintEqualToAnchor(rootView.trailingAnchor),
             skikoUIView.topAnchor.constraintEqualToAnchor(rootView.topAnchor),
-            skikoUIView.bottomAnchor.constraintEqualToAnchor(rootView.bottomAnchor),
+            skikoUIView.bottomAnchor.constraintEqualToAnchor(rootView.bottomAnchor)
         ))
 
         view = rootView
