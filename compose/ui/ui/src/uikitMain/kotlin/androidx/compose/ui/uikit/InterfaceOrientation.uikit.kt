@@ -44,5 +44,5 @@ enum class InterfaceOrientation(private val rawValue: UIInterfaceOrientation) {
 
 @InternalComposeApi
 val LocalInterfaceOrientationState = staticCompositionLocalOf<State<InterfaceOrientation>> {
-    error("CompositionLocal LocalUIDeviceOrientationState not provided")
+    error("CompositionLocal LocalInterfaceOrientationState not provided")
 }

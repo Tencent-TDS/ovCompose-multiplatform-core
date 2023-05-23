@@ -20,5 +20,5 @@ import androidx.compose.runtime.*
 
 @InternalComposeApi
 val LocalKeyboardOverlapHeightState = staticCompositionLocalOf<State<Float>> {
-    error("CompositionLocal LocalKeyboardOverlapHeight not provided")
+    error("CompositionLocal LocalKeyboardOverlapHeightState not provided")
 }

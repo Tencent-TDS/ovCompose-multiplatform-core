@@ -39,7 +39,7 @@ private val WindowInsets.Companion.iosSafeArea: WindowInsets
     )
 
 /**
- * This insets represents iOS SafeAreas.
+ * This insets represents iOS layoutMargins.
  */
 private val WindowInsets.Companion.layoutMargins: WindowInsets
     @Composable

@@ -29,7 +29,7 @@ val LocalSafeAreaState = staticCompositionLocalOf<State<IOSInsets>> {
 
 @InternalComposeApi
 val LocalLayoutMarginsState = staticCompositionLocalOf<State<IOSInsets>> {
-    error("CompositionLocal LocalSafeAreaTopState not provided")
+    error("CompositionLocal LocalLayoutMarginsState not provided")
 }
 
 @InternalComposeApi
