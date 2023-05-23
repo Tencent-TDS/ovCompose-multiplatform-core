@@ -298,30 +298,33 @@ fun ContentInsets() = Box(Modifier.fillMaxSize()) {
         Insets.safeContent -> WindowInsets.safeContent
     }
     Box(Modifier.fillMaxSize().background(Color.Red.copy(0.5f)))
-    Box(Modifier.fillMaxSize()
-        .windowInsetsPadding(current)
-        .border(8.dp, Color.Green)
-        .background(Color.Green.copy(alpha = 0.5f))
+    Box(
+        Modifier.fillMaxSize()
+            .windowInsetsPadding(current)
+            .border(8.dp, Color.Green)
+            .background(Color.Green.copy(alpha = 0.5f))
     )
 
-    SwitchEnumState(
-        Insets.values(),
-        insetsState,
-        Modifier.align(Alignment.TopStart).windowInsetsPadding(WindowInsets.systemBars).padding(16.dp)
-    )
-    val keyboardController = LocalSoftwareKeyboardController.current
-    Column(Modifier.align(Alignment.Center)) {
+    Column(
+        Modifier.align(Alignment.Center)
+            .windowInsetsPadding(WindowInsets.systemBars).padding(16.dp)
+    ) {
+        val keyboardController = LocalSoftwareKeyboardController.current
+        BasicTextField("Show keyboard", {}, Modifier.background(Color.Green.copy(0.3f)))
         BasicText(
             "Hide keyboard",
             Modifier.clickable { keyboardController?.hide() }.focusable(true)
                 .background(Color.Gray.copy(0.5f))
         )
-        BasicTextField("Show keyboard", {}, Modifier.background(Color.Green.copy(0.3f)))
+        SwitchEnumState(
+            Insets.values(),
+            insetsState
+        )
     }
 }
 
 @Composable
-fun <T> SwitchEnumState(values: Array<T>, state: MutableState<T>, modifier: Modifier) {
+fun <T> SwitchEnumState(values: Array<T>, state: MutableState<T>, modifier: Modifier = Modifier) {
     Column(modifier.background(MaterialTheme.colorScheme.surface).width(IntrinsicSize.Min)) {
         values.forEach {
             Text(
