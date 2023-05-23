@@ -2,7 +2,7 @@
 package androidx.compose.mpp.demo
 
 import ApplicationLayoutExamples
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.main.defaultUIKitMain
 import androidx.compose.ui.window.ComposeUIViewController
 
@@ -14,7 +14,13 @@ fun main() {
 
 @Composable
 fun IosDemo() {
-//        val app = remember { App() }
-//        app.Content()
+    // You mau uncomment different examples:
+//    MultiplatformDemo()
     ApplicationLayoutExamples()
+}
+
+@Composable
+fun MultiplatformDemo() {
+    val app = remember { App() }
+    app.Content()
 }
