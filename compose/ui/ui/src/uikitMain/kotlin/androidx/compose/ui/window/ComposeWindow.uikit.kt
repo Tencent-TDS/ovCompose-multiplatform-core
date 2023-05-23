@@ -86,7 +86,8 @@ fun Application(
 internal actual class ComposeWindow : UIViewController {
 
     private val keyboardOverlapHeightState = mutableStateOf(0f)
-    private val safeAreaState = mutableStateOf(SafeArea())
+    private val safeAreaState = mutableStateOf(IOSInsets())
+    private val layoutMarginsState = mutableStateOf(IOSInsets())
     private val interfaceOrientationState = mutableStateOf(
         InterfaceOrientation.getStatusBarOrientation()
     )
@@ -151,7 +152,7 @@ internal actual class ComposeWindow : UIViewController {
     fun viewSafeAreaInsetsDidChange() {
         // super.viewSafeAreaInsetsDidChange() // TODO: call super after Kotlin 1.8.20
         view.safeAreaInsets.useContents {
-            safeAreaState.value = SafeArea(
+            safeAreaState.value = IOSInsets(
                 top = top.dp,
                 bottom = bottom.dp,
                 left = left.dp,
@@ -159,10 +160,12 @@ internal actual class ComposeWindow : UIViewController {
             )
         }
         view.directionalLayoutMargins.useContents {
-
-            this.leading
-            this.trailing
-            //todo systemGestures?
+            layoutMarginsState.value = IOSInsets(
+                top = top.dp,
+                bottom = bottom.dp,
+                left = leading.dp,
+                right = trailing.dp,
+            )
         }
     }
 
@@ -267,6 +270,7 @@ internal actual class ComposeWindow : UIViewController {
                 LocalUIViewController provides this,
                 LocalKeyboardOverlapHeightState provides keyboardOverlapHeightState,
                 LocalSafeAreaState provides safeAreaState,
+                LocalLayoutMarginsState provides layoutMarginsState,
                 LocalInterfaceOrientationState provides interfaceOrientationState,
             ) {
                 content()

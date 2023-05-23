@@ -23,12 +23,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @InternalComposeApi
-val LocalSafeAreaState = staticCompositionLocalOf<State<SafeArea>> {
+val LocalSafeAreaState = staticCompositionLocalOf<State<IOSInsets>> {
     error("CompositionLocal LocalSafeAreaTopState not provided")
 }
 
 @InternalComposeApi
-data class SafeArea(
+val LocalLayoutMarginsState = staticCompositionLocalOf<State<IOSInsets>> {
+    error("CompositionLocal LocalSafeAreaTopState not provided")
+}
+
+@InternalComposeApi
+data class IOSInsets(
     val top: Dp = 0.dp,
     val bottom: Dp = 0.dp,
     val left: Dp = 0.dp,

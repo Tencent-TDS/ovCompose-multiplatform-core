@@ -39,6 +39,20 @@ private val WindowInsets.Companion.iosSafeArea: WindowInsets
     )
 
 /**
+ * This insets represents iOS SafeAreas.
+ */
+private val WindowInsets.Companion.layoutMargins: WindowInsets
+    @Composable
+    @NonRestartableComposable
+    @OptIn(InternalComposeApi::class)
+    get() = WindowInsets(
+        top = LocalLayoutMarginsState.current.value.top,
+        bottom = LocalLayoutMarginsState.current.value.bottom,
+        left = LocalLayoutMarginsState.current.value.left,
+        right = LocalLayoutMarginsState.current.value.right,
+    )
+
+/**
  * An insets type representing the window of a caption bar.
  * It is useless for iOS.
  */
@@ -116,7 +130,7 @@ val WindowInsets.Companion.systemBars: WindowInsets
 val WindowInsets.Companion.systemGestures: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = iosSafeArea.add(WindowInsets(16.dp, 16.dp, 16.dp, 16.dp))
+    get() = layoutMargins // the same as iosSafeArea.add(WindowInsets(left = 16.dp, right = 16.dp))
 
 /**
  * Returns the tappable element insets.
