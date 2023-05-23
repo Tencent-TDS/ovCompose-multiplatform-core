@@ -17,24 +17,25 @@
 package androidx.compose.foundation.layout
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.NonRestartableComposable
-import androidx.compose.ui.*
-import androidx.compose.ui.uikit.InterfaceOrientation
+import androidx.compose.ui.uikit.*
 import androidx.compose.ui.unit.dp
 
 private val EmptyInset = WindowInsets(0, 0, 0, 0)
 
 /**
- * This insets represents iosSafeAreas.
+ * This insets represents iOS SafeAreas.
  */
-private val WindowInsets.Companion.iosSafeAreas: WindowInsets
+private val WindowInsets.Companion.iosSafeArea: WindowInsets
     @Composable
     @NonRestartableComposable
+    @OptIn(InternalComposeApi::class)
     get() = WindowInsets(
-        top = LocalSafeAreaTopState.current.value.dp,
-        bottom = LocalSafeAreaBottomState.current.value.dp,
-        left = LocalSafeAreaLeftState.current.value.dp,
-        right = LocalSafeAreaRightState.current.value.dp,
+        top = LocalSafeAreaState.current.value.top,
+        bottom = LocalSafeAreaState.current.value.bottom,
+        left = LocalSafeAreaState.current.value.left,
+        right = LocalSafeAreaState.current.value.right,
     )
 
 /**
@@ -50,11 +51,12 @@ val WindowInsets.Companion.captionBar get() = EmptyInset
 val WindowInsets.Companion.displayCutout: WindowInsets
     @Composable
     @NonRestartableComposable
+    @OptIn(InternalComposeApi::class)
     get() = when (LocalInterfaceOrientationState.current.value) {
-        InterfaceOrientation.Portrait -> iosSafeAreas.only(WindowInsetsSides.Top)
-        InterfaceOrientation.PortraitUpsideDown -> iosSafeAreas.only(WindowInsetsSides.Bottom)
-        InterfaceOrientation.LandscapeLeft -> iosSafeAreas.only(WindowInsetsSides.Right)
-        InterfaceOrientation.LandscapeRight -> iosSafeAreas.only(WindowInsetsSides.Left)
+        InterfaceOrientation.Portrait -> iosSafeArea.only(WindowInsetsSides.Top)
+        InterfaceOrientation.PortraitUpsideDown -> iosSafeArea.only(WindowInsetsSides.Bottom)
+        InterfaceOrientation.LandscapeLeft -> iosSafeArea.only(WindowInsetsSides.Right)
+        InterfaceOrientation.LandscapeRight -> iosSafeArea.only(WindowInsetsSides.Left)
     }
 
 /**
@@ -65,6 +67,7 @@ val WindowInsets.Companion.displayCutout: WindowInsets
 val WindowInsets.Companion.ime: WindowInsets
     @Composable
     @NonRestartableComposable
+    @OptIn(InternalComposeApi::class)
     get() = WindowInsets(bottom = LocalKeyboardOverlapHeightState.current.value.dp)
 
 /**
@@ -73,7 +76,7 @@ val WindowInsets.Companion.ime: WindowInsets
 val WindowInsets.Companion.mandatorySystemGestures: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = iosSafeAreas.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom)
+    get() = iosSafeArea.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom)
 
 /**
  * These insets represent where system UI places navigation bars.
@@ -82,7 +85,7 @@ val WindowInsets.Companion.mandatorySystemGestures: WindowInsets
 val WindowInsets.Companion.navigationBars: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = iosSafeAreas.only(WindowInsetsSides.Bottom)
+    get() = iosSafeArea.only(WindowInsetsSides.Bottom)
 
 /**
  * This insets represents status bar
@@ -90,8 +93,9 @@ val WindowInsets.Companion.navigationBars: WindowInsets
 val WindowInsets.Companion.statusBars: WindowInsets
     @Composable
     @NonRestartableComposable
+    @OptIn(InternalComposeApi::class)
     get() = when (LocalInterfaceOrientationState.current.value) {
-        InterfaceOrientation.Portrait -> iosSafeAreas.only(WindowInsetsSides.Top)
+        InterfaceOrientation.Portrait -> iosSafeArea.only(WindowInsetsSides.Top)
         else -> EmptyInset
     }
 
@@ -102,7 +106,7 @@ val WindowInsets.Companion.statusBars: WindowInsets
 val WindowInsets.Companion.systemBars: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = iosSafeAreas
+    get() = iosSafeArea
 
 /**
  * The systemGestures insets represent the area of a window where system gestures have
@@ -112,7 +116,7 @@ val WindowInsets.Companion.systemBars: WindowInsets
 val WindowInsets.Companion.systemGestures: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = iosSafeAreas.add(WindowInsets(16.dp, 16.dp, 16.dp, 16.dp))
+    get() = iosSafeArea.add(WindowInsets(16.dp, 16.dp, 16.dp, 16.dp))
 
 /**
  * Returns the tappable element insets.
@@ -120,7 +124,7 @@ val WindowInsets.Companion.systemGestures: WindowInsets
 val WindowInsets.Companion.tappableElement: WindowInsets
     @Composable
     @NonRestartableComposable
-    get() = iosSafeAreas.only(WindowInsetsSides.Top)
+    get() = iosSafeArea.only(WindowInsetsSides.Top)
 
 /**
  * The insets for the curved areas in a waterfall display.
@@ -140,9 +144,7 @@ val WindowInsets.Companion.safeDrawing
 
 /**
  * The insets that include areas where gestures may be confused with other input,
- * including [system gestures][systemGestures],
- * [mandatory system gestures][mandatorySystemGestures],
- * [rounded display areas][waterfall], and [tappable areas][tappableElement].
+ * including [systemGestures], [mandatorySystemGestures], [waterfall], and [tappableElement].
  */
 val WindowInsets.Companion.safeGestures: WindowInsets
     @Composable

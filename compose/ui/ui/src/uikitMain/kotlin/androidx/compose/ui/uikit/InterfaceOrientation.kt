@@ -17,8 +17,12 @@
 package androidx.compose.ui.uikit
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.State
+import androidx.compose.runtime.staticCompositionLocalOf
 import platform.UIKit.*
 
+@InternalComposeApi
 @Immutable
 enum class InterfaceOrientation(private val rawValue: UIInterfaceOrientation) {
     Portrait(UIInterfaceOrientationPortrait),
@@ -36,4 +40,9 @@ enum class InterfaceOrientation(private val rawValue: UIInterfaceOrientation) {
         fun getStatusBarOrientation(): InterfaceOrientation =
             getByRawValue(UIApplication.sharedApplication().statusBarOrientation())
     }
+}
+
+@InternalComposeApi
+val LocalInterfaceOrientationState = staticCompositionLocalOf<State<InterfaceOrientation>> {
+    error("CompositionLocal LocalUIDeviceOrientationState not provided")
 }

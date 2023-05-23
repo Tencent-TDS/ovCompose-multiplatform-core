@@ -18,8 +18,8 @@ package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.*
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -29,7 +29,7 @@ import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.input.PlatformTextInputService
-import androidx.compose.ui.uikit.InterfaceOrientation
+import androidx.compose.ui.uikit.*
 import androidx.compose.ui.unit.*
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
@@ -81,14 +81,12 @@ fun Application(
     content: @Composable () -> Unit = { }
 ): UIViewController = ComposeUIViewController(content)
 
+@OptIn(InternalComposeApi::class)
 @ExportObjCClass
 internal actual class ComposeWindow : UIViewController {
 
     private val keyboardOverlapHeightState = mutableStateOf(0f)
-    private val safeAreaTopState = mutableStateOf(0f)
-    private val safeAreaBottomState = mutableStateOf(0f)
-    private val safeAreaLeftState = mutableStateOf(0f)
-    private val safeAreaRightState = mutableStateOf(0f)
+    private val safeAreaState = mutableStateOf(SafeArea())
     private val interfaceOrientationState = mutableStateOf(
         InterfaceOrientation.getStatusBarOrientation()
     )
@@ -153,15 +151,18 @@ internal actual class ComposeWindow : UIViewController {
     fun viewSafeAreaInsetsDidChange() {
         // super.viewSafeAreaInsetsDidChange() // TODO: call super after Kotlin 1.8.20
         view.safeAreaInsets.useContents {
-            safeAreaTopState.value = top.toFloat()
-            safeAreaBottomState.value = bottom.toFloat()
-            safeAreaLeftState.value = left.toFloat()
-            safeAreaRightState.value = right.toFloat()
-            println("view.safeAreaInsets: top: $top, bottom: $bottom, left: $left, right: $right")
+            safeAreaState.value = SafeArea(
+                top = top.dp,
+                bottom = bottom.dp,
+                left = left.dp,
+                right = right.dp,
+            )
         }
         view.directionalLayoutMargins.useContents {
-            //todo safe gestures?
-            println("view.directionalLayoutMargins: top: $top, bottom: $bottom,  leading: $leading, trailing: $trailing")
+
+            this.leading
+            this.trailing
+            //todo systemGestures?
         }
     }
 
@@ -265,10 +266,7 @@ internal actual class ComposeWindow : UIViewController {
                 LocalLayerContainer provides rootView,
                 LocalUIViewController provides this,
                 LocalKeyboardOverlapHeightState provides keyboardOverlapHeightState,
-                LocalSafeAreaTopState provides safeAreaTopState,
-                LocalSafeAreaBottomState provides safeAreaBottomState,
-                LocalSafeAreaLeftState provides safeAreaLeftState,
-                LocalSafeAreaRightState provides safeAreaRightState,
+                LocalSafeAreaState provides safeAreaState,
                 LocalInterfaceOrientationState provides interfaceOrientationState,
             ) {
                 content()
