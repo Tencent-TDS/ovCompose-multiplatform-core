@@ -345,7 +345,7 @@ fun <T> SwitchEnumState(values: Array<T>, state: MutableState<T>, modifier: Modi
 fun TopBarBasic() {
     CenterAlignedTopAppBar(
         navigationIcon = {
-            Text("Edit", color = Color.Blue)
+            Text("Text", color = Color.Blue)
         },
         title = { Text("Chats", fontWeight = FontWeight.Bold) },
         actions = {
