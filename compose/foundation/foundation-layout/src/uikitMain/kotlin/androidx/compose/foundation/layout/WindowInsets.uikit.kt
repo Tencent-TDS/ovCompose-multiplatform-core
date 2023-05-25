@@ -56,8 +56,7 @@ private val WindowInsets.Companion.layoutMargins: WindowInsets
 val WindowInsets.Companion.captionBar get() = ZeroInsets
 
 /**
- * This WindowInsets represents the area that the
- * display cutout (e.g. for camera) is and important content should be excluded from.
+ * This [WindowInsets] represents the area with the display cutout (e.g. for camera).
  */
 val WindowInsets.Companion.displayCutout: WindowInsets
     @Composable
