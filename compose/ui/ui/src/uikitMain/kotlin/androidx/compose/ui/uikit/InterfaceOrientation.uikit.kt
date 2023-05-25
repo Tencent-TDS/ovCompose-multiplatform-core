@@ -22,6 +22,9 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.staticCompositionLocalOf
 import platform.UIKit.*
 
+/**
+ * Wraps iOS enum statusBarOrientation()
+ */
 @InternalComposeApi
 @Immutable
 enum class InterfaceOrientation(private val rawValue: UIInterfaceOrientation) {
@@ -37,12 +40,18 @@ enum class InterfaceOrientation(private val rawValue: UIInterfaceOrientation) {
             } ?: error("Can't find orientation rawValue $orientation in enum InterfaceOrientation")
         }
 
+        /**
+         * Return iOS statusBarOrientation() wrapped with Kotlin enum [InterfaceOrientation]
+         */
         fun getStatusBarOrientation(): InterfaceOrientation =
             getByRawValue(UIApplication.sharedApplication().statusBarOrientation())
     }
 }
 
+/**
+ * Composition local for [InterfaceOrientation] of current Application
+ */
 @InternalComposeApi
 val LocalInterfaceOrientationState = staticCompositionLocalOf<State<InterfaceOrientation>> {
-    error("CompositionLocal LocalInterfaceOrientationState not provided")
+    error("CompositionLocal LocalInterfaceOrientationState not present")
 }

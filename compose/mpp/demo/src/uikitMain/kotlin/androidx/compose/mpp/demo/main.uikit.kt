@@ -14,7 +14,7 @@ fun main() {
 
 @Composable
 fun IosDemo() {
-    // You mau uncomment different examples:
+    // You may uncomment different examples:
 //    MultiplatformDemo()
     ApplicationLayoutExamples()
 }

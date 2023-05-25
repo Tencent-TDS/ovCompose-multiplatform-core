@@ -21,7 +21,7 @@ import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.ui.uikit.*
 import androidx.compose.ui.unit.dp
 
-private val EmptyInsets = WindowInsets(0, 0, 0, 0)
+private val ZeroInsets = WindowInsets(0, 0, 0, 0)
 
 /**
  * This insets represents iOS SafeAreas.
@@ -53,10 +53,10 @@ private val WindowInsets.Companion.layoutMargins: WindowInsets
  * An insets type representing the window of a caption bar.
  * It is useless for iOS.
  */
-val WindowInsets.Companion.captionBar get() = EmptyInsets
+val WindowInsets.Companion.captionBar get() = ZeroInsets
 
 /**
- * This insets represents the area that the
+ * This WindowInsets represents the area that the
  * display cutout (e.g. for camera) is and important content should be excluded from.
  */
 val WindowInsets.Companion.displayCutout: WindowInsets
@@ -103,7 +103,7 @@ val WindowInsets.Companion.statusBars: WindowInsets
     @OptIn(InternalComposeApi::class)
     get() = when (LocalInterfaceOrientationState.current.value) {
         InterfaceOrientation.Portrait -> iosSafeArea.only(WindowInsetsSides.Top)
-        else -> EmptyInsets
+        else -> ZeroInsets
     }
 
 /**
@@ -134,7 +134,7 @@ val WindowInsets.Companion.tappableElement: WindowInsets
  * The insets for the curved areas in a waterfall display.
  * It is useless for iOS.
  */
-val WindowInsets.Companion.waterfall: WindowInsets get() = EmptyInsets
+val WindowInsets.Companion.waterfall: WindowInsets get() = ZeroInsets
 
 /**
  * The insets that include areas where content may be covered by other drawn content.
