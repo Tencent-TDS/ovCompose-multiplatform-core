@@ -107,7 +107,7 @@ val WindowInsets.Companion.statusBars: WindowInsets
     }
 
 /**
- * This insets represents all system bars.
+ * These insets represents all system bars.
  * Includes [statusBars], [captionBar] as well as [navigationBars], but not [ime].
  */
 val WindowInsets.Companion.systemBars: WindowInsets
