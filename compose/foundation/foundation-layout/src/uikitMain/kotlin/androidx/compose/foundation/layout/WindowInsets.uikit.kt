@@ -96,7 +96,7 @@ val WindowInsets.Companion.navigationBars: WindowInsets
     get() = iosSafeArea.only(WindowInsetsSides.Bottom)
 
 /**
- * This insets represents status bar
+ * These insets represents status bar.
  */
 val WindowInsets.Companion.statusBars: WindowInsets
     @Composable
