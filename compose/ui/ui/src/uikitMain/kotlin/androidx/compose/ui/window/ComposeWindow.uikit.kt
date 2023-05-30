@@ -91,7 +91,7 @@ internal actual class ComposeWindow : UIViewController {
 
     /*
      * Initial value is arbitarily chosen to avoid propagating invalid value logic
-     * It's never the case to reflect that in type system
+     * It's never the case in real usage scenario to reflect that in type system
      */
     private val interfaceOrientationState = mutableStateOf(
         InterfaceOrientation.Portrait
