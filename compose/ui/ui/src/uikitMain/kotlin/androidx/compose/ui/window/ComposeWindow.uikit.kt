@@ -98,8 +98,8 @@ internal actual class ComposeWindow : UIViewController {
     )
 
     /*
-     * On newest iOS interfaceOrientation will be deduced from [UIWindowScene] to which [UIWindow]
-     * with rootViewController being our [ComposeWindow] is attached.
+     * On newest iOS interfaceOrientation will be deduced from [UIWindowScene] of [UIWindow]
+     * to which our [ComposeWindow] is attached.
      * It's never UIInterfaceOrientationUnknown, if accessed after owning [UIWindow] was made key and visible:
      * https://developer.apple.com/documentation/uikit/uiwindow/1621601-makekeyandvisible?language=objc
      */
