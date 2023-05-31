@@ -98,7 +98,7 @@ internal actual class ComposeWindow : UIViewController {
     )
 
     /*
-     * On newest iOS interfaceOrientation will be deduced from [UIWindowScene] of [UIWindow]
+     * On iOS >= 13.0 interfaceOrientation will be deduced from [UIWindowScene] of [UIWindow]
      * to which our [ComposeWindow] is attached.
      * It's never UIInterfaceOrientationUnknown, if accessed after owning [UIWindow] was made key and visible:
      * https://developer.apple.com/documentation/uikit/uiwindow/1621601-makekeyandvisible?language=objc
@@ -302,19 +302,6 @@ internal actual class ComposeWindow : UIViewController {
         size: CValue<CGSize>,
         withTransitionCoordinator: UIViewControllerTransitionCoordinatorProtocol
     ) {
-        layer.setDensity(density)
-        val scale = density.density
-        val width = size.useContents { width } * scale
-        val height = size.useContents { height } * scale
-        layer.setSize(width.roundToInt(), height.roundToInt())
-        layer.layer.needRedraw() // TODO: remove? the following block should be enough
-        withTransitionCoordinator.animateAlongsideTransition(animation = null) {
-            // Docs: https://developer.apple.com/documentation/uikit/uiviewcontrollertransitioncoordinator/1619295-animatealongsidetransition
-            // Request a frame once more on animation completion.
-            // Consider adding redrawImmediately() in SkiaLayer for ios to sync with current frame.
-            // This fixes an interop use case when Compose is embedded in SwiftUi.
-            layer.layer.needRedraw()
-        }
         super.viewWillTransitionToSize(size, withTransitionCoordinator)
     }
 
