@@ -671,3 +671,37 @@ private class InsetsPaddingValues(
         return result
     }
 }
+
+/**
+ * An insets type representing the window of a caption bar.
+ */
+expect val WindowInsets.Companion.captionBar: WindowInsets
+
+/**
+ * This [WindowInsets] represents the area with the display cutout (e.g. for camera).
+ */
+expect val WindowInsets.Companion.displayCutout: WindowInsets
+
+expect val WindowInsets.Companion.ime: WindowInsets
+
+expect val WindowInsets.Companion.mandatorySystemGestures: WindowInsets
+
+expect val WindowInsets.Companion.navigationBars: WindowInsets
+
+expect val WindowInsets.Companion.statusBars: WindowInsets
+
+expect val WindowInsets.Companion.systemBars: WindowInsets
+
+expect val WindowInsets.Companion.systemGestures: WindowInsets
+
+expect val WindowInsets.Companion.tappableElement: WindowInsets
+
+expect val WindowInsets.Companion.waterfall: WindowInsets
+
+expect val WindowInsets.Companion.safeDrawing: WindowInsets
+
+expect val WindowInsets.Companion.safeGestures: WindowInsets
+
+expect val WindowInsets.Companion.safeContent: WindowInsets
+
+
