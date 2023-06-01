@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.InfiniteAnimationPolicy
 import androidx.compose.ui.platform.SkiaRootForTest
+import androidx.compose.ui.platform.SkikoTestOwner
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.test.junit4.MainTestClockImpl
 import androidx.compose.ui.test.junit4.UncaughtExceptionHandler
@@ -316,15 +317,19 @@ class SkikoComposeUiTest(
         return surface.makeImageSnapshot().toComposeImageBitmap()
     }
 
-    fun SemanticsNodeInteraction.captureToImage(): ImageBitmap {
-        waitForIdle()
-        val rect = fetchSemanticsNode().boundsInWindow
+    fun captureToImage(semanticsNode: SemanticsNode): ImageBitmap {
+        val rect = semanticsNode.boundsInWindow
         val iRect = IRect.makeLTRB(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt())
         val image = surface.makeImageSnapshot(iRect)
         return image!!.toComposeImageBitmap()
     }
 
-    private inner class DesktopTestOwner : TestOwner {
+    fun SemanticsNodeInteraction.captureToImage(): ImageBitmap {
+        return captureToImage(fetchSemanticsNode())
+    }
+
+    @OptIn(InternalComposeUiApi::class)
+    private inner class DesktopTestOwner : TestOwner, SkikoTestOwner {
         val roots: Set<RootForTest>
             get() = this@SkikoComposeUiTest.scene.roots
 
@@ -346,6 +351,9 @@ class SkikoComposeUiTest(
 
         override val mainClock get() =
             this@SkikoComposeUiTest.mainClock
+
+        override fun captureToImage(semanticsNode: SemanticsNode): ImageBitmap =
+            this@SkikoComposeUiTest.captureToImage(semanticsNode)
     }
 }
 
