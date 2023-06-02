@@ -440,7 +440,7 @@ internal class SliderAdapter(
     private var rawPosition: Double
         get() = scrollScale * adapter.scrollOffset
         set(value) {
-            runBlockingCoroutine {
+            runBlockingIfPossible {
                 adapter.scrollTo(value / scrollScale)
             }
         }
@@ -484,4 +484,4 @@ internal class SliderAdapter(
 
 
 // Because k/js and k/wasm don't have runBlocking
-internal expect fun runBlockingCoroutine(block: suspend CoroutineScope.() -> Unit)
+internal expect fun runBlockingIfPossible(block: suspend CoroutineScope.() -> Unit)

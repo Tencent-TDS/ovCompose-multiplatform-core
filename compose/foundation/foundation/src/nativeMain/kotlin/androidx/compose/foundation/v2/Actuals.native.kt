@@ -19,5 +19,5 @@ package androidx.compose.foundation.v2
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 
-internal actual fun runBlockingCoroutine(block: suspend CoroutineScope.() -> Unit) =
+internal actual fun runBlockingIfPossible(block: suspend CoroutineScope.() -> Unit) =
     runBlocking(block = block)
