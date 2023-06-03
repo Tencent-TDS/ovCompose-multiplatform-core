@@ -26,7 +26,6 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.InfiniteAnimationPolicy
 import androidx.compose.ui.platform.SkiaRootForTest
-import androidx.compose.ui.platform.SkikoTestOwner
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.test.junit4.MainTestClockImpl
 import androidx.compose.ui.test.junit4.UncaughtExceptionHandler

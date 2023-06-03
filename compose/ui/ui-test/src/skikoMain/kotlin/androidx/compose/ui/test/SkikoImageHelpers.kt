@@ -18,7 +18,6 @@ package androidx.compose.ui.test
 
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.platform.SkikoTestOwner
 
 
 /**
