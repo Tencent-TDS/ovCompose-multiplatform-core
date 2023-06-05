@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.platform
+package kotlinx.test
 
-// TODO(aelias): Mark the typealiases internal when https://youtrack.jetbrains.com/issue/KT-36695 is fixed.
-// Currently, they behave as internal because the actual is internal, even though the expect is public.
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 
-internal expect class AtomicInt(value_: Int) {
-    fun addAndGet(delta: Int): Int
-    fun compareAndSet(expected: Int, new: Int): Boolean
-}
+actual suspend fun testWithTimeout(timeoutMs: Long, block: suspend CoroutineScope.() -> Unit) =
+    runBlocking {
+        withTimeout(timeoutMs, block)
+    }
