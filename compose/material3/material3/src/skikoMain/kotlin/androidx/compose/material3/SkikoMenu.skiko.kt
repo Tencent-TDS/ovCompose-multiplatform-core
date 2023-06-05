@@ -92,12 +92,12 @@ import androidx.compose.ui.window.PopupPositionProvider
 @OptIn(ExperimentalComposeUiApi::class)
 @Suppress("ModifierParameter")
 @Composable
-fun DropdownMenu(
+actual fun DropdownMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
-    focusable: Boolean = true,
-    modifier: Modifier = Modifier,
-    offset: DpOffset = DpOffset(0.dp, 0.dp),
+    focusable: Boolean,
+    modifier: Modifier,
+    offset: DpOffset,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val expandedStates = remember { MutableTransitionState(false) }
@@ -138,58 +138,6 @@ fun DropdownMenu(
             )
         }
     }
-}
-
-/**
- * <a href="https://m3.material.io/components/menus/overview" class="external" target="_blank">Material Design dropdown menu</a> item.
- *
- * Menus display a list of choices on a temporary surface. They appear when users interact with a
- * button, action, or other control.
- *
- * ![Dropdown menu image](https://developer.android.com/images/reference/androidx/compose/material3/menu.png)
- *
- * Example usage:
- * @sample androidx.compose.material3.samples.MenuSample
- *
- * @param text text of the menu item
- * @param onClick called when this menu item is clicked
- * @param modifier the [Modifier] to be applied to this menu item
- * @param leadingIcon optional leading icon to be displayed at the beginning of the item's text
- * @param trailingIcon optional trailing icon to be displayed at the end of the item's text. This
- * trailing icon slot can also accept [Text] to indicate a keyboard shortcut.
- * @param enabled controls the enabled state of this menu item. When `false`, this component will
- * not respond to user input, and it will appear visually disabled and disabled to accessibility
- * services.
- * @param colors [MenuItemColors] that will be used to resolve the colors used for this menu item in
- * different states. See [MenuDefaults.itemColors].
- * @param contentPadding the padding applied to the content of this menu item
- * @param interactionSource the [MutableInteractionSource] representing the stream of [Interaction]s
- * for this menu item. You can create and pass in your own `remember`ed instance to observe
- * [Interaction]s and customize the appearance / behavior of this menu item in different states.
- */
-@Composable
-fun DropdownMenuItem(
-    text: @Composable () -> Unit,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    leadingIcon: @Composable (() -> Unit)? = null,
-    trailingIcon: @Composable (() -> Unit)? = null,
-    enabled: Boolean = true,
-    colors: MenuItemColors = MenuDefaults.itemColors(),
-    contentPadding: PaddingValues = MenuDefaults.DropdownMenuItemContentPadding,
-    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-) {
-    DropdownMenuItemContent(
-        text = text,
-        onClick = onClick,
-        modifier = modifier,
-        leadingIcon = leadingIcon,
-        trailingIcon = trailingIcon,
-        enabled = enabled,
-        colors = colors,
-        contentPadding = contentPadding,
-        interactionSource = interactionSource,
-    )
 }
 
 @ExperimentalComposeUiApi
