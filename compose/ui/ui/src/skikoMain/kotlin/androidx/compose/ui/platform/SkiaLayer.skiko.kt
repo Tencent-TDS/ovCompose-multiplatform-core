@@ -41,8 +41,7 @@ internal class SkiaLayer(
     internal val matrix = Matrix()
     private val inverseMatrix: Matrix
         get() = Matrix().apply {
-            setFrom(matrix)
-            invert()
+            matrix.invertTo(this)
         }
 
     private val pictureRecorder = PictureRecorder()
@@ -193,6 +192,15 @@ internal class SkiaLayer(
         matrix *= Matrix().apply {
             translate(x = pivotX + translationX, y = pivotY + translationY)
         }
+
+        // Third column and row are irrelevant for 2D space.
+        // Zeroing required to get correct inverse transformation matrix.
+        matrix[2, 0] = 0f
+        matrix[2, 1] = 0f
+        matrix[2, 3] = 0f
+        matrix[0, 2] = 0f
+        matrix[1, 2] = 0f
+        matrix[3, 2] = 0f
     }
 
     override fun invalidate() {
