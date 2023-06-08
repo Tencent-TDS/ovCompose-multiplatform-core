@@ -28,6 +28,7 @@ val MainScreen = Screen.Selection(
     Screen.Example("FontFamilies") { FontFamilies() },
     Screen.Example("LottieAnimation") { LottieAnimation() },
     Screen.ScaffoldExample("ApplicationLayouts") { ApplicationLayouts(it) },
+    Screen.Example("GraphicsLayerSettings") { GraphicsLayerSettings() },
     LazyLayouts,
 )
 
