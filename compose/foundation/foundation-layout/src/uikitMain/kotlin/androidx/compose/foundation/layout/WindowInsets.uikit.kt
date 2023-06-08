@@ -115,7 +115,7 @@ actual val WindowInsets.Companion.systemBars: WindowInsets
     get() = iosSafeArea
 
 /**
- * The systemGestures insets represent the area of a window where system gestures have
+ * The [systemGestures] insets represent the area of a window where system gestures have
  * priority and may consume some or all touch input, e.g. due to the system bar
  * occupying it, or it being reserved for touch-only gestures.
  */
