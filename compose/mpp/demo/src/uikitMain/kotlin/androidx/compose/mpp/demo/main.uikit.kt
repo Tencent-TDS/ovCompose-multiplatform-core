@@ -15,18 +15,6 @@ fun main() {
 
 @Composable
 fun IosDemo() {
-    var isApplicationLayout by remember { mutableStateOf(true) }
-    if (isApplicationLayout) {
-        ApplicationLayouts {
-            isApplicationLayout = false
-        }
-    } else {
-        MultiplatformDemo()
-    }
-}
-
-@Composable
-private fun MultiplatformDemo() {
     val app = remember {
         App(
             extraScreens = listOf(
