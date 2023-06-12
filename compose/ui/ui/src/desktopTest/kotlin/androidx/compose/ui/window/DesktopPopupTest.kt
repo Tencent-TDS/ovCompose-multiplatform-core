@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.use
 import com.google.common.truth.Truth
 import com.google.common.truth.Truth.assertThat
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 
