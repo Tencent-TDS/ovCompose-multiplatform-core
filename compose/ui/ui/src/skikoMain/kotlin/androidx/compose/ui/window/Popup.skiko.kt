@@ -111,3 +111,30 @@ fun Popup(
         content
     )
 }
+
+/**
+ * Opens a popup with the given content.
+ *
+ * The popup is positioned using a custom [popupPositionProvider].
+ *
+ * @sample androidx.compose.ui.samples.PopupSample
+ *
+ * @param popupPositionProvider Provides the screen position of the popup.
+ * @param onDismissRequest Executes when the user clicks outside of the popup.
+ * @param properties [PopupProperties] for further customization of this popup's behavior.
+ * @param content The content to be displayed inside the popup.
+ */
+@Composable
+actual fun Popup(
+    popupPositionProvider: PopupPositionProvider,
+    onDismissRequest: (() -> Unit)?,
+    properties: PopupProperties,
+    content: @Composable () -> Unit
+) {
+    PopupLayout(
+        popupPositionProvider,
+        properties.focusable,
+        onDismissRequest,
+        content = content
+    )
+}

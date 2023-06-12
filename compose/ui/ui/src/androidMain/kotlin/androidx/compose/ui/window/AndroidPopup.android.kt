@@ -86,127 +86,6 @@ import kotlinx.coroutines.isActive
 import org.jetbrains.annotations.TestOnly
 
 /**
- * Properties used to customize the behavior of a [Popup].
- *
- * @property focusable Whether the popup is focusable. When true, the popup will receive IME
- * events and key presses, such as when the back button is pressed.
- * @property dismissOnBackPress Whether the popup can be dismissed by pressing the back button.
- * If true, pressing the back button will call onDismissRequest. Note that [focusable] must be
- * set to true in order to receive key events such as the back button - if the popup is not
- * focusable then this property does nothing.
- * @property dismissOnClickOutside Whether the popup can be dismissed by clicking outside the
- * popup's bounds. If true, clicking outside the popup will call onDismissRequest.
- * @property securePolicy Policy for setting [WindowManager.LayoutParams.FLAG_SECURE] on the popup's
- * window.
- * @property excludeFromSystemGesture A flag to check whether to set the systemGestureExclusionRects.
- * The default is true.
- * @property clippingEnabled Whether to allow the popup window to extend beyond the bounds of the
- * screen. By default the window is clipped to the screen boundaries. Setting this to false will
- * allow windows to be accurately positioned.
- * The default value is true.
- * @property usePlatformDefaultWidth Whether the width of the popup's content should be limited to
- * the platform default, which is smaller than the screen width.
- */
-@Immutable
-class PopupProperties @ExperimentalComposeUiApi constructor(
-    val focusable: Boolean = false,
-    val dismissOnBackPress: Boolean = true,
-    val dismissOnClickOutside: Boolean = true,
-    val securePolicy: SecureFlagPolicy = SecureFlagPolicy.Inherit,
-    val excludeFromSystemGesture: Boolean = true,
-    val clippingEnabled: Boolean = true,
-    val usePlatformDefaultWidth: Boolean = false
-) {
-    @OptIn(ExperimentalComposeUiApi::class)
-    constructor(
-        focusable: Boolean = false,
-        dismissOnBackPress: Boolean = true,
-        dismissOnClickOutside: Boolean = true,
-        securePolicy: SecureFlagPolicy = SecureFlagPolicy.Inherit,
-        excludeFromSystemGesture: Boolean = true,
-        clippingEnabled: Boolean = true,
-    ) : this (
-        focusable = focusable,
-        dismissOnBackPress = dismissOnBackPress,
-        dismissOnClickOutside = dismissOnClickOutside,
-        securePolicy = securePolicy,
-        excludeFromSystemGesture = excludeFromSystemGesture,
-        clippingEnabled = clippingEnabled,
-        usePlatformDefaultWidth = false
-    )
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is PopupProperties) return false
-
-        if (focusable != other.focusable) return false
-        if (dismissOnBackPress != other.dismissOnBackPress) return false
-        if (dismissOnClickOutside != other.dismissOnClickOutside) return false
-        if (securePolicy != other.securePolicy) return false
-        if (excludeFromSystemGesture != other.excludeFromSystemGesture) return false
-        if (clippingEnabled != other.clippingEnabled) return false
-        if (usePlatformDefaultWidth != other.usePlatformDefaultWidth) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = dismissOnBackPress.hashCode()
-        result = 31 * result + focusable.hashCode()
-        result = 31 * result + dismissOnBackPress.hashCode()
-        result = 31 * result + dismissOnClickOutside.hashCode()
-        result = 31 * result + securePolicy.hashCode()
-        result = 31 * result + excludeFromSystemGesture.hashCode()
-        result = 31 * result + clippingEnabled.hashCode()
-        result = 31 * result + usePlatformDefaultWidth.hashCode()
-        return result
-    }
-}
-
-/**
- * Opens a popup with the given content.
- *
- * A popup is a floating container that appears on top of the current activity.
- * It is especially useful for non-modal UI surfaces that remain hidden until they
- * are needed, for example floating menus like Cut/Copy/Paste.
- *
- * The popup is positioned relative to its parent, using the [alignment] and [offset].
- * The popup is visible as long as it is part of the composition hierarchy.
- *
- * @sample androidx.compose.ui.samples.PopupSample
- *
- * @param alignment The alignment relative to the parent.
- * @param offset An offset from the original aligned position of the popup. Offset respects the
- * Ltr/Rtl context, thus in Ltr it will be added to the original aligned position and in Rtl it
- * will be subtracted from it.
- * @param onDismissRequest Executes when the user clicks outside of the popup.
- * @param properties [PopupProperties] for further customization of this popup's behavior.
- * @param content The content to be displayed inside the popup.
- */
-@Composable
-fun Popup(
-    alignment: Alignment = Alignment.TopStart,
-    offset: IntOffset = IntOffset(0, 0),
-    onDismissRequest: (() -> Unit)? = null,
-    properties: PopupProperties = PopupProperties(),
-    content: @Composable () -> Unit
-) {
-    val popupPositioner = remember(alignment, offset) {
-        AlignmentOffsetPositionProvider(
-            alignment,
-            offset
-        )
-    }
-
-    Popup(
-        popupPositionProvider = popupPositioner,
-        onDismissRequest = onDismissRequest,
-        properties = properties,
-        content = content
-    )
-}
-
-/**
  * Opens a popup with the given content.
  *
  * The popup is positioned using a custom [popupPositionProvider].
@@ -219,10 +98,10 @@ fun Popup(
  * @param content The content to be displayed inside the popup.
  */
 @Composable
-fun Popup(
+actual fun Popup(
     popupPositionProvider: PopupPositionProvider,
-    onDismissRequest: (() -> Unit)? = null,
-    properties: PopupProperties = PopupProperties(),
+    onDismissRequest: (() -> Unit)?,
+    properties: PopupProperties,
     content: @Composable () -> Unit
 ) {
     val view = LocalView.current
