@@ -207,6 +207,44 @@ value class Offset internal constructor(internal val packedValue: Long) {
     @Stable
     operator fun rem(operand: Float) = Offset(x % operand, y % operand)
 
+    /**
+     * Projects this Offset onto the line segment defined by two other Offset points and returns the interpolation factor (t value).
+     *
+     * The method calculates the interpolation factor (t value) representing the projection of the given Offset point onto the line segment defined by points 'a' and 'b'.
+     * The t value indicates the relative position of the projected point along the line segment, where t=0 represents 'a' and t=1 represents 'b'.
+     * Values of t outside the range [0, 1] indicate that the projection falls outside the line segment.
+     *
+     * @param a The starting point of the line segment.
+     * @param b The ending point of the line segment.
+     * @return The interpolation factor (t value) representing the projection of the given Offset point onto the line segment.
+     */
+    @Stable
+    fun projectToSegment(a: Offset, b: Offset): Float {
+        val ba = b - a
+        val pa = this - a
+
+        return (pa dot ba) / ba.getDistanceSquared()
+    }
+
+    /**
+     * Calculates the Euclidean distance between this Offset point and a segment defined by a and b.
+     *
+     * @param a The starting point of the line segment.
+     * @param b The ending point of the line segment.
+     *
+     * @return The Euclidean distance between this Offset point and the given segment.
+     */
+    @Stable
+    fun distanceToSegment(a: Offset, b: Offset): Float {
+        val t = projectToSegment(a, b)
+
+        return when {
+            t < 0f -> (this - a).getDistance()
+            t > 1f -> (this - b).getDistance()
+            else -> (this - lerp(a, b, t)).getDistance()
+        }
+    }
+
     override fun toString() = if (isSpecified) {
         "Offset(${x.toStringAsFixed(1)}, ${y.toStringAsFixed(1)})"
     } else {
@@ -263,3 +301,15 @@ val Offset.isUnspecified: Boolean get() = packedValue == Offset.Unspecified.pack
  */
 inline fun Offset.takeOrElse(block: () -> Offset): Offset =
     if (isSpecified) this else block()
+
+/**
+ * Calculates the dot product between this and other Offset vector.
+ *
+ * The dot product is obtained by multiplying the corresponding components of the two vectors and summing the results.
+ *
+ * @param other The second Offset vector.
+ * @return The dot product of the two Offset vectors.
+ */
+@Stable
+infix fun Offset.dot(other: Offset): Float =
+    x * other.x + y * other.y
