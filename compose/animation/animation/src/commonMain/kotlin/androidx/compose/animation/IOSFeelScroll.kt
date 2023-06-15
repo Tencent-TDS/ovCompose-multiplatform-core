@@ -17,11 +17,7 @@
 package androidx.compose.animation
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import kotlin.math.abs
-import kotlin.math.ln
-import kotlin.math.pow
-import kotlin.math.sign
+import kotlin.math.*
 
 data class RubberBand(
     /**
@@ -32,48 +28,30 @@ data class RubberBand(
     /**
      * Size of element encapsulating scrolling behavior
      */
-    val ownSize: Size,
+    val viewportSize: Float,
 
     /**
-     * Size of scrollable content inside element encapsulating scrolling behavior
+     * Max offset from beginning, viewportSize + maxSize = contentSize
      */
-    val contentSize: Size,
+    val maxSize: Float,
 ) {
     companion object {
         fun rubberBandedValue(value: Float, dimension: Float, coefficient: Float): Float =
             (1f - (1f / (value * coefficient / dimension + 1f))) * dimension
     }
 
-    /**
-     * Scrollable ranges across X and Y axis, for example if [ownSize] is 800x600
-     * and [contentSize] is 800x1000, this value would be 0x400, meaning that trying to drag offset
-     * below 0x400 would cause scrollable frame to move below actual content and rubber band effect
-     * should be triggered
-     */
-    private val scrollableRanges: Size
-        get() =
-            Size(contentSize.width - ownSize.width, contentSize.height - ownSize.height)
-
-    fun rubberBandedValue(value: Float, dimension: Float): Float =
-        rubberBandedValue(value, dimension, coefficient)
-
-    fun rubberBandedValue(value: Float, dimension: Float, max: Float): Float {
-        val clampedValue = value.coerceIn(0f, max)
-        val delta = clampedValue - value
+    fun rubberBandedValue(value: Float): Float {
+        val clampedValue = value.coerceIn(0f, maxSize)
+        val delta = value - clampedValue
         val sign = sign(delta)
 
+        println("$delta ${sign * rubberBandedValue(abs(delta), viewportSize, coefficient)}")
         return if (sign == 0f) {
             value
         } else {
-            clampedValue + sign * rubberBandedValue(abs(delta), dimension)
+            clampedValue + sign * rubberBandedValue(abs(delta), viewportSize, coefficient)
         }
     }
-
-    fun rubberBandedOffset(offset: Offset): Offset =
-        Offset(
-            rubberBandedValue(offset.x, ownSize.width, scrollableRanges.width),
-            rubberBandedValue(offset.y, ownSize.height, scrollableRanges.height)
-        )
 }
 
 data class DecelerationTimingParameters(

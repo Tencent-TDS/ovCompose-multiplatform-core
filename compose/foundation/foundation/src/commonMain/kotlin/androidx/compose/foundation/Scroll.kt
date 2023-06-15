@@ -18,14 +18,7 @@ package androidx.compose.foundation
 
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.SpringSpec
-import androidx.compose.foundation.gestures.FlingBehavior
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.ScrollScope
-import androidx.compose.foundation.gestures.ScrollableDefaults
-import androidx.compose.foundation.gestures.ScrollableState
-import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
@@ -119,6 +112,7 @@ class ScrollState(initial: Int) : ScrollableState {
      * progress, use [isScrollInProgress].
      */
     val interactionSource: InteractionSource get() = internalInteractionSource
+    val rubberBandBehavior: RubberBandBehavior? = RubberBandBehavior(value.toFloat())
 
     internal val internalInteractionSource: MutableInteractionSource = MutableInteractionSource()
 
@@ -131,16 +125,23 @@ class ScrollState(initial: Int) : ScrollableState {
     private var accumulator: Float = 0f
 
     private val scrollableState = ScrollableState {
-        val absolute = (value + it + accumulator)
-        val newValue = absolute.coerceIn(0f, maxValue.toFloat())
-        val changed = absolute != newValue
-        val consumed = newValue - value
-        val consumedInt = consumed.roundToInt()
-        value += consumedInt
-        accumulator = consumed - consumedInt
+        if (rubberBandBehavior != null) {
+            value = rubberBandBehavior.scrollBy(it, viewportSize.toFloat(), maxValue.toFloat())
+            it
+        } else {
+            val absolute = (value + it + accumulator)
+            val newValue = absolute.coerceIn(0f, maxValue.toFloat())
+            val changed = absolute != newValue
+            val consumed = newValue - value
+            val consumedInt = consumed.roundToInt()
+            value += consumedInt
+            accumulator = consumed - consumedInt
 
-        // Avoid floating-point rounding error
-        if (changed) consumed else it
+            println("$viewportSize $maxValue $value $it")
+
+            // Avoid floating-point rounding error
+            if (changed) consumed else it
+        }
     }
 
     override suspend fun scroll(
@@ -355,7 +356,7 @@ private data class ScrollingLayoutModifier(
         scrollerState.maxValue = side
         scrollerState.viewportSize = if (isVertical) height else width
         return layout(width, height) {
-            val scroll = scrollerState.value.coerceIn(0, side)
+            val scroll = scrollerState.value //.coerceIn(0, side)
             val absScroll = if (isReversed) scroll - side else -scroll
             val xOffset = if (isVertical) 0 else absScroll
             val yOffset = if (isVertical) absScroll else 0
