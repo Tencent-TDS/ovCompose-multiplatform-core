@@ -38,8 +38,8 @@ data class RubberBand(
     /**
      * Rect inside which no rubber banding should happen. For example if scroll frame is
      * 800x600 and its content size is 800x1000, this rect would be 800x400, because when offset is
-     * at (0, 400), the bottom of the scrollable frame would match the rect bottom, so dragging below
-     * would trigger rubber banding effect
+     * at (0, 400), the bottom of the scrollable frame would match the content rect bottom,
+     * so dragging down would trigger rubber banding effect
      */
     val rect: Rect
 ) {
