@@ -16,11 +16,58 @@
 
 package androidx.compose.animation
 
-import androidx.compose.runtime.Stable
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
+import kotlin.math.sign
 
+data class RubberBand(
+    /**
+     * Arbitary value matching the one chosen by UIKit developers
+     */
+    val coefficient: Float = 0.55f,
+
+    /**
+     * Dimensions of actual scrollable frame (not its content)
+     */
+    val dimensions: Size,
+
+    /**
+     * Rect inside which no rubber banding should happen. For example if scroll frame is
+     * 800x600 and its content size is 800x1000, this rect would be 800x400, because when offset is
+     * at (0, 400), the bottom of the scrollable frame would match the rect bottom, so dragging below
+     * would trigger rubber banding effect
+     */
+    val rect: Rect
+) {
+    companion object {
+        fun rubberBandedValue(value: Float, dimension: Float, coefficient: Float): Float =
+            (1f - (1f / (value * coefficient / dimension + 1f))) * dimension
+    }
+    fun rubberBandedValue(value: Float, dimension: Float): Float =
+        rubberBandedValue(value, dimension, coefficient)
+
+    fun rubberBandedValue(value: Float, dimension: Float, range: ClosedRange<Float>): Float {
+        val clampedValue = value.coerceIn(range)
+        val delta = clampedValue - value
+        val sign = sign(delta)
+
+        return if (sign == 0f) {
+            value
+        } else {
+            clampedValue + sign * rubberBandedValue(abs(delta), dimension)
+        }
+    }
+
+    fun rubberBandedOffset(offset: Offset): Offset =
+        Offset(
+            rubberBandedValue(offset.x, dimensions.width, rect.left.rangeTo(rect.right)),
+            rubberBandedValue(offset.y, dimensions.height, rect.top.rangeTo(rect.bottom))
+        )
+}
 
 data class DecelerationTimingParameters(
     val initialValue: Offset,
