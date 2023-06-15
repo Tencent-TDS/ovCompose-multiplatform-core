@@ -17,7 +17,6 @@
 package androidx.compose.animation
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import kotlin.math.abs
 import kotlin.math.ln
@@ -31,27 +30,35 @@ data class RubberBand(
     val coefficient: Float = 0.55f,
 
     /**
-     * Dimensions of actual scrollable frame (not its content)
+     * Size of element encapsulating scrolling behavior
      */
-    val dimensions: Size,
+    val ownSize: Size,
 
     /**
-     * Rect inside which no rubber banding should happen. For example if scroll frame is
-     * 800x600 and its content size is 800x1000, this rect would be 800x400, because when offset is
-     * at (0, 400), the bottom of the scrollable frame would match the content rect bottom,
-     * so dragging down would trigger rubber banding effect
+     * Size of scrollable content inside element encapsulating scrolling behavior
      */
-    val rect: Rect
+    val contentSize: Size,
 ) {
     companion object {
         fun rubberBandedValue(value: Float, dimension: Float, coefficient: Float): Float =
             (1f - (1f / (value * coefficient / dimension + 1f))) * dimension
     }
+
+    /**
+     * Scrollable ranges across X and Y axis, for example if [ownSize] is 800x600
+     * and [contentSize] is 800x1000, this value would be 0x400, meaning that trying to drag offset
+     * below 0x400 would cause scrollable frame to move below actual content and rubber band effect
+     * should be triggered
+     */
+    private val scrollableRanges: Size
+        get() =
+            Size(contentSize.width - ownSize.width, contentSize.height - ownSize.height)
+
     fun rubberBandedValue(value: Float, dimension: Float): Float =
         rubberBandedValue(value, dimension, coefficient)
 
-    fun rubberBandedValue(value: Float, dimension: Float, range: ClosedRange<Float>): Float {
-        val clampedValue = value.coerceIn(range)
+    fun rubberBandedValue(value: Float, dimension: Float, max: Float): Float {
+        val clampedValue = value.coerceIn(0f, max)
         val delta = clampedValue - value
         val sign = sign(delta)
 
@@ -64,8 +71,8 @@ data class RubberBand(
 
     fun rubberBandedOffset(offset: Offset): Offset =
         Offset(
-            rubberBandedValue(offset.x, dimensions.width, rect.left.rangeTo(rect.right)),
-            rubberBandedValue(offset.y, dimensions.height, rect.top.rangeTo(rect.bottom))
+            rubberBandedValue(offset.x, ownSize.width, scrollableRanges.width),
+            rubberBandedValue(offset.y, ownSize.height, scrollableRanges.height)
         )
 }
 
