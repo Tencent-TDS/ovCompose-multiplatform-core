@@ -16,30 +16,39 @@
 
 package androidx.compose.foundation
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 
 @OptIn(ExperimentalFoundationApi::class)
-@Composable
-internal actual fun rememberOverscrollEffect(): OverscrollEffect {
-    return remember {
-        NativeOverscrollEffect() // TODO: Split between UIKit and MacOS
-    }
-}
+class IOSBasedOverscrollEffect : OverscrollEffect {
 
-@OptIn(ExperimentalFoundationApi::class)
-private class NativeOverscrollEffect() : OverscrollEffect {
+    /*
+     * Current absolute offset in Overscroll area
+     * Negative for top-left
+     * Positive for bottom-right
+     * Zero if Offset is within the scrollable bounds
+     */
+
+    var offset: Offset by mutableStateOf(Offset.Zero)
     override fun applyToScroll(
         delta: Offset,
         source: NestedScrollSource,
         performScroll: (Offset) -> Offset
     ): Offset {
-        val overscrollDelta = Offset.Zero // TODO: implement similar to Android
-        return overscrollDelta + performScroll(delta)
+        val consumedDelta = performScroll(delta)
+
+        val leftDelta = delta - consumedDelta
+
+        offset += leftDelta
+
+        return offset
     }
 
     override suspend fun applyToFling(
@@ -47,9 +56,14 @@ private class NativeOverscrollEffect() : OverscrollEffect {
         performFling: suspend (Velocity) -> Velocity
     ) {
         // TODO: implement similar to Android
+        print(velocity)
         performFling(velocity)
     }
 
-    override val isInProgress = false
-    override val effectModifier = Modifier
+    override val isInProgress =
+        offset.getDistanceSquared() > 0.5f
+
+    override val effectModifier = Modifier.offset {
+        IntOffset(offset.x.toInt(), offset.y.toInt())
+    }
 }
