@@ -17,8 +17,10 @@
 package androidx.compose.animation
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import kotlin.math.*
 
+// TODO: REMOVE
 data class RubberBand(
     /**
      * Arbitary value matching the one chosen by UIKit developers
@@ -38,6 +40,7 @@ data class RubberBand(
     companion object {
         fun rubberBandedValue(value: Float, dimension: Float, coefficient: Float): Float =
             (1f - (1f / (value * coefficient / dimension + 1f))) * dimension
+
     }
 
     fun rubberBandedValue(value: Float): Float {

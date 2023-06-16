@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.Velocity
  *
  * @sample androidx.compose.foundation.samples.OverscrollSample
  */
+
 @ExperimentalFoundationApi
 @Stable
 interface OverscrollEffect {

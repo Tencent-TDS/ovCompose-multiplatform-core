@@ -17,8 +17,11 @@
 package androidx.compose.foundation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 
 @Composable
 internal actual fun rememberOverscrollEffect(): OverscrollEffect {
-    TODO("Not yet implemented")
+    return remember {
+        NativeOverscrollEffect()
+    }
 }
