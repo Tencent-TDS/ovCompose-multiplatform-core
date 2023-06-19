@@ -55,14 +55,14 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
      * Zero if Offset dimension is within the scrollable range
      * It will be mapped to the actual visible offset using the rubber banding rule
      */
-    var overscroll: Offset by mutableStateOf(Offset.Zero)
+    private var overscroll: Offset by mutableStateOf(Offset.Zero)
 
     /*
      * Takes input scroll delta and current overscroll value. Returns pair of
      * 1. Available delta to perform actual content scroll.
      * 2. New overscroll value.
      */
-    fun availableDelta(delta: Float, overscroll: Float): Pair<Float, Float> {
+    private fun availableDelta(delta: Float, overscroll: Float): Pair<Float, Float> {
         val newOverscroll = overscroll + delta
 
         return if (delta >= 0f && overscroll <= 0f) {
@@ -82,7 +82,7 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
         }
     }
 
-    fun availableDelta(delta: Offset): Offset {
+    private fun availableDelta(delta: Offset): Offset {
         val (x, overscrollX) = availableDelta(delta.x, overscroll.x)
         val (y, overscrollY) = availableDelta(delta.y, overscroll.y)
 
@@ -107,8 +107,6 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
 
         overscroll += unconsumedDelta
 
-        println("$delta ${consumedDelta.y} $overscroll")
-
         return overscroll
     }
 
@@ -117,7 +115,10 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
         performFling: suspend (Velocity) -> Velocity
     ) {
         // TODO: implement similar to Android
-        performFling(velocity)
+
+        val flingResult = performFling(velocity)
+
+        println("$velocity $flingResult")
     }
 
     override val isInProgress =
@@ -125,7 +126,7 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
 
     override val effectModifier = Modifier
         .onPlaced {
-            this.scrollSize = it.size.toSize()
+            scrollSize = it.size.toSize()
         }
         .offset {
             scrollSize?.let {
