@@ -20,43 +20,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import kotlin.math.*
 
-// TODO: REMOVE
-data class RubberBand(
-    /**
-     * Arbitary value matching the one chosen by UIKit developers
-     */
-    val coefficient: Float = 0.55f,
-
-    /**
-     * Size of element encapsulating scrolling behavior
-     */
-    val viewportSize: Float,
-
-    /**
-     * Max offset from beginning, viewportSize + maxSize = contentSize
-     */
-    val maxSize: Float,
-) {
-    companion object {
-        fun rubberBandedValue(value: Float, dimension: Float, coefficient: Float): Float =
-            (1f - (1f / (value * coefficient / dimension + 1f))) * dimension
-
-    }
-
-    fun rubberBandedValue(value: Float): Float {
-        val clampedValue = value.coerceIn(0f, maxSize)
-        val delta = value - clampedValue
-        val sign = sign(delta)
-
-        println("$delta ${sign * rubberBandedValue(abs(delta), viewportSize, coefficient)}")
-        return if (sign == 0f) {
-            value
-        } else {
-            clampedValue + sign * rubberBandedValue(abs(delta), viewportSize, coefficient)
-        }
-    }
-}
-
 data class DecelerationTimingParameters(
     val initialValue: Offset,
     val initialVelocity: Offset,
