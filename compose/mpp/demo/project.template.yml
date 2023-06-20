@@ -17,7 +17,7 @@ targets:
     prebuildScripts:
       - script: |
           export JAVA_HOME=%@JAVA_HOME@%
-          cd "$SRCROOT" && OUT_DIR=`pwd`/out  JAVA_TOOLS_JAR=/Users/jetbrains/jetpack_compose_ui/compose-jb/compose/scripts/../external/tools.jar  ALLOW_PUBLIC_REPOS=1  ANDROIDX_PROJECTS=compose ../../../gradlew  -i  -Pandroidx.compose.multiplatformEnabled=true  --no-daemon -Pkotlin.compiler.execution.strategy="in-process" -p . packForXCode
+          cd "$SRCROOT" && export OUT_DIR=`pwd`/../../../out && echo "OUT_DIR: $OUT_DIR" && ../../../gradlew -i -Pandroidx.compose.multiplatformEnabled=true --no-daemon -p . packForXCode
         name: GradleCompile
     info:
       path: plists/Ios/Info.plist
