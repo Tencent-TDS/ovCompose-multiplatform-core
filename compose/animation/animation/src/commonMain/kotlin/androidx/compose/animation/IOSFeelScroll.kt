@@ -17,8 +17,74 @@
 package androidx.compose.animation
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import kotlin.math.*
+
+sealed interface SpringSolution {
+    val duration: Float
+
+    fun valueAtTime(time: Float): Offset
+
+    class CriticallyDamped
+    class Underdamped(
+        override val duration: Float,
+        private val dampedNaturalFrequency: Float,
+        private val beta: Float,
+        private val c1: Offset,
+        private val c2: Offset
+    ): SpringSolution {
+        override fun valueAtTime(time: Float): Offset {
+            val dampingOverTime = exp(-beta * time)
+            val phase = (dampedNaturalFrequency * time)
+
+            return (c1 * cos(phase) + c2 * sin(phase)) * dampingOverTime
+        }
+        companion object {
+            fun construct(
+                spring: Spring,
+                displacement: Offset,
+                initialVelocity: Offset,
+                threshold: Float
+            ): Underdamped {
+                val c2 =
+                    (initialVelocity + displacement * spring.beta) / spring.dampedNaturalFrequency
+
+                val duration =
+                    if (displacement.getDistanceSquared() == 0f && initialVelocity.getDistanceSquared() == 0f) {
+                        0f
+                    } else {
+                        ln((displacement.getDistance() + c2.getDistance()) / threshold) / spring.beta
+                    }
+
+                return Underdamped(
+                    spring.dampedNaturalFrequency,
+                    duration,
+                    spring.beta,
+                    displacement,
+                    c2
+                )
+            }
+        }
+    }
+}
+
+data class Spring(
+    val mass: Float,
+    val stiffness: Float,
+    val dampingRatio: Float
+) {
+    val damping: Float
+        get() = 2f * dampingRatio * sqrt(mass * stiffness)
+
+    val beta: Float
+        get() = damping / (2f * mass)
+
+    val dampedNaturalFrequency: Float
+        get() = sqrt(stiffness / mass) * sqrt(1f - dampingRatio * dampingRatio)
+
+    companion object {
+        val default = Spring(1f, 200f, 1f)
+    }
+}
 
 data class DecelerationTimingParameters(
     val initialValue: Offset,
