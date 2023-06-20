@@ -24,7 +24,38 @@ sealed interface SpringSolution {
 
     fun valueAtTime(time: Float): Offset
 
-    class CriticallyDamped
+    class CriticallyDamped(
+        override val duration: Float,
+        private val beta: Float,
+        private val c1: Offset,
+        private val c2: Offset
+    ): SpringSolution {
+        override fun valueAtTime(time: Float): Offset {
+            val dampingOverTime = exp(-beta * time)
+            return (c1 + c2 * time) * dampingOverTime
+        }
+
+        companion object {
+            fun create(
+                spring: Spring,
+                displacement: Offset,
+                initialVelocity: Offset,
+                threshold: Float
+            ): CriticallyDamped {
+                val beta = spring.beta
+                val c2 = initialVelocity + displacement * beta
+                val duration = if (displacement.getDistanceSquared() == 0f && initialVelocity.getDistanceSquared() == 0f) {
+                    0f
+                } else {
+                    val t1 = 1f / beta * ln(2f * displacement.getDistance() / threshold)
+                    val t2 = 2f / beta * ln(4f * c2.getDistance() / (E.toFloat() * beta * threshold))
+                    max(t1, t2)
+                }
+
+                return CriticallyDamped(duration, beta, displacement, c2)
+            }
+        }
+    }
     class Underdamped(
         override val duration: Float,
         private val dampedNaturalFrequency: Float,
@@ -39,7 +70,7 @@ sealed interface SpringSolution {
             return (c1 * cos(phase) + c2 * sin(phase)) * dampingOverTime
         }
         companion object {
-            fun construct(
+            fun create(
                 spring: Spring,
                 displacement: Offset,
                 initialVelocity: Offset,
@@ -62,6 +93,20 @@ sealed interface SpringSolution {
                     displacement,
                     c2
                 )
+            }
+        }
+    }
+
+    companion object {
+        fun create(spring: Spring, displacement: Offset, initialVelocity: Offset, threshold: Float): SpringSolution {
+            val dampingRatio = spring.dampingRatio
+
+            require(dampingRatio > 0f && dampingRatio <= 1f)
+
+            return if (dampingRatio == 1f) {
+                CriticallyDamped.create(spring, displacement, initialVelocity, threshold)
+            } else {
+                Underdamped.create(spring, displacement, initialVelocity, threshold)
             }
         }
     }
