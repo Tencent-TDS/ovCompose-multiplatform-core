@@ -16,8 +16,11 @@ targets:
     deploymentTarget: "12.0"
     prebuildScripts:
       - script: |
+          cd "$SRCROOT"
           export JAVA_HOME=%@JAVA_HOME@%
-          cd "$SRCROOT" && export OUT_DIR=`pwd`/../../../out && echo "OUT_DIR: $OUT_DIR" && ../../../gradlew -i -Pandroidx.compose.multiplatformEnabled=true --no-daemon -p . packForXCode
+          export OUT_DIR=`pwd`/../../../out
+          echo "OUT_DIR: $OUT_DIR"
+          ../../../gradlew -i --no-daemon -p . packForXCode
         name: GradleCompile
     info:
       path: plists/Ios/Info.plist
