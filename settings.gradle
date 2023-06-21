@@ -5,6 +5,7 @@ import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 
 pluginManagement {
     repositories {
+        mavenLocal()
         maven {
             url = new File(buildscript.sourceFile.parent + "/prebuilts/androidx/external").getCanonicalFile()
         }
