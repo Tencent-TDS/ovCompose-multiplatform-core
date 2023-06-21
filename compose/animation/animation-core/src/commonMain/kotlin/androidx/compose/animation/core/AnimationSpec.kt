@@ -111,6 +111,28 @@ class TweenSpec<T>(
     }
 }
 
+@Immutable
+class IOSBasedSpringSpec<T>(
+    val initialValue: T,
+    val initialVelocity: T,
+    val spring: IOSBasedSpring
+) : DurationBasedAnimationSpec<T> {
+    override fun <V : AnimationVector> vectorize(converter: TwoWayConverter<T, V>): VectorizedDurationBasedAnimationSpec<V> =
+        VectorizedIOSBasedSpringSpec(converter.convertToVector(initialValue), converter.convertToVector(initialVelocity), spring)
+
+    override fun equals(other: Any?): Boolean =
+        if (other is IOSBasedSpringSpec<*>) {
+            initialValue == other.initialValue && initialVelocity == other.initialVelocity && spring == other.spring
+        } else {
+            false
+        }
+
+    override fun hashCode(): Int =
+        listOf(initialValue, initialVelocity, spring).fold(0) { acc, element ->
+            acc * 31 + element.hashCode()
+        }
+}
+
 /**
  *  This describes [AnimationSpec]s that are based on a fixed duration, such as [KeyframesSpec],
  *  [TweenSpec], and [SnapSpec]. These duration based specs can repeated when put into a
@@ -533,6 +555,13 @@ fun <T> tween(
     delayMillis: Int = 0,
     easing: Easing = FastOutSlowInEasing
 ): TweenSpec<T> = TweenSpec(durationMillis, delayMillis, easing)
+
+@Stable
+fun <T> iOSBasedSpring(
+    initial: T,
+    velocity: T,
+    spring: IOSBasedSpring
+) = IOSBasedSpringSpec(initial, velocity, spring)
 
 /**
  * Creates a [SpringSpec] that uses the given spring constants (i.e. [dampingRatio] and

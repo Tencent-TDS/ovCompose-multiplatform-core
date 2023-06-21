@@ -36,6 +36,13 @@ data class DecelerationTimingParameters(
                 ln(-decelerationCoefficient * threshold / initialVelocity.getDistance()) / decelerationCoefficient
             }
 
+    private val decelerationCoefficient: Float
+        get() = 1000f * ln(decelerationRate)
+
+    init {
+        require(decelerationRate > 0f && decelerationRate < 1f)
+    }
+
     fun valueAt(time: Float): Offset =
         initialValue + initialVelocity * (decelerationRate.pow(1000f * time) - 1f) / decelerationCoefficient
 
@@ -48,11 +55,4 @@ data class DecelerationTimingParameters(
 
     fun velocityAt(time: Float): Offset =
         initialVelocity * decelerationRate.pow(1000f * time)
-
-    private val decelerationCoefficient: Float
-        get() = 1000f * ln(decelerationRate)
-
-    init {
-        require(decelerationRate > 0f && decelerationRate < 1f)
-    }
 }

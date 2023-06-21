@@ -18,6 +18,7 @@ package androidx.compose.animation.core
 
 import androidx.compose.animation.core.AnimationConstants.DefaultDurationMillis
 import androidx.compose.animation.core.internal.JvmDefaultWithCompatibility
+import kotlin.math.roundToLong
 
 /**
  * [FloatAnimationSpec] interface is similar to [VectorizedAnimationSpec], except it deals
@@ -260,4 +261,40 @@ class FloatTweenSpec(
         )
         return (endNum - startNum) * 1000f
     }
+}
+
+class FloatIOSBasedSpringSpec(
+    val initialValue: Float,
+    val initialVelocity: Float,
+    val spring: IOSBasedSpring
+) : FloatAnimationSpec {
+    private val solution = IOSBasedSpringSolution.create(spring, initialValue, initialVelocity, 0.5f)
+
+    val duration: Float
+        get() = solution.duration
+
+    val durationNanos: Long
+        get() = solution.durationNanos
+    override fun getValueFromNanos(
+        playTimeNanos: Long,
+        initialValue: Float,
+        targetValue: Float,
+        initialVelocity: Float
+    ): Float =
+        solution.valueAtTime(playTimeNanos)
+
+    override fun getVelocityFromNanos(
+        playTimeNanos: Long,
+        initialValue: Float,
+        targetValue: Float,
+        initialVelocity: Float
+    ): Float =
+        solution.velocityAtTime(playTimeNanos)
+
+    override fun getDurationNanos(
+        initialValue: Float,
+        targetValue: Float,
+        initialVelocity: Float
+    ): Long =
+        solution.durationNanos
 }

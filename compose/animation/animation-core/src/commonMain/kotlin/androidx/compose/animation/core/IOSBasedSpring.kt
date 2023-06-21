@@ -26,6 +26,9 @@ import kotlin.math.*
 sealed interface IOSBasedSpringSolution {
     val duration: Float
 
+    val durationNanos: Long
+        get() = (duration.toDouble() * SecondsToNanos).roundToLong()
+
     /**
      * Calculates the value of the system at a given time.
      *
@@ -34,6 +37,9 @@ sealed interface IOSBasedSpringSolution {
      */
     fun valueAtTime(time: Float): Float
 
+    fun valueAtTime(timeNanos: Long): Float =
+        valueAtTime((timeNanos.toDouble() / SecondsToNanos).toFloat())
+
     /**
      * Calculates the velocity of the critically damped system at a given time.
      *
@@ -41,6 +47,9 @@ sealed interface IOSBasedSpringSolution {
      * @return The velocity of the system at the specified time.
      */
     fun velocityAtTime(time: Float): Float
+
+    fun velocityAtTime(timeNanos: Long): Float =
+        velocityAtTime((timeNanos.toDouble() / SecondsToNanos).toFloat())
 
     /**
      * Represents a solution for a critically damped spring system. A system is critically damped when the damping ratio is equal to 1.
