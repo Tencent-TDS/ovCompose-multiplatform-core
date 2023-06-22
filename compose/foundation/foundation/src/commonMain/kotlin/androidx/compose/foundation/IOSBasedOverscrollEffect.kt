@@ -16,6 +16,8 @@
 
 package androidx.compose.foundation
 
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.animate
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -114,9 +116,11 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
         velocity: Velocity,
         performFling: suspend (Velocity) -> Velocity
     ) {
-        // TODO: implement similar to Android
-
         val flingResult = performFling(velocity)
+
+        animate(Offset.VectorConverter, overscroll, Offset.Zero, Offset(velocity.x, velocity.y)) { value, velocity ->
+            overscroll = value
+        }
 
         println("$velocity $flingResult")
     }
