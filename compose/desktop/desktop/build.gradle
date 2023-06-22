@@ -102,13 +102,13 @@ def jvmOs(container, name, skikoDep) {
                 def desktopDependency = dependenciesNode.appendNode("dependency")
                 desktopDependency.appendNode("groupId", projectGroup)
                 desktopDependency.appendNode("artifactId", projectName)
-                desktopDependency.appendNode("version", composeVersion)
+                desktopDependency.appendNode("version", "[$composeVersion]")
                 desktopDependency.appendNode("scope", "compile")
 
                 def skikoDependency = dependenciesNode.appendNode("dependency")
                 skikoDependency.appendNode("groupId", skikoModule.group)
                 skikoDependency.appendNode("artifactId", skikoModule.name)
-                skikoDependency.appendNode("version", skikoVersion)
+                skikoDependency.appendNode("version", "[$skikoVersion]")
                 skikoDependency.appendNode("scope", "runtime")
             }
         }
