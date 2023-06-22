@@ -1,11 +1,14 @@
 import androidx.build.AndroidXComposePlugin
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.KotlinNativeBinaryContainer
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinTargetWithBinaries
 
 plugins {
     id("AndroidXPlugin")
     id("AndroidXComposePlugin")
     id("kotlin-multiplatform")
-    id("org.jetbrains.gradle.apple.applePlugin") version "222.4550-0.21-dev-0"
+    id("org.jetbrains.gradle.apple.applePlugin") version "222.4550-0.22"
 }
 
 AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
@@ -14,37 +17,34 @@ repositories {
     mavenLocal()
 }
 
+fun KotlinNativeBinaryContainer.configureFramework() {
+    framework {
+        baseName = "shared"
+        freeCompilerArgs += listOf(
+            "-linker-option", "-framework", "-linker-option", "Metal",
+            "-linker-option", "-framework", "-linker-option", "CoreText",
+            "-linker-option", "-framework", "-linker-option", "CoreGraphics"
+        )
+    }
+}
+
 kotlin {
     val isArm64Host = System.getProperty("os.arch") == "aarch64"
-    val additionalCompilerArgs = listOf(
-        "-linker-option", "-framework", "-linker-option", "Metal",
-        "-linker-option", "-framework", "-linker-option", "CoreText",
-        "-linker-option", "-framework", "-linker-option", "CoreGraphics"
-    )
     iosArm64 {
         binaries {
-            framework {
-                baseName = "shared"
-                freeCompilerArgs += additionalCompilerArgs
-            }
+            configureFramework()
         }
     }
     if (isArm64Host) {
         iosSimulatorArm64 {
             binaries {
-                framework {
-                    baseName = "shared"
-                    freeCompilerArgs += additionalCompilerArgs
-                }
+                configureFramework()
             }
         }
     } else {
         iosX64 {
             binaries {
-                framework {
-                    baseName = "shared"
-                    freeCompilerArgs += additionalCompilerArgs
-                }
+                configureFramework()
             }
         }
     }

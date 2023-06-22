@@ -16,8 +16,12 @@ targets:
     deploymentTarget: "12.0"
     prebuildScripts:
       - script: |
+          cd "$SRCROOT"
           export JAVA_HOME=%@JAVA_HOME@%
-          cd "$SRCROOT" && OUT_DIR=`pwd`/out  JAVA_TOOLS_JAR=/Users/jetbrains/jetpack_compose_ui/compose-jb/compose/scripts/../external/tools.jar  ALLOW_PUBLIC_REPOS=1  ANDROIDX_PROJECTS=compose ../../../gradlew  -i  -Pandroidx.compose.multiplatformEnabled=true  --no-daemon -Pkotlin.compiler.execution.strategy="in-process" -p . packForXCode
+          export OUT_DIR=`pwd`/../../../out
+          echo "JAVA_HOME: $JAVA_HOME"
+          echo "OUT_DIR: $OUT_DIR"
+          ../../../gradlew -i --no-daemon -p . packForXCode
         name: GradleCompile
     info:
       path: plists/Ios/Info.plist
