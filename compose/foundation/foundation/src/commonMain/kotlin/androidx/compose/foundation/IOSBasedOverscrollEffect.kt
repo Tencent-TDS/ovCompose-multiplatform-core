@@ -16,8 +16,10 @@
 
 package androidx.compose.foundation
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,8 +56,9 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
      * Current offset in overscroll area
      * Negative for top-left
      * Positive for bottom-right
-     * Zero if Offset dimension is within the scrollable range
-     * It will be mapped to the actual visible offset using the rubber banding rule
+     * Zero if within the scrollable range
+     * It will be mapped to the actual visible offset using the rubber banding rule inside
+     * [Modifier.offset] within [effectModifier]
      */
     private var overscroll: Offset by mutableStateOf(Offset.Zero)
 
@@ -84,6 +87,12 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
         }
     }
 
+    /*
+     * Returns the amount of scroll delta available after user performed scroll inside overscroll area
+     * For example, if user is currently in -100 point, scrolling down with delta 40 will make it -60
+     * It will update [overscroll] resulting in visual change because of [Modifier.offset] depending on it
+     * But [performScroll] closure from within [applyToScroll] will be called with Offset.Zero
+     */
     private fun availableDelta(delta: Offset): Offset {
         val (x, overscrollX) = availableDelta(delta.x, overscroll.x)
         val (y, overscrollY) = availableDelta(delta.y, overscroll.y)
@@ -97,32 +106,43 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
         delta: Offset,
         source: NestedScrollSource,
         performScroll: (Offset) -> Offset
-    ): Offset {
-        // First we consume current delta into overscroll
-        val availableDelta = availableDelta(delta)
+    ): Offset =
+        when (source) {
+            NestedScrollSource.Drag -> {
+                // First we consume current delta against existing overscroll.
+                // Rubber band effect is symmetrical for drag directions
+                // hence it will scale your drag non-linearly even if you want to scroll out of
+                // overscroll area
+                val deltaLeftForPerformScroll = availableDelta(delta)
 
-        // Then pass remaining delta to scroll closure
-        val consumedDelta = performScroll(availableDelta)
+                // Then pass remaining delta to scroll closure
+                val deltaConsumedByPerformScroll = performScroll(deltaLeftForPerformScroll)
 
-        // All that remained is going into overscroll again
-        val unconsumedDelta = availableDelta - consumedDelta
+                // All that remains is going into overscroll again
+                val unconsumedDelta = deltaLeftForPerformScroll - deltaConsumedByPerformScroll
 
-        overscroll += unconsumedDelta
+                overscroll += unconsumedDelta
 
-        return overscroll
-    }
+                // Entire delta is always consumed by this effect
+                delta
+            }
+
+            NestedScrollSource.Fling -> {
+                // Return how much delta was consumed by actual scroll
+                performScroll(delta)
+            }
+            else -> {
+                performScroll(delta)
+
+                delta
+            }
+        }
 
     override suspend fun applyToFling(
         velocity: Velocity,
         performFling: suspend (Velocity) -> Velocity
     ) {
-        val flingResult = performFling(velocity)
-
-        animate(Offset.VectorConverter, overscroll, Offset.Zero, Offset(velocity.x, velocity.y)) { value, velocity ->
-            overscroll = value
-        }
-
-        println("$velocity $flingResult")
+        performFling(velocity)
     }
 
     override val isInProgress =
