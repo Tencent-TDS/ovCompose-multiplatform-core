@@ -79,7 +79,10 @@ internal class CupertinoFlingBehavior(
                     velocityLeft
                 }
             } else {
-                initialVelocity
+                overscrollEffect?.let {
+                    it.playSpringAnimation(Offset.Zero, Offset.Zero)
+                    0f
+                } ?: initialVelocity
             }
         }
     }
