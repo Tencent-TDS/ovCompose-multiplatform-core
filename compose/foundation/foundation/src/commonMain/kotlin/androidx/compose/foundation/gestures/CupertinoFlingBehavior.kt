@@ -67,7 +67,6 @@ internal class CupertinoFlingBehavior(
                     }
                 }
 
-                // Since sourcing variables are mutable, we need to alias them as val to use smart cast
                 val constOverscrollEffect = overscrollEffect
                 val constUnconsumedDeltaAfterDecay = unconsumedDeltaAfterDecay
 

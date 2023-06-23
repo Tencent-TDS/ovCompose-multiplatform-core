@@ -58,8 +58,8 @@ class CupertinoOverscrollEffect : OverscrollEffect {
 
     /*
      * Current offset in overscroll area
-     * Negative for top-left
-     * Positive for bottom-right
+     * Negative for bottom-right
+     * Positive for top-left
      * Zero if within the scrollable range
      * It will be mapped to the actual visible offset using the rubber banding rule inside
      * [Modifier.offset] within [effectModifier]
@@ -115,7 +115,7 @@ class CupertinoOverscrollEffect : OverscrollEffect {
             NestedScrollSource.Drag -> {
                 // First we consume current delta against existing overscroll.
                 // Rubber band effect is symmetrical for drag directions
-                // hence it will scale your drag non-linearly even if you want to scroll out of
+                // hence it will scale the drag non-linearly even if you want to scroll out of
                 // overscroll area
                 val deltaLeftForPerformScroll = availableDelta(delta)
 
@@ -125,13 +125,17 @@ class CupertinoOverscrollEffect : OverscrollEffect {
                 // All that remains is going into overscroll again
                 val unconsumedDelta = deltaLeftForPerformScroll - deltaConsumedByPerformScroll
 
+                println("$delta $deltaLeftForPerformScroll $deltaConsumedByPerformScroll $unconsumedDelta $overscroll")
+
                 overscroll += unconsumedDelta
 
                 // Entire delta is always consumed by this effect
                 delta
             }
 
-            NestedScrollSource.Fling -> performScroll(delta)
+            NestedScrollSource.Fling -> {
+                performScroll(delta)
+            }
             else -> performScroll(delta)
         }
 
@@ -143,12 +147,13 @@ class CupertinoOverscrollEffect : OverscrollEffect {
     }
 
     suspend fun playSpringAnimation(delta: Offset, initialVelocity: Offset) {
-        val initialValue = overscroll + delta
+        val initialValue = overscroll - delta
 
-        AnimationState(Offset.VectorConverter, initialValue, initialVelocity).animateTo(
+        AnimationState(Offset.VectorConverter, initialValue, -initialVelocity).animateTo(
             targetValue = Offset.Zero,
-            animationSpec = spring(stiffness = 3000f, visibilityThreshold = Offset(0.5f, 0.5f))
+            animationSpec = spring(stiffness = 200f, visibilityThreshold = Offset(0.5f, 0.5f))
         ) {
+            println(value)
             overscroll = value
         }
     }
