@@ -71,7 +71,6 @@ internal class CupertinoFlingBehavior(
                 val constUnconsumedDeltaAfterDecay = unconsumedDeltaAfterDecay
 
                 if (constUnconsumedDeltaAfterDecay != null && constOverscrollEffect != null) {
-                    //overscrollEffect.playSpringAnimation(unconsumedDeltaAfterDecay)
                     constOverscrollEffect.playSpringAnimation(constUnconsumedDeltaAfterDecay.toOffset(), velocityLeft.toOffset())
 
                     0f
