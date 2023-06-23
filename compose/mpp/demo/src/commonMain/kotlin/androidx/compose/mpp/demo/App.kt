@@ -122,6 +122,15 @@ class App(
             topBar = {
                 TopAppBar(
                     title = { Text(navigationStack.first().title) },
+                    navigationIcon = {
+                        if (navigationStack.size > 1) {
+                            Icon(
+                                Icons.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                modifier = Modifier.clickable { navigationStack.removeLast() }
+                            )
+                        }
+                    }
                 )
             },
             content = content
