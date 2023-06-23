@@ -16,9 +16,9 @@
 
 package androidx.compose.foundation
 
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.getValue
@@ -34,17 +34,21 @@ import kotlin.math.abs
 import kotlin.math.sign
 
 @OptIn(ExperimentalFoundationApi::class)
-class IOSBasedOverscrollEffect : OverscrollEffect {
-    companion object {
-        val IOS_COEFFICIENT = 0.55f
-        fun rubberBandedValue(value: Float, dimension: Float, coefficient: Float = IOS_COEFFICIENT) =
+class CupertinoOverscrollEffect : OverscrollEffect {
+    companion object Companion {
+        private const val RUBBER_BAND_COEFFICIENT = 0.55f
+        private fun rubberBandedValue(value: Float, dimension: Float, coefficient: Float = RUBBER_BAND_COEFFICIENT) =
             sign(value) * (1f - (1f / (abs(value) * coefficient / dimension + 1f))) * dimension
 
-        fun rubberBandedOffset(offset: Offset, size: Size, coefficient: Float = IOS_COEFFICIENT) =
-            Offset(
-                rubberBandedValue(offset.x, size.width, coefficient),
-                rubberBandedValue(offset.y, size.height, coefficient)
-            )
+        fun rubberBandedOffset(offset: Offset, size: Size, density: Float, coefficient: Float = RUBBER_BAND_COEFFICIENT): Offset {
+            val dpOffset = offset / density
+            val dpSize = size / density
+
+            return Offset(
+                rubberBandedValue(dpOffset.x, dpSize.width, coefficient),
+                rubberBandedValue(dpOffset.y, dpSize.height, coefficient)
+            ) * density
+        }
     }
     /*
      * size of container is taking into consideration when computing rubber banding,
@@ -127,15 +131,8 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
                 delta
             }
 
-            NestedScrollSource.Fling -> {
-                // Return how much delta was consumed by actual scroll
-                performScroll(delta)
-            }
-            else -> {
-                performScroll(delta)
-
-                delta
-            }
+            NestedScrollSource.Fling -> performScroll(delta)
+            else -> performScroll(delta)
         }
 
     override suspend fun applyToFling(
@@ -143,6 +140,17 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
         performFling: suspend (Velocity) -> Velocity
     ) {
         performFling(velocity)
+    }
+
+    suspend fun playSpringAnimation(delta: Offset, initialVelocity: Offset) {
+        val initialValue = overscroll + delta
+
+        AnimationState(Offset.VectorConverter, initialValue, initialVelocity).animateTo(
+            targetValue = Offset.Zero,
+            animationSpec = spring(stiffness = 3000f, visibilityThreshold = Offset(0.5f, 0.5f))
+        ) {
+            overscroll = value
+        }
     }
 
     override val isInProgress =
@@ -154,7 +162,7 @@ class IOSBasedOverscrollEffect : OverscrollEffect {
         }
         .offset {
             scrollSize?.let {
-                rubberBandedOffset(overscroll, it).round()
+                rubberBandedOffset(overscroll, it, density).round()
             } ?: IntOffset.Zero
         }
 }

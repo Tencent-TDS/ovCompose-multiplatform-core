@@ -23,10 +23,7 @@ import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.rememberSplineBasedDecay
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.MutatePriority
-import androidx.compose.foundation.OverscrollEffect
-import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation.Horizontal
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberOverscrollEffect
@@ -173,6 +170,11 @@ fun Modifier.scrollable(
                 ContentInViewModifier(coroutineScope, orientation, state, reverseDirection)
             }
 
+        // Special case where FlingBehavior and OverscrollEffect have intrusive relationship
+        if (flingBehavior is CupertinoFlingBehavior && overscrollEffect is CupertinoOverscrollEffect) {
+            flingBehavior.overscrollEffect = overscrollEffect
+        }
+
         Modifier
             .focusGroup()
             .then(keepFocusedChildInViewModifier.modifier)
@@ -198,12 +200,7 @@ object ScrollableDefaults {
      * Create and remember default [FlingBehavior] that will represent natural fling curve.
      */
     @Composable
-    fun flingBehavior(): FlingBehavior {
-        val flingSpec = rememberSplineBasedDecay<Float>()
-        return remember(flingSpec) {
-            DefaultFlingBehavior(flingSpec)
-        }
-    }
+    fun flingBehavior(): FlingBehavior = rememberFlingBehavior()
 
     /**
      * Create and remember default [OverscrollEffect] that will be used for showing over scroll
@@ -491,6 +488,14 @@ private class ScrollingLogic(
     val overscrollEffect: OverscrollEffect?
 ) {
     private val isNestedFlinging = mutableStateOf(false)
+
+    init {
+        if (flingBehavior is CupertinoFlingBehavior) {
+            flingBehavior.getOffsetFromDelta = {
+                it.toOffset()
+            }
+        }
+    }
     fun Float.toOffset(): Offset = when {
         this == 0f -> Offset.Zero
         orientation == Horizontal -> Offset(this, 0f)

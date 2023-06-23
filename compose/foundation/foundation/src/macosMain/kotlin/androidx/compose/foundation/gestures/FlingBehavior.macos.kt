@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation
+package androidx.compose.foundation.gestures
 
+import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal actual fun rememberOverscrollEffect(): OverscrollEffect {
-    return remember {
-        CupertinoOverscrollEffect()
+internal actual fun rememberFlingBehavior(): FlingBehavior {
+    val flingSpec = rememberSplineBasedDecay<Float>()
+    return remember(flingSpec) {
+        DefaultFlingBehavior(flingSpec)
     }
 }
