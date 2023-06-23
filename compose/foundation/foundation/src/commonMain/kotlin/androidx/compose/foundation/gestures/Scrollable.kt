@@ -170,11 +170,6 @@ fun Modifier.scrollable(
                 ContentInViewModifier(coroutineScope, orientation, state, reverseDirection)
             }
 
-        // Special case where FlingBehavior and OverscrollEffect have intrusive relationship
-        if (flingBehavior is CupertinoFlingBehavior && overscrollEffect is CupertinoOverscrollEffect) {
-            flingBehavior.overscrollEffect = overscrollEffect
-        }
-
         Modifier
             .focusGroup()
             .then(keepFocusedChildInViewModifier.modifier)
@@ -495,7 +490,13 @@ private class ScrollingLogic(
                 it.toOffset()
             }
         }
+
+        // Special case where FlingBehavior and OverscrollEffect have intrusive relationship
+        if (flingBehavior is CupertinoFlingBehavior && overscrollEffect is CupertinoOverscrollEffect) {
+            flingBehavior.overscrollEffect = overscrollEffect
+        }
     }
+
     fun Float.toOffset(): Offset = when {
         this == 0f -> Offset.Zero
         orientation == Horizontal -> Offset(this, 0f)
