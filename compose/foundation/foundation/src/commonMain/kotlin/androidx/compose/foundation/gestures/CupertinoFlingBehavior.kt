@@ -28,18 +28,18 @@ import kotlinx.coroutines.withContext
 internal class CupertinoFlingBehavior(
     density: Float,
     private val motionDurationScale: MotionDurationScale = DefaultScrollMotionDurationScale,
-    private val threshold: Float = 0.5f
+    val threshold: Float = 0.5f
 ) : FlingBehavior {
     var overscrollEffect: CupertinoOverscrollEffect? = null
     var getOffsetFromDelta: ((Float) -> Offset)? = null
 
-    private val animationSpec = CupertinoScrollDecayAnimationSpec(density, threshold)
+    private val animationSpec = CupertinoScrollDecayAnimationSpec(threshold)
+    fun Float.toOffset(): Offset {
+        getOffsetFromDelta?.let {
+            return it.invoke(this)
+        } ?: throw Exception("CupertinoFlingBehavior.getOffsetFromDelta is null, should be set by owning entity")
+    }
 
-//    fun Float.toOffset(): Offset {
-//        getOffsetFromDelta?.let {
-//            return it.invoke(this)
-//        } ?: throw Exception("CupertinoFlingBehavior.getOffsetFromDelta is null, should be set by owning entity")
-//    }
     override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
         // come up with the better threshold, but we need it since spline curve gives us NaNs
 
@@ -59,27 +59,26 @@ internal class CupertinoFlingBehavior(
                     velocityLeft = this.velocity
                     // avoid rounding errors and stop if anything is unconsumed, remember it to
                     // start rubber band spring animation after scroll decay animation
-                    if (abs(delta - consumed) > 0.5f) this.cancelAnimation()
-//                    val unconsumedDelta = delta - consumed
-//                    if (abs(unconsumedDelta) > threshold) {
-//                        unconsumedDeltaAfterDecay = unconsumedDelta
-//                        this.cancelAnimation()
-//                    }
+//                    if (abs(delta - consumed) > 0.5f) this.cancelAnimation()
+                    val unconsumedDelta = delta - consumed
+                    if (abs(unconsumedDelta) > threshold) {
+                        unconsumedDeltaAfterDecay = unconsumedDelta
+                        this.cancelAnimation()
+                    }
                 }
 
                 // Since sourcing variables are mutable, we need to alias them as val to use smart cast
-//                val constOverscrollEffect = overscrollEffect
-//                val constUnconsumedDeltaAfterDecay = unconsumedDeltaAfterDecay
-//
-//                if (constUnconsumedDeltaAfterDecay != null && constOverscrollEffect != null) {
-//                    //overscrollEffect.playSpringAnimation(unconsumedDeltaAfterDecay)
-//                    constOverscrollEffect.playSpringAnimation(constUnconsumedDeltaAfterDecay.toOffset(), velocityLeft.toOffset())
-//
-//                    0f
-//                } else {
-//                    velocityLeft
-//                }
-                velocityLeft
+                val constOverscrollEffect = overscrollEffect
+                val constUnconsumedDeltaAfterDecay = unconsumedDeltaAfterDecay
+
+                if (constUnconsumedDeltaAfterDecay != null && constOverscrollEffect != null) {
+                    //overscrollEffect.playSpringAnimation(unconsumedDeltaAfterDecay)
+                    constOverscrollEffect.playSpringAnimation(constUnconsumedDeltaAfterDecay.toOffset(), velocityLeft.toOffset())
+
+                    0f
+                } else {
+                    velocityLeft
+                }
             } else {
                 initialVelocity
             }
