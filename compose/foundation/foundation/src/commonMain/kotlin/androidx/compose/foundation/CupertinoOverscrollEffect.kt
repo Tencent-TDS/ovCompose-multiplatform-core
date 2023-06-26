@@ -109,14 +109,15 @@ class CupertinoOverscrollEffect : OverscrollEffect {
             else -> null
         }
     /*
-     * Takes input scroll delta and current overscroll value. Returns pair of
+     * Takes input scroll delta, current overscroll value, and scroll source. Returns pair of
      * 1. Available delta to perform actual content scroll.
      * 2. New overscroll value.
      */
     @Stable
     private fun availableDelta(delta: Float, overscroll: Float, source: CupertinoScrollSource): Pair<Float, Float> {
-        // if source is fling, and delta is going into the overscroll area, none of it will be consumed,
-        // overscroll will stay the same
+        // if source is fling, and delta is going into the overscroll area
+        // 1. none of it will be consumed
+        // 2. overscroll will stay the same
         if (source == CupertinoScrollSource.FLING) {
             if ((delta < 0f && overscroll <= 0f) || (delta > 0f && overscroll >= 0f)) {
                 return delta to overscroll
@@ -146,7 +147,6 @@ class CupertinoOverscrollEffect : OverscrollEffect {
      * Returns the amount of scroll delta available after user performed scroll inside overscroll area
      * It will update [overscroll] resulting in visual change because of [Modifier.offset] depending on it
      */
-
     private fun availableDelta(delta: Offset, source: CupertinoScrollSource): Offset {
         val (x, overscrollX) = availableDelta(delta.x, overscrollOffset.x, source)
         val (y, overscrollY) = availableDelta(delta.y, overscrollOffset.y, source)
@@ -156,6 +156,11 @@ class CupertinoOverscrollEffect : OverscrollEffect {
         return Offset(x, y)
     }
 
+    /*
+     * Semantics of this method match the [OverscrollEffect.applyToScroll] one,
+     * The only difference is NestedScrollSource being remapped to CupertinoScrollSource to narrow
+     * processed states invariant
+     */
     private fun applyToScroll(
         delta: Offset,
         source: CupertinoScrollSource,
@@ -163,6 +168,9 @@ class CupertinoOverscrollEffect : OverscrollEffect {
     ): Offset {
         // This will update remap overscrollOffset to our space (rubberBanded vs raw)
         // inside [isOverscrollRaw] setter
+        // The reason for that is that drag calculations are done in raw space, which is then consumed
+        // by offset modifier, while spring and fling animations(when fling-sourced scroll is dispatched and
+        // overscrollOffset is not zero) operate on linear space, which doesn't require any post-processing
         isOverscrollRaw = when (source) {
             CupertinoScrollSource.DRAG -> true
             CupertinoScrollSource.FLING -> false
