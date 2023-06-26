@@ -489,6 +489,10 @@ private class ScrollingLogic(
             flingBehavior.getOffsetFromDelta = {
                 it.toOffset()
             }
+
+            flingBehavior.getDeltaFromOffset = {
+                it.toFloat()
+            }
         }
 
         // Special case where FlingBehavior and OverscrollEffect have intrusive relationship
