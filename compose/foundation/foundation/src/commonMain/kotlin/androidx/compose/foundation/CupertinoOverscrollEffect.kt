@@ -38,6 +38,11 @@ enum class CupertinoScrollSource {
     DRAG, FLING
 }
 
+enum class CupertionOverscrollOffsetSpace {
+    LINEAR,
+    RUBBER_BANDED
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 class CupertinoOverscrollEffect : OverscrollEffect {
     /*
@@ -56,17 +61,16 @@ class CupertinoOverscrollEffect : OverscrollEffect {
     private var overscrollOffset: Offset by mutableStateOf(Offset.Zero)
 
     /*
-     * true, if overscroll needs rubberBand function to be applied before using in Modifier.offset
-     * false, if not and overscroll already keeps the expected value:
-     * for example, during spring animation, which serves the values which don't need any post-processing
+     * Property that reflects the actual space in which current [overscrollOffset] is stored
+     * Changing it will automatically update value of [overscrollOffset]
+     * so animation, interaction and [Modifier.offset] behaviors are correctly aligned
      */
-    private var isOverscrollRaw: Boolean = true
+    private var overscrollOffsetSpace: CupertionOverscrollOffsetSpace = CupertionOverscrollOffsetSpace.RUBBER_BANDED
         set(value) {
             if (field != value) {
-                overscrollOffset = if (value) {
-                    overscrollOffset.inverseRubberBanded()
-                } else {
-                    overscrollOffset.rubberBanded()
+                overscrollOffset = when (value) {
+                    CupertionOverscrollOffsetSpace.RUBBER_BANDED -> overscrollOffset.inverseRubberBanded()
+                    CupertionOverscrollOffsetSpace.LINEAR -> overscrollOffset.rubberBanded()
                 }
             }
 
@@ -75,11 +79,11 @@ class CupertinoOverscrollEffect : OverscrollEffect {
 
     val visibleOverscrollOffset: IntOffset
         get() =
-            if (isOverscrollRaw) {
-                overscrollOffset.rubberBanded().round()
-            } else {
-                overscrollOffset.round()
+            when (overscrollOffsetSpace) {
+                CupertionOverscrollOffsetSpace.LINEAR -> overscrollOffset.round()
+                CupertionOverscrollOffsetSpace.RUBBER_BANDED -> overscrollOffset.rubberBanded().round()
             }
+
     /*
      * Density to be taken into consideration during computations; Cupertino formulas use
      * DPs, and scroll machinery uses raw values.
@@ -166,14 +170,12 @@ class CupertinoOverscrollEffect : OverscrollEffect {
         source: CupertinoScrollSource,
         performScroll: (Offset) -> Offset
     ): Offset {
-        // This will update remap overscrollOffset to our space (rubberBanded vs raw)
-        // inside [isOverscrollRaw] setter
-        // The reason for that is that drag calculations are done in raw space, which is then consumed
+        // The reason for that change is that drag calculations are done in RUBBER_BANDED space, which is then consumed
         // by offset modifier, while spring and fling animations(when fling-sourced scroll is dispatched and
         // overscrollOffset is not zero) operate on linear space, which doesn't require any post-processing
-        isOverscrollRaw = when (source) {
-            CupertinoScrollSource.DRAG -> true
-            CupertinoScrollSource.FLING -> false
+        overscrollOffsetSpace = when (source) {
+            CupertinoScrollSource.DRAG -> CupertionOverscrollOffsetSpace.RUBBER_BANDED
+            CupertinoScrollSource.FLING -> CupertionOverscrollOffsetSpace.LINEAR
         }
 
         // Calculate how much delta is available after being consumed by scrolling inside overscroll area
@@ -224,24 +226,18 @@ class CupertinoOverscrollEffect : OverscrollEffect {
     }
 
     suspend fun playSpringAnimation(delta: Offset, initialVelocity: Offset) {
-        // Convert raw overscroll offset to actual visible one to perform correct spring animation
-        if (isOverscrollRaw) {
-            isOverscrollRaw = false
-        }
+        overscrollOffsetSpace = CupertionOverscrollOffsetSpace.LINEAR
 
         val initialValue = overscrollOffset - delta
 
-        // All input values are divided by density
+        // All input values are divided by density so all internal calculations are performed as if
+        // they operated on DPs. Callback value is when scaled back to raw pixels.
         AnimationState(Offset.VectorConverter, initialValue / density, -initialVelocity / density).animateTo(
             targetValue = Offset.Zero,
             animationSpec = spring(stiffness = 200f, visibilityThreshold = Offset(0.5f / density, 0.5f / density))
         ) {
             overscrollOffset = value * density
-
-            println(overscrollOffset)
         }
-
-        println("Finished")
     }
 
     private fun Offset.rubberBanded(): Offset =
