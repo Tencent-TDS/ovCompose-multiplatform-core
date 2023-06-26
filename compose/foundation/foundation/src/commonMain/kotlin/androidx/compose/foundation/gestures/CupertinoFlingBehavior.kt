@@ -36,17 +36,20 @@ internal class CupertinoFlingBehavior(
 
     var getDeltaFromOffset: ((Offset) -> Float)? = null
 
-    val animationSpec = CupertinoScrollDecayAnimationSpec(threshold)
+    private val animationSpec = CupertinoScrollDecayAnimationSpec(threshold)
+
     fun Float.toOffset(): Offset {
         getOffsetFromDelta?.let {
             return it.invoke(this)
-        } ?: throw Exception("CupertinoFlingBehavior.getOffsetFromDelta is null, should be set by owning entity")
+        }
+            ?: throw Exception("CupertinoFlingBehavior.getOffsetFromDelta is null, should be set by owning entity")
     }
 
     fun Offset.toFloat(): Float {
         getDeltaFromOffset?.let {
             return it.invoke(this)
-        } ?: throw Exception("CupertinoFlingBehavior.getDeltaFromOffset is null, should be set by owning entity")
+        }
+            ?: throw Exception("CupertinoFlingBehavior.getDeltaFromOffset is null, should be set by owning entity")
     }
 
     override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
@@ -58,38 +61,55 @@ internal class CupertinoFlingBehavior(
 
                 val overscrollEffect = overscrollEffect
 
+                // There is an edge case when a user overscrolls and slightly flings in direction of content
+                // but inertia is not enough to cover overscroll offset
+                // In that scenario, don't do decay animation and simply replace it with spring animation immediately
+                var needsDecayAnimation = true
+
                 if (overscrollEffect != null) {
                     val targetValue = animationSpec.getTargetValue(0f, initialVelocity)
-                    val currentOverscrollOffset = overscrollEffect.visibleOverscrollOffset.toOffset().toFloat()
+                    val currentOverscrollOffset =
+                        overscrollEffect.visibleOverscrollOffset.toOffset().toFloat()
 
-                    println("$targetValue $currentOverscrollOffset")
+                    val notEnoughInertia =
+                        (targetValue > 0f && currentOverscrollOffset > 0f && targetValue < currentOverscrollOffset) ||
+                            (targetValue < 0f && currentOverscrollOffset < 0f && targetValue > currentOverscrollOffset)
+
+                    if (notEnoughInertia) {
+                        needsDecayAnimation = false
+                        unconsumedDeltaAfterDecay = 0f
+                    }
                 }
 
+                if (needsDecayAnimation) {
+                    AnimationState(
+                        initialValue = 0f,
+                        initialVelocity = initialVelocity,
+                    ).animateDecay(animationSpec.generateDecayAnimationSpec()) {
+                        val delta = value - lastValue
+                        val consumed = scrollBy(delta)
+                        lastValue = value
+                        velocityLeft = this.velocity
 
-                AnimationState(
-                    initialValue = 0f,
-                    initialVelocity = initialVelocity,
-                ).animateDecay(animationSpec.generateDecayAnimationSpec()) {
-                    val delta = value - lastValue
-                    val consumed = scrollBy(delta)
-                    lastValue = value
-                    velocityLeft = this.velocity
+                        val unconsumedDelta = delta - consumed
 
-                    val unconsumedDelta = delta - consumed
-
-                    // If some delta is not consumed, it means that fling hits into content bounds.
-                    // Unconsumed delta and current velocity will be initial values for
-                    // spring animation to play, after we cancel decay animation
-                    if (abs(unconsumedDelta) > threshold) {
-                        unconsumedDeltaAfterDecay = unconsumedDelta
-                        this.cancelAnimation()
+                        // If some delta is not consumed, it means that fling hits into content bounds.
+                        // Unconsumed delta and current velocity will be initial values for
+                        // spring animation to play, after we cancel decay animation
+                        if (abs(unconsumedDelta) > threshold) {
+                            unconsumedDeltaAfterDecay = unconsumedDelta
+                            this.cancelAnimation()
+                        }
                     }
                 }
 
                 val immutableUnconsumedDeltaAfterDecay = unconsumedDeltaAfterDecay
 
                 if (immutableUnconsumedDeltaAfterDecay != null && overscrollEffect != null) {
-                    overscrollEffect.playSpringAnimation(immutableUnconsumedDeltaAfterDecay.toOffset(), velocityLeft.toOffset())
+                    overscrollEffect.playSpringAnimation(
+                        immutableUnconsumedDeltaAfterDecay.toOffset(),
+                        velocityLeft.toOffset()
+                    )
 
                     0f
                 } else {
@@ -105,7 +125,11 @@ internal class CupertinoFlingBehavior(
     }
 }
 
-class CupertinoScrollDecayAnimationSpec(
+/*
+ * Remark: all calculations inside are linear relative to initialValue and initialVelocity
+ * so there is no need to include density
+ */
+private class CupertinoScrollDecayAnimationSpec(
     threshold: Float,
     private val decelerationRate: Float = 0.998f,
 ) : FloatDecayAnimationSpec {

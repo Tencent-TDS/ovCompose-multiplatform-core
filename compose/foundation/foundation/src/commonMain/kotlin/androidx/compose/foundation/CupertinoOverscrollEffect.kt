@@ -65,7 +65,8 @@ class CupertinoOverscrollEffect : OverscrollEffect {
      * Changing it will automatically update value of [overscrollOffset]
      * so animation, interaction and [Modifier.offset] behaviors are correctly aligned
      */
-    private var overscrollOffsetSpace: CupertionOverscrollOffsetSpace = CupertionOverscrollOffsetSpace.RUBBER_BANDED
+    private var overscrollOffsetSpace: CupertionOverscrollOffsetSpace =
+        CupertionOverscrollOffsetSpace.RUBBER_BANDED
         set(value) {
             if (field != value) {
                 overscrollOffset = when (value) {
@@ -81,7 +82,8 @@ class CupertinoOverscrollEffect : OverscrollEffect {
         get() =
             when (overscrollOffsetSpace) {
                 CupertionOverscrollOffsetSpace.LINEAR -> overscrollOffset.round()
-                CupertionOverscrollOffsetSpace.RUBBER_BANDED -> overscrollOffset.rubberBanded().round()
+                CupertionOverscrollOffsetSpace.RUBBER_BANDED -> overscrollOffset.rubberBanded()
+                    .round()
             }
 
     /*
@@ -92,7 +94,7 @@ class CupertinoOverscrollEffect : OverscrollEffect {
 
     override val isInProgress: Boolean
         get() =
-            // If visible overscroll offset has at least one pixel
+        // If visible overscroll offset has at least one pixel
             // this effect is considered to be in progress
             visibleOverscrollOffset.toOffset().getDistance() > 0.5f
 
@@ -112,13 +114,18 @@ class CupertinoOverscrollEffect : OverscrollEffect {
             NestedScrollSource.Fling -> CupertinoScrollSource.FLING
             else -> null
         }
+
     /*
      * Takes input scroll delta, current overscroll value, and scroll source. Returns pair of
      * 1. Available delta to perform actual content scroll.
      * 2. New overscroll value.
      */
     @Stable
-    private fun availableDelta(delta: Float, overscroll: Float, source: CupertinoScrollSource): Pair<Float, Float> {
+    private fun availableDelta(
+        delta: Float,
+        overscroll: Float,
+        source: CupertinoScrollSource
+    ): Pair<Float, Float> {
         // if source is fling, and delta is going into the overscroll area
         // 1. none of it will be consumed
         // 2. overscroll will stay the same
@@ -146,7 +153,7 @@ class CupertinoOverscrollEffect : OverscrollEffect {
             0f to newOverscroll
         }
     }
-    
+
     /*
      * Returns the amount of scroll delta available after user performed scroll inside overscroll area
      * It will update [overscroll] resulting in visual change because of [Modifier.offset] depending on it
@@ -199,8 +206,6 @@ class CupertinoOverscrollEffect : OverscrollEffect {
             }
 
             CupertinoScrollSource.FLING -> {
-                println("$delta $unconsumedDelta")
-
                 // If unconsumedDelta is not Zero, [CupertinoFlingEffect] will cancel fling and
                 // start spring animation instead
                 delta - unconsumedDelta
@@ -232,9 +237,16 @@ class CupertinoOverscrollEffect : OverscrollEffect {
 
         // All input values are divided by density so all internal calculations are performed as if
         // they operated on DPs. Callback value is when scaled back to raw pixels.
-        AnimationState(Offset.VectorConverter, initialValue / density, -initialVelocity / density).animateTo(
+        AnimationState(
+            Offset.VectorConverter,
+            initialValue / density,
+            -initialVelocity / density
+        ).animateTo(
             targetValue = Offset.Zero,
-            animationSpec = spring(stiffness = 200f, visibilityThreshold = Offset(0.5f / density, 0.5f / density))
+            animationSpec = spring(
+                stiffness = 200f,
+                visibilityThreshold = Offset(0.5f / density, 0.5f / density)
+            )
         ) {
             overscrollOffset = value * density
         }
@@ -264,7 +276,12 @@ class CupertinoOverscrollEffect : OverscrollEffect {
         }
 
     // Remap Offset on per-dimension basis for applying rubberBanding function or inverse of it
-    private fun Offset.remap(size: Size, density: Float, coefficient: Float, function: (value: Float, dimension: Float, coefficient: Float) -> Float): Offset {
+    private fun Offset.remap(
+        size: Size,
+        density: Float,
+        coefficient: Float,
+        function: (value: Float, dimension: Float, coefficient: Float) -> Float
+    ): Offset {
         val dpOffset = this / density
         val dpSize = size / density
 
