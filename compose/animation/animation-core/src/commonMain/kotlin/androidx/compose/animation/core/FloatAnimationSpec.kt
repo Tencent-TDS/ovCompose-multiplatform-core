@@ -18,7 +18,6 @@ package androidx.compose.animation.core
 
 import androidx.compose.animation.core.AnimationConstants.DefaultDurationMillis
 import androidx.compose.animation.core.internal.JvmDefaultWithCompatibility
-import kotlin.math.roundToLong
 
 /**
  * [FloatAnimationSpec] interface is similar to [VectorizedAnimationSpec], except it deals
