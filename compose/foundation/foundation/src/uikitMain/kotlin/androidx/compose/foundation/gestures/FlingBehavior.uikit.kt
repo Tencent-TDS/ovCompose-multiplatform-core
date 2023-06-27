@@ -16,6 +16,8 @@
 
 package androidx.compose.foundation.gestures
 
+import androidx.compose.animation.core.CupertinoScrollDecayAnimationSpec
+import androidx.compose.animation.core.generateDecayAnimationSpec
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
@@ -25,6 +27,6 @@ internal actual fun rememberFlingBehavior(): FlingBehavior {
     val density = LocalDensity.current.density
 
     return remember(density) {
-        CupertinoFlingBehavior()
+        DefaultFlingBehavior(CupertinoScrollDecayAnimationSpec().generateDecayAnimationSpec())
     }
 }

@@ -30,24 +30,6 @@ import androidx.compose.runtime.Stable
 @Stable
 interface FlingBehavior {
     /**
-     * Perform settling via fling animation with given velocity and suspend until fling has
-     * finished.
-     *
-     * This functions is called with [ScrollScope] to drive the state change of the
-     * [androidx.compose.foundation.gestures.ScrollableState] via [ScrollScope.scrollBy].
-     *
-     * This function must return correct velocity left after it is finished flinging in order to
-     * guarantee proper nested scroll support.
-     *
-     * @param initialVelocity velocity available for fling in the orientation specified in
-     * [androidx.compose.foundation.gestures.scrollable] that invoked this method.
-     *
-     * @return remaining velocity after fling operation has ended
-     */
-    @Deprecated("The method doesn't have hooks for customizing interaction between fling and overscroll", ReplaceWith("ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?)"))
-    suspend fun ScrollScope.performFling(initialVelocity: Float): Float
-
-    /**
      * Performs a fling with the given initial velocity.
      *
      * @param initialVelocity velocity available for fling in the orientation specified in
@@ -56,9 +38,7 @@ interface FlingBehavior {
      * if the fling inertial motion ends up in overscroll.
      * @return remaining velocity after fling operation has ended
      */
-    suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float =
-        // Compatibility behavior, flingIntoOverscrollEffect is ignored
-        performFling(initialVelocity)
+    suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float
 }
 
 @Composable

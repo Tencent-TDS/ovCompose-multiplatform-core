@@ -34,6 +34,7 @@ import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.DefaultScrollMotionDurationScale
 import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.FlingIntoOverscrollEffect
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -93,7 +94,7 @@ class SnapFlingBehavior(
     private val velocityThreshold = with(density) { shortSnapVelocityThreshold.toPx() }
     internal var motionScaleDuration = DefaultScrollMotionDurationScale
 
-    override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+    override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
         return performFling(initialVelocity) {}
     }
 

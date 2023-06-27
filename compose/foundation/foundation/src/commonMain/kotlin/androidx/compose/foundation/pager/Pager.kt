@@ -26,6 +26,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.FlingIntoOverscrollEffect
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.snapping.SnapFlingBehavior
@@ -685,7 +686,7 @@ private class PagerWrapperFlingBehavior(
     val originalFlingBehavior: SnapFlingBehavior,
     val pagerState: PagerState
 ) : FlingBehavior {
-    override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+    override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
         return with(originalFlingBehavior) {
             performFling(initialVelocity) { remainingScrollOffset ->
                 pagerState.snapRemainingScrollOffset = remainingScrollOffset
