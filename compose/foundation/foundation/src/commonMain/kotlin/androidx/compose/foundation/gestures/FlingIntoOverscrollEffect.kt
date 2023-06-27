@@ -36,9 +36,10 @@ interface FlingIntoOverscrollEffect {
     fun isFlingInertiaWeak(targetValue: Float): Boolean
 
     /**
-     * Performs animation based on the [initialValue] and [initialVelocity] provided.
+     * Performs animation of fling bumping into overscroll (or drag released in overscroll area)
+     * based on the [initialValue] and [initialVelocity] provided.
      *
-     * @param initialValue The initial value of the animation.
+     * @param initialValue The initial value of the animation (the last unconsumed scroll delta of fling animation).
      * @param initialVelocity The initial velocity of the animation.
      *
      * @return Left velocity after animation is finished
