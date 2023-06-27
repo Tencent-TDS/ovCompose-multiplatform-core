@@ -20,9 +20,12 @@ import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
 
-/*
- * Remark: all calculations inside are linear relative to initialValue and initialVelocity
- * so there is no need to include density
+/**
+ * A class that represents the animation specification for a scroll decay animation
+ * using iOS-style decay behavior.
+ *
+ * @property decelerationRate The rate at which the velocity decelerates over time.
+ * Default value is equal to one used by default UIScrollView behavior.
  */
 class CupertinoScrollDecayAnimationSpec(
     private val decelerationRate: Float = 0.998f
