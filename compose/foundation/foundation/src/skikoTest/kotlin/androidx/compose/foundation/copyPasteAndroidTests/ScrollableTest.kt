@@ -1289,7 +1289,7 @@ class ScrollableTest {
         val outerState = ScrollableState(consumeScrollDelta = { 0f })
         val innerState = ScrollableState(consumeScrollDelta = { 0f })
         val innerFlingBehavior = object : FlingBehavior {
-            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
                 return initialVelocity
             }
         }
@@ -1473,7 +1473,7 @@ class ScrollableTest {
         var flingCalled = 0
         var flingVelocity: Float = Float.MAX_VALUE
         val flingBehaviour = object : FlingBehavior {
-            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
                 flingCalled++
                 flingVelocity = initialVelocity
                 return 0f
@@ -1509,7 +1509,7 @@ class ScrollableTest {
         var flingCalled = 0
         var flingVelocity: Float = Float.MAX_VALUE
         val flingBehaviour = object : FlingBehavior {
-            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
                 flingCalled++
                 flingVelocity = initialVelocity
                 return 0f
@@ -1546,7 +1546,7 @@ class ScrollableTest {
         var flingCalled = 0
         var flingVelocity: Float = Float.MAX_VALUE
         val flingBehaviour = object : FlingBehavior {
-            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
                 flingCalled++
                 flingVelocity = initialVelocity
                 return 0f
@@ -1582,7 +1582,7 @@ class ScrollableTest {
             }
         )
         val flingBehaviour = object : FlingBehavior {
-            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
                 returned = scrollBy(123f)
                 return 0f
             }
@@ -1625,7 +1625,7 @@ class ScrollableTest {
             }
         )
         val flingBehaviour = object : FlingBehavior {
-            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
                 returned = scrollBy(123f)
                 return 0f
             }
