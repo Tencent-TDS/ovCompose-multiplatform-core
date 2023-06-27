@@ -25,13 +25,12 @@ import kotlin.math.pow
  * so there is no need to include density
  */
 class CupertinoScrollDecayAnimationSpec(
-    threshold: Float = 0.5f,
     private val decelerationRate: Float = 0.998f
 ) : FloatDecayAnimationSpec {
 
     private val coefficient: Float = 1000f * ln(decelerationRate)
 
-    override val absVelocityThreshold: Float = threshold
+    override val absVelocityThreshold: Float = 0.5f
 
     override fun getTargetValue(initialValue: Float, initialVelocity: Float): Float =
         initialValue - initialVelocity / coefficient
