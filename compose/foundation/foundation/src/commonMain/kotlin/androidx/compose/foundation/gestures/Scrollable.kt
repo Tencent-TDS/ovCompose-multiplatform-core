@@ -22,7 +22,6 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation.Horizontal
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -67,7 +66,6 @@ import androidx.compose.ui.util.fastForEach
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -481,27 +479,10 @@ private class ScrollingLogic(
     val scrollableState: ScrollableState,
     val flingBehavior: FlingBehavior,
     val overscrollEffect: OverscrollEffect?
-) {
+): ScrollValueConverter {
     private val isNestedFlinging = mutableStateOf(false)
 
-    init {
-        if (flingBehavior is CupertinoFlingBehavior) {
-            flingBehavior.getOffsetFromDelta = {
-                it.toOffset()
-            }
-
-            flingBehavior.getDeltaFromOffset = {
-                it.toFloat()
-            }
-        }
-
-        // Special case where FlingBehavior and OverscrollEffect have intrusive relationship
-        if (flingBehavior is CupertinoFlingBehavior && overscrollEffect is CupertinoOverscrollEffect) {
-            flingBehavior.overscrollEffect = overscrollEffect
-        }
-    }
-
-    fun Float.toOffset(): Offset = when {
+    override fun Float.toOffset(): Offset = when {
         this == 0f -> Offset.Zero
         orientation == Horizontal -> Offset(this, 0f)
         else -> Offset(0f, this)
@@ -510,7 +491,7 @@ private class ScrollingLogic(
     fun Offset.singleAxisOffset(): Offset =
         if (orientation == Horizontal) copy(y = 0f) else copy(x = 0f)
 
-    fun Offset.toFloat(): Float =
+    override fun Offset.toFloat(): Float =
         if (orientation == Horizontal) this.x else this.y
 
     fun Velocity.toFloat(): Float =
@@ -606,6 +587,8 @@ private class ScrollingLogic(
     }
 
     suspend fun doFlingAnimation(available: Velocity): Velocity {
+        val flingIntoOverscrollEffect = overscrollEffect?.flingIntoOverscrollEffect(this)
+
         var result: Velocity = available
         scrollableState.scroll {
             val outerScopeScroll: (Offset) -> Offset = { delta ->
@@ -619,7 +602,10 @@ private class ScrollingLogic(
             with(scope) {
                 with(flingBehavior) {
                     result = result.update(
-                        performFling(available.toFloat().reverseIfNeeded()).reverseIfNeeded()
+                        performFling(
+                            available.toFloat().reverseIfNeeded(),
+                            flingIntoOverscrollEffect
+                        ).reverseIfNeeded()
                     )
                 }
             }

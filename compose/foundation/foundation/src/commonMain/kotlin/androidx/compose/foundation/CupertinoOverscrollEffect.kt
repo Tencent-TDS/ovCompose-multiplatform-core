@@ -20,6 +20,8 @@ import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.FlingIntoOverscrollEffect
+import androidx.compose.foundation.gestures.ScrollValueConverter
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -78,7 +80,7 @@ class CupertinoOverscrollEffect : OverscrollEffect {
             field = value
         }
 
-    val visibleOverscrollOffset: IntOffset
+    private val visibleOverscrollOffset: IntOffset
         get() =
             when (overscrollOffsetSpace) {
                 CupertionOverscrollOffsetSpace.LINEAR -> overscrollOffset.round()
@@ -106,6 +108,27 @@ class CupertinoOverscrollEffect : OverscrollEffect {
             this@CupertinoOverscrollEffect.density = density
 
             visibleOverscrollOffset
+        }
+
+    override fun flingIntoOverscrollEffect(scrollValueConverter: ScrollValueConverter): FlingIntoOverscrollEffect =
+        object : FlingIntoOverscrollEffect {
+            override fun isFlingInertiaWeak(targetValue: Float): Boolean =
+                scrollValueConverter.run {
+                    val currentOverscroll = visibleOverscrollOffset.toOffset().toFloat()
+
+                    // Returns false if deltas consumed from fling animation will not result in overscroll being zero
+                    // true otherwise
+                    return@run (targetValue > 0f && currentOverscroll > 0f && targetValue < currentOverscroll) ||
+                        (targetValue < 0f && currentOverscroll < 0f && targetValue > currentOverscroll)
+                }
+
+            override suspend fun performAnimation(
+                initialValue: Float,
+                initialVelocity: Float
+            ): Float =
+                scrollValueConverter.run {
+                    playSpringAnimation(initialValue.toOffset(), initialVelocity.toOffset())
+                }
         }
 
     private fun NestedScrollSource.toCupertinoScrollSource(): CupertinoScrollSource? =
@@ -230,7 +253,7 @@ class CupertinoOverscrollEffect : OverscrollEffect {
         performFling(velocity)
     }
 
-    suspend fun playSpringAnimation(delta: Offset, initialVelocity: Offset) {
+    suspend fun playSpringAnimation(delta: Offset, initialVelocity: Offset): Float {
         overscrollOffsetSpace = CupertionOverscrollOffsetSpace.LINEAR
 
         val initialValue = overscrollOffset - delta
@@ -250,6 +273,8 @@ class CupertinoOverscrollEffect : OverscrollEffect {
         ) {
             overscrollOffset = value * density
         }
+
+        return 0f
     }
 
     private fun Offset.rubberBanded(): Offset =

@@ -16,7 +16,8 @@
 
 package androidx.compose.foundation
 
-import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.FlingIntoOverscrollEffect
+import androidx.compose.foundation.gestures.ScrollValueConverter
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
@@ -121,6 +122,17 @@ interface OverscrollEffect {
      * A [Modifier] that will draw this OverscrollEffect
      */
     val effectModifier: Modifier
+
+    /**
+     * Represents an optional overscroll effect that can be applied when fling inertial movement crosses the overscroll area.
+     *
+     * @param scrollValueConverter an instance of [ScrollValueConverter] class which is used to convert the raw scroll offset
+     * into the overscroll effect offset.
+     * @return a nullable instance of the [FlingIntoOverscrollEffect] class, representing the overscroll effect to be used.
+     * If null, no effect will be applied.
+     */
+    fun flingIntoOverscrollEffect(scrollValueConverter: ScrollValueConverter): FlingIntoOverscrollEffect? =
+        null
 }
 
 /**
