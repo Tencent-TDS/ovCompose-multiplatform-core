@@ -90,15 +90,6 @@ task runSwing(type: JavaExec) {
         compilation.runtimeDependencyFiles
 }
 
-task runSpringAnimation(type: JavaExec) {
-    dependsOn(":compose:desktop:desktop:jar")
-    main = "androidx.compose.desktop.examples.springanimation.Main_jvmKt"
-    def compilation = kotlin.jvm().compilations["main"]
-    classpath =
-            compilation.output.allOutputs +
-                    compilation.runtimeDependencyFiles
-}
-
 task runMouseClicks(type: JavaExec) {
     dependsOn(":compose:desktop:desktop:jar")
     main = "androidx.compose.desktop.examples.mouseclicks.Main_jvmKt"

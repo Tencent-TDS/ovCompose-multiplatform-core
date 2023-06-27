@@ -722,47 +722,6 @@ class VectorizedTweenSpec<V : AnimationVector>(
     }
 }
 
-class VectorizedIOSBasedSpringSpec<V: AnimationVector>(
-    val initialValue: V,
-    val initialVelocity: V,
-    val spring: IOSBasedSpring,
-) : VectorizedDurationBasedAnimationSpec<V> {
-    override val delayMillis: Int = 0
-
-    private val anims = (0 until initialValue.size).map { index ->
-        FloatIOSBasedSpringSpec(initialValue[index], initialVelocity[index], spring)
-    }
-
-    override val durationMillis: Int =
-        anims.maxOf {
-            it.durationNanos / MillisToNanos
-        }.toInt()
-    override fun getVelocityFromNanos(
-        playTimeNanos: Long,
-        initialValue: V,
-        targetValue: V,
-        initialVelocity: V
-    ): V =
-        initialVelocity.newInstance().also {
-            for ((index, anim) in anims.withIndex()) {
-                it[index] = anim.getVelocityFromNanos(playTimeNanos, this.initialValue[index], 0f, this.initialVelocity[index])
-            }
-        }
-
-    override fun getValueFromNanos(
-        playTimeNanos: Long,
-        initialValue: V,
-        targetValue: V,
-        initialVelocity: V
-    ): V =
-        initialValue.newInstance().also {
-            for ((index, anim) in anims.withIndex()) {
-                it[index] = anim.getValueFromNanos(playTimeNanos, this.initialValue[index], 0f, this.initialVelocity[index])
-            }
-        }
-}
-
-
 
 /**
  * A convenient implementation of [VectorizedFloatAnimationSpec] that turns a [FloatAnimationSpec]
