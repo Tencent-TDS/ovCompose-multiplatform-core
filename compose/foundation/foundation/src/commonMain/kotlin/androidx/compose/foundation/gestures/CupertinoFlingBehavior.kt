@@ -40,7 +40,7 @@ internal class CupertinoFlingBehavior(
 
                 // If this value is not null by the end of decayAnimation, it means that not entire provided
                 // delta was consumed during last animation frame, so the animation needs to be cancelled
-                // and proper
+                // and [flingIntoOverscrollEffect] animation should be played
                 var unconsumedDeltaAfterDecay: Float? = null
 
                 // There is an edge case when a user overscrolls and slightly flings in direction of content
