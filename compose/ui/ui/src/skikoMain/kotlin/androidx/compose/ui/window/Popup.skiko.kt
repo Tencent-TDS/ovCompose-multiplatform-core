@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.IntOffset
 
@@ -149,6 +150,7 @@ fun Popup(
  * @param properties [PopupProperties] for further customization of this popup's behavior.
  * @param content The content to be displayed inside the popup.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 actual fun Popup(
     popupPositionProvider: PopupPositionProvider,
@@ -156,10 +158,21 @@ actual fun Popup(
     properties: PopupProperties,
     content: @Composable () -> Unit
 ) {
+    // TODO: handle properties.dismissOnClickOutside
     PopupLayout(
         popupPositionProvider,
         properties.focusable,
         onDismissRequest,
+        onKeyEvent = {
+            if (properties.dismissOnBackPress &&
+                it.type == KeyEventType.KeyDown && it.key == Key.Escape &&
+                onDismissRequest != null) {
+                onDismissRequest()
+                true
+            } else {
+                false
+            }
+        },
         content = content
     )
 }
