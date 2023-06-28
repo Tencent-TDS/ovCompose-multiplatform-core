@@ -17,10 +17,37 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.IntOffset
+
+@Immutable
+actual class PopupProperties actual constructor(
+    actual val focusable: Boolean,
+    actual val dismissOnBackPress: Boolean,
+    actual val dismissOnClickOutside: Boolean
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is PopupProperties) return false
+
+        if (focusable != other.focusable) return false
+        if (dismissOnBackPress != other.dismissOnBackPress) return false
+        if (dismissOnClickOutside != other.dismissOnClickOutside) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = dismissOnBackPress.hashCode()
+        result = 31 * result + focusable.hashCode()
+        result = 31 * result + dismissOnBackPress.hashCode()
+        result = 31 * result + dismissOnClickOutside.hashCode()
+        return result
+    }
+}
 
 /**
  * Opens a popup with the given content.
@@ -109,3 +136,30 @@ fun Popup(
     onKeyEvent = onKeyEvent,
     content = content
 )
+
+/**
+ * Opens a popup with the given content.
+ *
+ * The popup is positioned using a custom [popupPositionProvider].
+ *
+ * @sample androidx.compose.ui.samples.PopupSample
+ *
+ * @param popupPositionProvider Provides the screen position of the popup.
+ * @param onDismissRequest Executes when the user clicks outside of the popup.
+ * @param properties [PopupProperties] for further customization of this popup's behavior.
+ * @param content The content to be displayed inside the popup.
+ */
+@Composable
+actual fun Popup(
+    popupPositionProvider: PopupPositionProvider,
+    onDismissRequest: (() -> Unit)?,
+    properties: PopupProperties,
+    content: @Composable () -> Unit
+) {
+    PopupLayout(
+        popupPositionProvider,
+        properties.focusable,
+        onDismissRequest,
+        content = content
+    )
+}

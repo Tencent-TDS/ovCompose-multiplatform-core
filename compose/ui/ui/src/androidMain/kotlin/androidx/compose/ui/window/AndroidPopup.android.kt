@@ -108,15 +108,28 @@ import org.jetbrains.annotations.TestOnly
  * the platform default, which is smaller than the screen width.
  */
 @Immutable
-class PopupProperties @ExperimentalComposeUiApi constructor(
-    val focusable: Boolean = false,
-    val dismissOnBackPress: Boolean = true,
-    val dismissOnClickOutside: Boolean = true,
+actual class PopupProperties @ExperimentalComposeUiApi constructor(
+    actual val focusable: Boolean = false,
+    actual val dismissOnBackPress: Boolean = true,
+    actual val dismissOnClickOutside: Boolean = true,
     val securePolicy: SecureFlagPolicy = SecureFlagPolicy.Inherit,
     val excludeFromSystemGesture: Boolean = true,
     val clippingEnabled: Boolean = true,
     val usePlatformDefaultWidth: Boolean = false
 ) {
+    actual constructor(
+        focusable: Boolean,
+        dismissOnBackPress: Boolean,
+        dismissOnClickOutside: Boolean
+    ) : this (
+        focusable = focusable,
+        dismissOnBackPress = dismissOnBackPress,
+        dismissOnClickOutside = dismissOnClickOutside,
+        securePolicy = SecureFlagPolicy.Inherit,
+        excludeFromSystemGesture = true,
+        clippingEnabled = true
+    )
+
     @OptIn(ExperimentalComposeUiApi::class)
     constructor(
         focusable: Boolean = false,
@@ -166,49 +179,6 @@ class PopupProperties @ExperimentalComposeUiApi constructor(
 /**
  * Opens a popup with the given content.
  *
- * A popup is a floating container that appears on top of the current activity.
- * It is especially useful for non-modal UI surfaces that remain hidden until they
- * are needed, for example floating menus like Cut/Copy/Paste.
- *
- * The popup is positioned relative to its parent, using the [alignment] and [offset].
- * The popup is visible as long as it is part of the composition hierarchy.
- *
- * @sample androidx.compose.ui.samples.PopupSample
- *
- * @param alignment The alignment relative to the parent.
- * @param offset An offset from the original aligned position of the popup. Offset respects the
- * Ltr/Rtl context, thus in Ltr it will be added to the original aligned position and in Rtl it
- * will be subtracted from it.
- * @param onDismissRequest Executes when the user clicks outside of the popup.
- * @param properties [PopupProperties] for further customization of this popup's behavior.
- * @param content The content to be displayed inside the popup.
- */
-@Composable
-fun Popup(
-    alignment: Alignment = Alignment.TopStart,
-    offset: IntOffset = IntOffset(0, 0),
-    onDismissRequest: (() -> Unit)? = null,
-    properties: PopupProperties = PopupProperties(),
-    content: @Composable () -> Unit
-) {
-    val popupPositioner = remember(alignment, offset) {
-        AlignmentOffsetPositionProvider(
-            alignment,
-            offset
-        )
-    }
-
-    Popup(
-        popupPositionProvider = popupPositioner,
-        onDismissRequest = onDismissRequest,
-        properties = properties,
-        content = content
-    )
-}
-
-/**
- * Opens a popup with the given content.
- *
  * The popup is positioned using a custom [popupPositionProvider].
  *
  * @sample androidx.compose.ui.samples.PopupSample
@@ -219,10 +189,10 @@ fun Popup(
  * @param content The content to be displayed inside the popup.
  */
 @Composable
-fun Popup(
+actual fun Popup(
     popupPositionProvider: PopupPositionProvider,
-    onDismissRequest: (() -> Unit)? = null,
-    properties: PopupProperties = PopupProperties(),
+    onDismissRequest: (() -> Unit)?,
+    properties: PopupProperties,
     content: @Composable () -> Unit
 ) {
     val view = LocalView.current
