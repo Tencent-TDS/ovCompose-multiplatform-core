@@ -23,7 +23,7 @@ import androidx.compose.ui.geometry.Offset
  * 2D scroll offset and logic operating on single dimension [Float]s
  */
 interface ScrollValueConverter {
-    fun Float.toOffset(): Offset
+    fun convertFloatToOffset(value: Float): Offset
 
-    fun Offset.toFloat(): Float
+    fun convertOffsetToFloat(value: Offset): Float
 }
