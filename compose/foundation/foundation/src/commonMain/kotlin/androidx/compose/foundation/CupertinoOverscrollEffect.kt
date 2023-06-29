@@ -50,9 +50,8 @@ class CupertinoOverscrollEffect : OverscrollEffect {
      * Offset to Float converter to do orientation-dependant calculations using the raw Float data
      * coming from bound [CupertinoFlingBehavior]. If this value is null, it wasn't bound and there would be
      * no overscroll effect present (because it relies on fling calls to maintain its correct state)
-     * TODO: Current Compose API doesn't support interaction between FlingBehavior and
-     *  OvercrollEffect, which semantics don't fit to one on Android (in this case, similar to iOS)
-     *  so this sort of a hack.
+     * TODO: Current Compose API semantics are too weak for rich interaction between FlingBehavior and
+     *  OvercrollEffect, like one used in iOS. Needs a proper proposal
      */
     internal var scrollValueConverter: ScrollValueConverter? = null
 
