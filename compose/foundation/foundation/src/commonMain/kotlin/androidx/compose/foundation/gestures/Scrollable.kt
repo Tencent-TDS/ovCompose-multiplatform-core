@@ -22,7 +22,6 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation.Horizontal
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -67,7 +66,6 @@ import androidx.compose.ui.util.fastForEach
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -404,7 +402,7 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
     tryReceiveNext()?.let {
         target += it
     }
-    if (target.isAboutZero()) {
+    if (target.isLowScrollingDelta()) {
         return
     }
     scrollableState.scroll {
@@ -425,9 +423,9 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
                 sequentialAnimation = true
             ) {
                 val delta = value - lastValue
-                if (!delta.isAboutZero()) {
+                if (!delta.isLowScrollingDelta()) {
                     val consumedDelta = scrollBy(delta)
-                    if (!(delta - consumedDelta).isAboutZero()) {
+                    if (!(delta - consumedDelta).isLowScrollingDelta()) {
                         cancelAnimation()
                         return@animateTo
                     }
@@ -435,7 +433,7 @@ private suspend fun ScrollingLogic.animatedDispatchScroll(
                 }
                 tryReceiveNext()?.let {
                     target += it
-                    requiredAnimation = !(target - lastValue).isAboutZero()
+                    requiredAnimation = !(target - lastValue).isLowScrollingDelta()
                     cancelAnimation()
                 }
             }
@@ -465,9 +463,10 @@ private inline val PointerEvent.isConsumed: Boolean get() = changes.fastAny { it
 private inline fun PointerEvent.consume() = changes.fastForEach { it.consume() }
 
 /*
- * Returns true, if absolute value is insignificant for animation purposes, false otherwise.
+ * Returns true, if the value is too low for visible change in scroll (consumed delta, animation-based change, etc),
+ * false otherwise
  */
-private inline fun Float.isAboutZero(): Boolean = abs(this) < 0.5f
+private inline fun Float.isLowScrollingDelta(): Boolean = abs(this) < 0.5f
 
 private suspend fun AwaitPointerEventScope.awaitScrollEvent(): PointerEvent {
     var event: PointerEvent

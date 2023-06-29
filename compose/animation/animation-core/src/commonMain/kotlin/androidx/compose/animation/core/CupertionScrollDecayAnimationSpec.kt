@@ -33,7 +33,7 @@ class CupertinoScrollDecayAnimationSpec(
 
     private val coefficient: Float = 1000f * ln(decelerationRate)
 
-    override val absVelocityThreshold: Float = 0.5f
+    override val absVelocityThreshold: Float = 0.5f // Half pixel
 
     override fun getTargetValue(initialValue: Float, initialVelocity: Float): Float =
         initialValue - initialVelocity / coefficient

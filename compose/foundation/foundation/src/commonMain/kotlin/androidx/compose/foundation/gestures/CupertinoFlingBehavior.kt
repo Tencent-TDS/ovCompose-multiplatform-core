@@ -26,11 +26,11 @@ import kotlinx.coroutines.withContext
 
 internal class CupertinoFlingBehavior(
     private val motionDurationScale: MotionDurationScale = DefaultScrollMotionDurationScale,
-    val threshold: Float = 0.5f
+    val threshold: Float = 0.5f // Half pixel
 ) : FlingBehavior {
     var overscrollEffect: CupertinoOverscrollEffect? = null
 
-    private val animationSpec = CupertinoScrollDecayAnimationSpec(threshold)
+    private val animationSpec = CupertinoScrollDecayAnimationSpec()
 
     override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
         return withContext(motionDurationScale) {
