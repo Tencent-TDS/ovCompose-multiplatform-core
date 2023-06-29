@@ -32,8 +32,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.unit.*
+import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.math.sign
+import kotlinx.coroutines.isActive
 
 private enum class CupertinoScrollSource {
     DRAG, FLING
@@ -89,23 +91,13 @@ class CupertinoOverscrollEffect(
             visibleOverscrollOffset
         }
 
-    /*
-     * Determines if the fling inertial motion is weak to surpass overscroll offset
-     * (and hence needs to be replaced with spring animation)
-     *
-     * @param targetValue The target value for the fling inertia.
-     * @return true if the fling inertia is weak, false otherwise.
-     */
-    internal fun isFlingInertiaWeak(targetValue: Float): Boolean {
-        val scrollValueConverter = scrollValueConverter
+    internal suspend fun playInitialSpringIfNeeded(velocity: Float) {
+        val scrollValueConverter = scrollValueConverter ?: return
 
-        return if (scrollValueConverter != null) {
-            val currentOverscroll = scrollValueConverter.convertOffsetToFloat(visibleOverscrollOffset.toOffset())
+        val currentOverscroll = scrollValueConverter.convertOffsetToFloat(overscrollOffset)
 
-            (targetValue > 0f && currentOverscroll > 0f && targetValue < currentOverscroll) ||
-                (targetValue < 0f && currentOverscroll < 0f && targetValue > currentOverscroll)
-        } else {
-            false
+        if ((velocity > 0f && currentOverscroll > 0f) || (velocity < 0f && currentOverscroll < 0f)) {
+            playSpringAnimation(0f, velocity)
         }
     }
 
@@ -127,13 +119,11 @@ class CupertinoOverscrollEffect(
         overscroll: Float,
         source: CupertinoScrollSource
     ): Pair<Float, Float> {
-        // if source is fling, and delta is going into the overscroll area
-        // 1. none of it will be consumed
+        // if source is fling:
+        // 1. no delta will be consumed
         // 2. overscroll will stay the same
         if (source == CupertinoScrollSource.FLING) {
-            if ((delta < 0f && overscroll <= 0f) || (delta > 0f && overscroll >= 0f)) {
-                return delta to overscroll
-            }
+            return delta to overscroll
         }
 
         val newOverscroll = overscroll + delta
@@ -255,6 +245,12 @@ class CupertinoOverscrollEffect(
             )
         ) {
             overscrollOffset = value * density
+        }
+
+        if (coroutineContext.isActive) {
+            // The spring is critically damped, so in case of spring-fling-spring sequence
+            // even slightly offset spring when velocity of opposite sign will end up with no animation
+            overscrollOffset = Offset.Zero
         }
 
         return 0f

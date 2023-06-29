@@ -22,6 +22,9 @@ import androidx.compose.ui.MotionDurationScale
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 internal class CupertinoFlingBehavior(
@@ -43,47 +46,40 @@ internal class CupertinoFlingBehavior(
                 // and spring animation should be played
                 var unconsumedDeltaAfterDecay: Float? = null
 
-                // There is an edge case when a user overscrolls and slightly flings in direction of content
-                // but inertia is not enough to cover overscroll offset
-                // In that scenario, don't do decay animation and simply replace it with spring animation immediately
-                var needsDecayAnimation = true
 
                 val overscrollEffect = overscrollEffect
 
-                if (overscrollEffect != null) {
-                    val targetValue = animationSpec.getTargetValue(0f, initialVelocity)
-
-                    if (overscrollEffect.isFlingInertiaWeak(targetValue)) {
-                        needsDecayAnimation = false
-                        unconsumedDeltaAfterDecay = 0f
+                var initialSpringJob: Job? = overscrollEffect?.let {
+                    launch {
+                        it.playInitialSpringIfNeeded(velocityLeft)
                     }
                 }
 
-                if (needsDecayAnimation) {
-                    AnimationState(
-                        initialValue = 0f,
-                        initialVelocity = initialVelocity,
-                    ).animateDecay(animationSpec.generateDecayAnimationSpec()) {
-                        val delta = value - lastValue
-                        val consumed = scrollBy(delta)
-                        lastValue = value
-                        velocityLeft = this.velocity
+                AnimationState(
+                    initialValue = 0f,
+                    initialVelocity = initialVelocity,
+                ).animateDecay(animationSpec.generateDecayAnimationSpec()) {
+                    val delta = value - lastValue
+                    val consumed = scrollBy(delta)
+                    lastValue = value
+                    velocityLeft = this.velocity
 
-                        val unconsumedDelta = delta - consumed
+                    val unconsumedDelta = delta - consumed
 
-                        // If some delta is not consumed, it means that fling hits into content bounds.
-                        // Unconsumed delta and current velocity will be initial values for
-                        // spring animation to play if any, after we cancel decay animation
-                        if (abs(unconsumedDelta) > threshold) {
-                            unconsumedDeltaAfterDecay = unconsumedDelta
-                            this.cancelAnimation()
-                        }
+                    // If some delta is not consumed, it means that fling hits into content bounds.
+                    // Unconsumed delta and current velocity will be initial values for
+                    // spring animation to play if any, after we cancel decay animation
+                    if (abs(unconsumedDelta) > threshold) {
+                        unconsumedDeltaAfterDecay = unconsumedDelta
+                        this.cancelAnimation()
                     }
                 }
 
                 val immutableUnconsumedDeltaAfterDecay = unconsumedDeltaAfterDecay
 
                 if (immutableUnconsumedDeltaAfterDecay != null && overscrollEffect != null) {
+                    initialSpringJob?.cancelAndJoin()
+
                     overscrollEffect.playSpringAnimation(
                         immutableUnconsumedDeltaAfterDecay,
                         velocityLeft
