@@ -49,7 +49,7 @@ internal class CupertinoFlingBehavior(
 
                 val overscrollEffect = overscrollEffect
 
-                var initialSpringJob: Job? = overscrollEffect?.let {
+                val initialSpringJob: Job? = overscrollEffect?.let {
                     launch {
                         it.playInitialSpringIfNeeded(velocityLeft)
                     }
