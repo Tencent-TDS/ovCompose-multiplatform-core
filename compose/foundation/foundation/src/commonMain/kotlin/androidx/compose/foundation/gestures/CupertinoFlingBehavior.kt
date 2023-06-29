@@ -46,7 +46,6 @@ internal class CupertinoFlingBehavior(
                 // and spring animation should be played
                 var unconsumedDeltaAfterDecay: Float? = null
 
-
                 val overscrollEffect = overscrollEffect
 
                 val initialSpringJob: Job? = overscrollEffect?.let {
