@@ -39,11 +39,6 @@ private enum class CupertinoScrollSource {
     DRAG, FLING
 }
 
-private enum class CupertionOverscrollOffsetSpace {
-    LINEAR,
-    RUBBER_BANDED
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 class CupertinoOverscrollEffect : OverscrollEffect {
     /*
@@ -65,36 +60,14 @@ class CupertinoOverscrollEffect : OverscrollEffect {
      * Negative for bottom-right
      * Positive for top-left
      * Zero if within the scrollable range
-     * It will be mapped (if needed) to the actual visible offset using the rubber banding rule inside
+     * It will be mapped to the actual visible offset using the rubber banding rule inside
      * [Modifier.offset] within [effectModifier]
      */
     private var overscrollOffset: Offset by mutableStateOf(Offset.Zero)
 
-    /*
-     * Property that reflects the actual space in which current [overscrollOffset] is stored
-     * Changing it will automatically update value of [overscrollOffset]
-     * so animation, interaction and [Modifier.offset] behaviors are correctly aligned
-     */
-    private var overscrollOffsetSpace: CupertionOverscrollOffsetSpace =
-        CupertionOverscrollOffsetSpace.RUBBER_BANDED
-        set(value) {
-            if (field != value) {
-                overscrollOffset = when (value) {
-                    CupertionOverscrollOffsetSpace.RUBBER_BANDED -> overscrollOffset.inverseRubberBanded()
-                    CupertionOverscrollOffsetSpace.LINEAR -> overscrollOffset.rubberBanded()
-                }
-            }
-
-            field = value
-        }
-
     private val visibleOverscrollOffset: IntOffset
         get() =
-            when (overscrollOffsetSpace) {
-                CupertionOverscrollOffsetSpace.LINEAR -> overscrollOffset.round()
-                CupertionOverscrollOffsetSpace.RUBBER_BANDED -> overscrollOffset.rubberBanded()
-                    .round()
-            }
+            overscrollOffset.rubberBanded().round()
 
     /*
      * Density to be taken into consideration during computations; Cupertino formulas use
@@ -207,14 +180,6 @@ class CupertinoOverscrollEffect : OverscrollEffect {
         source: CupertinoScrollSource,
         performScroll: (Offset) -> Offset
     ): Offset {
-        // The reason for that change is that drag calculations are done in RUBBER_BANDED space, which is then consumed
-        // by offset modifier, while spring and fling animations(when fling-sourced scroll is dispatched and
-        // overscrollOffset is not zero) operate on linear space, which doesn't require any post-processing
-        overscrollOffsetSpace = when (source) {
-            CupertinoScrollSource.DRAG -> CupertionOverscrollOffsetSpace.RUBBER_BANDED
-            CupertinoScrollSource.FLING -> CupertionOverscrollOffsetSpace.LINEAR
-        }
-
         // Calculate how much delta is available after being consumed by scrolling inside overscroll area
         val deltaLeftForPerformScroll = availableDelta(delta, source)
 
@@ -276,8 +241,6 @@ class CupertinoOverscrollEffect : OverscrollEffect {
     }
 
     private suspend fun playSpringAnimation(unconsumedDelta: Offset, initialVelocity: Offset): Float {
-        overscrollOffsetSpace = CupertionOverscrollOffsetSpace.LINEAR
-
         val initialValue = overscrollOffset - unconsumedDelta
 
         // All input values are divided by density so all internal calculations are performed as if
@@ -299,11 +262,15 @@ class CupertinoOverscrollEffect : OverscrollEffect {
         return 0f
     }
 
-    private fun Offset.rubberBanded(): Offset =
-        remap(scrollSize, density, RUBBER_BAND_COEFFICIENT, ::rubberBandedValue)
+    private fun Offset.rubberBanded(): Offset {
+        val dpOffset = this / density
+        val dpSize = scrollSize / density
 
-    private fun Offset.inverseRubberBanded(): Offset =
-        remap(scrollSize, density, RUBBER_BAND_COEFFICIENT, ::inverseRubberBandedValue)
+        return Offset(
+            rubberBandedValue(dpOffset.x, dpSize.width, RUBBER_BAND_COEFFICIENT),
+            rubberBandedValue(dpOffset.y, dpSize.height, RUBBER_BAND_COEFFICIENT)
+        ) * density
+    }
 
     /*
      * Maps raw delta offset [value] on an axis within scroll container with [dimension]
@@ -311,32 +278,6 @@ class CupertinoOverscrollEffect : OverscrollEffect {
      */
     private fun rubberBandedValue(value: Float, dimension: Float, coefficient: Float) =
         sign(value) * (1f - (1f / (abs(value) * coefficient / dimension + 1f))) * dimension
-
-    /*
-     * Inverse of [rubberBandedValue] function
-     */
-    private fun inverseRubberBandedValue(value: Float, dimension: Float, coefficient: Float) =
-        if (value >= 0) {
-            (dimension / coefficient) * (1f / (1f - value / dimension) - 1f)
-        } else {
-            -((dimension / coefficient) * (1f / (1f - abs(value) / dimension) - 1f))
-        }
-
-    // Remap Offset on per-dimension basis for applying rubberBanding function or inverse of it
-    private fun Offset.remap(
-        size: Size,
-        density: Float,
-        coefficient: Float,
-        function: (value: Float, dimension: Float, coefficient: Float) -> Float
-    ): Offset {
-        val dpOffset = this / density
-        val dpSize = size / density
-
-        return Offset(
-            function(dpOffset.x, dpSize.width, coefficient),
-            function(dpOffset.y, dpSize.height, coefficient)
-        ) * density
-    }
 
     companion object Companion {
         private const val RUBBER_BAND_COEFFICIENT = 0.55f
