@@ -16,8 +16,17 @@
 
 package androidx.compose.foundation.gestures
 
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
+import androidx.compose.animation.core.AnimationState
+import androidx.compose.animation.core.DecayAnimationSpec
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateDecay
+import androidx.compose.animation.core.animateTo
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.rememberSplineBasedDecay
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.MutatePriority
+import androidx.compose.foundation.OverscrollEffect
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.Orientation.Horizontal
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberOverscrollEffect
@@ -61,6 +70,7 @@ import androidx.compose.ui.util.fastForEach
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -478,10 +488,9 @@ private class ScrollingLogic(
     val scrollableState: ScrollableState,
     val flingBehavior: FlingBehavior,
     val overscrollEffect: OverscrollEffect?
-): ScrollValueConverter {
+) {
     private val isNestedFlinging = mutableStateOf(false)
-
-    override fun Float.toOffset(): Offset = when {
+    fun Float.toOffset(): Offset = when {
         this == 0f -> Offset.Zero
         orientation == Horizontal -> Offset(this, 0f)
         else -> Offset(0f, this)
@@ -490,7 +499,7 @@ private class ScrollingLogic(
     fun Offset.singleAxisOffset(): Offset =
         if (orientation == Horizontal) copy(y = 0f) else copy(x = 0f)
 
-    override fun Offset.toFloat(): Float =
+    fun Offset.toFloat(): Float =
         if (orientation == Horizontal) this.x else this.y
 
     fun Velocity.toFloat(): Float =
@@ -688,6 +697,7 @@ internal class DefaultFlingBehavior(
     private val flingDecay: DecayAnimationSpec<Float>,
     private val motionDurationScale: MotionDurationScale = DefaultScrollMotionDurationScale
 ) : FlingBehavior {
+
     // For Testing
     var lastAnimationCycleCount = 0
 
@@ -698,65 +708,21 @@ internal class DefaultFlingBehavior(
             if (abs(initialVelocity) > 1f) {
                 var velocityLeft = initialVelocity
                 var lastValue = 0f
-
-                // If this value is not null by the end of decayAnimation, it means that not entire provided
-                // delta was consumed during last animation frame, so the animation needs to be cancelled
-                // and [flingIntoOverscrollEffect] animation should be played
-                var unconsumedDeltaAfterDecay: Float? = null
-
-                // There is an edge case when a user overscrolls and slightly flings in direction of content
-                // but inertia is not enough to cover overscroll offset
-                // In that scenario, don't do decay animation and simply replace it with FlingIntoOverscrollEffect animation immediately
-                var needsDecayAnimation = true
-
-                if (flingIntoOverscrollEffect != null) {
-                    val targetValue = flingDecay.calculateTargetValue(0f, initialVelocity)
-
-                    if (flingIntoOverscrollEffect.isFlingInertiaWeak(targetValue)) {
-                        needsDecayAnimation = false
-                        unconsumedDeltaAfterDecay = 0f
-                    }
+                AnimationState(
+                    initialValue = 0f,
+                    initialVelocity = initialVelocity,
+                ).animateDecay(flingDecay) {
+                    val delta = value - lastValue
+                    val consumed = scrollBy(delta)
+                    lastValue = value
+                    velocityLeft = this.velocity
+                    // avoid rounding errors and stop if anything is unconsumed
+                    if (abs(delta - consumed) > 0.5f) this.cancelAnimation()
+                    lastAnimationCycleCount++
                 }
-
-                if (needsDecayAnimation) {
-                    AnimationState(
-                        initialValue = 0f,
-                        initialVelocity = initialVelocity,
-                    ).animateDecay(flingDecay) {
-                        val delta = value - lastValue
-                        val consumed = scrollBy(delta)
-                        lastValue = value
-                        velocityLeft = this.velocity
-
-                        val unconsumedDelta = delta - consumed
-
-                        // If some delta is not consumed, it means that fling hits into content bounds.
-                        // Unconsumed delta and current velocity will be initial values for
-                        // [flingIntoOverscrollEffect] animation to play if any, after we cancel decay animation
-                        if (abs(unconsumedDelta) > 0.5f) {
-                            unconsumedDeltaAfterDecay = unconsumedDelta
-                            this.cancelAnimation()
-                        }
-                    }
-                }
-
-                val immutableUnconsumedDeltaAfterDecay = unconsumedDeltaAfterDecay
-
-                if (immutableUnconsumedDeltaAfterDecay != null && flingIntoOverscrollEffect != null) {
-                    flingIntoOverscrollEffect.performAnimation(
-                        immutableUnconsumedDeltaAfterDecay,
-                        velocityLeft
-                    )
-
-                    0f
-                } else {
-                    velocityLeft
-                }
+                velocityLeft
             } else {
-                flingIntoOverscrollEffect?.let {
-                    it.performAnimation(0f, 0f)
-                    0f
-                } ?: initialVelocity
+                initialVelocity
             }
         }
     }
