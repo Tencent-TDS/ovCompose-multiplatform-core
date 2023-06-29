@@ -40,7 +40,13 @@ private enum class CupertinoScrollSource {
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-class CupertinoOverscrollEffect : OverscrollEffect {
+class CupertinoOverscrollEffect(
+    /*
+     * Density to be taken into consideration during computations; Cupertino formulas use
+     * DPs, and scroll machinery uses raw values.
+     */
+    private val density: Float
+) : OverscrollEffect {
     /*
      * Offset to Float converter to do orientation-dependant calculations using the raw Float data
      * coming from bound [CupertinoFlingBehavior]. If this value is null, it wasn't bound and there would be
@@ -69,12 +75,6 @@ class CupertinoOverscrollEffect : OverscrollEffect {
         get() =
             overscrollOffset.rubberBanded().round()
 
-    /*
-     * Density to be taken into consideration during computations; Cupertino formulas use
-     * DPs, and scroll machinery uses raw values.
-     */
-    private var density: Float = 1f
-
     override val isInProgress: Boolean
         get() =
             // If visible overscroll offset has at least one pixel
@@ -86,8 +86,6 @@ class CupertinoOverscrollEffect : OverscrollEffect {
             scrollSize = it.size.toSize()
         }
         .offset {
-            this@CupertinoOverscrollEffect.density = density
-
             visibleOverscrollOffset
         }
 
