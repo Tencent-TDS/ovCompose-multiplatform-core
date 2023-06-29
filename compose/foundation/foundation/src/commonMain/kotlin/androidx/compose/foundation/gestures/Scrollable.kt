@@ -23,10 +23,7 @@ import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.rememberSplineBasedDecay
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.MutatePriority
-import androidx.compose.foundation.OverscrollEffect
-import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation.Horizontal
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberOverscrollEffect
@@ -490,6 +487,22 @@ private class ScrollingLogic(
     val overscrollEffect: OverscrollEffect?
 ) {
     private val isNestedFlinging = mutableStateOf(false)
+
+    init {
+        // Special case for Cupertino fling and overscroll being tightly coupled
+
+        if (flingBehavior is CupertinoFlingBehavior && overscrollEffect is CupertinoOverscrollEffect) {
+            flingBehavior.overscrollEffect = overscrollEffect
+
+            overscrollEffect.scrollValueConverter = object : ScrollValueConverter {
+                override fun convertFloatToOffset(value: Float): Offset =
+                    value.toOffset()
+
+                override fun convertOffsetToFloat(value: Offset): Float =
+                    value.toFloat()
+            }
+        }
+    }
     fun Float.toOffset(): Offset = when {
         this == 0f -> Offset.Zero
         orientation == Horizontal -> Offset(this, 0f)
