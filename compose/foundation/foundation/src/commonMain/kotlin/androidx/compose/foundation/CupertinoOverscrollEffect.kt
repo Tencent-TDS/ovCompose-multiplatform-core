@@ -79,7 +79,7 @@ class CupertinoOverscrollEffect(
 
     override val isInProgress: Boolean
         get() =
-            // If visible overscroll offset has at least one pixel
+        // If visible overscroll offset has at least one pixel
             // this effect is considered to be in progress
             visibleOverscrollOffset.toOffset().getDistance() > 0.5f
 
@@ -228,7 +228,10 @@ class CupertinoOverscrollEffect(
         }
     }
 
-    private suspend fun playSpringAnimation(unconsumedDelta: Offset, initialVelocity: Offset): Float {
+    private suspend fun playSpringAnimation(
+        unconsumedDelta: Offset,
+        initialVelocity: Offset
+    ): Float {
         val initialValue = overscrollOffset - unconsumedDelta
 
         // All input values are divided by density so all internal calculations are performed as if
