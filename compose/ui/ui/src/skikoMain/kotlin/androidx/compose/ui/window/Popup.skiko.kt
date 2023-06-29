@@ -158,11 +158,10 @@ actual fun Popup(
     properties: PopupProperties,
     content: @Composable () -> Unit
 ) {
-    // TODO: handle properties.dismissOnClickOutside
     PopupLayout(
         popupPositionProvider,
         properties.focusable,
-        onDismissRequest,
+        if (properties.dismissOnClickOutside) onDismissRequest else null,
         onKeyEvent = {
             if (properties.dismissOnBackPress &&
                 it.type == KeyEventType.KeyDown && it.key == Key.Escape &&
