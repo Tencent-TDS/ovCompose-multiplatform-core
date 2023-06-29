@@ -244,7 +244,7 @@ class CupertinoOverscrollEffect : OverscrollEffect {
         val initialValue = overscrollOffset - unconsumedDelta
 
         // All input values are divided by density so all internal calculations are performed as if
-        // they operated on DPs. Callback value is when scaled back to raw pixels.
+        // they operated on DPs. Callback value is then scaled back to raw pixels.
         AnimationState(
             Offset.VectorConverter,
             initialValue / density,
