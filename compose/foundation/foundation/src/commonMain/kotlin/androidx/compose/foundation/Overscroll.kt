@@ -122,17 +122,6 @@ interface OverscrollEffect {
      * A [Modifier] that will draw this OverscrollEffect
      */
     val effectModifier: Modifier
-
-    /**
-     * Represents an optional overscroll effect that can be applied when fling inertial movement crosses the overscroll area.
-     *
-     * @param scrollValueConverter an instance of [ScrollValueConverter] class which is used to convert the raw scroll offset
-     * into the overscroll effect offset.
-     * @return a nullable instance of the [FlingIntoOverscrollEffect] class, representing the overscroll effect to be used.
-     * If null, no effect will be applied.
-     */
-    fun flingIntoOverscrollEffect(scrollValueConverter: ScrollValueConverter): FlingIntoOverscrollEffect? =
-        null
 }
 
 /**
