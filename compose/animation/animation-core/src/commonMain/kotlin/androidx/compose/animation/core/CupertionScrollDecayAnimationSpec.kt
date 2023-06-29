@@ -43,7 +43,7 @@ class CupertinoScrollDecayAnimationSpec(
         initialValue: Float,
         initialVelocity: Float
     ): Float {
-        val playTimeSeconds = convertNanosToSeconds(playTimeNanos)
+        val playTimeSeconds = convertNanosToSeconds(playTimeNanos).toFloat()
         val initialVelocityOverTimeIntegral =
             (decelerationRate.pow(1000f * playTimeSeconds) - 1f) / coefficient * initialVelocity
         return initialValue + initialVelocityOverTimeIntegral
@@ -66,7 +66,7 @@ class CupertinoScrollDecayAnimationSpec(
         initialValue: Float,
         initialVelocity: Float
     ): Float {
-        val playTimeSeconds = convertNanosToSeconds(playTimeNanos)
+        val playTimeSeconds = convertNanosToSeconds(playTimeNanos).toFloat()
 
         return initialVelocity * decelerationRate.pow(1000f * playTimeSeconds)
     }

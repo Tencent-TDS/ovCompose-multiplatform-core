@@ -96,8 +96,8 @@ const val SecondsToNanos: Long = 1_000_000_000L
 fun convertSecondsToNanos(seconds: Float): Long =
     (seconds.toDouble() * SecondsToNanos).roundToLong()
 
-fun convertNanosToSeconds(nanos: Long): Float =
-    (nanos.toDouble() / SecondsToNanos).toFloat()
+fun convertNanosToSeconds(nanos: Long): Double =
+    nanos.toDouble() / SecondsToNanos
 
 /**
  * Returns the velocity of the animation at the given play time.
