@@ -16,8 +16,6 @@
 
 package androidx.compose.foundation.gestures
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 
