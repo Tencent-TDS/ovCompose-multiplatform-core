@@ -456,6 +456,10 @@ private fun Modifier.mouseWheelInput(
 
 private inline val PointerEvent.isConsumed: Boolean get() = changes.fastAny { it.isConsumed }
 private inline fun PointerEvent.consume() = changes.fastForEach { it.consume() }
+
+/*
+ * Returns true, if absolute value is insignificant for animation purposes, false otherwise.
+ */
 private inline fun Float.isAboutZero(): Boolean = abs(this) < 0.5f
 
 private suspend fun AwaitPointerEventScope.awaitScrollEvent(): PointerEvent {
@@ -582,8 +586,6 @@ private class ScrollingLogic(
     }
 
     suspend fun doFlingAnimation(available: Velocity): Velocity {
-        val flingIntoOverscrollEffect = overscrollEffect?.flingIntoOverscrollEffect(this)
-
         var result: Velocity = available
         scrollableState.scroll {
             val outerScopeScroll: (Offset) -> Offset = { delta ->
@@ -597,10 +599,7 @@ private class ScrollingLogic(
             with(scope) {
                 with(flingBehavior) {
                     result = result.update(
-                        performFling(
-                            available.toFloat().reverseIfNeeded(),
-                            flingIntoOverscrollEffect
-                        ).reverseIfNeeded()
+                        performFling(available.toFloat().reverseIfNeeded()).reverseIfNeeded()
                     )
                 }
             }
@@ -692,7 +691,7 @@ internal class DefaultFlingBehavior(
     // For Testing
     var lastAnimationCycleCount = 0
 
-    override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
+    override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
         lastAnimationCycleCount = 0
         // come up with the better threshold, but we need it since spline curve gives us NaNs
         return withContext(motionDurationScale) {
