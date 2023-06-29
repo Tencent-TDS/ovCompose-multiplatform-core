@@ -252,7 +252,7 @@ class CupertinoOverscrollEffect : OverscrollEffect {
         ).animateTo(
             targetValue = Offset.Zero,
             animationSpec = spring(
-                stiffness = 200f,
+                stiffness = 100f,
                 visibilityThreshold = Offset(0.5f, 0.5f) / density
             )
         ) {
