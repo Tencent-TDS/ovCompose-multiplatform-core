@@ -685,7 +685,7 @@ private class PagerWrapperFlingBehavior(
     val originalFlingBehavior: SnapFlingBehavior,
     val pagerState: PagerState
 ) : FlingBehavior {
-    override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
+    override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
         return with(originalFlingBehavior) {
             performFling(initialVelocity) { remainingScrollOffset ->
                 pagerState.snapRemainingScrollOffset = remainingScrollOffset
