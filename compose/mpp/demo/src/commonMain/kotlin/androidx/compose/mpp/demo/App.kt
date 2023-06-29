@@ -121,7 +121,7 @@ class App(
         Scaffold(
             topBar = {
                 /*
-                This is recommend approach of applying multiplatform window insets to Material2 Scaffold with using top app bar.
+                This is recommended approach of applying multiplatform window insets to Material2 Scaffold with using top app bar.
                 By that way, it is possible to fill area above top app bar with its background - as it works out of box in android development or with Material3 Scaffold
                 */
                 TopAppBar(
