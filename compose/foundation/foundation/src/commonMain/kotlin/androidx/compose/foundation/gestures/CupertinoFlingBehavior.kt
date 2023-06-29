@@ -40,13 +40,15 @@ internal class CupertinoFlingBehavior(
 
                 // If this value is not null by the end of decayAnimation, it means that not entire provided
                 // delta was consumed during last animation frame, so the animation needs to be cancelled
-                // and [flingIntoOverscrollEffect] animation should be played
+                // and spring animation should be played
                 var unconsumedDeltaAfterDecay: Float? = null
 
                 // There is an edge case when a user overscrolls and slightly flings in direction of content
                 // but inertia is not enough to cover overscroll offset
-                // In that scenario, don't do decay animation and simply replace it with FlingIntoOverscrollEffect animation immediately
+                // In that scenario, don't do decay animation and simply replace it with spring animation immediately
                 var needsDecayAnimation = true
+
+                val overscrollEffect = overscrollEffect
 
                 if (overscrollEffect != null) {
                     val targetValue = animationSpec.getTargetValue(0f, initialVelocity)
@@ -71,7 +73,7 @@ internal class CupertinoFlingBehavior(
 
                         // If some delta is not consumed, it means that fling hits into content bounds.
                         // Unconsumed delta and current velocity will be initial values for
-                        // [flingIntoOverscrollEffect] animation to play if any, after we cancel decay animation
+                        // spring animation to play if any, after we cancel decay animation
                         if (abs(unconsumedDelta) > threshold) {
                             unconsumedDeltaAfterDecay = unconsumedDelta
                             this.cancelAnimation()
@@ -81,8 +83,8 @@ internal class CupertinoFlingBehavior(
 
                 val immutableUnconsumedDeltaAfterDecay = unconsumedDeltaAfterDecay
 
-                if (immutableUnconsumedDeltaAfterDecay != null && flingIntoOverscrollEffect != null) {
-                    flingIntoOverscrollEffect.performAnimation(
+                if (immutableUnconsumedDeltaAfterDecay != null && overscrollEffect != null) {
+                    overscrollEffect.playSpringAnimation(
                         immutableUnconsumedDeltaAfterDecay,
                         velocityLeft
                     )
@@ -92,61 +94,11 @@ internal class CupertinoFlingBehavior(
                     velocityLeft
                 }
             } else {
-                flingIntoOverscrollEffect?.let {
-                    it.performAnimation(0f, 0f)
+                overscrollEffect?.let {
+                    it.playSpringAnimation(0f, 0f)
                     0f
                 } ?: initialVelocity
             }
         }
-    }
-}
-
-/*
- * Remark: all calculations inside are linear relative to initialValue and initialVelocity
- * so there is no need to include density
- */
-private class CupertinoScrollDecayAnimationSpec(
-    threshold: Float,
-    private val decelerationRate: Float = 0.998f,
-) : FloatDecayAnimationSpec {
-
-    private val coefficient: Float = 1000f * ln(decelerationRate)
-
-    override val absVelocityThreshold: Float = threshold
-
-    override fun getTargetValue(initialValue: Float, initialVelocity: Float): Float =
-        initialValue - initialVelocity / coefficient
-
-    override fun getValueFromNanos(
-        playTimeNanos: Long,
-        initialValue: Float,
-        initialVelocity: Float
-    ): Float {
-        val playTimeSeconds = convertNanosToSeconds(playTimeNanos)
-        val initialVelocityOverTimeIntegral =
-            (decelerationRate.pow(1000f * playTimeSeconds) - 1f) / coefficient * initialVelocity
-        return initialValue + initialVelocityOverTimeIntegral
-    }
-
-    override fun getDurationNanos(initialValue: Float, initialVelocity: Float): Long {
-        val absVelocity = abs(initialVelocity)
-
-        if (absVelocity < absVelocityThreshold) {
-            return 0
-        }
-
-        val seconds = ln(-coefficient * absVelocityThreshold / absVelocity) / coefficient
-
-        return convertSecondsToNanos(seconds)
-    }
-
-    override fun getVelocityFromNanos(
-        playTimeNanos: Long,
-        initialValue: Float,
-        initialVelocity: Float
-    ): Float {
-        val playTimeSeconds = convertNanosToSeconds(playTimeNanos)
-
-        return initialVelocity * decelerationRate.pow(1000f * playTimeSeconds)
     }
 }

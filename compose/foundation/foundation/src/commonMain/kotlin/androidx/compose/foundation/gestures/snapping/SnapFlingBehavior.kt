@@ -93,7 +93,7 @@ class SnapFlingBehavior(
     private val velocityThreshold = with(density) { shortSnapVelocityThreshold.toPx() }
     internal var motionScaleDuration = DefaultScrollMotionDurationScale
 
-    override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
+    override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
         return performFling(initialVelocity) {}
     }
 
