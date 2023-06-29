@@ -25,7 +25,7 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.IntOffset
 
 @Immutable
-actual class PopupProperties actual constructor(
+actual class PopupProperties @ExperimentalComposeUiApi actual constructor(
     actual val focusable: Boolean,
     actual val dismissOnBackPress: Boolean,
     actual val dismissOnClickOutside: Boolean

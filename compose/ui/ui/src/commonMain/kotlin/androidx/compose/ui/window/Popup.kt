@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -30,7 +31,8 @@ import androidx.compose.ui.unit.LayoutDirection
  *
  * @property focusable Whether the popup is focusable. When true, the popup will receive IME
  * events and key presses, such as when the back button is pressed.
- * @property dismissOnBackPress Whether the popup can be dismissed by pressing the back button.
+ * @property dismissOnBackPress Whether the popup can be dismissed by pressing the back button
+ * on Android or escape key on desktop.
  * If true, pressing the back button will call onDismissRequest. Note that [focusable] must be
  * set to true in order to receive key events such as the back button - if the popup is not
  * focusable then this property does nothing.
@@ -38,7 +40,7 @@ import androidx.compose.ui.unit.LayoutDirection
  * popup's bounds. If true, clicking outside the popup will call onDismissRequest.
  */
 @Immutable
-expect class PopupProperties(
+expect class PopupProperties @ExperimentalComposeUiApi constructor(
     focusable: Boolean = false,
     dismissOnBackPress: Boolean = true,
     dismissOnClickOutside: Boolean = true
@@ -143,6 +145,7 @@ internal class AlignmentOffsetPositionProvider(
  * @param properties [PopupProperties] for further customization of this popup's behavior.
  * @param content The content to be displayed inside the popup.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Popup(
     alignment: Alignment = Alignment.TopStart,
@@ -178,6 +181,7 @@ fun Popup(
  * @param properties [PopupProperties] for further customization of this popup's behavior.
  * @param content The content to be displayed inside the popup.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 expect fun Popup(
     popupPositionProvider: PopupPositionProvider,
