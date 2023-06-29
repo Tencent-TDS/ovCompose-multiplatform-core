@@ -17,6 +17,7 @@
 package androidx.compose.foundation.gestures
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.CupertinoOverscrollEffect
 import androidx.compose.ui.MotionDurationScale
 import kotlin.math.abs
 import kotlin.math.ln
@@ -27,12 +28,11 @@ internal class CupertinoFlingBehavior(
     private val motionDurationScale: MotionDurationScale = DefaultScrollMotionDurationScale,
     val threshold: Float = 0.5f
 ) : FlingBehavior {
+    var overscrollEffect: CupertinoOverscrollEffect? = null
+
     private val animationSpec = CupertinoScrollDecayAnimationSpec(threshold)
 
-    override suspend fun ScrollScope.performFling(initialVelocity: Float): Float =
-        throw UnsupportedOperationException()
-
-    override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
+    override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
         return withContext(motionDurationScale) {
             if (abs(initialVelocity) > 1f) {
                 var velocityLeft = initialVelocity
@@ -48,10 +48,10 @@ internal class CupertinoFlingBehavior(
                 // In that scenario, don't do decay animation and simply replace it with FlingIntoOverscrollEffect animation immediately
                 var needsDecayAnimation = true
 
-                if (flingIntoOverscrollEffect != null) {
+                if (overscrollEffect != null) {
                     val targetValue = animationSpec.getTargetValue(0f, initialVelocity)
 
-                    if (flingIntoOverscrollEffect.isFlingInertiaWeak(targetValue)) {
+                    if (overscrollEffect.isFlingInertiaWeak(targetValue)) {
                         needsDecayAnimation = false
                         unconsumedDeltaAfterDecay = 0f
                     }

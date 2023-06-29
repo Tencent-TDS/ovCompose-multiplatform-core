@@ -20,7 +20,6 @@ import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.gestures.FlingIntoOverscrollEffect
 import androidx.compose.foundation.gestures.ScrollValueConverter
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Stable
@@ -47,6 +46,8 @@ enum class CupertionOverscrollOffsetSpace {
 
 @OptIn(ExperimentalFoundationApi::class)
 class CupertinoOverscrollEffect : OverscrollEffect {
+    var scrollValueConverter: ScrollValueConverter? = null
+
     /*
      * Size of container is taking into consideration when computing rubber banding
      */
@@ -110,26 +111,26 @@ class CupertinoOverscrollEffect : OverscrollEffect {
             visibleOverscrollOffset
         }
 
-    override fun flingIntoOverscrollEffect(scrollValueConverter: ScrollValueConverter): FlingIntoOverscrollEffect =
-        object : FlingIntoOverscrollEffect {
-            override fun isFlingInertiaWeak(targetValue: Float): Boolean =
-                scrollValueConverter.run {
-                    val currentOverscroll = visibleOverscrollOffset.toOffset().toFloat()
-
-                    // Returns false if deltas consumed from fling animation will not result in overscroll being zero
-                    // true otherwise
-                    return@run (targetValue > 0f && currentOverscroll > 0f && targetValue < currentOverscroll) ||
-                        (targetValue < 0f && currentOverscroll < 0f && targetValue > currentOverscroll)
-                }
-
-            override suspend fun performAnimation(
-                initialValue: Float,
-                initialVelocity: Float
-            ): Float =
-                scrollValueConverter.run {
-                    playSpringAnimation(initialValue.toOffset(), initialVelocity.toOffset())
-                }
-        }
+//    fun flingIntoOverscrollEffect(scrollValueConverter: ScrollValueConverter): FlingIntoOverscrollEffect =
+//        object : FlingIntoOverscrollEffect {
+//            override fun isFlingInertiaWeak(targetValue: Float): Boolean =
+//                scrollValueConverter.run {
+//                    val currentOverscroll = visibleOverscrollOffset.toOffset().toFloat()
+//
+//                    // Returns false if deltas consumed from fling animation will not result in overscroll being zero
+//                    // true otherwise
+//                    return@run (targetValue > 0f && currentOverscroll > 0f && targetValue < currentOverscroll) ||
+//                        (targetValue < 0f && currentOverscroll < 0f && targetValue > currentOverscroll)
+//                }
+//
+//            override suspend fun performAnimation(
+//                initialValue: Float,
+//                initialVelocity: Float
+//            ): Float =
+//                scrollValueConverter.run {
+//                    playSpringAnimation(initialValue.toOffset(), initialVelocity.toOffset())
+//                }
+//        }
 
     private fun NestedScrollSource.toCupertinoScrollSource(): CupertinoScrollSource? =
         when (this) {

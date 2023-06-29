@@ -16,8 +16,6 @@
 
 package androidx.compose.foundation
 
-import androidx.compose.foundation.gestures.FlingIntoOverscrollEffect
-import androidx.compose.foundation.gestures.ScrollValueConverter
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
