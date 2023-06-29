@@ -722,7 +722,6 @@ class VectorizedTweenSpec<V : AnimationVector>(
     }
 }
 
-
 /**
  * A convenient implementation of [VectorizedFloatAnimationSpec] that turns a [FloatAnimationSpec]
  * into a multi-dimensional [VectorizedFloatAnimationSpec], by using the same [FloatAnimationSpec]
