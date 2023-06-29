@@ -38,7 +38,7 @@ internal class ScalingLazyColumnSnapFlingBehavior(
     val decay: DecayAnimationSpec<Float> = exponentialDecay()
 ) : FlingBehavior {
 
-    override suspend fun ScrollScope.performFling(initialVelocity: Float, flingIntoOverscrollEffect: FlingIntoOverscrollEffect?): Float {
+    override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
         val animationState = AnimationState(
             initialValue = 0f,
             initialVelocity = initialVelocity,
