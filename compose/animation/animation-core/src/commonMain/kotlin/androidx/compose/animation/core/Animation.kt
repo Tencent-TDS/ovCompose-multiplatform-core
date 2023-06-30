@@ -93,10 +93,10 @@ internal val Animation<*, *>.durationMillis: Long
 internal const val MillisToNanos: Long = 1_000_000L
 internal const val SecondsToNanos: Long = 1_000_000_000L
 
-fun convertSecondsToNanos(seconds: Float): Long =
+internal fun convertSecondsToNanos(seconds: Float): Long =
     (seconds.toDouble() * SecondsToNanos).roundToLong()
 
-fun convertNanosToSeconds(nanos: Long): Double =
+internal fun convertNanosToSeconds(nanos: Long): Double =
     nanos.toDouble() / SecondsToNanos
 
 /**
