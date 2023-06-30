@@ -19,13 +19,15 @@ package androidx.compose.foundation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal actual fun rememberOverscrollEffect(): OverscrollEffect {
     val density = LocalDensity.current.density
+    val layoutDirection = LocalLayoutDirection.current
 
-    return remember(density) {
-        CupertinoOverscrollEffect(density)
+    return remember(density, layoutDirection) {
+        CupertinoOverscrollEffect(density, layoutDirection)
     }
 }

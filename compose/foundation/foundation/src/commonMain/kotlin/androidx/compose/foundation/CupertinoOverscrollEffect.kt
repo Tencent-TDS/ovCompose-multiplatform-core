@@ -28,6 +28,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.*
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
@@ -44,12 +45,19 @@ class CupertinoOverscrollEffect(
      * Density to be taken into consideration during computations; Cupertino formulas use
      * DPs, and scroll machinery uses raw values.
      */
-    private val density: Float
+    private val density: Float,
+    layoutDirection: LayoutDirection
 ) : OverscrollEffect {
     /*
      * Offset to Float converter to do orientation-dependant calculations using the raw Float data
      */
     internal var scrollValueConverter: ScrollValueConverter? = null
+
+    private val reverseHorizontal =
+        when (layoutDirection) {
+            LayoutDirection.Ltr -> false
+            LayoutDirection.Rtl -> true
+        }
 
 
     /*
@@ -70,7 +78,7 @@ class CupertinoOverscrollEffect(
     private var lastFlingUncosumedDelta: Offset = Offset.Zero
     private val visibleOverscrollOffset: IntOffset
         get() =
-            overscrollOffset.rubberBanded().round()
+            overscrollOffset.reverseHorizontalIfNeeded().rubberBanded().round()
 
     override val isInProgress: Boolean
         get() =
@@ -302,7 +310,17 @@ class CupertinoOverscrollEffect(
         return currentVelocity
     }
 
+    private fun Offset.reverseHorizontalIfNeeded(): Offset =
+        Offset(
+            if (reverseHorizontal) -x else x,
+            y
+        )
+
     private fun Offset.rubberBanded(): Offset {
+        if (scrollSize.width == 0f || scrollSize.height == 0f) {
+            return Offset.Zero
+        }
+
         val dpOffset = this / density
         val dpSize = scrollSize / density
 
