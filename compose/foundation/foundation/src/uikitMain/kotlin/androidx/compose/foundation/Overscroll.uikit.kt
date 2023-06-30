@@ -21,13 +21,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 
+private var isOptOut = false
+
+/**
+ * Opt out of the Cupertino overscroll behavior (rubber banding and spring effect).
+ *
+ * This method sets the `isOptOut` flag to true, indicating that the Cupertino overscroll behavior should be disabled.
+ * By default, the Cupertino overscroll behavior is enabled.
+ *
+ * This method should be called before any @Composable function using this effect is executing.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+fun optOutOfCupertinoOverscroll() {
+    isOptOut = true
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal actual fun rememberOverscrollEffect(): OverscrollEffect {
-    val density = LocalDensity.current.density
-    val layoutDirection = LocalLayoutDirection.current
+internal actual fun rememberOverscrollEffect(): OverscrollEffect =
+    if (isOptOut) {
+        NoOpOverscrollEffect
+    } else {
+        val density = LocalDensity.current.density
+        val layoutDirection = LocalLayoutDirection.current
 
-    return remember(density, layoutDirection) {
-        CupertinoOverscrollEffect(density, layoutDirection)
+        remember(density, layoutDirection) {
+            CupertinoOverscrollEffect(density, layoutDirection)
+        }
     }
-}
