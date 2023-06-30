@@ -48,12 +48,9 @@ class CupertinoOverscrollEffect(
 ) : OverscrollEffect {
     /*
      * Offset to Float converter to do orientation-dependant calculations using the raw Float data
-     * coming from bound [CupertinoFlingBehavior]. If this value is null, it wasn't bound and there would be
-     * no overscroll effect present (because it relies on fling calls to maintain its correct state)
-     * TODO: Current Compose API semantics are too weak for rich interaction between FlingBehavior and
-     *  OverscrollEffect, like one used in iOS. Needs a proper proposal
      */
     internal var scrollValueConverter: ScrollValueConverter? = null
+
 
     /*
      * Size of container is taking into consideration when computing rubber banding
@@ -70,6 +67,7 @@ class CupertinoOverscrollEffect(
      */
     private var overscrollOffset: Offset by mutableStateOf(Offset.Zero)
 
+    private var lastFlingUncosumedDelta: Offset = Offset.Zero
     private val visibleOverscrollOffset: IntOffset
         get() =
             overscrollOffset.rubberBanded().round()
@@ -88,17 +86,17 @@ class CupertinoOverscrollEffect(
             visibleOverscrollOffset
         }
 
-    internal suspend fun playInitialSpringIfNeeded(velocity: Float): Float {
-        val scrollValueConverter = scrollValueConverter ?: return velocity
-
-        val currentOverscroll = scrollValueConverter.convertOffsetToFloat(overscrollOffset)
-
-        return if ((velocity > 0f && currentOverscroll > 0f) || (velocity < 0f && currentOverscroll < 0f)) {
-            playSpringAnimation(0f, velocity, true)
-        } else {
-            velocity
-        }
-    }
+//    internal suspend fun playInitialSpringIfNeeded(velocity: Float): Float {
+//        val scrollValueConverter = scrollValueConverter ?: return velocity
+//
+//        val currentOverscroll = scrollValueConverter.convertOffsetToFloat(overscrollOffset)
+//
+//        return if ((velocity > 0f && currentOverscroll > 0f) || (velocity < 0f && currentOverscroll < 0f)) {
+//            playSpringAnimation(0f, velocity, true)
+//        } else {
+//            velocity
+//        }
+//    }
 
     private fun NestedScrollSource.toCupertinoScrollSource(): CupertinoScrollSource? =
         when (this) {
@@ -182,12 +180,16 @@ class CupertinoOverscrollEffect(
                 // overscroll->content->overscroll or content->overscroll scenario within single frame
                 overscrollOffset += unconsumedDelta
 
+                lastFlingUncosumedDelta = Offset.Zero
+
                 delta - unconsumedDelta
             }
 
             CupertinoScrollSource.FLING -> {
                 // If unconsumedDelta is not Zero, [CupertinoFlingEffect] will cancel fling and
                 // start spring animation instead
+                lastFlingUncosumedDelta = unconsumedDelta
+
                 delta - unconsumedDelta
             }
         }
@@ -197,51 +199,67 @@ class CupertinoOverscrollEffect(
         delta: Offset,
         source: NestedScrollSource,
         performScroll: (Offset) -> Offset
-    ): Offset {
-        val cupertinoScrollSource = source.toCupertinoScrollSource()
-        val scrollValueConverter = scrollValueConverter
-
-        return if (scrollValueConverter != null && cupertinoScrollSource != null) {
-            applyToScroll(delta, cupertinoScrollSource, performScroll)
-        } else {
-            performScroll(delta)
-        }
-    }
+    ): Offset =
+        source.toCupertinoScrollSource()?.let {
+            applyToScroll(delta, it, performScroll)
+        } ?: performScroll(delta)
 
     override suspend fun applyToFling(
         velocity: Velocity,
         performFling: suspend (Velocity) -> Velocity
     ) {
-        performFling(velocity)
-    }
+        scrollValueConverter?.let {
 
-    suspend fun playSpringAnimation(unconsumedDelta: Float, initialVelocity: Float, flingFromOverscroll: Boolean): Float {
-        return scrollValueConverter?.let {
-            val velocity = playSpringAnimation(
-                it.convertFloatToOffset(unconsumedDelta),
-                it.convertFloatToOffset(initialVelocity),
-                flingFromOverscroll
+            val availableFlingVelocity = playInitialSpringAnimationIfNeeded(velocity, it)
+
+            val velocityConsumedByFling = performFling(availableFlingVelocity)
+            val postFlingVelocity = availableFlingVelocity - velocityConsumedByFling
+
+            println("$velocity $availableFlingVelocity $postFlingVelocity")
+
+            playSpringAnimation(
+                it.convertOffsetToFloat(lastFlingUncosumedDelta),
+                it.convertOffsetToFloat(postFlingVelocity.toOffset()),
+                false,
+                it
             )
 
-            -it.convertOffsetToFloat(velocity)
-        } ?: initialVelocity
+        } ?: performFling(velocity)
+    }
+
+    private fun Velocity.toOffset(): Offset =
+        Offset(x, y)
+
+    private fun Offset.toVelocity(): Velocity =
+        Velocity(x, y)
+
+    private suspend fun playInitialSpringAnimationIfNeeded(initialVelocity: Velocity, scrollValueConverter: ScrollValueConverter): Velocity {
+        val velocity = scrollValueConverter.convertOffsetToFloat(initialVelocity.toOffset())
+        val overscroll = scrollValueConverter.convertOffsetToFloat(overscrollOffset)
+
+        return if ((velocity < 0f && overscroll > 0f) || (velocity > 0f && overscroll < 0f)) {
+            scrollValueConverter.convertFloatToOffset(
+                playSpringAnimation(0f, velocity, true, scrollValueConverter)
+            ).toVelocity()
+        } else {
+            initialVelocity
+        }
     }
 
     private suspend fun playSpringAnimation(
-        unconsumedDelta: Offset,
-        initialVelocity: Offset,
-        flingFromOverscroll: Boolean
-    ): Offset {
-        val scrollValueConverter = scrollValueConverter ?: return initialVelocity
-
-        val initialValue = overscrollOffset - unconsumedDelta
+        unconsumedDelta: Float,
+        initialVelocity: Float,
+        flingFromOverscroll: Boolean,
+        scrollValueConverter: ScrollValueConverter
+    ): Float {
+        val initialValue = scrollValueConverter.convertOffsetToFloat(overscrollOffset) + unconsumedDelta
         var currentVelocity = initialVelocity
 
-        val initialSign = sign(scrollValueConverter.convertOffsetToFloat(initialValue))
+        val initialSign = sign(initialValue)
 
         // All input values are divided by density so all internal calculations are performed as if
         // they operated on DPs. Callback value is then scaled back to raw pixels.
-        val visibilityThreshold = Offset(0.5f, 0.5f) / density
+        val visibilityThreshold = 0.5f / density
 
         val spec = if (flingFromOverscroll) {
             spring(
@@ -257,30 +275,30 @@ class CupertinoOverscrollEffect(
         }
 
         AnimationState(
-            Offset.VectorConverter,
+            Float.VectorConverter,
             initialValue / density,
-            -initialVelocity / density
+            initialVelocity / density
         ).animateTo(
-            targetValue = Offset.Zero,
+            targetValue = 0f,
             animationSpec = spec
         ) {
-            overscrollOffset = value * density
+            overscrollOffset = scrollValueConverter.convertFloatToOffset(value * density)
             currentVelocity = velocity * density
 
             // If it was fling from overscroll, cancel animation and return velocity
-            if (flingFromOverscroll && initialSign != 0f && sign(scrollValueConverter.convertOffsetToFloat(overscrollOffset)) != initialSign) {
+            if (flingFromOverscroll && initialSign != 0f && sign(value) != initialSign) {
                 this.cancelAnimation()
             }
         }
 
         if (coroutineContext.isActive) {
-            // The spring is critically damped, so in case of spring-fling-spring sequence
-            // even slightly offset spring when velocity of opposite sign will end up with no animation
+            // The spring is critically damped, so in case spring-fling-spring sequence
+            // is slightly offset and velocity is of the opposite sign, will end up with no animation
             overscrollOffset = Offset.Zero
         }
 
         if (!flingFromOverscroll) {
-            currentVelocity = Offset.Zero
+            currentVelocity = 0f
         }
 
         return currentVelocity
