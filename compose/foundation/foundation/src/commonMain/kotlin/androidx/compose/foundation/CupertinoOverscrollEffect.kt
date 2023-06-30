@@ -215,8 +215,6 @@ class CupertinoOverscrollEffect(
             val velocityConsumedByFling = performFling(availableFlingVelocity)
             val postFlingVelocity = availableFlingVelocity - velocityConsumedByFling
 
-            println("$velocity $availableFlingVelocity $postFlingVelocity")
-
             playSpringAnimation(
                 it.convertOffsetToFloat(lastFlingUncosumedDelta),
                 it.convertOffsetToFloat(postFlingVelocity.toOffset()),
