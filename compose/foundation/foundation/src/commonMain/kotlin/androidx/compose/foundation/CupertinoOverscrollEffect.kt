@@ -54,7 +54,7 @@ class CupertinoOverscrollEffect(
      * coming from bound [CupertinoFlingBehavior]. If this value is null, it wasn't bound and there would be
      * no overscroll effect present (because it relies on fling calls to maintain its correct state)
      * TODO: Current Compose API semantics are too weak for rich interaction between FlingBehavior and
-     *  OvercrollEffect, like one used in iOS. Needs a proper proposal
+     *  OverscrollEffect, like one used in iOS. Needs a proper proposal
      */
     internal var scrollValueConverter: ScrollValueConverter? = null
 
@@ -183,9 +183,7 @@ class CupertinoOverscrollEffect(
                 // overscroll->content->overscroll or content->overscroll scenario within single frame
                 overscrollOffset += unconsumedDelta
 
-                // Entire delta is always consumed by this effect
-                // TODO: clarify what is expected nested scrolls behavior?
-                delta
+                delta - unconsumedDelta
             }
 
             CupertinoScrollSource.FLING -> {
@@ -193,7 +191,6 @@ class CupertinoOverscrollEffect(
                 // start spring animation instead
                 delta - unconsumedDelta
             }
-
         }
     }
 
