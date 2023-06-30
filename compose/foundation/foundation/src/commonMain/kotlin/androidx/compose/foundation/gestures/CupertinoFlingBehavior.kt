@@ -38,9 +38,6 @@ internal class CupertinoFlingBehavior(
     override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
         return withContext(motionDurationScale) {
             if (abs(initialVelocity) > 1f) {
-                var velocityLeft = initialVelocity
-                var lastValue = 0f
-
                 // If this value is not null by the end of decayAnimation, it means that not entire provided
                 // delta was consumed during last animation frame, so the animation needs to be cancelled
                 // and spring animation should be played
@@ -48,15 +45,13 @@ internal class CupertinoFlingBehavior(
 
                 val overscrollEffect = overscrollEffect
 
-                val initialSpringJob: Job? = overscrollEffect?.let {
-                    launch {
-                        it.playInitialSpringIfNeeded(velocityLeft)
-                    }
-                }
+                val velocityForDecay = overscrollEffect?.playInitialSpringIfNeeded(initialVelocity) ?: initialVelocity
+                var velocityLeft = velocityForDecay
+                var lastValue = 0f
 
                 AnimationState(
                     initialValue = 0f,
-                    initialVelocity = initialVelocity,
+                    initialVelocity = velocityForDecay,
                 ).animateDecay(animationSpec.generateDecayAnimationSpec()) {
                     val delta = value - lastValue
                     val consumed = scrollBy(delta)
@@ -77,11 +72,10 @@ internal class CupertinoFlingBehavior(
                 val immutableUnconsumedDeltaAfterDecay = unconsumedDeltaAfterDecay
 
                 if (immutableUnconsumedDeltaAfterDecay != null && overscrollEffect != null) {
-                    initialSpringJob?.cancelAndJoin()
-
                     overscrollEffect.playSpringAnimation(
                         immutableUnconsumedDeltaAfterDecay,
-                        velocityLeft
+                        velocityLeft,
+                        false
                     )
 
                     0f
@@ -90,7 +84,7 @@ internal class CupertinoFlingBehavior(
                 }
             } else {
                 overscrollEffect?.let {
-                    it.playSpringAnimation(0f, 0f)
+                    it.playSpringAnimation(0f, 0f, false)
                     0f
                 } ?: initialVelocity
             }
