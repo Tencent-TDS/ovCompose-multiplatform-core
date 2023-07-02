@@ -38,6 +38,7 @@ import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.SkikoUIView
 import org.jetbrains.skiko.TextActions
 import platform.CoreGraphics.CGPointMake
+import platform.CoreGraphics.CGRectMake
 import platform.Foundation.*
 import platform.UIKit.*
 import platform.darwin.NSObject
@@ -61,28 +62,22 @@ private val uiContentSizeCategoryToFontScaleMap = mapOf(
 )
 
 fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
+    ComposeUIViewController(configure = {}, content = content)
+
+fun ComposeUIViewController(
+    configure: Configuration.() -> Unit = {},
+    content: @Composable () -> Unit
+): UIViewController =
     ComposeWindow().apply {
+        configuration = Configuration().apply(configure)
         setContent(content)
     }
-
-// The only difference with macos' Window is that
-// it has return type of UIViewController rather than unit.
-@Deprecated(
-    "use ComposeUIViewController instead",
-    replaceWith = ReplaceWith(
-        "ComposeUIViewController(content = content)",
-        "androidx.compose.ui.window"
-    )
-)
-fun Application(
-    title: String = "JetpackNativeWindow",
-    content: @Composable () -> Unit = { }
-): UIViewController = ComposeUIViewController(content)
 
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
 internal actual class ComposeWindow : UIViewController {
 
+    lateinit var configuration: Configuration
     private val keyboardOverlapHeightState = mutableStateOf(0f)
     private val safeAreaState = mutableStateOf(IOSInsets())
     private val layoutMarginsState = mutableStateOf(IOSInsets())
@@ -156,12 +151,43 @@ internal actual class ComposeWindow : UIViewController {
             if (bottomIndent < keyboardHeight) {
                 keyboardOverlapHeightState.value = (keyboardHeight - bottomIndent).toFloat()
             }
+
+            if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
+                val focused = layer.getActiveFocusRect()
+                if (focused != null) {
+                    val hiddenPartOfFocusedElement =
+                        keyboardHeight - layer.layer.height + focused.bottom.value
+                    if (hiddenPartOfFocusedElement > 0) {
+                        // If focused element hidden by keyboard, then change UIView bounds.
+                        // Focused element will be visible
+                        val focusedTop = focused.top.value
+                        val composeOffsetY = if (hiddenPartOfFocusedElement < focusedTop) {
+                            hiddenPartOfFocusedElement
+                        } else {
+                            maxOf(focusedTop, 0f).toDouble()
+                        }
+                        val (width, height) = getViewFrameSize()
+                        view.layer.setBounds(
+                            CGRectMake(
+                                x = 0.0,
+                                y = composeOffsetY,
+                                width = width.toDouble(),
+                                height = height.toDouble()
+                            )
+                        )
+                    }
+                }
+            }
         }
 
         @Suppress("unused")
         @ObjCAction
         fun keyboardDidHide(arg: NSNotification) {
             keyboardOverlapHeightState.value = 0f
+            if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
+                val (width, height) = getViewFrameSize()
+                view.layer.setBounds(CGRectMake(0.0, 0.0, width.toDouble(), height.toDouble()))
+            }
         }
     }
 
@@ -197,6 +223,7 @@ internal actual class ComposeWindow : UIViewController {
         ).load()
         val rootView = UIView() // rootView needs to interop with UIKit
         rootView.backgroundColor = UIColor.whiteColor
+        rootView.setClipsToBounds(true)
 
         skikoUIView.translatesAutoresizingMaskIntoConstraints = false
         rootView.addSubview(skikoUIView)
