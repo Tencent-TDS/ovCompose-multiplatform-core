@@ -129,28 +129,24 @@ class App(
                         WindowInsets(left = 20.dp)
                     ).asPaddingValues(),
                     content = {
-                        Row(
-                            Modifier.fillMaxHeight().weight(1f),
-                            verticalAlignment = Alignment.CenterVertically
+                        CompositionLocalProvider(
+                            LocalContentAlpha provides ContentAlpha.high
                         ) {
-                            if (navigationStack.size > 1) {
-                                CompositionLocalProvider(
-                                    LocalContentAlpha provides ContentAlpha.high,
-                                    content = {
-                                        Icon(
-                                            Icons.Filled.ArrowBack,
-                                            contentDescription = "Back",
-                                            modifier = Modifier.clickable { navigationStack.removeLast() }
-                                        )
-                                    }
-                                )
-                                Spacer(Modifier.width(16.dp))
-                            }
-                            ProvideTextStyle(value = MaterialTheme.typography.h6) {
-                                CompositionLocalProvider(
-                                    LocalContentAlpha provides ContentAlpha.high,
-                                    content = { Text(navigationStack.first().title) }
-                                )
+                            Row(
+                                Modifier.fillMaxHeight().weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (navigationStack.size > 1) {
+                                    Icon(
+                                        Icons.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        modifier = Modifier.clickable { navigationStack.removeLast() }
+                                    )
+                                    Spacer(Modifier.width(16.dp))
+                                }
+                                ProvideTextStyle(value = MaterialTheme.typography.h6) {
+                                    Text(navigationStack.first().title)
+                                }
                             }
                         }
                     }
