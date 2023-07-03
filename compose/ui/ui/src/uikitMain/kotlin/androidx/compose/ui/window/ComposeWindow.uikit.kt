@@ -153,30 +153,9 @@ internal actual class ComposeWindow : UIViewController {
             }
 
             if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
-                val focused = layer.getActiveFocusRect()
-                if (focused != null) {
-                    val hiddenPartOfFocusedElement =
-                        keyboardHeight - layer.layer.height + focused.bottom.value
-                    if (hiddenPartOfFocusedElement > 0) {
-                        // If focused element hidden by keyboard, then change UIView bounds.
-                        // Focused element will be visible
-                        val focusedTop = focused.top.value
-                        val composeOffsetY = if (hiddenPartOfFocusedElement < focusedTop) {
-                            hiddenPartOfFocusedElement
-                        } else {
-                            maxOf(focusedTop, 0f).toDouble()
-                        }
-                        val (width, height) = getViewFrameSize()
-                        view.layer.setBounds(
-                            CGRectMake(
-                                x = 0.0,
-                                y = composeOffsetY,
-                                width = width.toDouble(),
-                                height = height.toDouble()
-                            )
-                        )
-                    }
-                }
+                updateViewBounds(
+                    focusedOffsetY(keyboardHeight)
+                )
             }
         }
 
@@ -185,9 +164,39 @@ internal actual class ComposeWindow : UIViewController {
         fun keyboardDidHide(arg: NSNotification) {
             keyboardOverlapHeightState.value = 0f
             if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
-                val (width, height) = getViewFrameSize()
-                view.layer.setBounds(CGRectMake(0.0, 0.0, width.toDouble(), height.toDouble()))
+                updateViewBounds(0.0)
             }
+        }
+
+        private fun focusedOffsetY(keyboardHeight: Double): Double {
+            val focused = layer.getActiveFocusRect() ?: return 0.0
+
+            val hiddenPartOfFocusedElement: Double =
+                keyboardHeight - layer.layer.height + focused.bottom.value
+            return if (hiddenPartOfFocusedElement > 0) {
+                // If focused element hidden by keyboard, then change UIView bounds.
+                // Focused element will be visible
+                val focusedTop = focused.top.value
+                if (hiddenPartOfFocusedElement < focusedTop) {
+                    hiddenPartOfFocusedElement
+                } else {
+                    maxOf(focusedTop, 0f).toDouble()
+                }
+            } else {
+                0.0
+            }
+        }
+
+        private fun updateViewBounds(offsetY: Double) {
+            val (width, height) = getViewFrameSize()
+            view.layer.setBounds(
+                CGRectMake(
+                    x = 0.0,
+                    y = offsetY,
+                    width = width.toDouble(),
+                    height = height.toDouble()
+                )
+            )
         }
     }
 
