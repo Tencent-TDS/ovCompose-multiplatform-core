@@ -128,7 +128,7 @@ class App(
                 By that way, it is possible to fill area above top app bar with its background - as it works out of box in android development or with Material3 Scaffold
                 */
                 TopAppBar(
-                    contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Top).union(
+                    contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal).union(
                         WindowInsets(left = 20.dp)
                     ).asPaddingValues(),
                     content = {
@@ -155,7 +155,14 @@ class App(
                     }
                 )
             },
-            content = content
+            /*
+                In case of applying WindowInsets as content padding, it is strongly recommended to wrap content of scaffold into box with these modifers to support proper layout when device rotated
+             */
+            content = {
+                Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))) {
+                    content(it)
+                }
+            }
         )
     }
 }
