@@ -37,67 +37,63 @@ internal class WindowComposeBridge(
     /**
      * See also backend layer for swing interop in [androidx.compose.ui.awt.SwingComposeBridge]
      */
-    private val _component =
-        object : SkiaLayer(
-            externalAccessibleFactory = { sceneAccessible },
-            analytics = skiaLayerAnalytics
-        ), Accessible {
-
-            override fun addNotify() {
-                super.addNotify()
-                resetSceneDensity()
-                initContent()
-                updateSceneSize()
-                setParentWindow(SwingUtilities.getWindowAncestor(this))
-            }
-
-            override fun removeNotify() {
-                setParentWindow(null)
-                super.removeNotify()
-            }
-
-            override fun paint(g: Graphics) {
-                resetSceneDensity()
-                super.paint(g)
-            }
-
-            override fun getInputMethodRequests() = currentInputMethodRequests
-
-            override fun doLayout() {
-                super.doLayout()
-                updateSceneSize()
-            }
-
-            override fun getPreferredSize(): Dimension {
-                return if (isPreferredSizeSet) super.getPreferredSize() else sceneDimension
-            }
+    override val component: SkiaLayer = object : SkiaLayer(
+        externalAccessibleFactory = { sceneAccessible },
+        analytics = skiaLayerAnalytics
+    ), Accessible {
+        override fun addNotify() {
+            super.addNotify()
+            resetSceneDensity()
+            initContent()
+            updateSceneSize()
+            setParentWindow(SwingUtilities.getWindowAncestor(this))
         }
 
-    override val component: SkiaLayer get() = _component
+        override fun removeNotify() {
+            setParentWindow(null)
+            super.removeNotify()
+        }
+
+        override fun paint(g: Graphics) {
+            resetSceneDensity()
+            super.paint(g)
+        }
+
+        override fun getInputMethodRequests() = currentInputMethodRequests
+
+        override fun doLayout() {
+            super.doLayout()
+            updateSceneSize()
+        }
+
+        override fun getPreferredSize(): Dimension {
+            return if (isPreferredSizeSet) super.getPreferredSize() else sceneDimension
+        }
+    }
 
     override val renderApi: GraphicsApi
-        get() = _component.renderApi
+        get() = component.renderApi
 
     override val clipComponents: MutableList<ClipRectangle>
-        get() = _component.clipComponents
+        get() = component.clipComponents
 
     override val focusComponentDelegate: Component
-        get() = _component.canvas
+        get() = component.canvas
 
     init {
-        _component.skikoView = skikoView
+        component.skikoView = skikoView
         attachComposeToComponent()
     }
 
     override fun requestNativeFocusOnAccessible(accessible: Accessible) {
-        _component.requestNativeFocusOnAccessible(accessible)
+        component.requestNativeFocusOnAccessible(accessible)
     }
 
     override fun onComposeInvalidation() {
-        _component.needRedraw()
+        component.needRedraw()
     }
 
     override fun disposeComponentLayer() {
-        _component.dispose()
+        component.dispose()
     }
 }

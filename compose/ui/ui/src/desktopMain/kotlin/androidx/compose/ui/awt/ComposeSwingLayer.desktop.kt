@@ -39,16 +39,15 @@ import org.jetbrains.skiko.swing.SkiaSwingLayer
  *
  * However, if smooth interop with Swing is not needed, consider using [androidx.compose.ui.awt.WindowComposeBridge]
  */
+@OptIn(ExperimentalSkikoApi::class)
 internal class SwingComposeBridge(
     private val skiaLayerAnalytics: SkiaLayerAnalytics
 ) : ComposeBridge() {
     /**
      * See also backendLayer for standalone Compose in [androidx.compose.ui.awt.WindowComposeBridge]
      */
-    @OptIn(ExperimentalSkikoApi::class)
-    private val _component =
+    override val component: SkiaSwingLayer =
         object : SkiaSwingLayer(skikoView = skikoView, analytics = skiaLayerAnalytics) {
-
             override fun addNotify() {
                 super.addNotify()
                 resetSceneDensity()
@@ -83,24 +82,21 @@ internal class SwingComposeBridge(
             }
         }
 
-    @OptIn(ExperimentalSkikoApi::class)
-    override val component: SkiaSwingLayer get() = _component
-
     override val renderApi: GraphicsApi
-        get() = _component.renderApi
+        get() = component.renderApi
 
     override val clipComponents: MutableList<ClipRectangle>
-        get() = _component.clipComponents
+        get() = component.clipComponents
 
     override val focusComponentDelegate: Component
-        get() = _component
+        get() = component
 
     override fun requestNativeFocusOnAccessible(accessible: Accessible) {
         // TODO: support a11y
     }
 
     override fun onComposeInvalidation() {
-        _component.repaint()
+        component.repaint()
     }
 
     init {
@@ -108,6 +104,6 @@ internal class SwingComposeBridge(
     }
 
     override fun disposeComponentLayer() {
-        _component.dispose()
+        component.dispose()
     }
 }
