@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.TextField
 import androidx.compose.mpp.demo.Screen
+import androidx.compose.mpp.demo.textfield.android.CapitalizationAutoCorrectDemo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +32,9 @@ val TextFields = Screen.Selection(
     Screen.Example("AlmostFullscreen") {
         AlmostFullscreen()
     },
+    Screen.Example("Android CapitalizationAutoCorrect") {
+        CapitalizationAutoCorrectDemo()
+    }
 )
 
 @Composable
