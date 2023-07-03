@@ -73,17 +73,17 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     private val _focusListeners = mutableSetOf<FocusListener?>()
     private var _isFocusable = true
     private var _isRequestFocusEnabled = false
-    private var layer: ComposeBridge? = null
+    private var bridge: ComposeBridge? = null
     private val clipMap = mutableMapOf<Component, ClipComponent>()
     private var content: (@Composable () -> Unit)? = null
 
     override fun setBounds(x: Int, y: Int, width: Int, height: Int) {
-        layer?.component?.setSize(width, height)
+        bridge?.component?.setSize(width, height)
         super.setBounds(x, y, width, height)
     }
 
     override fun getPreferredSize(): Dimension? {
-        return if (isPreferredSizeSet) super.getPreferredSize() else layer?.component?.preferredSize
+        return if (isPreferredSizeSet) super.getPreferredSize() else bridge?.component?.preferredSize
     }
 
     /**
@@ -109,12 +109,12 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     var exceptionHandler: WindowExceptionHandler? = null
         set(value) {
             field = value
-            layer?.exceptionHandler = value
+            bridge?.exceptionHandler = value
         }
 
     private fun initContent() {
-        if (layer != null && content != null) {
-            layer!!.setContent {
+        if (bridge != null && content != null) {
+            bridge!!.setContent {
                 CompositionLocalProvider(
                     LocalLayerContainer provides this,
                     content = content!!
@@ -124,17 +124,17 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     }
 
     override fun add(component: Component): Component {
-        if (layer == null) {
+        if (bridge == null) {
             return component
         }
         val clipComponent = ClipComponent(component)
         clipMap[component] = clipComponent
-        layer!!.clipComponents.add(clipComponent)
+        bridge!!.clipComponents.add(clipComponent)
         return super.add(component, Integer.valueOf(0))
     }
 
     override fun remove(component: Component) {
-        layer!!.clipComponents.remove(clipMap[component]!!)
+        bridge!!.clipComponents.remove(clipMap[component]!!)
         clipMap.remove(component)
         super.remove(component)
     }
@@ -144,9 +144,9 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
 
         // After [super.addNotify] is called we can safely initialize the layer and composable
         // content.
-        layer = createComposeLayer()
+        bridge = createComposeLayer()
         initContent()
-        super.add(layer!!.component, Integer.valueOf(1))
+        super.add(bridge!!.component, Integer.valueOf(1))
     }
 
     @OptIn(ExperimentalComposeUiApi::class)
@@ -190,22 +190,22 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     }
 
     override fun removeNotify() {
-        if (layer != null) {
-            layer!!.dispose()
-            super.remove(layer!!.component)
-            layer = null
+        if (bridge != null) {
+            bridge!!.dispose()
+            super.remove(bridge!!.component)
+            bridge = null
         }
 
         super.removeNotify()
     }
 
     override fun addFocusListener(l: FocusListener?) {
-        layer?.component?.addFocusListener(l)
+        bridge?.component?.addFocusListener(l)
         _focusListeners.add(l)
     }
 
     override fun removeFocusListener(l: FocusListener?) {
-        layer?.component?.removeFocusListener(l)
+        bridge?.component?.removeFocusListener(l)
         _focusListeners.remove(l)
     }
 
@@ -213,42 +213,42 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
 
     override fun setFocusable(focusable: Boolean) {
         _isFocusable = focusable
-        layer?.component?.isFocusable = focusable
+        bridge?.component?.isFocusable = focusable
     }
 
     override fun isRequestFocusEnabled(): Boolean = _isRequestFocusEnabled
 
     override fun setRequestFocusEnabled(requestFocusEnabled: Boolean) {
         _isRequestFocusEnabled = requestFocusEnabled
-        layer?.component?.isRequestFocusEnabled = requestFocusEnabled
+        bridge?.component?.isRequestFocusEnabled = requestFocusEnabled
     }
 
     override fun hasFocus(): Boolean {
-        return layer?.component?.hasFocus() ?: false
+        return bridge?.component?.hasFocus() ?: false
     }
 
     override fun isFocusOwner(): Boolean {
-        return layer?.component?.isFocusOwner ?: false
+        return bridge?.component?.isFocusOwner ?: false
     }
 
     override fun requestFocus() {
-        layer?.component?.requestFocus()
+        bridge?.component?.requestFocus()
     }
 
     override fun requestFocus(temporary: Boolean): Boolean {
-        return layer?.component?.requestFocus(temporary) ?: false
+        return bridge?.component?.requestFocus(temporary) ?: false
     }
 
     override fun requestFocus(cause: FocusEvent.Cause?) {
-        layer?.component?.requestFocus(cause)
+        bridge?.component?.requestFocus(cause)
     }
 
     override fun requestFocusInWindow(): Boolean {
-        return layer?.component?.requestFocusInWindow() ?: false
+        return bridge?.component?.requestFocusInWindow() ?: false
     }
 
     override fun requestFocusInWindow(cause: FocusEvent.Cause?): Boolean {
-        return layer?.component?.requestFocusInWindow(cause) ?: false
+        return bridge?.component?.requestFocusInWindow(cause) ?: false
     }
 
     override fun setFocusTraversalKeysEnabled(focusTraversalKeysEnabled: Boolean) {
@@ -265,5 +265,5 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
      * environment variable.
      */
     val renderApi: GraphicsApi
-        get() = if (layer != null) layer!!.renderApi else GraphicsApi.UNKNOWN
+        get() = if (bridge != null) bridge!!.renderApi else GraphicsApi.UNKNOWN
 }
