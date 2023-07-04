@@ -93,7 +93,7 @@ class CupertinoOverscrollEffect(
 
     override val isInProgress: Boolean
         get() =
-        // If visible overscroll offset has at least one pixel
+            // If visible overscroll offset has at least one pixel
             // this effect is considered to be in progress
             visibleOverscrollOffset.toOffset().getDistance() > 0.5f
 
