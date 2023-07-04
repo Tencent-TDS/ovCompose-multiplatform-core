@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-package androidx.compose.animation.core
+package androidx.compose.animation.core.cupertino
 
+import androidx.compose.animation.core.FloatDecayAnimationSpec
+import androidx.compose.animation.core.convertNanosToSeconds
+import androidx.compose.animation.core.convertSecondsToNanos
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow

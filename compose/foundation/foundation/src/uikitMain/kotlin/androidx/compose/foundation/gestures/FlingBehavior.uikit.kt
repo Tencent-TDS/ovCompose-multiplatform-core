@@ -16,7 +16,7 @@
 
 package androidx.compose.foundation.gestures
 
-import androidx.compose.animation.core.CupertinoScrollDecayAnimationSpec
+import androidx.compose.animation.core.cupertino.CupertinoScrollDecayAnimationSpec
 import androidx.compose.animation.core.generateDecayAnimationSpec
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
