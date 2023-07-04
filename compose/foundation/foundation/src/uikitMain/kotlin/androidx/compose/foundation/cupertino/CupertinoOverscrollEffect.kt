@@ -43,6 +43,10 @@ private enum class CupertinoOverscrollDirection {
     UNKNOWN, VERTICAL, HORIZONTAL
 }
 
+private enum class CupertinoSpringAnimationReason {
+    FLING_FROM_OVERSCROLL, POSSIBLE_SPRING_IN_THE_END
+}
+
 /*
  * Encapsulates internal calculation data representing per-dimension change after drag delta is consumed (or not)
  * by [CupertinoOverscrollEffect]
@@ -233,7 +237,7 @@ class CupertinoOverscrollEffect(
         playSpringAnimation(
             lastFlingUncosumedDelta.toFloat(),
             postFlingVelocity.toFloat(),
-            flingFromOverscroll = false
+            CupertinoSpringAnimationReason.POSSIBLE_SPRING_IN_THE_END
         )
     }
 
@@ -306,7 +310,7 @@ class CupertinoOverscrollEffect(
             playSpringAnimation(
                 unconsumedDelta = 0f,
                 velocity,
-                flingFromOverscroll = true
+                CupertinoSpringAnimationReason.FLING_FROM_OVERSCROLL
             ).toVelocity()
         } else {
             initialVelocity
@@ -316,7 +320,7 @@ class CupertinoOverscrollEffect(
     private suspend fun playSpringAnimation(
         unconsumedDelta: Float,
         initialVelocity: Float,
-        flingFromOverscroll: Boolean
+        reason: CupertinoSpringAnimationReason
     ): Float {
         val initialValue = overscrollOffset.toFloat() + unconsumedDelta
         val initialSign = sign(initialValue)
@@ -326,17 +330,20 @@ class CupertinoOverscrollEffect(
         // they operated on DPs. Callback value is then scaled back to raw pixels.
         val visibilityThreshold = 0.5f / density
 
-        val spec = if (flingFromOverscroll) {
-            spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = 400f,
-                visibilityThreshold = visibilityThreshold
-            )
-        } else {
-            spring(
-                stiffness = 200f,
-                visibilityThreshold = visibilityThreshold
-            )
+        val spec = when (reason) {
+            CupertinoSpringAnimationReason.FLING_FROM_OVERSCROLL -> {
+                spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = 400f,
+                    visibilityThreshold = visibilityThreshold
+                )
+            }
+            CupertinoSpringAnimationReason.POSSIBLE_SPRING_IN_THE_END -> {
+                spring(
+                    stiffness = 200f,
+                    visibilityThreshold = visibilityThreshold
+                )
+            }
         }
 
         AnimationState(
@@ -351,18 +358,18 @@ class CupertinoOverscrollEffect(
             currentVelocity = velocity * density
 
             // If it was fling from overscroll, cancel animation and return velocity
-            if (flingFromOverscroll && initialSign != 0f && sign(value) != initialSign) {
+            if (reason == CupertinoSpringAnimationReason.FLING_FROM_OVERSCROLL && initialSign != 0f && sign(value) != initialSign) {
                 this.cancelAnimation()
             }
         }
 
         if (coroutineContext.isActive) {
             // The spring is critically damped, so in case spring-fling-spring sequence
-            // is slightly offset and velocity is of the opposite sign, will end up with no animation
+            // is slightly offset and velocity is of the opposite sign, it will end up with no animation
             overscrollOffset = Offset.Zero
         }
 
-        if (!flingFromOverscroll) {
+        if (reason == CupertinoSpringAnimationReason.POSSIBLE_SPRING_IN_THE_END) {
             currentVelocity = 0f
         }
 
