@@ -487,17 +487,6 @@ private class ScrollingLogic(
 ) {
     private val isNestedFlinging = mutableStateOf(false)
 
-    init {
-        if (overscrollEffect is CupertinoOverscrollEffect) {
-            overscrollEffect.scrollValueConverter = object : ScrollValueConverter {
-                override fun convertFloatToOffset(value: Float): Offset =
-                    value.toOffset()
-
-                override fun convertOffsetToFloat(value: Offset): Float =
-                    value.toFloat()
-            }
-        }
-    }
     fun Float.toOffset(): Offset = when {
         this == 0f -> Offset.Zero
         orientation == Horizontal -> Offset(this, 0f)

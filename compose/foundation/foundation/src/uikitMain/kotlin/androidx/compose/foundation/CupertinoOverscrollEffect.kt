@@ -17,7 +17,6 @@
 package androidx.compose.foundation
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.gestures.ScrollValueConverter
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -39,6 +38,10 @@ private enum class CupertinoScrollSource {
     DRAG, FLING
 }
 
+private enum class CupertinoOverscrollDirection {
+    UNKNOWN, VERTICAL, HORIZONTAL
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 class CupertinoOverscrollEffect(
     /*
@@ -49,9 +52,15 @@ class CupertinoOverscrollEffect(
     layoutDirection: LayoutDirection
 ) : OverscrollEffect {
     /*
-     * Offset to Float converter to do orientation-dependant calculations using the raw Float data
+     * Direction of scrolling for this overscroll effect, derived from arguments during
+     * [applyToScroll] calls. Technically this effect supports both dimensions, but current API requires
+     * that different stages of animations spawned by this effect for both dimensions
+     * end at the same time, which is not the case:
+     * Spring->Fling->Spring, Fling->Spring, Spring->Fling effects can have different timing per dimension,
+     * which is not possible to express without changing API. Hence this effect will be fixed to latest
+     * received delta.
      */
-    internal var scrollValueConverter: ScrollValueConverter? = null
+    private var direction: CupertinoOverscrollDirection = CupertinoOverscrollDirection.UNKNOWN
 
     private val reverseHorizontal =
         when (layoutDirection) {
@@ -207,46 +216,99 @@ class CupertinoOverscrollEffect(
         delta: Offset,
         source: NestedScrollSource,
         performScroll: (Offset) -> Offset
-    ): Offset =
-        source.toCupertinoScrollSource()?.let {
+    ): Offset {
+        direction = direction.combinedWith(delta.toCupertinoOverscrollDirection())
+
+        return source.toCupertinoScrollSource()?.let {
             applyToScroll(delta, it, performScroll)
         } ?: performScroll(delta)
+    }
 
     override suspend fun applyToFling(
         velocity: Velocity,
         performFling: suspend (Velocity) -> Velocity
     ) {
-        scrollValueConverter?.let {
+        val availableFlingVelocity = playInitialSpringAnimationIfNeeded(velocity)
 
-            val availableFlingVelocity = playInitialSpringAnimationIfNeeded(velocity, it)
+        val velocityConsumedByFling = performFling(availableFlingVelocity)
+        val postFlingVelocity = availableFlingVelocity - velocityConsumedByFling
 
-            val velocityConsumedByFling = performFling(availableFlingVelocity)
-            val postFlingVelocity = availableFlingVelocity - velocityConsumedByFling
-
-            playSpringAnimation(
-                it.convertOffsetToFloat(lastFlingUncosumedDelta),
-                it.convertOffsetToFloat(postFlingVelocity.toOffset()),
-                false,
-                it
-            )
-
-        } ?: performFling(velocity)
+        playSpringAnimation(
+            lastFlingUncosumedDelta.toFloat(),
+            postFlingVelocity.toFloat(),
+            false
+        )
     }
 
+    private fun Offset.toCupertinoOverscrollDirection(): CupertinoOverscrollDirection {
+        val epsilon = 1E-4f
+
+        val hasXPart = abs(x) > epsilon
+        val hasYPart = abs(y) > epsilon
+
+        return if (hasXPart xor hasYPart) {
+            if (hasXPart) {
+                CupertinoOverscrollDirection.HORIZONTAL
+            } else {
+                // hasYPart != hasXPart and hasXPart is false
+                CupertinoOverscrollDirection.VERTICAL
+            }
+        } else {
+            // hasXPart and hasYPart are equal
+            CupertinoOverscrollDirection.UNKNOWN
+        }
+    }
+
+    private fun CupertinoOverscrollDirection.combinedWith(other: CupertinoOverscrollDirection): CupertinoOverscrollDirection =
+        when (this) {
+            CupertinoOverscrollDirection.UNKNOWN -> when (other) {
+                CupertinoOverscrollDirection.UNKNOWN -> CupertinoOverscrollDirection.UNKNOWN
+                CupertinoOverscrollDirection.VERTICAL -> CupertinoOverscrollDirection.VERTICAL
+                CupertinoOverscrollDirection.HORIZONTAL -> CupertinoOverscrollDirection.HORIZONTAL
+            }
+
+            CupertinoOverscrollDirection.VERTICAL -> when (other) {
+                CupertinoOverscrollDirection.UNKNOWN, CupertinoOverscrollDirection.VERTICAL -> CupertinoOverscrollDirection.VERTICAL
+                CupertinoOverscrollDirection.HORIZONTAL -> CupertinoOverscrollDirection.HORIZONTAL
+            }
+
+            CupertinoOverscrollDirection.HORIZONTAL -> when (other) {
+                CupertinoOverscrollDirection.UNKNOWN, CupertinoOverscrollDirection.HORIZONTAL -> CupertinoOverscrollDirection.HORIZONTAL
+                CupertinoOverscrollDirection.VERTICAL -> CupertinoOverscrollDirection.VERTICAL
+            }
+        }
     private fun Velocity.toOffset(): Offset =
         Offset(x, y)
 
     private fun Offset.toVelocity(): Velocity =
         Velocity(x, y)
 
-    private suspend fun playInitialSpringAnimationIfNeeded(initialVelocity: Velocity, scrollValueConverter: ScrollValueConverter): Velocity {
-        val velocity = scrollValueConverter.convertOffsetToFloat(initialVelocity.toOffset())
-        val overscroll = scrollValueConverter.convertOffsetToFloat(overscrollOffset)
+    private fun Velocity.toFloat(): Float =
+        toOffset().toFloat()
+
+    private fun Float.toVelocity(): Velocity =
+        toOffset().toVelocity()
+
+    private fun Offset.toFloat(): Float =
+        when (direction) {
+            CupertinoOverscrollDirection.UNKNOWN -> 0f
+            CupertinoOverscrollDirection.VERTICAL -> y
+            CupertinoOverscrollDirection.HORIZONTAL -> x
+        }
+
+    private fun Float.toOffset(): Offset =
+        when (direction) {
+            CupertinoOverscrollDirection.UNKNOWN -> Offset.Zero
+            CupertinoOverscrollDirection.VERTICAL -> Offset(0f, this)
+            CupertinoOverscrollDirection.HORIZONTAL -> Offset(this, 0f)
+        }
+
+    private suspend fun playInitialSpringAnimationIfNeeded(initialVelocity: Velocity): Velocity {
+        val velocity = initialVelocity.toFloat()
+        val overscroll = overscrollOffset.toFloat()
 
         return if ((velocity < 0f && overscroll > 0f) || (velocity > 0f && overscroll < 0f)) {
-            scrollValueConverter.convertFloatToOffset(
-                playSpringAnimation(0f, velocity, true, scrollValueConverter)
-            ).toVelocity()
+            playSpringAnimation(0f, velocity, true).toVelocity()
         } else {
             initialVelocity
         }
@@ -255,10 +317,10 @@ class CupertinoOverscrollEffect(
     private suspend fun playSpringAnimation(
         unconsumedDelta: Float,
         initialVelocity: Float,
-        flingFromOverscroll: Boolean,
-        scrollValueConverter: ScrollValueConverter
+        flingFromOverscroll: Boolean
     ): Float {
-        val initialValue = scrollValueConverter.convertOffsetToFloat(overscrollOffset) + unconsumedDelta
+        val initialValue = overscrollOffset.toFloat() + unconsumedDelta
+
         var currentVelocity = initialVelocity
 
         val initialSign = sign(initialValue)
@@ -288,7 +350,7 @@ class CupertinoOverscrollEffect(
             targetValue = 0f,
             animationSpec = spec
         ) {
-            overscrollOffset = scrollValueConverter.convertFloatToOffset(value * density)
+            overscrollOffset = (value * density).toOffset()
             currentVelocity = velocity * density
 
             // If it was fling from overscroll, cancel animation and return velocity
