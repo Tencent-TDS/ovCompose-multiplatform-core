@@ -237,7 +237,7 @@ class CupertinoOverscrollEffect(
         playSpringAnimation(
             lastFlingUncosumedDelta.toFloat(),
             postFlingVelocity.toFloat(),
-            false
+            flingFromOverscroll = false
         )
     }
 
@@ -309,7 +309,11 @@ class CupertinoOverscrollEffect(
         val overscroll = overscrollOffset.toFloat()
 
         return if ((velocity < 0f && overscroll > 0f) || (velocity > 0f && overscroll < 0f)) {
-            playSpringAnimation(0f, velocity, true).toVelocity()
+            playSpringAnimation(
+                unconsumedDelta = 0f,
+                velocity,
+                flingFromOverscroll = true
+            ).toVelocity()
         } else {
             initialVelocity
         }
