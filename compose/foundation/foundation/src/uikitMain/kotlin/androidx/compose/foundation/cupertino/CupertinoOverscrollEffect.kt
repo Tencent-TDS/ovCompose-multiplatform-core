@@ -197,9 +197,7 @@ class CupertinoOverscrollEffect(
                 // [unconsumedDelta] is going into overscroll again in case a user drags and hits the
                 // overscroll->content->overscroll or content->overscroll scenario within single frame
                 overscrollOffset += unconsumedDelta
-
                 lastFlingUncosumedDelta = Offset.Zero
-
                 delta - unconsumedDelta
             }
 
@@ -207,7 +205,6 @@ class CupertinoOverscrollEffect(
                 // If unconsumedDelta is not Zero, [CupertinoFlingEffect] will cancel fling and
                 // start spring animation instead
                 lastFlingUncosumedDelta = unconsumedDelta
-
                 delta - unconsumedDelta
             }
         }
@@ -230,7 +227,6 @@ class CupertinoOverscrollEffect(
         performFling: suspend (Velocity) -> Velocity
     ) {
         val availableFlingVelocity = playInitialSpringAnimationIfNeeded(velocity)
-
         val velocityConsumedByFling = performFling(availableFlingVelocity)
         val postFlingVelocity = availableFlingVelocity - velocityConsumedByFling
 
@@ -242,10 +238,8 @@ class CupertinoOverscrollEffect(
     }
 
     private fun Offset.toCupertinoOverscrollDirection(): CupertinoOverscrollDirection {
-        val epsilon = 1E-4f
-
-        val hasXPart = abs(x) > epsilon
-        val hasYPart = abs(y) > epsilon
+        val hasXPart = abs(x) > 0f
+        val hasYPart = abs(y) > 0f
 
         return if (hasXPart xor hasYPart) {
             if (hasXPart) {
@@ -325,10 +319,8 @@ class CupertinoOverscrollEffect(
         flingFromOverscroll: Boolean
     ): Float {
         val initialValue = overscrollOffset.toFloat() + unconsumedDelta
-
-        var currentVelocity = initialVelocity
-
         val initialSign = sign(initialValue)
+        var currentVelocity = initialVelocity
 
         // All input values are divided by density so all internal calculations are performed as if
         // they operated on DPs. Callback value is then scaled back to raw pixels.
