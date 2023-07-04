@@ -37,6 +37,7 @@ import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.SkikoUIView
 import org.jetbrains.skiko.TextActions
+import org.jetbrains.skiko.ios.UIKitKeyboardOptions
 import platform.CoreGraphics.CGPointMake
 import platform.Foundation.*
 import platform.UIKit.*
@@ -138,6 +139,7 @@ internal actual class ComposeWindow : UIViewController {
 
     private lateinit var layer: ComposeLayer
     private lateinit var content: @Composable () -> Unit
+    private var _uikitKeyboardOptions: UIKitKeyboardOptions? = null
 
     private val keyboardVisibilityListener = object : NSObject() {
         @Suppress("unused")
@@ -194,6 +196,41 @@ internal actual class ComposeWindow : UIViewController {
             pointInside = { point, _ ->
                 !layer.hitInteropView(point, isTouchEvent = true)
             },
+            keyboardOptions = object : UIKitKeyboardOptions {
+                val defaultUIKitKeyboardOptions = object : UIKitKeyboardOptions {}
+
+                override fun autocapitalizationType() =
+                    _uikitKeyboardOptions?.autocapitalizationType()
+                        ?: defaultUIKitKeyboardOptions.autocapitalizationType()
+
+                override fun autocorrectionType() =
+                    _uikitKeyboardOptions?.autocorrectionType()
+                        ?: defaultUIKitKeyboardOptions.autocorrectionType()
+
+                override fun enablesReturnKeyAutomatically() =
+                    _uikitKeyboardOptions?.enablesReturnKeyAutomatically()
+                        ?: defaultUIKitKeyboardOptions.enablesReturnKeyAutomatically()
+
+                override fun isSecureTextEntry() =
+                    _uikitKeyboardOptions?.isSecureTextEntry()
+                        ?: defaultUIKitKeyboardOptions.isSecureTextEntry()
+
+                override fun keyboardAppearance() =
+                    _uikitKeyboardOptions?.keyboardAppearance()
+                        ?: defaultUIKitKeyboardOptions.keyboardAppearance()
+
+                override fun keyboardType() =
+                    _uikitKeyboardOptions?.keyboardType()
+                        ?: defaultUIKitKeyboardOptions.keyboardType()
+
+                override fun returnKeyType() =
+                    _uikitKeyboardOptions?.returnKeyType()
+                        ?: defaultUIKitKeyboardOptions.returnKeyType()
+
+                override fun textContentType() =
+                    _uikitKeyboardOptions?.textContentType()
+                        ?: defaultUIKitKeyboardOptions.textContentType()
+            },
         ).load()
         val rootView = UIView() // rootView needs to interop with UIKit
         rootView.backgroundColor = UIColor.whiteColor
@@ -226,6 +263,7 @@ internal actual class ComposeWindow : UIViewController {
             selectionWillChange = { skikoUIView.selectionWillChange() },
             selectionDidChange = { skikoUIView.selectionDidChange() },
         )
+        _uikitKeyboardOptions = uiKitTextInputService.uikitKeyboardOptions
         val uiKitPlatform = object : Platform by Platform.Empty {
             override val textInputService: PlatformTextInputService = uiKitTextInputService
             override val viewConfiguration =
