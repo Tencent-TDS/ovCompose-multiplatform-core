@@ -615,7 +615,7 @@ private class ScrollingLogic(
         return result
     }
 
-    private suspend fun doFlingAnimationInNewScrollScope(available: Velocity): Velocity {
+    suspend fun doFlingAnimationInNewScrollScope(available: Velocity): Velocity {
         var result: Velocity = available
 
         scrollableState.scroll {
