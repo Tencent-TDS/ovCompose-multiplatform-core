@@ -276,11 +276,6 @@ class CupertinoOverscrollEffect(
                 CupertinoOverscrollDirection.VERTICAL -> CupertinoOverscrollDirection.VERTICAL
             }
         }
-    private fun Velocity.toOffset(): Offset =
-        Offset(x, y)
-
-    private fun Offset.toVelocity(): Velocity =
-        Velocity(x, y)
 
     private fun Velocity.toFloat(): Float =
         toOffset().toFloat()
@@ -407,3 +402,9 @@ class CupertinoOverscrollEffect(
         private const val RUBBER_BAND_COEFFICIENT = 0.55f
     }
 }
+
+private fun Velocity.toOffset(): Offset =
+    Offset(x, y)
+
+private fun Offset.toVelocity(): Velocity =
+    Velocity(x, y)
