@@ -27,9 +27,10 @@ private var isOptOut = false
  * Opt out of the Cupertino overscroll behavior (rubber banding and spring effect).
  *
  * This method sets the `isOptOut` flag to true, indicating that the Cupertino overscroll behavior should be disabled.
- * By default, the Cupertino overscroll behavior is enabled.
+ * By default, the Cupertino overscroll behavior is enabled on iOS.
  *
- * This method should be called before any @Composable function using this effect is executing.
+ * This method should be called before any @Composable function using this effect is executed
+ * (sometime during app start up).
  */
 @OptIn(ExperimentalFoundationApi::class)
 fun optOutOfCupertinoOverscroll() {
