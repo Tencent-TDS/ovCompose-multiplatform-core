@@ -22,6 +22,7 @@ import androidx.compose.animation.core.convertSecondsToNanos
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
+import platform.UIKit.UIScrollViewDecelerationRateNormal
 
 /**
  * A class that represents the animation specification for a scroll decay animation
@@ -31,7 +32,7 @@ import kotlin.math.pow
  * Default value is equal to one used by default UIScrollView behavior.
  */
 class CupertinoScrollDecayAnimationSpec(
-    private val decelerationRate: Float = 0.998f
+    private val decelerationRate: Float = UIScrollViewDecelerationRateNormal.toFloat()
 ) : FloatDecayAnimationSpec {
 
     private val coefficient: Float = 1000f * ln(decelerationRate)
