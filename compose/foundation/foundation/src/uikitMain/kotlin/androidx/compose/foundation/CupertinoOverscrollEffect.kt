@@ -56,7 +56,8 @@ class CupertinoOverscrollEffect(
      * [applyToScroll] calls. Technically this effect supports both dimensions, but current API requires
      * that different stages of animations spawned by this effect for both dimensions
      * end at the same time, which is not the case:
-     * Spring->Fling->Spring, Fling->Spring, Spring->Fling effects can have different timing per dimension,
+     * Spring->Fling->Spring, Fling->Spring, Spring->Fling effects can have different timing per dimension
+     * (see Notes of https://github.com/JetBrains/compose-multiplatform-core/pull/609),
      * which is not possible to express without changing API. Hence this effect will be fixed to latest
      * received delta.
      */
