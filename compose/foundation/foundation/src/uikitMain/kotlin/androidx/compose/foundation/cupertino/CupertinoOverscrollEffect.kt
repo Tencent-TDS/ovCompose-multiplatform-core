@@ -105,18 +105,6 @@ class CupertinoOverscrollEffect(
             visibleOverscrollOffset
         }
 
-//    internal suspend fun playInitialSpringIfNeeded(velocity: Float): Float {
-//        val scrollValueConverter = scrollValueConverter ?: return velocity
-//
-//        val currentOverscroll = scrollValueConverter.convertOffsetToFloat(overscrollOffset)
-//
-//        return if ((velocity > 0f && currentOverscroll > 0f) || (velocity < 0f && currentOverscroll < 0f)) {
-//            playSpringAnimation(0f, velocity, true)
-//        } else {
-//            velocity
-//        }
-//    }
-
     private fun NestedScrollSource.toCupertinoScrollSource(): CupertinoScrollSource? =
         when (this) {
             NestedScrollSource.Drag -> CupertinoScrollSource.DRAG
