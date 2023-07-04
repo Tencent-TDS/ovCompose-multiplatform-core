@@ -43,6 +43,19 @@ private enum class CupertinoOverscrollDirection {
     UNKNOWN, VERTICAL, HORIZONTAL
 }
 
+/*
+ * Encapsulates internal calculation data representing per-dimension change after drag delta is consumed (or not)
+ * by [CupertinoOverscrollEffect]
+ */
+private data class CupertinoOverscrollAvailableDelta(
+    // delta which will be used to perform actual content scroll
+    val availableDelta: Float,
+
+    // new overscroll value for dimension in context of which calculation returning
+    // instance of this type was returned
+    val newOverscrollValue: Float
+)
+
 @OptIn(ExperimentalFoundationApi::class)
 class CupertinoOverscrollEffect(
     /*
@@ -113,39 +126,37 @@ class CupertinoOverscrollEffect(
         }
 
     /*
-     * Takes input scroll delta, current overscroll value, and scroll source. Returns pair of
-     * 1. Available delta to perform actual content scroll.
-     * 2. New overscroll value.
+     * Takes input scroll delta, current overscroll value, and scroll source, return [CupertinoOverscrollAvailableDelta]
      */
     @Stable
     private fun availableDelta(
         delta: Float,
         overscroll: Float,
         source: CupertinoScrollSource
-    ): Pair<Float, Float> {
+    ): CupertinoOverscrollAvailableDelta {
         // if source is fling:
         // 1. no delta will be consumed
         // 2. overscroll will stay the same
         if (source == CupertinoScrollSource.FLING) {
-            return delta to overscroll
+            return CupertinoOverscrollAvailableDelta(delta, overscroll)
         }
 
         val newOverscroll = overscroll + delta
 
         return if (delta >= 0f && overscroll <= 0f) {
             if (newOverscroll > 0f) {
-                newOverscroll to 0f
+                CupertinoOverscrollAvailableDelta(newOverscroll, 0f)
             } else {
-                0f to newOverscroll
+                CupertinoOverscrollAvailableDelta(0f, newOverscroll)
             }
         } else if (delta <= 0f && overscroll >= 0f) {
             if (newOverscroll < 0f) {
-                newOverscroll to 0f
+                CupertinoOverscrollAvailableDelta(newOverscroll, 0f)
             } else {
-                0f to newOverscroll
+                CupertinoOverscrollAvailableDelta(0f, newOverscroll)
             }
         } else {
-            0f to newOverscroll
+            CupertinoOverscrollAvailableDelta(0f, newOverscroll)
         }
     }
 
