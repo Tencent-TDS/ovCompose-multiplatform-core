@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.test.junit4
+package androidx.compose.ui.test
 
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestCoroutineScheduler
+import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.graphics.ImageBitmap
 
-@OptIn(ExperimentalCoroutinesApi::class)
-internal class MainTestClockImpl(
-    testScheduler: TestCoroutineScheduler,
-    frameDelayMillis: Long,
-    onTimeAdvanced: (Long) -> Unit
-) : AbstractMainTestClock(
-    testScheduler = testScheduler,
-    frameDelayMillis = frameDelayMillis,
-    runOnUiThread = ::runOnUiThread,
-    onTimeAdvanced = onTimeAdvanced
-)
+
+/**
+ * Captures the underlying semantics node's surface into bitmap.
+ */
+@OptIn(InternalTestApi::class, InternalComposeUiApi::class)
+fun SemanticsNodeInteraction.captureToImage(): ImageBitmap {
+    val semanticsNode = fetchSemanticsNode("Failed to capture a node to bitmap.")
+    return (testContext.testOwner as SkikoTestOwner).captureToImage(semanticsNode)
+}
