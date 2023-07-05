@@ -78,11 +78,6 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     private var content: (@Composable () -> Unit)? = null
 
     /**
-     * Represents whether [ComposePanel] is attached to Swing hierarchy.
-     */
-    private var isAttached = false
-
-    /**
      * Determines whether the Compose state in [ComposePanel] should be disposed
      * when panel is detached from Swing hierarchy (when [removeNotify] is called).
      *
@@ -109,7 +104,7 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
      */
     @ExperimentalComposeUiApi
     fun dispose() {
-        if (!isAttached && bridge != null) {
+        if (bridge != null) {
             bridge!!.dispose()
             super.remove(bridge!!.component)
             bridge = null
@@ -188,7 +183,6 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
             initContent()
             super.add(bridge!!.component, Integer.valueOf(1))
         }
-        isAttached = true
     }
 
     @OptIn(ExperimentalComposeUiApi::class)
@@ -233,7 +227,6 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
 
     @OptIn(ExperimentalComposeUiApi::class)
     override fun removeNotify() {
-        isAttached = false
         if (isDisposeOnRemove) {
             dispose()
         }
