@@ -19,7 +19,8 @@ package androidx.compose.ui.platform
 import androidx.compose.ui.text.input.*
 import kotlin.math.min
 import org.jetbrains.skiko.SkikoInput
-import org.jetbrains.skiko.ios.UIKitKeyboardOptions
+import org.jetbrains.skiko.ios.SkikoUITextInputTraits
+
 import platform.UIKit.*
 
 internal class UIKitTextInputService(
@@ -245,7 +246,7 @@ internal class UIKitTextInputService(
 
     }
 
-    val uikitKeyboardOptions = object : UIKitKeyboardOptions {
+    val skikoUITextInputTraits = object : SkikoUITextInputTraits {
         override fun keyboardType(): UIKeyboardType =
             when (currentImeOptions?.keyboardType) {
                 KeyboardType.Text -> UIKeyboardTypeDefault

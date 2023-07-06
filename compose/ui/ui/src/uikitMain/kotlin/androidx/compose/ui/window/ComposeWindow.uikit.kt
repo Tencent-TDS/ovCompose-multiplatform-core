@@ -37,7 +37,7 @@ import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.SkikoUIView
 import org.jetbrains.skiko.TextActions
-import org.jetbrains.skiko.ios.UIKitKeyboardOptions
+import org.jetbrains.skiko.ios.SkikoUITextInputTraits
 import platform.CoreGraphics.CGPointMake
 import platform.Foundation.*
 import platform.UIKit.*
@@ -107,9 +107,10 @@ internal actual class ComposeWindow : UIViewController {
             // Flag for checking which API to use
             // Modern: https://developer.apple.com/documentation/uikit/uiwindowscene/3198088-interfaceorientation?language=objc
             // Deprecated: https://developer.apple.com/documentation/uikit/uiapplication/1623026-statusbarorientation?language=objc
-            val supportsWindowSceneApi = NSProcessInfo.processInfo.operatingSystemVersion.useContents {
-                majorVersion >= 13
-            }
+            val supportsWindowSceneApi =
+                NSProcessInfo.processInfo.operatingSystemVersion.useContents {
+                    majorVersion >= 13
+                }
 
             return if (supportsWindowSceneApi) {
                 view.window?.windowScene?.interfaceOrientation?.let {
@@ -139,7 +140,7 @@ internal actual class ComposeWindow : UIViewController {
 
     private lateinit var layer: ComposeLayer
     private lateinit var content: @Composable () -> Unit
-    private var _uikitKeyboardOptions: UIKitKeyboardOptions? = null
+    private var _skikoUITextInputTraits: SkikoUITextInputTraits? = null
 
     private val keyboardVisibilityListener = object : NSObject() {
         @Suppress("unused")
@@ -196,40 +197,56 @@ internal actual class ComposeWindow : UIViewController {
             pointInside = { point, _ ->
                 !layer.hitInteropView(point, isTouchEvent = true)
             },
-            keyboardOptions = object : UIKitKeyboardOptions {
-                val defaultUIKitKeyboardOptions = object : UIKitKeyboardOptions {}
-
-                override fun autocapitalizationType() =
-                    _uikitKeyboardOptions?.autocapitalizationType()
-                        ?: defaultUIKitKeyboardOptions.autocapitalizationType()
-
-                override fun autocorrectionType() =
-                    _uikitKeyboardOptions?.autocorrectionType()
-                        ?: defaultUIKitKeyboardOptions.autocorrectionType()
-
-                override fun enablesReturnKeyAutomatically() =
-                    _uikitKeyboardOptions?.enablesReturnKeyAutomatically()
-                        ?: defaultUIKitKeyboardOptions.enablesReturnKeyAutomatically()
-
-                override fun isSecureTextEntry() =
-                    _uikitKeyboardOptions?.isSecureTextEntry()
-                        ?: defaultUIKitKeyboardOptions.isSecureTextEntry()
-
-                override fun keyboardAppearance() =
-                    _uikitKeyboardOptions?.keyboardAppearance()
-                        ?: defaultUIKitKeyboardOptions.keyboardAppearance()
+            skikoUITextInputTrains = object : SkikoUITextInputTraits {
+                val defaultSkikoUITextInputTraits = object : SkikoUITextInputTraits {}
 
                 override fun keyboardType() =
-                    _uikitKeyboardOptions?.keyboardType()
-                        ?: defaultUIKitKeyboardOptions.keyboardType()
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .keyboardType()
+
+                override fun keyboardAppearance() =
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .keyboardAppearance()
 
                 override fun returnKeyType() =
-                    _uikitKeyboardOptions?.returnKeyType()
-                        ?: defaultUIKitKeyboardOptions.returnKeyType()
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .returnKeyType()
 
                 override fun textContentType() =
-                    _uikitKeyboardOptions?.textContentType()
-                        ?: defaultUIKitKeyboardOptions.textContentType()
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .textContentType()
+
+                override fun isSecureTextEntry() =
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .isSecureTextEntry()
+
+                override fun enablesReturnKeyAutomatically() =
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .enablesReturnKeyAutomatically()
+
+                override fun autocapitalizationType() =
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .autocapitalizationType()
+
+                override fun autocorrectionType() =
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .autocorrectionType()
+
+                override fun spellCheckingType() =
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .spellCheckingType()
+
+                override fun smartQuotesType() =
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .smartQuotesType()
+
+                override fun smartDashesType() =
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .smartDashesType()
+
+                override fun smartInsertDeleteType() =
+                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
+                        .smartInsertDeleteType()
             },
         ).load()
         val rootView = UIView() // rootView needs to interop with UIKit
@@ -263,7 +280,7 @@ internal actual class ComposeWindow : UIViewController {
             selectionWillChange = { skikoUIView.selectionWillChange() },
             selectionDidChange = { skikoUIView.selectionDidChange() },
         )
-        _uikitKeyboardOptions = uiKitTextInputService.uikitKeyboardOptions
+        _skikoUITextInputTraits = uiKitTextInputService.skikoUITextInputTraits
         val uiKitPlatform = object : Platform by Platform.Empty {
             override val textInputService: PlatformTextInputService = uiKitTextInputService
             override val viewConfiguration =
