@@ -27,6 +27,7 @@ val MainScreen = Screen.Selection(
     Screen.FullscreenExample("ApplicationLayouts") { ApplicationLayouts(it) },
     Screen.Example("GraphicsLayerSettings") { GraphicsLayerSettings() },
     Screen.Example("Blending") { Blending() },
+    Screen.Example("PointerInputDebug") { PointerInputDebug() },
     LazyLayouts,
     TextFields,
 )
@@ -76,29 +77,30 @@ class App(
 
     @Composable
     fun Content() {
-        when (val screen = navigationStack.last()) {
-            is Screen.Example -> {
-                ExampleScaffold {
-                    screen.content()
-                }
-            }
-
-            is Screen.Selection -> {
-                SelectionScaffold {
-                    LazyColumn(Modifier.fillMaxSize()) {
-                        items(screen.screens) {
-                            Text(it.title, Modifier.clickable {
-                                navigationStack.add(it)
-                            }.padding(16.dp).fillMaxWidth())
-                        }
-                    }
-                }
-            }
-
-            is Screen.FullscreenExample -> {
-                screen.content { navigationStack.removeLast() }
-            }
-        }
+        PointerInputDebug()
+//        when (val screen = navigationStack.last()) {
+//            is Screen.Example -> {
+//                ExampleScaffold {
+//                    screen.content()
+//                }
+//            }
+//
+//            is Screen.Selection -> {
+//                SelectionScaffold {
+//                    LazyColumn(Modifier.fillMaxSize()) {
+//                        items(screen.screens) {
+//                            Text(it.title, Modifier.clickable {
+//                                navigationStack.add(it)
+//                            }.padding(16.dp).fillMaxWidth())
+//                        }
+//                    }
+//                }
+//            }
+//
+//            is Screen.FullscreenExample -> {
+//                screen.content { navigationStack.removeLast() }
+//            }
+//        }
     }
 
     @Composable

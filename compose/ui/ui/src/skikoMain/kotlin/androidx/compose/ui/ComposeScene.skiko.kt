@@ -424,6 +424,7 @@ class ComposeScene internal constructor(
      * animations in the content (or any other code, which uses [withFrameNanos]
      */
     fun render(canvas: Canvas, nanoTime: Long): Unit = postponeInvalidation {
+        println("render")
         recomposeDispatcher.flush()
         frameClock.sendFrame(nanoTime) // Recomposition
         sendAndPerformSnapshotChanges() // Apply changes from recomposition phase to layout phase
@@ -537,6 +538,7 @@ class ComposeScene internal constructor(
             keyboardModifiers,
             button,
         )
+
         needLayout = false
         forEachOwner { it.measureAndLayout() }
         pointerPositionUpdater.update()
@@ -568,6 +570,8 @@ class ComposeScene internal constructor(
     }
 
     private fun processPointerInput(event: PointerInputEvent) {
+        val formatted = "sendPointerEvent: ${event.pointers.first().down} ${event.pointers.first().id.value} ${event.pointers.first().position}"
+        println(formatted)
         when (event.eventType) {
             PointerEventType.Press -> processPress(event)
             PointerEventType.Release -> processRelease(event)
