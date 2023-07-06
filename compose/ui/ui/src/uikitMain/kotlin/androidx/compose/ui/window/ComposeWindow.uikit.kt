@@ -197,57 +197,7 @@ internal actual class ComposeWindow : UIViewController {
             pointInside = { point, _ ->
                 !layer.hitInteropView(point, isTouchEvent = true)
             },
-            skikoUITextInputTrains = object : SkikoUITextInputTraits {
-                val defaultSkikoUITextInputTraits = object : SkikoUITextInputTraits {}
-
-                override fun keyboardType() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .keyboardType()
-
-                override fun keyboardAppearance() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .keyboardAppearance()
-
-                override fun returnKeyType() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .returnKeyType()
-
-                override fun textContentType() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .textContentType()
-
-                override fun isSecureTextEntry() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .isSecureTextEntry()
-
-                override fun enablesReturnKeyAutomatically() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .enablesReturnKeyAutomatically()
-
-                override fun autocapitalizationType() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .autocapitalizationType()
-
-                override fun autocorrectionType() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .autocorrectionType()
-
-                override fun spellCheckingType() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .spellCheckingType()
-
-                override fun smartQuotesType() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .smartQuotesType()
-
-                override fun smartDashesType() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .smartDashesType()
-
-                override fun smartInsertDeleteType() =
-                    (_skikoUITextInputTraits ?: defaultSkikoUITextInputTraits)
-                        .smartInsertDeleteType()
-            },
+            skikoUITextInputTrains = DelegateSkikoUITextInputTraits { _skikoUITextInputTraits }
         ).load()
         val rootView = UIView() // rootView needs to interop with UIKit
         rootView.backgroundColor = UIColor.whiteColor
