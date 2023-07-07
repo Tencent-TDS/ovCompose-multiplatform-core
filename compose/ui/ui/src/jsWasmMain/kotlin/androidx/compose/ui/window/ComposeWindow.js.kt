@@ -114,27 +114,11 @@ private val defaultCanvasElementId = "ComposeTarget"
 fun CanvasBasedWindow(
     title: String = "JetpackNativeWindow",
     canvasElementId: String = defaultCanvasElementId,
-    requestResize: (suspend () -> IntSize)? = null,
+    requestResize: suspend () -> IntSize = ::defaultResizeBehavior,
     content: @Composable () -> Unit = { }
 ) {
 
-    val resize: suspend () -> IntSize = if (requestResize != null) {
-        requestResize
-    } else {
-        val channel = Channel<IntSize>(capacity = CONFLATED)
-
-        window.addEventListener("resize", { _ ->
-            val w = document.documentElement?.clientWidth ?: 0
-            val h = document.documentElement?.clientHeight ?: 0
-            channel.trySend(IntSize(w, h))
-        })
-
-        suspend {
-            channel.receive()
-        }
-    }
-
-    if (requestResize == null) {
+    if (requestResize == ::defaultResizeBehavior) {
         (document.getElementById(canvasElementId) as? HTMLCanvasElement)?.let {
             it.width = document.documentElement?.clientWidth ?: 0
             it.height = document.documentElement?.clientHeight ?: 0
@@ -147,11 +131,22 @@ fun CanvasBasedWindow(
             content()
             LaunchedEffect(Unit) {
                 while (isActive) {
-                    val newSize = resize()
+                    val newSize = requestResize()
                     composeWindow.resize(newSize)
                     delay(100) // throttle
                 }
             }
         }
     }
+}
+
+private suspend fun defaultResizeBehavior(): IntSize {
+    val channel = Channel<IntSize>(capacity = CONFLATED)
+    window.addEventListener("resize", { _ ->
+        val w = document.documentElement?.clientWidth ?: 0
+        val h = document.documentElement?.clientHeight ?: 0
+        channel.trySend(IntSize(w, h))
+    })
+
+    return channel.receive()
 }
