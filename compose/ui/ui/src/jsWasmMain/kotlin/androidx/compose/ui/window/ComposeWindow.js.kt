@@ -109,7 +109,7 @@ private val defaultCanvasElementId = "ComposeTarget"
  * Initializes the composition in HTML canvas identified by [canvasElementId].
  *
  * It can be resized by providing [requestResize].
- * By default it will listen to the window resize events.
+ * By default, it will listen to the window resize events.
  */
 fun CanvasBasedWindow(
     title: String = "JetpackNativeWindow",
@@ -118,11 +118,16 @@ fun CanvasBasedWindow(
     content: @Composable () -> Unit = { }
 ) {
 
-    val resize: suspend () -> IntSize = if (requestResize != null) {
+    val actualRequestResize: suspend () -> IntSize = if (requestResize != null) {
         requestResize
     } else {
+        // we use Channel instead of suspendCancellableCoroutine,
+        // because we want to drop old resize events
         val channel = Channel<IntSize>(capacity = CONFLATED)
 
+        // we subscribe to 'resize' only once and never unsubscribe,
+        // because the default behaviour expects that the Canvas takes the entire window space,
+        // so the app has the same lifecycle as the browser tab.
         window.addEventListener("resize", { _ ->
             val w = document.documentElement?.clientWidth ?: 0
             val h = document.documentElement?.clientHeight ?: 0
@@ -147,7 +152,7 @@ fun CanvasBasedWindow(
             content()
             LaunchedEffect(Unit) {
                 while (isActive) {
-                    val newSize = resize()
+                    val newSize = actualRequestResize()
                     composeWindow.resize(newSize)
                     delay(100) // throttle
                 }
