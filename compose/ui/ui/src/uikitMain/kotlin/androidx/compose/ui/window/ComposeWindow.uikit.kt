@@ -65,11 +65,12 @@ fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
     ComposeUIViewController(configure = {}, content = content)
 
 fun ComposeUIViewController(
-    configure: Configuration.() -> Unit = {},
+    configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
 ): UIViewController =
     ComposeWindow().apply {
-        configuration = Configuration().apply(configure)
+        configuration = ComposeUIViewControllerConfiguration()
+            .apply(configure)
         setContent(content)
     }
 
@@ -77,7 +78,7 @@ fun ComposeUIViewController(
 @ExportObjCClass
 internal actual class ComposeWindow : UIViewController {
 
-    lateinit var configuration: Configuration
+    internal lateinit var configuration: ComposeUIViewControllerConfiguration
     private val keyboardOverlapHeightState = mutableStateOf(0f)
     private val safeAreaState = mutableStateOf(IOSInsets())
     private val layoutMarginsState = mutableStateOf(IOSInsets())
@@ -153,9 +154,12 @@ internal actual class ComposeWindow : UIViewController {
             }
 
             if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
-                updateViewBounds(
-                    focusedOffsetY(keyboardHeight)
-                )
+                val focusedRect = layer.getActiveFocusRect()
+                if (focusedRect != null) {
+                    updateViewBounds(
+                        offsetY = calcFocusedLiftingY(focusedRect, keyboardHeight)
+                    )
+                }
             }
         }
 
@@ -164,34 +168,36 @@ internal actual class ComposeWindow : UIViewController {
         fun keyboardDidHide(arg: NSNotification) {
             keyboardOverlapHeightState.value = 0f
             if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
-                updateViewBounds(0.0)
+                updateViewBounds(offsetY = 0.0)
             }
         }
 
-        private fun focusedOffsetY(keyboardHeight: Double): Double {
-            val focused = layer.getActiveFocusRect() ?: return 0.0
-
+        private fun calcFocusedLiftingY(focusedRect: DpRect, keyboardHeight: Double): Double {
             val hiddenPartOfFocusedElement: Double =
-                keyboardHeight - layer.layer.height + focused.bottom.value
+                keyboardHeight - layer.layer.height + focusedRect.bottom.value
             return if (hiddenPartOfFocusedElement > 0) {
-                // If focused element hidden by keyboard, then change UIView bounds.
-                // Focused element will be visible
-                val focusedTop = focused.top.value
-                if (hiddenPartOfFocusedElement < focusedTop) {
+                // If focused element is partially hidden by the keyboard, we need to lift it upper
+                val focusedTopY = focusedRect.top.value
+                val isFocusedElementRemainsVisible = hiddenPartOfFocusedElement < focusedTopY
+                if (isFocusedElementRemainsVisible) {
+                    // We need to lift focused element to be fully visible
                     hiddenPartOfFocusedElement
                 } else {
-                    maxOf(focusedTop, 0f).toDouble()
+                    // In this case focused element height is bigger than remain part of the screen after showing the keyboard.
+                    // Top edge of focused element should be visible. Same logic on Android.
+                    maxOf(focusedTopY, 0f).toDouble()
                 }
             } else {
+                // Focused element is not hidden by the keyboard.
                 0.0
             }
         }
 
-        private fun updateViewBounds(offsetY: Double) {
+        private fun updateViewBounds(offsetX: Double = 0.0, offsetY: Double = 0.0) {
             val (width, height) = getViewFrameSize()
             view.layer.setBounds(
                 CGRectMake(
-                    x = 0.0,
+                    x = offsetX,
                     y = offsetY,
                     width = width.toDouble(),
                     height = height.toDouble()

@@ -19,7 +19,7 @@ package androidx.compose.ui.uikit
 /**
  * Configuration of ComposeUIViewController behavior.
  */
-class Configuration {
+class ComposeUIViewControllerConfiguration {
     /**
      * Control Compose behaviour on focus changed inside Compose.
      */
