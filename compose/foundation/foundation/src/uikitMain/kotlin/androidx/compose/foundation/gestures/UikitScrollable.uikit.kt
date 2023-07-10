@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 internal actual fun platformScrollConfig(): ScrollConfig = UiKitConfig
 
 private object UiKitConfig : ScrollConfig {
+    override var isRubberBandingOverscrollEnabled: Boolean = true
+
     /*
      * There are no scroll events produced on iOS,
      * so in reality this function should not be ever called.

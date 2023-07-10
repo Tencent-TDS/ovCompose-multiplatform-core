@@ -233,12 +233,21 @@ object ScrollableDefaults {
 }
 
 internal interface ScrollConfig {
-
     /**
      * Enables animated transition of scroll on mouse wheel events.
      */
     val isSmoothScrollingEnabled: Boolean
         get() = false
+
+    /*
+     * For configuring default rubber-banding behavior on platforms where it's supported
+     */
+    @OptIn(ExperimentalFoundationApi::class)
+    var isRubberBandingOverscrollEnabled
+        get() = false
+        set(value) {
+            // Default implementation does nothing
+        }
 
     fun isPreciseWheelScroll(event: PointerEvent): Boolean = false
 
