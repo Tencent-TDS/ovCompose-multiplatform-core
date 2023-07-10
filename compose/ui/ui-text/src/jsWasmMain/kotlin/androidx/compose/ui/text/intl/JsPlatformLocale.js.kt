@@ -47,7 +47,7 @@ internal actual fun createPlatformLocaleDelegate(): PlatformLocaleDelegate =
         }
     }
 
-
+// The list of RTL languages is taken from https://github.com/openjdk/jdk/blob/master/src/java.desktop/share/classes/java/awt/ComponentOrientation.java#L156
 private val rtlLanguagesSet = setOf("ar", "fa", "he", "iw", "ji", "ur", "yi")
 
 // Implemented according to ComponentOrientation.getOrientation (AWT),
