@@ -33,7 +33,7 @@ sealed interface OnFocusBehavior {
     object DoNothing : OnFocusBehavior
 
     /**
-     * Compose view will be panned in "y" coordinates.
+     * The Compose view will be panned in "y" coordinates.
      * Focusable element should be displayed above the keyboard.
      */
     object FocusableAboveKeyboard : OnFocusBehavior
