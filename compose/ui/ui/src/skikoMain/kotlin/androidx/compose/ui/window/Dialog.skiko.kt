@@ -18,6 +18,14 @@ package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.unit.IntOffset
 
 @Immutable
 actual class DialogProperties actual constructor(
@@ -41,11 +49,33 @@ actual class DialogProperties actual constructor(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 actual fun Dialog(
     onDismissRequest: () -> Unit,
     properties: DialogProperties,
     content: @Composable () -> Unit
 ) {
-    // TODO
+    val popupPositioner = remember {
+        AlignmentOffsetPositionProvider(
+            alignment = Alignment.Center,
+            offset = IntOffset(0, 0)
+        )
+    }
+    PopupLayout(
+        popupPositionProvider = popupPositioner,
+        focusable = true,
+        if (properties.dismissOnClickOutside) onDismissRequest else null,
+        onKeyEvent = {
+            if (properties.dismissOnBackPress &&
+                it.type == KeyEventType.KeyDown && it.key == Key.Escape
+            ) {
+                onDismissRequest()
+                true
+            } else {
+                false
+            }
+        },
+        content = content
+    )
 }
