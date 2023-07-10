@@ -145,27 +145,13 @@ internal class AlignmentOffsetPositionProvider(
  * @param content The content to be displayed inside the popup.
  */
 @Composable
-fun Popup(
+expect fun Popup(
     alignment: Alignment = Alignment.TopStart,
     offset: IntOffset = IntOffset(0, 0),
     onDismissRequest: (() -> Unit)? = null,
     properties: PopupProperties = PopupProperties(),
     content: @Composable () -> Unit
-) {
-    val popupPositioner = remember(alignment, offset) {
-        AlignmentOffsetPositionProvider(
-            alignment,
-            offset
-        )
-    }
-
-    Popup(
-        popupPositionProvider = popupPositioner,
-        onDismissRequest = onDismissRequest,
-        properties = properties,
-        content = content
-    )
-}
+)
 
 /**
  * Opens a popup with the given content.

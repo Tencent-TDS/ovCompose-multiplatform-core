@@ -179,6 +179,49 @@ actual class PopupProperties @ExperimentalComposeUiApi constructor(
 /**
  * Opens a popup with the given content.
  *
+ * A popup is a floating container that appears on top of the current activity.
+ * It is especially useful for non-modal UI surfaces that remain hidden until they
+ * are needed, for example floating menus like Cut/Copy/Paste.
+ *
+ * The popup is positioned relative to its parent, using the [alignment] and [offset].
+ * The popup is visible as long as it is part of the composition hierarchy.
+ *
+ * @sample androidx.compose.ui.samples.PopupSample
+ *
+ * @param alignment The alignment relative to the parent.
+ * @param offset An offset from the original aligned position of the popup. Offset respects the
+ * Ltr/Rtl context, thus in Ltr it will be added to the original aligned position and in Rtl it
+ * will be subtracted from it.
+ * @param onDismissRequest Executes when the user clicks outside of the popup.
+ * @param properties [PopupProperties] for further customization of this popup's behavior.
+ * @param content The content to be displayed inside the popup.
+ */
+@Composable
+actual fun Popup(
+    alignment: Alignment,
+    offset: IntOffset,
+    onDismissRequest: (() -> Unit)?,
+    properties: PopupProperties,
+    content: @Composable () -> Unit
+) {
+    val popupPositioner = remember(alignment, offset) {
+        AlignmentOffsetPositionProvider(
+            alignment,
+            offset
+        )
+    }
+
+    Popup(
+        popupPositionProvider = popupPositioner,
+        onDismissRequest = onDismissRequest,
+        properties = properties,
+        content = content
+    )
+}
+
+/**
+ * Opens a popup with the given content.
+ *
  * The popup is positioned using a custom [popupPositionProvider].
  *
  * @sample androidx.compose.ui.samples.PopupSample
