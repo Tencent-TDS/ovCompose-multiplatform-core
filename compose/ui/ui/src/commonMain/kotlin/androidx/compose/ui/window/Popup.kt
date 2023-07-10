@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -40,7 +39,7 @@ import androidx.compose.ui.unit.LayoutDirection
  * popup's bounds. If true, clicking outside the popup will call onDismissRequest.
  */
 @Immutable
-expect class PopupProperties @ExperimentalComposeUiApi constructor(
+expect class PopupProperties(
     focusable: Boolean = false,
     dismissOnBackPress: Boolean = true,
     dismissOnClickOutside: Boolean = true
@@ -145,7 +144,6 @@ internal class AlignmentOffsetPositionProvider(
  * @param properties [PopupProperties] for further customization of this popup's behavior.
  * @param content The content to be displayed inside the popup.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Popup(
     alignment: Alignment = Alignment.TopStart,
@@ -181,7 +179,6 @@ fun Popup(
  * @param properties [PopupProperties] for further customization of this popup's behavior.
  * @param content The content to be displayed inside the popup.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 expect fun Popup(
     popupPositionProvider: PopupPositionProvider,
