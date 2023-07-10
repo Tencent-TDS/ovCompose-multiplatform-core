@@ -57,7 +57,9 @@ private fun ExampleLazyColumn() {
     }
     LazyColumn(Modifier.fillMaxSize(), state = state) {
         items(100) {
-            Box(Modifier.size(100.dp).background(remember { Color(Random.nextInt()) }))
+            Box(Modifier.size(100.dp).background(remember { Color(Random.nextInt()) })) {
+                Text("I = $it")
+            }
         }
     }
 }

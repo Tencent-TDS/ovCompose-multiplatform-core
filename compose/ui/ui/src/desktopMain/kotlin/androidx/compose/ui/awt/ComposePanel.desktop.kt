@@ -77,6 +77,40 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     private val clipMap = mutableMapOf<Component, ClipComponent>()
     private var content: (@Composable () -> Unit)? = null
 
+    /**
+     * Determines whether the Compose state in [ComposePanel] should be disposed
+     * when panel is detached from Swing hierarchy (when [removeNotify] is called).
+     *
+     * If it is set to false, it is developer's responsibility to call [dispose] function
+     * when Compose state and all related to [ComposePanel] resources are no longer needed.
+     * It can be useful for cases when [ComposePanel] can be attached/detached to Swing hierarchy multiple times,
+     * so with [isDisposeOnRemove] = `false` state will be preserved.
+     *
+     * On the other hand, [isDisposeOnRemove] = `true` can be useful for stateless components,
+     * that can be recreated for each attaching to Swing hierarchy.
+     *
+     * @see dispose
+     */
+    @ExperimentalComposeUiApi
+    var isDisposeOnRemove: Boolean = true
+
+    /**
+     * Disposes Compose state and rendering resources.
+     *
+     * Should be called only when [ComposePanel] is detached from Swing hierarchy.
+     * Otherwise, nothing will happen.
+     *
+     * @see isDisposeOnRemove
+     */
+    @ExperimentalComposeUiApi
+    fun dispose() {
+        if (bridge != null) {
+            bridge!!.dispose()
+            super.remove(bridge!!.component)
+            bridge = null
+        }
+    }
+
     override fun setBounds(x: Int, y: Int, width: Int, height: Int) {
         bridge?.component?.setSize(width, height)
         super.setBounds(x, y, width, height)
@@ -142,22 +176,24 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     override fun addNotify() {
         super.addNotify()
 
-        // After [super.addNotify] is called we can safely initialize the layer and composable
+        // After [super.addNotify] is called we can safely initialize the bridge and composable
         // content.
-        bridge = createComposeLayer()
-        initContent()
-        super.add(bridge!!.component, Integer.valueOf(1))
+        if (bridge == null) {
+            bridge = createComposeBridge()
+            initContent()
+            super.add(bridge!!.component, Integer.valueOf(1))
+        }
     }
 
     @OptIn(ExperimentalComposeUiApi::class)
-    private fun createComposeLayer(): ComposeBridge {
+    private fun createComposeBridge(): ComposeBridge {
         val renderOnGraphics = System.getProperty("compose.swing.render.on.graphics").toBoolean()
-        val layer: ComposeBridge = if (renderOnGraphics) {
+        val bridge: ComposeBridge = if (renderOnGraphics) {
             SwingComposeBridge(skiaLayerAnalytics)
         } else {
             WindowComposeBridge(skiaLayerAnalytics)
         }
-        return layer.apply {
+        return bridge.apply {
             scene.releaseFocus()
             component.setSize(width, height)
             component.isFocusable = _isFocusable
@@ -169,14 +205,14 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
                     // The focus can be switched from the child component inside SwingPanel.
                     // In that case, SwingPanel will take care of it.
                     if (!isParentOf(e.oppositeComponent)) {
-                        layer.scene.requestFocus()
+                        bridge.scene.requestFocus()
                         when (e.cause) {
                             FocusEvent.Cause.TRAVERSAL_FORWARD -> {
-                                layer.scene.moveFocus(FocusDirection.Next)
+                                bridge.scene.moveFocus(FocusDirection.Next)
                             }
 
                             FocusEvent.Cause.TRAVERSAL_BACKWARD -> {
-                                layer.scene.moveFocus(FocusDirection.Previous)
+                                bridge.scene.moveFocus(FocusDirection.Previous)
                             }
 
                             else -> Unit
@@ -189,13 +225,11 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
         }
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun removeNotify() {
-        if (bridge != null) {
-            bridge!!.dispose()
-            super.remove(bridge!!.component)
-            bridge = null
+        if (isDisposeOnRemove) {
+            dispose()
         }
-
         super.removeNotify()
     }
 
@@ -252,7 +286,7 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     }
 
     override fun setFocusTraversalKeysEnabled(focusTraversalKeysEnabled: Boolean) {
-        // ignore, traversal keys should always be handled by ComposeLayer
+        // ignore, traversal keys should always be handled by ComposeBridge
     }
 
     override fun getFocusTraversalKeysEnabled(): Boolean {
