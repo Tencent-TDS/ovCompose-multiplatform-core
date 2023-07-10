@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 
 @Composable
-internal actual fun platformScrollConfig(): ScrollConfig = UiKitConfig
+internal actual fun platformScrollConfig(): ScrollConfig = UiKitScrollConfig
 
 /**
  * Opt out of the Cupertino overscroll behavior (rubber banding and spring effect).
@@ -38,10 +38,10 @@ internal actual fun platformScrollConfig(): ScrollConfig = UiKitConfig
  */
 @OptIn(ExperimentalFoundationApi::class)
 fun optOutOfCupertinoOverscroll() {
-    UiKitConfig.isRubberBandingOverscrollEnabled = false
+    UiKitScrollConfig.isRubberBandingOverscrollEnabled = false
 }
 
-internal object UiKitConfig : ScrollConfig {
+internal object UiKitScrollConfig : ScrollConfig {
     var isRubberBandingOverscrollEnabled: Boolean = true
 
     /*
