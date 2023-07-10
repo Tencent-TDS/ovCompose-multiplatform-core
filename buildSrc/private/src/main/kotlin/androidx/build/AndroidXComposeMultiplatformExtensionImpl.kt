@@ -21,7 +21,9 @@ import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinJsCompilerType
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
+import org.jetbrains.kotlin.gradle.plugin.*
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
+import org.gradle.api.Action
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.internal.publication.DefaultMavenPublication
@@ -47,6 +49,7 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.gradle.kotlin.dsl.create
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.tomlj.Toml
 
 open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
@@ -108,14 +111,14 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         wasm {
             d8()
             browser {
-                testTask {
+                testTask(Action<KotlinJsTest> {
                     it.useKarma {
                         useChromeHeadless()
                         useConfigDirectory(
                             project.rootProject.projectDir.resolve("mpp/karma.config.d/wasm")
                         )
                     }
-                }
+                })
             }
         }
 
