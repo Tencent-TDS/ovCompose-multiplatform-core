@@ -36,7 +36,7 @@ internal actual fun platformScrollConfig(): ScrollConfig = UiKitScrollConfig
  * This method should be called before any @Composable function using this effect is executed
  * (so as early as possible, e.g. during app start up).
  */
-@OptIn(ExperimentalFoundationApi::class)
+@ExperimentalFoundationApi
 fun optOutOfCupertinoOverscroll() {
     UiKitScrollConfig.isRubberBandingOverscrollEnabled = false
 }
