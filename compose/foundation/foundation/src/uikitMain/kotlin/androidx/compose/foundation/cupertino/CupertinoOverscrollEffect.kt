@@ -87,7 +87,6 @@ class CupertinoOverscrollEffect(
             LayoutDirection.Rtl -> true
         }
 
-
     /*
      * Size of container is taking into consideration when computing rubber banding
      */
