@@ -28,7 +28,7 @@ class ComposeUIViewControllerConfiguration {
 
 sealed interface OnFocusBehavior {
     /**
-     * Compose view will stay on current position.
+     * The Compose view will stay on the current position.
      */
     object DoNothing : OnFocusBehavior
 
