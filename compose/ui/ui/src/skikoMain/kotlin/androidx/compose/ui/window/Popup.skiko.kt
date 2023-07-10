@@ -42,8 +42,7 @@ actual class PopupProperties actual constructor(
     }
 
     override fun hashCode(): Int {
-        var result = dismissOnBackPress.hashCode()
-        result = 31 * result + focusable.hashCode()
+        var result = focusable.hashCode()
         result = 31 * result + dismissOnBackPress.hashCode()
         result = 31 * result + dismissOnClickOutside.hashCode()
         return result
