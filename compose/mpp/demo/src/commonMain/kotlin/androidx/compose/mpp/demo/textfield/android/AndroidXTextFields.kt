@@ -20,63 +20,27 @@ import androidx.compose.mpp.demo.Screen
 
 val AndroidXTextFields = Screen.Selection(
     "androidx TextFields",
-    Screen.Example("Basic input fields") {
-
-    },
-    Screen.Example("Capitalization/AutoCorrect") {
-        CapitalizationAutoCorrectDemo()
-    },
-    Screen.Example("Cursor configuration") {
-
-    },
+    Screen.Example("Basic input fields") { InputFieldDemo() },
+    Screen.Example("Capitalization/AutoCorrect") { CapitalizationAutoCorrectDemo() },
+    Screen.Example("Cursor configuration") { TextFieldCursorBlinkingDemo() },
     Screen.Selection(
         "Focus",
-        Screen.Example("Focus transition") {},
-        Screen.Example("Focus keyboard interaction") {},
+        Screen.Example("Focus transition") { TextFieldFocusTransition() },
+        Screen.Example("Focus keyboard interaction") { TextFieldFocusKeyboardInteraction() },
     ),
-    Screen.Example("Full-screen field") {
-
-    },
-    Screen.Example("Ime Action") {
-
-    },
-    Screen.Example("Ime SingleLine") {
-
-    },
-    Screen.Example("Inside Dialog") {
-
-    },
-    Screen.Example("Inside scrollable") {
-
-    },
-    Screen.Example("Keyboard Types") {
-        KeyboardTypeDemo()
-    },
-    Screen.Example("Min/Max Lines") {
-
-    },
-    Screen.Example("Reject Text Change") {
-
-    },
-    Screen.Example("Scrollable text fields") {
-
-    },
-    Screen.Example("Visual Transformation") {
-
-    },
-    Screen.Example("TextFieldValue") {
-
-    },
-    Screen.Example("Tail Following Text Field") {
-
-    },
-    Screen.Example("Focus immediately") {
-
-    },
-    Screen.Example("Secondary input system") {
-
-    },
-    Screen.Example("TextField focus") {
-
-    },
+    Screen.Example("Full-screen field") { FullScreenTextFieldDemo() },
+    Screen.Example("Ime Action") { ImeActionDemo() },
+    Screen.Example("Ime SingleLine") { ImeSingleLineDemo() },
+    Screen.Example("Inside Dialog") { TextFieldsInDialogDemo() },
+    Screen.Example("Inside scrollable") { TextFieldsInScrollableDemo() },
+    Screen.Example("Keyboard Types") { KeyboardTypeDemo() },
+    Screen.Example("Min/Max Lines") { BasicTextFieldMinMaxDemo() },
+    Screen.Example("Reject Text Change") { RejectTextChangeDemo() },
+    Screen.Example("Scrollable text fields") { ScrollableTextFieldDemo() },
+    Screen.Example("Visual Transformation") { VisualTransformationDemo() },
+    Screen.Example("TextFieldValue") { TextFieldValueDemo() },
+    Screen.Example("Tail Following Text Field") { TailFollowingTextFieldDemo() },
+    Screen.Example("Focus immediately") { FocusTextFieldImmediatelyDemo() },
+    Screen.Example("Secondary input system") { PlatformTextInputAdapterDemo() },
+    Screen.Example("TextField focus") { TextFieldFocusDemo() },
 )
