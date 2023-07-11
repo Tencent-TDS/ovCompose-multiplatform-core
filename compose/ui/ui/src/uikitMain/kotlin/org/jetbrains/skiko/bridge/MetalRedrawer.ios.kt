@@ -5,7 +5,6 @@ import org.jetbrains.skia.BackendRenderTarget
 import org.jetbrains.skia.DirectContext
 import org.jetbrains.skiko.InternalSkikoApi
 import org.jetbrains.skiko.SkiaLayer
-import org.jetbrains.skiko.redrawer.Redrawer
 import platform.CoreGraphics.CGColorCreate
 import platform.CoreGraphics.CGColorSpaceCreateDeviceRGB
 import platform.CoreGraphics.CGContextRef
