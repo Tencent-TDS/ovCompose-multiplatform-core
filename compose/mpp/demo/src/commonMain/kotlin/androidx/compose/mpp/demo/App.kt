@@ -8,6 +8,7 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.mpp.demo.textfield.TextFields
+import androidx.compose.mpp.demo.textfield.android.AndroidXTextFields
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateListOf
@@ -29,6 +30,7 @@ val MainScreen = Screen.Selection(
     Screen.Example("Blending") { Blending() },
     LazyLayouts,
     TextFields,
+    AndroidXTextFields,
 )
 
 sealed interface Screen {
