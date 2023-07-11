@@ -25,7 +25,7 @@ private enum class DrawSchedulingState {
 
 @InternalSkikoApi
 class MetalRedrawer(
-    private val layer: SkiaLayer,
+    private val layer: SkiaLayer2,
     private val device: MTLDeviceProtocol,
     private val metalLayer: CAMetalLayer,
 ) {

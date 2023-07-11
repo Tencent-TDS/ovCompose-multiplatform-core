@@ -36,7 +36,7 @@ import org.jetbrains.skia.Point
 import org.jetbrains.skiko.*
 
 internal class ComposeLayer(
-    internal val layer: SkiaLayer,
+    internal val layer: SkiaLayerInterface,
     platform: Platform,
     private val getTopLeftOffset: () -> Offset,
     private val input: SkikoInput,
@@ -127,7 +127,7 @@ internal class ComposeLayer(
 
     fun dispose() {
         check(!isDisposed)
-        this.layer.detach()
+        layer.detach()
         scene.close()
         _initContent = null
         isDisposed = true

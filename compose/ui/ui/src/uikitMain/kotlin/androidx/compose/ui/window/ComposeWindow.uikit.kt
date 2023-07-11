@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.InputMode
@@ -37,6 +36,7 @@ import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.bridge.SkikoUIView
 import org.jetbrains.skiko.TextActions
+import org.jetbrains.skiko.bridge.SkiaLayer2
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
 import platform.Foundation.*
@@ -130,7 +130,7 @@ internal actual class ComposeWindow : UIViewController {
         }
 
     private val density: Density
-        get() = Density(layer.layer.contentScale, fontScale)
+        get() = Density((view.window?.screen?.scale ?: 1.0).toFloat(), fontScale)
 
     private lateinit var layer: ComposeLayer
     private lateinit var content: @Composable () -> Unit
@@ -173,8 +173,9 @@ internal actual class ComposeWindow : UIViewController {
         }
 
         private fun calcFocusedLiftingY(focusedRect: DpRect, keyboardHeight: Double): Double {
+            val viewHeight = view.bounds.useContents { size.height }
             val hiddenPartOfFocusedElement: Double =
-                keyboardHeight - layer.layer.height + focusedRect.bottom.value
+                keyboardHeight - viewHeight + focusedRect.bottom.value
             return if (hiddenPartOfFocusedElement > 0) {
                 // If focused element is partially hidden by the keyboard, we need to lift it upper
                 val focusedTopY = focusedRect.top.value
@@ -229,7 +230,7 @@ internal actual class ComposeWindow : UIViewController {
     }
 
     override fun loadView() {
-        val skiaLayer = createSkiaLayer()
+        val skiaLayer = SkiaLayer2()
         val skikoUIView = SkikoUIView(
             skiaLayer = skiaLayer,
             pointInside = { point, _ ->

@@ -18,4 +18,4 @@ package androidx.compose.ui
 
 import org.jetbrains.skiko.SkiaLayer
 
-internal actual fun createSkiaLayer(): SkiaLayer = SkiaLayer()
+internal actual fun createSkiaLayer(): SkiaLayer = TODO("Redundant for iOS")
