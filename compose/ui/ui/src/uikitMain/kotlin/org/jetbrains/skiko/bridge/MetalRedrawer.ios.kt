@@ -5,7 +5,6 @@ import org.jetbrains.skia.BackendRenderTarget
 import org.jetbrains.skia.DirectContext
 import org.jetbrains.skiko.InternalSkikoApi
 import org.jetbrains.skiko.SkiaLayer
-import org.jetbrains.skiko.context.ContextHandler
 import org.jetbrains.skiko.redrawer.Redrawer
 import platform.CoreGraphics.CGColorCreate
 import platform.CoreGraphics.CGColorSpaceCreateDeviceRGB
@@ -28,9 +27,9 @@ private enum class DrawSchedulingState {
 @InternalSkikoApi
 class MetalRedrawer(
     private val layer: SkiaLayer
-) : Redrawer {
+) {
     private val contextHandler = MetalContextHandler(layer, this)
-    override val renderInfo: String get() = contextHandler.rendererInfo()
+    val renderInfo: String get() = contextHandler.rendererInfo()
 
     private var isDisposed = false
     internal val device = MTLCreateSystemDefaultDevice() ?: throw IllegalStateException("Metal is not supported on this system")
@@ -116,7 +115,7 @@ class MetalRedrawer(
         return BackendRenderTarget.makeMetal(width, height, currentDrawable!!.texture.objcPtr())
     }
 
-    override fun dispose() {
+    fun dispose() {
         if (!isDisposed) {
             caDisplayLink.invalidate()
             contextHandler.dispose()
@@ -125,7 +124,7 @@ class MetalRedrawer(
         }
     }
 
-    override fun syncSize() {
+    fun syncSize() {
         metalLayer.contentsScale = layer.contentScale.toDouble()
         val osView = layer.view!!
         val (w, h) = osView.frame.useContents {
@@ -140,7 +139,7 @@ class MetalRedrawer(
         }
     }
 
-    override fun needRedraw() {
+    fun needRedraw() {
         check(!isDisposed) { "MetalRedrawer is disposed" }
 
         drawImmediatelyIfPossible()
@@ -150,7 +149,7 @@ class MetalRedrawer(
         }
     }
 
-    override fun redrawImmediately() {
+    fun redrawImmediately() {
         check(!isDisposed) { "MetalRedrawer is disposed" }
         draw()
     }
@@ -210,7 +209,7 @@ class MetalRedrawer(
 
 internal class MetalLayer : CAMetalLayer {
     private lateinit var skiaLayer: SkiaLayer
-    private lateinit var contextHandler: ContextHandler
+    private lateinit var contextHandler: MetalContextHandler
 
     @OverrideInit
     constructor() : super()
@@ -220,7 +219,7 @@ internal class MetalLayer : CAMetalLayer {
 
     fun init(
         skiaLayer: SkiaLayer,
-        contextHandler: ContextHandler,
+        contextHandler: MetalContextHandler,
         theDevice: MTLDeviceProtocol
     ) {
         this.skiaLayer = skiaLayer
