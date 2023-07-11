@@ -31,6 +31,7 @@ class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
     private var _skikoUITextInputTrains: SkikoUITextInputTraits = object : SkikoUITextInputTraits {}
     private var _inputDelegate: UITextInputDelegateProtocol? = null
     private var _currentTextMenuActions: TextActions? = null
+    private var _redrawer: MetalRedrawer? = null
 
     constructor(
         skiaLayer: SkiaLayer,
@@ -106,7 +107,20 @@ class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
         setFrame(CGRectMake(0.0, 0.0, width, height))
         contentScaleFactor = UIScreen.mainScreen.scale
         skiaLayer?.let { layer ->
-            layer.attachTo(this)
+            layer.view = this
+            // TODO: maybe add observer for view.viewDidDisappear() to detach us?
+            val metalRedrawer = MetalRedrawer(layer).apply {
+                needRedraw()
+            }
+            _redrawer = metalRedrawer
+            val contextHandler = MetalContextHandler(layer, metalRedrawer)
+            layer.needRedrawCallback = {
+                metalRedrawer.needRedraw()
+            }
+            layer.detachCallback = {
+                metalRedrawer.dispose()
+                contextHandler.dispose()
+            }
             layer.initGestures()
         }
 
@@ -192,7 +206,7 @@ class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
 
             val needHighFrequencyPolling = value > 0
 
-            skiaLayer?.redrawer?.needsProactiveDisplayLink = needHighFrequencyPolling
+            _redrawer?.needsProactiveDisplayLink = needHighFrequencyPolling
         }
 
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
@@ -249,7 +263,7 @@ class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
             )
         )
         // If invalidation doesn't happen while onPointerEvent is processed, it's too late to schedule any work for this frame.
-        skiaLayer?.redrawer?.preventDrawDispatchDuringCurrentFrame()
+        _redrawer?.preventDrawDispatchDuringCurrentFrame()
     }
 
     private val UITouch.isPressed get() =
