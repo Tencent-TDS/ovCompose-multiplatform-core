@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.input.pointer
+package androidx.compose.ui.text.intl
 
-object DummyPointerIcon : PointerIcon
+internal actual fun userPreferredLanguages(): List<String> {
+    val jsStringArray = getUserPreferredLanguagesAsArray()
+    return buildList<String> {
+        repeat(jsStringArray.length) {
+            add(jsStringArray[it].toString())
+        }
+    }
+}
 
-internal data class BrowserCursor(val id: String): PointerIcon
-
-internal actual val pointerIconDefault: PointerIcon = BrowserCursor("default")
-internal actual val pointerIconCrosshair: PointerIcon = BrowserCursor("crosshair")
-internal actual val pointerIconText: PointerIcon = BrowserCursor("text")
-internal actual val pointerIconHand: PointerIcon = BrowserCursor("pointer")
+private fun getUserPreferredLanguagesAsArray(): JsArray<JsString> =
+    js("window.navigator.languages")

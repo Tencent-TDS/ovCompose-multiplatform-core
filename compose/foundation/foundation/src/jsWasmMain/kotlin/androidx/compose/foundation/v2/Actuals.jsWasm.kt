@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.input.pointer
+package androidx.compose.foundation.v2
 
-object DummyPointerIcon : PointerIcon
+import kotlinx.coroutines.*
 
-internal data class BrowserCursor(val id: String): PointerIcon
 
-internal actual val pointerIconDefault: PointerIcon = BrowserCursor("default")
-internal actual val pointerIconCrosshair: PointerIcon = BrowserCursor("crosshair")
-internal actual val pointerIconText: PointerIcon = BrowserCursor("text")
-internal actual val pointerIconHand: PointerIcon = BrowserCursor("pointer")
+private val mainScope = MainScope()
+
+/**
+ * In a browser environment it's NOT blocking!
+ * We use Dispatchers.Unconfined,
+ * so if no suspension occurs, the block will complete before the completion of this function.
+ */
+internal actual fun runBlockingIfPossible(block: suspend CoroutineScope.() -> Unit) {
+    mainScope.launch(context = Dispatchers.Unconfined, block = block)
+}

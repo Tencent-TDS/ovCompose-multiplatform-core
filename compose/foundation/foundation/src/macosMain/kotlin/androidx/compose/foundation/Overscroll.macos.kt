@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.input.pointer
+package androidx.compose.foundation
 
-object DummyPointerIcon : PointerIcon
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.NoOpOverscrollEffect
 
-internal data class BrowserCursor(val id: String): PointerIcon
-
-internal actual val pointerIconDefault: PointerIcon = BrowserCursor("default")
-internal actual val pointerIconCrosshair: PointerIcon = BrowserCursor("crosshair")
-internal actual val pointerIconText: PointerIcon = BrowserCursor("text")
-internal actual val pointerIconHand: PointerIcon = BrowserCursor("pointer")
+@ExperimentalFoundationApi
+@Composable
+internal actual fun rememberOverscrollEffect(): OverscrollEffect = NoOpOverscrollEffect

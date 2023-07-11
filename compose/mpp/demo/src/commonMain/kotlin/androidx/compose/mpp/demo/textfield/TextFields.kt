@@ -17,6 +17,7 @@
 package androidx.compose.mpp.demo.textfield
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material.TextField
 import androidx.compose.mpp.demo.Screen
 import androidx.compose.mpp.demo.textfield.android.CapitalizationAutoCorrectDemo
@@ -25,6 +26,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 
 val TextFields = Screen.Selection(
@@ -43,7 +46,10 @@ val TextFields = Screen.Selection(
     },
     Screen.Example("Password Textfield Example") {
         PasswordTextfieldExample()
-    }
+    },
+    Screen.Example("Hide keyboard on click outside") {
+        HideKeyboardOnClickOutside()
+    },
 )
 
 @Composable
@@ -61,5 +67,21 @@ private fun AlmostFullscreen() {
         textState.value, { textState.value = it },
         Modifier.fillMaxSize().padding(vertical = 40.dp)
     )
+}
+
+@Composable
+private fun HideKeyboardOnClickOutside() {
+    val focusManager = LocalFocusManager.current
+    Box(
+        Modifier.fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures {
+                    focusManager.clearFocus(force = true)
+                }
+            },
+    ) {
+        val textState = remember { mutableStateOf("Click outside to hide the keyboard") }
+        TextField(textState.value, { textState.value = it })
+    }
 }
 
