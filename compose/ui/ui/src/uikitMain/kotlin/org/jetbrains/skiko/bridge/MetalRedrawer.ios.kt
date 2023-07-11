@@ -25,7 +25,9 @@ private enum class DrawSchedulingState {
 
 @InternalSkikoApi
 class MetalRedrawer(
-    private val layer: SkiaLayer
+    private val layer: SkiaLayer,
+    private val device: MTLDeviceProtocol,
+    private val metalLayer: CAMetalLayer,
 ) {
     private var currentWidth = 0
     private var currentHeight = 0
@@ -46,26 +48,12 @@ class MetalRedrawer(
         return true
     }
 
-
-    private fun isSizeChanged(width: Int, height: Int): Boolean {
-        if (width != currentWidth || height != currentHeight) {
-            currentWidth = width
-            currentHeight = height
-            return true
-        }
-        return false
-    }
-
     fun initCanvas() {
         disposeCanvas()
         val scale = layer.contentScale
         val (w, h) = layer.view!!.frame.useContents {
             (size.width * scale).toInt().coerceAtLeast(0) to (size.height * scale).toInt()
                 .coerceAtLeast(0)
-        }
-
-        if (isSizeChanged(w, h)) {
-            syncSize()
         }
 
         if (w > 0 && h > 0) {
@@ -118,12 +106,9 @@ class MetalRedrawer(
     }
 
     val renderInfo: String get() = rendererInfo()
-
     private var isDisposed = false
-    internal val device = MTLCreateSystemDefaultDevice() ?: throw IllegalStateException("Metal is not supported on this system")
     private val queue = device.newCommandQueue() ?: throw IllegalStateException("Couldn't create Metal command queue")
     private var currentDrawable: CAMetalDrawableProtocol? = null
-    private val metalLayer = MetalLayer()
 
     // Semaphore for preventing command buffers count more than swapchain size to be scheduled/executed at the same time
     private val inflightSemaphore = dispatch_semaphore_create(metalLayer.maximumDrawableCount.toLong())
@@ -176,8 +161,14 @@ class MetalRedrawer(
         target = frameListener,
         selector = NSSelectorFromString(FrameTickListener::onDisplayLinkTick.name)
     )
+
+    var maximumFramesPerSecond: NSInteger
+        get() = caDisplayLink.preferredFramesPerSecond
+        set(value) {
+            caDisplayLink.preferredFramesPerSecond = value
+        }
+
     init {
-        metalLayer.init(this.layer, device)
         caDisplayLink.setPaused(true)
         caDisplayLink.addToRunLoop(NSRunLoop.mainRunLoop, NSRunLoop.mainRunLoop.currentMode)
     }
@@ -210,23 +201,8 @@ class MetalRedrawer(
             disposeCanvas()
             context?.close()
 
-            metalLayer.dispose()
+//            metalLayer.dispose() //TODO check need or not ?
             isDisposed = true
-        }
-    }
-
-    fun syncSize() {
-        metalLayer.contentsScale = layer.contentScale.toDouble()
-        val osView = layer.view!!
-        val (w, h) = osView.frame.useContents {
-            size.width to size.height
-        }
-        metalLayer.frame = osView.frame
-        metalLayer.init(layer, device)
-        metalLayer.drawableSize = CGSizeMake(w * metalLayer.contentsScale, h * metalLayer.contentsScale)
-
-        osView.window?.screen?.maximumFramesPerSecond?.let {
-            caDisplayLink.preferredFramesPerSecond = it
         }
     }
 
@@ -295,49 +271,6 @@ class MetalRedrawer(
                 currentDrawable = null
             }
         }
-    }
-}
-
-internal class MetalLayer : CAMetalLayer {
-    private lateinit var skiaLayer: SkiaLayer
-
-    @OverrideInit
-    constructor() : super()
-
-    @OverrideInit
-    constructor(layer: Any) : super(layer)
-
-    fun init(
-        skiaLayer: SkiaLayer,
-        theDevice: MTLDeviceProtocol
-    ) {
-        this.skiaLayer = skiaLayer
-        this.setNeedsDisplayOnBoundsChange(true)
-        this.removeAllAnimations()
-        // TODO: looks like a bug in K/N interop.
-        this.device = theDevice as objcnames.protocols.MTLDeviceProtocol?
-        this.pixelFormat = MTLPixelFormatBGRA8Unorm
-        this.contentsGravity = kCAGravityTopLeft
-        doubleArrayOf(0.0, 0.0, 0.0, 0.0).usePinned {
-            this.backgroundColor =
-                CGColorCreate(CGColorSpaceCreateDeviceRGB(), it.addressOf(0))
-        }
-        this.framebufferOnly = false
-        this.opaque = false // For UIKit interop through a "Hole"
-        skiaLayer.view?.let {
-            this.frame = it.frame
-            it.layer.addSublayer(this)
-        }
-    }
-
-    fun dispose() {
-        this.removeFromSuperlayer()
-        // TODO: anything else to dispose the layer?
-    }
-
-    override fun drawInContext(ctx: CGContextRef?) {
-//        contextHandler.draw() //todo redundant
-        super.drawInContext(ctx)
     }
 }
 

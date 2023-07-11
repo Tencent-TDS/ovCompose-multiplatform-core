@@ -11,11 +11,25 @@ import platform.darwin.NSInteger
 import kotlin.math.max
 import kotlin.math.min
 import org.jetbrains.skiko.*
+import platform.Metal.MTLCreateSystemDefaultDevice
+import platform.Metal.MTLDeviceProtocol
+import platform.Metal.MTLPixelFormatBGRA8Unorm
+import platform.QuartzCore.CAMetalLayer
+import platform.QuartzCore.kCAGravityTopLeft
 
 @Suppress("CONFLICTING_OVERLOADS")
 @ExportObjCClass
 @OptIn(InternalSkikoApi::class)
 class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
+
+    companion object : UIViewMeta() {
+        override fun layerClass() = CAMetalLayer
+    }
+
+    private val device: MTLDeviceProtocol = MTLCreateSystemDefaultDevice()
+        ?: throw IllegalStateException("Metal is not supported on this system")
+    private val metalLayer: CAMetalLayer get() = layer as CAMetalLayer
+
     @OverrideInit
     constructor(frame: CValue<CGRect>) : super(frame)
 
@@ -23,6 +37,19 @@ class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
     constructor(coder: NSCoder) : super(coder)
 
     init {
+        metalLayer.setNeedsDisplayOnBoundsChange(true)
+        metalLayer.removeAllAnimations()
+        // TODO: looks like a bug in K/N interop.
+
+        metalLayer.device = device as objcnames.protocols.MTLDeviceProtocol?
+        metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm
+        metalLayer.contentsGravity = kCAGravityTopLeft
+        doubleArrayOf(0.0, 0.0, 0.0, 0.0).usePinned {
+            metalLayer.backgroundColor =
+                CGColorCreate(CGColorSpaceCreateDeviceRGB(), it.addressOf(0))
+        }
+        metalLayer.framebufferOnly = false
+        this.opaque = false // For UIKit interop through a "Hole"
         multipleTouchEnabled = true
     }
 
@@ -42,6 +69,23 @@ class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
         this.skiaLayer = skiaLayer
         _pointInside = pointInside
         _skikoUITextInputTrains = skikoUITextInputTrains
+    }
+
+    override fun layoutSubviews() {
+        super.layoutSubviews()
+        val scale = window?.screen?.scale ?: 1.0
+        val scaledSize = bounds.useContents {
+            CGSizeMake(size.width * scale, size.height * scale)
+        }
+        metalLayer.drawableSize = scaledSize
+    }
+
+    override fun didMoveToWindow() {
+        super.didMoveToWindow()
+        window?.screen?.maximumFramesPerSecond?.let {
+            _redrawer?.maximumFramesPerSecond = it
+        }
+        //TODO Pay attention to removing from window. Maybe set maximumFramesPerSecond to 0 ?
     }
 
     /**
@@ -109,7 +153,7 @@ class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
         skiaLayer?.let { layer ->
             layer.view = this
             // TODO: maybe add observer for view.viewDidDisappear() to detach us?
-            val metalRedrawer = MetalRedrawer(layer).apply {
+            val metalRedrawer = MetalRedrawer(layer, device, metalLayer).apply {
                 needRedraw()
             }
             _redrawer = metalRedrawer
