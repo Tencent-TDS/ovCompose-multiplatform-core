@@ -1,9 +1,9 @@
 package org.jetbrains.skiko.bridge
 
 import kotlinx.cinterop.*
-import org.jetbrains.skia.BackendRenderTarget
-import org.jetbrains.skia.DirectContext
+import org.jetbrains.skia.*
 import org.jetbrains.skiko.InternalSkikoApi
+import org.jetbrains.skiko.RenderException
 import org.jetbrains.skiko.SkiaLayer
 import platform.CoreGraphics.CGColorCreate
 import platform.CoreGraphics.CGColorSpaceCreateDeviceRGB
@@ -27,8 +27,97 @@ private enum class DrawSchedulingState {
 class MetalRedrawer(
     private val layer: SkiaLayer
 ) {
-    private val contextHandler = MetalContextHandler(layer, this)
-    val renderInfo: String get() = contextHandler.rendererInfo()
+    private var currentWidth = 0
+    private var currentHeight = 0
+    private var context: DirectContext? = null
+    private var renderTarget: BackendRenderTarget? = null
+    private var surface: Surface? = null
+    private var canvas: Canvas? = null
+
+    fun initContext(): Boolean {
+        try {
+            if (context == null) {
+                context = makeContext()
+            }
+        } catch (e: Exception) {
+            println("${e.message}\nFailed to create Skia Metal context!")
+            return false
+        }
+        return true
+    }
+
+
+    private fun isSizeChanged(width: Int, height: Int): Boolean {
+        if (width != currentWidth || height != currentHeight) {
+            currentWidth = width
+            currentHeight = height
+            return true
+        }
+        return false
+    }
+
+    fun initCanvas() {
+        disposeCanvas()
+        val scale = layer.contentScale
+        val (w, h) = layer.view!!.frame.useContents {
+            (size.width * scale).toInt().coerceAtLeast(0) to (size.height * scale).toInt()
+                .coerceAtLeast(0)
+        }
+
+        if (isSizeChanged(w, h)) {
+            syncSize()
+        }
+
+        if (w > 0 && h > 0) {
+            renderTarget = makeRenderTarget(w, h)
+
+            surface = Surface.makeFromBackendRenderTarget(
+                context!!,
+                renderTarget!!,
+                SurfaceOrigin.TOP_LEFT,
+                SurfaceColorFormat.BGRA_8888,
+                ColorSpace.sRGB,
+                SurfaceProps(pixelGeometry = layer.pixelGeometry)
+            ) ?: throw RenderException("Cannot create surface")
+
+            canvas = surface!!.canvas
+        } else {
+            renderTarget = null
+            surface = null
+            canvas = null
+        }
+    }
+
+    fun flush() {
+        // TODO: maybe make flush async as in JVM version.
+        context?.flush()
+        surface?.flushAndSubmit()
+        finishFrame()
+    }
+
+    fun disposeCanvas() {
+        surface?.close()
+        renderTarget?.close()
+    }
+
+    // throws RenderException if initialization of graphic context was not successful
+    fun drawContextHandler() {
+        if (!initContext()) {
+            throw RenderException("Cannot init graphic context")
+        }
+        initCanvas()
+        canvas?.apply {
+            clear(Color.WHITE)
+            layer.draw(this)
+        }
+        flush()
+    }
+
+    fun rendererInfo(): String {
+        return "Native Metal: device ${device.name}"
+    }
+
+    val renderInfo: String get() = rendererInfo()
 
     private var isDisposed = false
     internal val device = MTLCreateSystemDefaultDevice() ?: throw IllegalStateException("Metal is not supported on this system")
@@ -47,17 +136,6 @@ class MetalRedrawer(
      * TODO: look closer to what happens after blank frames leave it in AVAILABLE_ON_CURRENT_FRAME. Touch driven events sequence negate that problem.
      */
     private var drawSchedulingState = DrawSchedulingState.AVAILABLE_ON_NEXT_FRAME
-
-    /**
-     * UITouch events are dispatched right before next CADisplayLink callback by iOS.
-     * It's too late to encode any work for this frame after this happens.
-     * Any work dispatched before the next CADisplayLink callback should be scheduled after that callback.
-     */
-    fun preventDrawDispatchDuringCurrentFrame() {
-        if (drawSchedulingState == DrawSchedulingState.AVAILABLE_ON_CURRENT_FRAME) {
-            drawSchedulingState = DrawSchedulingState.AVAILABLE_ON_NEXT_FRAME
-        }
-    }
 
     /**
      * Needs scheduling displayLink for forcing UITouch events to come at the fastest possible cadence.
@@ -99,9 +177,20 @@ class MetalRedrawer(
         selector = NSSelectorFromString(FrameTickListener::onDisplayLinkTick.name)
     )
     init {
-        metalLayer.init(this.layer, contextHandler, device)
+        metalLayer.init(this.layer, device)
         caDisplayLink.setPaused(true)
         caDisplayLink.addToRunLoop(NSRunLoop.mainRunLoop, NSRunLoop.mainRunLoop.currentMode)
+    }
+
+    /**
+     * UITouch events are dispatched right before next CADisplayLink callback by iOS.
+     * It's too late to encode any work for this frame after this happens.
+     * Any work dispatched before the next CADisplayLink callback should be scheduled after that callback.
+     */
+    fun preventDrawDispatchDuringCurrentFrame() {
+        if (drawSchedulingState == DrawSchedulingState.AVAILABLE_ON_CURRENT_FRAME) {
+            drawSchedulingState = DrawSchedulingState.AVAILABLE_ON_NEXT_FRAME
+        }
     }
 
     fun makeContext() = DirectContext.makeMetal(device.objcPtr(), queue.objcPtr())
@@ -117,7 +206,10 @@ class MetalRedrawer(
     fun dispose() {
         if (!isDisposed) {
             caDisplayLink.invalidate()
-            contextHandler.dispose()
+
+            disposeCanvas()
+            context?.close()
+
             metalLayer.dispose()
             isDisposed = true
         }
@@ -130,7 +222,7 @@ class MetalRedrawer(
             size.width to size.height
         }
         metalLayer.frame = osView.frame
-        metalLayer.init(layer, contextHandler, device)
+        metalLayer.init(layer, device)
         metalLayer.drawableSize = CGSizeMake(w * metalLayer.contentsScale, h * metalLayer.contentsScale)
 
         osView.window?.screen?.maximumFramesPerSecond?.let {
@@ -184,7 +276,7 @@ class MetalRedrawer(
         // TODO: maybe make flush async as in JVM version.
         autoreleasepool { //todo measure performance without autoreleasepool
             if (!isDisposed) {
-                contextHandler.draw()
+                drawContextHandler()
             }
         }
     }
@@ -208,7 +300,6 @@ class MetalRedrawer(
 
 internal class MetalLayer : CAMetalLayer {
     private lateinit var skiaLayer: SkiaLayer
-    private lateinit var contextHandler: MetalContextHandler
 
     @OverrideInit
     constructor() : super()
@@ -218,11 +309,9 @@ internal class MetalLayer : CAMetalLayer {
 
     fun init(
         skiaLayer: SkiaLayer,
-        contextHandler: MetalContextHandler,
         theDevice: MTLDeviceProtocol
     ) {
         this.skiaLayer = skiaLayer
-        this.contextHandler = contextHandler
         this.setNeedsDisplayOnBoundsChange(true)
         this.removeAllAnimations()
         // TODO: looks like a bug in K/N interop.
@@ -247,7 +336,7 @@ internal class MetalLayer : CAMetalLayer {
     }
 
     override fun drawInContext(ctx: CGContextRef?) {
-        contextHandler.draw()
+//        contextHandler.draw() //todo redundant
         super.drawInContext(ctx)
     }
 }

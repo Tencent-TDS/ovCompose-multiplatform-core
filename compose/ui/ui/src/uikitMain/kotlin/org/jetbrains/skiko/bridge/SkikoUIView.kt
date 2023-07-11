@@ -113,13 +113,11 @@ class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
                 needRedraw()
             }
             _redrawer = metalRedrawer
-            val contextHandler = MetalContextHandler(layer, metalRedrawer)
             layer.needRedrawCallback = {
                 metalRedrawer.needRedraw()
             }
             layer.detachCallback = {
                 metalRedrawer.dispose()
-                contextHandler.dispose()
             }
             layer.initGestures()
         }
