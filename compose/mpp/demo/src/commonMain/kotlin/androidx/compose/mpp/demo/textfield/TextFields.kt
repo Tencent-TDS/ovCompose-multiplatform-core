@@ -41,6 +41,9 @@ val TextFields = Screen.Selection(
     Screen.Example("Keyboard Actions") {
         KeyboardActionsExample()
     },
+    Screen.Example("Password Textfield Example") {
+        PasswordTextfieldExample()
+    }
 )
 
 @Composable
