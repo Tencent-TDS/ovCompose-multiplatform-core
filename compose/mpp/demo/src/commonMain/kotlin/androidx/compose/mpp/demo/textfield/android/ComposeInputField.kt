@@ -67,7 +67,7 @@ fun InputFieldDemo() {
                     TagLine(tag = "simple editing RTL")
                     EditLine()
                     EditLine(text = displayTextArabic)
-                    EditLine(text = displayText)
+                    EditLine(text = "Text Demo")
                 }
             }
         }

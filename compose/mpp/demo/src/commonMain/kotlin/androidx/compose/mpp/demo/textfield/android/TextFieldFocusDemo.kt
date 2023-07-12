@@ -41,6 +41,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import org.jetbrains.skiko.currentNanoTime
 
+//TODO This sample should be adapted to multiplatform usage
 //private val modifierKeys = setOf(
 //    NativeKeyEvent.KEYCODE_SHIFT_LEFT,
 //    NativeKeyEvent.KEYCODE_SHIFT_RIGHT,
