@@ -37,6 +37,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 
+@Composable
+fun CapitalizationAutoCorrectDemo() {
+    LazyColumn {
+        items(KeyboardOptionsList) { data ->
+            TagLine(tag = data.name)
+            MyTextField(data)
+        }
+    }
+}
+
 private val KeyboardOptionsList = listOf(
     ImeOptionsData(
         keyboardOptions = KeyboardOptions(
@@ -75,16 +85,6 @@ private val KeyboardOptionsList = listOf(
         name = "AutoCorrect Off"
     )
 )
-
-@Composable
-fun CapitalizationAutoCorrectDemo() {
-    LazyColumn {
-        items(KeyboardOptionsList) { data ->
-            TagLine(tag = data.name)
-            MyTextField(data)
-        }
-    }
-}
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable

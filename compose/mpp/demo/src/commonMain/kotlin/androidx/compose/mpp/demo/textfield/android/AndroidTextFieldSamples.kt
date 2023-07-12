@@ -18,8 +18,8 @@ package androidx.compose.mpp.demo.textfield.android
 
 import androidx.compose.mpp.demo.Screen
 
-val AndroidXTextFields = Screen.Selection(
-    "androidx TextFields",
+val AndroidTextFieldSamples = Screen.Selection(
+    "Android TextField samples",
     Screen.Example("Basic input fields") { InputFieldDemo() },
     Screen.Example("Capitalization/AutoCorrect") { CapitalizationAutoCorrectDemo() },
     Screen.Example("Cursor configuration") { TextFieldCursorBlinkingDemo() },
@@ -43,4 +43,5 @@ val AndroidXTextFields = Screen.Selection(
     Screen.Example("Focus immediately") { FocusTextFieldImmediatelyDemo() },
     Screen.Example("Secondary input system") { PlatformTextInputAdapterDemo() },
     Screen.Example("TextField focus") { TextFieldFocusDemo() },
+    Screen.Example("TextFieldBrush") { TextFieldBrush() },
 )
