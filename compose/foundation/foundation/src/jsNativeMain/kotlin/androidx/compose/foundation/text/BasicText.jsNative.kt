@@ -21,4 +21,4 @@ import androidx.compose.ui.Modifier
 
 internal actual fun Modifier.textPointerHoverIcon(
     selectionRegistrar: SelectionRegistrar?
-): Modifier = this
+): Modifier = this //TODO: Implement on some platforms. Maybe on JS?
