@@ -97,28 +97,6 @@ internal actual object Trace {
 
 actual annotation class CheckResult actual constructor(actual val suggest: String)
 
-internal actual fun <T> createSnapshotMutableState(
-    value: T,
-    policy: SnapshotMutationPolicy<T>
-): SnapshotMutableState<T> =
-    SnapshotMutableStateImpl(value, policy)
-
-internal actual fun createSnapshotMutableIntState(
-    value: Int
-): MutableIntState = SnapshotMutableIntStateImpl(value)
-
-internal actual fun createSnapshotMutableLongState(
-    value: Long
-): MutableLongState = SnapshotMutableLongStateImpl(value)
-
-internal actual fun createSnapshotMutableFloatState(
-    value: Float
-): MutableFloatState = SnapshotMutableFloatStateImpl(value)
-
-internal actual fun createSnapshotMutableDoubleState(
-    value: Double
-): MutableDoubleState = SnapshotMutableDoubleStateImpl(value)
-
 @ExperimentalComposeApi
 internal actual class SnapshotContextElementImpl actual constructor(
     private val snapshot: Snapshot
