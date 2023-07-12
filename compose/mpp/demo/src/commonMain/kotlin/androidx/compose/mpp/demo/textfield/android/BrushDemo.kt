@@ -53,4 +53,3 @@ private val RainbowColors = listOf(
     Color(0xff8bd448),
     Color(0xff2aa8f2)
 )
-private val RainbowStops = listOf(0f, 0.2f, 0.4f, 0.6f, 0.8f, 1f)
