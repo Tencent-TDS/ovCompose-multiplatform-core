@@ -141,7 +141,8 @@ private val FocusableInNonTouchModeElement =
 
         override fun update(node: FocusableInNonTouchMode) {}
 
-        override fun hashCode(): Int = System.identityHashCode(this)
+        private val arbitraryHashCode: Int = 0x70f4de02 // Just a randomly generated constant
+        override fun hashCode(): Int = arbitraryHashCode
 
         override fun equals(other: Any?): Boolean = this === other
 

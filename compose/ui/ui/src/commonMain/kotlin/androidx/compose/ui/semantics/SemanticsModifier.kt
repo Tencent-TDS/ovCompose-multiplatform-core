@@ -56,7 +56,8 @@ internal object EmptySemanticsElement :
         // Nothing to inspect.
     }
 
-    override fun hashCode(): Int = System.identityHashCode(this)
+    private const val arbitraryHashCode: Int = 0x7175e5e5 // Just a randomly generated constant
+    override fun hashCode(): Int = arbitraryHashCode
     override fun equals(other: Any?) = (other === this)
 }
 

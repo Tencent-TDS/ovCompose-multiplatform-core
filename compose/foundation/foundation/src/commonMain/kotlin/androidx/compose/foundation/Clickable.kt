@@ -439,9 +439,7 @@ private class ClickableElement(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as ClickableElement
+        if (other !is ClickableElement) return false
 
         if (interactionSource != other.interactionSource) return false
         if (enabled != other.enabled) return false
@@ -501,9 +499,7 @@ private class CombinedClickableElement(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as CombinedClickableElement
+        if (other !is CombinedClickableElement) return false
 
         if (interactionSource != other.interactionSource) return false
         if (enabled != other.enabled) return false
