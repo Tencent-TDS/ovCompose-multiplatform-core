@@ -16,13 +16,23 @@
 
 package androidx.compose.foundation.gestures
 
-import androidx.compose.foundation.MutatePriority as FoundationMutatePriority
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.AnimationState
+import androidx.compose.animation.core.DecayAnimationSpec
+import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.rememberSplineBasedDecay
-import androidx.compose.foundation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.MutatePriority
+import androidx.compose.foundation.OverscrollEffect
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.Orientation.Horizontal
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.runtime.*
+import androidx.compose.foundation.rememberOverscrollEffect
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.composed
@@ -33,7 +43,13 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource.Companion.Drag
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource.Companion.Fling
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.SuspendingPointerInputModifierNode
 import androidx.compose.ui.modifier.ModifierLocalProvider
 import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.node.DelegatingNode
@@ -42,14 +58,14 @@ import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.debugInspectorInfo
-import androidx.compose.ui.unit.*
-import androidx.compose.ui.util.fastAny
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastForEach
 import kotlin.math.abs
-import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -325,14 +341,22 @@ private class MouseWheelScrollElement(
 }
 
 // TODO(levima) Save the ScrollingLogic value in the ScrollableNode so we won't need a State here.
-private abstract class MouseWheelScrollNode(
+internal abstract class MouseWheelScrollNode(
     var scrollingLogicState: State<ScrollingLogic>,
     var mouseWheelScrollConfig: ScrollConfig
 ) : DelegatingNode(), PointerInputModifierNode {
-    protected val scrollingLogic get() = scrollingLogicState.value
-
     private val pointerInputNode = delegate(SuspendingPointerInputModifierNode {
-        mouseWheelInput()
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitScrollEvent()
+                if (event.changes.fastAll { !it.isConsumed }) {
+                    val consumed = onMouseWheel(event)
+                    if (consumed) {
+                        event.changes.fastForEach { it.consume() }
+                    }
+                }
+            }
+        }
     })
 
     override fun onPointerEvent(
@@ -347,180 +371,19 @@ private abstract class MouseWheelScrollNode(
         pointerInputNode.onCancelPointerInput()
     }
 
-    private suspend fun PointerInputScope.mouseWheelInput() = awaitPointerEventScope {
-        while (true) {
-            val event = awaitScrollEvent()
-            if (!event.isConsumed) {
-                val consumed = onMouseWheel(event)
-                if (consumed) {
-                    event.consume()
-                }
-            }
-        }
-    }
-
     protected abstract fun PointerInputScope.onMouseWheel(pointerEvent: PointerEvent): Boolean
-
-    private suspend fun AwaitPointerEventScope.awaitScrollEvent(): PointerEvent {
-        var event: PointerEvent
-        do {
-            event = awaitPointerEvent()
-        } while (event.type != PointerEventType.Scroll)
-        return event
-    }
-
-    private inline val PointerEvent.isConsumed: Boolean get() = changes.fastAny { it.isConsumed }
-    private inline fun PointerEvent.consume() = changes.fastForEach { it.consume() }
-
 }
 
-private class RawMouseWheelScrollNode(
-    scrollingLogicState: State<ScrollingLogic>,
-    mouseWheelScrollConfig: ScrollConfig
-) : MouseWheelScrollNode(scrollingLogicState, mouseWheelScrollConfig) {
-    override fun PointerInputScope.onMouseWheel(pointerEvent: PointerEvent): Boolean {
-        val delta = with(mouseWheelScrollConfig) {
-            calculateMouseWheelScroll(pointerEvent, size)
-        }
-        return scrollingLogic.dispatchRawDelta(delta) != Offset.Zero
-    }
-}
-
-private class AnimatedMouseWheelScrollNode(
-    scrollingLogicState: State<ScrollingLogic>,
-    mouseWheelScrollConfig: ScrollConfig
-) : MouseWheelScrollNode(scrollingLogicState, mouseWheelScrollConfig) {
-    private var isAnimationRunning = false
-    private val channel = Channel<Float>(capacity = Channel.UNLIMITED)
-
-    override fun onAttach() {
-        val density = 1f // TODO: LocalDensity.current.density (no @Composable scope)
-        coroutineScope.launch {
-            while (isActive) {
-                val event = channel.receive()
-                isAnimationRunning = true
-                scrollingLogic.animatedDispatchScroll(event, speed = 1f * density) {
-                    // Sum delta from all pending events to avoid multiple animation restarts.
-                    channel.sumOrNull()
-                }
-                isAnimationRunning = false
-            }
-        }
-    }
-
-    override fun PointerInputScope.onMouseWheel(pointerEvent: PointerEvent): Boolean {
-        val scrollDelta = with(mouseWheelScrollConfig) {
-            calculateMouseWheelScroll(pointerEvent, size)
-        }
-        return if (mouseWheelScrollConfig.isPreciseWheelScroll(pointerEvent)) {
-            // In case of high-resolution wheel, such as a freely rotating wheel with no notches
-            // or trackpads, delta should apply directly without any delays.
-            scrollingLogic.dispatchRawDelta(scrollDelta) != Offset.Zero
-
-            /*
-             * TODO Set isScrollInProgress to true in case of touchpad.
-             *  Dispatching raw delta doesn't cause a progress indication even with wrapping in
-             *  `scrollableState.scroll` block, since it applies the change within single frame.
-             *  Touchpads emit just multiple mouse wheel events, so detecting start and end of this
-             *  "gesture" is not straight forward.
-             *  Ideally it should be resolved by catching real touches from input device instead of
-             *  introducing a timeout (after each event before resetting progress flag).
-             */
-        } else with(scrollingLogic) {
-            val delta = scrollDelta.reverseIfNeeded().toFloat()
-            if (isAnimationRunning) {
-                channel.trySend(delta).isSuccess
-            } else {
-                // Try to apply small delta immediately to conditionally consume
-                // an input event and to avoid useless animation.
-                tryToScrollBySmallDelta(delta, threshold = 4.dp.toPx()) {
-                    channel.trySend(it).isSuccess
-                }
-            }
-        }
-    }
-
-    private fun Channel<Float>.sumOrNull(): Float? {
-        val elements = untilNull { tryReceive().getOrNull() }.toList()
-        return if (elements.isEmpty()) null else elements.sum()
-    }
-
-    private fun <E> untilNull(builderAction: () -> E?) = sequence<E> {
-        do {
-            val element = builderAction()?.also {
-                yield(it)
-            }
-        } while (element != null)
-    }
-
-    private fun ScrollingLogic.tryToScrollBySmallDelta(
-        delta: Float,
-        threshold: Float = 4f,
-        fallback: (Float) -> Boolean
-    ): Boolean {
-        return if (abs(delta) > threshold) {
-            // Gather possibility to scroll by applying a piece of required delta.
-            val testDelta = if (delta > 0f) threshold else -threshold
-            val consumedDelta = scrollableState.dispatchRawDelta(testDelta)
-            consumedDelta != 0f && fallback(delta - testDelta)
-        } else {
-            val consumedDelta = scrollableState.dispatchRawDelta(delta)
-            consumedDelta != 0f
-        }
-    }
-
-    private suspend fun ScrollingLogic.animatedDispatchScroll(
-        eventDelta: Float,
-        speed: Float = 1f,
-        maxDurationMillis: Int = 100,
-        tryReceiveNext: () -> Float?
-    ) {
-        var target = eventDelta
-        tryReceiveNext()?.let {
-            target += it
-        }
-        if (target.isLowScrollingDelta()) {
-            return
-        }
-        scrollableState.scroll {
-            var requiredAnimation = true
-            var lastValue = 0f
-            val anim = AnimationState(0f)
-            while (requiredAnimation) {
-                requiredAnimation = false
-                val durationMillis = (abs(target - anim.value) / speed)
-                    .roundToInt()
-                    .coerceAtMost(maxDurationMillis)
-                anim.animateTo(
-                    target,
-                    animationSpec = tween(
-                        durationMillis = durationMillis,
-                        easing = LinearEasing
-                    ),
-                    sequentialAnimation = true
-                ) {
-                    val delta = value - lastValue
-                    if (!delta.isLowScrollingDelta()) {
-                        val consumedDelta = scrollBy(delta)
-                        if (!(delta - consumedDelta).isLowScrollingDelta()) {
-                            cancelAnimation()
-                            return@animateTo
-                        }
-                        lastValue += delta
-                    }
-                    tryReceiveNext()?.let {
-                        target += it
-                        requiredAnimation = !(target - lastValue).isLowScrollingDelta()
-                        cancelAnimation()
-                    }
-                }
-            }
-        }
-    }
+private suspend fun AwaitPointerEventScope.awaitScrollEvent(): PointerEvent {
+    var event: PointerEvent
+    do {
+        event = awaitPointerEvent()
+    } while (event.type != PointerEventType.Scroll)
+    return event
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-private class ScrollingLogic(
+internal class ScrollingLogic(
     val orientation: Orientation,
     val reverseDirection: Boolean,
     val nestedScrollDispatcher: State<NestedScrollDispatcher>,
@@ -678,7 +541,7 @@ private class ScrollDraggableState(
         }
     }
 
-    override suspend fun drag(dragPriority: FoundationMutatePriority, block: suspend DragScope.() -> Unit) {
+    override suspend fun drag(dragPriority: MutatePriority, block: suspend DragScope.() -> Unit) {
         scrollLogic.value.scrollableState.scroll(dragPriority) {
             latestScrollScope = this
             block()
@@ -785,9 +648,3 @@ internal val DefaultScrollMotionDurationScale = object : MotionDurationScale {
     override val scaleFactor: Float
         get() = DefaultScrollMotionDurationScaleFactor
 }
-
-/*
- * Returns true, if the value is too low for visible change in scroll (consumed delta, animation-based change, etc),
- * false otherwise
- */
-private inline fun Float.isLowScrollingDelta(): Boolean = abs(this) < 0.5f
