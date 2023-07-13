@@ -439,7 +439,9 @@ private class ClickableElement(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is ClickableElement) return false
+        if (other == null || this::class != other::class) return false
+
+        other as ClickableElement
 
         if (interactionSource != other.interactionSource) return false
         if (enabled != other.enabled) return false
@@ -499,7 +501,9 @@ private class CombinedClickableElement(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is CombinedClickableElement) return false
+        if (other == null || this::class != other::class) return false
+
+        other as CombinedClickableElement
 
         if (interactionSource != other.interactionSource) return false
         if (enabled != other.enabled) return false
