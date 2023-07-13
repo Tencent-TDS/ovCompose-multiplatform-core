@@ -21,6 +21,8 @@ import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.BringIntoViewRequesterNode
+import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.identityHashCode
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusEventModifierNode
 import androidx.compose.ui.focus.FocusProperties
@@ -141,7 +143,8 @@ private val FocusableInNonTouchModeElement =
 
         override fun update(node: FocusableInNonTouchMode) {}
 
-        private val arbitraryHashCode: Int = 0x70f4de02 // Just a randomly generated constant
+        @OptIn(InternalComposeApi::class)
+        private val arbitraryHashCode: Int = identityHashCode(this)
         override fun hashCode(): Int = arbitraryHashCode
 
         override fun equals(other: Any?): Boolean = this === other

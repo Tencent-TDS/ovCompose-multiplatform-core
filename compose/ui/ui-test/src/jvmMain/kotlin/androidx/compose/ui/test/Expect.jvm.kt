@@ -14,6 +14,3 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.test
-
-internal actual fun identityHashCode(instance: Any?): Int = System.identityHashCode(instance)
