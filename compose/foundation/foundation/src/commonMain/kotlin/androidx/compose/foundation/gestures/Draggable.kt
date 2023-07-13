@@ -237,6 +237,8 @@ internal class DraggableElement(
         if (this === other) return true
         if (other == null || this::class != other::class) return false
 
+        other as DraggableElement
+
         if (state != other.state) return false
         if (canDrag != other.canDrag) return false
         if (orientation != other.orientation) return false
