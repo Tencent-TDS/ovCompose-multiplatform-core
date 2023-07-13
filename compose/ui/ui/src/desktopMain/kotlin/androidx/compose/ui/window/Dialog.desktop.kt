@@ -43,6 +43,41 @@ import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import javax.swing.JDialog
 
+@Deprecated(
+    message = "Replaced by DialogWindow",
+    replaceWith = ReplaceWith("DialogWindow(onCloseRequest, state, visible, title, icon, undecorated, transparent, resizable, enabled, focusable, onPreviewKeyEvent, onKeyEvent, content)")
+)
+@Composable
+fun Dialog(
+    onCloseRequest: () -> Unit,
+    state: DialogState = rememberDialogState(),
+    visible: Boolean = true,
+    title: String = "Untitled",
+    icon: Painter? = null,
+    undecorated: Boolean = false,
+    transparent: Boolean = false,
+    resizable: Boolean = true,
+    enabled: Boolean = true,
+    focusable: Boolean = true,
+    onPreviewKeyEvent: ((KeyEvent) -> Boolean) = { false },
+    onKeyEvent: ((KeyEvent) -> Boolean) = { false },
+    content: @Composable DialogWindowScope.() -> Unit
+) = DialogWindow(
+    onCloseRequest,
+    state,
+    visible,
+    title,
+    icon,
+    undecorated,
+    transparent,
+    resizable,
+    enabled,
+    focusable,
+    onPreviewKeyEvent,
+    onKeyEvent,
+    content
+)
+
 /**
  * Composes platform dialog in the current composition. When Dialog enters the composition,
  * a new platform dialog will be created and receives the focus. When Dialog leaves the
@@ -101,7 +136,7 @@ import javax.swing.JDialog
  * @param content content of the dialog
  */
 @Composable
-fun Dialog(
+fun DialogWindow(
     onCloseRequest: () -> Unit,
     state: DialogState = rememberDialogState(),
     visible: Boolean = true,
@@ -223,6 +258,29 @@ fun Dialog(
     )
 }
 
+@Deprecated(
+    message = "Replaced by DialogWindow",
+    replaceWith = ReplaceWith("DialogWindow(visible, onPreviewKeyEvent, onKeyEvent, create, dispose, update, content)")
+)
+@Composable
+fun Dialog(
+    visible: Boolean = true,
+    onPreviewKeyEvent: ((KeyEvent) -> Boolean) = { false },
+    onKeyEvent: ((KeyEvent) -> Boolean) = { false },
+    create: () -> ComposeDialog,
+    dispose: (ComposeDialog) -> Unit,
+    update: (ComposeDialog) -> Unit = {},
+    content: @Composable DialogWindowScope.() -> Unit
+) = DialogWindow(
+    visible,
+    onPreviewKeyEvent,
+    onKeyEvent,
+    create,
+    dispose,
+    update,
+    content
+)
+
 // TODO(demin): fix mouse hover after opening a dialog.
 //  When we open a modal dialog, ComposeLayer/mouseExited will
 //  never be called for the parent window. See ./gradlew run3
@@ -268,7 +326,7 @@ fun Dialog(
 @OptIn(ExperimentalComposeUiApi::class)
 @Suppress("unused")
 @Composable
-fun Dialog(
+fun DialogWindow(
     visible: Boolean = true,
     onPreviewKeyEvent: ((KeyEvent) -> Boolean) = { false },
     onKeyEvent: ((KeyEvent) -> Boolean) = { false },
