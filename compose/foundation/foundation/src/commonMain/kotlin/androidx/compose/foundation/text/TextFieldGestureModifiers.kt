@@ -56,6 +56,7 @@ internal fun Modifier.mouseDragGestureDetector(
     observer: MouseSelectionObserver,
     enabled: Boolean
 ) = if (enabled) Modifier.composed {
+    // TODO(https://youtrack.jetbrains.com/issue/COMPOSE-79) how we can rewrite this without `composed`?
     val currentMouseSelectionObserver by rememberUpdatedState(observer)
     pointerInput(Unit) {
         mouseSelectionDetector(currentMouseSelectionObserver)

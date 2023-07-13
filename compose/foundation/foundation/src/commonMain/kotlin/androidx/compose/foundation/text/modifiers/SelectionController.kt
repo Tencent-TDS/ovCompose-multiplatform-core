@@ -345,6 +345,7 @@ private fun SelectionRegistrar.makeSelectionModifier(
             }
         }
         Modifier.composed {
+            // TODO(https://youtrack.jetbrains.com/issue/COMPOSE-79) how we can rewrite this without `composed`?
             val currentMouseSelectionObserver by rememberUpdatedState(mouseSelectionObserver)
             pointerInput(Unit) {
                 mouseSelectionDetector(currentMouseSelectionObserver)
