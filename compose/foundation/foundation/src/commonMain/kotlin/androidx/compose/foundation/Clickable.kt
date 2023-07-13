@@ -929,16 +929,10 @@ private class CombinedClickablePointerInputNode(
         interactionData.centreOffset = size.center.toOffset()
         detectTapGestures(
             onDoubleTap = if (enabled && onDoubleClick != null) {
-                {
-                    requestFocus()
-                    onDoubleClick?.invoke()
-                }
+                { requestFocus(); onDoubleClick?.invoke() }
             } else null,
             onLongPress = if (enabled && onLongClick != null) {
-                {
-                    requestFocus()
-                    onLongClick?.invoke()
-                }
+                { requestFocus(); onLongClick?.invoke() }
             } else null,
             onPress = { offset ->
                 if (enabled) {
