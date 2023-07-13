@@ -235,7 +235,7 @@ internal class DraggableElement(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is DraggableElement) return false
+        if (other == null || this::class != other::class) return false
 
         if (state != other.state) return false
         if (canDrag != other.canDrag) return false
