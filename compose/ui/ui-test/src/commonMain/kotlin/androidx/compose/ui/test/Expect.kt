@@ -17,6 +17,11 @@
 package androidx.compose.ui.test
 
 /**
+ * Replacement of jvm only kotlin.assert(value, {message}) in commonMain sourceSet.
+ */
+internal expect inline fun commonAssert(value: Boolean, lazyMessage: () -> Any)
+
+/**
  * Returns the hash code for the given object that is unique across all currently allocated objects.
  * The hash code for the null reference is zero.
  *
@@ -32,8 +37,3 @@ package androidx.compose.ui.test
  * ```
  */
 internal expect fun identityHashCode(instance: Any?): Int
-
-/**
- * Replacement of jvm only kotlin.assert(value, {message}) in commonMain sourceSet.
- */
-internal expect inline fun commonAssert(value: Boolean, lazyMessage: () -> Any)
