@@ -83,7 +83,7 @@ fun Dialog(
  * a new platform dialog will be created and receives the focus. When Dialog leaves the
  * composition, dialog will be disposed and closed.
  *
- * Dialog is a modal window. It means it blocks the parent [Window] / [Dialog] in which composition
+ * Dialog is a modal window. It means it blocks the parent [Window] / [DialogWindow] in which composition
  * context it was created.
  *
  * Usage:
@@ -107,11 +107,11 @@ fun Dialog(
  * the native dialog will update its corresponding properties.
  * If [DialogState.position] is not [WindowPosition.isSpecified], then after the first show on the
  * screen [DialogState.position] will be set to the absolute values.
- * @param visible Is [Dialog] visible to user.
+ * @param visible Is [DialogWindow] visible to user.
  * If `false`:
- * - internal state of [Dialog] is preserved and will be restored next time the dialog
+ * - internal state of [DialogWindow] is preserved and will be restored next time the dialog
  * will be visible;
- * - native resources will not be released. They will be released only when [Dialog]
+ * - native resources will not be released. They will be released only when [DialogWindow]
  * will leave the composition.
  * @param title Title in the titlebar of the dialog
  * @param icon Icon in the titlebar of the window (for platforms which support this).
@@ -185,8 +185,7 @@ fun DialogWindow(
         }
     }
 
-
-    Dialog(
+    DialogWindow(
         visible = visible,
         onPreviewKeyEvent = onPreviewKeyEvent,
         onKeyEvent = onKeyEvent,
@@ -292,7 +291,7 @@ fun Dialog(
  * Once Dialog leaves the composition, [dispose] will be called to free resources that
  * obtained by the [ComposeDialog].
  *
- * Dialog is a modal window. It means it blocks the parent [Window] / [Dialog] in which composition
+ * Dialog is a modal window. It means it blocks the parent [Window] / [DialogWindow] in which composition
  * context it was created.
  *
  * The [update] block can be run multiple times (on the UI thread as well) due to recomposition,
@@ -301,13 +300,13 @@ fun Dialog(
  * Note the block will also be ran once right after the [create] block completes.
  *
  * Dialog is needed for creating dialog's that still can't be created with
- * the default Compose function [androidx.compose.ui.window.Dialog]
+ * the default Compose function [androidx.compose.ui.window.DialogWindow]
  *
  * @param visible Is [ComposeDialog] visible to user.
  * If `false`:
  * - internal state of [ComposeDialog] is preserved and will be restored next time the dialog
  * will be visible;
- * - native resources will not be released. They will be released only when [Dialog]
+ * - native resources will not be released. They will be released only when [DialogWindow]
  * will leave the composition.
  * @param onPreviewKeyEvent This callback is invoked when the user interacts with the hardware
  * keyboard. It gives ancestors of a focused component the chance to intercept a [KeyEvent].
@@ -370,12 +369,12 @@ fun DialogWindow(
 }
 
 /**
- * Receiver scope which is used by [androidx.compose.ui.window.Dialog].
+ * Receiver scope which is used by [androidx.compose.ui.window.DialogWindow].
  */
 @Stable
 interface DialogWindowScope : WindowScope {
     /**
-     * [ComposeDialog] that was created inside [androidx.compose.ui.window.Dialog].
+     * [ComposeDialog] that was created inside [androidx.compose.ui.window.DialogWindow].
      */
     override val window: ComposeDialog
 }
