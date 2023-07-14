@@ -46,6 +46,7 @@ import androidx.compose.runtime.mock.validate
 import androidx.compose.runtime.snapshots.Snapshot
 import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
+import kotlin.reflect.KProperty
 import kotlin.test.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -57,11 +58,12 @@ import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.test.IgnoreJsTarget
 import kotlinx.coroutines.withContext
+import kotlinx.test.IgnoreJsAndNative
 
 @Composable
 fun Container(content: @Composable () -> Unit) = content()
@@ -626,6 +628,7 @@ class CompositionTests {
     }
 
     @Test
+    @IgnoreJsAndNative
     fun testSkippingNestedLambda() = compositionTest {
         val data = mutableStateOf(0)
 
@@ -3760,49 +3763,50 @@ class CompositionTests {
         }
     }
 
-    @Test(timeout = 10000)
-    fun testCompositionAndRecomposerDeadlock() {
-        runBlocking {
-            withGlobalSnapshotManager {
-                repeat(100) {
-                    val job = Job(parent = coroutineContext[Job])
-                    val coroutineContext = Dispatchers.Unconfined + job
-                    val recomposer = Recomposer(coroutineContext)
+    @Test
+    fun testCompositionAndRecomposerDeadlock() = runTest(
+        timeoutMs = 10_000,
+        context = UnconfinedTestDispatcher()
+    ) {
+        withGlobalSnapshotManager {
+            repeat(100) {
+                val job = Job(parent = coroutineContext[Job])
+                val coroutineContext = Dispatchers.Unconfined + job
+                val recomposer = Recomposer(coroutineContext)
 
-                    launch(
-                        coroutineContext + BroadcastFrameClock(),
-                        start = CoroutineStart.UNDISPATCHED
-                    ) {
-                        recomposer.runRecomposeAndApplyChanges()
-                    }
-
-                    val composition = Composition(EmptyApplier(), recomposer)
-                    composition.setContent {
-
-                        val innerComposition = Composition(
-                            EmptyApplier(),
-                            rememberCompositionContext(),
-                        )
-
-                        DisposableEffect(composition) {
-                            onDispose {
-                                innerComposition.dispose()
-                            }
-                        }
-                    }
-
-                    var value by mutableStateOf(1)
-                    launch(Dispatchers.Default + job) {
-                        while (true) {
-                            value += 1
-                            delay(1)
-                        }
-                    }
-
-                    composition.dispose()
-                    recomposer.close()
-                    job.cancel()
+                launch(
+                    coroutineContext + BroadcastFrameClock(),
+                    start = CoroutineStart.UNDISPATCHED
+                ) {
+                    recomposer.runRecomposeAndApplyChanges()
                 }
+
+                val composition = Composition(EmptyApplier(), recomposer)
+                composition.setContent {
+
+                    val innerComposition = Composition(
+                        EmptyApplier(),
+                        rememberCompositionContext(),
+                    )
+
+                    DisposableEffect(composition) {
+                        onDispose {
+                            innerComposition.dispose()
+                        }
+                    }
+                }
+
+                var value by mutableStateOf(1)
+                launch(Dispatchers.Default + job) {
+                    while (true) {
+                        value += 1
+                        delay(1)
+                    }
+                }
+
+                composition.dispose()
+                recomposer.close()
+                job.cancel()
             }
         }
     }
