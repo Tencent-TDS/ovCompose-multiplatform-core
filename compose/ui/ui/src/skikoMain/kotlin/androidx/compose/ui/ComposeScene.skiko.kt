@@ -172,10 +172,10 @@ class ComposeScene internal constructor(
         }
     }
 
-    private inline fun <T> reversedOwners(action: (List<SkiaBasedOwner>) -> T): T {
+    private inline fun forEachOwnerReversed(action: (SkiaBasedOwner) -> Unit) {
         listCopy.addAll(owners)
         try {
-            return action(listCopy.asReversed())
+            listCopy.asReversed().forEach(action)
         } finally {
             listCopy.clear()
         }
@@ -600,11 +600,12 @@ class ComposeScene internal constructor(
     }
 
     private fun processPress(event: PointerInputEvent) {
-        val owner = reversedOwners {
-            for (owner in it) {
+        forEachOwnerReversed { owner ->
             if (owner.isHovered(event)) {
                 // Stop once the position of in bounds of the owner
-                    return@reversedOwners owner
+                owner.processPointerInput(event)
+                pressOwner = owner
+                return@processPress
             }
             owner.onClickOutside?.invoke()
             if (owner == focusedOwner) {
@@ -612,10 +613,6 @@ class ComposeScene internal constructor(
                 return@processPress
             }
         }
-            return@reversedOwners null
-        }
-        owner?.processPointerInput(event)
-        pressOwner = owner
     }
 
     private fun processRelease(event: PointerInputEvent) {
