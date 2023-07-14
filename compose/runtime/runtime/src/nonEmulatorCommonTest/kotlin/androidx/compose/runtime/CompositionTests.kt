@@ -59,6 +59,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.test.IgnoreJsTarget
@@ -3764,49 +3765,48 @@ class CompositionTests {
     }
 
     @Test
-    fun testCompositionAndRecomposerDeadlock() = runTest(
-        timeoutMs = 10_000,
-        context = UnconfinedTestDispatcher()
-    ) {
-        withGlobalSnapshotManager {
-            repeat(100) {
-                val job = Job(parent = coroutineContext[Job])
-                val coroutineContext = Dispatchers.Unconfined + job
-                val recomposer = Recomposer(coroutineContext)
+    fun testCompositionAndRecomposerDeadlock(): TestResult {
+        return runTest(timeoutMs = 10_000, context = UnconfinedTestDispatcher()) {
+            withGlobalSnapshotManager {
+                repeat(100) {
+                    val job = Job(parent = coroutineContext[Job])
+                    val coroutineContext = Dispatchers.Unconfined + job
+                    val recomposer = Recomposer(coroutineContext)
 
-                launch(
-                    coroutineContext + BroadcastFrameClock(),
-                    start = CoroutineStart.UNDISPATCHED
-                ) {
-                    recomposer.runRecomposeAndApplyChanges()
-                }
+                    launch(
+                        coroutineContext + BroadcastFrameClock(),
+                        start = CoroutineStart.UNDISPATCHED
+                    ) {
+                        recomposer.runRecomposeAndApplyChanges()
+                    }
 
-                val composition = Composition(EmptyApplier(), recomposer)
-                composition.setContent {
+                    val composition = Composition(EmptyApplier(), recomposer)
+                    composition.setContent {
 
-                    val innerComposition = Composition(
-                        EmptyApplier(),
-                        rememberCompositionContext(),
-                    )
+                        val innerComposition = Composition(
+                            EmptyApplier(),
+                            rememberCompositionContext(),
+                        )
 
-                    DisposableEffect(composition) {
-                        onDispose {
-                            innerComposition.dispose()
+                        DisposableEffect(composition) {
+                            onDispose {
+                                innerComposition.dispose()
+                            }
                         }
                     }
-                }
 
-                var value by mutableStateOf(1)
-                launch(Dispatchers.Default + job) {
-                    while (true) {
-                        value += 1
-                        delay(1)
+                    var value by mutableStateOf(1)
+                    launch(Dispatchers.Default + job) {
+                        while (true) {
+                            value += 1
+                            delay(1)
+                        }
                     }
-                }
 
-                composition.dispose()
-                recomposer.close()
-                job.cancel()
+                    composition.dispose()
+                    recomposer.close()
+                    job.cancel()
+                }
             }
         }
     }
