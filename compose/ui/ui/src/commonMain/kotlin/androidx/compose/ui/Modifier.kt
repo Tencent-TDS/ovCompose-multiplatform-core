@@ -16,6 +16,7 @@
 
 package androidx.compose.ui
 
+import androidx.compose.runtime.PlatformOptimizedCancellationException
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.internal.JvmDefaultWithCompatibility
 import androidx.compose.ui.node.DelegatableNode
@@ -25,7 +26,6 @@ import androidx.compose.ui.node.NodeKind
 import androidx.compose.ui.node.ObserverNodeOwnerScope
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.requireOwner
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -35,15 +35,9 @@ import kotlinx.coroutines.cancel
  * javaClass.simpleName lookups to build the exception message and stack trace collection.
  * Remove if these are changed in kotlinx.coroutines.
  */
-private class ModifierNodeDetachedCancellationException : CancellationException(
+private class ModifierNodeDetachedCancellationException : PlatformOptimizedCancellationException(
     "The Modifier.Node was detached"
-) {
-    override fun fillInStackTrace(): Throwable {
-        // Avoid null.clone() on Android <= 6.0 when accessing stackTrace
-        stackTrace = emptyArray()
-        return this
-    }
-}
+)
 
 /**
  * An ordered, immutable collection of [modifier elements][Modifier.Element] that decorate or add

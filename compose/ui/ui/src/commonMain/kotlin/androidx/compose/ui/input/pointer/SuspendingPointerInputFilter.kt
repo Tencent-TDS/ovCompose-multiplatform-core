@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.input.pointer
 
+import androidx.compose.runtime.PlatformOptimizedCancellationException
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.fastMapNotNull
@@ -42,7 +43,6 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.max
 import kotlinx.coroutines.CancellableContinuation
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -744,12 +744,8 @@ internal class SuspendingPointerInputModifierNodeImpl(
  */
 class PointerEventTimeoutCancellationException(
     time: Long
-) : CancellationException("Timed out waiting for $time ms") {
-    override fun fillInStackTrace(): Throwable {
-        // Avoid null.clone() on Android <= 6.0 when accessing stackTrace
-        stackTrace = emptyArray()
-        return this
-    }
+) : PlatformOptimizedCancellationException("Timed out waiting for $time ms") {
+
 }
 
 /**
@@ -757,23 +753,11 @@ class PointerEventTimeoutCancellationException(
  * javaClass.simpleName lookups to build the exception message and stack trace collection.
  * Remove if these are changed in kotlinx.coroutines.
  */
-private class PointerInputResetException : CancellationException("Pointer input was reset") {
-    override fun fillInStackTrace(): Throwable {
-        // Avoid null.clone() on Android <= 6.0 when accessing stackTrace
-        stackTrace = emptyArray()
-        return this
-    }
-}
+private class PointerInputResetException : PlatformOptimizedCancellationException("Pointer input was reset")
 
 /**
  * Also used in place of standard Job cancellation pathway; since we control this code path
  * we shouldn't need to worry about other code calling addSuppressed on this exception
  * so a singleton instance is used
  */
-private object CancelTimeoutCancellationException : CancellationException() {
-    override fun fillInStackTrace(): Throwable {
-        // Avoid null.clone() on Android <= 6.0 when accessing stackTrace
-        stackTrace = emptyArray()
-        return this
-    }
-}
+private object CancelTimeoutCancellationException : PlatformOptimizedCancellationException("")
