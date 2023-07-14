@@ -16,24 +16,30 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.FillBox
+import androidx.compose.ui.PopupState
+import androidx.compose.ui.assertReceived
+import androidx.compose.ui.assertReceivedLast
+import androidx.compose.ui.assertReceivedNoEvents
+import androidx.compose.ui.assertThat
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.isEqualTo
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
@@ -406,10 +412,12 @@ class PopupTest {
         )
         scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f), buttons = buttons, button = PointerButton.Primary)
         scene.sendPointerEvent(PointerEventType.Release, Offset(10f, 10f), button = PointerButton.Primary)
+        onNodeWithTag(popup.tag).assertIsDisplayed()
 
         background.events.assertReceived(PointerEventType.Press, Offset(10f, 10f))
-        background.events.assertReceivedLast(PointerEventType.Release, Offset(10f, 10f))
-        onNodeWithTag(popup.tag).assertIsDisplayed()
+        background.events.assertReceived(PointerEventType.Release, Offset(10f, 10f))
+        background.events.assertReceived(PointerEventType.Enter, Offset(10f, 10f))
+        background.events.assertReceivedLast(PointerEventType.Exit, Offset(10f, 10f))
     }
 
     @Test
@@ -451,6 +459,6 @@ class PopupTest {
 
         scene.sendPointerEvent(PointerEventType.Move, Offset(11f, 11f), buttons = buttons)
         scene.sendPointerEvent(PointerEventType.Release, Offset(11f, 11f), button = PointerButton.Primary)
-        background.events.assertReceivedNoEvents()
+        background.events.assertReceivedLast(PointerEventType.Enter, Offset(11f, 11f))
     }
 }
