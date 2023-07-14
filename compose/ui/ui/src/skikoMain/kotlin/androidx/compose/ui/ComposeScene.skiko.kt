@@ -590,13 +590,13 @@ class ComposeScene internal constructor(
     }
 
     private fun processMove(event: PointerInputEvent) {
-        val owner = when {
+        var owner = when {
             event.buttons.areAnyPressed -> pressOwner
             event.eventType == PointerEventType.Exit -> null
             else -> hoveredOwner(event)
         }
         if (focusedOwner.isAbove(owner)) {
-            return
+            owner = null
         }
 
         // Cases:
