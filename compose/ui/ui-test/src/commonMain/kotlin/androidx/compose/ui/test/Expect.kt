@@ -15,3 +15,8 @@
  */
 
 package androidx.compose.ui.test
+
+/**
+ * Replacement of jvm only kotlin.assert(value, {message}) in commonMain sourceSet.
+ */
+internal expect inline fun commonAssert(value: Boolean, lazyMessage: () -> Any)
