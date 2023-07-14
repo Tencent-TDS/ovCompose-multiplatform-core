@@ -597,6 +597,7 @@ class ComposeScene internal constructor(
             else -> hoveredOwner(event)
         }
         if (focusedOwner.isAbove(owner)) {
+            // If pressOwner is under focusedOwner, hover state must be updated
             owner = null
         }
         if (processHover(event, owner)) {
@@ -607,6 +608,10 @@ class ComposeScene internal constructor(
         )
     }
 
+    /**
+     * Updates hover state and generates [PointerEventType.Enter] and [PointerEventType.Exit]
+     * events. Returns true if [event] is consumed.
+     */
     private fun processHover(event: PointerInputEvent, owner: SkiaBasedOwner?): Boolean {
         if (!event.pointers.fastAny { it.type == PointerType.Mouse }) {
             // Track hover only for mouse
@@ -629,6 +634,8 @@ class ComposeScene internal constructor(
             event.copy(eventType = PointerEventType.Enter)
         )
         lastHoverOwner = owner
+
+        // Changing hovering state replaces Move event, so treat it as consumed
         return true
     }
 
