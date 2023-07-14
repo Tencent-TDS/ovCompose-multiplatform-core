@@ -751,4 +751,4 @@ private class PointerInputResetException : PlatformOptimizedCancellationExceptio
  * we shouldn't need to worry about other code calling addSuppressed on this exception
  * so a singleton instance is used
  */
-private object CancelTimeoutCancellationException : PlatformOptimizedCancellationException("")
+private object CancelTimeoutCancellationException : PlatformOptimizedCancellationException()
