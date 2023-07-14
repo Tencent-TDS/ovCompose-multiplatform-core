@@ -79,8 +79,9 @@ internal actual class SnapshotContextElementImpl actual constructor(
     }
 }
 
-actual abstract class PlatformOptimizedCancellationException actual constructor(message: String?) :
-    CancellationException(message) {
+internal actual abstract class PlatformOptimizedCancellationException actual constructor(
+    message: String?
+) : CancellationException(message) {
 
     override fun fillInStackTrace(): Throwable {
         // Avoid null.clone() on Android <= 6.0 when accessing stackTrace

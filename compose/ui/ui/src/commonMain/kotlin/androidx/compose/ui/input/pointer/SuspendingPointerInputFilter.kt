@@ -16,9 +16,9 @@
 
 package androidx.compose.ui.input.pointer
 
-import androidx.compose.runtime.PlatformOptimizedCancellationException
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.PlatformOptimizedCancellationException
 import androidx.compose.ui.fastMapNotNull
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.internal.JvmDefaultWithCompatibility
@@ -738,15 +738,6 @@ internal class SuspendingPointerInputModifierNodeImpl(
     }
 }
 
-/**
- * An exception thrown from [AwaitPointerEventScope.withTimeout] when the execution time
- * of the coroutine is too long.
- */
-class PointerEventTimeoutCancellationException(
-    time: Long
-) : PlatformOptimizedCancellationException("Timed out waiting for $time ms") {
-
-}
 
 /**
  * Used in place of the standard Job cancellation pathway to avoid reflective

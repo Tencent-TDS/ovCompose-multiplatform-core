@@ -16,7 +16,6 @@
 
 package androidx.compose.ui
 
-import androidx.compose.runtime.PlatformOptimizedCancellationException
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.internal.JvmDefaultWithCompatibility
 import androidx.compose.ui.node.DelegatableNode

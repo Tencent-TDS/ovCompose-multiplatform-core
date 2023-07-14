@@ -106,11 +106,12 @@ internal expect class SnapshotContextElementImpl(
     snapshot: Snapshot
 ) : SnapshotContextElement
 
+internal expect fun logError(message: String, e: Throwable)
+
 /**
  * Represents a platform-optimized cancellation exception.
  * This allows us to configure exceptions separately on JVM and other platforms.
  */
-expect abstract class PlatformOptimizedCancellationException(message: String? = null) :
-    CancellationException
-
-internal expect fun logError(message: String, e: Throwable)
+internal expect abstract class PlatformOptimizedCancellationException(
+    message: String? = null
+) : CancellationException

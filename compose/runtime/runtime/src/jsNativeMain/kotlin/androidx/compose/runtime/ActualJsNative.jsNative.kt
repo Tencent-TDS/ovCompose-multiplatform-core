@@ -40,5 +40,6 @@ internal actual fun createSnapshotMutableDoubleState(
     value: Double
 ): MutableDoubleState = SnapshotMutableDoubleStateImpl(value)
 
-actual abstract class PlatformOptimizedCancellationException actual constructor(message: String?) :
-    CancellationException(message)
+internal actual abstract class PlatformOptimizedCancellationException actual constructor(
+    message: String?
+) : CancellationException(message)
