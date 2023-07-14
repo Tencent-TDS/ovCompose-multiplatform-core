@@ -15,12 +15,9 @@
  */
 package androidx.compose.ui.test
 
-import androidx.compose.ui.ComposeScene
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.pointer.PointerId
-import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.node.RootForTest
 
 internal expect fun createInputDispatcher(
@@ -67,7 +64,6 @@ internal expect fun createInputDispatcher(
  * Chaining methods:
  * * [advanceEventTime]
  */
-@OptIn(ExperimentalComposeUiApi::class)
 internal abstract class InputDispatcher(
     private val testContext: TestContext,
     private val root: RootForTest,
@@ -203,7 +199,7 @@ internal abstract class InputDispatcher(
      * pointer is not currently in use
      */
     fun getCurrentTouchPosition(pointerId: Int): Offset? {
-        return partialGesture?.lastPointers?.get(pointerId)?.position
+        return partialGesture?.lastPositions?.get(pointerId)
     }
 
     /**
@@ -238,7 +234,7 @@ internal abstract class InputDispatcher(
         var gesture = partialGesture
 
         // Check if this pointer is not already down
-        require(gesture == null || !gesture.lastPointers.containsKey(pointerId)) {
+        require(gesture == null || !gesture.lastPositions.containsKey(pointerId)) {
             "Cannot send DOWN event, a gesture is already in progress for pointer $pointerId"
         }
 
@@ -258,12 +254,7 @@ internal abstract class InputDispatcher(
             gesture = PartialGesture(currentTime, position, pointerId)
             partialGesture = gesture
         } else {
-            gesture.lastPointers[pointerId] = ComposeScene.Pointer(
-                id = PointerId(pointerId.toLong()),
-                position = position,
-                pressed = true,
-                type = PointerType.Touch
-            )
+            gesture.lastPositions[pointerId] = position
         }
 
         // Send the DOWN event
@@ -331,14 +322,11 @@ internal abstract class InputDispatcher(
         check(gesture != null) {
             "Cannot move pointers, no gesture is in progress"
         }
-        val pointer = gesture.lastPointers[pointerId]
-        require(pointer != null) {
+        require(gesture.lastPositions.containsKey(pointerId)) {
             "Cannot move pointer $pointerId, it is not active in the current gesture"
         }
 
-        gesture.lastPointers[pointerId] = pointer.copy(
-            position = position
-        )
+        gesture.lastPositions[pointerId] = position
         gesture.hasPointerUpdates = true
     }
 
@@ -360,21 +348,16 @@ internal abstract class InputDispatcher(
         check(gesture != null) {
             "Cannot send UP event, no gesture is in progress"
         }
-        val pointer = gesture.lastPointers[pointerId]
-        require(pointer != null) {
+        require(gesture.lastPositions.containsKey(pointerId)) {
             "Cannot send UP event for pointer $pointerId, it is not active in the current gesture"
         }
-
-        gesture.lastPointers[pointerId] = pointer.copy(
-            pressed = false
-        )
 
         // First send the UP event
         gesture.enqueueUp(pointerId)
 
         // Then remove the pointer, and end the gesture if no pointers are left
-        gesture.lastPointers.remove(pointerId)
-        if (gesture.lastPointers.isEmpty()) {
+        gesture.lastPositions.remove(pointerId)
+        if (gesture.lastPositions.isEmpty()) {
             partialGesture = null
         }
     }
@@ -761,14 +744,8 @@ internal abstract class InputDispatcher(
  * @param startPosition The position of the first down event of this gesture
  * @param pointerId The pointer id of the first down event of this gesture
  */
-@OptIn(ExperimentalComposeUiApi::class)
 internal class PartialGesture(val downTime: Long, startPosition: Offset, pointerId: Int) {
-    val lastPointers = mutableMapOf(pointerId to ComposeScene.Pointer(
-        id = PointerId(pointerId.toLong()),
-        position = startPosition,
-        pressed = true,
-        type = PointerType.Touch
-    ))
+    val lastPositions = mutableMapOf(Pair(pointerId, startPosition))
     var hasPointerUpdates: Boolean = false
 }
 
@@ -880,19 +857,4 @@ internal data class InputDispatcherState(
     val partialGesture: PartialGesture?,
     val mouseInputState: MouseInputState,
     val keyInputState: KeyInputState
-)
-
-@OptIn(ExperimentalComposeUiApi::class)
-private fun ComposeScene.Pointer.copy(
-    id: PointerId = this.id,
-    position: Offset = this.position,
-    pressed: Boolean = this.pressed,
-    type: PointerType = this.type,
-    pressure: Float = this.pressure
-) = ComposeScene.Pointer(
-    id = id,
-    position = position,
-    pressed = pressed,
-    type = type,
-    pressure = pressure
 )

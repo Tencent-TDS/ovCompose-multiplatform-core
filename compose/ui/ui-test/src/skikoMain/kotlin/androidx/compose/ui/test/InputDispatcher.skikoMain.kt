@@ -15,6 +15,7 @@
  */
 package androidx.compose.ui.test
 
+import androidx.compose.ui.ComposeScene
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
@@ -23,6 +24,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.SkiaRootForTest
@@ -58,7 +60,14 @@ internal class SkikoInputDispatcher(
 
     override fun PartialGesture.enqueueDown(pointerId: Int) {
         val timeMillis = currentTime
-        val pointers = lastPointers.values.toList()
+        val pointers = lastPositions.map {
+            ComposeScene.Pointer(
+                id = PointerId(it.key.toLong()),
+                position = it.value,
+                pressed = true,
+                type = PointerType.Touch
+            )
+        }
         enqueue(timeMillis) {
             scene.sendPointerEvent(
                 PointerEventType.Press,
@@ -69,7 +78,14 @@ internal class SkikoInputDispatcher(
     }
     override fun PartialGesture.enqueueMove() {
         val timeMillis = currentTime
-        val pointers = lastPointers.values.toList()
+        val pointers = lastPositions.map {
+            ComposeScene.Pointer(
+                id = PointerId(it.key.toLong()),
+                position = it.value,
+                pressed = true,
+                type = PointerType.Touch
+            )
+        }
         enqueue(timeMillis) {
             scene.sendPointerEvent(
                 PointerEventType.Move,
@@ -89,7 +105,14 @@ internal class SkikoInputDispatcher(
 
     override fun PartialGesture.enqueueUp(pointerId: Int) {
         val timeMillis = currentTime
-        val pointers = lastPointers.values.toList()
+        val pointers = lastPositions.map {
+            ComposeScene.Pointer(
+                id = PointerId(it.key.toLong()),
+                position = it.value,
+                pressed = pointerId != it.key,
+                type = PointerType.Touch
+            )
+        }
         enqueue(timeMillis) {
             scene.sendPointerEvent(
                 PointerEventType.Release,
