@@ -232,7 +232,7 @@ class LazyListBeyondBoundsTest {
             beyondBoundsLayout!!.layout(beyondBoundsLayoutDirection) {
                 // Assert that the beyond bounds items are present.
                 if (expectedExtraItemsBeforeVisibleBounds()) {
-                    assertThat(placedItems.sorted()).containsExactly(4, 5, 6, 7)
+                    assertThat(placedItems).containsExactly(4, 5, 6, 7)
                     assertThat(visibleItems).containsExactly(5, 6, 7)
                 } else {
                     assertThat(placedItems).containsExactly(5, 6, 7, 8)
@@ -291,7 +291,7 @@ class LazyListBeyondBoundsTest {
                 } else {
                     // Assert that the beyond bounds items are present.
                     if (expectedExtraItemsBeforeVisibleBounds()) {
-                        assertThat(placedItems.sorted()).containsExactly(3, 4, 5, 6, 7)
+                        assertThat(placedItems).containsExactly(3, 4, 5, 6, 7)
                         assertThat(visibleItems).containsExactly(5, 6, 7)
                     } else {
                         assertThat(placedItems).containsExactly(5, 6, 7, 8, 9)
@@ -349,7 +349,7 @@ class LazyListBeyondBoundsTest {
                 } else {
                     // Assert that the beyond bounds items are present.
                     if (expectedExtraItemsBeforeVisibleBounds()) {
-                        assertThat(placedItems.sorted()).containsExactly(0, 1, 2, 3, 4, 5, 6, 7)
+                        assertThat(placedItems).containsExactly(0, 1, 2, 3, 4, 5, 6, 7)
                         assertThat(visibleItems).containsExactly(5, 6, 7)
                     } else {
                         assertThat(placedItems).containsExactly(5, 6, 7, 8, 9, 10)
@@ -413,7 +413,7 @@ class LazyListBeyondBoundsTest {
                     }
                     Before, After -> {
                         if (expectedExtraItemsBeforeVisibleBounds()) {
-                            assertThat(placedItems.sorted()).containsExactly(4, 5, 6, 7)
+                            assertThat(placedItems).containsExactly(4, 5, 6, 7)
                             assertThat(visibleItems).containsExactly(5, 6, 7)
                         } else {
                             assertThat(placedItems).containsExactly(5, 6, 7, 8)
