@@ -328,7 +328,7 @@ internal actual class ComposeWindow : UIViewController {
         composeLayer = ComposeLayer(
             layer = skiaLayer,
             platform = uiKitPlatform,
-            getTopLeftOffset = ::getTopLeftOffset,
+            getTopLeftOffset = { Offset.Zero },
             input = uiKitTextInputService.skikoInput,
         )
         composeLayer.setContent(content = {
@@ -418,14 +418,5 @@ internal actual class ComposeWindow : UIViewController {
     private fun getViewFrameSize(): IntSize {
         val (width, height) = view.frame().useContents { this.size.width to this.size.height }
         return IntSize(width.toInt(), height.toInt())
-    }
-
-    private fun getTopLeftOffset(): Offset {
-        val topLeftPoint =
-            view.coordinateSpace().convertPoint(
-                point = CGPointMake(0.0, 0.0),
-                toCoordinateSpace = UIScreen.mainScreen.coordinateSpace()
-            )
-        return topLeftPoint.useContents { DpOffset(x.dp, y.dp).toOffset(density) }
     }
 }
