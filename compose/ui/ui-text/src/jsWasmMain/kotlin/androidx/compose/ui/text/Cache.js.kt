@@ -16,9 +16,47 @@
 
 package androidx.compose.ui.text
 
-// TODO Use WeakMap once available https://youtrack.jetbrains.com/issue/KT-44309
-internal actual typealias WeakKeysCache<K, V> = NoCache<K, V>
+internal actual typealias WeakKeysCache<K, V> = WeakHashMap<K, V>
 
-internal class NoCache<K : Any, V> : Cache<K, V> {
-    override fun get(key: K, loader: (K) -> V): V = loader(key)
+internal class WeakHashMap<K : Any, V> : Cache<K, V> {
+    private val cache = HashMap<Key<K>, V>()
+
+    // Based on https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry
+    // It should eventually clean up all entries with unreachable keys
+    private val cleaner = newWeakHashMapCleaner { handle ->
+        cache.remove(handle)
+    }
+
+    override fun get(key: K, loader: (K) -> V): V {
+        val wrappedKey = Key(key)
+        return cache.getOrPut(wrappedKey) {
+            cleaner.register(key, wrappedKey)
+            loader(key)
+        }
+    }
+}
+
+internal interface WeakHashMapCleaner {
+    fun register(obj: Any, handle: Key<*>)
+}
+
+internal expect fun newWeakHashMapCleaner(cleanKey: (Key<*>) -> Unit): WeakHashMapCleaner
+
+internal interface InternalWeakRef {
+    fun get(): Any?
+}
+
+internal expect fun newWeakRef(obj: Any): InternalWeakRef
+
+internal class Key<K : Any>(key: K) {
+    private val ref = newWeakRef(key)
+    private val hash: Int = key.hashCode()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        other as Key<*>
+        return ref.get() == other.ref.get()
+    }
+
+    override fun hashCode(): Int = hash
 }
