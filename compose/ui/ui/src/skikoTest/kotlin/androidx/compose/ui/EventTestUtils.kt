@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
-import com.google.common.truth.Truth.assertThat
+import androidx.compose.ui.window.PopupProperties
 import kotlin.test.assertContentEquals
 
 fun Events.assertReceivedNoEvents() = assertThat(list).isEmpty()
@@ -121,6 +121,7 @@ class FillBox {
 class PopupState(
     val bounds: IntRect,
     private val focusable: Boolean = false,
+    private val dismissOnClickOutside: Boolean = focusable,
     private val onDismissRequest: () -> Unit = {}
 ) {
     val origin get() = bounds.topLeft.toOffset()
@@ -137,8 +138,11 @@ class PopupState(
                     popupContentSize: IntSize
                 ) = bounds.topLeft
             },
-            focusable = focusable,
-            onDismissRequest = onDismissRequest
+            onDismissRequest = onDismissRequest,
+            properties = PopupProperties(
+                focusable = focusable,
+                dismissOnClickOutside = dismissOnClickOutside
+            )
         ) {
             with(LocalDensity.current) {
                 Box(
