@@ -370,7 +370,6 @@ class ComposeUiSkikoTestTest {
     }
 
     @Test
-    @Ignore // TODO(ivan.matkov): Bug in SkikoInputDispatcher - it uses overload for mouse input
     fun touch_press_multiple() = runComposeUiTest {
         setContent { TestEventBox() }
 
