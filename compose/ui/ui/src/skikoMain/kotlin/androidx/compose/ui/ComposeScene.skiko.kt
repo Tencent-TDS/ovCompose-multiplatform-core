@@ -600,6 +600,11 @@ class ComposeScene internal constructor(
     }
 
     private fun processPress(event: PointerInputEvent) {
+        val previousPressOwner = pressOwner
+        if (previousPressOwner != null) {
+            previousPressOwner.processPointerInput(event)
+            return
+        }
         forEachOwnerReversed { owner ->
             if (owner.isHovered(event)) {
                 // Stop once the position of in bounds of the owner
