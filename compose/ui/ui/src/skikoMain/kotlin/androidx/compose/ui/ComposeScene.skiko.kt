@@ -268,6 +268,8 @@ class ComposeScene internal constructor(
         invalidateIfNeeded()
         if (owner.focusable) {
             focusedOwner = owner
+
+            // Exit event to lastHoverOwner will be sent via synthetic event on next frame
         }
         if (isFocused) {
             owner.focusOwner.takeFocus()
@@ -424,7 +426,6 @@ class ComposeScene internal constructor(
      * Find hovered owner for position of first pointer.
      */
     private fun hoveredOwner(event: PointerInputEvent): SkiaBasedOwner? {
-        // TODO: get rid of first(). Check if it's mouse?
         val position = event.pointers.first().position
         return owners.lastOrNull { it.isInBounds(position) }
     }
@@ -580,11 +581,11 @@ class ComposeScene internal constructor(
             previousPressOwner.processPointerInput(event)
             return
         }
-        val pointer = event.pointers.first().position
+        val position = event.pointers.first().position
         forEachOwnerReversed { owner ->
 
             // If the position of in bounds of the owner - send event to it and stop processing
-            if (owner.isInBounds(pointer)) {
+            if (owner.isInBounds(position)) {
                 owner.processPointerInput(event)
                 pressOwner = owner
                 return
@@ -624,12 +625,18 @@ class ComposeScene internal constructor(
 
     private fun processMove(event: PointerInputEvent) {
         var owner = when {
+            // All touch events or mouse with pressed button(s)
             event.isAnyPointerDown -> pressOwner
+
+            // Do not generate Enter and Move
             event.eventType == PointerEventType.Exit -> null
+
+            // Find owner under mouse position
             else -> hoveredOwner(event)
         }
+
+        // Even if the owner is not interactive, hover state still need to be updated
         if (!isInteractive(owner)) {
-            // If pressOwner is under focusedOwner, hover state must be updated
             owner = null
         }
         if (processHover(event, owner)) {
