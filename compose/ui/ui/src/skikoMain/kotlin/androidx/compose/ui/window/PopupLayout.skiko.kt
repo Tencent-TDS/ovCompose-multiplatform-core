@@ -21,6 +21,7 @@ import androidx.compose.ui.LocalComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -35,8 +36,8 @@ import androidx.compose.ui.unit.round
 internal fun PopupLayout(
     popupPositionProvider: PopupPositionProvider,
     focusable: Boolean,
-    onClickOutside: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
     onPreviewKeyEvent: ((KeyEvent) -> Boolean) = { false },
     onKeyEvent: ((KeyEvent) -> Boolean) = { false },
     content: @Composable () -> Unit
@@ -72,7 +73,7 @@ internal fun PopupLayout(
             initDensity = density,
             initLayoutDirection = layoutDirection,
             focusable = focusable,
-            onClickOutside = onClickOutside,
+            onOutsidePointerEvent = onOutsidePointerEvent,
             onPreviewKeyEvent = onPreviewKeyEvent,
             onKeyEvent = onKeyEvent
         )

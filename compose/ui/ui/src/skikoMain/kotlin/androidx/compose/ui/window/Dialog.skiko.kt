@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
@@ -28,6 +27,9 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.unit.IntOffset
 
 @Immutable
@@ -52,7 +54,6 @@ actual class DialogProperties actual constructor(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 actual fun Dialog(
     onDismissRequest: () -> Unit,
@@ -68,9 +69,14 @@ actual fun Dialog(
     PopupLayout(
         popupPositionProvider = popupPositioner,
         focusable = true,
-        if (properties.dismissOnClickOutside) onDismissRequest else null,
         modifier = Modifier.drawBehind {
             drawRect(Color.Black.copy(alpha = 0.4f))
+        },
+        onOutsidePointerEvent = {
+            if (properties.dismissOnClickOutside &&
+                it.isDismissRequest()) {
+                onDismissRequest()
+            }
         },
         onKeyEvent = {
             if (properties.dismissOnBackPress &&
@@ -85,3 +91,11 @@ actual fun Dialog(
         content = content
     )
 }
+
+private fun PointerInputEvent.isMainAction() =
+    button == PointerButton.Primary ||
+        button == null && pointers.size == 1
+
+private fun PointerInputEvent.isDismissRequest() =
+    eventType == PointerEventType.Release && isMainAction()
+

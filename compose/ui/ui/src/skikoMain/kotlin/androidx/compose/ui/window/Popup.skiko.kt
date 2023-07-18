@@ -22,6 +22,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEventType.Companion.Press
+import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.unit.IntOffset
 
 @Immutable
@@ -131,7 +134,13 @@ fun Popup(
 ) = PopupLayout(
     popupPositionProvider = popupPositionProvider,
     focusable = focusable,
-    onClickOutside = if (focusable) onDismissRequest else null,
+    onOutsidePointerEvent = {
+        if (focusable &&
+            it.isDismissRequest() &&
+            onDismissRequest != null) {
+            onDismissRequest()
+        }
+    },
     onPreviewKeyEvent = onPreviewKeyEvent,
     onKeyEvent = onKeyEvent,
     content = content
@@ -203,7 +212,13 @@ actual fun Popup(
     PopupLayout(
         popupPositionProvider,
         properties.focusable,
-        if (properties.dismissOnClickOutside) onDismissRequest else null,
+        onOutsidePointerEvent = {
+            if (properties.dismissOnClickOutside &&
+                it.isDismissRequest() &&
+                onDismissRequest != null) {
+                onDismissRequest()
+            }
+        },
         onKeyEvent = {
             if (properties.dismissOnBackPress &&
                 it.type == KeyEventType.KeyDown && it.key == Key.Escape &&
@@ -217,3 +232,10 @@ actual fun Popup(
         content = content
     )
 }
+
+private fun PointerInputEvent.isMainAction() =
+    button == PointerButton.Primary ||
+        button == null && pointers.size == 1
+
+private fun PointerInputEvent.isDismissRequest() =
+    eventType == Press && isMainAction()

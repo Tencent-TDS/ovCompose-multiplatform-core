@@ -419,12 +419,23 @@ class ComposeScene internal constructor(
     private var focusedOwner: SkiaBasedOwner? = null
     private var pressOwner: SkiaBasedOwner? = null
     private var lastHoverOwner: SkiaBasedOwner? = null
-    private fun hoveredOwner(event: PointerInputEvent): SkiaBasedOwner? =
-        owners.lastOrNull { it.isHovered(event) }
 
-    private fun SkiaBasedOwner?.isAbove(
-        targetOwner: SkiaBasedOwner?
-    ) = this != null && targetOwner != null && owners.indexOf(this) > owners.indexOf(targetOwner)
+    /**
+     * Find hovered owner for position of first pointer.
+     */
+    private fun hoveredOwner(event: PointerInputEvent): SkiaBasedOwner? {
+        // TODO: get rid of first(). Check if it's mouse?
+        val position = event.pointers.first().position
+        return owners.lastOrNull { it.isInBounds(position) }
+    }
+
+    /**
+     * Check if [focusedOwner] blocks input for this owner.
+     */
+    private fun isInteractive(owner: SkiaBasedOwner?) =
+        focusedOwner == null || owner == null ||
+            owners.indexOf(focusedOwner) <= owners.indexOf(owner)
+
 
     // TODO(demin): return Boolean (when it is consumed)
     /**
@@ -557,6 +568,7 @@ class ComposeScene internal constructor(
             PointerEventType.Scroll -> processScroll(event)
         }
 
+        // Clean pressOwner when there is no pressed pointers/buttons
         if (!event.isAnyPointerDown) {
             pressOwner = null
         }
@@ -568,29 +580,45 @@ class ComposeScene internal constructor(
             previousPressOwner.processPointerInput(event)
             return
         }
+        val pointer = event.pointers.first().position
         forEachOwnerReversed { owner ->
-            if (owner.isHovered(event)) {
-                // Stop once the position of in bounds of the owner
+
+            // If the position of in bounds of the owner - send event to it and stop processing
+            if (owner.isInBounds(pointer)) {
                 owner.processPointerInput(event)
                 pressOwner = owner
-                return@processPress
+                return
             }
-            owner.onClickOutside?.invoke()
+
+            // Input event is out of bounds - send click outside notification
+            owner.onOutsidePointerEvent?.invoke(event)
+
+            // if the owner is in focus, do not pass the event to underlying owners
             if (owner == focusedOwner) {
-                // Stop if it's in focus, do not pass the event to hovered owner
-                return@processPress
+                return
             }
         }
     }
 
     private fun processRelease(event: PointerInputEvent) {
-        // Send Release to pressOwner even if is not hovered or under focused.
+        // Send Release to pressOwner even if is not hovered or under focused
         pressOwner?.processPointerInput(event)
-        if (!event.buttons.areAnyPressed) {
-            // Changing hover during Move event can be blocked by sticking to pressOwner
-            hoveredOwner(event)
-                .takeIf { !focusedOwner.isAbove(it) }
-                ?.let { processHover(event, it) }
+
+        // Process further only if last pointer was released
+        if (event.isAnyPointerDown) {
+            return
+        }
+
+        // Changing hover during Move event can be blocked by sticking to pressOwner
+        val owner = hoveredOwner(event)
+        if (isInteractive(owner)) {
+            processHover(event, owner)
+        } else {
+            // If hovered owner is not interactive, then it means that
+            // - It's not focusedOwner
+            // - It placed under focusedOwner or not exist at all
+            // In all these cases the even happened outside focused owner bounds
+            focusedOwner?.onOutsidePointerEvent?.invoke(event)
         }
     }
 
@@ -600,7 +628,7 @@ class ComposeScene internal constructor(
             event.eventType == PointerEventType.Exit -> null
             else -> hoveredOwner(event)
         }
-        if (focusedOwner.isAbove(owner)) {
+        if (!isInteractive(owner)) {
             // If pressOwner is under focusedOwner, hover state must be updated
             owner = null
         }
@@ -645,10 +673,9 @@ class ComposeScene internal constructor(
 
     private fun processScroll(event: PointerInputEvent) {
         val owner = hoveredOwner(event)
-        if (focusedOwner.isAbove(owner)) {
-            return
+        if (isInteractive(owner)) {
+            owner?.processPointerInput(event)
         }
-        owner?.processPointerInput(event)
     }
 
     /**
