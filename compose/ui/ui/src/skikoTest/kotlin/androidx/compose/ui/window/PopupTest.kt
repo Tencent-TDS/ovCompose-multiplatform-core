@@ -22,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.FillBox
 import androidx.compose.ui.PopupState
 import androidx.compose.ui.assertReceived
@@ -41,6 +40,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.runSkikoComposeUiTest
+import androidx.compose.ui.touch
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
@@ -460,5 +460,72 @@ class PopupTest {
         scene.sendPointerEvent(PointerEventType.Move, Offset(11f, 11f), buttons = buttons)
         scene.sendPointerEvent(PointerEventType.Release, Offset(11f, 11f), button = PointerButton.Primary)
         background.events.assertReceivedLast(PointerEventType.Enter, Offset(11f, 11f))
+    }
+
+    @Test
+    fun secondClickDoesNotDismissPopup() = runSkikoComposeUiTest(
+        size = Size(100f, 100f)
+    ) {
+        val background = FillBox()
+        val popup = PopupState(
+            IntRect(20, 20, 60, 60),
+            dismissOnClickOutside = true,
+            onDismissRequest = { fail() }
+        )
+
+        setContent {
+            background.Content()
+            popup.Content()
+        }
+
+        scene.sendPointerEvent(
+            PointerEventType.Press,
+            pointers = listOf(
+                touch(50f, 50f, pressed = true, id = 1),
+            )
+        )
+        scene.sendPointerEvent(
+            PointerEventType.Press,
+            pointers = listOf(
+                touch(50f, 50f, pressed = true, id = 1),
+                touch(10f, 10f, pressed = true, id = 2),
+            )
+        )
+        scene.sendPointerEvent(
+            PointerEventType.Release,
+            pointers = listOf(
+                touch(50f, 50f, pressed = false, id = 1),
+                touch(10f, 10f, pressed = true, id = 2),
+            )
+        )
+        scene.sendPointerEvent(
+            PointerEventType.Release,
+            pointers = listOf(
+                touch(10f, 10f, pressed = false, id = 2),
+            )
+        )
+    }
+
+    @Test
+    fun nonPrimaryButtonClickDoesNotDismissPopup() = runSkikoComposeUiTest(
+        size = Size(100f, 100f)
+    ) {
+        val background = FillBox()
+        val popup = PopupState(
+            IntRect(20, 20, 60, 60),
+            dismissOnClickOutside = true,
+            onDismissRequest = { fail() }
+        )
+
+        setContent {
+            background.Content()
+            popup.Content()
+        }
+
+        val buttons = PointerButtons(
+            isSecondaryPressed = true
+        )
+        scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f), buttons = buttons, button = PointerButton.Secondary)
+        scene.sendPointerEvent(PointerEventType.Release, Offset(10f, 10f), button = PointerButton.Secondary)
     }
 }
