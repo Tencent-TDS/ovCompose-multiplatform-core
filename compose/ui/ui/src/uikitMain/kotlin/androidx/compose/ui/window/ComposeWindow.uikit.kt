@@ -326,8 +326,6 @@ internal actual class ComposeWindow : UIViewController {
         layer = ComposeLayer(
             layer = skiaLayer,
             platform = uiKitPlatform,
-            // TODO: Review if it's needed for other users of ComposeLayer.jsNative.kt
-            getTopLeftOffset = { Offset.Zero },
             input = uiKitTextInputService.skikoInput,
         )
         layer.setContent(content = {
