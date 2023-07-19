@@ -120,6 +120,51 @@ class DialogTest {
     }
 
     @Test
+    fun secondClickDoesNotDismissPopup() = runSkikoComposeUiTest(
+        size = Size(100f, 100f)
+    ) {
+        val background = FillBox()
+        val dialog = DialogState(
+            IntSize(40, 40),
+            onDismissRequest = {
+                fail()
+            }
+        )
+
+        setContent {
+            background.Content()
+            dialog.Content()
+        }
+
+        scene.sendPointerEvent(
+            PointerEventType.Press,
+            pointers = listOf(
+                touch(50f, 50f, pressed = true, id = 1),
+            )
+        )
+        scene.sendPointerEvent(
+            PointerEventType.Press,
+            pointers = listOf(
+                touch(50f, 50f, pressed = true, id = 1),
+                touch(10f, 10f, pressed = true, id = 2),
+            )
+        )
+        scene.sendPointerEvent(
+            PointerEventType.Release,
+            pointers = listOf(
+                touch(50f, 50f, pressed = false, id = 1),
+                touch(10f, 10f, pressed = true, id = 2),
+            )
+        )
+        scene.sendPointerEvent(
+            PointerEventType.Release,
+            pointers = listOf(
+                touch(10f, 10f, pressed = false, id = 2),
+            )
+        )
+    }
+
+    @Test
     fun nonPrimaryButtonClickDoesNotDismissPopup() = runSkikoComposeUiTest(
         size = Size(100f, 100f)
     ) {

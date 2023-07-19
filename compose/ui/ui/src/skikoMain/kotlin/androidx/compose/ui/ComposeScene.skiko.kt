@@ -614,7 +614,7 @@ class ComposeScene internal constructor(
         val owner = hoveredOwner(event)
         if (isInteractive(owner)) {
             processHover(event, owner)
-        } else {
+        } else if (pressOwner == null) {
             // If hovered owner is not interactive, then it means that
             // - It's not focusedOwner
             // - It placed under focusedOwner or not exist at all
