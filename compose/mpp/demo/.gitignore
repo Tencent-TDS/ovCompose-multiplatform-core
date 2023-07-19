@@ -1,3 +1,6 @@
 *.xcodeproj
 plists
 project.generated.yml
+
+# Xcode cache for demo project
+DerivedData/
