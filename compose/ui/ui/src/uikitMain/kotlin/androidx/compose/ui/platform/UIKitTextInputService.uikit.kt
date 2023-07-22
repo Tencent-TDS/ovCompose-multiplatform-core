@@ -17,6 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.text.input.*
 import kotlin.math.min
 import org.jetbrains.skiko.SkikoInput
@@ -346,11 +347,16 @@ internal class UIKitTextInputService(
 
     fun onPreviewKeyEvent(event: KeyEvent): Boolean {
         val nativeKeyEvent = event.nativeKeyEvent
-        if (nativeKeyEvent.key != SkikoKey.KEY_ENTER) {
-            return false
+        return when (nativeKeyEvent.key) {
+            SkikoKey.KEY_ENTER -> handleEnterKey(nativeKeyEvent)
+            SkikoKey.KEY_BACKSPACE -> handleBackspace(nativeKeyEvent)
+            else -> false
         }
+    }
+
+    private fun handleEnterKey(event: NativeKeyEvent): Boolean {
         _tempImeActionIsCalledWithHardwareReturnKey = false
-        return when (nativeKeyEvent.kind) {
+        return when (event.kind) {
             SkikoKeyboardEventKind.UP -> {
                 _tempHardwareReturnKeyPressed = false
                 false
@@ -358,11 +364,17 @@ internal class UIKitTextInputService(
 
             SkikoKeyboardEventKind.DOWN -> {
                 _tempHardwareReturnKeyPressed = true
+                // This prevents two new line characters from being added for one hardware return key press.
                 true
             }
 
             else -> false
         }
+    }
+
+    private fun handleBackspace(event: NativeKeyEvent): Boolean {
+        // This prevents two characters from being removed for one hardware backspace key press.
+        return event.kind == SkikoKeyboardEventKind.DOWN
     }
 
     private fun sendEditCommand(vararg commands: EditCommand) {
