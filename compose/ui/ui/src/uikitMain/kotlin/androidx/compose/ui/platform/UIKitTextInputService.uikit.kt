@@ -16,9 +16,12 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.text.input.*
 import kotlin.math.min
 import org.jetbrains.skiko.SkikoInput
+import org.jetbrains.skiko.SkikoKey
+import org.jetbrains.skiko.SkikoKeyboardEventKind
 import org.jetbrains.skiko.ios.SkikoUITextInputTraits
 
 import platform.UIKit.*
@@ -42,6 +45,7 @@ internal class UIKitTextInputService(
     private val _hideSoftwareKeyboard: () -> Unit = hideSoftwareKeyboard
     private var currentInput: CurrentInput? = null
     private var currentImeOptions: ImeOptions? = null
+    private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
 
     /**
      * Workaround to fix voice dictation.
@@ -61,12 +65,14 @@ internal class UIKitTextInputService(
     ) {
         currentInput = CurrentInput(value, onEditCommand)
         currentImeOptions = imeOptions
+        currentImeActionHandler = onImeActionPerformed
         showSoftwareKeyboard()
     }
 
     override fun stopInput() {
         currentInput = null
         currentImeOptions = null
+        currentImeActionHandler = null
         hideSoftwareKeyboard()
     }
 
@@ -80,7 +86,8 @@ internal class UIKitTextInputService(
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
         val textChanged = oldValue == null || oldValue.text != newValue.text
-        val selectionChanged = textChanged || oldValue == null || oldValue.selection != newValue.selection
+        val selectionChanged =
+            textChanged || oldValue == null || oldValue.selection != newValue.selection
         if (textChanged) {
             textWillChange()
         }
@@ -115,6 +122,11 @@ internal class UIKitTextInputService(
          * @param text A string object representing the character typed on the system keyboard.
          */
         override fun insertText(text: String) {
+            if (text == "\n") {
+                if (runImeActionIfRequired()) {
+                    return
+                }
+            }
             getCursorPos()?.let {
                 _tempCursorPos = it + text.length
             }
@@ -318,6 +330,17 @@ internal class UIKitTextInputService(
 
     }
 
+    fun onKeyEvent(event: KeyEvent): Boolean {
+        val nativeKeyEvent = event.nativeKeyEvent
+        if (nativeKeyEvent.kind != SkikoKeyboardEventKind.UP) {
+            return false
+        }
+        if (nativeKeyEvent.key != SkikoKey.KEY_ENTER) {
+            return false
+        }
+        return runImeActionIfRequired()
+    }
+
     private fun sendEditCommand(vararg commands: EditCommand) {
         currentInput?.let { input ->
             input.onEditCommand(commands.toList())
@@ -333,6 +356,21 @@ internal class UIKitTextInputService(
             return selection.start
         }
         return null
+    }
+
+    private fun imeActionRequired(): Boolean =
+        currentImeOptions?.run {
+            singleLine || (imeAction != ImeAction.None && imeAction != ImeAction.Default)
+        } ?: false
+
+    private fun runImeActionIfRequired(): Boolean {
+        val imeAction = currentImeOptions?.imeAction ?: return false
+        val imeActionHandler = currentImeActionHandler ?: return false
+        if (!imeActionRequired()) {
+            return false
+        }
+        imeActionHandler(imeAction)
+        return true
     }
 
     private fun getState(): TextFieldValue? = currentInput?.value
