@@ -49,10 +49,10 @@ internal class UIKitTextInputService(
     private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
 
     /**
-     * Workaround to prevent IME action from being called multiple times with hardware keyboards..
-     * With hardware return key long press, iOS sends multiple new line characters to the application,
-     * which makes UIKitTextInputService call the current IME action multiple times, since the current
-     * implementation depends on
+     * Workaround to prevent IME action from being called multiple times with hardware keyboards.
+     * When the hardware return key is held down, iOS sends multiple newline characters to the application,
+     * which makes UIKitTextInputService call the current IME action multiple times without an additional
+     * debouncing logic.
      *
      * @see _tempHardwareReturnKeyPressed is set to true when the return key is pressed with a
      * hardware keyboard.
