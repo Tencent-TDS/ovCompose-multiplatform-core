@@ -48,6 +48,20 @@ internal class UIKitTextInputService(
     private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
 
     /**
+     * Workaround to prevent IME action from being called multiple times with hardware keyboards..
+     * With hardware return key long press, iOS sends multiple new line characters to the application,
+     * which makes UIKitTextInputService call the current IME action multiple times, since the current
+     * implementation depends on
+     *
+     * @see _tempHardwareReturnKeyPressed is set to true when the return key is pressed with a
+     * hardware keyboard.
+     * @see _tempImeActionIsCalledWithHardwareReturnKey is set to true when the
+     * current IME action has been called within the current hardware return key press.
+     */
+    private var _tempHardwareReturnKeyPressed: Boolean = false
+    private var _tempImeActionIsCalledWithHardwareReturnKey: Boolean = false
+
+    /**
      * Workaround to fix voice dictation.
      * UIKit call insertText(text) and replaceRange(range,text) immediately,
      * but Compose recomposition happen on next draw frame.
@@ -330,15 +344,25 @@ internal class UIKitTextInputService(
 
     }
 
-    fun onKeyEvent(event: KeyEvent): Boolean {
+    fun onPreviewKeyEvent(event: KeyEvent): Boolean {
         val nativeKeyEvent = event.nativeKeyEvent
-        if (nativeKeyEvent.kind != SkikoKeyboardEventKind.UP) {
-            return false
-        }
         if (nativeKeyEvent.key != SkikoKey.KEY_ENTER) {
             return false
         }
-        return runImeActionIfRequired()
+        _tempImeActionIsCalledWithHardwareReturnKey = false
+        return when (nativeKeyEvent.kind) {
+            SkikoKeyboardEventKind.UP -> {
+                _tempHardwareReturnKeyPressed = false
+                false
+            }
+
+            SkikoKeyboardEventKind.DOWN -> {
+                _tempHardwareReturnKeyPressed = true
+                true
+            }
+
+            else -> false
+        }
     }
 
     private fun sendEditCommand(vararg commands: EditCommand) {
@@ -369,7 +393,12 @@ internal class UIKitTextInputService(
         if (!imeActionRequired()) {
             return false
         }
-        imeActionHandler(imeAction)
+        if (!_tempImeActionIsCalledWithHardwareReturnKey) {
+            imeActionHandler(imeAction)
+        }
+        if (_tempHardwareReturnKeyPressed) {
+            _tempImeActionIsCalledWithHardwareReturnKey = true
+        }
         return true
     }
 

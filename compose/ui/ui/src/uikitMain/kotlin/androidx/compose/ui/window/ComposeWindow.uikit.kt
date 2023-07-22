@@ -328,7 +328,7 @@ internal actual class ComposeWindow : UIViewController {
             input = uiKitTextInputService.skikoInput,
         )
         layer.setContent(
-            onKeyEvent = uiKitTextInputService::onKeyEvent,
+            onPreviewKeyEvent = uiKitTextInputService::onPreviewKeyEvent,
             content = {
                 CompositionLocalProvider(
                     LocalLayerContainer provides rootView,
