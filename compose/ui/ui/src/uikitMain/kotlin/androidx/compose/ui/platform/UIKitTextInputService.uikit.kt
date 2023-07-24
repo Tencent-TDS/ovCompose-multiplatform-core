@@ -406,7 +406,11 @@ internal class UIKitTextInputService(
             return false
         }
         if (!_tempImeActionIsCalledWithHardwareReturnKey) {
-            imeActionHandler(imeAction)
+            if (imeAction == ImeAction.Default) {
+                imeActionHandler(ImeAction.Done)
+            } else {
+                imeActionHandler(imeAction)
+            }
         }
         if (_tempHardwareReturnKeyPressed) {
             _tempImeActionIsCalledWithHardwareReturnKey = true
