@@ -27,6 +27,7 @@ internal actual fun rememberFlingBehavior(): FlingBehavior {
     val density = LocalDensity.current.density
 
     return remember(density) {
+        // this value is determined by iOS 16 fling behavior reverse-engenering
         val velocityThreshold = 500f * density
 
         DefaultFlingBehavior(
