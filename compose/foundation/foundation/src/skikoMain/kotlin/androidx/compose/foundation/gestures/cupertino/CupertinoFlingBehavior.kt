@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation.gestures
+package androidx.compose.foundation.gestures.cupertino
 
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.animateDecay
+import androidx.compose.foundation.gestures.DefaultScrollMotionDurationScale
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.ui.MotionDurationScale
 import kotlin.math.abs
 import kotlinx.coroutines.withContext
