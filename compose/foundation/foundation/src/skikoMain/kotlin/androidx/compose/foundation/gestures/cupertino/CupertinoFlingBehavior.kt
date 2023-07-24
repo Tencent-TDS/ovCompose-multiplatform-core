@@ -32,7 +32,8 @@ internal class CupertinoFlingBehavior(
 
     /*
      * Post-drag inertia with velocity below [velocityThreshold] value will be consumed entirely
-     * and not trigger any fling at all
+     * and not trigger any fling at all, value is approx and reverse-engineered from iOS 16 UIScrollView
+     * blackbox
      */
     private val velocityThreshold: Float = 500f
 ) : FlingBehavior {
