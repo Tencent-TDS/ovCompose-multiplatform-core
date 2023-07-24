@@ -396,7 +396,11 @@ internal class UIKitTextInputService(
 
     private fun imeActionRequired(): Boolean =
         currentImeOptions?.run {
-            singleLine || (imeAction != ImeAction.None && imeAction != ImeAction.Default)
+            singleLine || (
+                imeAction != ImeAction.None
+                    && imeAction != ImeAction.Default
+                    && !(imeAction == ImeAction.Search && _tempHardwareReturnKeyPressed)
+                )
         } ?: false
 
     private fun runImeActionIfRequired(): Boolean {
