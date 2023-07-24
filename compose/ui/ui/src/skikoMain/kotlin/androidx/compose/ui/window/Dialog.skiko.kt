@@ -22,8 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -64,6 +66,18 @@ actual fun Dialog(
     properties: DialogProperties,
     content: @Composable () -> Unit
 ) {
+    val onKeyEvent = if (properties.dismissOnBackPress) {
+        { event: KeyEvent ->
+            if (event.isDismissRequest()) {
+                onDismissRequest()
+                true
+            } else {
+                false
+            }
+        }
+    } else {
+        { false }
+    }
     val onOutsidePointerEvent = if (properties.dismissOnClickOutside) {
         { event: PointerInputEvent ->
             if (event.isDismissRequest()) {
@@ -80,18 +94,9 @@ actual fun Dialog(
             .drawBehind {
                 drawRect(Color.Black.copy(alpha = 0.4f))
             }
-            .semantics { dialog() },
+            .semantics { dialog() }
+            .onKeyEvent(onKeyEvent),
         onOutsidePointerEvent = onOutsidePointerEvent,
-        onKeyEvent = {
-            if (properties.dismissOnBackPress &&
-                it.type == KeyEventType.KeyDown && it.key == Key.Escape
-            ) {
-                onDismissRequest()
-                true
-            } else {
-                false
-            }
-        },
         content = content
     )
 }
@@ -111,3 +116,6 @@ private fun PointerInputEvent.isMainAction() =
 
 private fun PointerInputEvent.isDismissRequest() =
     eventType == PointerEventType.Release && isMainAction()
+
+private fun KeyEvent.isDismissRequest() =
+    type == KeyEventType.KeyDown && key == Key.Escape

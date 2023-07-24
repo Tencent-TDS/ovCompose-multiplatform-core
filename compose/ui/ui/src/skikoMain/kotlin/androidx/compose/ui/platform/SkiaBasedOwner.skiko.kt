@@ -45,7 +45,6 @@ import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.RootMeasurePolicy
 import androidx.compose.ui.modifier.ModifierLocalManager
 import androidx.compose.ui.node.*
-import androidx.compose.ui.semantics.EmptySemanticsElement
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.InternalTextApi
@@ -76,8 +75,7 @@ internal class SkiaBasedOwner(
     bounds: IntRect = IntRect.Zero,
     val focusable: Boolean = true,
     val onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
-    private val onPreviewKeyEvent: (KeyEvent) -> Boolean = { false },
-    private val onKeyEvent: (KeyEvent) -> Boolean = { false },
+    modifier: Modifier = Modifier,
 ) : Owner, RootForTest, SkiaRootForTest, PositionCalculator {
     override val windowInfo: WindowInfo get() = platform.windowInfo
 
@@ -101,8 +99,6 @@ internal class SkiaBasedOwner(
         }
 
     override val sharedDrawScope = LayoutNodeDrawScope()
-
-    private val semanticsModifier = EmptySemanticsElement
 
     // TODO(https://github.com/JetBrains/compose-multiplatform/issues/2944)
     //  Check if ComposePanel/SwingPanel focus interop work correctly with new features of
@@ -136,11 +132,9 @@ internal class SkiaBasedOwner(
     override val root = LayoutNode().also {
         it.layoutDirection = layoutDirection
         it.measurePolicy = RootMeasurePolicy
-        it.modifier = semanticsModifier
+        it.modifier = modifier
             .then(focusOwner.modifier)
             .then(keyInputModifier)
-            .onPreviewKeyEvent(onPreviewKeyEvent)
-            .onKeyEvent(onKeyEvent)
     }
 
     override val coroutineContext: CoroutineContext = coroutineContext

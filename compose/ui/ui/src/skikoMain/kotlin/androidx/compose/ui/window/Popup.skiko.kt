@@ -147,10 +147,11 @@ fun Popup(
     PopupLayout(
         popupPositionProvider = popupPositionProvider,
         focusable = focusable,
-        modifier = Modifier.semantics { popup() },
+        modifier = Modifier
+            .semantics { popup() }
+            .onKeyEvent(onKeyEvent)
+            .onPreviewKeyEvent(onPreviewKeyEvent),
         onOutsidePointerEvent = onOutsidePointerEvent,
-        onPreviewKeyEvent = onPreviewKeyEvent,
-        onKeyEvent = onKeyEvent,
         content = content
     )
 }
@@ -218,6 +219,18 @@ actual fun Popup(
     properties: PopupProperties,
     content: @Composable () -> Unit
 ) {
+    val onKeyEvent = if (properties.dismissOnBackPress) {
+        { event: KeyEvent ->
+            if (event.isDismissRequest() && onDismissRequest != null) {
+                onDismissRequest()
+                true
+            } else {
+                false
+            }
+        }
+    } else {
+        { false }
+    }
     val onOutsidePointerEvent = if (properties.dismissOnClickOutside) {
         { _: PointerInputEvent ->
             if (onDismissRequest != null) {
@@ -230,18 +243,14 @@ actual fun Popup(
     PopupLayout(
         popupPositionProvider = popupPositionProvider,
         focusable = properties.focusable,
-        modifier = Modifier.semantics { popup() },
+        modifier = Modifier
+            .semantics { popup() }
+            .onKeyEvent(onKeyEvent),
         onOutsidePointerEvent = onOutsidePointerEvent,
-        onKeyEvent = {
-            if (properties.dismissOnBackPress &&
-                it.type == KeyEventType.KeyDown && it.key == Key.Escape &&
-                onDismissRequest != null) {
-                onDismissRequest()
-                true
-            } else {
-                false
-            }
-        },
         content = content
     )
 }
+
+private fun KeyEvent.isDismissRequest() =
+    type == KeyEventType.KeyDown && key == Key.Escape
+
