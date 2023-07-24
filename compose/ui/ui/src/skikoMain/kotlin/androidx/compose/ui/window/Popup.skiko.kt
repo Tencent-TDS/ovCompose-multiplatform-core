@@ -20,11 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
-import androidx.compose.ui.input.pointer.PointerButton
-import androidx.compose.ui.input.pointer.PointerEventType.Companion.Press
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.semantics.popup
 import androidx.compose.ui.semantics.semantics
@@ -135,6 +132,13 @@ fun Popup(
     focusable: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val overriddenOnKeyEvent = { event: KeyEvent ->
+        val consumed = onKeyEvent(event)
+        if (!consumed && event.isDismissRequest() && onDismissRequest != null) {
+            onDismissRequest()
+            true
+        } else consumed
+    }
     val onOutsidePointerEvent = if (focusable) {
         { _: PointerInputEvent ->
             if (onDismissRequest != null) {
@@ -150,7 +154,7 @@ fun Popup(
         modifier = Modifier
             .semantics { popup() }
             .then(KeyInputElement(
-                onKeyEvent = onKeyEvent,
+                onKeyEvent = overriddenOnKeyEvent,
                 onPreKeyEvent = onPreviewKeyEvent)),
         onOutsidePointerEvent = onOutsidePointerEvent,
         content = content
@@ -212,7 +216,6 @@ actual fun Popup(
  * @param properties [PopupProperties] for further customization of this popup's behavior.
  * @param content The content to be displayed inside the popup.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 actual fun Popup(
     popupPositionProvider: PopupPositionProvider,
