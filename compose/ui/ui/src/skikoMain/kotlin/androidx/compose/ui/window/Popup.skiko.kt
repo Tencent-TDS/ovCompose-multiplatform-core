@@ -149,8 +149,9 @@ fun Popup(
         focusable = focusable,
         modifier = Modifier
             .semantics { popup() }
-            .onKeyEvent(onKeyEvent)
-            .onPreviewKeyEvent(onPreviewKeyEvent),
+            .then(KeyInputElement(
+                onKeyEvent = onKeyEvent,
+                onPreKeyEvent = onPreviewKeyEvent)),
         onOutsidePointerEvent = onOutsidePointerEvent,
         content = content
     )
