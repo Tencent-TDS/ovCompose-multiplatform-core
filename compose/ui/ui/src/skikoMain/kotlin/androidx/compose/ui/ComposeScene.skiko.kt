@@ -30,6 +30,8 @@ import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.util.fastAny
+import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastForEachReversed
 import kotlin.coroutines.CoroutineContext
 import kotlin.jvm.Volatile
 import kotlinx.coroutines.*
@@ -166,7 +168,7 @@ class ComposeScene internal constructor(
     private inline fun forEachOwner(action: (SkiaBasedOwner) -> Unit) {
         listCopy.addAll(owners)
         try {
-            listCopy.forEach(action)
+            listCopy.fastForEach(action)
         } finally {
             listCopy.clear()
         }
@@ -175,7 +177,7 @@ class ComposeScene internal constructor(
     private inline fun forEachOwnerReversed(action: (SkiaBasedOwner) -> Unit) {
         listCopy.addAll(owners)
         try {
-            listCopy.asReversed().forEach(action)
+            listCopy.fastForEachReversed(action)
         } finally {
             listCopy.clear()
         }
@@ -648,7 +650,7 @@ class ComposeScene internal constructor(
      * events. Returns true if [event] is consumed.
      */
     private fun processHover(event: PointerInputEvent, owner: SkiaBasedOwner?): Boolean {
-        if (!event.pointers.fastAny { it.type == PointerType.Mouse }) {
+        if (event.pointers.fastAny { it.type != PointerType.Mouse }) {
             // Track hover only for mouse
             return false
         }
