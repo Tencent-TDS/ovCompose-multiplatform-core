@@ -641,20 +641,27 @@ class ComposeScene internal constructor(
     }
 
     private fun processRelease(event: PointerInputEvent) {
-        // Send Release to pressOwner even if is not hovered or under focused
-        pressOwner?.processPointerInput(event)
+        fun isOutsideFocusedOwner(): Boolean {
+            if (pressOwner != null) {
+                // The gesture started not outside of owner
+                return false
+            }
+            if (event.isAnyPointerDown) {
+                // The last pointer was not released yet
+                return false
+            }
 
-        // Process further only if last pointer was released or had pressOwner
-        if (event.isAnyPointerDown || pressOwner != null) {
-            return
-        }
-
-        val owner = hoveredOwner(event)
-        if (!isInteractive(owner)) {
             // If hovered owner is not interactive, then it means that
             // - It's not focusedOwner
             // - It placed under focusedOwner or not exist at all
             // In all these cases the even happened outside focused owner bounds
+            val owner = hoveredOwner(event)
+            return !isInteractive(owner)
+        }
+
+        // Send Release to pressOwner even if is not hovered or under focusedOwner
+        pressOwner?.processPointerInput(event)
+        if (isOutsideFocusedOwner()) {
             focusedOwner?.onOutsidePointerEvent?.invoke(event)
         }
     }
