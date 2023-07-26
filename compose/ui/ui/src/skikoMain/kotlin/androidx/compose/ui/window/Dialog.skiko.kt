@@ -66,8 +66,13 @@ actual fun Dialog(
     properties: DialogProperties,
     content: @Composable () -> Unit
 ) {
-    val onKeyEvent = if (properties.dismissOnBackPress) {
-        { event: KeyEvent ->
+    var modifier = Modifier
+        .semantics { dialog() }
+        .drawBehind {
+            drawRect(Color.Black.copy(alpha = 0.4f))
+        }
+    if (properties.dismissOnBackPress) {
+        modifier = modifier.onKeyEvent { event: KeyEvent ->
             if (event.isDismissRequest()) {
                 onDismissRequest()
                 true
@@ -75,8 +80,6 @@ actual fun Dialog(
                 false
             }
         }
-    } else {
-        { false }
     }
     val onOutsidePointerEvent = if (properties.dismissOnClickOutside) {
         { event: PointerInputEvent ->
@@ -90,12 +93,7 @@ actual fun Dialog(
     PopupLayout(
         popupPositionProvider = WindowCenterPositionProvider,
         focusable = true,
-        modifier = Modifier
-            .drawBehind {
-                drawRect(Color.Black.copy(alpha = 0.4f))
-            }
-            .semantics { dialog() }
-            .onKeyEvent(onKeyEvent),
+        modifier = modifier,
         onOutsidePointerEvent = onOutsidePointerEvent,
         content = content
     )

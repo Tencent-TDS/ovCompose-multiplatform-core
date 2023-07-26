@@ -223,8 +223,9 @@ actual fun Popup(
     properties: PopupProperties,
     content: @Composable () -> Unit
 ) {
-    val onKeyEvent = if (properties.dismissOnBackPress) {
-        { event: KeyEvent ->
+    var modifier = Modifier.semantics { popup() }
+    if (properties.dismissOnBackPress) {
+        modifier = modifier.onKeyEvent { event: KeyEvent ->
             if (event.isDismissRequest() && onDismissRequest != null) {
                 onDismissRequest()
                 true
@@ -232,8 +233,6 @@ actual fun Popup(
                 false
             }
         }
-    } else {
-        { false }
     }
     val onOutsidePointerEvent = if (properties.dismissOnClickOutside) {
         { _: PointerInputEvent ->
@@ -247,9 +246,7 @@ actual fun Popup(
     PopupLayout(
         popupPositionProvider = popupPositionProvider,
         focusable = properties.focusable,
-        modifier = Modifier
-            .semantics { popup() }
-            .onKeyEvent(onKeyEvent),
+        modifier = modifier,
         onOutsidePointerEvent = onOutsidePointerEvent,
         content = content
     )
