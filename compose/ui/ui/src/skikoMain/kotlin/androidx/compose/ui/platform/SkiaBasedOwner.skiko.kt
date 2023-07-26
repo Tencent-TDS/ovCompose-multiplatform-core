@@ -45,6 +45,7 @@ import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.RootMeasurePolicy
 import androidx.compose.ui.modifier.ModifierLocalManager
 import androidx.compose.ui.node.*
+import androidx.compose.ui.semantics.EmptySemanticsElement
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.InternalTextApi
@@ -132,9 +133,10 @@ internal class SkiaBasedOwner(
     override val root = LayoutNode().also {
         it.layoutDirection = layoutDirection
         it.measurePolicy = RootMeasurePolicy
-        it.modifier = modifier
+        it.modifier = EmptySemanticsElement
             .then(focusOwner.modifier)
             .then(keyInputModifier)
+            .then(modifier)
     }
 
     override val coroutineContext: CoroutineContext = coroutineContext
