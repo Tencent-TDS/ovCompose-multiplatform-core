@@ -81,6 +81,8 @@ class DialogTest {
             }
         }
 
+        onNodeWithTag(dialog.tag).assertDoesNotExist()
+
         // Click (Press-Release cycle) opens popup and sends all events to "background"
         val buttons = PointerButtons(
             isPrimaryPressed = true
