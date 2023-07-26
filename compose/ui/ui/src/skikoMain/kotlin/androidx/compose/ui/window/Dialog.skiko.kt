@@ -31,6 +31,9 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 
 @Immutable
 actual class DialogProperties actual constructor(
@@ -54,19 +57,13 @@ actual class DialogProperties actual constructor(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 actual fun Dialog(
     onDismissRequest: () -> Unit,
     properties: DialogProperties,
     content: @Composable () -> Unit
 ) {
-    val popupPositioner = remember {
-        AlignmentOffsetPositionProvider(
-            alignment = Alignment.Center,
-            offset = IntOffset(0, 0)
-        )
-    }
+    val popupPositioner = remember { WindowCenterPositionProvider() }
     PopupLayout(
         popupPositionProvider = popupPositioner,
         focusable = true,
@@ -90,4 +87,36 @@ actual fun Dialog(
         },
         content = content
     )
+}
+
+private class WindowCenterPositionProvider : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize
+    ): IntOffset {
+        var popupPosition = IntOffset(0, 0)
+
+        // Get the aligned point inside the parent
+        val windowAlignmentPoint = Alignment.Center.align(
+            IntSize.Zero,
+            windowSize,
+            layoutDirection
+        )
+        // Get the aligned point inside the child
+        val relativePopupPos = Alignment.Center.align(
+            IntSize.Zero,
+            IntSize(popupContentSize.width, popupContentSize.height),
+            layoutDirection
+        )
+
+        // Add the distance between the parent's top left corner and the alignment point
+        popupPosition += windowAlignmentPoint
+
+        // Subtract the distance between the children's top left corner and the alignment point
+        popupPosition -= IntOffset(relativePopupPos.x, relativePopupPos.y)
+
+        return popupPosition
+    }
 }
