@@ -33,7 +33,7 @@ import kotlin.test.Test
 class DialogTest {
 
     @Test
-    fun centerDialog() = runSkikoComposeUiTest(
+    fun dialogIsCenteredInWindow() = runSkikoComposeUiTest(
         size = Size(100f, 100f)
     ) {
         val dialog = DialogState(
