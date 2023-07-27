@@ -18,9 +18,26 @@ package androidx.compose.foundation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.mutableStateOf
+import kotlinx.browser.window
+import org.w3c.dom.MediaQueryList
 
 @Composable
 @ReadOnlyComposable
 internal actual fun _isSystemInDarkTheme(): Boolean {
-    return isSkikoInDarkTheme()
+    return DarkThemeObserver.isSystemInDarkTheme.value
+}
+
+private object DarkThemeObserver {
+
+    private val media: MediaQueryList = window
+        .matchMedia("(prefers-color-scheme: dark)")
+
+    val isSystemInDarkTheme = mutableStateOf(media.matches)
+
+    init {
+        media.addEventListener("change", {
+            isSystemInDarkTheme.value = it.unsafeCast<MediaQueryList>().matches
+        })
+    }
 }
