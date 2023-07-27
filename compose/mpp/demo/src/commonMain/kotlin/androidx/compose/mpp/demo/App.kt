@@ -1,7 +1,6 @@
 package androidx.compose.mpp.demo
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -80,32 +79,27 @@ class App(
 
     @Composable
     fun Content() {
-        MaterialTheme(
-            colors = if (isSystemInDarkTheme())
-                darkColors() else lightColors()
-        ) {
-            when (val screen = navigationStack.last()) {
-                is Screen.Example -> {
-                    ExampleScaffold {
-                        screen.content()
-                    }
+        when (val screen = navigationStack.last()) {
+            is Screen.Example -> {
+                ExampleScaffold {
+                    screen.content()
                 }
+            }
 
-                is Screen.Selection -> {
-                    SelectionScaffold {
-                        LazyColumn(Modifier.fillMaxSize()) {
-                            items(screen.screens) {
-                                Text(it.title, Modifier.clickable {
-                                    navigationStack.add(it)
-                                }.padding(16.dp).fillMaxWidth())
-                            }
+            is Screen.Selection -> {
+                SelectionScaffold {
+                    LazyColumn(Modifier.fillMaxSize()) {
+                        items(screen.screens) {
+                            Text(it.title, Modifier.clickable {
+                                navigationStack.add(it)
+                            }.padding(16.dp).fillMaxWidth())
                         }
                     }
                 }
+            }
 
-                is Screen.FullscreenExample -> {
-                    screen.content { navigationStack.removeLast() }
-                }
+            is Screen.FullscreenExample -> {
+                screen.content { navigationStack.removeLast() }
             }
         }
     }
