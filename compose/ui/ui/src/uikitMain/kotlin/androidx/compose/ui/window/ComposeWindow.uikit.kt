@@ -37,6 +37,7 @@ import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.SkikoUIView
 import org.jetbrains.skiko.TextActions
+import org.jetbrains.skiko.currentSystemTheme
 import org.jetbrains.skiko.ios.SkikoUITextInputTraits
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
@@ -90,6 +91,10 @@ internal actual class ComposeWindow : UIViewController {
      */
     private val interfaceOrientationState = mutableStateOf(
         InterfaceOrientation.Portrait
+    )
+
+    private val traitsCollectionState = mutableStateOf(
+        traitCollection
     )
 
     /*
@@ -338,6 +343,7 @@ internal actual class ComposeWindow : UIViewController {
                 LocalSafeAreaState provides safeAreaState,
                 LocalLayoutMarginsState provides layoutMarginsState,
                 LocalInterfaceOrientationState provides interfaceOrientationState,
+                LocalUITraitCollectionState provides traitsCollectionState
             ) {
                 content()
             }
@@ -357,6 +363,8 @@ internal actual class ComposeWindow : UIViewController {
 
             view.setNeedsLayout()
         }
+
+        traitsCollectionState.value = traitCollection
     }
 
     override fun viewWillLayoutSubviews() {

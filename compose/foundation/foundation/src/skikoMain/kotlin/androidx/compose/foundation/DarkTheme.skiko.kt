@@ -44,6 +44,6 @@ import org.jetbrains.skiko.currentSystemTheme
  */
 @Composable
 @ReadOnlyComposable
-internal actual fun _isSystemInDarkTheme(): Boolean {
+internal fun isSkikoInDarkTheme(): Boolean {
     return currentSystemTheme == SystemTheme.DARK
 }
