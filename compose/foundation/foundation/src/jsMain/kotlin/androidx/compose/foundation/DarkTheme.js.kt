@@ -47,9 +47,9 @@ private object DarkThemeObserver {
 
     init {
         if (isSupported) {
-            media.addEventListener("change", {
+            media.addListener {
                 isSystemInDarkTheme.value = it.unsafeCast<MediaQueryList>().matches
-            })
+            }
         }
     }
 }
