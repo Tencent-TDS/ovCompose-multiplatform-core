@@ -132,12 +132,11 @@ fun Popup(
     focusable: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val overriddenOnKeyEvent = { event: KeyEvent ->
-        val consumed = onKeyEvent(event)
-        if (!consumed && event.isDismissRequest() && onDismissRequest != null) {
+    val dismissOnEsc = { event: KeyEvent ->
+        if (event.isDismissRequest() && onDismissRequest != null) {
             onDismissRequest()
             true
-        } else consumed
+        } else false
     }
     val onOutsidePointerEvent = if (focusable) {
         { _: PointerInputEvent ->
@@ -153,8 +152,9 @@ fun Popup(
         focusable = focusable,
         modifier = Modifier
             .semantics { popup() }
+            .onKeyEvent(dismissOnEsc)
             .then(KeyInputElement(
-                onKeyEvent = overriddenOnKeyEvent,
+                onKeyEvent = onKeyEvent,
                 onPreKeyEvent = onPreviewKeyEvent)),
         onOutsidePointerEvent = onOutsidePointerEvent,
         content = content
