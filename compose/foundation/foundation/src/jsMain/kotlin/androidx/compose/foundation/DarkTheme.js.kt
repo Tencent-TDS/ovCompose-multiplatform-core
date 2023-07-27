@@ -25,19 +25,31 @@ import org.w3c.dom.MediaQueryList
 @Composable
 @ReadOnlyComposable
 internal actual fun _isSystemInDarkTheme(): Boolean {
-    return DarkThemeObserver.isSystemInDarkTheme.value
+    return if (DarkThemeObserver.isSupported)
+        DarkThemeObserver.isSystemInDarkTheme.value
+    else isSkikoInDarkTheme()
 }
 
 private object DarkThemeObserver {
 
-    private val media: MediaQueryList = window
-        .matchMedia("(prefers-color-scheme: dark)")
+    private val media: MediaQueryList by lazy {
+        window.matchMedia("(prefers-color-scheme: dark)")
+    }
 
-    val isSystemInDarkTheme = mutableStateOf(media.matches)
+    val isSystemInDarkTheme = mutableStateOf(
+        if (isSupported) false else media.matches
+    )
+
+    // supported by all browsers since 2015
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia
+    val isSupported: Boolean
+        get() = js("window.matchMedia != undefined").unsafeCast<Boolean>()
 
     init {
-        media.addEventListener("change", {
-            isSystemInDarkTheme.value = it.unsafeCast<MediaQueryList>().matches
-        })
+        if (isSupported) {
+            media.addEventListener("change", {
+                isSystemInDarkTheme.value = it.unsafeCast<MediaQueryList>().matches
+            })
+        }
     }
 }
