@@ -24,9 +24,7 @@ import platform.UIKit.UIUserInterfaceStyle.UIUserInterfaceStyleDark
 @Composable
 @ReadOnlyComposable
 internal actual fun _isSystemInDarkTheme(): Boolean {
-    return when (LocalUITraitCollectionState.current.value.userInterfaceStyle) {
-        UIUserInterfaceStyleDark -> true
-        else -> false
-    }
+    return LocalUITraitCollectionState.current.value
+        .userInterfaceStyle == UIUserInterfaceStyleDark
 }
 
