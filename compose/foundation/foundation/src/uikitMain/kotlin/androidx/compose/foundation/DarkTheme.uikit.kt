@@ -18,13 +18,19 @@ package androidx.compose.foundation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.uikit.LocalUITraitCollectionState
+import org.jetbrains.skiko.OS
+import org.jetbrains.skiko.OSVersion
+import org.jetbrains.skiko.available
 import platform.UIKit.UIUserInterfaceStyle.UIUserInterfaceStyleDark
 
+@OptIn(InternalComposeUiApi::class)
 @Composable
 @ReadOnlyComposable
 internal actual fun _isSystemInDarkTheme(): Boolean {
-    return LocalUITraitCollectionState.current.value
-        .userInterfaceStyle == UIUserInterfaceStyleDark
+    return available(OS.Ios to OSVersion(12)) &&
+        LocalUITraitCollectionState.current
+            .value.userInterfaceStyle == UIUserInterfaceStyleDark
 }
 
