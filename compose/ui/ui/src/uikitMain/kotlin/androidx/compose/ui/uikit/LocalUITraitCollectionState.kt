@@ -20,6 +20,9 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.staticCompositionLocalOf
 import platform.UIKit.UITraitCollection
 
+/**
+ * Composition local for [UITraitCollection]
+ */
 val LocalUITraitCollectionState = staticCompositionLocalOf<State<UITraitCollection>> {
     error("CompositionLocal LocalUITraitCollectionState not present")
 }
