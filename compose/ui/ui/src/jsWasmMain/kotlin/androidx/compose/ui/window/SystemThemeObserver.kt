@@ -14,41 +14,41 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation
+package androidx.compose.ui.window
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import kotlinx.browser.window
+import androidx.compose.ui.SystemTheme
 import org.w3c.dom.MediaQueryList
+import org.w3c.dom.Window
 
-@Composable
-@ReadOnlyComposable
-internal actual fun _isSystemInDarkTheme(): Boolean {
-    return if (DarkThemeObserver.isSupported)
-        DarkThemeObserver.isSystemInDarkTheme.value
-    else isSkikoInDarkTheme()
-}
+internal class SystemThemeObserver(window : Window) {
 
-private object DarkThemeObserver {
+    val currentSystemTheme : State<SystemTheme>
+        get() = _currentSystemTheme
 
     private val media: MediaQueryList by lazy {
         window.matchMedia("(prefers-color-scheme: dark)")
     }
 
-    val isSystemInDarkTheme = mutableStateOf(
-        isSupported && media.matches
+    private val _currentSystemTheme = mutableStateOf(
+        when {
+            !isSupported -> SystemTheme.Unknown
+            media.matches -> SystemTheme.Dark
+            else -> SystemTheme.Light
+        }
     )
 
     // supported by all browsers since 2015
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia
-    val isSupported: Boolean
+    private val isSupported: Boolean
         get() = js("window.matchMedia != undefined").unsafeCast<Boolean>()
 
     init {
         if (isSupported) {
             media.addListener {
-                isSystemInDarkTheme.value = it.unsafeCast<MediaQueryList>().matches
+                _currentSystemTheme.value = if (it.unsafeCast<MediaQueryList>().matches)
+                    SystemTheme.Dark else SystemTheme.Light
             }
         }
     }

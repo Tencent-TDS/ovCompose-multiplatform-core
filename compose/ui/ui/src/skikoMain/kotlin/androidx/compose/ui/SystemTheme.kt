@@ -14,15 +14,26 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.uikit
+package androidx.compose.ui
 
-import androidx.compose.runtime.State
 import androidx.compose.runtime.staticCompositionLocalOf
-import platform.UIKit.UITraitCollection
+import org.jetbrains.skiko.SystemTheme as SkikoSystemTheme
+import org.jetbrains.skiko.currentSystemTheme
 
-/**
- * Composition local for [UITraitCollection]
- */
-val LocalUITraitCollectionState = staticCompositionLocalOf<State<UITraitCollection>> {
-    error("CompositionLocal LocalUITraitCollectionState not present")
+enum class SystemTheme {
+    Dark, Light, Unknown
 }
+
+val LocalSystemTheme = staticCompositionLocalOf {
+    currentSystemTheme.asComposeSystemTheme()
+}
+
+fun SkikoSystemTheme.asComposeSystemTheme() : SystemTheme {
+    return when (this) {
+        SkikoSystemTheme.DARK -> SystemTheme.Dark
+        SkikoSystemTheme.LIGHT -> SystemTheme.Light
+        SkikoSystemTheme.UNKNOWN -> SystemTheme.Unknown
+    }
+}
+
+

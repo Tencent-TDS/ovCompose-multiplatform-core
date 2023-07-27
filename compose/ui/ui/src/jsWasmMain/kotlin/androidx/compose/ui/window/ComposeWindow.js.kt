@@ -17,10 +17,11 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.createSkiaLayer
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.BrowserCursor
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.native.ComposeLayer
@@ -68,6 +69,7 @@ internal actual class ComposeWindow(val canvasId: String)  {
         platform = platform,
         input = jsTextInputService.input
     )
+    private val systemThemeObserver = SystemThemeObserver(window)
 
     var canvas = document.getElementById(canvasId) as HTMLCanvasElement
         private set
@@ -103,9 +105,12 @@ internal actual class ComposeWindow(val canvasId: String)  {
         content: @Composable () -> Unit
     ) {
         layer.setDensity(density)
-        layer.setContent(
-            content = content
-        )
+        layer.setContent {
+            CompositionLocalProvider(
+                LocalSystemTheme provides systemThemeObserver.currentSystemTheme.value,
+                content = content
+            )
+        }
     }
 
     // TODO: need to call .dispose() on window close.

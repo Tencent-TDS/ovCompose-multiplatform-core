@@ -20,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -93,8 +95,8 @@ internal actual class ComposeWindow : UIViewController {
         InterfaceOrientation.Portrait
     )
 
-    private val traitsCollectionState = mutableStateOf(
-        traitCollection
+    private val systemTheme = mutableStateOf(
+        traitCollection.userInterfaceStyle.asComposeSystemTheme()
     )
 
     /*
@@ -343,7 +345,7 @@ internal actual class ComposeWindow : UIViewController {
                 LocalSafeAreaState provides safeAreaState,
                 LocalLayoutMarginsState provides layoutMarginsState,
                 LocalInterfaceOrientationState provides interfaceOrientationState,
-                LocalUITraitCollectionState provides traitsCollectionState
+                LocalSystemTheme provides systemTheme.value
             ) {
                 content()
             }
@@ -364,7 +366,7 @@ internal actual class ComposeWindow : UIViewController {
             view.setNeedsLayout()
         }
 
-        traitsCollectionState.value = traitCollection
+        systemTheme.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
     }
 
     override fun viewWillLayoutSubviews() {
@@ -437,5 +439,13 @@ internal actual class ComposeWindow : UIViewController {
     private fun getViewFrameSize(): IntSize {
         val (width, height) = view.frame().useContents { this.size.width to this.size.height }
         return IntSize(width.toInt(), height.toInt())
+    }
+}
+
+private fun UIUserInterfaceStyle.asComposeSystemTheme() : SystemTheme {
+    return when(this){
+        UIUserInterfaceStyle.UIUserInterfaceStyleLight -> SystemTheme.Light
+        UIUserInterfaceStyle.UIUserInterfaceStyleDark -> SystemTheme.Dark
+        else -> SystemTheme.Unknown
     }
 }
