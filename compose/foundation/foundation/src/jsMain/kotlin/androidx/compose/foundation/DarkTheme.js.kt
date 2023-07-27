@@ -37,7 +37,7 @@ private object DarkThemeObserver {
     }
 
     val isSystemInDarkTheme = mutableStateOf(
-        if (isSupported) false else media.matches
+        isSupported && media.matches
     )
 
     // supported by all browsers since 2015
