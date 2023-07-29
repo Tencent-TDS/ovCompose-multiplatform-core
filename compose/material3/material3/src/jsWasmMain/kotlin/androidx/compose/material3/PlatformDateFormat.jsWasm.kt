@@ -30,6 +30,10 @@ internal actual object PlatformDateFormat {
     actual val firstDayOfWeek: Int
         get() = 1
 
+    private const val NUMERIC = "numeric"
+    private const val SHORT = "short"
+    private const val LONG = "long"
+
     //TODO: replace formatting with kotlinx datetime when supported
     actual fun formatWithPattern(
         utcTimeMillis: Long,
@@ -38,15 +42,13 @@ internal actual object PlatformDateFormat {
     ): String {
         val date = Date(utcTimeMillis)
         return pattern
-            .replace("%Y".toRegex(), date.getFullYear().toString())
-            .replace("%y".toRegex(), date.getFullYear().toString())
-            .replace("%m".toRegex(), date.getMonth().toString())
-            .replace("%M".toRegex(), date.getMonth().toString())
-            .replace("%d".toRegex(), date.getDay().toString())
-            .replace("%H".toRegex(), date.getHours().toString())
-            .replace("%h".toRegex(), date.getHours().toString())
-            .replace("%i".toRegex(), date.getMinutes().toString())
-            .replace("%s".toRegex(), date.getSeconds().toString())
+            .replace("yyyy", date.getFullYear().toString(), ignoreCase = true)
+            .replace("yy", date.getFullYear().toString().takeLast(2), ignoreCase = true)
+            .replace("mm", date.getMonth().toString(), ignoreCase = true)
+            .replace("dd", date.getDay().toString(), ignoreCase = true)
+            .replace("hh", date.getHours().toString(), ignoreCase = true)
+            .replace("ii", date.getMinutes().toString(), ignoreCase = true)
+            .replace("ss", date.getSeconds().toString(), ignoreCase = true)
     }
 
     actual fun formatWithSkeleton(
@@ -54,16 +56,47 @@ internal actual object PlatformDateFormat {
         skeleton: String,
         locale: CalendarLocale
     ): String {
-        // TODO: support date skeletons on js
-        return formatWithPattern(utcTimeMillis, skeleton, locale)
+        val date = Date(utcTimeMillis)
+
+        return date.toLocaleDateString(
+            locales = locale.toLanguageTag(),
+            options = dateLocaleOptions {
+                year = when {
+                    skeleton.contains("y", true) -> NUMERIC
+                    else -> null
+                }
+                month = when {
+                    skeleton.contains("MMMM", true) -> LONG
+                    skeleton.contains("MMM", true) -> SHORT
+                    skeleton.contains("MM", true) -> NUMERIC
+                    else -> null
+                }
+                day = when {
+                    skeleton.contains("dd", true) -> NUMERIC
+                    else -> null
+                }
+                hour = when {
+                    skeleton.contains("h", true) -> NUMERIC
+                    else -> null
+                }
+                minute = when {
+                    skeleton.contains("i", true) -> NUMERIC
+                    else -> null
+                }
+                second = when {
+                    skeleton.contains("s", true) -> NUMERIC
+                    else -> null
+                }
+            }
+        )
     }
 
     actual fun parse(
         date: String,
         pattern: String
     ): CalendarDate? {
-        val year = parseSegment(date, pattern, "YYYY") ?: return null
-        val month = parseSegment(date, pattern, "MM") ?: return null
+        val year = parseSegment(date, pattern, "yyy") ?: return null
+        val month = parseSegment(date, pattern, "mm") ?: return null
         val day = parseSegment(date, pattern, "dd")
 
         return LocalDate(
