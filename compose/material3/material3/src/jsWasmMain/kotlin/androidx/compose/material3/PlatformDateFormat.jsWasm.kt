@@ -86,29 +86,29 @@ internal actual object PlatformDateFormat {
             options = dateLocaleOptions {
                 year = when {
                     skeleton.contains("y", true) -> NUMERIC
-                    else -> null
+                    else -> undefined
                 }
                 month = when {
                     skeleton.contains("MMMM", true) -> LONG
                     skeleton.contains("MMM", true) -> SHORT
                     skeleton.contains("MM", true) -> NUMERIC
-                    else -> null
+                    else -> undefined
                 }
                 day = when {
-                    skeleton.contains("dd", true) -> NUMERIC
-                    else -> null
+                    skeleton.contains("d", true) -> NUMERIC
+                    else -> undefined
                 }
                 hour = when {
                     skeleton.contains("h", true) -> NUMERIC
-                    else -> null
+                    else -> undefined
                 }
                 minute = when {
                     skeleton.contains("i", true) -> NUMERIC
-                    else -> null
+                    else -> undefined
                 }
                 second = when {
                     skeleton.contains("s", true) -> NUMERIC
-                    else -> null
+                    else -> undefined
                 }
             }
         )
