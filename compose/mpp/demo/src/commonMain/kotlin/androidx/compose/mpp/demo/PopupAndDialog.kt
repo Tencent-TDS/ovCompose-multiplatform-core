@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package androidx.compose.mpp.demo
 
 import androidx.compose.foundation.border
@@ -14,9 +12,6 @@ import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,7 +40,6 @@ private fun PopupSample() {
     var popup1 by remember { mutableStateOf(0) }
     var popup2 by remember { mutableStateOf(0) }
     var popup3 by remember { mutableStateOf(0) }
-
     Button(onClick = { popup1++ }) {
         Text("Popup")
     }
