@@ -16,6 +16,7 @@
 
 package androidx.compose.material3
 
+import androidx.compose.ui.text.intl.Locale
 import kotlin.js.Date
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -28,10 +29,28 @@ internal actual object PlatformDateFormat {
     actual val weekdayNames: List<Pair<String, String>>?
         get() = null
 
-    // TODO: support localized first day of week on JS
     actual val firstDayOfWeek: Int
-        get() = 1
+        get() {
 
+            // supported by most of browsers except Firefox since 2022
+            // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl
+            val isIntlSupported = js("typeof(Intl) != undefined")
+                .unsafeCast<Boolean>()
+
+            if (!isIntlSupported)
+                return countriesFirstDow[Locale.current.region.uppercase()] ?: 1
+
+            val locale = Locale.current.toLanguageTag()
+
+            return js("new Intl.Locale(locale).weekInfo.firstDay").unsafeCast<Int>()
+        }
+
+    private val countriesFirstDow : Map<String, Int> by lazy {
+        listOf(
+            7 to listOf("TH", "ET", "SG", "SG", "JM", "BT", "IN", "US", "US", "MO", "KE", "IN", "DO", "AU", "IL", "IN", "KE", "KE", "AS", "TW", "IN", "MZ", "MM", "CN", "IN", "PR", "IN", "PK", "BD", "NP", "IN", "KE", "HN", "BR", "HK", "KE", "PK", "CN", "IN", "TT", "ZA", "VE", "KE", "US", "IN", "IN", "MT", "BD", "ZA", "ET", "ET", "MO", "PH", "PE", "ZA", "ID", "DM", "IL", "CN", "WS", "ZW", "TH", "MO", "PK", "PK", "UM", "LA", "ZA", "BZ", "IN", "MM", "PK", "SG", "KE", "IN", "JP", "SV", "BR", "IN", "IN", "CN", "KE", "BD", "PK", "CN", "KE", "BR", "CN", "US", "KE", "KE", "IN", "HK", "IN", "KE", "US", "ET", "CN", "IN", "IN", "SA", "PH", "ET", "MT", "IL", "IN", "US", "PH", "PH", "CO", "GT", "ZW", "KE", "MO", "JP", "BZ", "US", "IN", "BW", "IL", "ZW", "KE", "SG", "ET", "LA", "JP", "KE", "KR", "ID", "IN", "HK", "PE", "MZ", "HK", "IN", "PA", "IN", "KE", "MZ", "YE", "BS", "KE", "IN", "KE", "IN", "KR", "MX", "ZA", "IN", "IN", "BD", "ZA", "IN", "MH", "ID", "ZA", "KE", "IN", "KE", "MT", "IN", "MZ", "ID", "CN", "PK", "IN", "PH", "GU", "PY", "IN", "BT", "PH", "MO", "US", "AG", "KE", "PE", "ID", "KE", "US", "CA", "KE", "ZW", "KE", "ZW", "SG", "KH", "PR", "CN", "IN", "KE", "IN", "KE", "HK", "NP", "IN", "ID", "IN", "ID", "TW", "IN", "HK", "KE", "IN", "TH", "PT", "VI", "KH", "IN", "IN", "IN", "MZ", "CA", "US", "IN", "ET", "IN", "NI", "CN", "PK", "IN"),
+            6 to listOf("EG", "AF", "SY", "AF", "IR", "OM", "IQ", "DZ", "IR", "DJ", "DJ", "IR", "AE", "IR", "SD", "AF", "IQ", "KW", "JO", "DZ", "AF", "IQ", "SD", "IR", "DZ", "DZ", "AF", "IR", "AE", "BH", "QA", "EG", "IQ", "IR", "LY", "SY", "DJ")
+        ).map { (day, tags) -> tags.map { it to day } }.flatten().toMap()
+    }
     private const val NUMERIC = "numeric"
     private const val SHORT = "short"
     private const val LONG = "long"
@@ -71,7 +90,6 @@ internal actual object PlatformDateFormat {
             .replace("ii", date.minute.toStringWithLeadingZero(), ignoreCase = true)
             .replace("ss", date.second.toStringWithLeadingZero(), ignoreCase = true)
     }
-
 
 
     actual fun formatWithSkeleton(
@@ -128,10 +146,10 @@ internal actual object PlatformDateFormat {
             .toCalendarDate()
     }
 
-    private fun parseSegment(date: String, pattern: String, segmentPattern : String) : Int? {
+    private fun parseSegment(date: String, pattern: String, segmentPattern: String): Int? {
         val index = pattern
             .indexOf(segmentPattern, ignoreCase = true)
-            .takeIf { it >=0 } ?: return null
+            .takeIf { it >= 0 } ?: return null
 
         return date.substring(index, index + segmentPattern.length)
             .toIntOrNull()
@@ -147,11 +165,11 @@ internal actual object PlatformDateFormat {
         println(shortDate)
 
         val pattern = shortDate
-            .replace("1234","yyyy")
+            .replace("1234", "yyyy")
             .replace("11", "MM") //10 -> 11 not an error. month is index
-            .replace("23","dd")
+            .replace("23", "dd")
 
-        return DateInputFormat(pattern,delimiter)
+        return DateInputFormat(pattern, delimiter)
     }
 }
 
