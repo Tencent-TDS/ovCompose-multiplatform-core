@@ -17,9 +17,11 @@
 package androidx.compose.material3
 
 import kotlin.js.Date
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toLocalDateTime
 
 internal actual object PlatformDateFormat {
 
@@ -40,15 +42,33 @@ internal actual object PlatformDateFormat {
         pattern: String,
         locale: CalendarLocale
     ): String {
-        val date = Date(utcTimeMillis)
+        val date = Instant.fromEpochMilliseconds(utcTimeMillis)
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+
+        val jsDate = Date(utcTimeMillis)
+
+        val monthShort = jsDate.toLocaleDateString(
+            locales = locale.toLanguageTag(),
+            options = dateLocaleOptions {
+                month = SHORT
+            })
+
+        val monthLong = jsDate.toLocaleDateString(
+            locales = locale.toLanguageTag(),
+            options = dateLocaleOptions {
+                month = LONG
+            })
+
         return pattern
-            .replace("yyyy", date.getFullYear().toString(), ignoreCase = true)
-            .replace("yy", date.getFullYear().toString().takeLast(2), ignoreCase = true)
-            .replace("mm", date.getMonth().toString(), ignoreCase = true)
-            .replace("dd", date.getDay().toString(), ignoreCase = true)
-            .replace("hh", date.getHours().toString(), ignoreCase = true)
-            .replace("ii", date.getMinutes().toString(), ignoreCase = true)
-            .replace("ss", date.getSeconds().toString(), ignoreCase = true)
+            .replace("yyyy", date.year.toString(), ignoreCase = true)
+            .replace("yy", date.year.toString().takeLast(2), ignoreCase = true)
+            .replace("MMMM", monthLong)
+            .replace("MMM", monthShort)
+            .replace("MM", date.monthNumber.toString())
+            .replace("dd", date.dayOfMonth.toString(), ignoreCase = true)
+            .replace("hh", date.hour.toString(), ignoreCase = true)
+            .replace("ii", date.minute.toString(), ignoreCase = true)
+            .replace("ss", date.second.toString(), ignoreCase = true)
     }
 
     actual fun formatWithSkeleton(
@@ -95,7 +115,7 @@ internal actual object PlatformDateFormat {
         date: String,
         pattern: String
     ): CalendarDate? {
-        val year = parseSegment(date, pattern, "yyy") ?: return null
+        val year = parseSegment(date, pattern, "yyyy") ?: return null
         val month = parseSegment(date, pattern, "mm") ?: return null
         val day = parseSegment(date, pattern, "dd")
 

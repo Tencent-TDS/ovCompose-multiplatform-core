@@ -19,4 +19,4 @@ package androidx.compose.material3
 // TODO(https://github.com/JetBrains/compose-multiplatform/issues/3359) Support CalendarModel
 @ExperimentalMaterial3Api
 internal actual fun CalendarModel(): CalendarModel =
-    throw UnsupportedOperationException("DatePicker isn't supported on Web yet. Follow https://github.com/JetBrains/compose-multiplatform/issues/3359")
+    KotlinxDatetimeCalendarModel()
