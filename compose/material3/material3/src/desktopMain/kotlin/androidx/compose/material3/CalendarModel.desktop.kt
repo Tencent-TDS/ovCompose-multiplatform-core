@@ -20,5 +20,4 @@ package androidx.compose.material3
 /**
  * Returns a [CalendarModel] to be used by the date picker.
  */
-@ExperimentalMaterial3Api
 internal actual fun CalendarModel(): CalendarModel = LegacyCalendarModelImpl()

@@ -21,7 +21,7 @@ internal actual object PlatformDateFormat {
     private val delegate = LegacyCalendarModelImpl()
 
     actual val weekdayNames: List<Pair<String, String>>?
-        get() = null
+        get() = delegate.weekdayNames
 
     actual val firstDayOfWeek: Int
         get() = delegate.firstDayOfWeek
