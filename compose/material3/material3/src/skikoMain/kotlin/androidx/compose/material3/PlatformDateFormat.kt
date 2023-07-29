@@ -16,16 +16,29 @@
 
 package androidx.compose.material3
 
-import platform.Foundation.NSLocale
-import platform.Foundation.currentLocale
+internal expect object PlatformDateFormat{
 
-/**
- * Represents a Locale for the calendar. This locale will be used when formatting dates, determining
- * the input format, and more.
- */
-actual typealias CalendarLocale = NSLocale
+    val firstDayOfWeek : Int
 
-/**
- * Returns the default [CalendarLocale].
- */
-internal actual fun defaultLocale(): CalendarLocale = NSLocale.currentLocale()
+    /**
+     * Localized by platform weekdays
+     * or null if platform does not support weekdays localization
+     * */
+    val weekdayNames: List<Pair<String, String>>?
+
+    fun formatWithPattern(
+        utcTimeMillis: Long,
+        pattern: String,
+        locale: CalendarLocale
+    ): String
+
+    fun formatWithSkeleton(
+        utcTimeMillis: Long,
+        skeleton: String,
+        locale: CalendarLocale
+    ): String
+
+    fun parse(date: String, pattern: String): CalendarDate?
+
+    fun getDateInputFormat(locale: CalendarLocale): DateInputFormat
+}

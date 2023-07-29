@@ -16,27 +16,6 @@
 
 package androidx.compose.material3
 
-// TODO(https://github.com/JetBrains/compose-multiplatform/issues/3359) Support CalendarModel
-
-/**
- * Returns a [CalendarModel] to be used by the date picker.
- */
 @ExperimentalMaterial3Api
 internal actual fun CalendarModel(): CalendarModel =
     throw UnsupportedOperationException("DatePicker isn't supported on Web yet. Follow https://github.com/JetBrains/compose-multiplatform/issues/3359")
-
-/**
- * Formats a UTC timestamp into a string with a given date format skeleton.
- *
- * @param utcTimeMillis a UTC timestamp to format (milliseconds from epoch)
- * @param skeleton a date format skeleton
- * @param locale the [Locale] to use when formatting the given timestamp
- */
-@ExperimentalMaterial3Api
-internal actual fun formatWithSkeleton(
-    utcTimeMillis: Long,
-    skeleton: String,
-    locale: CalendarLocale
-): String {
-    throw UnsupportedOperationException("DatePicker isn't supported on Web yet. Follow https://github.com/JetBrains/compose-multiplatform/issues/3359")
-}

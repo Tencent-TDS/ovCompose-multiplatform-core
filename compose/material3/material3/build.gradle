@@ -121,6 +121,9 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             skikoMain {
                 dependsOn(commonMain)
+                dependencies {
+                    implementation(libs.datetime)
+                }
             }
 
             desktopMain.dependsOn(skikoMain)
@@ -166,6 +169,14 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.junit)
                 implementation(libs.skikoCurrentOs)
             }
+
+            uikitTest.dependencies {
+                implementation(project(":compose:ui:ui-test-junit4"))
+                implementation(libs.truth)
+                implementation(libs.junit)
+                implementation(libs.skikoCurrentOs)
+            }
+
 
             configureEach {
                 languageSettings.optIn("androidx.compose.material3.ExperimentalMaterial3Api")
