@@ -140,20 +140,6 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
     }
 }
 
-
-@ExperimentalMaterial3Api
-internal actual fun formatWithSkeleton(
-    utcTimeMillis: Long,
-    skeleton: String,
-    locale: CalendarLocale
-): String {
-    return PlatformDateFormat.formatWithSkeleton(
-        utcTimeMillis = utcTimeMillis,
-        skeleton = skeleton,
-        locale = locale
-    )
-}
-
 internal fun Instant.toCalendarDate(
     timeZone : TimeZone = TimeZone.currentSystemDefault()
 ) : CalendarDate {

@@ -22,3 +22,16 @@ package androidx.compose.material3
 internal actual fun Int.toLocalString(
     minDigits: Int,
 ): String = toString().padStart(minDigits, '0')
+
+@ExperimentalMaterial3Api
+internal actual fun formatWithSkeleton(
+    utcTimeMillis: Long,
+    skeleton: String,
+    locale: CalendarLocale
+): String {
+    return PlatformDateFormat.formatWithSkeleton(
+        utcTimeMillis = utcTimeMillis,
+        skeleton = skeleton,
+        locale = locale
+    )
+}
