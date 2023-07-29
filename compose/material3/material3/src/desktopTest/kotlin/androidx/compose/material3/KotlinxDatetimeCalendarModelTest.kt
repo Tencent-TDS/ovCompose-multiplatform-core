@@ -17,15 +17,10 @@
 package androidx.compose.material3
 
 import com.google.common.truth.Truth.assertThat
-import java.util.Locale
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
 
 @OptIn(ExperimentalMaterial3Api::class)
-internal class CalendarModelTest {
+internal class KotlinxDatetimeCalendarModelTest {
 
     private val model = KotlinxDatetimeCalendarModel()
 
