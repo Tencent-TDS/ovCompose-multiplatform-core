@@ -130,6 +130,33 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
     override fun parse(date: String, pattern: String): CalendarDate? {
         return PlatformDateFormat.parse(date, pattern)
     }
+
+    private fun Instant.toCalendarMonth(
+        timeZone : TimeZone = TimeZone.currentSystemDefault()
+    ) : CalendarMonth {
+
+        val dateTime = toLocalDateTime(timeZone)
+
+        val monthStart = LocalDate(
+            year = dateTime.year,
+            month = dateTime.month,
+            dayOfMonth = 1,
+        )
+
+        return CalendarMonth(
+            year = dateTime.year,
+            month = dateTime.monthNumber,
+            numberOfDays = dateTime.month
+                .numberOfDays(dateTime.year.isLeapYear()),
+            daysFromStartOfWeekToFirstOfMonth =
+                (monthStart.dayOfWeek.isoDayNumber - firstDayOfWeek).let {
+                    if (it > 0) it else 7 + it
+                },
+            startUtcTimeMillis = monthStart
+                .atStartOfDayIn(TimeZone.UTC)
+                .toEpochMilliseconds()
+        )
+    }
 }
 
 internal fun Instant.toCalendarDate(
@@ -146,30 +173,6 @@ internal fun Instant.toCalendarDate(
     )
 }
 
-
-private fun Instant.toCalendarMonth(
-    timeZone : TimeZone = TimeZone.currentSystemDefault()
-) : CalendarMonth {
-
-    val dateTime = toLocalDateTime(timeZone)
-
-    val monthStart = LocalDate(
-        year = dateTime.year,
-        month = dateTime.month,
-        dayOfMonth = 1,
-    )
-
-    return CalendarMonth(
-        year = dateTime.year,
-        month = dateTime.monthNumber,
-        numberOfDays = dateTime.month
-            .numberOfDays(dateTime.year.isLeapYear()),
-        daysFromStartOfWeekToFirstOfMonth = monthStart.dayOfWeek.isoDayNumber-1,
-        startUtcTimeMillis = monthStart
-            .atStartOfDayIn(TimeZone.UTC)
-            .toEpochMilliseconds()
-    )
-}
 
 private val EnglishWeekdaysNames = listOf(
     "Monday" to "Mon",

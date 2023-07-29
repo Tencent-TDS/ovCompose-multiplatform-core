@@ -20,7 +20,7 @@ import kotlinx.datetime.Instant
 import platform.Foundation.NSCalendar
 import platform.Foundation.NSDate
 import platform.Foundation.NSDateFormatter
-import platform.Foundation.NSDateIntervalFormatter
+import platform.Foundation.NSDateFormatterShortStyle
 import platform.Foundation.NSLocale
 import platform.Foundation.currentLocale
 import platform.Foundation.dateWithTimeIntervalSince1970
@@ -38,13 +38,12 @@ internal actual object PlatformDateFormat {
             val fromSundayToSaturday = formatter.weekdaySymbols
                 .zip(formatter.shortWeekdaySymbols) as List<Pair<String, String>>
 
-            val sunday = fromSundayToSaturday.first()
-
-            return fromSundayToSaturday.drop(1) + sunday
+            return fromSundayToSaturday.drop(1) + fromSundayToSaturday.first()
         }
 
     actual val firstDayOfWeek: Int
-        get() = NSCalendar.currentCalendar.firstWeekday.toInt()
+        get() = (NSCalendar.currentCalendar.firstWeekday.toInt() - 1).takeIf { it > 0 } ?: 7
+
 
     actual fun formatWithPattern(
         utcTimeMillis: Long,
@@ -88,9 +87,25 @@ internal actual object PlatformDateFormat {
             .toCalendarDate()
     }
 
-    //TODO support localized date input format on darwin
     actual fun getDateInputFormat(locale: CalendarLocale): DateInputFormat {
-        return DateInputFormat("yyyy-MM-dd", '-')
-    }
 
+        var pattern = NSDateFormatter().apply {
+            setDateStyle(NSDateFormatterShortStyle)
+        }.dateFormat
+
+        val delimiter = pattern.first { !it.isLetter() }
+
+        // most of time dateFormat returns dd.MM.y -> we need dd.MM.yyyy
+        if (!pattern.contains("yyyy", true)) {
+
+            // probably it can also return dd.MM.yy because such formats exist so check for it
+            while (pattern.contains("yy", true)) {
+                pattern = pattern.replace("yy", "y")
+            }
+
+            pattern = pattern.replace("y", "yyyy")
+        }
+
+        return DateInputFormat(pattern, delimiter)
+    }
 }
