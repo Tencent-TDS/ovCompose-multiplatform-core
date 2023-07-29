@@ -37,16 +37,8 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
 
     //TODO: localize weekdays names
     override val weekdayNames: List<Pair<String, String>>
-        get() = PlatformDateFormat.weekdayNames ?: listOf(
-            "Monday" to "Mon",
-            "Tuesday" to "Tue",
-            "Wednesday" to "Wed",
-            "Thursday" to "Thu",
-            "Friday" to "Fri",
-            "Saturday" to "Sat",
-            "Sunday" to "Sun",
-        )
-
+        get() = PlatformDateFormat.weekdayNames
+            ?: EnglishWeekdaysNames
 
     private val systemTZ
         get() = TimeZone.currentSystemDefault()
@@ -179,6 +171,15 @@ private fun Instant.toCalendarMonth(
     )
 }
 
+private val EnglishWeekdaysNames = listOf(
+    "Monday" to "Mon",
+    "Tuesday" to "Tue",
+    "Wednesday" to "Wed",
+    "Thursday" to "Thu",
+    "Friday" to "Fri",
+    "Saturday" to "Sat",
+    "Sunday" to "Sun",
+)
 private fun Int.isLeapYear() = this%4 == 0 && (this%100 != 0 || this%400 == 0)
 
 private fun Month.numberOfDays(isLeap : Boolean) : Int {

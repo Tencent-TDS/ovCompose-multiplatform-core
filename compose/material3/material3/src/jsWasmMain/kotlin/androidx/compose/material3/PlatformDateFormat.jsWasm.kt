@@ -42,7 +42,8 @@ internal actual object PlatformDateFormat {
         pattern: String,
         locale: CalendarLocale
     ): String {
-        val date = Instant.fromEpochMilliseconds(utcTimeMillis)
+        val date = Instant
+            .fromEpochMilliseconds(utcTimeMillis)
             .toLocalDateTime(TimeZone.currentSystemDefault())
 
         val jsDate = Date(utcTimeMillis)
@@ -64,12 +65,14 @@ internal actual object PlatformDateFormat {
             .replace("yy", date.year.toString().takeLast(2), ignoreCase = true)
             .replace("MMMM", monthLong)
             .replace("MMM", monthShort)
-            .replace("MM", date.monthNumber.toString())
-            .replace("dd", date.dayOfMonth.toString(), ignoreCase = true)
-            .replace("hh", date.hour.toString(), ignoreCase = true)
-            .replace("ii", date.minute.toString(), ignoreCase = true)
-            .replace("ss", date.second.toString(), ignoreCase = true)
+            .replace("MM", date.monthNumber.toStringWithLeadingZero())
+            .replace("dd", date.dayOfMonth.toStringWithLeadingZero(), ignoreCase = true)
+            .replace("hh", date.hour.toStringWithLeadingZero(), ignoreCase = true)
+            .replace("ii", date.minute.toStringWithLeadingZero(), ignoreCase = true)
+            .replace("ss", date.second.toStringWithLeadingZero(), ignoreCase = true)
     }
+
+
 
     actual fun formatWithSkeleton(
         utcTimeMillis: Long,
@@ -138,4 +141,8 @@ internal actual object PlatformDateFormat {
     actual fun getDateInputFormat(locale: CalendarLocale): DateInputFormat {
         return DateInputFormat("yyyy-MM-dd",'-')
     }
+}
+
+private fun Int.toStringWithLeadingZero(): String{
+    return if (this >= 10) toString() else "0$this"
 }
