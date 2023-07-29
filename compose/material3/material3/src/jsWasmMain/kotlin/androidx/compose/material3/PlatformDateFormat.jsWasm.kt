@@ -137,9 +137,21 @@ internal actual object PlatformDateFormat {
             .toIntOrNull()
     }
 
-    //TODO: support localized date input format on js
     actual fun getDateInputFormat(locale: CalendarLocale): DateInputFormat {
-        return DateInputFormat("yyyy-MM-dd",'-')
+        val date = Date(year = 1234, month = 10, day = 23)
+
+        val shortDate = date.toLocaleDateString(locale.toLanguageTag())
+
+        val delimiter = shortDate.first { !it.isDigit() }
+
+        println(shortDate)
+
+        val pattern = shortDate
+            .replace("1234","yyyy")
+            .replace("11", "MM") //10 -> 11 not an error. month is index
+            .replace("23","dd")
+
+        return DateInputFormat(pattern,delimiter)
     }
 }
 

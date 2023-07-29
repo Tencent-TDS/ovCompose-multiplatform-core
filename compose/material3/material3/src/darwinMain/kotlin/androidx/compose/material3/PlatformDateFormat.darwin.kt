@@ -100,10 +100,10 @@ internal actual object PlatformDateFormat {
 
             // probably it can also return dd.MM.yy because such formats exist so check for it
             while (pattern.contains("yy", true)) {
-                pattern = pattern.replace("yy", "y")
+                pattern = pattern.replace("yy", "y",true)
             }
 
-            pattern = pattern.replace("y", "yyyy")
+            pattern = pattern.replace("y", "yyyy",true)
         }
 
         return DateInputFormat(pattern, delimiter)
