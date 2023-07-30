@@ -30,20 +30,11 @@ internal actual object PlatformDateFormat {
         get() = weekdayNames()
 
     actual val firstDayOfWeek: Int
-        get() {
+        get() = firstDayOfWeek()
 
-            // supported by most of browsers except Firefox since 2022
-            // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl
-            val isIntlSupported = js("typeof(Intl) != undefined")
-                .unsafeCast<Boolean>()
-
-            if (!isIntlSupported)
-                return countriesFirstDow[Locale.current.region.uppercase()] ?: 1
-
-            val locale = Locale.current.toLanguageTag()
-
-            return js("new Intl.Locale(locale).weekInfo.firstDay").unsafeCast<Int>()
-        }
+    private const val NUMERIC = "numeric"
+    private const val SHORT = "short"
+    private const val LONG = "long"
 
     private val countriesFirstDow: Map<String, Int> by lazy {
         listOf(
@@ -51,9 +42,6 @@ internal actual object PlatformDateFormat {
             6 to listOf("EG", "AF", "SY", "AF", "IR", "OM", "IQ", "DZ", "IR", "DJ", "DJ", "IR", "AE", "IR", "SD", "AF", "IQ", "KW", "JO", "DZ", "AF", "IQ", "SD", "IR", "DZ", "DZ", "AF", "IR", "AE", "BH", "QA", "EG", "IQ", "IR", "LY", "SY", "DJ")
         ).map { (day, tags) -> tags.map { it to day } }.flatten().toMap()
     }
-    private const val NUMERIC = "numeric"
-    private const val SHORT = "short"
-    private const val LONG = "long"
 
     //TODO: replace formatting with kotlinx datetime when supported
     actual fun formatWithPattern(
@@ -170,12 +158,11 @@ internal actual object PlatformDateFormat {
         return DateInputFormat(pattern, delimiter)
     }
 
-    private const val MS_IN_DAY = 24 * 60 * 60 * 1000
     private fun weekdayNames(): List<Pair<String, String>> {
         val now = Date.now()
 
-        val week = List(7) {
-            Date(now + MS_IN_DAY * it)
+        val week = List(DaysInWeek) {
+            Date(now + MillisecondsIn24Hours * it)
         }.sortedBy { it.getDay() } // sunday to saturday
 
         val mondayToSunday = week.drop(1) + week.first()
@@ -192,6 +179,20 @@ internal actual object PlatformDateFormat {
             }
         }
         return longAndShortWeekDays[0].zip(longAndShortWeekDays[1])
+    }
+
+    private fun firstDayOfWeek() : Int{
+        // supported by most of browsers except Firefox since 2022
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl
+        val isIntlSupported = js("typeof(Intl) != undefined")
+            .unsafeCast<Boolean>()
+
+        if (!isIntlSupported)
+            return countriesFirstDow[Locale.current.region.uppercase()] ?: 1
+
+        val locale = Locale.current.toLanguageTag()
+
+        return js("new Intl.Locale(locale).weekInfo.firstDay").unsafeCast<Int>()
     }
 }
 

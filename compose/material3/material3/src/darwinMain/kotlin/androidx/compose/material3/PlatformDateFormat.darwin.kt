@@ -28,22 +28,11 @@ import platform.Foundation.timeIntervalSince1970
 
 internal actual object PlatformDateFormat {
 
-    @Suppress("UNCHECKED_CAST")
     actual val weekdayNames: List<Pair<String, String>>?
-        get() {
-            val formatter = NSDateFormatter().apply {
-                setLocale(NSLocale.currentLocale)
-            }
-
-            val fromSundayToSaturday = formatter.standaloneWeekdaySymbols
-                .zip(formatter.shortStandaloneWeekdaySymbols) as List<Pair<String, String>>
-
-            return fromSundayToSaturday.drop(1) + fromSundayToSaturday.first()
-        }
+        get() = weekdayNames()
 
     actual val firstDayOfWeek: Int
-        get() = (NSCalendar.currentCalendar.firstWeekday.toInt() - 1).takeIf { it > 0 } ?: 7
-
+        get() = firstDayOfWeek()
 
     actual fun formatWithPattern(
         utcTimeMillis: Long,
@@ -108,4 +97,21 @@ internal actual object PlatformDateFormat {
 
         return DateInputFormat(pattern, delimiter)
     }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun weekdayNames(): List<Pair<String, String>> {
+        val formatter = NSDateFormatter().apply {
+            setLocale(NSLocale.currentLocale)
+        }
+
+        val fromSundayToSaturday = formatter.standaloneWeekdaySymbols
+            .zip(formatter.shortStandaloneWeekdaySymbols) as List<Pair<String, String>>
+
+        return fromSundayToSaturday.drop(1) + fromSundayToSaturday.first()
+    }
+
+    private fun firstDayOfWeek(): Int {
+        return (NSCalendar.currentCalendar.firstWeekday.toInt() - 1).takeIf { it > 0 } ?: 7
+    }
+
 }
