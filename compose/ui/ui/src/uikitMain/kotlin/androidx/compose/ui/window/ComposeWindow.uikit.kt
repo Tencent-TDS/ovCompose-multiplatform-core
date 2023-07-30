@@ -23,7 +23,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.createSkiaLayer
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.interop.LocalLayerContainer
@@ -337,19 +336,23 @@ internal actual class ComposeWindow : UIViewController {
             platform = uiKitPlatform,
             input = uiKitTextInputService.skikoInput,
         )
-        layer.setContent(content = {
-            CompositionLocalProvider(
-                LocalLayerContainer provides rootView,
-                LocalUIViewController provides this,
-                LocalKeyboardOverlapHeightState provides keyboardOverlapHeightState,
-                LocalSafeAreaState provides safeAreaState,
-                LocalLayoutMarginsState provides layoutMarginsState,
-                LocalInterfaceOrientationState provides interfaceOrientationState,
-                LocalSystemTheme provides systemTheme.value
-            ) {
-                content()
-            }
-        })
+
+        layer.setContent(
+            onPreviewKeyEvent = uiKitTextInputService::onPreviewKeyEvent,
+            content = {
+                CompositionLocalProvider(
+                    LocalLayerContainer provides rootView,
+                    LocalUIViewController provides this,
+                    LocalKeyboardOverlapHeightState provides keyboardOverlapHeightState,
+                    LocalSafeAreaState provides safeAreaState,
+                    LocalLayoutMarginsState provides layoutMarginsState,
+                    LocalInterfaceOrientationState provides interfaceOrientationState,
+                    LocalSystemTheme provides systemTheme.value
+                ) {
+                    content()
+                }
+            },
+        )
     }
 
     override fun traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
