@@ -18,6 +18,7 @@ package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.LocalSystemTheme
@@ -101,6 +102,7 @@ internal actual class ComposeWindow(val canvasId: String)  {
      *
      * @param content Composable content of the ComposeWindow.
      */
+    @OptIn(InternalComposeApi::class)
     actual fun setContent(
         content: @Composable () -> Unit
     ) {

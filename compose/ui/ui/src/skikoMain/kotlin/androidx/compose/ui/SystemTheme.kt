@@ -18,17 +18,19 @@ package androidx.compose.ui
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import org.jetbrains.skiko.SystemTheme as SkikoSystemTheme
+import androidx.compose.runtime.InternalComposeApi
 import org.jetbrains.skiko.currentSystemTheme
 
 enum class SystemTheme {
     Dark, Light, Unknown
 }
 
+@InternalComposeApi
 val LocalSystemTheme = staticCompositionLocalOf {
     currentSystemTheme.asComposeSystemTheme()
 }
 
-fun SkikoSystemTheme.asComposeSystemTheme() : SystemTheme {
+private fun SkikoSystemTheme.asComposeSystemTheme() : SystemTheme {
     return when (this) {
         SkikoSystemTheme.DARK -> SystemTheme.Dark
         SkikoSystemTheme.LIGHT -> SystemTheme.Light

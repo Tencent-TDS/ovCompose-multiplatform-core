@@ -17,6 +17,7 @@
 package androidx.compose.foundation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
@@ -42,6 +43,7 @@ import androidx.compose.ui.SystemTheme
  *
  * @return `true` if the system is considered to be in 'dark theme'.
  */
+@OptIn(InternalComposeApi::class)
 @Composable
 @ReadOnlyComposable
 internal actual fun _isSystemInDarkTheme(): Boolean {
