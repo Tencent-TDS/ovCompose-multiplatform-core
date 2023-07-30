@@ -73,10 +73,15 @@ internal actual object PlatformDateFormat {
             .replace("MMMM", monthLong)
             .replace("MMM", monthShort)
             .replace("MM", date.monthNumber.toStringWithLeadingZero())
+            .replace("M", date.monthNumber.toString())
             .replace("dd", date.dayOfMonth.toStringWithLeadingZero(), ignoreCase = true)
+            .replace("d", date.dayOfMonth.toString(), ignoreCase = true)
             .replace("hh", date.hour.toStringWithLeadingZero(), ignoreCase = true)
+            .replace("h", date.hour.toString(), ignoreCase = true)
             .replace("ii", date.minute.toStringWithLeadingZero(), ignoreCase = true)
+            .replace("i", date.minute.toString(), ignoreCase = true)
             .replace("ss", date.second.toStringWithLeadingZero(), ignoreCase = true)
+            .replace("s", date.second.toString(), ignoreCase = true)
     }
 
 
