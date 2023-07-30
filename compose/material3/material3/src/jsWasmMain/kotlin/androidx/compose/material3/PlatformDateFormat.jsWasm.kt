@@ -27,7 +27,7 @@ import kotlinx.datetime.toLocalDateTime
 internal actual object PlatformDateFormat {
 
     actual val weekdayNames: List<Pair<String, String>>?
-        get() = null
+        get() = weekdayNames()
 
     actual val firstDayOfWeek: Int
         get() {
@@ -45,7 +45,7 @@ internal actual object PlatformDateFormat {
             return js("new Intl.Locale(locale).weekInfo.firstDay").unsafeCast<Int>()
         }
 
-    private val countriesFirstDow : Map<String, Int> by lazy {
+    private val countriesFirstDow: Map<String, Int> by lazy {
         listOf(
             7 to listOf("TH", "ET", "SG", "SG", "JM", "BT", "IN", "US", "US", "MO", "KE", "IN", "DO", "AU", "IL", "IN", "KE", "KE", "AS", "TW", "IN", "MZ", "MM", "CN", "IN", "PR", "IN", "PK", "BD", "NP", "IN", "KE", "HN", "BR", "HK", "KE", "PK", "CN", "IN", "TT", "ZA", "VE", "KE", "US", "IN", "IN", "MT", "BD", "ZA", "ET", "ET", "MO", "PH", "PE", "ZA", "ID", "DM", "IL", "CN", "WS", "ZW", "TH", "MO", "PK", "PK", "UM", "LA", "ZA", "BZ", "IN", "MM", "PK", "SG", "KE", "IN", "JP", "SV", "BR", "IN", "IN", "CN", "KE", "BD", "PK", "CN", "KE", "BR", "CN", "US", "KE", "KE", "IN", "HK", "IN", "KE", "US", "ET", "CN", "IN", "IN", "SA", "PH", "ET", "MT", "IL", "IN", "US", "PH", "PH", "CO", "GT", "ZW", "KE", "MO", "JP", "BZ", "US", "IN", "BW", "IL", "ZW", "KE", "SG", "ET", "LA", "JP", "KE", "KR", "ID", "IN", "HK", "PE", "MZ", "HK", "IN", "PA", "IN", "KE", "MZ", "YE", "BS", "KE", "IN", "KE", "IN", "KR", "MX", "ZA", "IN", "IN", "BD", "ZA", "IN", "MH", "ID", "ZA", "KE", "IN", "KE", "MT", "IN", "MZ", "ID", "CN", "PK", "IN", "PH", "GU", "PY", "IN", "BT", "PH", "MO", "US", "AG", "KE", "PE", "ID", "KE", "US", "CA", "KE", "ZW", "KE", "ZW", "SG", "KH", "PR", "CN", "IN", "KE", "IN", "KE", "HK", "NP", "IN", "ID", "IN", "ID", "TW", "IN", "HK", "KE", "IN", "TH", "PT", "VI", "KH", "IN", "IN", "IN", "MZ", "CA", "US", "IN", "ET", "IN", "NI", "CN", "PK", "IN"),
             6 to listOf("EG", "AF", "SY", "AF", "IR", "OM", "IQ", "DZ", "IR", "DJ", "DJ", "IR", "AE", "IR", "SD", "AF", "IQ", "KW", "JO", "DZ", "AF", "IQ", "SD", "IR", "DZ", "DZ", "AF", "IR", "AE", "BH", "QA", "EG", "IQ", "IR", "LY", "SY", "DJ")
@@ -162,14 +162,36 @@ internal actual object PlatformDateFormat {
 
         val delimiter = shortDate.first { !it.isDigit() }
 
-        println(shortDate)
-
         val pattern = shortDate
             .replace("1234", "yyyy")
             .replace("11", "MM") //10 -> 11 not an error. month is index
             .replace("23", "dd")
 
         return DateInputFormat(pattern, delimiter)
+    }
+
+    private const val MS_IN_DAY = 24 * 60 * 60 * 1000
+    private fun weekdayNames(): List<Pair<String, String>> {
+        val now = Date.now()
+
+        val week = List(7) {
+            Date(now + MS_IN_DAY * it)
+        }.sortedBy { it.getDay() } // sunday to saturday
+
+        val mondayToSunday = week.drop(1) + week.first()
+
+        val locale = defaultLocale()
+
+        val longAndShortWeekDays = listOf(LONG, SHORT).map { format ->
+            mondayToSunday.map {
+                it.toLocaleDateString(
+                    locales = locale.toLanguageTag(),
+                    options = dateLocaleOptions {
+                        weekday = format
+                    })
+            }
+        }
+        return longAndShortWeekDays[0].zip(longAndShortWeekDays[1])
     }
 }
 

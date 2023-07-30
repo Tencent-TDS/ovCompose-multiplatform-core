@@ -35,8 +35,8 @@ internal actual object PlatformDateFormat {
                 setLocale(NSLocale.currentLocale)
             }
 
-            val fromSundayToSaturday = formatter.weekdaySymbols
-                .zip(formatter.shortWeekdaySymbols) as List<Pair<String, String>>
+            val fromSundayToSaturday = formatter.standaloneWeekdaySymbols
+                .zip(formatter.shortStandaloneWeekdaySymbols) as List<Pair<String, String>>
 
             return fromSundayToSaturday.drop(1) + fromSundayToSaturday.first()
         }
