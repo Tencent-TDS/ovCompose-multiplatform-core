@@ -47,6 +47,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.center
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMaxBy
@@ -58,6 +60,13 @@ import androidx.compose.ui.util.fastMaxBy
  * TODO: Provide a way to configure dialog shim color (maybe inside DialogProperties?)
  */
 private const val DefaultScrimOpacity = 0.32f
+
+/**
+ * The default dialog margins.
+ *
+ * TODO: Provide a way to configure dialog margins (maybe inside DialogProperties?)
+ */
+private val DefaultDialogMargins = 24.dp
 
 @Immutable
 actual class DialogProperties actual constructor(
@@ -149,7 +158,11 @@ private fun DialogLayout(
             Layout(
                 content = content,
                 measurePolicy = { measurables, constraints ->
-                    val placeables = measurables.fastMap { it.measure(constraints) }
+                    val reducedConstraints = constraints.offset(
+                        horizontal = -2 * DefaultDialogMargins.roundToPx(),
+                        vertical = -2 * DefaultDialogMargins.roundToPx()
+                    )
+                    val placeables = measurables.fastMap { it.measure(reducedConstraints) }
                     val width = placeables.fastMaxBy { it.width }?.width ?: constraints.minWidth
                     val height = placeables.fastMaxBy { it.height }?.height ?: constraints.minHeight
                     val placeableSize = IntSize(width, height)
