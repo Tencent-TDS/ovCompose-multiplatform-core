@@ -139,6 +139,18 @@ private fun DialogLayout(
     val scene = LocalComposeScene.requireCurrent()
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
+
+    /*
+     * Keep empty layout as workaround to trigger layout after remove dialog.
+     * Required to properly update mouse hover state.
+     */
+    Layout(
+        content = {},
+        measurePolicy = { _, _ ->
+            layout(0, 0) {}
+        }
+    )
+
     val parentComposition = rememberCompositionContext()
     val (owner, composition) = remember {
         val owner = SkiaBasedOwner(
