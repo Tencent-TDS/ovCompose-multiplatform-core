@@ -44,19 +44,22 @@ import platform.UIKit.*
 import platform.darwin.NSObject
 
 private val uiContentSizeCategoryToFontScaleMap = mapOf(
-    UIContentSizeCategoryExtraSmall to 0.9f,
-    UIContentSizeCategorySmall to 0.95f,
-    UIContentSizeCategoryMedium to 1.0f,
-    UIContentSizeCategoryLarge to 1.05f,
+    UIContentSizeCategoryExtraSmall to 0.8f,
+    UIContentSizeCategorySmall to 0.85f,
+    UIContentSizeCategoryMedium to 0.9f,
+    UIContentSizeCategoryLarge to 1f, // default preference
     UIContentSizeCategoryExtraLarge to 1.1f,
-    UIContentSizeCategoryExtraExtraLarge to 1.15f,
-    UIContentSizeCategoryExtraExtraExtraLarge to 1.2f,
+    UIContentSizeCategoryExtraExtraLarge to 1.2f,
+    UIContentSizeCategoryExtraExtraExtraLarge to 1.3f,
 
-    UIContentSizeCategoryAccessibilityMedium to 1.3f,
-    UIContentSizeCategoryAccessibilityLarge to 1.4f,
-    UIContentSizeCategoryAccessibilityExtraLarge to 1.5f,
-    UIContentSizeCategoryAccessibilityExtraExtraLarge to 1.6f,
-    UIContentSizeCategoryAccessibilityExtraExtraExtraLarge to 1.7f,
+    // These values don't work well if they match scale shown by
+    // Text Size control hint, because iOS uses non-linear scaling
+    // calculated by UIFontMetrics, while Compose uses linear.
+    UIContentSizeCategoryAccessibilityMedium to 1.4f, // 160% native
+    UIContentSizeCategoryAccessibilityLarge to 1.5f, // 190% native
+    UIContentSizeCategoryAccessibilityExtraLarge to 1.6f, // 235% native
+    UIContentSizeCategoryAccessibilityExtraExtraLarge to 1.7f, // 275% native
+    UIContentSizeCategoryAccessibilityExtraExtraExtraLarge to 1.8f, // 310% native
 
     // UIContentSizeCategoryUnspecified
 )
