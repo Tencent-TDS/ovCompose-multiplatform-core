@@ -79,7 +79,7 @@ internal actual fun getString(string: Strings): String {
         Strings.TimePickerPeriodToggle -> "Select AM or PM"
         Strings.TimePickerMinuteSelection -> "Select minutes"
         Strings.TimePickerHourSelection -> "Select hour"
-        Strings.TimePickerHourSuffix -> "%1$ o\\'clock"
+        Strings.TimePickerHourSuffix -> "%1$ o'clock" // ' should be escaped if moved to strings.xml
         Strings.TimePickerMinuteSuffix -> "%1$ minutes"
         Strings.TimePicker24HourSuffix -> "%1$ hours"
         Strings.TimePickerMinute -> "Minute"
