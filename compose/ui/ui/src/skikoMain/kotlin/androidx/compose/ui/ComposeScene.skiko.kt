@@ -24,8 +24,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyInputElement
 import androidx.compose.ui.input.key.NativeKeyEvent
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.RootForTest
@@ -643,28 +641,19 @@ class ComposeScene internal constructor(
     }
 
     private fun processRelease(event: PointerInputEvent) {
-        fun isOutsideFocusedOwner(): Boolean {
-            if (gestureOwner != null) {
-                // The gesture started not outside of owner
-                return false
-            }
-            if (event.isGestureInProgress) {
-                // The last pointer was not released yet
-                return false
-            }
-
-            // If hovered owner is not interactive, then it means that
-            // - It's not focusedOwner
-            // - It placed under focusedOwner or not exist at all
-            // In all these cases the even happened outside focused owner bounds
-            val owner = hoveredOwner(event)
-            return !isInteractive(owner)
-        }
-
-        // Send Release to pressOwner even if is not hovered or under focusedOwner
+        // Send Release to gestureOwner even if is not hovered or under focusedOwner
         gestureOwner?.processPointerInput(event)
-        if (isOutsideFocusedOwner()) {
-            focusedOwner?.onOutsidePointerEvent?.invoke(event)
+        if (!event.isGestureInProgress) {
+            val owner = hoveredOwner(event)
+            if (isInteractive(owner)) {
+                processHover(event, owner)
+            } else if (gestureOwner == null) {
+                // If hovered owner is not interactive, then it means that
+                // - It's not focusedOwner
+                // - It placed under focusedOwner or not exist at all
+                // In all these cases the even happened outside focused owner bounds
+                focusedOwner?.onOutsidePointerEvent?.invoke(event)
+            }
         }
     }
 
