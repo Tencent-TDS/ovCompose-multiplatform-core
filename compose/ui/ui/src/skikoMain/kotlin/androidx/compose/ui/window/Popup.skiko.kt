@@ -84,7 +84,9 @@ actual class PopupProperties actual constructor(
  */
 @Deprecated(
     "Replaced by Popup with properties parameter",
-    ReplaceWith("Popup(alignment, offset, onDismissRequest, properties, onPreviewKeyEvent, onKeyEvent, content)")
+    ReplaceWith("Popup(alignment, offset, onDismissRequest, " +
+        "androidx.compose.ui.window.PopupProperties(focusable = focusable), " +
+        "onPreviewKeyEvent, onKeyEvent, content)")
 )
 @Composable
 fun Popup(
@@ -132,7 +134,9 @@ fun Popup(
  */
 @Deprecated(
     "Replaced by Popup with properties parameter",
-    ReplaceWith("Popup(popupPositionProvider, onDismissRequest, properties, onPreviewKeyEvent, onKeyEvent, content)")
+    ReplaceWith("Popup(popupPositionProvider, onDismissRequest, " +
+        "androidx.compose.ui.window.PopupProperties(focusable = focusable), " +
+        "onPreviewKeyEvent, onKeyEvent, content)")
 )
 @Composable
 fun Popup(
@@ -259,10 +263,7 @@ fun Popup(
     content: @Composable () -> Unit
 ) {
     val popupPositioner = remember(alignment, offset) {
-        AlignmentOffsetPositionProvider(
-            alignment,
-            offset
-        )
+        AlignmentOffsetPositionProvider(alignment, offset)
     }
     Popup(
         popupPositionProvider = popupPositioner,
@@ -304,9 +305,9 @@ fun Popup(
     content: @Composable () -> Unit
 ) {
     var modifier = Modifier.semantics { popup() }
-    if (properties.dismissOnBackPress) {
+    if (properties.dismissOnBackPress && onDismissRequest != null) {
         modifier = modifier.onKeyEvent { event: KeyEvent ->
-            if (event.isDismissRequest() && onDismissRequest != null) {
+            if (event.isDismissRequest()) {
                 onDismissRequest()
                 true
             } else {
@@ -322,11 +323,9 @@ fun Popup(
             )
         )
     }
-    val onOutsidePointerEvent = if (properties.dismissOnClickOutside) {
+    val onOutsidePointerEvent = if (properties.dismissOnClickOutside && onDismissRequest != null) {
         { _: PointerInputEvent ->
-            if (onDismissRequest != null) {
-                onDismissRequest()
-            }
+            onDismissRequest()
         }
     } else {
         null
