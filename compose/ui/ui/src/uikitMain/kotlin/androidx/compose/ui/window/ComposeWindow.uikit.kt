@@ -167,7 +167,7 @@ internal actual class ComposeWindow : UIViewController {
 
         @Suppress("unused")
         @ObjCAction
-        fun keyboardDidHide(arg: NSNotification) {
+        fun keyboardWillHide(arg: NSNotification) {
             keyboardOverlapHeightState.value = 0f
             if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
                 updateViewBounds(offsetY = 0.0)
@@ -346,21 +346,6 @@ internal actual class ComposeWindow : UIViewController {
         )
     }
 
-    override fun traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-
-        val newSizeCategory = traitCollection.preferredContentSizeCategory
-
-        if (newSizeCategory != null && previousTraitCollection?.preferredContentSizeCategory != newSizeCategory) {
-            // will force a view to do layout on a next main runloop tick
-            // which will cause viewWillLayoutSubviews
-            // which will assign new density to layer (which takes new fontScale into consideration)
-            // and will force recomposition, because it will change
-
-            view.setNeedsLayout()
-        }
-    }
-
     override fun viewWillLayoutSubviews() {
         super.viewWillLayoutSubviews()
 
@@ -385,29 +370,24 @@ internal actual class ComposeWindow : UIViewController {
         )
         NSNotificationCenter.defaultCenter.addObserver(
             observer = keyboardVisibilityListener,
-            selector = NSSelectorFromString(keyboardVisibilityListener::keyboardDidHide.name + ":"),
-            name = UIKeyboardDidHideNotification,
+            selector = NSSelectorFromString(keyboardVisibilityListener::keyboardWillHide.name + ":"),
+            name = UIKeyboardWillHideNotification,
             `object` = null
         )
     }
 
     // viewDidUnload() is deprecated and not called.
-    override fun viewDidDisappear(animated: Boolean) {
+    override fun viewWillDisappear(animated: Boolean) {
         // TODO call dispose() function, but check how it will works with SwiftUI interop between different screens.
-        super.viewDidDisappear(animated)
+        super.viewWillDisappear(animated)
         NSNotificationCenter.defaultCenter.removeObserver(
             observer = keyboardVisibilityListener,
-            name = UIKeyboardWillShowNotification,
+            name = UIKeyboardDidShowNotification,
             `object` = null
         )
         NSNotificationCenter.defaultCenter.removeObserver(
             observer = keyboardVisibilityListener,
             name = UIKeyboardWillHideNotification,
-            `object` = null
-        )
-        NSNotificationCenter.defaultCenter.removeObserver(
-            observer = keyboardVisibilityListener,
-            name = UIKeyboardDidHideNotification,
             `object` = null
         )
     }
