@@ -16,16 +16,17 @@
 
 package androidx.compose.material3
 
-import kotlin.math.abs
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
-
 
 internal class KotlinxDatetimeCalendarModel : CalendarModel {
 
@@ -35,7 +36,6 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
     override val firstDayOfWeek: Int
         get() = PlatformDateFormat.firstDayOfWeek
 
-    //TODO: localize weekdays names
     override val weekdayNames: List<Pair<String, String>>
         get() = PlatformDateFormat.weekdayNames
             ?: EnglishWeekdaysNames
@@ -83,40 +83,17 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
     }
 
     override fun plusMonths(from: CalendarMonth, addedMonthsCount: Int): CalendarMonth {
-        val dateTime = Instant
+        return Instant
             .fromEpochMilliseconds(from.startUtcTimeMillis)
             .toLocalDateTime(systemTZ)
-
-        var month = dateTime.monthNumber + addedMonthsCount
-        val year = dateTime.year + (month-1)/12
-
-        month = (month % 12).takeIf { it != 0 } ?: 12
-
-        return LocalDate(
-            year = year,
-            monthNumber = month,
-            dayOfMonth = 1,
-        ).atStartOfDayIn(systemTZ)
+            .date
+            .plus(DatePeriod(months = addedMonthsCount))
+            .atStartOfDayIn(systemTZ)
             .toCalendarMonth()
     }
 
     override fun minusMonths(from: CalendarMonth, subtractedMonthsCount: Int): CalendarMonth {
-        val dateTime = Instant
-            .fromEpochMilliseconds(from.startUtcTimeMillis)
-            .toLocalDateTime(systemTZ)
-
-        var month = dateTime.monthNumber - subtractedMonthsCount
-        val year = dateTime.year - (abs(month)-1)/12
-
-        if (month < 0)
-            month = (12 + month % 12).takeIf { it != 0 } ?: 12
-
-        return LocalDate(
-            year = year,
-            monthNumber = month,
-            dayOfMonth = 1,
-        ).atStartOfDayIn(systemTZ)
-            .toCalendarMonth()
+        return plusMonths(from, -subtractedMonthsCount)
     }
 
     override fun formatWithPattern(
@@ -148,16 +125,27 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
             month = dateTime.monthNumber,
             numberOfDays = dateTime.month
                 .numberOfDays(dateTime.year.isLeapYear()),
-            daysFromStartOfWeekToFirstOfMonth =
-                (monthStart.dayOfWeek.isoDayNumber - firstDayOfWeek).let {
-                    if (it > 0) it else 7 + it
-                },
+            daysFromStartOfWeekToFirstOfMonth = monthStart
+                .daysFromStartOfWeekToFirstOfMonth(),
             startUtcTimeMillis = monthStart
                 .atStartOfDayIn(TimeZone.UTC)
                 .toEpochMilliseconds()
         )
     }
+
+    private fun LocalDate.daysFromStartOfWeekToFirstOfMonth() =
+        (dayOfWeek.isoDayNumber - firstDayOfWeek).let { if (it > 0) it else 7 + it }
 }
+
+private val EnglishWeekdaysNames = listOf(
+    "Monday" to "Mon",
+    "Tuesday" to "Tue",
+    "Wednesday" to "Wed",
+    "Thursday" to "Thu",
+    "Friday" to "Fri",
+    "Saturday" to "Sat",
+    "Sunday" to "Sun",
+)
 
 internal fun Instant.toCalendarDate(
     timeZone : TimeZone = TimeZone.currentSystemDefault()
@@ -173,17 +161,7 @@ internal fun Instant.toCalendarDate(
     )
 }
 
-
-private val EnglishWeekdaysNames = listOf(
-    "Monday" to "Mon",
-    "Tuesday" to "Tue",
-    "Wednesday" to "Wed",
-    "Thursday" to "Thu",
-    "Friday" to "Fri",
-    "Saturday" to "Sat",
-    "Sunday" to "Sun",
-)
-private fun Int.isLeapYear() = this%4 == 0 && (this%100 != 0 || this%400 == 0)
+private fun Int.isLeapYear() = this % 4 == 0 && (this % 100 != 0 || this % 400 == 0)
 
 private fun Month.numberOfDays(isLeap : Boolean) : Int {
     return when(this){

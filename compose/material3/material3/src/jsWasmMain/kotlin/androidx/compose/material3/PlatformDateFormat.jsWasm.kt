@@ -102,7 +102,7 @@ internal actual object PlatformDateFormat {
                 month = when {
                     skeleton.contains("MMMM", true) -> LONG
                     skeleton.contains("MMM", true) -> SHORT
-                    skeleton.contains("MM", true) -> NUMERIC
+                    skeleton.contains("M", true) -> NUMERIC
                     else -> undefined
                 }
                 day = when {
@@ -195,6 +195,7 @@ internal actual object PlatformDateFormat {
         if (!isIntlSupported)
             return countriesFirstDow[Locale.current.region.uppercase()] ?: 1
 
+        @Suppress("UNUSED_VARIABLE")
         val locale = Locale.current.toLanguageTag()
 
         return js("new Intl.Locale(locale).weekInfo.firstDay").unsafeCast<Int>()
