@@ -333,8 +333,8 @@ class ComposeScene internal constructor(
         if (owner == lastHoverOwner) {
             lastHoverOwner = null
         }
-        if (owner == pressOwner) {
-            pressOwner = null
+        if (owner == gestureOwner) {
+            gestureOwner = null
         }
     }
 
@@ -460,7 +460,7 @@ class ComposeScene internal constructor(
     }
 
     private var focusedOwner: SkiaBasedOwner? = null
-    private var pressOwner: SkiaBasedOwner? = null
+    private var gestureOwner: SkiaBasedOwner? = null
     private var lastHoverOwner: SkiaBasedOwner? = null
 
     /**
@@ -610,16 +610,16 @@ class ComposeScene internal constructor(
             PointerEventType.Scroll -> processScroll(event)
         }
 
-        // Clean pressOwner when there is no pressed pointers/buttons
-        if (!event.isAnyPointerDown) {
-            pressOwner = null
+        // Clean gestureOwner when there is no pressed pointers/buttons
+        if (!event.isGestureInProgress) {
+            gestureOwner = null
         }
     }
 
     private fun processPress(event: PointerInputEvent) {
-        val previousPressOwner = pressOwner
-        if (previousPressOwner != null) {
-            previousPressOwner.processPointerInput(event)
+        val currentGestureOwner = gestureOwner
+        if (currentGestureOwner != null) {
+            currentGestureOwner.processPointerInput(event)
             return
         }
         val position = event.pointers.first().position
@@ -628,7 +628,7 @@ class ComposeScene internal constructor(
             // If the position of in bounds of the owner - send event to it and stop processing
             if (owner.isInBounds(position)) {
                 owner.processPointerInput(event)
-                pressOwner = owner
+                gestureOwner = owner
                 return
             }
 
@@ -644,11 +644,11 @@ class ComposeScene internal constructor(
 
     private fun processRelease(event: PointerInputEvent) {
         fun isOutsideFocusedOwner(): Boolean {
-            if (pressOwner != null) {
+            if (gestureOwner != null) {
                 // The gesture started not outside of owner
                 return false
             }
-            if (event.isAnyPointerDown) {
+            if (event.isGestureInProgress) {
                 // The last pointer was not released yet
                 return false
             }
@@ -662,7 +662,7 @@ class ComposeScene internal constructor(
         }
 
         // Send Release to pressOwner even if is not hovered or under focusedOwner
-        pressOwner?.processPointerInput(event)
+        gestureOwner?.processPointerInput(event)
         if (isOutsideFocusedOwner()) {
             focusedOwner?.onOutsidePointerEvent?.invoke(event)
         }
@@ -671,7 +671,7 @@ class ComposeScene internal constructor(
     private fun processMove(event: PointerInputEvent) {
         var owner = when {
             // All touch events or mouse with pressed button(s)
-            event.isAnyPointerDown -> pressOwner
+            event.isGestureInProgress -> gestureOwner
 
             // Do not generate Enter and Move
             event.eventType == PointerEventType.Exit -> null
@@ -892,4 +892,4 @@ internal expect fun createSkiaLayer(): SkiaLayer
 
 internal expect fun NativeKeyEvent.toPointerKeyboardModifiers(): PointerKeyboardModifiers
 
-private val PointerInputEvent.isAnyPointerDown get() = pointers.fastAny { it.down }
+private val PointerInputEvent.isGestureInProgress get() = pointers.fastAny { it.down }
