@@ -15,4 +15,3 @@ Fixes: [Optional] The bug on [https://issuetracker.google.com](https://issuetrac
 ## Google CLA
 You need to sign the Google Contributor’s License Agreement at https://cla.developers.google.com/.
 This is needed since we synchronise most of the code with Google’s AOSP repository. Signing this agreement allows us to synchronise code from your Pull Requests as well.
-And post a screenshot of the signed agreement here.
