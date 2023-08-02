@@ -37,6 +37,10 @@ import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.SkiaBasedOwner
@@ -44,6 +48,7 @@ import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.requireCurrent
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.center
@@ -169,24 +174,7 @@ private fun DialogLayout(
         val composition = owner.setContent(parent = parentComposition) {
             Layout(
                 content = content,
-                measurePolicy = { measurables, constraints ->
-                    val reducedConstraints = constraints.offset(
-                        horizontal = -2 * DefaultDialogMargins.roundToPx(),
-                        vertical = -2 * DefaultDialogMargins.roundToPx()
-                    )
-                    val placeables = measurables.fastMap { it.measure(reducedConstraints) }
-                    val width = placeables.fastMaxBy { it.width }?.width ?: constraints.minWidth
-                    val height = placeables.fastMaxBy { it.height }?.height ?: constraints.minHeight
-                    val placeableSize = IntSize(width, height)
-                    val windowSize = IntSize(constraints.maxWidth, constraints.maxHeight)
-                    val position = windowSize.center - placeableSize.center
-                    owner.bounds = IntRect(position, placeableSize)
-                    layout(windowSize.width, windowSize.height) {
-                        placeables.fastForEach {
-                            it.place(position.x, position.y)
-                        }
-                    }
-                }
+                measurePolicy = DialogMeasurePolicy { owner.bounds = it }
             )
         }
         owner to composition
@@ -201,6 +189,32 @@ private fun DialogLayout(
     SideEffect {
         owner.density = density
         owner.layoutDirection = layoutDirection
+    }
+}
+
+private class DialogMeasurePolicy(
+    private val updateBounds: (IntRect) -> Unit
+) : MeasurePolicy {
+    override fun MeasureScope.measure(
+        measurables: List<Measurable>,
+        constraints: Constraints
+    ): MeasureResult {
+        val reducedConstraints = constraints.offset(
+            horizontal = -2 * DefaultDialogMargins.roundToPx(),
+            vertical = -2 * DefaultDialogMargins.roundToPx()
+        )
+        val placeables = measurables.fastMap { it.measure(reducedConstraints) }
+        val width = placeables.fastMaxBy { it.width }?.width ?: constraints.minWidth
+        val height = placeables.fastMaxBy { it.height }?.height ?: constraints.minHeight
+        val placeableSize = IntSize(width, height)
+        val windowSize = IntSize(constraints.maxWidth, constraints.maxHeight)
+        val position = windowSize.center - placeableSize.center
+        updateBounds(IntRect(position, placeableSize))
+        return layout(windowSize.width, windowSize.height) {
+            placeables.fastForEach {
+                it.place(position.x, position.y)
+            }
+        }
     }
 }
 
