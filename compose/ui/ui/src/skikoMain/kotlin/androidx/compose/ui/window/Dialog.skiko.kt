@@ -22,6 +22,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCompositionContext
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.LocalComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -61,11 +62,9 @@ import kotlin.math.max
 
 /**
  * The default scrim opacity.
- * See generated [androidx.compose.material3.tokens.ScrimTokens.ContainerOpacity] as reference.
- *
- * TODO: Provide a way to configure dialog shim color (maybe inside DialogProperties?)
  */
-private const val DefaultScrimOpacity = 0.32f
+private const val DefaultScrimOpacity = 0.6f
+private val DefaultScrimColor = Color.Black.copy(alpha = DefaultScrimOpacity)
 
 /**
  * The default dialog margins.
@@ -73,10 +72,11 @@ private const val DefaultScrimOpacity = 0.32f
 private val DefaultDialogMargins = 24.dp
 
 @Immutable
-actual class DialogProperties(
+actual class DialogProperties @ExperimentalComposeUiApi constructor(
     actual val dismissOnBackPress: Boolean = true,
     actual val dismissOnClickOutside: Boolean = true,
     val usePlatformDefaultWidth: Boolean = true,
+    val scrimColor: Color = DefaultScrimColor,
 ) {
     actual constructor(
         dismissOnBackPress: Boolean,
@@ -84,7 +84,8 @@ actual class DialogProperties(
     ) : this(
         dismissOnBackPress = dismissOnBackPress,
         dismissOnClickOutside = dismissOnClickOutside,
-        usePlatformDefaultWidth = true
+        usePlatformDefaultWidth = true,
+        scrimColor = DefaultScrimColor
     )
 
     override fun equals(other: Any?): Boolean {
@@ -114,7 +115,7 @@ actual fun Dialog(
         .semantics { dialog() }
         .drawBehind {
             drawRect(
-                color = Color.Black.copy(alpha = DefaultScrimOpacity),
+                color = properties.scrimColor,
                 blendMode = BlendMode.SrcAtop
             )
         }
