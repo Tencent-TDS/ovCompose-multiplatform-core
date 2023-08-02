@@ -104,7 +104,4 @@ internal actual object PlatformDateFormat {
     private fun firstDayOfWeek(): Int {
         return (NSCalendar.currentCalendar.firstWeekday.toInt() - 1).takeIf { it > 0 } ?: 7
     }
-
-    actual val supportsSkeleton: Boolean
-        get() = TODO("Not yet implemented")
 }
