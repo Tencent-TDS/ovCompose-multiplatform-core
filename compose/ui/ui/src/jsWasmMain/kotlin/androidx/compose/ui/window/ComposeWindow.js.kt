@@ -118,6 +118,7 @@ internal actual class ComposeWindow(val canvasId: String)  {
     // TODO: need to call .dispose() on window close.
     actual fun dispose() {
         layer.dispose()
+        systemThemeObserver.dispose()
     }
 }
 

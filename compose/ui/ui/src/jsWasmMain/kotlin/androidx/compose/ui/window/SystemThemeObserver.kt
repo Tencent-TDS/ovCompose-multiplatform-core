@@ -21,10 +21,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.SystemTheme
 import org.w3c.dom.MediaQueryList
 import org.w3c.dom.Window
+import org.w3c.dom.events.Event
+import org.w3c.dom.events.EventListener
 
 internal class SystemThemeObserver(window : Window) {
 
-    val currentSystemTheme : State<SystemTheme>
+    val currentSystemTheme: State<SystemTheme>
         get() = _currentSystemTheme
 
     private val media: MediaQueryList by lazy {
@@ -44,11 +46,27 @@ internal class SystemThemeObserver(window : Window) {
     private val isSupported: Boolean
         get() = js("window.matchMedia != undefined").unsafeCast<Boolean>()
 
+    private val listener = EventListener {
+        _currentSystemTheme.value = if (it.unsafeCast<MediaQueryList>().matches)
+            SystemTheme.Dark else SystemTheme.Light
+    }
+
+    fun dispose() {
+        if (isSupported){
+            try {
+                media.removeEventListener("change", listener)
+            } catch (t : Throwable){
+                media.removeListener(listener)
+            }
+        }
+    }
+
     init {
         if (isSupported) {
-            media.addListener {
-                _currentSystemTheme.value = if (it.unsafeCast<MediaQueryList>().matches)
-                    SystemTheme.Dark else SystemTheme.Light
+            try {
+                media.addEventListener("change", listener)
+            } catch (t: Throwable) {
+                media.addListener(listener)
             }
         }
     }
