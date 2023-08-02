@@ -134,12 +134,15 @@ internal actual object PlatformDateFormat {
         date: String,
         pattern: String
     ): CalendarDate? {
-        val year = parseSegment(date, pattern, "yyyy") ?: return null
+        val year = parseSegment(date, pattern, "yyyy")
+            ?: return null
+
         val month = parseSegment(date, pattern, "mm")
             ?: parseSegment(date, pattern, "m")
             ?: return null
+
         val day = parseSegment(date, pattern, "dd")
-            ?: parseSegment(date, pattern, "dd")
+            ?: parseSegment(date, pattern, "d")
             ?: 1
 
         return LocalDate(
