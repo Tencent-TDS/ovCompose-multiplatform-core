@@ -20,9 +20,6 @@ internal actual object PlatformDateFormat {
 
     private val delegate = LegacyCalendarModelImpl()
 
-    actual val weekdayNames: List<Pair<String, String>>?
-        get() = delegate.weekdayNames
-
     actual val firstDayOfWeek: Int
         get() = delegate.firstDayOfWeek
 
@@ -49,10 +46,16 @@ internal actual object PlatformDateFormat {
         date: String,
         pattern: String
     ): CalendarDate? {
+
+
         return delegate.parse(date, pattern)
     }
 
     actual fun getDateInputFormat(locale: CalendarLocale): DateInputFormat {
         return delegate.getDateInputFormat(locale)
+    }
+
+    actual fun weekdayNames(locale: CalendarLocale): List<Pair<String, String>>? {
+        return delegate.weekdayNames(locale)
     }
 }

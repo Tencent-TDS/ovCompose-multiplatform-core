@@ -17,19 +17,19 @@
 package androidx.compose.material3
 
 import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toNSTimeZone
 import platform.Foundation.NSCalendar
 import platform.Foundation.NSDate
 import platform.Foundation.NSDateFormatter
 import platform.Foundation.NSDateFormatterShortStyle
 import platform.Foundation.NSLocale
+import platform.Foundation.NSTimeZone
 import platform.Foundation.currentLocale
 import platform.Foundation.dateWithTimeIntervalSince1970
 import platform.Foundation.timeIntervalSince1970
 
 internal actual object PlatformDateFormat {
-
-    actual val weekdayNames: List<Pair<String, String>>?
-        get() = weekdayNames()
 
     actual val firstDayOfWeek: Int
         get() = firstDayOfWeek()
@@ -69,39 +69,30 @@ internal actual object PlatformDateFormat {
 
         val nsDate = NSDateFormatter().apply {
             setDateFormat(pattern)
+            setTimeZone(TimeZone.UTC.toNSTimeZone())
         }.dateFromString(date) ?: return null
 
         return Instant
             .fromEpochMilliseconds((nsDate.timeIntervalSince1970 * 1000).toLong())
-            .toCalendarDate()
+            .toCalendarDate(TimeZone.UTC)
     }
 
     actual fun getDateInputFormat(locale: CalendarLocale): DateInputFormat {
 
-        var pattern = NSDateFormatter().apply {
+        val pattern = NSDateFormatter().apply {
+            setLocale(locale)
             setDateStyle(NSDateFormatterShortStyle)
         }.dateFormat
 
         val delimiter = pattern.first { !it.isLetter() }
 
-        // most of time dateFormat returns dd.MM.y -> we need dd.MM.yyyy
-        if (!pattern.contains("yyyy", true)) {
-
-            // probably it can also return dd.MM.yy because such formats exist so check for it
-            while (pattern.contains("yy", true)) {
-                pattern = pattern.replace("yy", "y",true)
-            }
-
-            pattern = pattern.replace("y", "yyyy",true)
-        }
-
         return DateInputFormat(pattern, delimiter)
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun weekdayNames(): List<Pair<String, String>> {
+    actual fun weekdayNames(locale: CalendarLocale): List<Pair<String, String>>? {
         val formatter = NSDateFormatter().apply {
-            setLocale(NSLocale.currentLocale)
+            setLocale(locale)
         }
 
         val fromSundayToSaturday = formatter.standaloneWeekdaySymbols
@@ -114,4 +105,6 @@ internal actual object PlatformDateFormat {
         return (NSCalendar.currentCalendar.firstWeekday.toInt() - 1).takeIf { it > 0 } ?: 7
     }
 
+    actual val supportsSkeleton: Boolean
+        get() = TODO("Not yet implemented")
 }

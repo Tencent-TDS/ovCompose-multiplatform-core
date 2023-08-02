@@ -24,7 +24,6 @@ import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.isoDayNumber
-import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
@@ -37,13 +36,19 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
         get() = PlatformDateFormat.firstDayOfWeek
 
     override val weekdayNames: List<Pair<String, String>>
-        get() = PlatformDateFormat.weekdayNames
-            ?: EnglishWeekdaysNames
+        get() = weekdayNames(defaultLocale())
 
     private val systemTZ
         get() = TimeZone.currentSystemDefault()
+
+    fun weekdayNames(locale: CalendarLocale): List<Pair<String, String>> {
+        return PlatformDateFormat.weekdayNames(locale) ?: EnglishWeekdaysNames
+    }
+
     override fun getDateInputFormat(locale: CalendarLocale): DateInputFormat {
-        return PlatformDateFormat.getDateInputFormat(locale)
+        return PlatformDateFormat
+            .getDateInputFormat(locale)
+            .applyCalendarModelStyle()
     }
 
     override fun getCanonicalDate(timeInMillis: Long): CalendarDate {
@@ -109,7 +114,7 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
     }
 
     private fun Instant.toCalendarMonth(
-        timeZone : TimeZone = TimeZone.currentSystemDefault()
+        timeZone : TimeZone = systemTZ
     ) : CalendarMonth {
 
         val dateTime = toLocalDateTime(timeZone)
@@ -132,6 +137,45 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
                 .toEpochMilliseconds()
         )
     }
+
+    /**
+     * Applies some specific rules to fit the Android one
+     * */
+    private fun DateInputFormat.applyCalendarModelStyle() : DateInputFormat {
+
+        var pattern = patternWithDelimiters
+        // the following checks are the result of testing
+
+        // most of time dateFormat returns dd.MM.y -> we need dd.MM.yyyy
+        if (!pattern.contains("yyyy", true)) {
+
+            // it can also return dd.MM.yy because such formats exist so check for it
+            while (pattern.contains("yy", true)) {
+                pattern = pattern.replace("yy", "y",true)
+            }
+
+            pattern = pattern.replace("y", "yyyy",true)
+        }
+
+        // it can return M.d -> we need MM.dd
+        if ("MM" !in pattern){
+            pattern = pattern.replace("M","MM")
+        }
+        if ("dd" !in pattern){
+            pattern = pattern.replace("d", "dd")
+        }
+
+        // it can return "yyyy. MM. dd."
+        pattern = pattern
+            .dropWhile { !it.isLetter() } // remove prefix non-letters
+            .dropLastWhile { !it.isLetter() } // remove suffix non-letters
+            .filter { it != ' ' } // remove whitespaces
+
+        val delimiter = pattern.first { !it.isLetter() }
+
+        return DateInputFormat(pattern, delimiter)
+    }
+
 
     private fun LocalDate.daysFromStartOfWeekToFirstOfMonth() =
         (dayOfWeek.isoDayNumber - firstDayOfWeek).let { if (it > 0) it else 7 + it }

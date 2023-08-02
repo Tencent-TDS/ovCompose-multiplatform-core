@@ -26,20 +26,18 @@ import kotlinx.datetime.toLocalDateTime
 
 internal actual object PlatformDateFormat {
 
-    actual val weekdayNames: List<Pair<String, String>>?
-        get() = weekdayNames()
-
     actual val firstDayOfWeek: Int
         get() = firstDayOfWeek()
 
     private const val NUMERIC = "numeric"
     private const val SHORT = "short"
     private const val LONG = "long"
+    private const val NARROW = "narrow"
 
-    private val countriesFirstDow: Map<String, Int> by lazy {
+    private val firstDaysOfWeekByRegionCode: Map<String, Int> by lazy {
         listOf(
-            7 to listOf("TH", "ET", "SG", "SG", "JM", "BT", "IN", "US", "US", "MO", "KE", "IN", "DO", "AU", "IL", "IN", "KE", "KE", "AS", "TW", "IN", "MZ", "MM", "CN", "IN", "PR", "IN", "PK", "BD", "NP", "IN", "KE", "HN", "BR", "HK", "KE", "PK", "CN", "IN", "TT", "ZA", "VE", "KE", "US", "IN", "IN", "MT", "BD", "ZA", "ET", "ET", "MO", "PH", "PE", "ZA", "ID", "DM", "IL", "CN", "WS", "ZW", "TH", "MO", "PK", "PK", "UM", "LA", "ZA", "BZ", "IN", "MM", "PK", "SG", "KE", "IN", "JP", "SV", "BR", "IN", "IN", "CN", "KE", "BD", "PK", "CN", "KE", "BR", "CN", "US", "KE", "KE", "IN", "HK", "IN", "KE", "US", "ET", "CN", "IN", "IN", "SA", "PH", "ET", "MT", "IL", "IN", "US", "PH", "PH", "CO", "GT", "ZW", "KE", "MO", "JP", "BZ", "US", "IN", "BW", "IL", "ZW", "KE", "SG", "ET", "LA", "JP", "KE", "KR", "ID", "IN", "HK", "PE", "MZ", "HK", "IN", "PA", "IN", "KE", "MZ", "YE", "BS", "KE", "IN", "KE", "IN", "KR", "MX", "ZA", "IN", "IN", "BD", "ZA", "IN", "MH", "ID", "ZA", "KE", "IN", "KE", "MT", "IN", "MZ", "ID", "CN", "PK", "IN", "PH", "GU", "PY", "IN", "BT", "PH", "MO", "US", "AG", "KE", "PE", "ID", "KE", "US", "CA", "KE", "ZW", "KE", "ZW", "SG", "KH", "PR", "CN", "IN", "KE", "IN", "KE", "HK", "NP", "IN", "ID", "IN", "ID", "TW", "IN", "HK", "KE", "IN", "TH", "PT", "VI", "KH", "IN", "IN", "IN", "MZ", "CA", "US", "IN", "ET", "IN", "NI", "CN", "PK", "IN"),
-            6 to listOf("EG", "AF", "SY", "AF", "IR", "OM", "IQ", "DZ", "IR", "DJ", "DJ", "IR", "AE", "IR", "SD", "AF", "IQ", "KW", "JO", "DZ", "AF", "IQ", "SD", "IR", "DZ", "DZ", "AF", "IR", "AE", "BH", "QA", "EG", "IQ", "IR", "LY", "SY", "DJ")
+            7 to listOf("TH", "ET", "SG", "JM", "BT", "IN", "US", "MO", "KE", "DO", "AU", "IL", "AS", "TW", "MZ", "MM", "CN", "PR", "PK", "BD", "NP", "HN", "BR", "HK", "TT", "ZA", "VE", "MT", "PH", "PE", "ID", "DM", "WS", "ZW", "UM", "LA", "BZ", "JP", "SV", "SA", "CO", "GT", "BW", "KR", "PA", "YE", "BS", "MX", "MH", "GU", "PY", "AG", "CA", "KH", "PT", "VI", "NI"),
+            6 to listOf("EG", "AF", "SY", "IR", "OM", "IQ", "DZ", "DJ", "AE", "SD", "KW", "JO", "BH", "QA", "LY")
         ).map { (day, tags) -> tags.map { it to day } }.flatten().toMap()
     }
 
@@ -49,6 +47,7 @@ internal actual object PlatformDateFormat {
         pattern: String,
         locale: CalendarLocale
     ): String {
+
         val date = Instant
             .fromEpochMilliseconds(utcTimeMillis)
             .toLocalDateTime(TimeZone.currentSystemDefault())
@@ -105,6 +104,12 @@ internal actual object PlatformDateFormat {
                     skeleton.contains("M", true) -> NUMERIC
                     else -> undefined
                 }
+                weekday = when {
+                    skeleton.contains("eeee", true) -> LONG
+                    skeleton.contains("eee", true) -> SHORT
+                    skeleton.contains("e", true) -> NARROW
+                    else -> undefined
+                }
                 day = when {
                     skeleton.contains("d", true) -> NUMERIC
                     else -> undefined
@@ -130,12 +135,16 @@ internal actual object PlatformDateFormat {
         pattern: String
     ): CalendarDate? {
         val year = parseSegment(date, pattern, "yyyy") ?: return null
-        val month = parseSegment(date, pattern, "mm") ?: return null
+        val month = parseSegment(date, pattern, "mm")
+            ?: parseSegment(date, pattern, "m")
+            ?: return null
         val day = parseSegment(date, pattern, "dd")
+            ?: parseSegment(date, pattern, "dd")
+            ?: 1
 
         return LocalDate(
-            year, month, day ?: 1
-        ).atStartOfDayIn(TimeZone.currentSystemDefault())
+            year, month, day
+        ).atStartOfDayIn(TimeZone.UTC)
             .toCalendarDate()
     }
 
@@ -149,6 +158,7 @@ internal actual object PlatformDateFormat {
     }
 
     actual fun getDateInputFormat(locale: CalendarLocale): DateInputFormat {
+
         val date = Date(year = 1234, month = 10, day = 23)
 
         val shortDate = date.toLocaleDateString(locale.toLanguageTag())
@@ -163,7 +173,7 @@ internal actual object PlatformDateFormat {
         return DateInputFormat(pattern, delimiter)
     }
 
-    private fun weekdayNames(): List<Pair<String, String>> {
+    actual fun weekdayNames(locale: CalendarLocale): List<Pair<String, String>>? {
         val now = Date.now()
 
         val week = List(DaysInWeek) {
@@ -171,8 +181,6 @@ internal actual object PlatformDateFormat {
         }.sortedBy { it.getDay() } // sunday to saturday
 
         val mondayToSunday = week.drop(1) + week.first()
-
-        val locale = defaultLocale()
 
         val longAndShortWeekDays = listOf(LONG, SHORT).map { format ->
             mondayToSunday.map {
@@ -193,7 +201,7 @@ internal actual object PlatformDateFormat {
             .unsafeCast<Boolean>()
 
         if (!isIntlSupported)
-            return countriesFirstDow[Locale.current.region.uppercase()] ?: 1
+            return firstDaysOfWeekByRegionCode[Locale.current.region.uppercase()] ?: 1
 
         @Suppress("UNUSED_VARIABLE")
         val locale = Locale.current.toLanguageTag()
