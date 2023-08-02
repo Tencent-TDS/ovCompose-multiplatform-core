@@ -48,7 +48,10 @@ class DialogScreenshotTest {
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color.Gray)
             )
-            Dialog(onDismissRequest = {}) {
+            Dialog(
+                onDismissRequest = {},
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
                 Box(
                     Modifier
                         .size(20.dp)
