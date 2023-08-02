@@ -50,7 +50,10 @@ class DialogScreenshotTest {
             )
             Dialog(
                 onDismissRequest = {},
-                properties = DialogProperties(usePlatformDefaultWidth = false)
+                properties = DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    scrimColor = Color.Black.copy(alpha = 0.32f)
+                )
             ) {
                 Box(
                     Modifier
