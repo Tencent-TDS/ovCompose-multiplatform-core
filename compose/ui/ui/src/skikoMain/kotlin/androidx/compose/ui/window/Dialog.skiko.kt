@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.offset
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMaxBy
+import kotlin.math.max
 
 /**
  * The default scrim opacity.
@@ -68,16 +69,24 @@ private const val DefaultScrimOpacity = 0.32f
 
 /**
  * The default dialog margins.
- *
- * TODO: Provide a way to configure dialog margins (maybe inside DialogProperties?)
  */
 private val DefaultDialogMargins = 24.dp
 
 @Immutable
-actual class DialogProperties actual constructor(
-    actual val dismissOnBackPress: Boolean,
-    actual val dismissOnClickOutside: Boolean
+actual class DialogProperties(
+    actual val dismissOnBackPress: Boolean = true,
+    actual val dismissOnClickOutside: Boolean = true,
+    val usePlatformDefaultWidth: Boolean = true,
 ) {
+    actual constructor(
+        dismissOnBackPress: Boolean,
+        dismissOnClickOutside: Boolean
+    ) : this(
+        dismissOnBackPress = dismissOnBackPress,
+        dismissOnClickOutside = dismissOnClickOutside,
+        usePlatformDefaultWidth = true
+    )
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is DialogProperties) return false
@@ -131,6 +140,7 @@ actual fun Dialog(
     DialogLayout(
         modifier = modifier,
         onOutsidePointerEvent = onOutsidePointerEvent,
+        properties = properties,
         content = content
     )
 }
@@ -139,6 +149,7 @@ actual fun Dialog(
 private fun DialogLayout(
     modifier: Modifier = Modifier,
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
+    properties: DialogProperties,
     content: @Composable () -> Unit
 ) {
     val scene = LocalComposeScene.requireCurrent()
@@ -174,7 +185,9 @@ private fun DialogLayout(
         val composition = owner.setContent(parent = parentComposition) {
             Layout(
                 content = content,
-                measurePolicy = DialogMeasurePolicy { owner.bounds = it }
+                measurePolicy = DialogMeasurePolicy(properties.usePlatformDefaultWidth) {
+                    owner.bounds = it
+                }
             )
         }
         owner to composition
@@ -193,16 +206,16 @@ private fun DialogLayout(
 }
 
 private class DialogMeasurePolicy(
-    private val updateBounds: (IntRect) -> Unit
+    private val usePlatformDefaultWidth: Boolean = true,
+    private val updateBounds: (IntRect) -> Unit,
 ) : MeasurePolicy {
     override fun MeasureScope.measure(
         measurables: List<Measurable>,
         constraints: Constraints
     ): MeasureResult {
-        val reducedConstraints = constraints.offset(
-            horizontal = -2 * DefaultDialogMargins.roundToPx(),
-            vertical = -2 * DefaultDialogMargins.roundToPx()
-        )
+        val reducedConstraints = if (usePlatformDefaultWidth) {
+            defaultMarginsConstrains(constraints)
+        } else constraints
         val placeables = measurables.fastMap { it.measure(reducedConstraints) }
         val width = placeables.fastMaxBy { it.width }?.width ?: constraints.minWidth
         val height = placeables.fastMaxBy { it.height }?.height ?: constraints.minHeight
@@ -215,6 +228,17 @@ private class DialogMeasurePolicy(
                 it.place(position.x, position.y)
             }
         }
+    }
+
+    /**
+     * Limit width and apply margins.
+     */
+    private fun MeasureScope.defaultMarginsConstrains(constraints: Constraints): Constraints {
+        val horizontalDiff = max(0, constraints.maxWidth - constraints.maxHeight)
+        return constraints.offset(
+            horizontal = -2 * DefaultDialogMargins.roundToPx() - horizontalDiff,
+            vertical = -2 * DefaultDialogMargins.roundToPx()
+        )
     }
 }
 
