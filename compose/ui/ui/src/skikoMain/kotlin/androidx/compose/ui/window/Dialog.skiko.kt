@@ -54,22 +54,16 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.center
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.offset
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMaxBy
-import kotlin.math.max
+import kotlin.math.min
 
 /**
  * The default scrim opacity.
  */
 private const val DefaultScrimOpacity = 0.6f
 private val DefaultScrimColor = Color.Black.copy(alpha = DefaultScrimOpacity)
-
-/**
- * The default dialog margins.
- */
-private val DefaultDialogMargins = 24.dp
 
 @Immutable
 actual class DialogProperties @ExperimentalComposeUiApi constructor(
@@ -214,10 +208,12 @@ private class DialogMeasurePolicy(
         measurables: List<Measurable>,
         constraints: Constraints
     ): MeasureResult {
-        val reducedConstraints = if (usePlatformDefaultWidth) {
-            defaultMarginsConstrains(constraints)
-        } else constraints
-        val placeables = measurables.fastMap { it.measure(reducedConstraints) }
+        val placeables = measurables.fastMap {
+            val dialogConstraints = if (usePlatformDefaultWidth) {
+                platformDefaultConstrains(it, constraints)
+            } else constraints
+            it.measure(dialogConstraints)
+        }
         val width = placeables.fastMaxBy { it.width }?.width ?: constraints.minWidth
         val height = placeables.fastMaxBy { it.height }?.height ?: constraints.minHeight
         val placeableSize = IntSize(width, height)
@@ -230,19 +226,12 @@ private class DialogMeasurePolicy(
             }
         }
     }
-
-    /**
-     * Limit width and apply margins.
-     */
-    private fun MeasureScope.defaultMarginsConstrains(constraints: Constraints): Constraints {
-        val horizontalDiff = (constraints.maxWidth - constraints.maxHeight)
-            .coerceIn(0, constraints.maxWidth / 2)
-        return constraints.offset(
-            horizontal = -2 * DefaultDialogMargins.roundToPx() - horizontalDiff,
-            vertical = -2 * DefaultDialogMargins.roundToPx()
-        )
-    }
 }
+
+internal expect fun MeasureScope.platformDefaultConstrains(
+    measurable: Measurable,
+    constraints: Constraints
+): Constraints
 
 private fun PointerInputEvent.isMainAction() =
     button == PointerButton.Primary ||
