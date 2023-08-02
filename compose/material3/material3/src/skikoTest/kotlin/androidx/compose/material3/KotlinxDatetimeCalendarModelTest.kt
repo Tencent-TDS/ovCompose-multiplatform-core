@@ -179,9 +179,6 @@ internal class KotlinxDatetimeCalendarModelTest {
     @Test
     fun dateInputFormat() {
 
-        if (!supportsDateSkeleton)
-            return
-
         var locale = calendarLocale("en","US")
         assertThat(model.getDateInputFormat(locale).patternWithDelimiters,).isEqualTo("MM/dd/yyyy")
         assertThat(model.getDateInputFormat(locale).patternWithoutDelimiters).isEqualTo("MMddyyyy")
