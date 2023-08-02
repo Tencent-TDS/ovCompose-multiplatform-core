@@ -234,7 +234,8 @@ private class DialogMeasurePolicy(
      * Limit width and apply margins.
      */
     private fun MeasureScope.defaultMarginsConstrains(constraints: Constraints): Constraints {
-        val horizontalDiff = max(0, constraints.maxWidth - constraints.maxHeight)
+        val horizontalDiff = (constraints.maxWidth - constraints.maxHeight)
+            .coerceIn(0, constraints.maxWidth / 2)
         return constraints.offset(
             horizontal = -2 * DefaultDialogMargins.roundToPx() - horizontalDiff,
             vertical = -2 * DefaultDialogMargins.roundToPx()
