@@ -41,7 +41,7 @@ internal actual object PlatformDateFormat {
         ).map { (day, tags) -> tags.map { it to day } }.flatten().toMap()
     }
 
-    //TODO: replace formatting with kotlinx datetime when supported
+    //TODO: replace formatting with kotlinx datetime when supported (see https://github.com/Kotlin/kotlinx-datetime/pull/251)
     actual fun formatWithPattern(
         utcTimeMillis: Long,
         pattern: String,
