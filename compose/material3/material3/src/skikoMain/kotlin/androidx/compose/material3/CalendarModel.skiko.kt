@@ -16,7 +16,21 @@
 
 package androidx.compose.material3
 
-// TODO(https://github.com/JetBrains/compose-multiplatform/issues/3359) Support CalendarModel
+
 @ExperimentalMaterial3Api
 internal actual fun CalendarModel(): CalendarModel =
     KotlinxDatetimeCalendarModel()
+
+
+@ExperimentalMaterial3Api
+internal actual fun formatWithSkeleton(
+    utcTimeMillis: Long,
+    skeleton: String,
+    locale: CalendarLocale
+): String {
+    return PlatformDateFormat.formatWithSkeleton(
+        utcTimeMillis = utcTimeMillis,
+        skeleton = skeleton,
+        locale = locale
+    )
+}

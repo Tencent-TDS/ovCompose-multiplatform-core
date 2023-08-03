@@ -39,6 +39,10 @@ internal actual object PlatformDateFormat {
         // Note: there is no equivalent in Java for Android's DateFormat.getBestDateTimePattern.
         // The JDK SimpleDateFormat expects a pattern, so the results will be "2023Jan7",
         // "2023January", etc. in case a skeleton holds an actual ICU skeleton and not a pattern.
+
+        // TODO: support ICU skeleton on JVM
+        // Maybe it will be supported in kotlinx.datetime in the future.
+        // See https://github.com/Kotlin/kotlinx-datetime/pull/251
         return formatWithPattern(utcTimeMillis, skeleton, locale)
     }
 

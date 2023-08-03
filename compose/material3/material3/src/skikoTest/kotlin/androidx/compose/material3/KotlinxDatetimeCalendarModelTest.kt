@@ -120,7 +120,6 @@ internal class KotlinxDatetimeCalendarModelTest {
         assertThat(parsedDate).isEqualTo(expectedDate)
     }
 
-    // This test fails for desktop as formatWithSkeleton is not properly implemented,
     @Test
     fun formatDate() {
 
