@@ -18,9 +18,13 @@ package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -29,9 +33,17 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerInputEvent
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.popup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.round
 
 @Immutable
 actual class PopupProperties actual constructor(
@@ -332,11 +344,73 @@ fun Popup(
     }
     PopupLayout(
         popupPositionProvider = popupPositionProvider,
-        focusable = properties.focusable,
+        properties = properties,
         modifier = modifier,
         onOutsidePointerEvent = onOutsidePointerEvent,
         content = content
     )
+}
+
+@Composable
+private fun PopupLayout(
+    popupPositionProvider: PopupPositionProvider,
+    properties: PopupProperties,
+    modifier: Modifier = Modifier,
+    onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    val layoutDirection = LocalLayoutDirection.current
+    var parentBounds by remember { mutableStateOf(IntRect.Zero) }
+    Layout(
+        content = {},
+        modifier = Modifier.onGloballyPositioned { childCoordinates ->
+            val coordinates = childCoordinates.parentCoordinates!!
+            parentBounds = IntRect(
+                coordinates.localToWindow(Offset.Zero).round(),
+                coordinates.size
+            )
+        },
+        measurePolicy = { _, _ ->
+            layout(0, 0) {}
+        }
+    )
+    val measurePolicy = rememberPopupMeasurePolicy(
+        popupPositionProvider = popupPositionProvider,
+        layoutDirection = layoutDirection,
+        parentBounds = parentBounds
+    )
+    RootLayout(
+        modifier = modifier,
+        focusable = properties.focusable,
+        measurePolicy = measurePolicy,
+        onOutsidePointerEvent = onOutsidePointerEvent,
+        content = content
+    )
+}
+
+@Composable
+private fun rememberPopupMeasurePolicy(
+    popupPositionProvider: PopupPositionProvider,
+    layoutDirection: LayoutDirection,
+    parentBounds: IntRect
+) = remember(popupPositionProvider, layoutDirection, parentBounds) {
+    MeasurePolicy { measurables, constraints ->
+        val width = constraints.maxWidth
+        val height = constraints.maxHeight
+
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            measurables.forEach {
+                val placeable = it.measure(constraints)
+                val position = popupPositionProvider.calculatePosition(
+                    anchorBounds = parentBounds,
+                    windowSize = IntSize(width, height),
+                    layoutDirection = layoutDirection,
+                    popupContentSize = IntSize(placeable.width, placeable.height)
+                )
+                placeable.place(position.x, position.y)
+            }
+        }
+    }
 }
 
 private fun KeyEvent.isDismissRequest() =

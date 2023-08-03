@@ -17,13 +17,9 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCompositionContext
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.LocalComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
@@ -40,24 +36,15 @@ import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
-import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.SkiaBasedOwner
-import androidx.compose.ui.platform.setContent
-import androidx.compose.ui.requireCurrent
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.center
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMaxBy
-import kotlin.math.min
 
 /**
  * The default scrim opacity.
@@ -142,15 +129,11 @@ actual fun Dialog(
 
 @Composable
 private fun DialogLayout(
+    properties: DialogProperties,
     modifier: Modifier = Modifier,
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
-    properties: DialogProperties,
     content: @Composable () -> Unit
 ) {
-    val scene = LocalComposeScene.requireCurrent()
-    val density = LocalDensity.current
-    val layoutDirection = LocalLayoutDirection.current
-
     /*
      * Keep empty layout as workaround to trigger layout after remove dialog.
      * Required to properly update mouse hover state.
@@ -161,55 +144,23 @@ private fun DialogLayout(
             layout(0, 0) {}
         }
     )
-
-    val parentComposition = rememberCompositionContext()
-    val (owner, composition) = remember {
-        val owner = SkiaBasedOwner(
-            scene = scene,
-            platform = scene.platform,
-            pointerPositionUpdater = scene.pointerPositionUpdater,
-            coroutineContext = parentComposition.effectCoroutineContext,
-            initDensity = density,
-            initLayoutDirection = layoutDirection,
-            focusable = true,
-            onOutsidePointerEvent = onOutsidePointerEvent,
-            modifier = modifier
-        )
-        scene.attach(owner)
-
-        val composition = owner.setContent(parent = parentComposition) {
-            Layout(
-                content = content,
-                measurePolicy = DialogMeasurePolicy(properties.usePlatformDefaultWidth) {
-                    owner.bounds = it
-                }
-            )
-        }
-        owner to composition
-    }
-    DisposableEffect(Unit) {
-        onDispose {
-            scene.detach(owner)
-            composition.dispose()
-            owner.dispose()
-        }
-    }
-    SideEffect {
-        owner.density = density
-        owner.layoutDirection = layoutDirection
-    }
+    val measurePolicy = rememberDialogMeasurePolicy(properties)
+    RootLayout(
+        modifier = modifier,
+        focusable = true,
+        measurePolicy = measurePolicy,
+        onOutsidePointerEvent = onOutsidePointerEvent,
+        content = content
+    )
 }
 
-private class DialogMeasurePolicy(
-    private val usePlatformDefaultWidth: Boolean = true,
-    private val updateBounds: (IntRect) -> Unit,
-) : MeasurePolicy {
-    override fun MeasureScope.measure(
-        measurables: List<Measurable>,
-        constraints: Constraints
-    ): MeasureResult {
+@Composable
+private fun rememberDialogMeasurePolicy(
+    properties: DialogProperties
+) = remember(properties) {
+    MeasurePolicy { measurables, constraints ->
         val placeables = measurables.fastMap {
-            val dialogConstraints = if (usePlatformDefaultWidth) {
+            val dialogConstraints = if (properties.usePlatformDefaultWidth) {
                 platformDefaultConstrains(it, constraints)
             } else constraints
             it.measure(dialogConstraints)
@@ -219,8 +170,8 @@ private class DialogMeasurePolicy(
         val placeableSize = IntSize(width, height)
         val windowSize = IntSize(constraints.maxWidth, constraints.maxHeight)
         val position = windowSize.center - placeableSize.center
-        updateBounds(IntRect(position, placeableSize))
-        return layout(windowSize.width, windowSize.height) {
+
+        layout(windowSize.width, windowSize.height) {
             placeables.fastForEach {
                 it.place(position.x, position.y)
             }
