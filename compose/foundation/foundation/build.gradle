@@ -117,7 +117,7 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             skikoMain {
                 dependsOn(commonMain)
                 dependencies {
-                    api(libs.skikoCommon)
+                    implementation(libs.skikoCommon)
                 }
             }
 
@@ -135,7 +135,6 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(jsWasmMain)
                 dependencies {
                     implementation(kotlin("stdlib-js"))
-                    api(libs.skikoCommon)
                 }
             }
 

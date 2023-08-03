@@ -198,7 +198,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependencies {
                     api(project(":compose:ui:ui-graphics"))
                     api(project(":compose:ui:ui-text"))
-                    api(libs.skikoCommon)
+                    implementation(libs.skikoCommon)
                 }
             }
             desktopMain {
@@ -216,7 +216,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(jsWasmMain)
                 dependencies {
                     implementation(kotlin("stdlib-js"))
-                    api(libs.skikoCommon)
                 }
             }
 

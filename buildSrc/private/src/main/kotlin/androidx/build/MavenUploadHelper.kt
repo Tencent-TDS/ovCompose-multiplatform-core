@@ -232,7 +232,7 @@ fun sortPomDependencies(pom: String): String {
         .filterIsInstance<Element>()
         .forEach { element ->
             val deps = element.elements()
-            val sortedDeps = deps.toSortedSet(compareBy { it.stringValue }).toList()
+            val sortedDeps = deps.sortedBy { it.stringValue }.toList()
 
             // Content contains formatting nodes, so to avoid modifying those we replace
             // each element with the sorted element from its respective index. Note this
