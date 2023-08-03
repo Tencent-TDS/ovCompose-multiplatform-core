@@ -17,6 +17,7 @@
 package androidx.compose.ui.interop
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import kotlin.native.ref.WeakReference
 import platform.UIKit.UIViewController
 
 /**
@@ -24,6 +25,6 @@ import platform.UIKit.UIViewController
  * Maybe useful for features, like VideoPlayer and Bottom menus.
  * Please use it careful and don't remove another views.
  */
-val LocalUIViewController = staticCompositionLocalOf<UIViewController> {
+val LocalUIViewController = staticCompositionLocalOf<WeakReference<UIViewController>> {
     error("CompositionLocal UIViewController not provided")
 }
