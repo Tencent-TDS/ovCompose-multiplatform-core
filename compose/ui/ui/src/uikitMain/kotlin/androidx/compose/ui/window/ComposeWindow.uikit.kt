@@ -363,6 +363,7 @@ internal actual class ComposeWindow : UIViewController {
             input = uiKitTextInputService.skikoInput,
         )
 
+        // weakThis is not reusable because WeakReference<ComposeWindow> is not convertible to WeakReference<UIViewController>
         val weakViewController = WeakReference<UIViewController>(this)
         val keyboardOverlapHeightState = keyboardOverlapHeightState
         val safeAreaState = safeAreaState
