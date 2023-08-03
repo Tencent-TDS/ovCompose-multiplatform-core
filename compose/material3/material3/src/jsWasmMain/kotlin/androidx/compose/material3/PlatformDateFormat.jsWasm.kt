@@ -162,14 +162,14 @@ internal actual object PlatformDateFormat {
 
     actual fun getDateInputFormat(locale: CalendarLocale): DateInputFormat {
 
-        val date = Date(year = 1234, month = 10, day = 23)
+        val date = Date(year = 2000, month = 10, day = 23)
 
         val shortDate = date.toLocaleDateString(locale.toLanguageTag())
 
         val delimiter = shortDate.first { !it.isDigit() }
 
         val pattern = shortDate
-            .replace("1234", "yyyy")
+            .replace("2000", "yyyy")
             .replace("11", "MM") //10 -> 11 not an error. month is index
             .replace("23", "dd")
 
