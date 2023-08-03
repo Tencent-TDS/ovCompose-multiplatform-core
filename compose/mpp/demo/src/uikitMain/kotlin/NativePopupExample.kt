@@ -37,11 +37,15 @@ private fun NativeModalWithNavigation() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val viewController = LocalUIViewController.current
         Button(onClick = {
-            val navigationController = UINavigationController(rootViewController = ComposeUIViewController {
-                NativeNavigationPage()
-            })
-
-            viewController.get()?.presentViewController(navigationController, true, null)
+            viewController.get()?.presentViewController(
+                UINavigationController(
+                    rootViewController = ComposeUIViewController {
+                        NativeNavigationPage()
+                    }
+                ),
+                animated = true,
+                completion = null
+            )
         }) {
             Text("Present popup")
         }
@@ -50,11 +54,11 @@ private fun NativeModalWithNavigation() {
 
 @Composable
 private fun NativeNavigationPage() {
-    val navigationController = LocalUIViewController.current.get()?.navigationController ?: return
+    val viewController = LocalUIViewController.current
 
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Button(onClick = {
-            navigationController.pushViewController(
+            viewController.get()?.navigationController?.pushViewController(
                 ComposeUIViewController {
                     NativeNavigationPage()
                 }, true

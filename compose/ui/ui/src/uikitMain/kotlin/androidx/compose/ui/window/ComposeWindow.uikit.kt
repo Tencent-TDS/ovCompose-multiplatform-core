@@ -388,7 +388,7 @@ internal actual class ComposeWindow : UIViewController {
         )
 
         composeLayerCleaner = createCleaner(composeLayer) {
-            println("cleaner called")
+            println("clean composeLayer")
             it.dispose()
         }
     }
@@ -430,6 +430,7 @@ internal actual class ComposeWindow : UIViewController {
     }
 
     // viewDidUnload() is deprecated and not called.
+    @OptIn(ExperimentalStdlibApi::class)
     override fun viewWillDisappear(animated: Boolean) {
         // TODO call dispose() function, but check how it will works with SwiftUI interop between different screens.
         super.viewWillDisappear(animated)
@@ -448,8 +449,8 @@ internal actual class ComposeWindow : UIViewController {
     override fun viewDidDisappear(animated: Boolean) {
         super.viewDidDisappear(animated)
 
+        // Attempt to collect on next run loop cycle, if this ComposeWindow is gone for good
         dispatch_async(dispatch_get_main_queue()) {
-            println("GC after viewDidDisappear called")
             kotlin.native.internal.GC.collect()
         }
     }
