@@ -19,15 +19,22 @@ package androidx.compose.ui.window
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.min
+import androidx.compose.ui.unit.dp
 import kotlin.math.min
 
 internal actual fun MeasureScope.platformDefaultConstrains(
     measurable: Measurable,
     constraints: Constraints
-): Constraints {
-    val width = measurable.maxIntrinsicWidth(constraints.maxHeight)
-    return constraints.copy(
-        maxWidth = min(constraints.maxWidth, width)
-    )
+): Constraints = constraints.copy(
+    maxWidth = min(preferredDialogWidth(constraints), constraints.maxWidth)
+)
+
+// Adopted version from Android that doesn't use height for width calculation.
+private fun MeasureScope.preferredDialogWidth(constraints: Constraints): Int {
+    val width = constraints.maxWidth.toDp()
+    return when {
+        width >= 600.dp -> 580.dp
+        width >= 480.dp -> 440.dp
+        else -> 320.dp
+    }.roundToPx()
 }
