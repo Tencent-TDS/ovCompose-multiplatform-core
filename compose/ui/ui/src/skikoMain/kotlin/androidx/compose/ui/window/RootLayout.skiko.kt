@@ -84,3 +84,14 @@ internal fun RootLayout(
         owner.layoutDirection = layoutDirection
     }
 }
+
+@Composable
+internal fun EmptyLayout(
+    modifier: Modifier = Modifier
+) = Layout(
+    content = {},
+    modifier = modifier,
+    measurePolicy = { _, _ ->
+        layout(0, 0) {}
+    }
+)

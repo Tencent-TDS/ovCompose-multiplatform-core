@@ -24,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -33,8 +32,8 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerInputEvent
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.popup
@@ -43,7 +42,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.roundToIntRect
 
 @Immutable
 actual class PopupProperties actual constructor(
@@ -361,19 +360,7 @@ private fun PopupLayout(
 ) {
     val layoutDirection = LocalLayoutDirection.current
     var parentBounds by remember { mutableStateOf(IntRect.Zero) }
-    Layout(
-        content = {},
-        modifier = Modifier.onGloballyPositioned { childCoordinates ->
-            val coordinates = childCoordinates.parentCoordinates!!
-            parentBounds = IntRect(
-                coordinates.localToWindow(Offset.Zero).round(),
-                coordinates.size
-            )
-        },
-        measurePolicy = { _, _ ->
-            layout(0, 0) {}
-        }
-    )
+    EmptyLayout(Modifier.parentBoundsInWindow { parentBounds = it })
     val measurePolicy = rememberPopupMeasurePolicy(
         popupPositionProvider = popupPositionProvider,
         layoutDirection = layoutDirection,
@@ -386,6 +373,16 @@ private fun PopupLayout(
         onOutsidePointerEvent = onOutsidePointerEvent,
         content = content
     )
+}
+
+private fun Modifier.parentBoundsInWindow(
+    onBoundsChanged: (IntRect) -> Unit
+) = this.onGloballyPositioned { childCoordinates ->
+    childCoordinates.parentCoordinates?.let {
+        val layoutPosition = it.positionInWindow().round()
+        val layoutSize = it.size
+        onBoundsChanged(IntRect(layoutPosition, layoutSize))
+    }
 }
 
 @Composable

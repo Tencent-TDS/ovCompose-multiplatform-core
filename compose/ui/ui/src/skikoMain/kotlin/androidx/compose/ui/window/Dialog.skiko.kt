@@ -138,12 +138,7 @@ private fun DialogLayout(
      * Keep empty layout as workaround to trigger layout after remove dialog.
      * Required to properly update mouse hover state.
      */
-    Layout(
-        content = {},
-        measurePolicy = { _, _ ->
-            layout(0, 0) {}
-        }
-    )
+    EmptyLayout()
     val measurePolicy = rememberDialogMeasurePolicy(properties)
     RootLayout(
         modifier = modifier,
