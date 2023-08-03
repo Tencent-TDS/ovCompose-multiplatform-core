@@ -388,7 +388,6 @@ internal actual class ComposeWindow : UIViewController {
         )
 
         composeLayerCleaner = createCleaner(composeLayer) {
-            println("clean composeLayer")
             it.dispose()
         }
     }
