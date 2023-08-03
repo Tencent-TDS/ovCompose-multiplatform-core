@@ -24,6 +24,7 @@ import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.SkiaBasedOwner
@@ -36,9 +37,8 @@ import androidx.compose.ui.unit.round
 internal fun RootLayout(
     modifier: Modifier,
     focusable: Boolean,
-    measurePolicy: MeasurePolicy,
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
-    content: @Composable () -> Unit
+    content: @Composable (SkiaBasedOwner) -> Unit
 ) {
     val scene = LocalComposeScene.requireCurrent()
     val density = LocalDensity.current
@@ -57,20 +57,9 @@ internal fun RootLayout(
             modifier = modifier
         )
         scene.attach(owner)
-
-        val composition = owner.setContent(parent = parentComposition) {
-            Layout(
-                content = content,
-                modifier = Modifier.onGloballyPositioned { coordinates ->
-                    owner.bounds = IntRect(
-                        coordinates.localToWindow(Offset.Zero).round(),
-                        coordinates.size
-                    )
-                },
-                measurePolicy = measurePolicy
-            )
+        owner to owner.setContent(parent = parentComposition) {
+            content(owner)
         }
-        owner to composition
     }
     DisposableEffect(Unit) {
         onDispose {

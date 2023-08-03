@@ -40,6 +40,7 @@ import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.center
 import androidx.compose.ui.util.fastForEach
@@ -139,19 +140,25 @@ private fun DialogLayout(
      * Required to properly update mouse hover state.
      */
     EmptyLayout()
-    val measurePolicy = rememberDialogMeasurePolicy(properties)
     RootLayout(
         modifier = modifier,
         focusable = true,
-        measurePolicy = measurePolicy,
-        onOutsidePointerEvent = onOutsidePointerEvent,
-        content = content
-    )
+        onOutsidePointerEvent = onOutsidePointerEvent
+    ) { owner ->
+        val measurePolicy = rememberDialogMeasurePolicy(properties) {
+            owner.bounds = it
+        }
+        Layout(
+            content = content,
+            measurePolicy = measurePolicy
+        )
+    }
 }
 
 @Composable
 private fun rememberDialogMeasurePolicy(
-    properties: DialogProperties
+    properties: DialogProperties,
+    onBoundsChanged: (IntRect) -> Unit
 ) = remember(properties) {
     MeasurePolicy { measurables, constraints ->
         val placeables = measurables.fastMap {
@@ -162,9 +169,11 @@ private fun rememberDialogMeasurePolicy(
         }
         val width = placeables.fastMaxBy { it.width }?.width ?: constraints.minWidth
         val height = placeables.fastMaxBy { it.height }?.height ?: constraints.minHeight
+
         val placeableSize = IntSize(width, height)
         val windowSize = IntSize(constraints.maxWidth, constraints.maxHeight)
         val position = windowSize.center - placeableSize.center
+        onBoundsChanged(IntRect(position, placeableSize))
 
         layout(windowSize.width, windowSize.height) {
             placeables.fastForEach {
