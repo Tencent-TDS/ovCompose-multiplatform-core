@@ -44,8 +44,8 @@ import androidx.compose.ui.window.rememberDialogState
  * space is available. There is also another version of this composable that has a slot for buttons
  * to provide custom buttons layout.
  *
- * @param onDismissRequest Executes when the user tries to dismiss the Dialog by clicking outside
- * or pressing the back button. This is not called when the dismiss button is clicked.
+ * @param onDismissRequest Executes when the user tries to dismiss the Dialog by Esc button.
+ * This is not called when the dismiss button is clicked.
  * @param confirmButton A button which is meant to confirm a proposed action, thus resolving
  * what triggered the dialog. The dialog does not set up any events for this button so they need
  * to be set up by the caller.
@@ -109,8 +109,8 @@ fun AlertDialogWindow(
  *
  * This function can be used to fully customize the button area, e.g. with:
  *
- * @param onDismissRequest Executes when the user tries to dismiss the Dialog by clicking outside
- * or pressing the back button. This is not called when the dismiss button is clicked.
+ * @param onDismissRequest Executes when the user tries to dismiss the Dialog by Esc button.
+ * This is not called when the dismiss button is clicked.
  * @param buttons Function that emits the layout with the buttons.
  * @param modifier Modifier to be applied to the layout of the dialog.
  * @param title The title of the Dialog which should specify the purpose of the Dialog. The title
