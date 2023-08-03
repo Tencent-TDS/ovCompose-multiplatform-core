@@ -16,14 +16,12 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import kotlin.math.min
 
 internal actual fun MeasureScope.platformDefaultConstrains(
-    measurable: Measurable,
     constraints: Constraints
 ): Constraints = constraints.copy(
     maxWidth = min(preferredDialogWidth(constraints), constraints.maxWidth)

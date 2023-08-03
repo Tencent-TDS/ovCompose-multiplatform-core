@@ -161,12 +161,10 @@ private fun rememberDialogMeasurePolicy(
     onBoundsChanged: (IntRect) -> Unit
 ) = remember(properties) {
     MeasurePolicy { measurables, constraints ->
-        val placeables = measurables.fastMap {
             val dialogConstraints = if (properties.usePlatformDefaultWidth) {
-                platformDefaultConstrains(it, constraints)
+            platformDefaultConstrains(constraints)
             } else constraints
-            it.measure(dialogConstraints)
-        }
+        val placeables = measurables.fastMap { it.measure(dialogConstraints) }
         val width = placeables.fastMaxBy { it.width }?.width ?: constraints.minWidth
         val height = placeables.fastMaxBy { it.height }?.height ?: constraints.minHeight
 
@@ -184,7 +182,6 @@ private fun rememberDialogMeasurePolicy(
 }
 
 internal expect fun MeasureScope.platformDefaultConstrains(
-    measurable: Measurable,
     constraints: Constraints
 ): Constraints
 
