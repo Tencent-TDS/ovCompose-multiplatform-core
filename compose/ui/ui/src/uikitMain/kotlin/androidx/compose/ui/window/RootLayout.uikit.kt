@@ -16,8 +16,19 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.ui.uikit.LocalSafeAreaState
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
+import kotlin.math.max
 
-internal actual val Density.platformOffset: IntOffset
-    get() = IntOffset.Zero
+@OptIn(InternalComposeApi::class)
+@Composable
+internal actual fun Density.platformOffset(): IntOffset =
+    with(LocalSafeAreaState.current.value) {
+        IntOffset(
+            x = max(left.roundToPx(), right.roundToPx()),
+            y = max(top.roundToPx(), bottom.roundToPx())
+        )
+    }
