@@ -139,7 +139,7 @@ class ComposeScene internal constructor(
 
     private fun invalidateIfNeeded() {
         hasPendingDraws = frameClock.hasAwaiters || needLayout || needDraw ||
-            snapshotChanges.hasCommands || pointerPositionUpdater.needUpdate
+            snapshotChanges.hasCommands || syntheticEventSender.needUpdatePointerPosition
         if (hasPendingDraws && !isInvalidationDisabled && !isClosed) {
             invalidate()
         }
@@ -159,7 +159,8 @@ class ComposeScene internal constructor(
     }
 
     internal fun requestUpdatePointer() {
-        pointerPositionUpdater.needSendMove()
+        syntheticEventSender.needUpdatePointerPosition = true
+        invalidateIfNeeded()
     }
 
     /**
@@ -236,13 +237,8 @@ class ComposeScene internal constructor(
     private val effectDispatcher = FlushCoroutineDispatcher(coroutineScope)
     private val recomposeDispatcher = FlushCoroutineDispatcher(coroutineScope)
     private val frameClock = BroadcastFrameClock(onNewAwaiters = ::invalidateIfNeeded)
-
     private val recomposer = Recomposer(coroutineContext + job + effectDispatcher)
-
     private val syntheticEventSender = SyntheticEventSender(::processPointerInput)
-    internal val pointerPositionUpdater = PointerPositionUpdater(
-        ::invalidateIfNeeded, syntheticEventSender
-    )
 
     internal var mainOwner: SkiaBasedOwner? = null
     private var composition: Composition? = null
@@ -386,14 +382,12 @@ class ComposeScene internal constructor(
     ) {
         check(!isClosed) { "ComposeScene is closed" }
         syntheticEventSender.reset()
-        pointerPositionUpdater.reset()
         composition?.dispose()
         mainOwner?.dispose()
         val mainOwner = SkiaBasedOwner(
             this,
             platform,
             platform.focusManager,
-            pointerPositionUpdater,
             initDensity = density,
             coroutineContext = recomposer.effectCoroutineContext,
             bounds = IntSize(constraints.maxWidth, constraints.maxHeight).toIntRect(),
@@ -456,7 +450,7 @@ class ComposeScene internal constructor(
         sendAndPerformSnapshotChanges() // Apply changes from recomposition phase to layout phase
         needLayout = false
         forEachOwner { it.measureAndLayout() }
-        pointerPositionUpdater.update()
+        syntheticEventSender.updatePointerPosition()
         sendAndPerformSnapshotChanges()  // Apply changes from layout phase to draw phase
         needDraw = false
         forEachOwner { it.draw(canvas) }
@@ -576,7 +570,7 @@ class ComposeScene internal constructor(
         )
         needLayout = false
         forEachOwner { it.measureAndLayout() }
-        pointerPositionUpdater.update()
+        syntheticEventSender.updatePointerPosition()
         syntheticEventSender.send(event)
         updatePointerPositions(event)
     }

@@ -57,7 +57,6 @@ internal fun RootLayout(
         val owner = SkiaBasedOwner(
             scene = scene,
             platform = scene.platform,
-            pointerPositionUpdater = scene.pointerPositionUpdater,
             coroutineContext = parentComposition.effectCoroutineContext,
             initDensity = density,
             initLayoutDirection = layoutDirection,
