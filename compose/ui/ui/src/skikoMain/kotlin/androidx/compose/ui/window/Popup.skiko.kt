@@ -415,7 +415,10 @@ private fun rememberPopupMeasurePolicy(
     parentBounds: IntRect,
     onBoundsChanged: (IntRect) -> Unit
 ) = remember(popupPositionProvider, properties, platformOffset, layoutDirection, parentBounds, onBoundsChanged) {
-    RootMeasurePolicy(platformOffset, properties.usePlatformDefaultWidth) { windowSize, contentSize ->
+    RootMeasurePolicy(
+        platformOffset = platformOffset,
+        usePlatformDefaultWidth = properties.usePlatformDefaultWidth
+    ) { windowSize, contentSize ->
         val position = popupPositionProvider.calculatePosition(
             parentBounds, windowSize, layoutDirection, contentSize
         )

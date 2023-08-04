@@ -170,7 +170,10 @@ private fun rememberDialogMeasurePolicy(
     platformOffset: IntOffset,
     onBoundsChanged: (IntRect) -> Unit
 ) = remember(properties, platformOffset, onBoundsChanged) {
-    RootMeasurePolicy(platformOffset, properties.usePlatformDefaultWidth) { windowSize, contentSize ->
+    RootMeasurePolicy(
+        platformOffset = platformOffset,
+        usePlatformDefaultWidth = properties.usePlatformDefaultWidth
+    ) { windowSize, contentSize ->
         val position = windowSize.center - contentSize.center
         onBoundsChanged(IntRect(position, contentSize))
         position
