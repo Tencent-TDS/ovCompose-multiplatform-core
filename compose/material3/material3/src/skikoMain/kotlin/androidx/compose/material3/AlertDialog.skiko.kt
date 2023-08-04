@@ -90,6 +90,11 @@ actual fun AlertDialog(
     tonalElevation: Dp,
     properties: DialogProperties
 ) {
+    /*
+     * Implementation is equal to Android source set, but we need to keep them separate to
+     * maintain binary compatibility.
+     */
+
     AlertDialog(onDismissRequest = onDismissRequest, modifier = modifier, properties = properties) {
         AlertDialogContent(
             buttons = {
@@ -150,6 +155,11 @@ actual fun AlertDialog(
     properties: DialogProperties,
     content: @Composable () -> Unit
 ) {
+    /*
+     * Implementation is equal to Android source set, but we need to keep them separate to
+     * maintain binary compatibility.
+     */
+
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = properties,
