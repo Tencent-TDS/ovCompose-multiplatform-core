@@ -35,10 +35,11 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.MeasurePolicy
-import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -160,7 +161,11 @@ private fun DialogLayout(
         focusable = true,
         onOutsidePointerEvent = onOutsidePointerEvent
     ) { owner ->
-        val measurePolicy = rememberDialogMeasurePolicy(properties, systemOffset) {
+        val density = LocalDensity.current
+        val measurePolicy = rememberDialogMeasurePolicy(
+            properties = properties,
+            platformOffset = with(density) { platformOffset }
+        ) {
             owner.bounds = it
         }
         Layout(
@@ -173,20 +178,14 @@ private fun DialogLayout(
 @Composable
 private fun rememberDialogMeasurePolicy(
     properties: DialogProperties,
-    systemOffset: IntOffset,
+    platformOffset: IntOffset,
     onBoundsChanged: (IntRect) -> Unit
-) = remember(properties, systemOffset, onBoundsChanged) {
+) = remember(properties, platformOffset, onBoundsChanged) {
     MeasurePolicy { measurables, constraints ->
-        var dialogConstraints = constraints.offset(
-            horizontal = -2 * systemOffset.x,
-            vertical = -2 * systemOffset.y
+        val platformConstraints = applyPlatformConstrains(
+            constraints, platformOffset, properties.usePlatformDefaultWidth
         )
-        if (properties.usePlatformDefaultWidth) {
-            dialogConstraints = dialogConstraints.constrain(
-                platformDefaultConstrains(constraints)
-            )
-        }
-        val placeables = measurables.fastMap { it.measure(dialogConstraints) }
+        val placeables = measurables.fastMap { it.measure(platformConstraints) }
         val width = placeables.fastMaxBy { it.width }?.width ?: constraints.minWidth
         val height = placeables.fastMaxBy { it.height }?.height ?: constraints.minHeight
 
@@ -203,18 +202,36 @@ private fun rememberDialogMeasurePolicy(
     }
 }
 
+internal fun Density.applyPlatformConstrains(
+    constraints: Constraints,
+    platformOffset: IntOffset,
+    usePlatformDefaultWidth: Boolean
+): Constraints {
+    val platformConstraints = constraints.offset(
+        horizontal = -2 * platformOffset.x,
+        vertical = -2 * platformOffset.y
+    )
+    return if (usePlatformDefaultWidth) {
+        platformConstraints.constrain(
+            platformDefaultConstrains(constraints)
+        )
+    } else {
+        platformConstraints
+    }
+}
+
 // TODO: Expect composable getter
 //  Blocked by https://github.com/JetBrains/compose-multiplatform/issues/3373
-internal expect val systemOffset: IntOffset
+internal expect val Density.platformOffset: IntOffset
 
-private fun MeasureScope.platformDefaultConstrains(
+private fun Density.platformDefaultConstrains(
     constraints: Constraints
 ): Constraints = constraints.copy(
     maxWidth = min(preferredDialogWidth(constraints), constraints.maxWidth)
 )
 
 // Ported from Android. See https://cs.android.com/search?q=abc_config_prefDialogWidth
-private fun MeasureScope.preferredDialogWidth(constraints: Constraints): Int {
+private fun Density.preferredDialogWidth(constraints: Constraints): Int {
     val smallestWidth = min(constraints.maxWidth, constraints.maxHeight).toDp()
     return when {
         smallestWidth >= 600.dp -> 580.dp

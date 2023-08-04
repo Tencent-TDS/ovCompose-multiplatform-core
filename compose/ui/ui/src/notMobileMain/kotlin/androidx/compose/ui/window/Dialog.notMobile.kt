@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 
-internal actual val systemOffset: IntOffset = IntOffset.Zero
+internal actual val Density.platformOffset: IntOffset
+    get() = IntOffset.Zero
