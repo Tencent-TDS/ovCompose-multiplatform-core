@@ -45,6 +45,21 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.round
 
+/**
+ * Properties used to customize the behavior of a [Popup].
+ *
+ * @property focusable Whether the popup is focusable. When true, the popup will receive IME
+ * events and key presses, such as when the back button is pressed.
+ * @property dismissOnBackPress Whether the popup can be dismissed by pressing the back button
+ * on Android or escape key on desktop.
+ * If true, pressing the back button will call onDismissRequest. Note that [focusable] must be
+ * set to true in order to receive key events such as the back button - if the popup is not
+ * focusable then this property does nothing.
+ * @property dismissOnClickOutside Whether the popup can be dismissed by clicking outside the
+ * popup's bounds. If true, clicking outside the popup will call onDismissRequest.
+ * @property usePlatformDefaultWidth Whether the width of the dialog's content should be limited to
+ * the platform default, which is smaller than the screen width.
+ */
 @Immutable
 actual class PopupProperties @ExperimentalComposeUiApi constructor(
     actual val focusable: Boolean,
@@ -70,6 +85,7 @@ actual class PopupProperties @ExperimentalComposeUiApi constructor(
         if (focusable != other.focusable) return false
         if (dismissOnBackPress != other.dismissOnBackPress) return false
         if (dismissOnClickOutside != other.dismissOnClickOutside) return false
+        if (usePlatformDefaultWidth != other.usePlatformDefaultWidth) return false
 
         return true
     }
@@ -78,6 +94,7 @@ actual class PopupProperties @ExperimentalComposeUiApi constructor(
         var result = focusable.hashCode()
         result = 31 * result + dismissOnBackPress.hashCode()
         result = 31 * result + dismissOnClickOutside.hashCode()
+        result = 31 * result + usePlatformDefaultWidth.hashCode()
         return result
     }
 }
