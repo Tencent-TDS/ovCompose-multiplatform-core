@@ -152,11 +152,6 @@ private fun DialogLayout(
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    /*
-     * Keep empty layout as workaround to trigger layout after remove dialog.
-     * Required to properly update mouse hover state.
-     */
-    EmptyLayout()
     RootLayout(
         modifier = modifier,
         focusable = true,
