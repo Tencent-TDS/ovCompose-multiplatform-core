@@ -43,12 +43,6 @@ internal fun RootLayout(
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
     content: @Composable (SkiaBasedOwner) -> Unit
 ) {
-    /*
-     * Keep empty layout as workaround to trigger layout after remove dialog.
-     * Required to properly update mouse hover state.
-     */
-    EmptyLayout()
-
     val scene = LocalComposeScene.requireCurrent()
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
