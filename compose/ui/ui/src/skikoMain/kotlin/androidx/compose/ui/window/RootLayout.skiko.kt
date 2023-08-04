@@ -33,6 +33,9 @@ import androidx.compose.ui.requireCurrent
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.round
 
+/**
+ * Adding [content] as root layout to separate [androidx.compose.ui.node.Owner].
+ */
 @Composable
 internal fun RootLayout(
     modifier: Modifier,
