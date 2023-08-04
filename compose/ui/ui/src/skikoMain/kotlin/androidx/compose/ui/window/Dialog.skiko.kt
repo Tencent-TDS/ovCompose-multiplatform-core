@@ -34,7 +34,6 @@ import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.semantics.dialog
@@ -43,9 +42,11 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.center
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMaxBy
+import kotlin.math.min
 
 /**
  * The default scrim opacity.
@@ -181,9 +182,21 @@ private fun rememberDialogMeasurePolicy(
     }
 }
 
-internal expect fun MeasureScope.platformDefaultConstrains(
+private fun MeasureScope.platformDefaultConstrains(
     constraints: Constraints
-): Constraints
+): Constraints = constraints.copy(
+    maxWidth = min(preferredDialogWidth(constraints), constraints.maxWidth)
+)
+
+// Ported from Android. See https://cs.android.com/search?q=abc_config_prefDialogWidth
+private fun MeasureScope.preferredDialogWidth(constraints: Constraints): Int {
+    val smallestWidth = min(constraints.maxWidth, constraints.maxHeight).toDp()
+    return when {
+        smallestWidth >= 600.dp -> 580.dp
+        smallestWidth >= 480.dp -> 440.dp
+        else -> 320.dp
+    }.roundToPx()
+}
 
 private fun PointerInputEvent.isMainAction() =
     button == PointerButton.Primary ||
