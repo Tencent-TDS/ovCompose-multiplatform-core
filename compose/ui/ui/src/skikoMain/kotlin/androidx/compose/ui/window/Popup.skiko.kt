@@ -400,7 +400,7 @@ private fun rememberPopupMeasurePolicy(
     layoutDirection: LayoutDirection,
     parentBounds: IntRect,
     onBoundsChanged: (IntRect) -> Unit
-) = remember(popupPositionProvider, layoutDirection, parentBounds) {
+) = remember(popupPositionProvider, layoutDirection, parentBounds, onBoundsChanged) {
     MeasurePolicy { measurables, constraints ->
         val placeables = measurables.fastMap { it.measure(constraints) }
         val width = placeables.fastMaxBy { it.width }?.width ?: constraints.minWidth

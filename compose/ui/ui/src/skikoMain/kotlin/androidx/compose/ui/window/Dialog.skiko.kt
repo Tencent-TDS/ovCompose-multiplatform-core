@@ -176,7 +176,7 @@ private fun DialogLayout(
 private fun rememberDialogMeasurePolicy(
     properties: DialogProperties,
     onBoundsChanged: (IntRect) -> Unit
-) = remember(properties) {
+) = remember(properties, onBoundsChanged) {
     MeasurePolicy { measurables, constraints ->
         val dialogConstraints = if (properties.usePlatformDefaultWidth) {
             platformDefaultConstrains(constraints)
