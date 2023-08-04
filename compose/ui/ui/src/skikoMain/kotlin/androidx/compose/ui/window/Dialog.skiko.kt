@@ -89,6 +89,8 @@ actual class DialogProperties @ExperimentalComposeUiApi constructor(
 
         if (dismissOnBackPress != other.dismissOnBackPress) return false
         if (dismissOnClickOutside != other.dismissOnClickOutside) return false
+        if (usePlatformDefaultWidth != other.usePlatformDefaultWidth) return false
+        if (scrimColor != other.scrimColor) return false
 
         return true
     }
@@ -96,6 +98,8 @@ actual class DialogProperties @ExperimentalComposeUiApi constructor(
     override fun hashCode(): Int {
         var result = dismissOnBackPress.hashCode()
         result = 31 * result + dismissOnClickOutside.hashCode()
+        result = 31 * result + usePlatformDefaultWidth.hashCode()
+        result = 31 * result + scrimColor.hashCode()
         return result
     }
 }
