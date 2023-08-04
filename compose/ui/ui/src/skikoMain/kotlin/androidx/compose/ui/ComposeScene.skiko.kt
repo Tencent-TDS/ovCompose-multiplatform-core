@@ -158,6 +158,10 @@ class ComposeScene internal constructor(
         invalidateIfNeeded()
     }
 
+    internal fun requestUpdatePointer() {
+        pointerPositionUpdater.needSendMove()
+    }
+
     /**
      * Contains all registered [SkiaBasedOwner] (main frame, popups, etc.) in order of registration.
      * So that Popup opened from main owner will have bigger index.
@@ -305,7 +309,6 @@ class ComposeScene internal constructor(
         owner.requestDraw = ::requestDraw
         owner.dispatchSnapshotChanges = snapshotChanges::add
         owner.constraints = constraints
-        invalidateIfNeeded()
         if (owner.focusable) {
             focusedOwner = owner
 
@@ -316,6 +319,7 @@ class ComposeScene internal constructor(
         } else {
             owner.focusOwner.releaseFocus()
         }
+        requestUpdatePointer()
     }
 
     internal fun detach(owner: SkiaBasedOwner) {
@@ -324,9 +328,10 @@ class ComposeScene internal constructor(
         owner.dispatchSnapshotChanges = null
         owner.requestDraw = null
         owner.requestLayout = null
-        invalidateIfNeeded()
         if (owner == focusedOwner) {
             focusedOwner = owners.lastOrNull { it.focusable }
+
+            // Enter event to new focusedOwner will be sent via synthetic event on next frame
         }
         if (owner == lastHoverOwner) {
             lastHoverOwner = null
@@ -334,6 +339,7 @@ class ComposeScene internal constructor(
         if (owner == gestureOwner) {
             gestureOwner = null
         }
+        requestUpdatePointer()
     }
 
     /**
