@@ -89,34 +89,32 @@ actual fun AlertDialog(
     textContentColor: Color,
     tonalElevation: Dp,
     properties: DialogProperties
-) {
-    AlertDialog(onDismissRequest = onDismissRequest, modifier = modifier, properties = properties) {
-        AlertDialogContent(
-            buttons = {
-                AlertDialogFlowRow(
-                    mainAxisSpacing = ButtonsMainAxisSpacing,
-                    crossAxisSpacing = ButtonsCrossAxisSpacing
-                ) {
-                    dismissButton?.invoke()
-                    confirmButton()
-                }
-            },
-            icon = icon,
-            title = title,
-            text = text,
-            shape = shape,
-            containerColor = containerColor,
-            tonalElevation = tonalElevation,
-            // Note that a button content color is provided here from the dialog's token, but in
-            // most cases, TextButtons should be used for dismiss and confirm buttons.
-            // TextButtons will not consume this provided content color value, and will used their
-            // own defined or default colors.
-            buttonContentColor = DialogTokens.ActionLabelTextColor.toColor(),
-            iconContentColor = iconContentColor,
-            titleContentColor = titleContentColor,
-            textContentColor = textContentColor,
-        )
-    }
+): Unit = AlertDialog(onDismissRequest = onDismissRequest, modifier = modifier, properties = properties) {
+    AlertDialogContent(
+        buttons = {
+            AlertDialogFlowRow(
+                mainAxisSpacing = ButtonsMainAxisSpacing,
+                crossAxisSpacing = ButtonsCrossAxisSpacing
+            ) {
+                dismissButton?.invoke()
+                confirmButton()
+            }
+        },
+        icon = icon,
+        title = title,
+        text = text,
+        shape = shape,
+        containerColor = containerColor,
+        tonalElevation = tonalElevation,
+        // Note that a button content color is provided here from the dialog's token, but in
+        // most cases, TextButtons should be used for dismiss and confirm buttons.
+        // TextButtons will not consume this provided content color value, and will used their
+        // own defined or default colors.
+        buttonContentColor = DialogTokens.ActionLabelTextColor.toColor(),
+        iconContentColor = iconContentColor,
+        titleContentColor = titleContentColor,
+        textContentColor = textContentColor,
+    )
 }
 
 /**
