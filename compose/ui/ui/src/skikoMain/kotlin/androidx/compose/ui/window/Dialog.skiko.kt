@@ -203,6 +203,8 @@ private fun rememberDialogMeasurePolicy(
     }
 }
 
+// TODO: Expect composable getter
+//  Blocked by https://github.com/JetBrains/compose-multiplatform/issues/3373
 internal expect val systemOffset: IntOffset
 
 private fun MeasureScope.platformDefaultConstrains(
