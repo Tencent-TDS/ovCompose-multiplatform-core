@@ -39,10 +39,13 @@ import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.center
+import androidx.compose.ui.unit.constrain
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMaxBy
@@ -157,7 +160,7 @@ private fun DialogLayout(
         focusable = true,
         onOutsidePointerEvent = onOutsidePointerEvent
     ) { owner ->
-        val measurePolicy = rememberDialogMeasurePolicy(properties) {
+        val measurePolicy = rememberDialogMeasurePolicy(properties, systemOffset) {
             owner.bounds = it
         }
         Layout(
@@ -170,12 +173,19 @@ private fun DialogLayout(
 @Composable
 private fun rememberDialogMeasurePolicy(
     properties: DialogProperties,
+    systemOffset: IntOffset,
     onBoundsChanged: (IntRect) -> Unit
-) = remember(properties, onBoundsChanged) {
+) = remember(properties, systemOffset, onBoundsChanged) {
     MeasurePolicy { measurables, constraints ->
-        val dialogConstraints = if (properties.usePlatformDefaultWidth) {
-            platformDefaultConstrains(constraints)
-        } else constraints
+        var dialogConstraints = constraints.offset(
+            horizontal = -2 * systemOffset.x,
+            vertical = -2 * systemOffset.y
+        )
+        if (properties.usePlatformDefaultWidth) {
+            dialogConstraints = dialogConstraints.constrain(
+                platformDefaultConstrains(constraints)
+            )
+        }
         val placeables = measurables.fastMap { it.measure(dialogConstraints) }
         val width = placeables.fastMaxBy { it.width }?.width ?: constraints.minWidth
         val height = placeables.fastMaxBy { it.height }?.height ?: constraints.minHeight
@@ -192,6 +202,8 @@ private fun rememberDialogMeasurePolicy(
         }
     }
 }
+
+internal expect val systemOffset: IntOffset
 
 private fun MeasureScope.platformDefaultConstrains(
     constraints: Constraints
