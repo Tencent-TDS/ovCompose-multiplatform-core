@@ -75,11 +75,12 @@ actual class DialogProperties @ExperimentalComposeUiApi constructor(
 ) {
     actual constructor(
         dismissOnBackPress: Boolean,
-        dismissOnClickOutside: Boolean
+        dismissOnClickOutside: Boolean,
+        usePlatformDefaultWidth: Boolean
     ) : this(
         dismissOnBackPress = dismissOnBackPress,
         dismissOnClickOutside = dismissOnClickOutside,
-        usePlatformDefaultWidth = true,
+        usePlatformDefaultWidth = usePlatformDefaultWidth,
         scrimColor = DefaultScrimColor
     )
 

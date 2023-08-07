@@ -21,12 +21,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
@@ -41,6 +48,34 @@ fun DateTimePickers() {
     ) {
         val dpState = rememberDatePickerState()
         val tpState = rememberTimePickerState()
+
+        var dpDialogVisible by remember {
+            mutableStateOf(false)
+        }
+
+        Button(onClick = {
+            dpDialogVisible = true
+        }){
+            Text("Date picker dialog")
+        }
+
+        if (dpDialogVisible) {
+            DatePickerDialog(
+                onDismissRequest = {
+                    dpDialogVisible = false
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        dpDialogVisible = false
+                    }) {
+                        Text("Confirm")
+                    }
+                },
+                content = {
+                    DatePicker(dpState)
+                }
+            )
+        }
 
         DatePicker(dpState)
         TimePicker(tpState)

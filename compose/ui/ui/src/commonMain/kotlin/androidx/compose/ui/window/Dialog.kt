@@ -32,7 +32,8 @@ import androidx.compose.runtime.Immutable
 @Immutable
 expect class DialogProperties(
     dismissOnBackPress: Boolean = true,
-    dismissOnClickOutside: Boolean = true
+    dismissOnClickOutside: Boolean = true,
+    usePlatformDefaultWidth : Boolean = true,
 ) {
     val dismissOnBackPress: Boolean
     val dismissOnClickOutside: Boolean
