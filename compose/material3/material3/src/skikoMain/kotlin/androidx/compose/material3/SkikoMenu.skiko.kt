@@ -94,7 +94,8 @@ import androidx.compose.ui.window.PopupProperties
     "Replaced by DropdownMenu with properties parameter",
     ReplaceWith("DropdownMenu(expanded, onDismissRequest, modifier, offset, " +
         "androidx.compose.ui.window.PopupProperties(focusable = focusable), " +
-        "content)")
+        "content)"),
+    level = DeprecationLevel.WARNING // TODO: Change to DeprecationLevel.HIDDEN in 1.6
 )
 @Suppress("ModifierParameter")
 @Composable
@@ -111,6 +112,24 @@ fun DropdownMenu(
     modifier = modifier,
     offset = offset,
     properties = PopupProperties(focusable = focusable),
+    content = content
+)
+
+// Workaround for `Overload resolution ambiguity` between old and new overload.
+// TODO: Deprecate with DeprecationLevel.HIDDEN in 1.6
+@Composable
+fun DropdownMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    offset: DpOffset = DpOffset(0.dp, 0.dp),
+    content: @Composable ColumnScope.() -> Unit
+) = DropdownMenu(
+    expanded = expanded,
+    onDismissRequest = onDismissRequest,
+    modifier = modifier,
+    offset = offset,
+    properties = PopupProperties(focusable = true),
     content = content
 )
 
