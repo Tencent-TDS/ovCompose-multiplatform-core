@@ -20,7 +20,11 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.contextMenuOpenDetector
+import androidx.compose.foundation.interaction.Interaction
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -316,6 +320,42 @@ private fun OpenDropdownMenu(
             content = content
         )
     }
+}
+
+/**
+ * <a href="https://material.io/components/menus#dropdown-menu" class="external" target="_blank">Material Design dropdown menu</a> item.
+ *
+ *
+ * Example usage:
+ * @sample androidx.compose.material.samples.MenuSample
+ *
+ * @param onClick Called when the menu item was clicked
+ * @param modifier The modifier to be applied to the menu item
+ * @param enabled Controls the enabled state of the menu item - when `false`, the menu item
+ * will not be clickable and [onClick] will not be invoked
+ * @param contentPadding the padding applied to the content of this menu item
+ * @param interactionSource the [MutableInteractionSource] representing the stream of
+ * [Interaction]s for this DropdownMenuItem. You can create and pass in your own remembered
+ * [MutableInteractionSource] if you want to observe [Interaction]s and customize the
+ * appearance / behavior of this DropdownMenuItem in different [Interaction]s.
+ */
+@Composable
+actual fun DropdownMenuItem(
+    onClick: () -> Unit,
+    modifier: Modifier,
+    enabled: Boolean,
+    contentPadding: PaddingValues,
+    interactionSource: MutableInteractionSource,
+    content: @Composable RowScope.() -> Unit
+) {
+    DropdownMenuItemContent(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        contentPadding = contentPadding,
+        interactionSource = interactionSource,
+        content = content
+    )
 }
 
 /**
