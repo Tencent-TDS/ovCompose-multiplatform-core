@@ -114,7 +114,6 @@ fun DropdownMenu(
     content = content
 )
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Suppress("ModifierParameter")
 @Composable
 actual fun DropdownMenu(
@@ -145,7 +144,7 @@ actual fun DropdownMenu(
             popupPositionProvider = popupPositionProvider,
             properties = properties,
             onKeyEvent = {
-                handlePopupOnKeyEvent(it, focusManager!!, inputModeManager!!)
+                handlePopupOnKeyEvent(it, focusManager, inputModeManager)
             },
         ) {
             focusManager = LocalFocusManager.current
@@ -161,27 +160,25 @@ actual fun DropdownMenu(
     }
 }
 
-@ExperimentalComposeUiApi
+@OptIn(ExperimentalComposeUiApi::class)
 private fun handlePopupOnKeyEvent(
     keyEvent: KeyEvent,
-    focusManager: FocusManager,
-    inputModeManager: InputModeManager
-): Boolean {
-    return if (keyEvent.type == KeyEventType.KeyDown) {
-        when (keyEvent.key) {
-            Key.DirectionDown -> {
-                inputModeManager.requestInputMode(InputMode.Keyboard)
-                focusManager.moveFocus(FocusDirection.Next)
-                true
-            }
-            Key.DirectionUp -> {
-                inputModeManager.requestInputMode(InputMode.Keyboard)
-                focusManager.moveFocus(FocusDirection.Previous)
-                true
-            }
-            else -> false
+    focusManager: FocusManager?,
+    inputModeManager: InputModeManager?
+): Boolean = if (keyEvent.type == KeyEventType.KeyDown) {
+    when (keyEvent.key) {
+        Key.DirectionDown -> {
+            inputModeManager?.requestInputMode(InputMode.Keyboard)
+            focusManager?.moveFocus(FocusDirection.Next)
+            true
         }
-    } else {
-        false
+        Key.DirectionUp -> {
+            inputModeManager?.requestInputMode(InputMode.Keyboard)
+            focusManager?.moveFocus(FocusDirection.Previous)
+            true
+        }
+        else -> false
     }
+} else {
+    false
 }
