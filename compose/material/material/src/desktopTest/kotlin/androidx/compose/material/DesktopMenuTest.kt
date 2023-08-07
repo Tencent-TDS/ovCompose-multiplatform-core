@@ -68,7 +68,7 @@ class DesktopMenuTest {
         )
         val popupSize = IntSize(70, 70)
 
-        val position = DesktopDropdownMenuPositionProvider(
+        val position = DropdownMenuPositionProvider(
             DpOffset.Zero,
             Density(1f)
         ).calculatePosition(
@@ -90,7 +90,7 @@ class DesktopMenuTest {
         )
         val popupSize = IntSize(70, 70)
 
-        val position = DesktopDropdownMenuPositionProvider(
+        val position = DropdownMenuPositionProvider(
             DpOffset.Zero,
             Density(1f)
         ).calculatePosition(
@@ -117,7 +117,7 @@ class DesktopMenuTest {
         )
         val popupSize = IntSize(70, 30)
 
-        val position = DesktopDropdownMenuPositionProvider(
+        val position = DropdownMenuPositionProvider(
             DpOffset.Zero,
             Density(1f)
         ).calculatePosition(
@@ -144,7 +144,7 @@ class DesktopMenuTest {
         )
         val popupSize = IntSize(70, 50)
 
-        val position = DesktopDropdownMenuPositionProvider(
+        val position = DropdownMenuPositionProvider(
             DpOffset.Zero,
             Density(1f)
         ).calculatePosition(
@@ -166,7 +166,7 @@ class DesktopMenuTest {
         )
         val popupSize = IntSize(50, 70)
 
-        val position = DesktopDropdownMenuPositionProvider(
+        val position = DropdownMenuPositionProvider(
             DpOffset.Zero,
             Density(1f)
         ).calculatePosition(
