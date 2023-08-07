@@ -54,7 +54,7 @@ class DesktopMenuTest {
     fun menu_positioning_vertical_underAnchor() {
         val popupSize = IntSize(80, 70)
 
-        val position = SkikoDropdownMenuPositionProvider(
+        val position = DropdownMenuPositionProvider(
             DpOffset.Zero,
             Density(1f)
         ).calculatePosition(
@@ -71,7 +71,7 @@ class DesktopMenuTest {
     fun menu_positioning_vertical_windowTop() {
         val popupSize = IntSize(80, 100)
 
-        val position = SkikoDropdownMenuPositionProvider(
+        val position = DropdownMenuPositionProvider(
             DpOffset.Zero,
             Density(1f)
         ).calculatePosition(
