@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 
 /**
  * <a href="https://m3.material.io/components/menus/overview" class="external" target="_blank">Material Design dropdown menu</a>.
@@ -89,15 +90,39 @@ import androidx.compose.ui.window.PopupPositionProvider
  * outside the menu's bounds
  * @param offset [DpOffset] to be added to the position of the menu
  */
+@Deprecated(
+    "Replaced by DropdownMenu with properties parameter",
+    ReplaceWith("DropdownMenu(expanded, onDismissRequest, modifier, offset, " +
+        "androidx.compose.ui.window.PopupProperties(focusable = focusable), " +
+        "content)")
+)
+@Suppress("ModifierParameter")
+@Composable
+fun DropdownMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    focusable: Boolean = true,
+    modifier: Modifier = Modifier,
+    offset: DpOffset = DpOffset(0.dp, 0.dp),
+    content: @Composable ColumnScope.() -> Unit
+) = DropdownMenu(
+    expanded = expanded,
+    onDismissRequest = onDismissRequest,
+    modifier = modifier,
+    offset = offset,
+    properties = PopupProperties(focusable = focusable),
+    content = content
+)
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Suppress("ModifierParameter")
 @Composable
 actual fun DropdownMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
-    focusable: Boolean,
     modifier: Modifier,
     offset: DpOffset,
+    properties: PopupProperties,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val expandedStates = remember { MutableTransitionState(false) }
@@ -106,11 +131,7 @@ actual fun DropdownMenu(
     if (expandedStates.currentState || expandedStates.targetState) {
         val transformOriginState = remember { mutableStateOf(TransformOrigin.Center) }
         val density = LocalDensity.current
-        // The original [DropdownMenuPositionProvider] is not yet suitable for large screen devices,
-        // so we need to make additional checks and adjust the position of the [DropdownMenu] to
-        // avoid content being cut off if the [DropdownMenu] contains too many items.
-        // See: https://github.com/JetBrains/compose-jb/issues/1388
-        val popupPositionProvider = SkikoDropdownMenuPositionProvider(
+        val popupPositionProvider = DropdownMenuPositionProvider(
             offset,
             density
         ) { parentBounds, menuBounds ->
@@ -120,9 +141,9 @@ actual fun DropdownMenu(
         var focusManager: FocusManager? by mutableStateOf(null)
         var inputModeManager: InputModeManager? by mutableStateOf(null)
         Popup(
-            focusable = focusable,
             onDismissRequest = onDismissRequest,
             popupPositionProvider = popupPositionProvider,
+            properties = properties,
             onKeyEvent = {
                 handlePopupOnKeyEvent(it, focusManager!!, inputModeManager!!)
             },

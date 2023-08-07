@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import kotlin.math.max
 import kotlin.math.min
 
@@ -99,9 +100,9 @@ import kotlin.math.min
 expect fun DropdownMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
-    focusable: Boolean = true,
     modifier: Modifier = Modifier,
     offset: DpOffset = DpOffset(0.dp, 0.dp),
+    properties: PopupProperties = PopupProperties(focusable = true),
     content: @Composable ColumnScope.() -> Unit
 )
 
@@ -133,7 +134,7 @@ expect fun DropdownMenu(
  * [Interaction]s and customize the appearance / behavior of this menu item in different states.
  */
 @Composable
-fun DropdownMenuItem(
+expect fun DropdownMenuItem(
     text: @Composable () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -143,19 +144,7 @@ fun DropdownMenuItem(
     colors: MenuItemColors = MenuDefaults.itemColors(),
     contentPadding: PaddingValues = MenuDefaults.DropdownMenuItemContentPadding,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-) {
-    DropdownMenuItemContent(
-        text = text,
-        onClick = onClick,
-        modifier = modifier,
-        leadingIcon = leadingIcon,
-        trailingIcon = trailingIcon,
-        enabled = enabled,
-        colors = colors,
-        contentPadding = contentPadding,
-        interactionSource = interactionSource,
-    )
-}
+)
 
 @Suppress("ModifierParameter")
 @Composable
