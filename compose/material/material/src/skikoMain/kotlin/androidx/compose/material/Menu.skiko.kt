@@ -15,6 +15,11 @@
  * limitations under the License.
  */
 
+/*
+ * Keep binary compatibility on Desktop.
+ */
+@file:JvmName("DesktopMenu_desktopKt")
+
 package androidx.compose.material
 
 import androidx.compose.animation.core.MutableTransitionState
@@ -47,6 +52,7 @@ import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import kotlin.jvm.JvmName
 
 /**
  * <a href="https://material.io/components/menus#dropdown-menu" class="external" target="_blank">Material Design dropdown menu</a>.

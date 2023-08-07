@@ -370,10 +370,24 @@ internal data class DropdownMenuPositionProvider(
         val toTop = anchorBounds.top - contentOffsetY - popupContentSize.height
         val toCenter = anchorBounds.top - popupContentSize.height / 2
         val toDisplayBottom = windowSize.height - popupContentSize.height - verticalMargin
-        val y = sequenceOf(toBottom, toTop, toCenter, toDisplayBottom).firstOrNull {
+        var y = sequenceOf(toBottom, toTop, toCenter, toDisplayBottom).firstOrNull {
             it >= verticalMargin &&
                 it + popupContentSize.height <= windowSize.height - verticalMargin
         } ?: toTop
+
+        // Desktop specific vertical position checking
+        val aboveAnchor = anchorBounds.top + contentOffsetY
+        val belowAnchor = windowSize.height - anchorBounds.bottom - contentOffsetY
+
+        if (belowAnchor >= aboveAnchor) {
+            y = anchorBounds.bottom + contentOffsetY
+        }
+
+        if (y + popupContentSize.height > windowSize.height) {
+            y = windowSize.height - popupContentSize.height
+        }
+
+        y = y.coerceAtLeast(0)
 
         onPositionCalculated(
             anchorBounds,
