@@ -45,4 +45,11 @@ class StringFormatTest {
         assertEquals("str 1", result)
     }
 
+    @Test
+    fun not_enough_args() {
+        // Behavior is not specified. We can consider different variants.
+        val result = "str %1\$".format()
+        assertEquals("str %1\$", result)
+    }
+
 }
