@@ -84,6 +84,33 @@ class DesktopMenuTest {
         assertThat(position).isEqualTo(IntOffset(10, 0))
     }
 
+    // (RTL) Anchor right is beyond the right of the window, so align popup to the window right
+    @Test
+    fun menu_positioning_rtl_windowRight_belowAnchor() {
+        val anchorBounds = IntRect(
+            offset = IntOffset(30, 10),
+            size = IntSize(80, 20)
+        )
+        val popupSize = IntSize(50, 70)
+
+        val position = DropdownMenuPositionProvider(
+            DpOffset.Zero,
+            Density(1f)
+        ).calculatePosition(
+            anchorBounds,
+            windowSize,
+            LayoutDirection.Rtl,
+            popupSize
+        )
+
+        assertThat(position).isEqualTo(
+            IntOffset(
+                x = windowSize.width - popupSize.width,
+                y = anchorBounds.bottom
+            )
+        )
+    }
+
     @OptIn(ExperimentalComposeUiApi::class)
     @Test
     fun `pressing ESC button invokes onDismissRequest`() {

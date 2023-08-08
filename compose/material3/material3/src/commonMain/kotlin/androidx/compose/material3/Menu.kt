@@ -397,6 +397,27 @@ internal data class DropdownMenuPositionProvider(
         layoutDirection: LayoutDirection,
         popupContentSize: IntSize
     ): IntOffset {
+        val isLtr = layoutDirection == LayoutDirection.Ltr
+
+        // Coerce such that this..this+size fits into min..max; if impossible, align with min
+        fun Int.coerceWithSizeIntoRangePreferMin(size: Int, min: Int, max: Int) = when {
+            this < min -> min
+            this + size > max -> max - size
+            else -> this
+        }
+
+        // Coerce such that this..this+size fits into min..max; if impossible, align with max
+        fun Int.coerceWithSizeIntoRangePreferMax(size: Int, min: Int, max: Int) = when {
+            this + size > max -> max - size
+            this < min -> min
+            else -> this
+        }
+
+        fun Int.coerceWithSizeIntoRange(size: Int, min: Int, max: Int) = when {
+            isLtr -> coerceWithSizeIntoRangePreferMin(size, min, max)
+            else -> coerceWithSizeIntoRangePreferMax(size, min, max)
+        }
+
         // The min margin above and below the menu, relative to the screen.
         val verticalMargin = with(density) { MenuVerticalMargin.roundToPx() }
         // The content offset specified using the dropdown offset parameter.
@@ -404,36 +425,24 @@ internal data class DropdownMenuPositionProvider(
         val contentOffsetY = with(density) { contentOffset.y.roundToPx() }
 
         // Compute horizontal position.
-        val toRight = anchorBounds.left + contentOffsetX
-        val toLeft = anchorBounds.right - contentOffsetX - popupContentSize.width
-        val toDisplayRight = windowSize.width - popupContentSize.width
-        val toDisplayLeft = 0
-        val x = if (layoutDirection == LayoutDirection.Ltr) {
-            sequenceOf(
-                toRight,
-                toLeft,
-                // If the anchor gets outside of the window on the left, we want to position
-                // toDisplayLeft for proximity to the anchor. Otherwise, toDisplayRight.
-                if (anchorBounds.left >= 0) toDisplayRight else toDisplayLeft
-            )
-        } else {
-            sequenceOf(
-                toLeft,
-                toRight,
-                // If the anchor gets outside of the window on the right, we want to position
-                // toDisplayRight for proximity to the anchor. Otherwise, toDisplayLeft.
-                if (anchorBounds.right <= windowSize.width) toDisplayLeft else toDisplayRight
-            )
-        }.firstOrNull {
-            it >= 0 && it + popupContentSize.width <= windowSize.width
-        } ?: toLeft
+        val preferredX = if (isLtr) {
+            anchorBounds.left + contentOffsetX
+        }
+        else {
+            anchorBounds.right - contentOffsetX - popupContentSize.width
+        }
+        val x = preferredX.coerceWithSizeIntoRange(
+            size = popupContentSize.width,
+            min = 0,
+            max = windowSize.width
+        )
 
         // Compute vertical position.
         val toBottom = maxOf(anchorBounds.bottom + contentOffsetY, verticalMargin)
         val toTop = anchorBounds.top - contentOffsetY - popupContentSize.height
         val toCenter = anchorBounds.top - popupContentSize.height / 2
-        val toDisplayBottom = windowSize.height - popupContentSize.height - verticalMargin
-        var y = sequenceOf(toBottom, toTop, toCenter, toDisplayBottom).firstOrNull {
+        val toWindowBottom = windowSize.height - popupContentSize.height - verticalMargin
+        var y = sequenceOf(toBottom, toTop, toCenter, toWindowBottom).firstOrNull {
             it >= verticalMargin &&
                 it + popupContentSize.height <= windowSize.height - verticalMargin
         } ?: toTop
