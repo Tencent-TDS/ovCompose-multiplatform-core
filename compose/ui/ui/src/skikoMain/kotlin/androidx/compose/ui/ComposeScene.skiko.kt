@@ -158,9 +158,13 @@ class ComposeScene internal constructor(
         invalidateIfNeeded()
     }
 
-    internal fun requestUpdatePointer() {
+    private fun requestUpdatePointer() {
         syntheticEventSender.needUpdatePointerPosition = true
         invalidateIfNeeded()
+    }
+
+    internal fun onPointerUpdate() {
+        requestUpdatePointer()
     }
 
     /**
@@ -309,13 +313,14 @@ class ComposeScene internal constructor(
             focusedOwner = owner
 
             // Exit event to lastHoverOwner will be sent via synthetic event on next frame
+            requestUpdatePointer()
         }
         if (isFocused) {
             owner.focusOwner.takeFocus()
         } else {
             owner.focusOwner.releaseFocus()
         }
-        requestUpdatePointer()
+        invalidateIfNeeded()
     }
 
     internal fun detach(owner: SkiaBasedOwner) {
@@ -328,6 +333,7 @@ class ComposeScene internal constructor(
             focusedOwner = owners.lastOrNull { it.focusable }
 
             // Enter event to new focusedOwner will be sent via synthetic event on next frame
+            requestUpdatePointer()
         }
         if (owner == lastHoverOwner) {
             lastHoverOwner = null
@@ -335,7 +341,7 @@ class ComposeScene internal constructor(
         if (owner == gestureOwner) {
             gestureOwner = null
         }
-        requestUpdatePointer()
+        invalidateIfNeeded()
     }
 
     /**
@@ -391,6 +397,7 @@ class ComposeScene internal constructor(
             initDensity = density,
             coroutineContext = recomposer.effectCoroutineContext,
             bounds = IntSize(constraints.maxWidth, constraints.maxHeight).toIntRect(),
+            onPointerUpdate = ::onPointerUpdate,
             modifier = KeyInputElement(onKeyEvent = onKeyEvent, onPreKeyEvent = onPreviewKeyEvent)
         )
         attach(mainOwner)

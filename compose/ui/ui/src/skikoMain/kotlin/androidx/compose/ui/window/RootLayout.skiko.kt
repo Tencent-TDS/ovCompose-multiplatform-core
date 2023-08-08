@@ -56,6 +56,7 @@ internal fun RootLayout(
             initLayoutDirection = layoutDirection,
             focusable = focusable,
             onOutsidePointerEvent = onOutsidePointerEvent,
+            onPointerUpdate = scene::onPointerUpdate,
             modifier = modifier
         )
         scene.attach(owner)
