@@ -57,6 +57,10 @@ import androidx.compose.ui.unit.round
  * focusable then this property does nothing.
  * @property dismissOnClickOutside Whether the popup can be dismissed by clicking outside the
  * popup's bounds. If true, clicking outside the popup will call onDismissRequest.
+ * @property clippingEnabled Whether to allow the popup window to extend beyond the bounds of the
+ * screen. By default the window is clipped to the screen boundaries. Setting this to false will
+ * allow windows to be accurately positioned.
+ * The default value is true.
  * @property usePlatformDefaultWidth Whether the width of the dialog's content should be limited to
  * the platform default, which is smaller than the screen width.
  */
@@ -65,6 +69,7 @@ actual class PopupProperties @ExperimentalComposeUiApi constructor(
     actual val focusable: Boolean,
     actual val dismissOnBackPress: Boolean,
     actual val dismissOnClickOutside: Boolean,
+    val clippingEnabled: Boolean = true,
     val usePlatformDefaultWidth: Boolean = false,
 ) {
     actual constructor(
@@ -436,9 +441,15 @@ private fun rememberPopupMeasurePolicy(
         platformOffset = platformOffset,
         usePlatformDefaultWidth = properties.usePlatformDefaultWidth
     ) { windowSize, contentSize ->
-        val position = popupPositionProvider.calculatePosition(
+        var position = popupPositionProvider.calculatePosition(
             parentBounds, windowSize, layoutDirection, contentSize
         )
+        if (properties.clippingEnabled) {
+            position = IntOffset(
+                x = position.x.coerceIn(0, windowSize.width - contentSize.width),
+                y = position.y.coerceIn(0, windowSize.height - contentSize.height)
+            )
+        }
         onBoundsChanged(IntRect(position, contentSize))
         position
     }
