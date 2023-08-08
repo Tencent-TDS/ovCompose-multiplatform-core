@@ -393,13 +393,14 @@ private fun PopupLayout(
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    var parentBounds by remember { mutableStateOf(IntRect.Zero) }
-    EmptyLayout(Modifier.parentBoundsInWindow { parentBounds = it })
+    var layoutParentBoundsInWindow: IntRect? by remember { mutableStateOf(null) }
+    EmptyLayout(Modifier.parentBoundsInWindow { layoutParentBoundsInWindow = it })
     RootLayout(
         modifier = modifier,
         focusable = properties.focusable,
         onOutsidePointerEvent = onOutsidePointerEvent
     ) { owner ->
+        val parentBounds = layoutParentBoundsInWindow ?: return@RootLayout
         val density = LocalDensity.current
         val layoutDirection = LocalLayoutDirection.current
         val measurePolicy = rememberPopupMeasurePolicy(
