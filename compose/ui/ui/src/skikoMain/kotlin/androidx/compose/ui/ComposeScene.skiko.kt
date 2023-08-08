@@ -313,13 +313,13 @@ class ComposeScene internal constructor(
             focusedOwner = owner
 
             // Exit event to lastHoverOwner will be sent via synthetic event on next frame
-            requestUpdatePointer()
         }
         if (isFocused) {
             owner.focusOwner.takeFocus()
         } else {
             owner.focusOwner.releaseFocus()
         }
+        requestUpdatePointer()
         invalidateIfNeeded()
     }
 
@@ -333,7 +333,6 @@ class ComposeScene internal constructor(
             focusedOwner = owners.lastOrNull { it.focusable }
 
             // Enter event to new focusedOwner will be sent via synthetic event on next frame
-            requestUpdatePointer()
         }
         if (owner == lastHoverOwner) {
             lastHoverOwner = null
@@ -341,6 +340,7 @@ class ComposeScene internal constructor(
         if (owner == gestureOwner) {
             gestureOwner = null
         }
+        requestUpdatePointer()
         invalidateIfNeeded()
     }
 
