@@ -66,9 +66,9 @@ import androidx.compose.ui.unit.round
  */
 @Immutable
 actual class PopupProperties @ExperimentalComposeUiApi constructor(
-    actual val focusable: Boolean,
-    actual val dismissOnBackPress: Boolean,
-    actual val dismissOnClickOutside: Boolean,
+    actual val focusable: Boolean = false,
+    actual val dismissOnBackPress: Boolean = true,
+    actual val dismissOnClickOutside: Boolean = true,
     val clippingEnabled: Boolean = true,
     val usePlatformDefaultWidth: Boolean = false,
 ) {
