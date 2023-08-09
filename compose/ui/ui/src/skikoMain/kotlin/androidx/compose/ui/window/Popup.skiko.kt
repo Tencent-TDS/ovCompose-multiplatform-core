@@ -90,6 +90,7 @@ actual class PopupProperties @ExperimentalComposeUiApi constructor(
         if (focusable != other.focusable) return false
         if (dismissOnBackPress != other.dismissOnBackPress) return false
         if (dismissOnClickOutside != other.dismissOnClickOutside) return false
+        if (clippingEnabled != other.clippingEnabled) return false
         if (usePlatformDefaultWidth != other.usePlatformDefaultWidth) return false
 
         return true
@@ -99,6 +100,7 @@ actual class PopupProperties @ExperimentalComposeUiApi constructor(
         var result = focusable.hashCode()
         result = 31 * result + dismissOnBackPress.hashCode()
         result = 31 * result + dismissOnClickOutside.hashCode()
+        result = 31 * result + clippingEnabled.hashCode()
         result = 31 * result + usePlatformDefaultWidth.hashCode()
         return result
     }
