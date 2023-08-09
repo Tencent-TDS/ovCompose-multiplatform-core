@@ -33,11 +33,11 @@ fun org.jetbrains.skia.ColorFilter.asComposeColorFilter(): ColorFilter = ColorFi
 internal actual fun actualTintColorFilter(color: Color, blendMode: BlendMode): ColorFilter =
     ColorFilter(SkiaColorFilter.makeBlend(color.toArgb(), blendMode.toSkia()))
 
+/**
+ * Remaps compose [ColorMatrix] to [org.jetbrains.skia.ColorMatrix] and returns [ColorFilter]
+ * applying this matrix to draw color result
+ */
 internal actual fun actualColorMatrixColorFilter(colorMatrix: ColorMatrix): ColorFilter {
-    // in [ColorMatrix]
-    // columns 0, 1, 2, 3 are raw coefficients and 4th column is offset in 0..255 range
-    // skia expects offset in 0..1 range (https://fiddle.skia.org/c/2b8d12a11e9d22b0d1b85e5b0179cd4b)
-
     val remappedValues = colorMatrix.values.copyOf()
     remappedValues[4] *= (1f / 255f)
     remappedValues[9] *= (1f / 255f)
