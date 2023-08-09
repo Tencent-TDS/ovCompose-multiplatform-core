@@ -34,19 +34,19 @@ internal actual fun actualTintColorFilter(color: Color, blendMode: BlendMode): C
     ColorFilter(SkiaColorFilter.makeBlend(color.toArgb(), blendMode.toSkia()))
 
 internal actual fun actualColorMatrixColorFilter(colorMatrix: ColorMatrix): ColorFilter {
-    // as per https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/ColorMatrix
+    // in [ColorMatrix]
     // columns 0, 1, 2, 3 are raw coefficients and 4th column is offset in 0..255 range
     // skia expects offset in 0..1 range (https://fiddle.skia.org/c/2b8d12a11e9d22b0d1b85e5b0179cd4b)
 
-    val remappedColorMatrix = ColorMatrix(colorMatrix.values.copyOf())
-    val column = 4
-    for (row in 0 until 4) {
-        remappedColorMatrix[row, column] = remappedColorMatrix[row, column] / 255f
-    }
+    val remappedValues = colorMatrix.values.copyOf()
+    remappedValues[4] *= (1f / 255f)
+    remappedValues[9] *= (1f / 255f)
+    remappedValues[14] *= (1f / 255f)
+    remappedValues[19] *= (1f / 255f)
 
     return ColorFilter(
         SkiaColorFilter.makeMatrix(
-            org.jetbrains.skia.ColorMatrix(*remappedColorMatrix.values)
+            org.jetbrains.skia.ColorMatrix(*remappedValues)
         )
     )
 }
