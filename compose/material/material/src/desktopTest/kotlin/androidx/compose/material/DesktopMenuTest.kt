@@ -61,13 +61,13 @@ class DesktopMenuTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val windowSize = IntSize(100, 100)
+    private val windowSize = IntSize(200, 200)
 
     // Standard case: enough room to position below the anchor and align left
     @Test
     fun menu_positioning_alignLeft_belowAnchor() {
         val anchorBounds = IntRect(
-            offset = IntOffset(10, 10),
+            offset = IntOffset(10, 50),
             size = IntSize(50, 20)
         )
         val popupSize = IntSize(70, 70)
@@ -89,7 +89,7 @@ class DesktopMenuTest {
     @Test
     fun menu_positioning_rtl_alignRight_belowAnchor() {
         val anchorBounds = IntRect(
-            offset = IntOffset(30, 10),
+            offset = IntOffset(30, 50),
             size = IntSize(50, 20)
         )
         val popupSize = IntSize(70, 70)
@@ -116,7 +116,7 @@ class DesktopMenuTest {
     @Test
     fun menu_positioning_alignLeft_aboveAnchor() {
         val anchorBounds = IntRect(
-            offset = IntOffset(10, 50),
+            offset = IntOffset(10, 150),
             size = IntSize(50, 30)
         )
         val popupSize = IntSize(70, 30)
@@ -143,7 +143,7 @@ class DesktopMenuTest {
     @Test
     fun menu_positioning_windowLeft_belowAnchor() {
         val anchorBounds = IntRect(
-            offset = IntOffset(-10, 10),
+            offset = IntOffset(-10, 50),
             size = IntSize(50, 20)
         )
         val popupSize = IntSize(70, 50)
