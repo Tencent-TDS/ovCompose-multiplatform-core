@@ -42,11 +42,21 @@ import androidx.compose.ui.unit.LayoutDirection
 expect class PopupProperties(
     focusable: Boolean = false,
     dismissOnBackPress: Boolean = true,
-    dismissOnClickOutside: Boolean = true
+    dismissOnClickOutside: Boolean = true,
+
+    /*
+     * Temporary hack to skip unsupported arguments from Android source set.
+     * Should be removed after upstreaming changes from JetBrains' fork.
+     */
+    @Suppress("FORBIDDEN_VARARG_PARAMETER_TYPE")
+    vararg unsupported: Nothing,
+
+    clippingEnabled: Boolean = true,
 ) {
     val focusable: Boolean
     val dismissOnBackPress: Boolean
     val dismissOnClickOutside: Boolean
+    val clippingEnabled: Boolean
 }
 
 /**
