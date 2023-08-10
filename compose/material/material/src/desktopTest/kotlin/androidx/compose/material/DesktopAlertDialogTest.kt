@@ -113,7 +113,7 @@ class DesktopAlertDialogTest {
         }
     }
 
-    @OptIn(ExperimentalTestApi::class)
+    @OptIn(ExperimentalTestApi::class, ExperimentalMaterialApi::class)
     @Test
     fun `uses available width`() = runDesktopComposeUiTest(
         width = 800,

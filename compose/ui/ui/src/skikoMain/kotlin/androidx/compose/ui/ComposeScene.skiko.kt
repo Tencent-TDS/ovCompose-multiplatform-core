@@ -24,8 +24,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyInputElement
 import androidx.compose.ui.input.key.NativeKeyEvent
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.RootForTest
@@ -141,7 +139,7 @@ class ComposeScene internal constructor(
 
     private fun invalidateIfNeeded() {
         hasPendingDraws = frameClock.hasAwaiters || needLayout || needDraw ||
-            snapshotChanges.hasCommands || pointerPositionUpdater.needUpdate
+            snapshotChanges.hasCommands || syntheticEventSender.needUpdatePointerPosition
         if (hasPendingDraws && !isInvalidationDisabled && !isClosed) {
             invalidate()
         }
@@ -158,6 +156,15 @@ class ComposeScene internal constructor(
     private fun requestDraw() {
         needDraw = true
         invalidateIfNeeded()
+    }
+
+    private fun requestUpdatePointer() {
+        syntheticEventSender.needUpdatePointerPosition = true
+        invalidateIfNeeded()
+    }
+
+    internal fun onPointerUpdate() {
+        requestUpdatePointer()
     }
 
     /**
@@ -234,13 +241,8 @@ class ComposeScene internal constructor(
     private val effectDispatcher = FlushCoroutineDispatcher(coroutineScope)
     private val recomposeDispatcher = FlushCoroutineDispatcher(coroutineScope)
     private val frameClock = BroadcastFrameClock(onNewAwaiters = ::invalidateIfNeeded)
-
     private val recomposer = Recomposer(coroutineContext + job + effectDispatcher)
-
     private val syntheticEventSender = SyntheticEventSender(::processPointerInput)
-    internal val pointerPositionUpdater = PointerPositionUpdater(
-        ::invalidateIfNeeded, syntheticEventSender
-    )
 
     internal var mainOwner: SkiaBasedOwner? = null
     private var composition: Composition? = null
@@ -307,7 +309,6 @@ class ComposeScene internal constructor(
         owner.requestDraw = ::requestDraw
         owner.dispatchSnapshotChanges = snapshotChanges::add
         owner.constraints = constraints
-        invalidateIfNeeded()
         if (owner.focusable) {
             focusedOwner = owner
 
@@ -318,6 +319,8 @@ class ComposeScene internal constructor(
         } else {
             owner.focusOwner.releaseFocus()
         }
+        requestUpdatePointer()
+        invalidateIfNeeded()
     }
 
     internal fun detach(owner: SkiaBasedOwner) {
@@ -326,16 +329,19 @@ class ComposeScene internal constructor(
         owner.dispatchSnapshotChanges = null
         owner.requestDraw = null
         owner.requestLayout = null
-        invalidateIfNeeded()
         if (owner == focusedOwner) {
             focusedOwner = owners.lastOrNull { it.focusable }
+
+            // Enter event to new focusedOwner will be sent via synthetic event on next frame
         }
         if (owner == lastHoverOwner) {
             lastHoverOwner = null
         }
-        if (owner == pressOwner) {
-            pressOwner = null
+        if (owner == gestureOwner) {
+            gestureOwner = null
         }
+        requestUpdatePointer()
+        invalidateIfNeeded()
     }
 
     /**
@@ -382,17 +388,16 @@ class ComposeScene internal constructor(
     ) {
         check(!isClosed) { "ComposeScene is closed" }
         syntheticEventSender.reset()
-        pointerPositionUpdater.reset()
         composition?.dispose()
         mainOwner?.dispose()
         val mainOwner = SkiaBasedOwner(
             this,
             platform,
             platform.focusManager,
-            pointerPositionUpdater,
             initDensity = density,
             coroutineContext = recomposer.effectCoroutineContext,
             bounds = IntSize(constraints.maxWidth, constraints.maxHeight).toIntRect(),
+            onPointerUpdate = ::onPointerUpdate,
             modifier = KeyInputElement(onKeyEvent = onKeyEvent, onPreKeyEvent = onPreviewKeyEvent)
         )
         attach(mainOwner)
@@ -452,7 +457,7 @@ class ComposeScene internal constructor(
         sendAndPerformSnapshotChanges() // Apply changes from recomposition phase to layout phase
         needLayout = false
         forEachOwner { it.measureAndLayout() }
-        pointerPositionUpdater.update()
+        syntheticEventSender.updatePointerPosition()
         sendAndPerformSnapshotChanges()  // Apply changes from layout phase to draw phase
         needDraw = false
         forEachOwner { it.draw(canvas) }
@@ -460,7 +465,7 @@ class ComposeScene internal constructor(
     }
 
     private var focusedOwner: SkiaBasedOwner? = null
-    private var pressOwner: SkiaBasedOwner? = null
+    private var gestureOwner: SkiaBasedOwner? = null
     private var lastHoverOwner: SkiaBasedOwner? = null
 
     /**
@@ -572,7 +577,7 @@ class ComposeScene internal constructor(
         )
         needLayout = false
         forEachOwner { it.measureAndLayout() }
-        pointerPositionUpdater.update()
+        syntheticEventSender.updatePointerPosition()
         syntheticEventSender.send(event)
         updatePointerPositions(event)
     }
@@ -610,16 +615,16 @@ class ComposeScene internal constructor(
             PointerEventType.Scroll -> processScroll(event)
         }
 
-        // Clean pressOwner when there is no pressed pointers/buttons
-        if (!event.isAnyPointerDown) {
-            pressOwner = null
+        // Clean gestureOwner when there is no pressed pointers/buttons
+        if (!event.isGestureInProgress) {
+            gestureOwner = null
         }
     }
 
     private fun processPress(event: PointerInputEvent) {
-        val previousPressOwner = pressOwner
-        if (previousPressOwner != null) {
-            previousPressOwner.processPointerInput(event)
+        val currentGestureOwner = gestureOwner
+        if (currentGestureOwner != null) {
+            currentGestureOwner.processPointerInput(event)
             return
         }
         val position = event.pointers.first().position
@@ -628,7 +633,7 @@ class ComposeScene internal constructor(
             // If the position of in bounds of the owner - send event to it and stop processing
             if (owner.isInBounds(position)) {
                 owner.processPointerInput(event)
-                pressOwner = owner
+                gestureOwner = owner
                 return
             }
 
@@ -643,35 +648,26 @@ class ComposeScene internal constructor(
     }
 
     private fun processRelease(event: PointerInputEvent) {
-        fun isOutsideFocusedOwner(): Boolean {
-            if (pressOwner != null) {
-                // The gesture started not outside of owner
-                return false
-            }
-            if (event.isAnyPointerDown) {
-                // The last pointer was not released yet
-                return false
-            }
-
-            // If hovered owner is not interactive, then it means that
-            // - It's not focusedOwner
-            // - It placed under focusedOwner or not exist at all
-            // In all these cases the even happened outside focused owner bounds
+        // Send Release to gestureOwner even if is not hovered or under focusedOwner
+        gestureOwner?.processPointerInput(event)
+        if (!event.isGestureInProgress) {
             val owner = hoveredOwner(event)
-            return !isInteractive(owner)
-        }
-
-        // Send Release to pressOwner even if is not hovered or under focusedOwner
-        pressOwner?.processPointerInput(event)
-        if (isOutsideFocusedOwner()) {
-            focusedOwner?.onOutsidePointerEvent?.invoke(event)
+            if (isInteractive(owner)) {
+                processHover(event, owner)
+            } else if (gestureOwner == null) {
+                // If hovered owner is not interactive, then it means that
+                // - It's not focusedOwner
+                // - It placed under focusedOwner or not exist at all
+                // In all these cases the even happened outside focused owner bounds
+                focusedOwner?.onOutsidePointerEvent?.invoke(event)
+            }
         }
     }
 
     private fun processMove(event: PointerInputEvent) {
         var owner = when {
             // All touch events or mouse with pressed button(s)
-            event.isAnyPointerDown -> pressOwner
+            event.isGestureInProgress -> gestureOwner
 
             // Do not generate Enter and Move
             event.eventType == PointerEventType.Exit -> null
@@ -892,4 +888,4 @@ internal expect fun createSkiaLayer(): SkiaLayer
 
 internal expect fun NativeKeyEvent.toPointerKeyboardModifiers(): PointerKeyboardModifiers
 
-private val PointerInputEvent.isAnyPointerDown get() = pointers.fastAny { it.down }
+private val PointerInputEvent.isGestureInProgress get() = pointers.fastAny { it.down }
