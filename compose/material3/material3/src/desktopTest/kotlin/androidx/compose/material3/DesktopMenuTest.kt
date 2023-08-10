@@ -54,42 +54,31 @@ class DesktopMenuTest {
     @get:Rule
     val rule = createComposeRule()
 
-    val windowSize = IntSize(100, 100)
-    val anchorPosition = IntOffset(10, 10)
-    val anchorSize = IntSize(80, 20)
-
     @Test
     fun menu_positioning_vertical_underAnchor() {
-        val popupSize = IntSize(80, 70)
+        val windowSize = IntSize(200, 200)
+        val anchorBounds = IntRect(
+            offset = IntOffset(10, 100),
+            size = IntSize(80, 20)
+        )
+        val popupSize = IntSize(80, 50)
 
         val position = DropdownMenuPositionProvider(
             DpOffset.Zero,
             Density(1f)
         ).calculatePosition(
-            IntRect(anchorPosition, anchorSize),
+            anchorBounds,
             windowSize,
             LayoutDirection.Ltr,
             popupSize
         )
 
-        assertThat(position).isEqualTo(IntOffset(10, 30))
-    }
-
-    @Test
-    fun menu_positioning_vertical_windowTop() {
-        val popupSize = IntSize(80, 100)
-
-        val position = DropdownMenuPositionProvider(
-            DpOffset.Zero,
-            Density(1f)
-        ).calculatePosition(
-            IntRect(anchorPosition, anchorSize),
-            windowSize,
-            LayoutDirection.Ltr,
-            popupSize
+        assertThat(position).isEqualTo(
+            IntOffset(
+                x = anchorBounds.left,
+                y = anchorBounds.top - popupSize.height
+            )
         )
-
-        assertThat(position).isEqualTo(IntOffset(10, 0))
     }
 
     // (RTL) Anchor right is beyond the right of the window, so align popup to the window right
