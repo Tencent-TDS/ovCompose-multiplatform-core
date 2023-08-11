@@ -61,18 +61,17 @@ import androidx.compose.ui.window.DialogProperties
  * @param properties typically platform specific properties to further configure the dialog
  * @param content the content of the dialog (i.e. a [DatePicker], for example)
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @ExperimentalMaterial3Api
 @Composable
-fun DatePickerDialog(
+actual fun DatePickerDialog(
     onDismissRequest: () -> Unit,
     confirmButton: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    dismissButton: @Composable (() -> Unit)? = null,
-    shape: Shape = DatePickerDefaults.shape,
-    tonalElevation: Dp = DatePickerDefaults.TonalElevation,
-    colors: DatePickerColors = DatePickerDefaults.colors(),
-    properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+    modifier: Modifier,
+    dismissButton: @Composable (() -> Unit)?,
+    shape: Shape,
+    tonalElevation: Dp,
+    colors: DatePickerColors,
+    properties: DialogProperties,
     content: @Composable ColumnScope.() -> Unit
 ) {
     AlertDialog(
