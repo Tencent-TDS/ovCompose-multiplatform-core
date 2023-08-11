@@ -86,7 +86,7 @@ actual class DialogProperties @ExperimentalComposeUiApi constructor(
          * Temporary hack to skip unsupported arguments from Android source set.
          * Should be removed after upstreaming changes from JetBrains' fork.
          *
-         * Please use explicit labels for following arguments.
+         * After skip this unsupported argument, you must name all subsequent arguments.
          */
         @Suppress("FORBIDDEN_VARARG_PARAMETER_TYPE")
         vararg unsupported: Nothing,

@@ -28,6 +28,9 @@ import androidx.compose.runtime.Immutable
  * If true, pressing the back button will call onDismissRequest.
  * @property dismissOnClickOutside whether the dialog can be dismissed by clicking outside the
  * dialog's bounds. If true, clicking outside the dialog will call onDismissRequest.
+ * @property usePlatformDefaultWidth Whether the width of the dialog's content should be limited to
+ * the platform default, which is smaller than the screen width.
+ * **Might be used only as named argument**.
  */
 @Immutable
 expect class DialogProperties(
@@ -38,7 +41,7 @@ expect class DialogProperties(
      * Temporary hack to skip unsupported arguments from Android source set.
      * Should be removed after upstreaming changes from JetBrains' fork.
      *
-     * Please use explicit labels for following arguments.
+     * After skip this unsupported argument, you must name all subsequent arguments.
      */
     @Suppress("FORBIDDEN_VARARG_PARAMETER_TYPE")
     vararg unsupported: Nothing,

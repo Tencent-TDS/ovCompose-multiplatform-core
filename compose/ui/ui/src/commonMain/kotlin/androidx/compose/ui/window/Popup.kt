@@ -37,6 +37,11 @@ import androidx.compose.ui.unit.LayoutDirection
  * focusable then this property does nothing.
  * @property dismissOnClickOutside Whether the popup can be dismissed by clicking outside the
  * popup's bounds. If true, clicking outside the popup will call onDismissRequest.
+ * @property clippingEnabled Whether to allow the popup window to extend beyond the bounds of the
+ * screen. By default the window is clipped to the screen boundaries. Setting this to false will
+ * allow windows to be accurately positioned.
+ * The default value is true.
+ * **Might be used only as named argument**.
  */
 @Immutable
 expect class PopupProperties(
@@ -48,7 +53,7 @@ expect class PopupProperties(
      * Temporary hack to skip unsupported arguments from Android source set.
      * Should be removed after upstreaming changes from JetBrains' fork.
      *
-     * Please use explicit labels for following arguments.
+     * After skip this unsupported argument, you must name all subsequent arguments.
      */
     @Suppress("FORBIDDEN_VARARG_PARAMETER_TYPE")
     vararg unsupported: Nothing,
