@@ -16,10 +16,22 @@
 
 package androidx.compose.material3
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
+import kotlin.test.Test
 
-@Composable
-@ReadOnlyComposable
-internal actual fun is24HourFormat(): Boolean =
-    PlatformDateFormat.is24HourFormat(defaultLocale())
+
+@OptIn(ExperimentalMaterial3Api::class)
+internal class PlatformDateFormatTest {
+
+    @Test
+    fun hourCycleLocalization() {
+        var locale = calendarLocale("en","US")
+        assertThat(PlatformDateFormat.is24HourFormat(locale)).isEqualTo(false)
+
+        locale = calendarLocale("en","GB")
+        assertThat(PlatformDateFormat.is24HourFormat(locale)).isEqualTo(true)
+
+        locale = calendarLocale("ru","RU")
+        assertThat(PlatformDateFormat.is24HourFormat(locale)).isEqualTo(true)
+    }
+
+}

@@ -104,4 +104,10 @@ internal actual object PlatformDateFormat {
     private fun firstDayOfWeek(): Int {
         return (NSCalendar.currentCalendar.firstWeekday.toInt() - 1).takeIf { it > 0 } ?: 7
     }
+
+    actual fun is24HourFormat(locale: CalendarLocale): Boolean {
+        return NSDateFormatter
+            .dateFormatFromTemplate("j",0, locale)
+            ?.contains('a') == false
+    }
 }

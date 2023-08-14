@@ -197,11 +197,12 @@ internal actual object PlatformDateFormat {
         return longAndShortWeekDays[0].zip(longAndShortWeekDays[1])
     }
 
+    // supported by most of browsers except Firefox since 2022
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl
+    private val isIntlSupported = js("typeof(Intl) != undefined")
+        .unsafeCast<Boolean>()
+
     private fun firstDayOfWeek() : Int{
-        // supported by most of browsers except Firefox since 2022
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl
-        val isIntlSupported = js("typeof(Intl) != undefined")
-            .unsafeCast<Boolean>()
 
         if (!isIntlSupported)
             return firstDaysOfWeekByRegionCode[Locale.current.region.uppercase()] ?: 1
@@ -210,6 +211,19 @@ internal actual object PlatformDateFormat {
         val locale = Locale.current.toLanguageTag()
 
         return js("new Intl.Locale(locale).weekInfo.firstDay").unsafeCast<Int>()
+    }
+
+    actual fun is24HourFormat(locale: CalendarLocale): Boolean {
+
+        if (!isIntlSupported)
+            return false
+
+        @Suppress("UNUSED_VARIABLE")
+        val localeTag = locale.toLanguageTag()
+
+        //hourCycles is a list containing 'h24' or 'h23'
+        return js("new Intl.Locale(localeTag).hourCycles.join().indexOf('h2') >= 0")
+            .unsafeCast<Boolean>()
     }
 }
 
