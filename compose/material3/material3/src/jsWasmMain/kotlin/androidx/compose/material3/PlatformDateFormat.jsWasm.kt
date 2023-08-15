@@ -36,82 +36,8 @@ internal actual object PlatformDateFormat {
 
     private val firstDaysOfWeekByRegionCode: Map<String, Int> by lazy {
         listOf(
-            7 to listOf(
-                "TH",
-                "ET",
-                "SG",
-                "JM",
-                "BT",
-                "IN",
-                "US",
-                "MO",
-                "KE",
-                "DO",
-                "AU",
-                "IL",
-                "AS",
-                "TW",
-                "MZ",
-                "MM",
-                "CN",
-                "PR",
-                "PK",
-                "BD",
-                "NP",
-                "HN",
-                "BR",
-                "HK",
-                "TT",
-                "ZA",
-                "VE",
-                "MT",
-                "PH",
-                "PE",
-                "ID",
-                "DM",
-                "WS",
-                "ZW",
-                "UM",
-                "LA",
-                "BZ",
-                "JP",
-                "SV",
-                "SA",
-                "CO",
-                "GT",
-                "BW",
-                "KR",
-                "PA",
-                "YE",
-                "BS",
-                "MX",
-                "MH",
-                "GU",
-                "PY",
-                "AG",
-                "CA",
-                "KH",
-                "PT",
-                "VI",
-                "NI"
-            ),
-            6 to listOf(
-                "EG",
-                "AF",
-                "SY",
-                "IR",
-                "OM",
-                "IQ",
-                "DZ",
-                "DJ",
-                "AE",
-                "SD",
-                "KW",
-                "JO",
-                "BH",
-                "QA",
-                "LY"
-            )
+            7 to listOf("TH", "ET", "SG", "JM", "BT", "IN", "US", "MO", "KE", "DO", "AU", "IL", "AS", "TW", "MZ", "MM", "CN", "PR", "PK", "BD", "NP", "HN", "BR", "HK", "TT", "ZA", "VE", "MT", "PH", "PE", "ID", "DM", "WS", "ZW", "UM", "LA", "BZ", "JP", "SV", "SA", "CO", "GT", "BW", "KR", "PA", "YE", "BS", "MX", "MH", "GU", "PY", "AG", "CA", "KH", "PT", "VI", "NI"),
+            6 to listOf("EG", "AF", "SY", "IR", "OM", "IQ", "DZ", "DJ", "AE", "SD", "KW", "JO", "BH", "QA", "LY")
         ).map { (day, tags) -> tags.map { it to day } }.flatten().toMap()
     }
 
@@ -283,7 +209,7 @@ internal actual object PlatformDateFormat {
         @Suppress("UNUSED_VARIABLE")
         val locale = Locale.current.toLanguageTag()
 
-        return kotlin.runCatching {
+        return runCatching {
             // unsupported in Firefox
             js("new Intl.Locale(locale).weekInfo.firstDay").unsafeCast<Int>()
         }.getOrDefault(1)
@@ -304,7 +230,7 @@ internal actual object PlatformDateFormat {
                 .unsafeCast<Boolean>()
         }.getOrElse {
             runCatching {
-                // unsupported old browsers
+                // unsupported in old browsers
                 js("new Intl.Locale(localeTag).hourCycle.indexOf('h2') >= 0")
                     .unsafeCast<Boolean>()
             }.getOrDefault(false)
