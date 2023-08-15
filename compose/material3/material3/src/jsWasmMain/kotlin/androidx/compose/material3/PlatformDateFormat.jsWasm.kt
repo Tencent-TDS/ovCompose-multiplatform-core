@@ -209,7 +209,9 @@ internal actual object PlatformDateFormat {
         return runCatching {
             // unsupported in Firefox
             js("new Intl.Locale(locale).weekInfo.firstDay").unsafeCast<Int>()
-        }.getOrDefault(fallbackFirstDayOfWeek())
+        }.getOrElse {
+            fallbackFirstDayOfWeek()
+        }
     }
 
     private fun fallbackFirstDayOfWeek() : Int {
