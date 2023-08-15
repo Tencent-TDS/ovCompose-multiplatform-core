@@ -36,8 +36,82 @@ internal actual object PlatformDateFormat {
 
     private val firstDaysOfWeekByRegionCode: Map<String, Int> by lazy {
         listOf(
-            7 to listOf("TH", "ET", "SG", "JM", "BT", "IN", "US", "MO", "KE", "DO", "AU", "IL", "AS", "TW", "MZ", "MM", "CN", "PR", "PK", "BD", "NP", "HN", "BR", "HK", "TT", "ZA", "VE", "MT", "PH", "PE", "ID", "DM", "WS", "ZW", "UM", "LA", "BZ", "JP", "SV", "SA", "CO", "GT", "BW", "KR", "PA", "YE", "BS", "MX", "MH", "GU", "PY", "AG", "CA", "KH", "PT", "VI", "NI"),
-            6 to listOf("EG", "AF", "SY", "IR", "OM", "IQ", "DZ", "DJ", "AE", "SD", "KW", "JO", "BH", "QA", "LY")
+            7 to listOf(
+                "TH",
+                "ET",
+                "SG",
+                "JM",
+                "BT",
+                "IN",
+                "US",
+                "MO",
+                "KE",
+                "DO",
+                "AU",
+                "IL",
+                "AS",
+                "TW",
+                "MZ",
+                "MM",
+                "CN",
+                "PR",
+                "PK",
+                "BD",
+                "NP",
+                "HN",
+                "BR",
+                "HK",
+                "TT",
+                "ZA",
+                "VE",
+                "MT",
+                "PH",
+                "PE",
+                "ID",
+                "DM",
+                "WS",
+                "ZW",
+                "UM",
+                "LA",
+                "BZ",
+                "JP",
+                "SV",
+                "SA",
+                "CO",
+                "GT",
+                "BW",
+                "KR",
+                "PA",
+                "YE",
+                "BS",
+                "MX",
+                "MH",
+                "GU",
+                "PY",
+                "AG",
+                "CA",
+                "KH",
+                "PT",
+                "VI",
+                "NI"
+            ),
+            6 to listOf(
+                "EG",
+                "AF",
+                "SY",
+                "IR",
+                "OM",
+                "IQ",
+                "DZ",
+                "DJ",
+                "AE",
+                "SD",
+                "KW",
+                "JO",
+                "BH",
+                "QA",
+                "LY"
+            )
         ).map { (day, tags) -> tags.map { it to day } }.flatten().toMap()
     }
 
@@ -197,12 +271,11 @@ internal actual object PlatformDateFormat {
         return longAndShortWeekDays[0].zip(longAndShortWeekDays[1])
     }
 
-    // supported by most of browsers except Firefox since 2022
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl
     private val isIntlSupported = js("typeof(Intl) != undefined")
         .unsafeCast<Boolean>()
 
-    private fun firstDayOfWeek() : Int{
+    private fun firstDayOfWeek(): Int {
 
         if (!isIntlSupported)
             return firstDaysOfWeekByRegionCode[Locale.current.region.uppercase()] ?: 1
@@ -210,7 +283,10 @@ internal actual object PlatformDateFormat {
         @Suppress("UNUSED_VARIABLE")
         val locale = Locale.current.toLanguageTag()
 
-        return js("new Intl.Locale(locale).weekInfo.firstDay").unsafeCast<Int>()
+        return kotlin.runCatching {
+            // unsupported in Firefox
+            js("new Intl.Locale(locale).weekInfo.firstDay").unsafeCast<Int>()
+        }.getOrDefault(1)
     }
 
     actual fun is24HourFormat(locale: CalendarLocale): Boolean {
@@ -221,9 +297,18 @@ internal actual object PlatformDateFormat {
         @Suppress("UNUSED_VARIABLE")
         val localeTag = locale.toLanguageTag()
 
-        //hourCycles is a list containing 'h24' or 'h23'
-        return js("new Intl.Locale(localeTag).hourCycles.join().indexOf('h2') >= 0")
-            .unsafeCast<Boolean>()
+
+        return runCatching {
+            // unsupported in Firefox and old browsers
+            js("new Intl.Locale(localeTag).hourCycles.join().indexOf('h2') >= 0")
+                .unsafeCast<Boolean>()
+        }.getOrElse {
+            runCatching {
+                // unsupported old browsers
+                js("new Intl.Locale(localeTag).hourCycle.indexOf('h2') >= 0")
+                    .unsafeCast<Boolean>()
+            }.getOrDefault(false)
+        }
     }
 }
 
