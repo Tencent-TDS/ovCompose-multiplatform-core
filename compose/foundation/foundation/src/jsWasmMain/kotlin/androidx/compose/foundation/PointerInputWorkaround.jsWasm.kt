@@ -16,4 +16,4 @@
 
 package androidx.compose.foundation
 
-actual fun isMouseInputWorkaround(): Boolean = true
+internal actual fun isMouseInputWorkaround(): Boolean = true

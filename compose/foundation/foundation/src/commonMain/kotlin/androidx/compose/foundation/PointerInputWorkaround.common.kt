@@ -18,4 +18,4 @@ package androidx.compose.foundation
 
 //TODO: Move this configuration to the top-level (ComposeScene.Platform, for example)
 // Issue https://github.com/JetBrains/compose-multiplatform/issues/3508
-expect fun isMouseInputWorkaround(): Boolean
+internal expect fun isMouseInputWorkaround(): Boolean
