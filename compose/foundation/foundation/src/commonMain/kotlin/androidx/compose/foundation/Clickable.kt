@@ -894,7 +894,7 @@ private class ClickablePointerInputNode(
     private val inputModeManager: InputModeManager
         get() = currentValueOf(LocalInputModeManager)
 
-    private fun requestFocusWhenKeyboardMode() {
+    private fun requestFocusWhenInKeyboardMode() {
         if (inputModeManager.inputMode == InputMode.Keyboard) {
             requestFocus()
         }
@@ -905,7 +905,7 @@ private class ClickablePointerInputNode(
         detectTapAndPress(
             onPress = { offset ->
                 if (enabled) {
-                    requestFocusWhenKeyboardMode()
+                    requestFocusWhenInKeyboardMode()
                     handlePressInteraction(offset)
                 }
             },
@@ -943,7 +943,7 @@ private class CombinedClickablePointerInputNode(
     private val inputModeManager: InputModeManager
         get() = currentValueOf(LocalInputModeManager)
 
-    private fun requestFocusWhenKeyboardMode() {
+    private fun requestFocusWhenInKeyboardMode() {
         if (inputModeManager.inputMode == InputMode.Keyboard) {
             requestFocus()
         }
@@ -953,14 +953,14 @@ private class CombinedClickablePointerInputNode(
         interactionData.centreOffset = size.center.toOffset()
         detectTapGestures(
             onDoubleTap = if (enabled && onDoubleClick != null) {
-                { requestFocusWhenKeyboardMode(); onDoubleClick?.invoke() }
+                { requestFocusWhenInKeyboardMode(); onDoubleClick?.invoke() }
             } else null,
             onLongPress = if (enabled && onLongClick != null) {
-                { requestFocusWhenKeyboardMode(); onLongClick?.invoke() }
+                { requestFocusWhenInKeyboardMode(); onLongClick?.invoke() }
             } else null,
             onPress = { offset ->
                 if (enabled) {
-                    requestFocusWhenKeyboardMode()
+                    requestFocusWhenInKeyboardMode()
                     handlePressInteraction(offset)
                 }
             },
