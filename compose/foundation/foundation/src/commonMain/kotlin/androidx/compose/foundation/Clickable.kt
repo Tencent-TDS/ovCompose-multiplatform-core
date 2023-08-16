@@ -886,7 +886,6 @@ private class ClickablePointerInputNode(
     onClick,
     interactionData
 ) {
-
     override suspend fun PointerInputScope.pointerInput() {
         interactionData.centreOffset = size.center.toOffset()
         detectTapAndPress(
@@ -926,7 +925,6 @@ private class CombinedClickablePointerInputNode(
     onClick,
     interactionData
 ) {
-
     override suspend fun PointerInputScope.pointerInput() {
         interactionData.centreOffset = size.center.toOffset()
         detectTapGestures(
