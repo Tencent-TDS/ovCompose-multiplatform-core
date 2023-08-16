@@ -891,21 +891,12 @@ private class ClickablePointerInputNode(
     interactionData
 ) {
 
-    private val inputModeManager: InputModeManager
-        get() = currentValueOf(LocalInputModeManager)
-
-    private fun requestFocusWhenInKeyboardMode() {
-        if (inputModeManager.inputMode == InputMode.Keyboard) {
-            requestFocus()
-        }
-    }
-
     override suspend fun PointerInputScope.pointerInput() {
         interactionData.centreOffset = size.center.toOffset()
         detectTapAndPress(
             onPress = { offset ->
                 if (enabled) {
-                    requestFocusWhenInKeyboardMode()
+                    requestFocusWhenInMouseInputMode()
                     handlePressInteraction(offset)
                 }
             },
@@ -940,27 +931,18 @@ private class CombinedClickablePointerInputNode(
     interactionData
 ) {
 
-    private val inputModeManager: InputModeManager
-        get() = currentValueOf(LocalInputModeManager)
-
-    private fun requestFocusWhenInKeyboardMode() {
-        if (inputModeManager.inputMode == InputMode.Keyboard) {
-            requestFocus()
-        }
-    }
-
     override suspend fun PointerInputScope.pointerInput() {
         interactionData.centreOffset = size.center.toOffset()
         detectTapGestures(
             onDoubleTap = if (enabled && onDoubleClick != null) {
-                { requestFocusWhenInKeyboardMode(); onDoubleClick?.invoke() }
+                { requestFocusWhenInMouseInputMode(); onDoubleClick?.invoke() }
             } else null,
             onLongPress = if (enabled && onLongClick != null) {
-                { requestFocusWhenInKeyboardMode(); onLongClick?.invoke() }
+                { requestFocusWhenInMouseInputMode(); onLongClick?.invoke() }
             } else null,
             onPress = { offset ->
                 if (enabled) {
-                    requestFocusWhenInKeyboardMode()
+                    requestFocusWhenInMouseInputMode()
                     handlePressInteraction(offset)
                 }
             },
@@ -1001,5 +983,11 @@ private class CombinedClickablePointerInputNode(
         }
         this.onDoubleClick = onDoubleClick
         if (changed) resetPointerInputHandler()
+    }
+}
+
+private fun FocusRequesterModifierNode.requestFocusWhenInMouseInputMode() {
+    if (isMouseInputWorkaround()) {
+        requestFocus()
     }
 }
