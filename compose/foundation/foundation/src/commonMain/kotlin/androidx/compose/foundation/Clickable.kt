@@ -891,11 +891,15 @@ private class ClickablePointerInputNode(
         detectTapAndPress(
             onPress = { offset ->
                 if (enabled) {
-                    requestFocus()
                     handlePressInteraction(offset)
                 }
             },
-            onTap = { if (enabled) onClick() }
+            onTap = {
+                if (enabled) {
+                    requestFocus()
+                    onClick()
+                }
+            }
         )
     }
 
