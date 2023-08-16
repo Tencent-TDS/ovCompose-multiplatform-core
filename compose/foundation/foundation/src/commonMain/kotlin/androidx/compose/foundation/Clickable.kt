@@ -29,6 +29,8 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusRequesterModifierNode
 import androidx.compose.ui.focus.requestFocus
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyInputModifierNode
@@ -44,7 +46,9 @@ import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.SemanticsModifierNode
+import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.platform.inspectable
 import androidx.compose.ui.semantics.Role
@@ -886,20 +890,26 @@ private class ClickablePointerInputNode(
     onClick,
     interactionData
 ) {
+
+    private val inputModeManager: InputModeManager
+        get() = currentValueOf(LocalInputModeManager)
+
+    private fun requestFocusWhenKeyboardMode() {
+        if (inputModeManager.inputMode == InputMode.Keyboard) {
+            requestFocus()
+        }
+    }
+
     override suspend fun PointerInputScope.pointerInput() {
         interactionData.centreOffset = size.center.toOffset()
         detectTapAndPress(
             onPress = { offset ->
                 if (enabled) {
+                    requestFocusWhenKeyboardMode()
                     handlePressInteraction(offset)
                 }
             },
-            onTap = {
-                if (enabled) {
-                    requestFocus()
-                    onClick()
-                }
-            }
+            onTap = { if (enabled) onClick() }
         )
     }
 
@@ -929,18 +939,28 @@ private class CombinedClickablePointerInputNode(
     onClick,
     interactionData
 ) {
+
+    private val inputModeManager: InputModeManager
+        get() = currentValueOf(LocalInputModeManager)
+
+    private fun requestFocusWhenKeyboardMode() {
+        if (inputModeManager.inputMode == InputMode.Keyboard) {
+            requestFocus()
+        }
+    }
+
     override suspend fun PointerInputScope.pointerInput() {
         interactionData.centreOffset = size.center.toOffset()
         detectTapGestures(
             onDoubleTap = if (enabled && onDoubleClick != null) {
-                { requestFocus(); onDoubleClick?.invoke() }
+                { requestFocusWhenKeyboardMode(); onDoubleClick?.invoke() }
             } else null,
             onLongPress = if (enabled && onLongClick != null) {
-                { requestFocus(); onLongClick?.invoke() }
+                { requestFocusWhenKeyboardMode(); onLongClick?.invoke() }
             } else null,
             onPress = { offset ->
                 if (enabled) {
-                    requestFocus()
+                    requestFocusWhenKeyboardMode()
                     handlePressInteraction(offset)
                 }
             },
