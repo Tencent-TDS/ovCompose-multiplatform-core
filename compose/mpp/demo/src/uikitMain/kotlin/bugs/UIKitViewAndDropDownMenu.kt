@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,9 +26,9 @@ import androidx.compose.material.Button
 import androidx.compose.material.Divider
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.mpp.demo.Screen
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,54 +40,42 @@ import platform.MapKit.MKMapView
 
 val UIKitViewAndDropDownMenu = Screen.Example("UIKitViewAndDropDownMenu") {
     // Issue: https://github.com/JetBrains/compose-multiplatform/issues/3490
-    MaterialTheme {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+            contentAlignment = Alignment.Center
         ) {
-            Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f), contentAlignment = Alignment.Center) {
-                var expanded by remember { mutableStateOf(false) }
-                UIKitView(modifier = Modifier.fillMaxSize(), factory = { MKMapView() })
-                Row {
-                    Button(onClick = { expanded = true }) {
-                        Text("Menu over View")
-                    }
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        content = {
-                            DropdownMenuItem(onClick = { expanded = false }) {
-                                Text("Item 1")
-                            }
-                            DropdownMenuItem(onClick = { expanded = false }) {
-                                Text("Item 2")
-                            }
-                        }
-                    )
-                }
-            }
-            Divider()
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                var expanded by remember { mutableStateOf(false) }
-                Row {
-                    Button(onClick = { expanded = true }) {
-                        Text("Menu not over View")
-                    }
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        content = {
-                            DropdownMenuItem(onClick = { expanded = false }) {
-                                Text("Item 1")
-                            }
-                            DropdownMenuItem(onClick = { expanded = false }) {
-                                Text("Item 2")
-                            }
-                        }
-                    )
-                }
-            }
+            UIKitView(modifier = Modifier.fillMaxSize(), factory = { MKMapView() })
+            ButtonAndDropDownMenu("Menu not over UIKitView")
+        }
+        Divider()
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            ButtonAndDropDownMenu("Menu not over UIKitView")
         }
     }
+}
 
+@Composable
+private fun ButtonAndDropDownMenu(text: String) {
+    var expanded by remember { mutableStateOf(false) }
+    Row {
+        Button(onClick = { expanded = true }) {
+            Text(text)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            content = {
+                DropdownMenuItem(onClick = { expanded = false }) {
+                    Text("Item 1")
+                }
+                DropdownMenuItem(onClick = { expanded = false }) {
+                    Text("Item 2")
+                }
+            }
+        )
+    }
 }
