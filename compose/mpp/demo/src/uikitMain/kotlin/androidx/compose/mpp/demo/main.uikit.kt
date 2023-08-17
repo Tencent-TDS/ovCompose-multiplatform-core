@@ -19,8 +19,8 @@ fun IosDemo() {
     val app = remember {
         App(
             extraScreens = listOf(
-                NativeModalWithNaviationExample,
                 IosBugs,
+                NativeModalWithNaviationExample,
             )
         )
     }
