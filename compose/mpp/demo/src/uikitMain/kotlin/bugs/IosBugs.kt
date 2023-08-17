@@ -20,5 +20,6 @@ import androidx.compose.mpp.demo.Screen
 
 val IosBugs = Screen.Selection(
     "IosBugs",
-    BugUIKitViewAndDropDownMenu,
+    UIKitViewAndDropDownMenu,
+    KeyboardEmptyWhiteSpace,
 )

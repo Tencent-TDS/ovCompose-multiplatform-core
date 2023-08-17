@@ -38,7 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.interop.UIKitView
 import platform.MapKit.MKMapView
 
-val BugUIKitViewAndDropDownMenu = Screen.Example("BugUIKitViewAndDropDownMenu") {
+val UIKitViewAndDropDownMenu = Screen.Example("UIKitViewAndDropDownMenu") {
+    // Issue: https://github.com/JetBrains/compose-multiplatform/issues/3490
     MaterialTheme {
         Column(
             modifier = Modifier.fillMaxSize(),
