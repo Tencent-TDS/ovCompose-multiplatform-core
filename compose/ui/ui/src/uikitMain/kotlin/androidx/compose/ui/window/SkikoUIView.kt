@@ -32,12 +32,14 @@ import platform.darwin.NSInteger
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.native.ref.WeakReference
+import org.jetbrains.skiko.SkikoInputModifiers
+import org.jetbrains.skiko.SkikoKey
+import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoKeyboardEventKind
 import org.jetbrains.skiko.SkikoPointer
 import org.jetbrains.skiko.SkikoPointerDevice
 import org.jetbrains.skiko.SkikoPointerEvent
 import org.jetbrains.skiko.SkikoPointerEventKind
-import org.jetbrains.skiko.toSkikoKeyboardEvent
 
 @Suppress("CONFLICTING_OVERLOADS")
 @ExportObjCClass
@@ -672,3 +674,35 @@ private val UITouch.isPressed
 
 private val Iterable<SkikoPointer>.centroidX get() = asSequence().map { it.x }.average()
 private val Iterable<SkikoPointer>.centroidY get() = asSequence().map { it.y }.average()
+
+private fun toSkikoKeyboardEvent(
+    event: UIPress,
+    kind: SkikoKeyboardEventKind
+): SkikoKeyboardEvent {
+    val timestamp = (event.timestamp * 1_000).toLong()
+    return SkikoKeyboardEvent(
+        SkikoKey.valueOf(event.key!!.keyCode),
+        toSkikoModifiers(event),
+        kind,
+        timestamp,
+        event
+    )
+}
+
+private fun toSkikoModifiers(event: UIPress): SkikoInputModifiers {
+    var result = 0
+    val modifiers = event.key!!.modifierFlags
+    if (modifiers and UIKeyModifierAlternate != 0L) {
+        result = result.or(SkikoInputModifiers.ALT.value)
+    }
+    if (modifiers and UIKeyModifierShift != 0L) {
+        result = result.or(SkikoInputModifiers.SHIFT.value)
+    }
+    if (modifiers and UIKeyModifierControl != 0L) {
+        result = result.or(SkikoInputModifiers.CONTROL.value)
+    }
+    if (modifiers and UIKeyModifierCommand != 0L) {
+        result = result.or(SkikoInputModifiers.META.value)
+    }
+    return SkikoInputModifiers(result)
+}
