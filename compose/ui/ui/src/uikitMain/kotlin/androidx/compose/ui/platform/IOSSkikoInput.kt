@@ -16,7 +16,7 @@
 
 package androidx.compose.ui.platform
 
-interface IOSSkikoInput {
+internal interface IOSSkikoInput {
 
     /**
      * A Boolean value that indicates whether the text-entry object has any text.

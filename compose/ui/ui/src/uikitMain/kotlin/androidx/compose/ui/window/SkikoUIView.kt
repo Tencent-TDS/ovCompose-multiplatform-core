@@ -113,26 +113,26 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
     // https://youtrack.jetbrains.com/issue/KT-60399
     @Suppress("UNUSED") // public API
     constructor(
-        IOSSkiaLayer: IOSSkiaLayer,
+        skiaLayer: IOSSkiaLayer,
         frame: CValue<CGRect> = CGRectNull.readValue(),
         pointInside: (Point, UIEvent?) -> Boolean = { _, _ -> true }
-    ) : this(IOSSkiaLayer, frame, pointInside, skikoUITextInputTrains = object :
+    ) : this(skiaLayer, frame, pointInside, skikoUITextInputTrains = object :
         SkikoUITextInputTraits {})
 
     constructor(
-        IOSSkiaLayer: IOSSkiaLayer,
+        skiaLayer: IOSSkiaLayer,
         frame: CValue<CGRect> = CGRectNull.readValue(),
         pointInside: (Point, UIEvent?) -> Boolean = { _, _ -> true },
         skikoUITextInputTrains: SkikoUITextInputTraits,
         drawCompletionCallback: () -> Unit = { }
     ) : super(frame) {
-        _skiaLayer = IOSSkiaLayer
+        _skiaLayer = skiaLayer
         _pointInside = pointInside
         _skikoUITextInputTrains = skikoUITextInputTrains
 
 
         // TODO: remove weak wrapper if we are not going to implement lifecycle-bound behavior
-        val weakSkiaLayer = WeakReference(IOSSkiaLayer)
+        val weakSkiaLayer = WeakReference(skiaLayer)
 
         _redrawer = MetalRedrawer(
             _metalLayer,
@@ -141,8 +141,8 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
             },
         )
 
-        IOSSkiaLayer.needRedrawCallback = _redrawer::needRedraw
-        IOSSkiaLayer.view = this
+        skiaLayer.needRedrawCallback = _redrawer::needRedraw
+        skiaLayer.view = this
     }
 
     /**

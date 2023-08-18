@@ -16,7 +16,7 @@
 
 package androidx.compose.ui.platform
 
-interface TextActions {
+internal interface TextActions {
     /**
      * Copy action. If null, then copy is not possible in current context
      */

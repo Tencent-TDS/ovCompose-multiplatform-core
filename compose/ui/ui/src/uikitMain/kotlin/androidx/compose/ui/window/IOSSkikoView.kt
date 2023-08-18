@@ -24,7 +24,7 @@ import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoPointerEvent
 
 // TODO: candidate for refactor
-interface IOSSkikoView {
+internal interface IOSSkikoView {
     // Input
     fun onKeyboardEvent(event: SkikoKeyboardEvent) = Unit
     fun onPointerEvent(event: SkikoPointerEvent) = Unit

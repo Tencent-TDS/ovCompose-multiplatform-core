@@ -357,7 +357,7 @@ internal actual class ComposeWindow : UIViewController {
 
         val skiaLayer = IOSSkiaLayer()
         val skikoUIView = SkikoUIView(
-            IOSSkiaLayer = skiaLayer,
+            skiaLayer = skiaLayer,
             pointInside = { point, _ ->
                 val composeLayer = attachedComposeContext?.composeLayer
 
