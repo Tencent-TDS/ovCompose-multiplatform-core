@@ -27,10 +27,22 @@ internal class PlatformDateFormatTest {
         var locale = calendarLocale("en","US")
         assertThat(PlatformDateFormat.is24HourFormat(locale)).isEqualTo(false)
 
+        locale = calendarLocale("en","CA")
+        assertThat(PlatformDateFormat.is24HourFormat(locale)).isEqualTo(false)
+
+        locale = calendarLocale("ar","EG")
+        assertThat(PlatformDateFormat.is24HourFormat(locale)).isEqualTo(false)
+
+        locale = calendarLocale("ko","KR")
+        assertThat(PlatformDateFormat.is24HourFormat(locale)).isEqualTo(false)
+
         locale = calendarLocale("en","GB")
         assertThat(PlatformDateFormat.is24HourFormat(locale)).isEqualTo(true)
 
         locale = calendarLocale("ru","RU")
+        assertThat(PlatformDateFormat.is24HourFormat(locale)).isEqualTo(true)
+
+        locale = calendarLocale("de","DE")
         assertThat(PlatformDateFormat.is24HourFormat(locale)).isEqualTo(true)
     }
 
