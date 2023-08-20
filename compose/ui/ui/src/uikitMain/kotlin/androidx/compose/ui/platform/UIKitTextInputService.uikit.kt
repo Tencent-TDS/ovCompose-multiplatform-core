@@ -184,8 +184,10 @@ internal class UIKitTextInputService(
          * https://developer.apple.com/documentation/uikit/uikeyinput/1614572-deletebackward
          */
         override fun deleteBackward() {
+            // Before this function calls, iOS changes selection in setSelectedTextRange.
+            // All needed characters should be allready selected, and we can just remove them.
             sendEditCommand(
-                BackspaceCommand()
+                CommitTextCommand("", 0)
             )
         }
 

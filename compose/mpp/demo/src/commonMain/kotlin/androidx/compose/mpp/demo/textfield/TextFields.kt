@@ -16,12 +16,14 @@
 
 package androidx.compose.mpp.demo.textfield
 
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.TextField
 import androidx.compose.mpp.demo.Screen
-import androidx.compose.mpp.demo.textfield.android.CapitalizationAutoCorrectDemo
-import androidx.compose.mpp.demo.textfield.android.KeyboardTypeDemo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +46,9 @@ val TextFields = Screen.Selection(
     Screen.Example("Hide keyboard on click outside") {
         HideKeyboardOnClickOutside()
     },
+    Screen.Example("Emoji") {
+        EmojiExample()
+    }
 )
 
 @Composable
@@ -79,3 +84,16 @@ private fun HideKeyboardOnClickOutside() {
     }
 }
 
+@Composable
+private fun EmojiExample() {
+    val textWithEmoji = remember {
+        mutableStateOf("Family emoji: \uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66, and some text at the end")
+    }
+    BasicTextField(
+        value = textWithEmoji.value,
+        onValueChange = {
+            textWithEmoji.value = it
+        },
+        keyboardOptions = KeyboardOptions(autoCorrect = false)
+    )
+}
