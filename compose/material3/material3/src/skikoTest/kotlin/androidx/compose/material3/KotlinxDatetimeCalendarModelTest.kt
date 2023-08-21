@@ -43,25 +43,6 @@ internal class KotlinxDatetimeCalendarModelTest {
     }
 
     @Test
-    fun getMonths_differentTZ(){
-        val defaultTz = getTimeZone()
-
-        setTimeZone("GMT-5")
-
-        var date = model.getMonth(January2022Millis) // 1/1/2022
-        assertThat(date.year).isEqualTo(2022)
-        assertThat(date.month).isEqualTo(1)
-
-        setTimeZone("GMT+5")
-
-        date = model.getMonth(January2022Millis) // 1/1/2022
-        assertThat(date.year).isEqualTo(2022)
-        assertThat(date.month).isEqualTo(1)
-
-        setTimeZone(defaultTz)
-    }
-
-    @Test
     fun dateCreation_differentTZ() {
 
         val defaultTz = getTimeZone()
@@ -150,6 +131,37 @@ internal class KotlinxDatetimeCalendarModelTest {
     }
 
     @Test
+    fun monthCreation_differentTz() {
+        val defaultTz = getTimeZone()
+
+        setTimeZone("GMT-5")
+
+        val date =
+            CalendarDate(
+                year = 2022,
+                month = 1,
+                dayOfMonth = 1,
+                utcTimeMillis = January2022Millis
+            )
+
+        var monthFromDate = model.getMonth(date)
+        var monthFromMilli = model.getMonth(January2022Millis)
+        var monthFromYearMonth = model.getMonth(year = 2022, month = 1)
+        assertThat(monthFromDate).isEqualTo(monthFromMilli)
+        assertThat(monthFromDate).isEqualTo(monthFromYearMonth)
+
+        setTimeZone("GMT+5")
+
+        monthFromDate = model.getMonth(date)
+        monthFromMilli = model.getMonth(January2022Millis)
+        monthFromYearMonth = model.getMonth(year = 2022, month = 1)
+        assertThat(monthFromDate).isEqualTo(monthFromMilli)
+        assertThat(monthFromDate).isEqualTo(monthFromYearMonth)
+
+        setTimeZone(defaultTz)
+    }
+
+    @Test
     fun monthCreation_withRounding() {
         val date =
             CalendarDate(
@@ -162,6 +174,36 @@ internal class KotlinxDatetimeCalendarModelTest {
         val monthFromMilli = model.getMonth(January2022Millis + 10000)
         assertThat(monthFromDate).isEqualTo(monthFromMilli)
     }
+
+    @Test
+    fun monthCreation_withRounding_differentTZ() {
+
+        val defaultTz = getTimeZone()
+
+        val date =
+            CalendarDate(
+                year = 2022,
+                month = 1,
+                dayOfMonth = 1,
+                utcTimeMillis = January2022Millis
+            )
+
+        setTimeZone("GMT-5")
+
+
+        var monthFromDate = model.getMonth(date)
+        var monthFromMilli = model.getMonth(January2022Millis + 10000)
+        assertThat(monthFromDate).isEqualTo(monthFromMilli)
+
+        setTimeZone("GMT+5")
+
+        monthFromDate = model.getMonth(date)
+        monthFromMilli = model.getMonth(January2022Millis + 10000)
+        assertThat(monthFromDate).isEqualTo(monthFromMilli)
+
+        setTimeZone(defaultTz)
+    }
+
 
     @Test
     fun monthRestore() {
