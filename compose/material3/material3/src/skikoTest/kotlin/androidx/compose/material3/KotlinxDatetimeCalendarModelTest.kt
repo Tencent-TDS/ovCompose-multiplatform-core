@@ -43,6 +43,25 @@ internal class KotlinxDatetimeCalendarModelTest {
     }
 
     @Test
+    fun getMonths_differentTZ(){
+        val defaultTz = getTimeZone()
+
+        setTimeZone("GMT-5")
+
+        var date = model.getMonth(January2022Millis) // 1/1/2022
+        assertThat(date.year).isEqualTo(2022)
+        assertThat(date.month).isEqualTo(1)
+
+        setTimeZone("GMT+5")
+
+        date = model.getMonth(January2022Millis) // 1/1/2022
+        assertThat(date.year).isEqualTo(2022)
+        assertThat(date.month).isEqualTo(1)
+
+        setTimeZone(defaultTz)
+    }
+
+    @Test
     fun dateCreation_differentTZ() {
 
         val defaultTz = getTimeZone()
