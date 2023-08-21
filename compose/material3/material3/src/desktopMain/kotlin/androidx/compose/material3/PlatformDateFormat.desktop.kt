@@ -47,8 +47,8 @@ internal actual object PlatformDateFormat {
         // stub: not localized but at least readable variant
         val pattern = when(skeleton){
             DatePickerDefaults.YearMonthSkeleton -> "MMMM yyyy"
-            DatePickerDefaults.YearAbbrMonthDaySkeleton -> "d MMM yyyy"
-            DatePickerDefaults.YearMonthWeekdayDaySkeleton -> "EEEE, d MMMM yyyy"
+            DatePickerDefaults.YearAbbrMonthDaySkeleton -> "MMM d, yyyy"
+            DatePickerDefaults.YearMonthWeekdayDaySkeleton -> "EEEE, MMMM d, yyyy"
             else -> skeleton
         }
         return formatWithPattern(utcTimeMillis, pattern, locale)
