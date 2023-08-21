@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package androidx.compose.mpp.demo
+package bugs
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,33 +32,21 @@ import androidx.compose.material.Button
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.material.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.mpp.demo.Screen
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
 
-private val messageList = MutableStateFlow<List<String>>(emptyList())
-
-private suspend fun sendMessage(text: String) {
-    val newList = messageList.value + text
-    messageList.emit(newList)
-}
-
-@Composable
-fun KeyboardAnimationRepro() {
+val KeyboardEmptyWhiteSpace = Screen.Example("KeyboardEmptyWhiteSpace") {
+    // Issue: https://github.com/JetBrains/compose-multiplatform/issues/3490
+    var messages by remember { mutableStateOf(listOf<String>()) }
     Column(
         modifier = Modifier.fillMaxSize().background(Color.Black)
     ) {
-        val coroutineScope = rememberCoroutineScope()
-        val messages = messageList.collectAsState().value
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f)
         ) {
@@ -70,10 +59,10 @@ fun KeyboardAnimationRepro() {
             }
         }
         Spacer(Modifier.height(16.dp))
-        var text by remember { mutableStateOf<String>("") }
+        var text by remember { mutableStateOf("") }
         Row {
             OutlinedTextField(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).border(1.dp, Color.LightGray),
                 value = text,
                 colors = TextFieldDefaults.textFieldColors(
                     textColor = Color.White
@@ -85,14 +74,12 @@ fun KeyboardAnimationRepro() {
             Button(
                 modifier = Modifier.wrapContentSize().padding(8.dp),
                 onClick = {
-                    coroutineScope.launch {
-                        sendMessage(text)
-                        text = ""
-                    }
-                }
+                    messages = messages + text
+                },
             ) {
                 Text(text = "Send")
             }
         }
     }
+
 }

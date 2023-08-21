@@ -50,7 +50,7 @@ sealed interface Screen {
         constructor(title: String, vararg screens: Screen) : this(title, listOf(*screens))
 
         fun mergedWith(screens: List<Screen>): Selection {
-            return Selection(title, this.screens + screens)
+            return Selection(title, screens + this.screens)
         }
     }
 

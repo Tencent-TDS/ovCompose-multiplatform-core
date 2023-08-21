@@ -14,20 +14,26 @@
  * limitations under the License.
  */
 
-import Foundation
-import SwiftUI
-import shared
+package androidx.compose.ui.platform
 
-struct ContentView: View {
-    var body: some View {
-        ComposeView().ignoresSafeArea(.all, edges: .top.union(.horizontal)).ignoresSafeArea(.keyboard)
-    }
-}
+internal interface TextActions {
+    /**
+     * Copy action. If null, then copy is not possible in current context
+     */
+    val copy: (() -> Unit)?
 
-struct ComposeView: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> UIViewController {
-        SwiftHelper().getViewController()
-    }
+    /**
+     * Paste action. If null, then paste is not possible in current context
+     */
+    val paste: (() -> Unit)?
 
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+    /**
+     * Cut action. If null, then cut is not possible in current context
+     */
+    val cut: (() -> Unit)?
+
+    /**
+     * SelectAll action. If null, then select all is not possible in current context
+     */
+    val selectAll: (() -> Unit)?
 }

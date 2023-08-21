@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-import Foundation
-import SwiftUI
-import shared
+package bugs
 
-struct ContentView: View {
-    var body: some View {
-        ComposeView().ignoresSafeArea(.all, edges: .top.union(.horizontal)).ignoresSafeArea(.keyboard)
-    }
-}
+import androidx.compose.mpp.demo.Screen
 
-struct ComposeView: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> UIViewController {
-        SwiftHelper().getViewController()
-    }
-
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
-}
+val IosBugs = Screen.Selection(
+    "IosBugs",
+    UIKitViewAndDropDownMenu,
+    KeyboardEmptyWhiteSpace,
+)
