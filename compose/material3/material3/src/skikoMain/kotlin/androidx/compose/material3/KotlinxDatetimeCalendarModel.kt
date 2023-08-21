@@ -30,7 +30,7 @@ import kotlinx.datetime.toLocalDateTime
 internal class KotlinxDatetimeCalendarModel : CalendarModel {
 
     override val today: CalendarDate
-        get() = Clock.System.now().toCalendarDate()
+        get() = Clock.System.now().toCalendarDate(systemTZ)
 
     override val firstDayOfWeek: Int
         get() = PlatformDateFormat.firstDayOfWeek
@@ -192,7 +192,7 @@ private val EnglishWeekdaysNames = listOf(
 )
 
 internal fun Instant.toCalendarDate(
-    timeZone : TimeZone = TimeZone.currentSystemDefault()
+    timeZone : TimeZone
 ) : CalendarDate {
 
     val dateTime = toLocalDateTime(timeZone)
