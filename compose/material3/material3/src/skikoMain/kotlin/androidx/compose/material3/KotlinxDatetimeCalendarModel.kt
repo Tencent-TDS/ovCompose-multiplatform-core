@@ -114,7 +114,7 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
     }
 
     private fun Instant.toCalendarMonth(
-        timeZone : TimeZone = systemTZ
+        timeZone : TimeZone
     ) : CalendarMonth {
 
         val dateTime = toLocalDateTime(timeZone)
