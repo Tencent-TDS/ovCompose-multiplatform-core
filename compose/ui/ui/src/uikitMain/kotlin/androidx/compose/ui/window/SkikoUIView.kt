@@ -210,7 +210,7 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
             CGSizeMake(size.width * contentScaleFactor, size.height * contentScaleFactor)
         }
 
-        // If drawableSize is zero in any direction it means that it's a first layout
+        // If drawableSize is zero in any dimension it means that it's a first layout
         // we need to synchronously dispatch first draw and block until it's presented
         // so user doesn't have a flicker
         val needsSynchronousDraw = _metalLayer.drawableSize.useContents {
