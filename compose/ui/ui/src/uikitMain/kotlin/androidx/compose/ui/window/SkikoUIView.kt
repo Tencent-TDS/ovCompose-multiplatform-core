@@ -135,6 +135,8 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
 
     fun needRedraw() = _redrawer.needRedraw()
 
+    fun drawSynchronously() = _redrawer.drawSynchronously()
+
     /**
      * Show copy/paste text menu
      * @param targetRect - rectangle of selected text area

@@ -1,3 +1,4 @@
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,7 @@ import androidx.compose.mpp.demo.Screen
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.window.ComposeUIViewController
 import platform.UIKit.UINavigationController
@@ -34,7 +36,7 @@ val NativeModalWithNaviationExample = Screen.Example("Native modal with navigati
 }
 @Composable
 private fun NativeModalWithNavigation() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.Center) {
         val viewController = LocalUIViewController.current
         Button(onClick = {
             val navigationController = UINavigationController(rootViewController = ComposeUIViewController {
