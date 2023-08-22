@@ -86,7 +86,12 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
     private var _pointInside: (Point, UIEvent?) -> Boolean = { _, _ -> true }
     private var _inputDelegate: UITextInputDelegateProtocol? = null
     private var _currentTextMenuActions: TextActions? = null
-    private lateinit var _redrawer: MetalRedrawer
+    private val _redrawer: MetalRedrawer = MetalRedrawer(
+        _metalLayer,
+        drawCallback = { surface: Surface ->
+            delegate?.draw(surface)
+        },
+    )
 
     /*
      * When there at least one tracked touch, we need notify redrawer about it. It should schedule CADisplayLink which
@@ -124,13 +129,6 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
         pointInside: (Point, UIEvent?) -> Boolean = { _, _ -> true },
     ) : super(frame) {
         _pointInside = pointInside
-
-        _redrawer = MetalRedrawer(
-            _metalLayer,
-            drawCallback = { surface: Surface ->
-                delegate?.draw(surface)
-            },
-        )
     }
 
     fun needRedraw() = _redrawer.needRedraw()
