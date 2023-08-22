@@ -127,8 +127,8 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
 
         _redrawer = MetalRedrawer(
             _metalLayer,
-            drawCallback = {
-                delegate?.draw(it)
+            drawCallback = { surface: Surface ->
+                delegate?.draw(surface)
             },
         )
     }
