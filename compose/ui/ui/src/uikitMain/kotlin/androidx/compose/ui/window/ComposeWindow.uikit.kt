@@ -291,20 +291,18 @@ internal actual class ComposeWindow : UIViewController {
     }
 
     private fun updateLayout(context: AttachedComposeContext) {
-        context.scene.also {
-            it.density = density
-            it.constraints = view.frame.useContents {
-                val scale = density.density
+        context.scene.density = density
+        context.scene.constraints = view.frame.useContents {
+            val scale = density.density
 
-                val pixelsFromDps = { value: Double ->
-                    (value * scale.toDouble()).roundToInt()
-                }
-
-                Constraints(
-                    maxWidth = pixelsFromDps(size.width),
-                    maxHeight = pixelsFromDps(size.height)
-                )
+            val pixelsFromDps = { value: Double ->
+                (value * scale.toDouble()).roundToInt()
             }
+
+            Constraints(
+                maxWidth = pixelsFromDps(size.width),
+                maxHeight = pixelsFromDps(size.height)
+            )
         }
 
         context.view.needRedraw()
