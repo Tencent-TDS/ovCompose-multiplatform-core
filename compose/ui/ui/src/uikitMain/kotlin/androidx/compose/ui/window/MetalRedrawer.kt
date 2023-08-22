@@ -118,8 +118,6 @@ private enum class DrawReason {
     DISPLAY_LINK_CALLBACK, SYNC_WITH_UIKIT
 }
 
-private var avoidFirst = true
-
 internal class MetalRedrawer(
     private val metalLayer: CAMetalLayer,
     private val drawCallback: (Surface) -> Unit,
