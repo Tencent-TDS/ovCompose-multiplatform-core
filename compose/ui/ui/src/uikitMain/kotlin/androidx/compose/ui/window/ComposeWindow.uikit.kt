@@ -295,13 +295,9 @@ internal actual class ComposeWindow : UIViewController {
         context.scene.constraints = view.frame.useContents {
             val scale = density.density
 
-            val pixelsFromDps = { value: Double ->
-                (value * scale).roundToInt()
-            }
-
             Constraints(
-                maxWidth = pixelsFromDps(size.width),
-                maxHeight = pixelsFromDps(size.height)
+                maxWidth = (size.width * scale).roundToInt(),
+                maxHeight = (size.height * scale).roundToInt()
             )
         }
 
