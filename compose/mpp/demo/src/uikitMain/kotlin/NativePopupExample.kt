@@ -52,7 +52,7 @@ private fun NativeModalWithNavigation() {
 
 @Composable
 private fun NativeNavigationPage() {
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxSize().background(Color.DarkGray), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         val navigationController = LocalUIViewController.current.navigationController
 
         Button(onClick = {

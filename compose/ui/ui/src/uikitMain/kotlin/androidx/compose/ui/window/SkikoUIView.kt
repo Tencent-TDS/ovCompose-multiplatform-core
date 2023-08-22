@@ -135,8 +135,6 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
 
     fun needRedraw() = _redrawer.needRedraw()
 
-    fun drawSynchronously() = _redrawer.drawSynchronously()
-
     /**
      * Show copy/paste text menu
      * @param targetRect - rectangle of selected text area
@@ -212,7 +210,15 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
             CGSizeMake(size.width * contentScaleFactor, size.height * contentScaleFactor)
         }
 
+        val needsSynchronousDraw = _metalLayer.drawableSize.useContents {
+            width == 0.0 || height == 0.0
+        }
+
         _metalLayer.drawableSize = scaledSize
+
+        if (needsSynchronousDraw) {
+            _redrawer.drawSynchronously()
+        }
     }
 
     fun showScreenKeyboard() = becomeFirstResponder()
