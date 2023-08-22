@@ -296,7 +296,7 @@ internal actual class ComposeWindow : UIViewController {
             val scale = density.density
 
             val pixelsFromDps = { value: Double ->
-                (value * scale.toDouble()).roundToInt()
+                (value * scale).roundToInt()
             }
 
             Constraints(
