@@ -29,8 +29,6 @@ import platform.UIKit.UIApplicationState
 import platform.UIKit.UIApplicationWillEnterForegroundNotification
 import platform.darwin.*
 import kotlin.math.roundToInt
-import platform.Metal.MTLCaptureManager
-import platform.Metal.MTLCaptureScopeProtocol
 
 private class DisplayLinkConditions(
     val setPausedCallback: (Boolean) -> Unit
