@@ -16,6 +16,7 @@
 
 package bugs
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
@@ -25,14 +26,16 @@ import androidx.compose.ui.text.input.KeyboardType
 val KeyboardPasswordType = Screen.Example("KeyboardPasswordType") {
     //TODO: https://youtrack.jetbrains.com/issue/COMPOSE-319/iOS-Bug-password-TextField-changes-behavior-for-all-other-TextFieds
     // Need to uncomment code in textContentType() and isSecureTextEntry()
-    Text("Issue COMPOSE-319/iOS-Bug-password-TextField-changes-behavior-for-all-other-TextFieds")
-    TextField(
-        "Password", {  },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-    )
-    TextField("No options", {  })
-    TextField(
-        "Ascii", {  },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii)
-    )
+    Column {
+        Text("Issue COMPOSE-319/iOS-Bug-password-TextField-changes-behavior-for-all-other-TextFieds")
+        TextField(
+            "Password", { },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+        )
+        TextField("No options", { })
+        TextField(
+            "Ascii", { },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii)
+        )
+    }
 }
