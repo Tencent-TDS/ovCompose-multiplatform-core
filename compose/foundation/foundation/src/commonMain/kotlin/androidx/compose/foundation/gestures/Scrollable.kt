@@ -250,7 +250,7 @@ private fun Modifier.pointerScrollable(
 ): Modifier {
     val fling = flingBehavior ?: ScrollableDefaults.flingBehavior()
     val nestedScrollDispatcher = remember { mutableStateOf(NestedScrollDispatcher()) }
-    val scrollLogic = rememberUpdatedState(
+    val scrollLogicValue =
         ScrollingLogic(
             orientation,
             reverseDirection,
@@ -259,7 +259,7 @@ private fun Modifier.pointerScrollable(
             fling,
             overscrollEffect
         )
-    )
+    val scrollLogic = rememberUpdatedState(scrollLogicValue)
     val nestedScrollConnection = remember(enabled) {
         scrollableNestedScrollConnection(scrollLogic, enabled)
     }
@@ -283,7 +283,7 @@ private fun Modifier.pointerScrollable(
             },
             canDrag = { down -> down.type != PointerType.Mouse }
         ))
-        .then(MouseWheelScrollableElement(scrollLogic, scrollConfig, density))
+        .then(MouseWheelScrollableElement(scrollLogicValue, scrollConfig, density))
         .nestedScroll(nestedScrollConnection, nestedScrollDispatcher.value)
 }
 
