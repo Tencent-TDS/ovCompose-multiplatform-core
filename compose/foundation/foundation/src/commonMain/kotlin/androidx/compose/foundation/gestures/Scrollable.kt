@@ -251,7 +251,7 @@ private fun Modifier.pointerScrollable(
     val fling = flingBehavior ?: ScrollableDefaults.flingBehavior()
     val nestedScrollDispatcher = remember { mutableStateOf(NestedScrollDispatcher()) }
     val scrollLogicValue =
-        ScrollingLogic(
+        rememberScrollingLogic(
             orientation,
             reverseDirection,
             nestedScrollDispatcher,
@@ -289,6 +289,32 @@ private fun Modifier.pointerScrollable(
 
 // {} isn't being memoized for us, so extract this to make sure we compare equally on recomposition.
 private val NoOpOnDragStarted: suspend CoroutineScope.(startedPosition: Offset) -> Unit = {}
+
+@Composable
+private fun rememberScrollingLogic(
+    orientation: Orientation,
+    reverseDirection: Boolean,
+    nestedScrollDispatcher: State<NestedScrollDispatcher>,
+    scrollableState: ScrollableState,
+    flingBehavior: FlingBehavior,
+    overscrollEffect: OverscrollEffect?
+) = remember(
+    orientation,
+    reverseDirection,
+    nestedScrollDispatcher,
+    scrollableState,
+    flingBehavior,
+    overscrollEffect
+) {
+    ScrollingLogic(
+        orientation,
+        reverseDirection,
+        nestedScrollDispatcher,
+        scrollableState,
+        flingBehavior,
+        overscrollEffect
+    )
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 internal class ScrollingLogic(
