@@ -144,6 +144,13 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                     "-Xklib-enable-signature-clash-checks=false",
                 )
             }
+
+            project.tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile>().configureEach {
+                it.kotlinOptions {
+                    freeCompilerArgs += "-opt-in=kotlinx.cinterop.ExperimentalForeignApi"
+                    freeCompilerArgs += "-opt-in=kotlin.experimental.ExperimentalNativeApi"
+                }
+            }
         }
 
         private fun Project.androidxExtension(): AndroidXExtension? {
