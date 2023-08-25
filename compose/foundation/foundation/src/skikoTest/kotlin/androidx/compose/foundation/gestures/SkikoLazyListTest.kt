@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
@@ -33,7 +34,9 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.ScrollWheel
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -52,8 +55,8 @@ class SkikoLazyListTest {
             }
         }
 
-        onNodeWithTag("list").performMouseInput {
-            scroll(1000f, ScrollWheel.Vertical)
+        onNodeWithTag("list").performTouchInput {
+            swipe(center, Offset.Zero)
         }
         runOnIdle { assertTrue(state.firstVisibleItemIndex > 0) }
     }
@@ -75,8 +78,8 @@ class SkikoLazyListTest {
             }
         }
 
-        onNodeWithTag("list").performMouseInput {
-            scroll(1000f, ScrollWheel.Vertical)
+        onNodeWithTag("list").performTouchInput {
+            swipe(center, Offset.Zero)
         }
         runOnIdle { assertTrue(state.firstVisibleItemIndex > 0) }
     }
