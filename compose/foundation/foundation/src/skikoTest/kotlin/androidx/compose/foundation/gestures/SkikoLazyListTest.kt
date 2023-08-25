@@ -28,7 +28,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.pointerInput2
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.ScrollWheel
@@ -72,28 +71,6 @@ class SkikoLazyListTest {
                         Modifier
                     }
                     Box(Modifier.size(100.dp).then(enabled).background(Color.Red))
-                }
-            }
-        }
-
-        onNodeWithTag("list").performMouseInput {
-            scroll(1000f, ScrollWheel.Vertical)
-        }
-        runOnIdle { assertTrue(state.firstVisibleItemIndex > 0) }
-    }
-
-    @Test
-    fun dynamicModifiers2() = runComposeUiTest {
-        val state by mutableStateOf(LazyListState())
-        setContent {
-            LazyColumn(state = state, modifier = Modifier.testTag("list").fillMaxSize()) {
-                items(1000) {
-                    val m = if (it == 0) {
-                        Modifier.pointerInput2(Unit)
-                    } else {
-                        Modifier
-                    }
-                    Box(Modifier.size(100.dp).then(m).background(Color.Red))
                 }
             }
         }
