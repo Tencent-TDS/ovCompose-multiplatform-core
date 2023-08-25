@@ -59,6 +59,8 @@ internal class SelectableTextAnnotatedStringNode(
     overrideColor: ColorProducer? = null
 ) : DelegatingNode(), LayoutModifierNode, DrawModifierNode, GlobalPositionAwareModifierNode {
 
+    private var lastKnownLayoutCoordinates: LayoutCoordinates? = null
+
     private val delegate = delegate(
         TextAnnotatedStringNode(
             text = text,
@@ -83,6 +85,7 @@ internal class SelectableTextAnnotatedStringNode(
     }
 
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
+        lastKnownLayoutCoordinates = coordinates
         selectionController?.updateGlobalPosition(coordinates)
     }
 
@@ -147,6 +150,8 @@ internal class SelectableTextAnnotatedStringNode(
                 selectionController = selectionController
             ),
         )
+
+        selectionController?.updateGlobalPosition(lastKnownLayoutCoordinates!!)
         // we always relayout when we're selectable
         invalidateMeasurement()
     }
