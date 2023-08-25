@@ -349,6 +349,7 @@ class CupertinoOverscrollEffect(
             animationSpec = spec
         ) {
             overscrollOffset = (value * density).toOffset()
+            println(overscrollOffset)
             currentVelocity = velocity * density
 
             // If it was fling from overscroll, cancel animation and return velocity
