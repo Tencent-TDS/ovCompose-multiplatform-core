@@ -29,7 +29,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.pointer.HistoricalChange
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.toCompose
 import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.interop.LocalUIKitInteropContext
@@ -40,12 +43,15 @@ import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.uikit.*
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.util.fastMap
 import kotlin.math.floor
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 import kotlin.math.roundToLong
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
+import kotlinx.cinterop.objcPtr
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
@@ -54,10 +60,11 @@ import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoPointerEvent
+import org.jetbrains.skiko.currentNanoTime
+import platform.CoreGraphics.CGPoint
 import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
-import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSize
@@ -615,24 +622,24 @@ internal actual class ComposeWindow : UIViewController {
                     !scene.hitTestInteropView(position)
                 }
 
-            override fun onPointerEvent(event: SkikoPointerEvent) {
-                val scale = density.density
+            override fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase) {
+                val density = density.density
 
                 scene.sendPointerEvent(
-                    eventType = event.kind.toCompose(),
-                    pointers = event.pointers.map {
+                    eventType = phase.toPointerEventType(),
+                    pointers = event.touchesForView(view)?.map {
+                        val touch = it as UITouch
+
                         ComposeScene.Pointer(
-                            id = PointerId(it.id),
-                            position = Offset(
-                                x = it.x.toFloat() * scale,
-                                y = it.y.toFloat() * scale
-                            ),
-                            pressed = it.pressed,
-                            type = it.device.toCompose(),
-                            pressure = it.pressure.toFloat(),
+                            id = PointerId(touch.hashCode().toLong()),
+                            position = touch.offsetInView(view, density),
+                            pressed = touch.isPressed,
+                            type = PointerType.Touch,
+                            pressure = touch.force.toFloat(),
+                            historical = event.historicalChangesForTouch(touch, view, density)
                         )
-                    },
-                    timeMillis = event.timestamp,
+                    } ?: listOf(),
+                    timeMillis = (event.timestamp * 1e3).toLong(),
                     nativeEvent = event
                 )
             }
@@ -681,6 +688,41 @@ internal actual class ComposeWindow : UIViewController {
             }
     }
 }
+
+private fun UITouch.offsetInView(view: UIView, density: Float) =
+    locationInView(view).useContents {
+        Offset(x.toFloat() * density, y.toFloat() * density)
+    }
+
+private fun UIEvent.historicalChangesForTouch(touch: UITouch, view: UIView, density: Float): MutableList<HistoricalChange> {
+    val touches = coalescedTouchesForTouch(touch) ?: return mutableListOf()
+
+    return if (touches.size > 1) {
+        touches.subList(0, touches.size - 1).map {
+            val historicalTouch = it as UITouch
+            HistoricalChange(
+                uptimeMillis = (historicalTouch.timestamp * 1e3).toLong(),
+                position = historicalTouch.offsetInView(view, density)
+            )
+        }.toMutableList()
+    } else {
+        mutableListOf()
+    }
+}
+
+private val UITouch.isPressed
+    get() = when (phase) {
+        UITouchPhase.UITouchPhaseEnded, UITouchPhase.UITouchPhaseCancelled -> false
+        else -> true
+    }
+
+private fun UITouchesEventPhase.toPointerEventType(): PointerEventType =
+    when (this) {
+        UITouchesEventPhase.BEGAN -> PointerEventType.Press
+        UITouchesEventPhase.MOVED -> PointerEventType.Move
+        UITouchesEventPhase.ENDED -> PointerEventType.Release
+        UITouchesEventPhase.CANCELLED -> PointerEventType.Release
+    }
 
 private fun UIViewController.checkIfInsideSwiftUI(): Boolean {
     var parent = parentViewController
