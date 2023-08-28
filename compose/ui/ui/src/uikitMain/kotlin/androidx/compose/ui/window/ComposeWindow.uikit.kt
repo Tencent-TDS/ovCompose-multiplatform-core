@@ -608,6 +608,11 @@ internal actual class ComposeWindow : UIViewController {
         skikoUIView.input = inputServices.skikoInput
         skikoUIView.inputTraits = inputTraits
         skikoUIView.delegate = object : SkikoUIViewDelegate {
+            /**
+             * Map of PointerId to its last known offset
+             */
+            private var lastKnownOffset = mutableMapOf<Long, Offset>()
+
             override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
                 scene.sendKeyEvent(KeyEvent(event))
             }
@@ -629,14 +634,32 @@ internal actual class ComposeWindow : UIViewController {
                     eventType = phase.toPointerEventType(),
                     pointers = event.touchesForView(view)?.map {
                         val touch = it as UITouch
+                        val id = touch.hashCode().toLong()
+
+                        val position = touch.offsetInView(view, density)
+
+                        val overridedPosition: Offset? =
+                            if (phase == UITouchesEventPhase.ENDED) {
+                                val result = lastKnownOffset[id]
+                                lastKnownOffset.remove(id)
+
+                                result
+                            } else {
+                                lastKnownOffset[id] = position
+                                null
+                            }
 
                         ComposeScene.Pointer(
-                            id = PointerId(touch.hashCode().toLong()),
-                            position = touch.offsetInView(view, density),
+                            id = PointerId(id),
+                            position = overridedPosition ?: position,
                             pressed = touch.isPressed,
                             type = PointerType.Touch,
                             pressure = touch.force.toFloat(),
-                            historical = event.historicalChangesForTouch(touch, view, density)
+                            historical = if (overridedPosition == null) {
+                                event.historicalChangesForTouch(touch, view, density)
+                            } else {
+                                mutableListOf()
+                            }
                         )
                     } ?: listOf(),
                     timeMillis = (event.timestamp * 1e3).toLong(),
