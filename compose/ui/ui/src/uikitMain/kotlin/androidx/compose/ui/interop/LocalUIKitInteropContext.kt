@@ -23,7 +23,7 @@ import platform.Foundation.NSLock
  * Class which can be used to add actions related to UIKit objects to be executed in sync with compose rendering,
  * Addding deferred actions is threadsafe, but they will be executed in the order of their submission, and on the main thread.
  */
-class UIKitInteropContext(
+internal class UIKitInteropContext(
     val requestRedraw: () -> Unit
 ) {
     private val lock: NSLock = NSLock()
@@ -62,6 +62,6 @@ private inline fun <T> NSLock.doLocked(block: () -> T): T {
     }
 }
 
-val LocalUIKitInteropContext = staticCompositionLocalOf<UIKitInteropContext> {
+internal val LocalUIKitInteropContext = staticCompositionLocalOf<UIKitInteropContext> {
     error("CompositionLocal UIKitInteropContext not provided")
 }
