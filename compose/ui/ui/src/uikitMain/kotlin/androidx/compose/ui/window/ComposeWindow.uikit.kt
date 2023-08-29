@@ -534,7 +534,7 @@ internal actual class ComposeWindow : UIViewController {
                     LocalLayoutMarginsState provides layoutMarginsState,
                     LocalInterfaceOrientationState provides interfaceOrientationState,
                     LocalSystemTheme provides systemTheme.value,
-                    LocalUIKitInteropContext provides interopContext
+                    LocalUIKitInteropContext provides interopContext,
                 ) {
                     content()
                 }
