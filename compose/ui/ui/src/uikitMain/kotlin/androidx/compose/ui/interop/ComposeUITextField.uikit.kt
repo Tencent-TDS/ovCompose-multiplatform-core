@@ -21,8 +21,6 @@ import platform.UIKit.UITextField
 fun ComposeUITextField(value: String, onValueChange: (String) -> Unit, modifier: Modifier) {
     val latestOnValueChanged by rememberUpdatedState(onValueChange)
 
-    val interopContext = LocalUIKitInteropContext.current
-
     UIKitView(
         factory = {
             val textField = object : UITextField(CGRectMake(0.0, 0.0, 0.0, 0.0)) {
@@ -40,9 +38,7 @@ fun ComposeUITextField(value: String, onValueChange: (String) -> Unit, modifier:
         },
         modifier = modifier,
         update = { textField ->
-            interopContext.deferAction {
-                textField.text = value
-            }
+            textField.text = value
         }
     )
 }

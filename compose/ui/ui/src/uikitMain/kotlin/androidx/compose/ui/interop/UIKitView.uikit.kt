@@ -45,6 +45,7 @@ import kotlinx.atomicfu.atomic
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
+import platform.Foundation.NSThread
 import platform.UIKit.UIColor
 import platform.UIKit.UIView
 import platform.darwin.dispatch_async
@@ -121,7 +122,7 @@ fun <T : UIView> UIKitView(
 
     DisposableEffect(Unit) {
         componentInfo.component = factory()
-        componentInfo.updater = Updater(componentInfo.component, update)
+        componentInfo.updater = Updater(componentInfo.component, update, interopContext::deferAction)
 
         interopContext.deferAction {
             componentInfo.container = UIView().apply {
@@ -181,7 +182,12 @@ private class ComponentInfo<T : UIView> {
 
 private class Updater<T : UIView>(
     private val component: T,
-    update: (T) -> Unit
+    update: (T) -> Unit,
+
+    /**
+     * Updater will not execute the [update] method by itself, but will pass it to this lambda
+     */
+    private val deferAction: (() -> Unit) -> Unit,
 ) {
     private var isDisposed = false
     private val isUpdateScheduled = atomic(false)
@@ -191,7 +197,9 @@ private class Updater<T : UIView>(
 
     private val scheduleUpdate = { _: T ->
         if (!isUpdateScheduled.getAndSet(true)) {
-            dispatch_async(dispatch_get_main_queue()) {
+            deferAction {
+                check(NSThread.isMainThread)
+
                 isUpdateScheduled.value = false
                 if (!isDisposed) {
                     performUpdate()

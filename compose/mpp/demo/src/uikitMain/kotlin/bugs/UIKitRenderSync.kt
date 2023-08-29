@@ -25,6 +25,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.mpp.demo.Screen
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.interop.ComposeUITextField
 import androidx.compose.ui.interop.UIKitView
@@ -36,13 +40,12 @@ import platform.CoreGraphics.CGRectZero
 import platform.UIKit.*
 
 val UIKitRenderSync = Screen.Example("UIKitRenderSync") {
+    var text by remember { mutableStateOf("Type something") }
     LazyColumn(Modifier.fillMaxSize()) {
-
         items(100) { index ->
-            if (index % 2 == 0) {
-                Text("material.Text $index", Modifier.fillMaxSize().height(40.dp))
-            } else {
-                UIKitView(
+            when (index % 4) {
+                0 -> Text("material.Text $index", Modifier.fillMaxSize().height(40.dp))
+                1 -> UIKitView(
                     factory = {
                         val label = UILabel(frame = CGRectZero.readValue())
                         label.text = "UILabel $index"
@@ -51,6 +54,8 @@ val UIKitRenderSync = Screen.Example("UIKitRenderSync") {
                     },
                     modifier = Modifier.fillMaxWidth().height(40.dp)
                 )
+                2 -> TextField(text, onValueChange = { text = it}, Modifier.fillMaxWidth())
+                else -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
             }
         }
     }
