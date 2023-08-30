@@ -55,7 +55,6 @@ import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSize
 import platform.CoreGraphics.CGSizeEqualToSize
-import platform.CoreGraphics.CGSizeMake
 import platform.Foundation.*
 import platform.UIKit.*
 import platform.darwin.NSObject
@@ -387,6 +386,8 @@ internal actual class ComposeWindow : UIViewController {
             )
         }
 
+        attachedComposeContext.view.isForcedToPresentWithTransactionEveryFrame = true
+
         attachedComposeContext.setConstraintsToCenterInView(view, size)
         attachedComposeContext.view.transform = withTransitionCoordinator.targetTransform
 
@@ -402,6 +403,7 @@ internal actual class ComposeWindow : UIViewController {
             completion = {
                 startSnapshotView.removeFromSuperview()
                 attachedComposeContext.setConstraintsToFillView(view)
+                attachedComposeContext.view.isForcedToPresentWithTransactionEveryFrame = false
             }
         )
     }
