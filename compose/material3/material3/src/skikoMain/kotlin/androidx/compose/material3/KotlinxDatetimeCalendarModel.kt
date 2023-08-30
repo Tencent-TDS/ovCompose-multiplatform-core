@@ -30,7 +30,11 @@ import kotlinx.datetime.toLocalDateTime
 internal class KotlinxDatetimeCalendarModel : CalendarModel {
 
     override val today: CalendarDate
-        get() = Clock.System.now().toCalendarDate(systemTZ)
+        get() = Clock.System.now()
+            .toLocalDateTime(TimeZone.UTC)
+            .date
+            .atStartOfDayIn(TimeZone.UTC)
+            .toCalendarDate(systemTZ)
 
     override val firstDayOfWeek: Int
         get() = PlatformDateFormat.firstDayOfWeek
