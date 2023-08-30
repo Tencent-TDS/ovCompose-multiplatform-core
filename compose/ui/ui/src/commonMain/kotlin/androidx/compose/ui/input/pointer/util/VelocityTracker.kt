@@ -219,8 +219,6 @@ class VelocityTracker1D internal constructor(
                 dataPoints[sampleCount] = sample.dataPoint
                 time[sampleCount] = -age
                 sampleCount += 1
-            } else {
-                println("$age $delta discarded")
             }
 
             index = (if (index == 0) HistorySize else index) - 1
