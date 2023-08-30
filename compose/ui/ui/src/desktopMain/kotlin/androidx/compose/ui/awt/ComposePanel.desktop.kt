@@ -20,6 +20,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.window.WindowExceptionHandler
+import androidx.compose.ui.window.layoutDirection
 import java.awt.*
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
@@ -39,7 +40,6 @@ import org.jetbrains.skiko.SkiaLayerAnalytics
 class ComposePanel @ExperimentalComposeUiApi constructor(
     private val skiaLayerAnalytics: SkiaLayerAnalytics,
 ) : JLayeredPane() {
-    @OptIn(ExperimentalComposeUiApi::class)
     constructor() : this(SkiaLayerAnalytics.Empty)
 
     init {
@@ -189,9 +189,9 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     private fun createComposeBridge(): ComposeBridge {
         val renderOnGraphics = System.getProperty("compose.swing.render.on.graphics").toBoolean()
         val bridge: ComposeBridge = if (renderOnGraphics) {
-            SwingComposeBridge(skiaLayerAnalytics)
+            SwingComposeBridge(skiaLayerAnalytics, layoutDirection)
         } else {
-            WindowComposeBridge(skiaLayerAnalytics)
+            WindowComposeBridge(skiaLayerAnalytics, layoutDirection)
         }
         return bridge.apply {
             scene.releaseFocus()

@@ -23,11 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.DialogWindowScope
 import androidx.compose.ui.window.WindowExceptionHandler
+import androidx.compose.ui.window.layoutDirection
 import org.jetbrains.skiko.GraphicsApi
 import java.awt.Component
-import java.awt.Dialog
 import java.awt.Frame
 import java.awt.GraphicsConfiguration
 import java.awt.Window
@@ -48,13 +49,29 @@ class ComposeDialog : JDialog {
     internal val scene: ComposeScene
         get() = delegate.scene
 
+    @ExperimentalComposeUiApi
+    var layoutDirection: LayoutDirection
+        // Can't use `by scene::layoutDirection` because `delegate` hasn't been created yet
+        // when this property is initialized
+        get() = scene.layoutDirection
+        set(value) {
+            scene.layoutDirection = value
+        }
+
+    private fun createDelegate() = ComposeWindowDelegate(
+        window = this,
+        isUndecorated = ::isUndecorated,
+        skiaLayerAnalytics = skiaLayerAnalytics,
+        layoutDirection = (this as Component).layoutDirection,
+    )
+
     constructor(
         owner: Window?,
         modalityType: ModalityType = ModalityType.MODELESS,
         graphicsConfiguration: GraphicsConfiguration? = null
     ) : super(owner, "", modalityType, graphicsConfiguration) {
         skiaLayerAnalytics = SkiaLayerAnalytics.Empty
-        delegate = ComposeWindowDelegate(this, ::isUndecorated, skiaLayerAnalytics)
+        delegate = createDelegate()
         contentPane.add(delegate.pane)
     }
 
@@ -74,7 +91,7 @@ class ComposeDialog : JDialog {
         skiaLayerAnalytics: SkiaLayerAnalytics = SkiaLayerAnalytics.Empty
     ) : super(owner, "", modalityType, graphicsConfiguration) {
         this.skiaLayerAnalytics = skiaLayerAnalytics
-        delegate = ComposeWindowDelegate(this, ::isUndecorated, skiaLayerAnalytics)
+        delegate = createDelegate()
         contentPane.add(delegate.pane)
     }
 
@@ -91,7 +108,7 @@ class ComposeDialog : JDialog {
         skiaLayerAnalytics: SkiaLayerAnalytics = SkiaLayerAnalytics.Empty
     ) : super() {
         this.skiaLayerAnalytics = skiaLayerAnalytics
-        delegate = ComposeWindowDelegate(this, ::isUndecorated, skiaLayerAnalytics)
+        delegate = createDelegate()
         contentPane.add(delegate.pane)
     }
 
@@ -100,14 +117,14 @@ class ComposeDialog : JDialog {
         modalityType: ModalityType = ModalityType.MODELESS
     ) : super(null, modalityType) {
         skiaLayerAnalytics = SkiaLayerAnalytics.Empty
-        delegate = ComposeWindowDelegate(this, ::isUndecorated, skiaLayerAnalytics)
+        delegate = createDelegate()
         contentPane.add(delegate.pane)
     }
 
     constructor(graphicsConfiguration: GraphicsConfiguration? = null) :
         super(null as Frame?, "", false, graphicsConfiguration) {
         skiaLayerAnalytics = SkiaLayerAnalytics.Empty
-        delegate = ComposeWindowDelegate(this, ::isUndecorated, skiaLayerAnalytics)
+        delegate = createDelegate()
         contentPane.add(delegate.pane)
     }
 
@@ -116,7 +133,7 @@ class ComposeDialog : JDialog {
     // Dialog's shouldn't be appeared in the taskbar.
     constructor() : super() {
         skiaLayerAnalytics = SkiaLayerAnalytics.Empty
-        delegate = ComposeWindowDelegate(this, ::isUndecorated, skiaLayerAnalytics)
+        delegate = createDelegate()
         contentPane.add(delegate.pane)
     }
 

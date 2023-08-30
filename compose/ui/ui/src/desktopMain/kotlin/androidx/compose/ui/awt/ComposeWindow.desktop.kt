@@ -23,6 +23,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.WindowPlacement
+import androidx.compose.ui.window.layoutDirection
 import java.awt.Component
 import java.awt.GraphicsConfiguration
 import java.awt.event.MouseListener
@@ -54,15 +55,22 @@ class ComposeWindow @ExperimentalComposeUiApi constructor(
      * @param graphicsConfiguration the GraphicsConfiguration that is used to construct the new window.
      * If null, the system default GraphicsConfiguration is assumed.
      */
-    @OptIn(ExperimentalComposeUiApi::class)
     constructor(
         graphicsConfiguration: GraphicsConfiguration? = null
     ) : this(graphicsConfiguration, SkiaLayerAnalytics.Empty)
 
-    private val delegate = ComposeWindowDelegate(this, ::isUndecorated, skiaLayerAnalytics)
+    private val delegate = ComposeWindowDelegate(
+        window = this,
+        isUndecorated = ::isUndecorated,
+        skiaLayerAnalytics = skiaLayerAnalytics,
+        layoutDirection = (this as Component).layoutDirection,
+    )
 
     internal val scene: ComposeScene
         get() = delegate.scene
+
+    @ExperimentalComposeUiApi
+    var layoutDirection by scene::layoutDirection
 
     // Don't override the accessible context of JFrame, since accessibility work through HardwareLayer
     internal val windowAccessible: Accessible

@@ -56,7 +56,9 @@ import org.jetbrains.skiko.*
  *
  * Inheritors should call [attachComposeToComponent], so events that came to [component] will be transferred to [ComposeScene]
  */
-internal abstract class ComposeBridge {
+internal abstract class ComposeBridge(
+    layoutDirection: LayoutDirection
+) {
     private var isDisposed = false
 
     val sceneAccessible = ComposeSceneAccessible(
@@ -135,6 +137,7 @@ internal abstract class ComposeBridge {
         MainUIDispatcher + coroutineExceptionHandler,
         platform,
         Density(1f),
+        layoutDirection,
         invalidate = {
             onComposeInvalidation()
         },
@@ -340,9 +343,6 @@ internal abstract class ComposeBridge {
         override val windowInfo = WindowInfoImpl()
 
         override val textInputService = PlatformInput(platformComponent)
-
-        override val layoutDirection: LayoutDirection
-            get() = component.layoutDirection
 
         override val focusManager = object : FocusManager {
             override fun clearFocus(force: Boolean) {
