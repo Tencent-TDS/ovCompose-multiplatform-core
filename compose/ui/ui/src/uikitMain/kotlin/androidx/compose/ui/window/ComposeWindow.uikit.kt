@@ -42,14 +42,20 @@ import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
+import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import org.jetbrains.skia.Surface
 import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoPointerEvent
 import org.jetbrains.skiko.currentNanoTime
+import platform.CoreGraphics.CGAffineTransformIdentity
+import platform.CoreGraphics.CGAffineTransformInvert
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
+import platform.CoreGraphics.CGSize
+import platform.CoreGraphics.CGSizeEqualToSize
+import platform.CoreGraphics.CGSizeMake
 import platform.Foundation.*
 import platform.UIKit.*
 import platform.darwin.NSObject
@@ -94,6 +100,41 @@ private class AttachedComposeContext(
     val scene: ComposeScene,
     val view: SkikoUIView,
 ) {
+    private var constraints: List<NSLayoutConstraint> = listOf()
+
+    fun setConstraintsToCenterInView(parentView: UIView, size: CValue<CGSize>) {
+        size.useContents {
+            setConstraints(
+                newConstraints = listOf(
+                    view.centerXAnchor.constraintEqualToAnchor(parentView.centerXAnchor),
+                    view.centerYAnchor.constraintEqualToAnchor(parentView.centerYAnchor),
+                    view.widthAnchor.constraintEqualToConstant(width),
+                    view.heightAnchor.constraintEqualToConstant(height)
+                )
+            )
+        }
+    }
+
+    fun setConstraintsToFillView(parentView: UIView) {
+        setConstraints(
+            newConstraints = listOf(
+                view.leftAnchor.constraintEqualToAnchor(parentView.leftAnchor),
+                view.rightAnchor.constraintEqualToAnchor(parentView.rightAnchor),
+                view.topAnchor.constraintEqualToAnchor(parentView.topAnchor),
+                view.bottomAnchor.constraintEqualToAnchor(parentView.bottomAnchor)
+            )
+        )
+    }
+
+    private fun setConstraints(newConstraints: List<NSLayoutConstraint>) {
+        if (constraints.isNotEmpty()) {
+            NSLayoutConstraint.deactivateConstraints(constraints)
+        }
+
+        constraints = newConstraints
+        NSLayoutConstraint.activateConstraints(newConstraints)
+    }
+
     fun dispose() {
         scene.close()
         view.dispose()
@@ -164,7 +205,10 @@ internal actual class ComposeWindow : UIViewController {
         }
 
     private val density: Density
-        get() = Density(attachedComposeContext?.view?.contentScaleFactor?.toFloat() ?: 1f, fontScale)
+        get() = Density(
+            attachedComposeContext?.view?.contentScaleFactor?.toFloat() ?: 1f,
+            fontScale
+        )
 
     private lateinit var content: @Composable () -> Unit
 
@@ -311,6 +355,57 @@ internal actual class ComposeWindow : UIViewController {
         context.view.needRedraw()
     }
 
+    override fun viewWillTransitionToSize(
+        size: CValue<CGSize>,
+        withTransitionCoordinator: UIViewControllerTransitionCoordinatorProtocol
+    ) {
+        super.viewWillTransitionToSize(size, withTransitionCoordinator)
+
+        val attachedComposeContext = attachedComposeContext ?: return
+
+        // Happens during orientation change from LandscapeLeft to LandscapeRight, for example
+        val isSameSizeTransition = view.frame.useContents {
+            CGSizeEqualToSize(size, this.size.readValue())
+        }
+        if (isSameSizeTransition) {
+            return
+        }
+
+        val startSnapshotView =
+            attachedComposeContext.view.snapshotViewAfterScreenUpdates(false) ?: return
+
+        startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(startSnapshotView)
+        size.useContents {
+            NSLayoutConstraint.activateConstraints(
+                listOf(
+                    startSnapshotView.widthAnchor.constraintEqualToConstant(height),
+                    startSnapshotView.heightAnchor.constraintEqualToConstant(width),
+                    startSnapshotView.centerXAnchor.constraintEqualToAnchor(view.centerXAnchor),
+                    startSnapshotView.centerYAnchor.constraintEqualToAnchor(view.centerYAnchor)
+                )
+            )
+        }
+
+        attachedComposeContext.setConstraintsToCenterInView(view, size)
+        attachedComposeContext.view.transform = withTransitionCoordinator.targetTransform
+
+        view.layoutIfNeeded()
+
+        withTransitionCoordinator.animateAlongsideTransition(
+            animation = {
+                startSnapshotView.alpha = 0.0
+                startSnapshotView.transform =
+                    CGAffineTransformInvert(withTransitionCoordinator.targetTransform)
+                attachedComposeContext.view.transform = CGAffineTransformIdentity.readValue()
+            },
+            completion = {
+                startSnapshotView.removeFromSuperview()
+                attachedComposeContext.setConstraintsToFillView(view)
+            }
+        )
+    }
+
     override fun viewWillAppear(animated: Boolean) {
         super.viewWillAppear(animated)
 
@@ -385,15 +480,6 @@ internal actual class ComposeWindow : UIViewController {
 
         skikoUIView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(skikoUIView)
-
-        NSLayoutConstraint.activateConstraints(
-            listOf(
-                skikoUIView.leadingAnchor.constraintEqualToAnchor(view.leadingAnchor),
-                skikoUIView.trailingAnchor.constraintEqualToAnchor(view.trailingAnchor),
-                skikoUIView.topAnchor.constraintEqualToAnchor(view.topAnchor),
-                skikoUIView.bottomAnchor.constraintEqualToAnchor(view.bottomAnchor)
-            )
-        )
 
         val inputServices = UIKitTextInputService(
             showSoftwareKeyboard = {
@@ -485,7 +571,10 @@ internal actual class ComposeWindow : UIViewController {
             override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
                 point.useContents {
                     val hitsInteropView = attachedComposeContext?.scene?.mainOwner?.hitInteropView(
-                        pointerPosition = Offset((x * density.density).toFloat(), (y * density.density).toFloat()),
+                        pointerPosition = Offset(
+                            (x * density.density).toFloat(),
+                            (y * density.density).toFloat()
+                        ),
                         isTouchEvent = true,
                     ) ?: false
 
@@ -544,6 +633,7 @@ internal actual class ComposeWindow : UIViewController {
 
         attachedComposeContext =
             AttachedComposeContext(scene, skikoUIView).also {
+                it.setConstraintsToFillView(view)
                 updateLayout(it)
             }
     }
