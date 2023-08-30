@@ -21,7 +21,9 @@ import org.junit.Test
 
 class EqualityOfCalendarModelsTest {
 
-    // copy of Android CalendarModelTest.equalModelsOutput with KotlinxDatetimeCalendarModel
+    // Copy of Android CalendarModelTest.equalModelsOutput
+    // with KotlinxDatetimeCalendarModel and different time zones.
+    // Ensures that models have the same implementation
     @Test
     fun equalModelsOutput() {
         // Note: This test ignores the parameters and just runs a few equality tests for the output.
@@ -29,30 +31,41 @@ class EqualityOfCalendarModelsTest {
         val newModel = KotlinxDatetimeCalendarModel()
         val legacyModel = LegacyCalendarModelImpl()
 
-        val date = newModel.getCanonicalDate(January2022Millis) // 1/1/2022
-        val legacyDate = legacyModel.getCanonicalDate(January2022Millis)
-        val month = newModel.getMonth(date)
-        val legacyMonth = legacyModel.getMonth(date)
+        val defaultTZ = getTimeZone()
 
-        Truth.assertThat(newModel.today).isEqualTo(legacyModel.today)
-        Truth.assertThat(month).isEqualTo(legacyMonth)
-        Truth.assertThat(newModel.getDateInputFormat()).isEqualTo(legacyModel.getDateInputFormat())
-        Truth.assertThat(newModel.plusMonths(month, 3)).isEqualTo(legacyModel.plusMonths(month, 3))
-        Truth.assertThat(date).isEqualTo(legacyDate)
-        Truth.assertThat(newModel.getDayOfWeek(date)).isEqualTo(legacyModel.getDayOfWeek(date))
-        if (supportsDateSkeleton) {
-            Truth.assertThat(newModel.formatWithSkeleton(date, "MMM d, yyyy")).isEqualTo(
-                legacyModel.formatWithSkeleton(
-                    date,
-                    "MMM d, yyyy"
+        listOf("GMT-12", "GMT-5", "GMT+5", "GMT+12").forEach {
+
+            setTimeZone(it)
+
+            val date = newModel.getCanonicalDate(January2022Millis) // 1/1/2022
+            val legacyDate = legacyModel.getCanonicalDate(January2022Millis)
+            val month = newModel.getMonth(date)
+            val legacyMonth = legacyModel.getMonth(date)
+
+            Truth.assertThat(newModel.today).isEqualTo(legacyModel.today)
+            Truth.assertThat(month).isEqualTo(legacyMonth)
+            Truth.assertThat(newModel.getDateInputFormat())
+                .isEqualTo(legacyModel.getDateInputFormat())
+            Truth.assertThat(newModel.plusMonths(month, 3))
+                .isEqualTo(legacyModel.plusMonths(month, 3))
+            Truth.assertThat(date).isEqualTo(legacyDate)
+            Truth.assertThat(newModel.getDayOfWeek(date)).isEqualTo(legacyModel.getDayOfWeek(date))
+            if (supportsDateSkeleton) {
+                Truth.assertThat(newModel.formatWithSkeleton(date, "MMM d, yyyy")).isEqualTo(
+                    legacyModel.formatWithSkeleton(
+                        date,
+                        "MMM d, yyyy"
+                    )
                 )
-            )
-            Truth.assertThat(newModel.formatWithSkeleton(month, "MMM yyyy")).isEqualTo(
-                legacyModel.formatWithSkeleton(
-                    month,
-                    "MMM yyyy"
+                Truth.assertThat(newModel.formatWithSkeleton(month, "MMM yyyy")).isEqualTo(
+                    legacyModel.formatWithSkeleton(
+                        month,
+                        "MMM yyyy"
+                    )
                 )
-            )
+            }
         }
+
+        setTimeZone(defaultTZ)
     }
 }

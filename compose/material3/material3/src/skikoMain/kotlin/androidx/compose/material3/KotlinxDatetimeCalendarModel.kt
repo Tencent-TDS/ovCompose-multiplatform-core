@@ -31,10 +31,10 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
 
     override val today: CalendarDate
         get() = Clock.System.now()
-            .toLocalDateTime(TimeZone.UTC)
+            .toLocalDateTime(systemTZ)
             .date
             .atStartOfDayIn(TimeZone.UTC)
-            .toCalendarDate(systemTZ)
+            .toCalendarDate(TimeZone.UTC)
 
     override val firstDayOfWeek: Int
         get() = PlatformDateFormat.firstDayOfWeek
@@ -87,7 +87,7 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
     override fun getDayOfWeek(date: CalendarDate): Int {
         return Instant
             .fromEpochMilliseconds(date.utcTimeMillis)
-            .toLocalDateTime(systemTZ)
+            .toLocalDateTime(TimeZone.UTC)
             .dayOfWeek.isoDayNumber
     }
 
