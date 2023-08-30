@@ -85,10 +85,11 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
     }
 
     override fun getDayOfWeek(date: CalendarDate): Int {
-        return Instant
-            .fromEpochMilliseconds(date.utcTimeMillis)
-            .toLocalDateTime(TimeZone.UTC)
-            .dayOfWeek.isoDayNumber
+        return LocalDate(
+            year = date.year,
+            monthNumber = date.month,
+            dayOfMonth = date.dayOfMonth
+        ).dayOfWeek.isoDayNumber
     }
 
     override fun plusMonths(from: CalendarMonth, addedMonthsCount: Int): CalendarMonth {
