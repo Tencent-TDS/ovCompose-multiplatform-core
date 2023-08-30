@@ -54,11 +54,7 @@ val UIKitRenderSync = Screen.Example("UIKitRenderSync") {
                 )
 
                 2 -> TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
-                else -> ComposeUITextField(
-                    text,
-                    onValueChange = { text = it },
-                    Modifier.fillMaxWidth().height(40.dp)
-                )
+                else -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
             }
         }
     }
