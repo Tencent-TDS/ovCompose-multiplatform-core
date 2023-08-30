@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-package androidx.compose.material3
+package androidx.compose.mpp.demo
 
-import androidx.compose.ui.text.intl.Locale
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
 
-actual fun calendarLocale(language: String, country : String): CalendarLocale {
-    return Locale("$language-$country")
-}
 
-actual val supportsDateSkeleton: Boolean
-    get() = true
-
-// not implemented
-actual fun setTimeZone(id: String) {
-}
-
-// not implemented
-actual fun getTimeZone(): String {
-    return ""
+// https://github.com/JetBrains/compose-multiplatform/issues/3560
+@Composable
+fun CodeViewerReproducer() {
+    SelectionContainer {
+        LazyColumn {
+            items(100) {
+                Text(text = "Text $it",)
+            }
+        }
+    }
 }

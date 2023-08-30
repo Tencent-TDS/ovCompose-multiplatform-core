@@ -14,22 +14,12 @@
  * limitations under the License.
  */
 
-package androidx.compose.material3
+package androidx.compose.foundation.text
 
-import androidx.compose.ui.text.intl.Locale
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.OverscrollEffect
+import androidx.compose.runtime.Composable
 
-actual fun calendarLocale(language: String, country : String): CalendarLocale {
-    return Locale("$language-$country")
-}
-
-actual val supportsDateSkeleton: Boolean
-    get() = true
-
-// not implemented
-actual fun setTimeZone(id: String) {
-}
-
-// not implemented
-actual fun getTimeZone(): String {
-    return ""
-}
+@ExperimentalFoundationApi
+@Composable
+internal actual fun rememberTextFieldOverscrollEffect(): OverscrollEffect? = null
