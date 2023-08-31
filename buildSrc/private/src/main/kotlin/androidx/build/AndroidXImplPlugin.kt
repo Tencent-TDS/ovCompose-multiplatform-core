@@ -510,11 +510,12 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
             }
         }
 
-        // Standard docs, resource API, and Metalava configuration for AndroidX projects.
-        project.configureProjectForApiTasks(
-            LibraryApiTaskConfig(libraryExtension),
-            androidXExtension
-        )
+// commenting, as the jb-fork doesn't have API checks yet, and this can break build in certain cases
+//        // Standard docs, resource API, and Metalava configuration for AndroidX projects.
+//        project.configureProjectForApiTasks(
+//            LibraryApiTaskConfig(libraryExtension),
+//            androidXExtension
+//        )
 
         project.addToProjectMap(androidXExtension)
     }
@@ -562,12 +563,16 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         if (project.multiplatformExtension == null) {
             project.configureNonAndroidProjectForLint(extension)
         }
+        @Suppress("UNUSED_VARIABLE")
         val apiTaskConfig = if (project.multiplatformExtension != null) {
             KmpApiTaskConfig
         } else {
             JavaApiTaskConfig
         }
-        project.configureProjectForApiTasks(apiTaskConfig, extension)
+
+
+// commenting, as the jb-fork doesn't have API checks yet, and this can break build in certain cases
+//        project.configureProjectForApiTasks(apiTaskConfig, extension)
 
         project.afterEvaluate {
             if (extension.shouldRelease()) {
