@@ -361,9 +361,12 @@ internal actual class ComposeWindow : UIViewController {
     ) {
         super.viewWillTransitionToSize(size, withTransitionCoordinator)
 
-        if (isInsideSwiftUI) {
+        if (isInsideSwiftUI || presentingViewController != null) {
             // SwiftUI will do full layout and scene constraints update on each frame of orientation change animation
             // This logic is not needed
+
+            // When presented modally, UIKit performs non-trivial hierarchy update durting orientation change,
+            // its logic is not feasible to integrate into
             return
         }
 
