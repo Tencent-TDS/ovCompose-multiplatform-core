@@ -99,41 +99,34 @@ private class AttachedComposeContext(
     val scene: ComposeScene,
     val view: SkikoUIView,
 ) {
-    private var constraints: List<NSLayoutConstraint> = listOf()
+    private var constraints: List<NSLayoutConstraint> = emptyList()
+        set(value) {
+            if (field.isNotEmpty()) {
+                NSLayoutConstraint.deactivateConstraints(field)
+            }
+            field = value
+            NSLayoutConstraint.activateConstraints(value)
+        }
 
     fun setConstraintsToCenterInView(parentView: UIView, size: CValue<CGSize>) {
         size.useContents {
-            setConstraints(
-                newConstraints = listOf(
-                    view.centerXAnchor.constraintEqualToAnchor(parentView.centerXAnchor),
-                    view.centerYAnchor.constraintEqualToAnchor(parentView.centerYAnchor),
-                    view.widthAnchor.constraintEqualToConstant(width),
-                    view.heightAnchor.constraintEqualToConstant(height)
-                )
+            constraints = listOf(
+                view.centerXAnchor.constraintEqualToAnchor(parentView.centerXAnchor),
+                view.centerYAnchor.constraintEqualToAnchor(parentView.centerYAnchor),
+                view.widthAnchor.constraintEqualToConstant(width),
+                view.heightAnchor.constraintEqualToConstant(height)
             )
         }
     }
 
     fun setConstraintsToFillView(parentView: UIView) {
-        setConstraints(
-            newConstraints = listOf(
-                view.leftAnchor.constraintEqualToAnchor(parentView.leftAnchor),
-                view.rightAnchor.constraintEqualToAnchor(parentView.rightAnchor),
-                view.topAnchor.constraintEqualToAnchor(parentView.topAnchor),
-                view.bottomAnchor.constraintEqualToAnchor(parentView.bottomAnchor)
-            )
+        constraints = listOf(
+            view.leftAnchor.constraintEqualToAnchor(parentView.leftAnchor),
+            view.rightAnchor.constraintEqualToAnchor(parentView.rightAnchor),
+            view.topAnchor.constraintEqualToAnchor(parentView.topAnchor),
+            view.bottomAnchor.constraintEqualToAnchor(parentView.bottomAnchor)
         )
     }
-
-    private fun setConstraints(newConstraints: List<NSLayoutConstraint>) {
-        if (constraints.isNotEmpty()) {
-            NSLayoutConstraint.deactivateConstraints(constraints)
-        }
-
-        constraints = newConstraints
-        NSLayoutConstraint.activateConstraints(newConstraints)
-    }
-
     fun dispose() {
         scene.close()
         view.dispose()
