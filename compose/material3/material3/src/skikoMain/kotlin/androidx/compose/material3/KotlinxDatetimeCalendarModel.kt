@@ -30,9 +30,9 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
-internal class KotlinxDatetimeCalendarModel : CalendarModel {
+internal val Midnight = LocalTime(0,0)
 
-    private val midnight = LocalTime(0,0)
+internal class KotlinxDatetimeCalendarModel : CalendarModel {
 
     override val today: CalendarDate
         get() {
@@ -42,7 +42,7 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
                 month = localDate.monthNumber,
                 dayOfMonth = localDate.dayOfMonth,
                 utcTimeMillis = localDate.date
-                    .atTime(midnight)
+                    .atTime(Midnight)
                     .toInstant(TimeZone.UTC)
                     .toEpochMilliseconds()
             )
@@ -90,7 +90,7 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
             year = year,
             monthNumber = month,
             dayOfMonth = 1,
-        ).atTime(midnight)
+        ).atTime(Midnight)
             .toInstant(TimeZone.UTC)
 
         return getMonth(instant.toEpochMilliseconds())
@@ -110,7 +110,7 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
             .toLocalDateTime(TimeZone.UTC)
             .date
             .plus(DatePeriod(months = addedMonthsCount))
-            .atTime(midnight)
+            .atTime(Midnight)
             .toInstant(TimeZone.UTC)
             .toCalendarMonth(TimeZone.UTC)
     }
@@ -151,7 +151,7 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
             daysFromStartOfWeekToFirstOfMonth = monthStart
                 .daysFromStartOfWeekToFirstOfMonth(),
             startUtcTimeMillis = monthStart
-                .atTime(midnight)
+                .atTime(Midnight)
                 .toInstant(TimeZone.UTC)
                 .toEpochMilliseconds()
         )

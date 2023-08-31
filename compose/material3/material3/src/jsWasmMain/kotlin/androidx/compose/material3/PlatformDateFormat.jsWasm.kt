@@ -152,7 +152,7 @@ internal actual object PlatformDateFormat {
 
         return LocalDate(
             year, month, day
-        ).atTime(hour = 0, minute = 0)
+        ).atTime(Midnight)
             .toInstant(TimeZone.UTC)
             .toCalendarDate(TimeZone.UTC)
     }
