@@ -23,18 +23,26 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.atTime
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
 internal class KotlinxDatetimeCalendarModel : CalendarModel {
 
     override val today: CalendarDate
-        get() = Clock.System.now()
-            .toLocalDateTime(systemTZ)
-            .date
-            .atStartOfDayIn(TimeZone.UTC)
-            .toCalendarDate(TimeZone.UTC)
+        get() {
+            val localDate = Clock.System.now().toLocalDateTime(systemTZ)
+            return CalendarDate(
+                year = localDate.year,
+                month = localDate.monthNumber,
+                dayOfMonth = localDate.dayOfMonth,
+                utcTimeMillis = localDate.date
+                    .atStartOfDayIn(TimeZone.UTC)
+                    .toEpochMilliseconds()
+            )
+        }
 
     override val firstDayOfWeek: Int
         get() = PlatformDateFormat.firstDayOfWeek
