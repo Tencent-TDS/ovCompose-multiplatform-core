@@ -42,7 +42,6 @@ import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
-import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import org.jetbrains.skia.Surface
 import org.jetbrains.skiko.SkikoKeyboardEvent
@@ -315,6 +314,12 @@ internal actual class ComposeWindow : UIViewController {
         } // rootView needs to interop with UIKit
     }
 
+    override fun viewDidLoad() {
+        super.viewDidLoad()
+
+        configuration.delegate.viewDidLoad()
+    }
+
     override fun traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
 
@@ -414,13 +419,14 @@ internal actual class ComposeWindow : UIViewController {
     override fun viewWillAppear(animated: Boolean) {
         super.viewWillAppear(animated)
 
-        attachComposeIfNeeded()
-
         isInsideSwiftUI = checkIfInsideSwiftUI()
+        attachComposeIfNeeded()
+        configuration.delegate.viewWillAppear(animated)
     }
 
     override fun viewDidAppear(animated: Boolean) {
         super.viewDidAppear(animated)
+
         NSNotificationCenter.defaultCenter.addObserver(
             observer = keyboardVisibilityListener,
             selector = NSSelectorFromString(keyboardVisibilityListener::keyboardWillShow.name + ":"),
@@ -433,6 +439,9 @@ internal actual class ComposeWindow : UIViewController {
             name = UIKeyboardWillHideNotification,
             `object` = null
         )
+
+        configuration.delegate.viewDidAppear(animated)
+
     }
 
     // viewDidUnload() is deprecated and not called.
@@ -449,6 +458,8 @@ internal actual class ComposeWindow : UIViewController {
             name = UIKeyboardWillHideNotification,
             `object` = null
         )
+
+        configuration.delegate.viewWillDisappear(animated)
     }
 
     override fun viewDidDisappear(animated: Boolean) {
@@ -459,6 +470,8 @@ internal actual class ComposeWindow : UIViewController {
         dispatch_async(dispatch_get_main_queue()) {
             kotlin.native.internal.GC.collect()
         }
+
+        configuration.delegate.viewDidDisappear(animated)
     }
 
     override fun didReceiveMemoryWarning() {
