@@ -20,6 +20,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -31,6 +32,8 @@ import kotlinx.datetime.toLocalDateTime
 
 internal class KotlinxDatetimeCalendarModel : CalendarModel {
 
+    private val midnight = LocalTime(0,0)
+
     override val today: CalendarDate
         get() {
             val localDate = Clock.System.now().toLocalDateTime(systemTZ)
@@ -39,7 +42,8 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
                 month = localDate.monthNumber,
                 dayOfMonth = localDate.dayOfMonth,
                 utcTimeMillis = localDate.date
-                    .atStartOfDayIn(TimeZone.UTC)
+                    .atTime(midnight)
+                    .toInstant(TimeZone.UTC)
                     .toEpochMilliseconds()
             )
         }
@@ -86,7 +90,8 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
             year = year,
             monthNumber = month,
             dayOfMonth = 1,
-        ).atStartOfDayIn(TimeZone.UTC)
+        ).atTime(midnight)
+            .toInstant(TimeZone.UTC)
 
         return getMonth(instant.toEpochMilliseconds())
     }
@@ -105,7 +110,8 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
             .toLocalDateTime(TimeZone.UTC)
             .date
             .plus(DatePeriod(months = addedMonthsCount))
-            .atStartOfDayIn(TimeZone.UTC)
+            .atTime(midnight)
+            .toInstant(TimeZone.UTC)
             .toCalendarMonth(TimeZone.UTC)
     }
 
@@ -145,7 +151,8 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
             daysFromStartOfWeekToFirstOfMonth = monthStart
                 .daysFromStartOfWeekToFirstOfMonth(),
             startUtcTimeMillis = monthStart
-                .atStartOfDayIn(TimeZone.UTC)
+                .atTime(midnight)
+                .toInstant(TimeZone.UTC)
                 .toEpochMilliseconds()
         )
     }

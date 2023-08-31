@@ -21,7 +21,8 @@ import kotlin.js.Date
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.atTime
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
 internal actual object PlatformDateFormat {
@@ -151,7 +152,8 @@ internal actual object PlatformDateFormat {
 
         return LocalDate(
             year, month, day
-        ).atStartOfDayIn(TimeZone.UTC)
+        ).atTime(hour = 0, minute = 0)
+            .toInstant(TimeZone.UTC)
             .toCalendarDate(TimeZone.UTC)
     }
 
