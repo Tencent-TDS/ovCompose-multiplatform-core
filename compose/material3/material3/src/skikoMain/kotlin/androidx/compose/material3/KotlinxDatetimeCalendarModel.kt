@@ -30,8 +30,6 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
-internal val Midnight = LocalTime(0,0)
-
 internal class KotlinxDatetimeCalendarModel : CalendarModel {
 
     override val today: CalendarDate
@@ -174,6 +172,8 @@ internal fun Instant.toCalendarDate(
         utcTimeMillis = toEpochMilliseconds()
     )
 }
+
+internal val Midnight = LocalTime(0,0)
 
 private fun Int.isLeapYear() = this % 4 == 0 && (this % 100 != 0 || this % 400 == 0)
 
