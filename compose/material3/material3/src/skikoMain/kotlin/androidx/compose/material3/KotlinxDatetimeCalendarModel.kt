@@ -46,13 +46,12 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
         get() = TimeZone.currentSystemDefault()
 
     fun weekdayNames(locale: CalendarLocale): List<Pair<String, String>> {
-        return PlatformDateFormat.weekdayNames(locale) ?: EnglishWeekdaysNames
+        return PlatformDateFormat.weekdayNames(locale)
     }
 
     override fun getDateInputFormat(locale: CalendarLocale): DateInputFormat {
         return PlatformDateFormat
             .getDateInputFormat(locale)
-            .applyCalendarModelStyle()
     }
 
     override fun getCanonicalDate(timeInMillis: Long): CalendarDate {
@@ -143,58 +142,9 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
         )
     }
 
-    /**
-     * Applies some specific rules to fit the Android one
-     * */
-    private fun DateInputFormat.applyCalendarModelStyle() : DateInputFormat {
-
-        var pattern = patternWithDelimiters
-        // the following checks are the result of testing
-
-        // most of time dateFormat returns dd.MM.y -> we need dd.MM.yyyy
-        if (!pattern.contains("yyyy", true)) {
-
-            // it can also return dd.MM.yy because such formats exist so check for it
-            while (pattern.contains("yy", true)) {
-                pattern = pattern.replace("yy", "y",true)
-            }
-
-            pattern = pattern.replace("y", "yyyy",true)
-        }
-
-        // it can return M.d -> we need MM.dd
-        if ("MM" !in pattern){
-            pattern = pattern.replace("M","MM")
-        }
-        if ("dd" !in pattern){
-            pattern = pattern.replace("d", "dd")
-        }
-
-        // it can return "yyyy. MM. dd."
-        pattern = pattern
-            .dropWhile { !it.isLetter() } // remove prefix non-letters
-            .dropLastWhile { !it.isLetter() } // remove suffix non-letters
-            .filter { it != ' ' } // remove whitespaces
-
-        val delimiter = pattern.first { !it.isLetter() }
-
-        return DateInputFormat(pattern, delimiter)
-    }
-
-
     private fun LocalDate.daysFromStartOfWeekToFirstOfMonth() =
         (dayOfWeek.isoDayNumber - firstDayOfWeek).let { if (it > 0) it else 7 + it }
 }
-
-private val EnglishWeekdaysNames = listOf(
-    "Monday" to "Mon",
-    "Tuesday" to "Tue",
-    "Wednesday" to "Wed",
-    "Thursday" to "Thu",
-    "Friday" to "Fri",
-    "Saturday" to "Sat",
-    "Sunday" to "Sun",
-)
 
 internal fun Instant.toCalendarDate(
     timeZone : TimeZone
