@@ -146,6 +146,7 @@ internal actual class ComposeWindow : UIViewController {
 
     internal lateinit var configuration: ComposeUIViewControllerConfiguration
     private val keyboardOverlapHeightState = mutableStateOf(0f)
+    private var isInsideSwiftUI = false
     private val safeAreaState = mutableStateOf(IOSInsets())
     private val layoutMarginsState = mutableStateOf(IOSInsets())
     private val interopContext = UIKitInteropContext(requestRedraw = {
@@ -360,6 +361,12 @@ internal actual class ComposeWindow : UIViewController {
     ) {
         super.viewWillTransitionToSize(size, withTransitionCoordinator)
 
+        if (isInsideSwiftUI) {
+            // SwiftUI will do full layout and scene constraints update on each frame of orientation change animation
+            // This logic is not needed
+            return
+        }
+
         val attachedComposeContext = attachedComposeContext ?: return
 
         // Happens during orientation change from LandscapeLeft to LandscapeRight, for example
@@ -412,6 +419,8 @@ internal actual class ComposeWindow : UIViewController {
         super.viewWillAppear(animated)
 
         attachComposeIfNeeded()
+
+        isInsideSwiftUI = checkIfInsideSwiftUI()
     }
 
     override fun viewDidAppear(animated: Boolean) {
@@ -640,6 +649,27 @@ internal actual class ComposeWindow : UIViewController {
             }
     }
 }
+
+private fun UIViewController.checkIfInsideSwiftUI(): Boolean {
+        var parent = parentViewController
+
+        while (parent != null) {
+            val isUIHostingController = parent.`class`()?.let {
+                val className = NSStringFromClass(it)
+                // SwiftUI UIHostingController has mangled name depending on generic instantiation type,
+                // It always contains UIHostingController substring though
+                return className.contains("UIHostingController")
+            } ?: false
+
+            if (isUIHostingController) {
+                return true
+            }
+
+            parent = parent.parentViewController
+        }
+
+        return false
+    }
 
 private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
     return when (this) {
