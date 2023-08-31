@@ -48,7 +48,6 @@ internal interface Platform {
     val textToolbar: TextToolbar
 
     companion object {
-        @OptIn(ExperimentalComposeUiApi::class)
         val Empty = object : Platform {
             override val windowInfo = WindowInfoImpl().apply {
                 // true is a better default if platform doesn't provide WindowInfo.

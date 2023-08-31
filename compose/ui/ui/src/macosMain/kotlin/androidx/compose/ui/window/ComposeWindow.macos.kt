@@ -18,18 +18,24 @@ package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.createSkiaLayer
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.MacosTextInputService
 import androidx.compose.ui.platform.Platform
+import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
+import kotlin.math.roundToInt
 import platform.AppKit.*
 import platform.Foundation.*
 import kotlinx.cinterop.*
 
 internal actual class ComposeWindow actual constructor() {
     private val macosTextInputService = MacosTextInputService()
+    private val _windowInfo = WindowInfoImpl().apply {
+        isWindowFocused = true
+    }
     val platform: Platform = object : Platform by Platform.Empty {
+        override val windowInfo get() = _windowInfo
         override val textInputService = macosTextInputService
     }
     val layer = ComposeLayer(
@@ -56,11 +62,16 @@ internal actual class ComposeWindow actual constructor() {
     init {
         layer.layer.attachTo(nsWindow)
         nsWindow.orderFrontRegardless()
-        contentRect.useContents {
-            val scale = nsWindow.backingScaleFactor.toFloat()
-            layer.setDensity(Density(scale))
-            layer.setSize((size.width * scale).toInt(), (size.height * scale).toInt())
+        val scale = nsWindow.backingScaleFactor.toFloat()
+        val size = contentRect.useContents {
+            IntSize(
+                width = (size.width * scale).roundToInt(),
+                height = (size.height * scale).roundToInt()
+            )
         }
+        _windowInfo.size = size
+        layer.setDensity(Density(scale))
+        layer.setSize(size.width, size.height)
     }
 
     /**

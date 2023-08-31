@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.toPointerKeyboardModifiers
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowExceptionHandler
@@ -46,6 +47,7 @@ import javax.accessibility.Accessible
 import javax.swing.JComponent
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineExceptionHandler
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.*
@@ -301,9 +303,15 @@ internal abstract class ComposeBridge {
     }
 
     protected fun updateSceneSize() {
+        val scale = scene.density.density
+        val size = IntSize(
+            width = (component.width * scale).roundToInt(),
+            height = (component.height * scale).roundToInt()
+        )
+        platform.windowInfo.size = size
         scene.constraints = Constraints(
-            maxWidth = (component.width * scene.density.density).toInt(),
-            maxHeight = (component.height * scene.density.density).toInt()
+            maxWidth = size.width,
+            maxHeight = size.height
         )
     }
 
