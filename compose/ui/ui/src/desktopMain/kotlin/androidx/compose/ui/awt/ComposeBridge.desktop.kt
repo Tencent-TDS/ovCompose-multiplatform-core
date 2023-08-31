@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
-import androidx.compose.ui.window.layoutDirection
 import java.awt.*
 import java.awt.Cursor
 import java.awt.event.*

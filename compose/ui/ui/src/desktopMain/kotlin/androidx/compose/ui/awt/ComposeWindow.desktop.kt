@@ -25,6 +25,7 @@ import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.layoutDirection
 import java.awt.Component
+import java.awt.ComponentOrientation
 import java.awt.GraphicsConfiguration
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
@@ -63,14 +64,11 @@ class ComposeWindow @ExperimentalComposeUiApi constructor(
         window = this,
         isUndecorated = ::isUndecorated,
         skiaLayerAnalytics = skiaLayerAnalytics,
-        layoutDirection = (this as Component).layoutDirection,
+        layoutDirection = layoutDirection
     )
 
     internal val scene: ComposeScene
         get() = delegate.scene
-
-    @ExperimentalComposeUiApi
-    var layoutDirection by scene::layoutDirection
 
     // Don't override the accessible context of JFrame, since accessibility work through HardwareLayer
     internal val windowAccessible: Accessible
@@ -83,6 +81,12 @@ class ComposeWindow @ExperimentalComposeUiApi constructor(
     override fun add(component: Component) = delegate.add(component)
 
     override fun remove(component: Component) = delegate.remove(component)
+
+    override fun setComponentOrientation(o: ComponentOrientation?) {
+        super.setComponentOrientation(o)
+
+        scene.layoutDirection = this.layoutDirection
+    }
 
     /**
      * Handler to catch uncaught exceptions during rendering frames, handling events,
@@ -132,6 +136,11 @@ class ComposeWindow @ExperimentalComposeUiApi constructor(
         onKeyEvent: (KeyEvent) -> Boolean = { false },
         content: @Composable FrameWindowScope.() -> Unit
     ) {
+        // Backwards compatibility; the default layout direction used to be determined by the locale
+        if (componentOrientation == ComponentOrientation.UNKNOWN) {
+            componentOrientation = ComponentOrientation.getOrientation(locale)
+        }
+
         val scope = object : FrameWindowScope {
             override val window: ComposeWindow get() = this@ComposeWindow
         }

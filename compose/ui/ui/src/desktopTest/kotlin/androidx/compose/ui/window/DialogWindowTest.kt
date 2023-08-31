@@ -47,10 +47,12 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.window.toSize
 import com.google.common.truth.Truth.assertThat
+import java.awt.ComponentOrientation
 import java.awt.Dimension
 import java.awt.event.KeyEvent
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import java.util.*
 import kotlin.test.assertEquals
 import org.junit.Test
 
@@ -602,5 +604,64 @@ class DialogWindowTest {
         layoutDirection = LayoutDirection.Ltr
         awaitIdle()
         assertThat(localLayoutDirection).isEqualTo(LayoutDirection.Ltr)
+    }
+
+    @Test
+    fun `dialog changes LayoutDirection from ComponentOrientation`() = runApplicationTest {
+        lateinit var localLayoutDirection: LayoutDirection
+        lateinit var dialog: ComposeDialog
+
+        launchTestApplication {
+            dialog = ComposeDialog()
+            dialog.componentOrientation = ComponentOrientation.RIGHT_TO_LEFT
+
+            dialog.setContent {
+                localLayoutDirection = LocalLayoutDirection.current
+            }
+            dialog.isVisible = true
+        }
+        awaitIdle()
+
+        assertThat(localLayoutDirection).isEqualTo(LayoutDirection.Rtl)
+
+        // Test that changing the orientation changes the local
+        dialog.componentOrientation = ComponentOrientation.LEFT_TO_RIGHT
+        awaitIdle()
+        assertThat(localLayoutDirection).isEqualTo(LayoutDirection.Ltr)
+
+        dialog.isVisible = false
+    }
+
+    @Test
+    fun `locale determines default layout direction for dialog`() = runApplicationTest {
+        lateinit var rtlDialogLayoutDirection: LayoutDirection
+        lateinit var ltrDialogLayoutDirection: LayoutDirection
+        lateinit var rtlDialog: ComposeDialog
+        lateinit var ltrDialog: ComposeDialog
+
+        launchTestApplication {
+            ltrDialog = ComposeDialog()
+            ltrDialog.locale = Locale("en")
+
+            ltrDialog.setContent {
+                ltrDialogLayoutDirection = LocalLayoutDirection.current
+            }
+            ltrDialog.isVisible = true
+
+            rtlDialog = ComposeDialog()
+            rtlDialog.locale = Locale("he")
+
+            rtlDialog.setContent {
+                rtlDialogLayoutDirection = LocalLayoutDirection.current
+            }
+            rtlDialog.isVisible = true
+        }
+        awaitIdle()
+
+        assertThat(ltrDialogLayoutDirection).isEqualTo(LayoutDirection.Ltr)
+        assertThat(rtlDialogLayoutDirection).isEqualTo(LayoutDirection.Rtl)
+
+        ltrDialog.dispose()
+        rtlDialog.dispose()
     }
 }

@@ -44,11 +44,13 @@ import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
 import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
+import java.awt.ComponentOrientation
 import java.awt.Dimension
 import java.awt.GraphicsEnvironment
 import java.awt.Toolkit
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import java.util.*
 import kotlin.test.assertEquals
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -689,5 +691,64 @@ class WindowTest {
         awaitIdle()
         assertThat(windowLayoutDirectionResult).isEqualTo(LayoutDirection.Ltr)
         assertThat(popupLayoutDirectionResult).isEqualTo(LayoutDirection.Rtl)
+    }
+
+    @Test
+    fun `window changes LayoutDirection from ComponentOrientation`() = runApplicationTest {
+        lateinit var localLayoutDirection: LayoutDirection
+        lateinit var window: ComposeWindow
+
+        launchTestApplication {
+            window = ComposeWindow()
+            window.componentOrientation = ComponentOrientation.RIGHT_TO_LEFT
+
+            window.setContent {
+                localLayoutDirection = LocalLayoutDirection.current
+            }
+            window.isVisible = true
+        }
+        awaitIdle()
+
+        assertThat(localLayoutDirection).isEqualTo(LayoutDirection.Rtl)
+
+        // Test that changing the orientation changes the local
+        window.componentOrientation = ComponentOrientation.LEFT_TO_RIGHT
+        awaitIdle()
+        assertThat(localLayoutDirection).isEqualTo(LayoutDirection.Ltr)
+
+        window.dispose()
+    }
+
+    @Test
+    fun `locale determines default layout direction for window`() = runApplicationTest {
+        lateinit var rtlWindowLayoutDirection: LayoutDirection
+        lateinit var ltrWindowLayoutDirection: LayoutDirection
+        lateinit var rtlWindow: ComposeWindow
+        lateinit var ltrWindow: ComposeWindow
+
+        launchTestApplication {
+            ltrWindow = ComposeWindow()
+            ltrWindow.locale = Locale("en")
+
+            ltrWindow.setContent {
+                ltrWindowLayoutDirection = LocalLayoutDirection.current
+            }
+            ltrWindow.isVisible = true
+
+            rtlWindow = ComposeWindow()
+            rtlWindow.locale = Locale("he")
+
+            rtlWindow.setContent {
+                rtlWindowLayoutDirection = LocalLayoutDirection.current
+            }
+            rtlWindow.isVisible = true
+        }
+        awaitIdle()
+
+        assertThat(ltrWindowLayoutDirection).isEqualTo(LayoutDirection.Ltr)
+        assertThat(rtlWindowLayoutDirection).isEqualTo(LayoutDirection.Rtl)
+
+        ltrWindow.dispose()
+        rtlWindow.dispose()
     }
 }

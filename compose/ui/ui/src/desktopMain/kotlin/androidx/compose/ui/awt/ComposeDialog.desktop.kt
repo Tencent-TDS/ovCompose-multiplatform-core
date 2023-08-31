@@ -23,12 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.DialogWindowScope
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.layoutDirection
 import org.jetbrains.skiko.GraphicsApi
 import java.awt.Component
+import java.awt.ComponentOrientation
 import java.awt.Frame
 import java.awt.GraphicsConfiguration
 import java.awt.Window
@@ -49,20 +49,11 @@ class ComposeDialog : JDialog {
     internal val scene: ComposeScene
         get() = delegate.scene
 
-    @ExperimentalComposeUiApi
-    var layoutDirection: LayoutDirection
-        // Can't use `by scene::layoutDirection` because `delegate` hasn't been created yet
-        // when this property is initialized
-        get() = scene.layoutDirection
-        set(value) {
-            scene.layoutDirection = value
-        }
-
     private fun createDelegate() = ComposeWindowDelegate(
         window = this,
         isUndecorated = ::isUndecorated,
         skiaLayerAnalytics = skiaLayerAnalytics,
-        layoutDirection = (this as Component).layoutDirection,
+        layoutDirection = layoutDirection,
     )
 
     constructor(
@@ -141,6 +132,12 @@ class ComposeDialog : JDialog {
 
     override fun remove(component: Component) = delegate.remove(component)
 
+    override fun setComponentOrientation(o: ComponentOrientation?) {
+        super.setComponentOrientation(o)
+
+        scene.layoutDirection = this.layoutDirection
+    }
+
     /**
      * Composes the given composable into the ComposeDialog.
      *
@@ -197,6 +194,11 @@ class ComposeDialog : JDialog {
         onKeyEvent: ((KeyEvent) -> Boolean) = { false },
         content: @Composable DialogWindowScope.() -> Unit
     ) {
+        // Backwards compatibility; The default layout direction used to be determined by the locale
+        if (componentOrientation == ComponentOrientation.UNKNOWN) {
+            componentOrientation = ComponentOrientation.getOrientation(locale)
+        }
+
         val scope = object : DialogWindowScope {
             override val window: ComposeDialog get() = this@ComposeDialog
         }

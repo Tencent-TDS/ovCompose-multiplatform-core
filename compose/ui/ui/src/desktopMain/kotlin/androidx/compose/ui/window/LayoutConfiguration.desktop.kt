@@ -47,12 +47,21 @@ private val GraphicsConfiguration.density: Density get() = Density(
 
 internal val GlobalLayoutDirection get() = Locale.getDefault().layoutDirection
 
-internal val Component.layoutDirection: LayoutDirection
-    get() = this.locale.layoutDirection
-
 internal val Locale.layoutDirection: LayoutDirection
-    get() = if (ComponentOrientation.getOrientation(this).isLeftToRight) {
-        LayoutDirection.Ltr
-    } else {
-        LayoutDirection.Rtl
+    get() = ComponentOrientation.getOrientation(this).layoutDirection
+
+internal val Component.layoutDirection: LayoutDirection
+    get() = this.componentOrientation.layoutDirection
+
+internal val ComponentOrientation.layoutDirection: LayoutDirection
+    get() = when {
+        isLeftToRight -> LayoutDirection.Ltr
+        isHorizontal -> LayoutDirection.Rtl
+        else -> LayoutDirection.Ltr
+    }
+
+internal val LayoutDirection.componentOrientation: ComponentOrientation
+    get() = when(this) {
+        LayoutDirection.Ltr -> ComponentOrientation.LEFT_TO_RIGHT
+        LayoutDirection.Rtl -> ComponentOrientation.RIGHT_TO_LEFT
     }

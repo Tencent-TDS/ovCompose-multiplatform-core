@@ -316,8 +316,8 @@ class ComposeScene internal constructor(
      */
     @ExperimentalComposeUiApi
     var layoutDirection: LayoutDirection = layoutDirection
-        get() = mainOwner?.layoutDirection ?: field
         set(value) {
+            check(!isClosed) { "ComposeScene is closed" }
             field = value
             mainOwner?.layoutDirection = value
         }
