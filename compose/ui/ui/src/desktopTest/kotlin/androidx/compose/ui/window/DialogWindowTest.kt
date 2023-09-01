@@ -545,7 +545,7 @@ class DialogWindowTest {
                         isVisibleOnFirstDraw = window.isVisible
                         isDrawn = true
 
-                        // toInt() because this is how the window rounds decimal sizes
+                        // toInt() because this is how ComposeWindow rounds decimal sizes
                         // (see ComposeBridge.updateSceneSize)
                         actualCanvasSize = size.toInt()
                         expectedCanvasSizePx = expectedCanvasSize().toSize().toInt()
