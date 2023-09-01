@@ -46,10 +46,10 @@ actual interface WindowInfo {
     actual val keyboardModifiers: PointerKeyboardModifiers
 
     /**
-     * Size of the window in pixels.
+     * Size of the window's content container in pixels.
      */
     @ExperimentalComposeUiApi
-    val size: IntSize
+    val containerSize: IntSize
 }
 
 internal class WindowInfoImpl : WindowInfo {
@@ -59,7 +59,7 @@ internal class WindowInfoImpl : WindowInfo {
     override var keyboardModifiers: PointerKeyboardModifiers by GlobalKeyboardModifiers
 
     @ExperimentalComposeUiApi
-    override var size: IntSize by mutableStateOf(IntSize.Zero)
+    override var containerSize: IntSize by mutableStateOf(IntSize.Zero)
 
     companion object {
         // One instance across all windows makes sense, since the state of KeyboardModifiers is

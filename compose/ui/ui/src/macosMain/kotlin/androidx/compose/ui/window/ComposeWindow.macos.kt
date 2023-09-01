@@ -68,7 +68,7 @@ internal actual class ComposeWindow actual constructor() {
                 height = (size.height * scale).toInt()
             )
         }
-        _windowInfo.size = size
+        _windowInfo.containerSize = size
         layer.setDensity(Density(scale))
         layer.setSize(size.width, size.height)
     }

@@ -352,7 +352,7 @@ internal actual class ComposeWindow : UIViewController {
                 height = (size.height * scale).roundToInt()
             )
         }
-        _windowInfo.size = size
+        _windowInfo.containerSize = size
         context.scene.density = density
         context.scene.constraints = Constraints(
             maxWidth = size.width,

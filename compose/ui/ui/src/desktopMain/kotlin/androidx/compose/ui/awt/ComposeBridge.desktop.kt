@@ -307,7 +307,7 @@ internal abstract class ComposeBridge {
             width = (component.width * scale).toInt(),
             height = (component.height * scale).toInt()
         )
-        platform.windowInfo.size = size
+        platform.windowInfo.containerSize = size
         scene.constraints = Constraints(
             maxWidth = size.width,
             maxHeight = size.height

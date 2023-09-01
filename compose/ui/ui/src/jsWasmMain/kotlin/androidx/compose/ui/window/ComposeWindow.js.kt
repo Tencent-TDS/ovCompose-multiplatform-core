@@ -87,7 +87,7 @@ internal actual class ComposeWindow(val canvasId: String)  {
         canvas.setAttribute("tabindex", "0")
         layer.layer.needRedraw()
 
-        _windowInfo.size = IntSize(canvas.width, canvas.height)
+        _windowInfo.containerSize = IntSize(canvas.width, canvas.height)
         layer.setSize(canvas.width, canvas.height)
     }
 
@@ -100,7 +100,7 @@ internal actual class ComposeWindow(val canvasId: String)  {
 
         canvas.width = newSize.width
         canvas.height = newSize.height
-        _windowInfo.size = IntSize(canvas.width, canvas.height)
+        _windowInfo.containerSize = IntSize(canvas.width, canvas.height)
         layer.layer.attachTo(canvas)
         layer.setSize(canvas.width, canvas.height)
         layer.layer.needRedraw()
