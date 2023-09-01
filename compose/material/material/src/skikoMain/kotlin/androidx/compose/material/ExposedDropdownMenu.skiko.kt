@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package androidx.compose.material
 
-import android.graphics.Rect
-import android.view.View
-import android.view.ViewTreeObserver
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -33,37 +30,34 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.internal.ExposedDropdownMenuPopup
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.node.Ref
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.toIntRect
 import kotlin.math.max
 
 /**
@@ -94,11 +88,10 @@ actual fun ExposedDropdownMenuBox(
     content: @Composable ExposedDropdownMenuBoxScope.() -> Unit
 ) {
     val density = LocalDensity.current
-    val view = LocalView.current
+    val windowInfo = LocalWindowInfo.current
     var width by remember { mutableIntStateOf(0) }
     var menuHeight by remember { mutableIntStateOf(0) }
     val verticalMarginInPx = with(density) { MenuVerticalMargin.roundToPx() }
-    val coordinates = remember { Ref<LayoutCoordinates>() }
 
     val scope = remember(density, menuHeight, width) {
         object : ExposedDropdownMenuBoxScope {
@@ -118,10 +111,9 @@ actual fun ExposedDropdownMenuBox(
     Box(
         modifier.onGloballyPositioned {
             width = it.size.width
-            coordinates.value = it
             updateHeight(
-                view.rootView,
-                coordinates.value,
+                windowInfo,
+                it,
                 verticalMarginInPx
             ) { newHeight ->
                 menuHeight = newHeight
@@ -136,59 +128,6 @@ actual fun ExposedDropdownMenuBox(
 
     SideEffect {
         if (expanded) focusRequester.requestFocus()
-    }
-
-    DisposableEffect(view) {
-        val listener = OnGlobalLayoutListener(view) {
-            // We want to recalculate the menu height on relayout - e.g. when keyboard shows up.
-            updateHeight(
-                view.rootView,
-                coordinates.value,
-                verticalMarginInPx
-            ) { newHeight ->
-                menuHeight = newHeight
-            }
-        }
-        onDispose { listener.dispose() }
-    }
-}
-
-/**
- * Subscribes to onGlobalLayout and correctly removes the callback when the View is detached.
- * Logic copied from AndroidPopup.android.kt.
- */
-private class OnGlobalLayoutListener(
-    private val view: View,
-    private val onGlobalLayoutCallback: () -> Unit
-) : View.OnAttachStateChangeListener, ViewTreeObserver.OnGlobalLayoutListener {
-    private var isListeningToGlobalLayout = false
-
-    init {
-        view.addOnAttachStateChangeListener(this)
-        registerOnGlobalLayoutListener()
-    }
-
-    override fun onViewAttachedToWindow(p0: View) = registerOnGlobalLayoutListener()
-
-    override fun onViewDetachedFromWindow(p0: View) = unregisterOnGlobalLayoutListener()
-
-    override fun onGlobalLayout() = onGlobalLayoutCallback()
-
-    private fun registerOnGlobalLayoutListener() {
-        if (isListeningToGlobalLayout || !view.isAttachedToWindow) return
-        view.viewTreeObserver.addOnGlobalLayoutListener(this)
-        isListeningToGlobalLayout = true
-    }
-
-    private fun unregisterOnGlobalLayoutListener() {
-        if (!isListeningToGlobalLayout) return
-        view.viewTreeObserver.removeOnGlobalLayoutListener(this)
-        isListeningToGlobalLayout = false
-    }
-
-    fun dispose() {
-        unregisterOnGlobalLayoutListener()
-        view.removeOnAttachStateChangeListener(this)
     }
 }
 
@@ -211,41 +150,12 @@ actual fun ExposedDropdownMenuBoxScope.ExposedDropdownMenu(
     scrollState: ScrollState,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    // TODO(b/202810604): use DropdownMenu when PopupProperties constructor is stable
-    // return DropdownMenu(
-    //     expanded = expanded,
-    //     onDismissRequest = onDismissRequest,
-    //     modifier = modifier.exposedDropdownSize(),
-    //     properties = ExposedDropdownMenuDefaults.PopupProperties,
-    //     content = content
-    // )
-
-    val expandedStates = remember { MutableTransitionState(false) }
-    expandedStates.targetState = expanded
-
-    if (expandedStates.currentState || expandedStates.targetState) {
-        val transformOriginState = remember { mutableStateOf(TransformOrigin.Center) }
-        val density = LocalDensity.current
-        val popupPositionProvider = DropdownMenuPositionProvider(
-            DpOffset.Zero,
-            density
-        ) { parentBounds, menuBounds ->
-            transformOriginState.value = calculateTransformOrigin(parentBounds, menuBounds)
-        }
-
-        ExposedDropdownMenuPopup(
-            onDismissRequest = onDismissRequest,
-            popupPositionProvider = popupPositionProvider
-        ) {
-            DropdownMenuContent(
-                expandedStates = expandedStates,
-                transformOriginState = transformOriginState,
-                scrollState = scrollState,
-                modifier = modifier.exposedDropdownSize(),
-                content = content
-            )
-        }
-    }
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest,
+        modifier = modifier.exposedDropdownSize(),
+        content = content
+    )
 }
 
 /**
@@ -493,20 +403,18 @@ private fun Modifier.expandable(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 private fun updateHeight(
-    view: View,
+    windowInfo: WindowInfo,
     coordinates: LayoutCoordinates?,
     verticalMarginInPx: Int,
     onHeightUpdate: (Int) -> Unit
 ) {
     coordinates ?: return
-    val visibleWindowBounds = Rect().let {
-        view.getWindowVisibleDisplayFrame(it)
-        it
-    }
-    val heightAbove = coordinates.boundsInWindow().top - visibleWindowBounds.top
-    val heightBelow =
-        visibleWindowBounds.bottom - visibleWindowBounds.top - coordinates.boundsInWindow().bottom
+    val boundsInWindow = coordinates.boundsInWindow()
+    val visibleWindowBounds = windowInfo.size.toIntRect()
+    val heightAbove = boundsInWindow.top - visibleWindowBounds.top
+    val heightBelow = visibleWindowBounds.height - boundsInWindow.bottom
     onHeightUpdate(max(heightAbove, heightBelow).toInt() - verticalMarginInPx)
 }
 
