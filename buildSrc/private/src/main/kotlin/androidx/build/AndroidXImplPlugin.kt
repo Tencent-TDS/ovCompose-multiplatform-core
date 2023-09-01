@@ -510,13 +510,6 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
             }
         }
 
-// commenting, as the jb-fork doesn't have API checks yet, and this can break build in certain cases
-//        // Standard docs, resource API, and Metalava configuration for AndroidX projects.
-//        project.configureProjectForApiTasks(
-//            LibraryApiTaskConfig(libraryExtension),
-//            androidXExtension
-//        )
-
         project.addToProjectMap(androidXExtension)
     }
 
@@ -569,10 +562,6 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         } else {
             JavaApiTaskConfig
         }
-
-
-// commenting, as the jb-fork doesn't have API checks yet, and this can break build in certain cases
-//        project.configureProjectForApiTasks(apiTaskConfig, extension)
 
         project.afterEvaluate {
             if (extension.shouldRelease()) {
