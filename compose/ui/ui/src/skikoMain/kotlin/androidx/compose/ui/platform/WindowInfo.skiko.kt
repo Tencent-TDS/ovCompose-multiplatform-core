@@ -17,7 +17,9 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.EmptyPointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
@@ -51,22 +53,13 @@ actual interface WindowInfo {
 }
 
 internal class WindowInfoImpl : WindowInfo {
-    private val _isWindowFocused = mutableStateOf(false)
-    private val _size = mutableStateOf(IntSize.Zero)
-
-    override var isWindowFocused: Boolean
-        set(value) { _isWindowFocused.value = value }
-        get() = _isWindowFocused.value
+    override var isWindowFocused: Boolean by mutableStateOf(false)
 
     @ExperimentalComposeUiApi
-    override var keyboardModifiers: PointerKeyboardModifiers
-        get() = GlobalKeyboardModifiers.value
-        set(value) { GlobalKeyboardModifiers.value = value }
+    override var keyboardModifiers: PointerKeyboardModifiers by GlobalKeyboardModifiers
 
     @ExperimentalComposeUiApi
-    override var size: IntSize
-        get() = _size.value
-        set(value) { _size.value = value }
+    override var size: IntSize by mutableStateOf(IntSize.Zero)
 
     companion object {
         // One instance across all windows makes sense, since the state of KeyboardModifiers is
