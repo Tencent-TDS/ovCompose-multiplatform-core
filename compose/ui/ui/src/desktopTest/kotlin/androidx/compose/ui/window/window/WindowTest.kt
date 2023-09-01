@@ -622,7 +622,7 @@ class WindowTest {
                     measurePolicy = { _, constraints ->
                         constraintsList.add(constraints)
                         layout(0, 0) { }
-                    },
+                    }
                 )
             }
         }
