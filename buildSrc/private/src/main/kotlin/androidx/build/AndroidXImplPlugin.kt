@@ -556,12 +556,6 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         if (project.multiplatformExtension == null) {
             project.configureNonAndroidProjectForLint(extension)
         }
-        @Suppress("UNUSED_VARIABLE")
-        val apiTaskConfig = if (project.multiplatformExtension != null) {
-            KmpApiTaskConfig
-        } else {
-            JavaApiTaskConfig
-        }
 
         project.afterEvaluate {
             if (extension.shouldRelease()) {
