@@ -19,7 +19,6 @@ package androidx.compose.ui.window.window
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Button
@@ -36,11 +35,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.LeakDetector
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
-import androidx.compose.ui.floor
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.toInt
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
 import androidx.compose.ui.window.runApplicationTest
@@ -51,7 +49,6 @@ import java.awt.Insets
 import java.awt.Toolkit
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
-import kotlin.math.floor
 import kotlin.test.assertEquals
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -447,8 +444,8 @@ class WindowTest {
         var isDrawn = false
         var isVisibleOnFirstComposition = false
         var isVisibleOnFirstDraw = false
-        var actualCanvasSize: Size? = null
-        var expectedCanvasSizePx: Size? = null
+        var actualCanvasSize: IntSize? = null
+        var expectedCanvasSizePx: IntSize? = null
 
         launchTestApplication {
             Window(
@@ -465,9 +462,10 @@ class WindowTest {
                         isVisibleOnFirstDraw = window.isVisible
                         isDrawn = true
 
-                        actualCanvasSize = size
-                        // floor() because layout mechanism doesn't work with float points (to avoid aliasing)
-                        expectedCanvasSizePx = expectedCanvasSize().toSize().floor()
+                        // toInt() because this is how the window rounds decimal sizes
+                        // (see ComposeBridge.updateSceneSize)
+                        actualCanvasSize = size.toInt()
+                        expectedCanvasSizePx = expectedCanvasSize().toSize().toInt()
                     }
                 }
             }

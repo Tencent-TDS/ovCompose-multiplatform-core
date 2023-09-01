@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowPosition
 import java.awt.*
@@ -209,4 +210,4 @@ fun Dimension.toDpSize() = DpSize(width.dp, height.dp)
 
 fun Point.toWindowPosition() = WindowPosition(x.dp, y.dp)
 
-fun Size.floor() = Size(floor(width), floor(height))
+fun Size.toInt() = IntSize(width.toInt(), height.toInt())
