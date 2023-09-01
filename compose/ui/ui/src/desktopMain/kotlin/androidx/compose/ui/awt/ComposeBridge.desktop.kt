@@ -47,7 +47,6 @@ import javax.accessibility.Accessible
 import javax.swing.JComponent
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
-import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineExceptionHandler
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.*
@@ -305,8 +304,8 @@ internal abstract class ComposeBridge {
     protected fun updateSceneSize() {
         val scale = scene.density.density
         val size = IntSize(
-            width = (component.width * scale).roundToInt(),
-            height = (component.height * scale).roundToInt()
+            width = (component.width * scale).toInt(),
+            height = (component.height * scale).toInt()
         )
         platform.windowInfo.size = size
         scene.constraints = Constraints(

@@ -24,7 +24,6 @@ import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
-import kotlin.math.roundToInt
 import platform.AppKit.*
 import platform.Foundation.*
 import kotlinx.cinterop.*
@@ -65,8 +64,8 @@ internal actual class ComposeWindow actual constructor() {
         val scale = nsWindow.backingScaleFactor.toFloat()
         val size = contentRect.useContents {
             IntSize(
-                width = (size.width * scale).roundToInt(),
-                height = (size.height * scale).roundToInt()
+                width = (size.width * scale).toInt(),
+                height = (size.height * scale).toInt()
             )
         }
         _windowInfo.size = size
