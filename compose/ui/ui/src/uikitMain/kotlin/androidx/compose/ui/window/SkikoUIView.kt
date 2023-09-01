@@ -20,7 +20,6 @@ import androidx.compose.ui.platform.IOSSkikoInput
 import androidx.compose.ui.platform.SkikoUITextInputTraits
 import androidx.compose.ui.platform.TextActions
 import kotlinx.cinterop.*
-import org.jetbrains.skia.Point
 import org.jetbrains.skia.Rect
 import platform.CoreGraphics.*
 import platform.Foundation.*
@@ -46,7 +45,11 @@ import org.jetbrains.skiko.SkikoPointerEventKind
 internal interface SkikoUIViewDelegate {
     fun onKeyboardEvent(event: SkikoKeyboardEvent)
 
+    fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean
+
     fun onPointerEvent(event: SkikoPointerEvent)
+
+    fun retrieveCATransactionCommands(): List<() -> Unit>
 
     fun draw(surface: Surface)
 }
@@ -68,25 +71,20 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
     var input: IOSSkikoInput? = null
     var inputTraits: SkikoUITextInputTraits = object : SkikoUITextInputTraits {}
 
-    /**
-     * Indicates that renderer should wait until the issued command buffer is scheduled for execution, so it can
-     * present the drawable inside the CATransaction to sync it with UIKit changes
-     *
-     * See [relevant doc](https://developer.apple.com/documentation/quartzcore/cametallayer/1478157-presentswithtransaction?language=objc)
-     */
-    var presentsWithTransaction: Boolean
-        get() = _metalLayer.presentsWithTransaction
-        set(value) {
-            _metalLayer.presentsWithTransaction = value
-        }
-
     private val _device: MTLDeviceProtocol =
         MTLCreateSystemDefaultDevice() ?: throw IllegalStateException("Metal is not supported on this system")
     private val _metalLayer: CAMetalLayer get() = layer as CAMetalLayer
-    private var _pointInside: (Point, UIEvent?) -> Boolean = { _, _ -> true }
     private var _inputDelegate: UITextInputDelegateProtocol? = null
     private var _currentTextMenuActions: TextActions? = null
-    private lateinit var _redrawer: MetalRedrawer
+    private val _redrawer: MetalRedrawer = MetalRedrawer(
+        _metalLayer,
+        drawCallback = { surface: Surface ->
+            delegate?.draw(surface)
+        },
+        retrieveCATransactionCommands = {
+            delegate?.retrieveCATransactionCommands() ?: listOf()
+        }
+    )
 
     /*
      * When there at least one tracked touch, we need notify redrawer about it. It should schedule CADisplayLink which
@@ -100,6 +98,8 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
 
             _redrawer.needsProactiveDisplayLink = needHighFrequencyPolling
         }
+
+    constructor() : super(frame = CGRectZero.readValue())
 
     init {
         multipleTouchEnabled = true
@@ -119,21 +119,9 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
         }
     }
 
-    constructor(
-        frame: CValue<CGRect> = CGRectNull.readValue(),
-        pointInside: (Point, UIEvent?) -> Boolean = { _, _ -> true },
-    ) : super(frame) {
-        _pointInside = pointInside
-
-        _redrawer = MetalRedrawer(
-            _metalLayer,
-            drawCallback = { surface: Surface ->
-                delegate?.draw(surface)
-            },
-        )
-    }
-
     fun needRedraw() = _redrawer.needRedraw()
+
+    var isForcedToPresentWithTransactionEveryFrame by _redrawer::isForcedToPresentWithTransactionEveryFrame
 
     /**
      * Show copy/paste text menu
@@ -210,7 +198,18 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
             CGSizeMake(size.width * contentScaleFactor, size.height * contentScaleFactor)
         }
 
+        // If drawableSize is zero in any dimension it means that it's a first layout
+        // we need to synchronously dispatch first draw and block until it's presented
+        // so user doesn't have a flicker
+        val needsSynchronousDraw = _metalLayer.drawableSize.useContents {
+            width == 0.0 || height == 0.0
+        }
+
         _metalLayer.drawableSize = scaledSize
+
+        if (needsSynchronousDraw) {
+            _redrawer.drawSynchronously()
+        }
     }
 
     fun showScreenKeyboard() = becomeFirstResponder()
@@ -277,10 +276,9 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
     /**
      * https://developer.apple.com/documentation/uikit/uiview/1622533-point
      */
-    override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
-        val skiaPoint: Point = point.useContents { Point(x.toFloat(), y.toFloat()) }
-        return _pointInside(skiaPoint, withEvent)
-    }
+    override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean =
+        delegate?.pointInside(point, withEvent) ?: super.pointInside(point, withEvent)
+
 
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
         super.touchesBegan(touches, withEvent)
@@ -536,7 +534,15 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
 
     //Working with Geometry and Hit-Testing. All methods return stubs for now.
     override fun firstRectForRange(range: UITextRange): CValue<CGRect> = CGRectNull.readValue()
-    override fun caretRectForPosition(position: UITextPosition): CValue<CGRect> = CGRectNull.readValue()
+    override fun caretRectForPosition(position: UITextPosition): CValue<CGRect> {
+        /* TODO: https://youtrack.jetbrains.com/issue/COMPOSE-332/
+            CGRectNull here led to crash with Speech-to-text on iOS 16.0
+            Set all fields to 1.0 to avoid potential dividing by zero
+            Ideally, here should be correct rect for caret from Compose.
+         */
+        return CGRectMake(x = 1.0, y = 1.0, width = 1.0, height = 1.0)
+    }
+
     override fun selectionRectsForRange(range: UITextRange): List<*> = listOf<UITextSelectionRect>()
     override fun closestPositionToPoint(point: CValue<CGPoint>): UITextPosition? = null
     override fun closestPositionToPoint(point: CValue<CGPoint>, withinRange: UITextRange): UITextPosition? = null

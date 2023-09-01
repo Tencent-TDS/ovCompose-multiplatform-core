@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package bugs
+package androidx.compose.foundation.text
 
-import androidx.compose.mpp.demo.Screen
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.OverscrollEffect
+import androidx.compose.foundation.rememberOverscrollEffect
+import androidx.compose.runtime.Composable
 
-val IosBugs = Screen.Selection(
-    "IosBugs",
-    UIKitViewAndDropDownMenu,
-    KeyboardEmptyWhiteSpace,
-    KeyboardPasswordType,
-    UIKitRenderSync
-)
+@ExperimentalFoundationApi
+@Composable
+internal actual fun rememberTextFieldOverscrollEffect(): OverscrollEffect? = rememberOverscrollEffect()
