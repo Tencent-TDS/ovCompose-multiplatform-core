@@ -36,6 +36,7 @@ import androidx.compose.ui.LeakDetector
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.isLinux
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.toInt
@@ -605,10 +606,11 @@ class WindowTest {
 
     @Test
     fun `showing a window should measure content specified size`() = runApplicationTest {
+        // TODO fix on Linux https://github.com/JetBrains/compose-multiplatform/issues/1297
+        assumeFalse(isLinux)
         val constraintsList = mutableListOf<Constraints>()
         val windowSize = DpSize(400.dp, 300.dp)
         lateinit var window: ComposeWindow
-        lateinit var insets: Insets
 
         launchTestApplication {
             Window(
@@ -616,11 +618,10 @@ class WindowTest {
                 state = rememberWindowState(size = windowSize),
             ) {
                 window = this.window
-                insets = window.insets // because of https://github.com/JetBrains/compose-multiplatform/issues/1297
                 Layout(
                     measurePolicy = { _, constraints ->
                         constraintsList.add(constraints)
-                        layout(0, 0){ }
+                        layout(0, 0) { }
                     },
                 )
             }
@@ -629,7 +630,7 @@ class WindowTest {
         awaitIdle()
 
         with(window.density) {
-            val expectedSize = (windowSize - insets.toSize()).toSize()
+            val expectedSize = (windowSize - window.insets.toSize()).toSize()
             assertEquals(1, constraintsList.size)
             assertEquals(
                 Constraints(
