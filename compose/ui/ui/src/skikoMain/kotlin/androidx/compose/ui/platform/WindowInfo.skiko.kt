@@ -43,13 +43,16 @@ actual interface WindowInfo {
     @ExperimentalComposeUiApi
     actual val keyboardModifiers: PointerKeyboardModifiers
 
+    /**
+     * Size of the window in pixels.
+     */
     @ExperimentalComposeUiApi
     val size: IntSize
 }
 
-
 internal class WindowInfoImpl : WindowInfo {
     private val _isWindowFocused = mutableStateOf(false)
+    private val _size = mutableStateOf(IntSize.Zero)
 
     override var isWindowFocused: Boolean
         set(value) { _isWindowFocused.value = value }
@@ -61,7 +64,9 @@ internal class WindowInfoImpl : WindowInfo {
         set(value) { GlobalKeyboardModifiers.value = value }
 
     @ExperimentalComposeUiApi
-    override var size: IntSize = IntSize.Zero
+    override var size: IntSize
+        get() = _size.value
+        set(value) { _size.value = value }
 
     companion object {
         // One instance across all windows makes sense, since the state of KeyboardModifiers is
