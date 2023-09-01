@@ -36,6 +36,7 @@ import androidx.compose.ui.ExternalDragTest.TestDragEvent.DragCancelled
 import androidx.compose.ui.ExternalDragTest.TestDragEvent.DragStarted
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.density
@@ -43,6 +44,8 @@ import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
 import java.awt.Window
+import kotlin.math.roundToInt
+import kotlin.test.Ignore
 import org.junit.Test
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -56,6 +59,7 @@ class ExternalDragTest {
         launchTestApplication {
             Window(
                 onCloseRequest = ::exitApplication,
+                undecorated = true,
                 state = rememberWindowState(width = 200.dp, height = 100.dp)
             ) {
                 window = this.window
@@ -83,7 +87,6 @@ class ExternalDragTest {
             onDragInsideWindow(TestWindowDragValue(Offset(70f, 70f)))
         }
         awaitIdle()
-
         assertThat(events.size).isEqualTo(2)
         assertThat(events.last()).isEqualTo(Drag(Offset(70f, 70f)))
     }
@@ -98,6 +101,7 @@ class ExternalDragTest {
         launchTestApplication {
             Window(
                 onCloseRequest = ::exitApplication,
+                undecorated = true,
                 state = rememberWindowState(width = 200.dp, height = 100.dp)
             ) {
                 window = this.window
@@ -113,7 +117,7 @@ class ExternalDragTest {
 
         awaitIdle()
         val componentYOffset = with(window.density) {
-            25.dp.toPx()
+            25.dp.toPx().roundToInt()
         }
 
         assertThat(events.size).isEqualTo(0)

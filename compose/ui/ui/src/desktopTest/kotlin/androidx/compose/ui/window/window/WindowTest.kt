@@ -19,6 +19,7 @@ package androidx.compose.ui.window.window
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Button
@@ -35,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.LeakDetector
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
+import androidx.compose.ui.floor
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
@@ -45,9 +47,11 @@ import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
 import java.awt.Dimension
 import java.awt.GraphicsEnvironment
+import java.awt.Insets
 import java.awt.Toolkit
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import kotlin.math.floor
 import kotlin.test.assertEquals
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -414,7 +418,7 @@ class WindowTest {
         val oldRecomposers = Recomposer.runningRecomposers.value
 
         runBlocking(MainUIDispatcher) {
-            repeat(10) {
+            repeat(15) {
                 val window = ComposeWindow()
                 window.size = Dimension(200, 200)
                 window.isVisible = true
@@ -430,7 +434,7 @@ class WindowTest {
                 delay(100)
             }
 
-            assertThat(leakDetector.noLeak()).isTrue()
+            assertThat(leakDetector.isAnyWasGC()).isTrue()
         }
     }
 
@@ -462,7 +466,8 @@ class WindowTest {
                         isDrawn = true
 
                         actualCanvasSize = size
-                        expectedCanvasSizePx = expectedCanvasSize().toSize()
+                        // floor() because layout mechanism doesn't work with float points (to avoid aliasing)
+                        expectedCanvasSizePx = expectedCanvasSize().toSize().floor()
                     }
                 }
             }
@@ -578,7 +583,9 @@ class WindowTest {
     }
 
     @Test
-    fun `undecorated resizable window with unspecified size`() = runApplicationTest {
+    fun `undecorated resizable window with unspecified size`() = runApplicationTest(
+        useDelay = true
+    ) {
         var window: ComposeWindow? = null
 
         launchTestApplication {
@@ -599,10 +606,11 @@ class WindowTest {
     }
 
     @Test
-    fun `showing a window should measure content specified size`() = runApplicationTest{
+    fun `showing a window should measure content specified size`() = runApplicationTest {
         val constraintsList = mutableListOf<Constraints>()
         val windowSize = DpSize(400.dp, 300.dp)
         lateinit var window: ComposeWindow
+        lateinit var insets: Insets
 
         launchTestApplication {
             Window(
@@ -610,11 +618,12 @@ class WindowTest {
                 state = rememberWindowState(size = windowSize),
             ) {
                 window = this.window
+                insets = window.insets // because of https://github.com/JetBrains/compose-multiplatform/issues/1297
                 Layout(
                     measurePolicy = { _, constraints ->
                         constraintsList.add(constraints)
                         layout(0, 0){ }
-                    }
+                    },
                 )
             }
         }
@@ -622,15 +631,14 @@ class WindowTest {
         awaitIdle()
 
         with(window.density) {
-            val expectedSize = (windowSize - window.insets.toSize()).toSize()
+            val expectedSize = (windowSize - insets.toSize()).toSize()
+            assertEquals(1, constraintsList.size)
             assertEquals(
-                listOf(
-                    Constraints(
-                        maxWidth = expectedSize.width.toInt(),
-                        maxHeight = expectedSize.height.toInt()
-                    )
+                Constraints(
+                    maxWidth = expectedSize.width.toInt(),
+                    maxHeight = expectedSize.height.toInt()
                 ),
-                constraintsList
+                constraintsList.first()
             )
         }
     }

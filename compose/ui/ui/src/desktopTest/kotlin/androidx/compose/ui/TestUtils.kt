@@ -16,6 +16,7 @@
 
 package androidx.compose.ui
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -36,6 +37,7 @@ import java.awt.image.MultiResolutionImage
 import java.text.AttributedString
 import javax.swing.Icon
 import javax.swing.ImageIcon
+import kotlin.math.floor
 import kotlinx.coroutines.yield
 
 fun testImage(color: Color): Painter = run {
@@ -206,3 +208,5 @@ suspend fun awaitEDT() {
 fun Dimension.toDpSize() = DpSize(width.dp, height.dp)
 
 fun Point.toWindowPosition() = WindowPosition(x.dp, y.dp)
+
+fun Size.floor() = Size(floor(width), floor(height))

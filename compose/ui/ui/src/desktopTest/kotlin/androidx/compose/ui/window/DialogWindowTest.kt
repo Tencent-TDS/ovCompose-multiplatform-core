@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeDialog
+import androidx.compose.ui.floor
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
@@ -545,7 +546,8 @@ class DialogWindowTest {
                         isDrawn = true
 
                         actualCanvasSize = size
-                        expectedCanvasSizePx = expectedCanvasSize().toSize()
+                        // floor() because layout mechanism doesn't work with float points (to avoid aliasing)
+                        expectedCanvasSizePx = expectedCanvasSize().toSize().floor()
                     }
                 }
             }

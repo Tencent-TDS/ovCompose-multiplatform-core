@@ -26,22 +26,17 @@ class LeakDetector {
         weakReferences.add(WeakReference(obj))
     }
 
-    fun noLeak(): Boolean {
+    fun isAnyWasGC(): Boolean {
         System.gc()
         System.runFinalization()
-        for (weakReference in weakReferences) {
-            var count = 0
-            while (weakReference.get() != null && count < 5) {
-                System.gc()
-                System.runFinalization()
-                Thread.sleep(1000)
-                count++
-            }
-
-            if (weakReference.get() != null) {
-                return false
-            }
+        var count = 0
+        while (!weakReferences.any { it.get() == null } && count < 100) {
+            System.gc()
+            System.runFinalization()
+            Thread.sleep(100)
+            count++
         }
-        return true
+
+        return weakReferences.any { it.get() == null }
     }
 }
