@@ -50,9 +50,6 @@ internal val GlobalLayoutDirection get() = Locale.getDefault().layoutDirection
 internal val Locale.layoutDirection: LayoutDirection
     get() = ComponentOrientation.getOrientation(this).layoutDirection
 
-internal val Component.layoutDirection: LayoutDirection
-    get() = this.componentOrientation.layoutDirection
-
 internal val ComponentOrientation.layoutDirection: LayoutDirection
     get() = when {
         isLeftToRight -> LayoutDirection.Ltr
@@ -65,3 +62,17 @@ internal val LayoutDirection.componentOrientation: ComponentOrientation
         LayoutDirection.Ltr -> ComponentOrientation.LEFT_TO_RIGHT
         LayoutDirection.Rtl -> ComponentOrientation.RIGHT_TO_LEFT
     }
+
+/**
+ * Compute the [LayoutDirection] the given AWT/Swing component should have, based on its own,
+ * non-Compose attributes.
+ */
+internal fun layoutDirectionFor(component: Component): LayoutDirection {
+    val orientation = component.componentOrientation
+    return if (orientation != ComponentOrientation.UNKNOWN) {
+        orientation.layoutDirection
+    } else {
+        // To preserve backwards compatibility we fall back to the locale
+        return component.locale.layoutDirection
+    }
+}

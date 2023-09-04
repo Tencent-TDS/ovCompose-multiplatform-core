@@ -25,7 +25,7 @@ import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.DialogWindowScope
 import androidx.compose.ui.window.WindowExceptionHandler
-import androidx.compose.ui.window.layoutDirection
+import androidx.compose.ui.window.layoutDirectionFor
 import org.jetbrains.skiko.GraphicsApi
 import java.awt.Component
 import java.awt.ComponentOrientation
@@ -35,6 +35,7 @@ import java.awt.Window
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
 import java.awt.event.MouseWheelListener
+import java.util.*
 import javax.swing.JDialog
 import org.jetbrains.skiko.SkiaLayerAnalytics
 
@@ -53,7 +54,7 @@ class ComposeDialog : JDialog {
         window = this,
         isUndecorated = ::isUndecorated,
         skiaLayerAnalytics = skiaLayerAnalytics,
-        layoutDirection = layoutDirection,
+        layoutDirection = layoutDirectionFor(this),
     )
 
     constructor(
@@ -135,7 +136,21 @@ class ComposeDialog : JDialog {
     override fun setComponentOrientation(o: ComponentOrientation?) {
         super.setComponentOrientation(o)
 
-        scene.layoutDirection = this.layoutDirection
+        updateLayoutDirection()
+    }
+
+    override fun setLocale(l: Locale?) {
+        super.setLocale(l)
+
+        // setLocale is called from JFrame constructor, before ComposeDialog has been initialized
+        @Suppress("SENSELESS_COMPARISON")
+        if (delegate != null) {
+            updateLayoutDirection()
+        }
+    }
+
+    private fun updateLayoutDirection() {
+        scene.layoutDirection = layoutDirectionFor(this)
     }
 
     /**
@@ -194,11 +209,6 @@ class ComposeDialog : JDialog {
         onKeyEvent: ((KeyEvent) -> Boolean) = { false },
         content: @Composable DialogWindowScope.() -> Unit
     ) {
-        // Backwards compatibility; The default layout direction used to be determined by the locale
-        if (componentOrientation == ComponentOrientation.UNKNOWN) {
-            componentOrientation = ComponentOrientation.getOrientation(locale)
-        }
-
         val scope = object : DialogWindowScope {
             override val window: ComposeDialog get() = this@ComposeDialog
         }

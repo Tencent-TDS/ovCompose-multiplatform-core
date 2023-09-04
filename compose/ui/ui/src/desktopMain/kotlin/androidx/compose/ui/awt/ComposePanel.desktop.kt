@@ -20,10 +20,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.window.WindowExceptionHandler
-import androidx.compose.ui.window.layoutDirection
+import androidx.compose.ui.window.layoutDirectionFor
 import java.awt.*
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
+import java.util.*
 import javax.swing.JLayeredPane
 import javax.swing.SwingUtilities.isEventDispatchThread
 import org.jetbrains.skiko.ClipComponent
@@ -189,9 +190,9 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     private fun createComposeBridge(): ComposeBridge {
         val renderOnGraphics = System.getProperty("compose.swing.render.on.graphics").toBoolean()
         val bridge: ComposeBridge = if (renderOnGraphics) {
-            SwingComposeBridge(skiaLayerAnalytics, layoutDirection)
+            SwingComposeBridge(skiaLayerAnalytics, layoutDirectionFor(this))
         } else {
-            WindowComposeBridge(skiaLayerAnalytics, layoutDirection)
+            WindowComposeBridge(skiaLayerAnalytics, layoutDirectionFor(this))
         }
         return bridge.apply {
             scene.releaseFocus()
@@ -231,6 +232,22 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
             dispose()
         }
         super.removeNotify()
+    }
+
+    override fun setComponentOrientation(o: ComponentOrientation?) {
+        super.setComponentOrientation(o)
+
+        updateLayoutDirection()
+    }
+
+    override fun setLocale(l: Locale?) {
+        super.setLocale(l)
+
+        updateLayoutDirection()
+    }
+
+    private fun updateLayoutDirection() {
+        bridge?.scene?.layoutDirection = layoutDirectionFor(this)
     }
 
     override fun addFocusListener(l: FocusListener?) {
