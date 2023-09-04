@@ -38,7 +38,9 @@ private const val lottieData = """
 @Composable
 fun LottieAnimation() {
     // Please note that it's NOT a part of Compose itself, but API of unstable skiko library that is used under the hood.
-    // See https://github.com/JetBrains/compose-multiplatform/issues/3152
+    // See:
+    // - https://github.com/JetBrains/compose-multiplatform/issues/362
+    // - https://github.com/JetBrains/compose-multiplatform/issues/3152
     val animation = Animation.makeFromString(lottieData)
     InfiniteAnimation(animation, Modifier.fillMaxSize())
 }
