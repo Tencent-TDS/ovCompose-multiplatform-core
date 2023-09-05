@@ -302,7 +302,7 @@ internal abstract class ComposeBridge {
     }
 
     protected fun updateSceneSize() {
-        val scale = scene.density.density
+        val scale = component.density.density
         val size = IntSize(
             width = (component.width * scale).toInt(),
             height = (component.height * scale).toInt()
