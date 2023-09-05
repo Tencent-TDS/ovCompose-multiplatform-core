@@ -117,7 +117,7 @@ class ExternalDragTest {
 
         awaitIdle()
         val componentYOffset = with(window.density) {
-            25.dp.toPx().roundToInt()
+            25.dp.roundToPx()
         }
 
         assertThat(events.size).isEqualTo(0)
