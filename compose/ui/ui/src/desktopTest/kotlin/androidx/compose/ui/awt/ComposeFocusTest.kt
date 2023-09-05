@@ -563,9 +563,9 @@ class ComposeFocusTest {
 
         assertThat(composeButton1.isFocused).isFalse()
 
-        awaitEDTDelay()
+        awaitEdtAfterDelay()
         pressNextFocusKey()
-        awaitEDTDelay()
+        awaitEdtAfterDelay()
         assertThat(composeButton1.isFocused).isTrue()
     }
 
@@ -586,9 +586,9 @@ class ComposeFocusTest {
 
         assertThat(composeButton1.isFocused).isFalse()
 
-        awaitEDTDelay()
+        awaitEdtAfterDelay()
         pressNextFocusKey()
-        awaitEDTDelay()
+        awaitEdtAfterDelay()
         assertThat(composeButton1.isFocused).isTrue()
     }
 
@@ -600,7 +600,7 @@ class ComposeFocusTest {
         window.pack()
         window.isVisible = true
 
-        awaitEDTDelay()
+        awaitEdtAfterDelay()
         pressNextFocusKey()
     }
 
@@ -617,7 +617,7 @@ class ComposeFocusTest {
         window.pack()
         window.isVisible = true
 
-        awaitEDTDelay()
+        awaitEdtAfterDelay()
         pressNextFocusKey()
     }
 
@@ -686,7 +686,7 @@ class ComposeFocusTest {
 
             val button = buttons.toList().random()
             button.requestFocus()
-            awaitEDTDelay()
+            awaitEdtAfterDelay()
             button.validateIsFocused()
         }
 
@@ -695,14 +695,14 @@ class ComposeFocusTest {
 
             val button = buttons.filterIsInstance<Component>().randomOrNull()
             button?.performClick()
-            awaitEDTDelay()
+            awaitEdtAfterDelay()
             button?.validateIsFocused()
         }
 
-        awaitEDTDelay()
+        awaitEdtAfterDelay()
         println("firstButton")
         buttons.first().requestFocus()
-        awaitEDTDelay()
+        awaitEdtAfterDelay()
         buttons.first().validateIsFocused()
 
         repeat(10) {
@@ -746,14 +746,14 @@ class FocusTestScope {
         val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
         focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_PRESSED, 0, 0, KeyEvent.VK_TAB, '\t'))
         focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_RELEASED, 0, 0, KeyEvent.VK_TAB, '\t'))
-        awaitEDTDelay()
+        awaitEdtAfterDelay()
     }
 
     suspend fun pressPreviousFocusKey() {
         val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
         focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_PRESSED, 0, KeyEvent.SHIFT_DOWN_MASK, KeyEvent.VK_TAB, '\t'))
         focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_RELEASED, 0, KeyEvent.SHIFT_DOWN_MASK, KeyEvent.VK_TAB, '\t'))
-        awaitEDTDelay()
+        awaitEdtAfterDelay()
     }
 }
 
@@ -789,7 +789,7 @@ private class TestJButton(name: String) : JButton(name) {
     override fun toString(): String = text
 }
 
-private suspend fun awaitEDTDelay() {
+private suspend fun awaitEdtAfterDelay() {
     delay(100)
     awaitEDT()
 }

@@ -47,7 +47,6 @@ import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
 import java.awt.Dimension
 import java.awt.GraphicsEnvironment
-import java.awt.Insets
 import java.awt.Toolkit
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
@@ -434,7 +433,7 @@ class WindowTest {
                 delay(100)
             }
 
-            assertThat(leakDetector.isAnyWasGC()).isTrue()
+            assertThat(leakDetector.hasAnyGarbageCollected()).isTrue()
         }
     }
 
