@@ -36,7 +36,6 @@ import androidx.compose.ui.ExternalDragTest.TestDragEvent.DragCancelled
 import androidx.compose.ui.ExternalDragTest.TestDragEvent.DragStarted
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.density
@@ -44,8 +43,6 @@ import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
 import java.awt.Window
-import kotlin.math.roundToInt
-import kotlin.test.Ignore
 import org.junit.Test
 
 @OptIn(ExperimentalComposeUiApi::class)
