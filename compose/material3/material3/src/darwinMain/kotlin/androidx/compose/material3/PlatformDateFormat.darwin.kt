@@ -43,8 +43,8 @@ internal actual object PlatformDateFormat {
         val nsDate = NSDate.dateWithTimeIntervalSince1970(utcTimeMillis / 1000.0)
 
         return NSDateFormatter().apply {
-            setDateFormat(pattern)
             setLocale(locale)
+            setDateFormat(pattern)
         }.stringFromDate(nsDate)
     }
 
@@ -57,8 +57,8 @@ internal actual object PlatformDateFormat {
         val nsDate = NSDate.dateWithTimeIntervalSince1970(utcTimeMillis / 1000.0)
 
         return NSDateFormatter().apply {
-            setLocalizedDateFormatFromTemplate(skeleton)
             setLocale(locale)
+            setLocalizedDateFormatFromTemplate(skeleton)
         }.stringFromDate(nsDate)
     }
 
@@ -68,8 +68,8 @@ internal actual object PlatformDateFormat {
     ): CalendarDate? {
 
         val nsDate = NSDateFormatter().apply {
-            setDateFormat(pattern)
             setTimeZone(TimeZone.UTC.toNSTimeZone())
+            setDateFormat(pattern)
         }.dateFromString(date) ?: return null
 
         return Instant
@@ -84,19 +84,17 @@ internal actual object PlatformDateFormat {
             setDateStyle(NSDateFormatterShortStyle)
         }.dateFormat
 
-        val delimiter = pattern.first { !it.isLetter() }
-
-        return DateInputFormat(pattern, delimiter)
+        return datePatternAsInputFormat(pattern)
     }
 
     @Suppress("UNCHECKED_CAST")
-    actual fun weekdayNames(locale: CalendarLocale): List<Pair<String, String>>? {
+    actual fun weekdayNames(locale: CalendarLocale): List<Pair<String, String>> {
         val formatter = NSDateFormatter().apply {
             setLocale(locale)
         }
 
         val fromSundayToSaturday = formatter.standaloneWeekdaySymbols
-            .zip(formatter.shortStandaloneWeekdaySymbols) as List<Pair<String, String>>
+            .zip(formatter.veryShortStandaloneWeekdaySymbols) as List<Pair<String, String>>
 
         return fromSundayToSaturday.drop(1) + fromSundayToSaturday.first()
     }

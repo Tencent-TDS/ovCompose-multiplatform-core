@@ -22,4 +22,6 @@ val IosBugs = Screen.Selection(
     "IosBugs",
     UIKitViewAndDropDownMenu,
     KeyboardEmptyWhiteSpace,
+    KeyboardPasswordType,
+    UIKitRenderSync
 )

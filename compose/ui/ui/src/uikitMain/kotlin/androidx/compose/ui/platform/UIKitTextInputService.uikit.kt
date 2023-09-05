@@ -20,11 +20,8 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.text.input.*
 import kotlin.math.min
-import org.jetbrains.skiko.SkikoInput
 import org.jetbrains.skiko.SkikoKey
 import org.jetbrains.skiko.SkikoKeyboardEventKind
-import org.jetbrains.skiko.ios.SkikoUITextInputTraits
-
 import platform.UIKit.*
 
 internal class UIKitTextInputService(
@@ -152,7 +149,7 @@ internal class UIKitTextInputService(
         }
     }
 
-    val skikoInput = object : SkikoInput {
+    val skikoInput = object : IOSSkikoInput {
 
         /**
          * A Boolean value that indicates whether the text-entry object has any text.
@@ -334,19 +331,21 @@ internal class UIKitTextInputService(
                 else -> UIReturnKeyType.UIReturnKeyDefault
             }
 
-        override fun textContentType(): UITextContentType? =
-            when (currentImeOptions?.keyboardType) {
-                KeyboardType.Password, KeyboardType.NumberPassword -> UITextContentTypePassword
-                KeyboardType.Email -> UITextContentTypeEmailAddress
-                KeyboardType.Phone -> UITextContentTypeTelephoneNumber
-                else -> null
-            }
+        override fun textContentType(): UITextContentType? = null
+//           TODO: Prevent Issue https://youtrack.jetbrains.com/issue/COMPOSE-319/iOS-Bug-password-TextField-changes-behavior-for-all-other-TextFieds
+//            when (currentImeOptions?.keyboardType) {
+//                KeyboardType.Password, KeyboardType.NumberPassword -> UITextContentTypePassword
+//                KeyboardType.Email -> UITextContentTypeEmailAddress
+//                KeyboardType.Phone -> UITextContentTypeTelephoneNumber
+//                else -> null
+//            }
 
-        override fun isSecureTextEntry(): Boolean =
-            when (currentImeOptions?.keyboardType) {
-                KeyboardType.Password, KeyboardType.NumberPassword -> true
-                else -> false
-            }
+        override fun isSecureTextEntry(): Boolean = false
+//           TODO: Prevent Issue https://youtrack.jetbrains.com/issue/COMPOSE-319/iOS-Bug-password-TextField-changes-behavior-for-all-other-TextFieds
+//            when (currentImeOptions?.keyboardType) {
+//                KeyboardType.Password, KeyboardType.NumberPassword -> true
+//                else -> false
+//            }
 
         override fun enablesReturnKeyAutomatically(): Boolean = false
 

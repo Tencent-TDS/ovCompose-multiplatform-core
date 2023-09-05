@@ -32,11 +32,11 @@ import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.toPointerKeyboardModifiers
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
-import androidx.compose.ui.window.layoutDirection
 import java.awt.*
 import java.awt.Cursor
 import java.awt.event.*
@@ -56,7 +56,9 @@ import org.jetbrains.skiko.*
  *
  * Inheritors should call [attachComposeToComponent], so events that came to [component] will be transferred to [ComposeScene]
  */
-internal abstract class ComposeBridge {
+internal abstract class ComposeBridge(
+    layoutDirection: LayoutDirection
+) {
     private var isDisposed = false
 
     val sceneAccessible = ComposeSceneAccessible(
@@ -135,6 +137,7 @@ internal abstract class ComposeBridge {
         MainUIDispatcher + coroutineExceptionHandler,
         platform,
         Density(1f),
+        layoutDirection,
         invalidate = {
             onComposeInvalidation()
         },
@@ -301,9 +304,15 @@ internal abstract class ComposeBridge {
     }
 
     protected fun updateSceneSize() {
+        val scale = component.density.density
+        val size = IntSize(
+            width = (component.width * scale).toInt(),
+            height = (component.height * scale).toInt()
+        )
+        platform.windowInfo.containerSize = size
         scene.constraints = Constraints(
-            maxWidth = (component.width * scene.density.density).toInt(),
-            maxHeight = (component.height * scene.density.density).toInt()
+            maxWidth = size.width,
+            maxHeight = size.height
         )
     }
 
@@ -340,9 +349,6 @@ internal abstract class ComposeBridge {
         override val windowInfo = WindowInfoImpl()
 
         override val textInputService = PlatformInput(platformComponent)
-
-        override val layoutDirection: LayoutDirection
-            get() = component.layoutDirection
 
         override val focusManager = object : FocusManager {
             override fun clearFocus(force: Boolean) {

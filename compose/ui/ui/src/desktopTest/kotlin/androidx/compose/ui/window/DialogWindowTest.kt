@@ -34,14 +34,17 @@ import androidx.compose.ui.awt.ComposeDialog
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.sendKeyEvent
+import androidx.compose.ui.toInt
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.window.toSize
 import com.google.common.truth.Truth.assertThat
@@ -526,8 +529,8 @@ class DialogWindowTest {
         var isDrawn = false
         var isVisibleOnFirstComposition = false
         var isVisibleOnFirstDraw = false
-        var actualCanvasSize: Size? = null
-        var expectedCanvasSizePx: Size? = null
+        var actualCanvasSize: IntSize? = null
+        var expectedCanvasSizePx: IntSize? = null
 
         launchTestApplication {
             DialogWindow(
@@ -544,8 +547,10 @@ class DialogWindowTest {
                         isVisibleOnFirstDraw = window.isVisible
                         isDrawn = true
 
-                        actualCanvasSize = size
-                        expectedCanvasSizePx = expectedCanvasSize().toSize()
+                        // toInt() because this is how ComposeWindow rounds decimal sizes
+                        // (see ComposeBridge.updateSceneSize)
+                        actualCanvasSize = size.toInt()
+                        expectedCanvasSizePx = expectedCanvasSize().toSize().toInt()
                     }
                 }
             }
@@ -578,5 +583,27 @@ class DialogWindowTest {
             canvasSizeModifier = Modifier.size(canvasSize),
             expectedCanvasSize = { canvasSize }
         )
+    }
+
+    @Test
+    fun `pass LayoutDirection to DialogWindow`() = runApplicationTest {
+        lateinit var localLayoutDirection: LayoutDirection
+
+        var layoutDirection by mutableStateOf(LayoutDirection.Rtl)
+        launchTestApplication {
+            CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+                DialogWindow(onCloseRequest = {}) {
+                    localLayoutDirection = LocalLayoutDirection.current
+                }
+            }
+        }
+        awaitIdle()
+
+        assertThat(localLayoutDirection).isEqualTo(LayoutDirection.Rtl)
+
+        // Test that changing the local propagates it into the dialog
+        layoutDirection = LayoutDirection.Ltr
+        awaitIdle()
+        assertThat(localLayoutDirection).isEqualTo(LayoutDirection.Ltr)
     }
 }

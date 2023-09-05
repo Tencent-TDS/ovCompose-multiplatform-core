@@ -20,17 +20,31 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.atTime
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
 internal class KotlinxDatetimeCalendarModel : CalendarModel {
 
     override val today: CalendarDate
-        get() = Clock.System.now().toCalendarDate()
+        get() {
+            val localDate = Clock.System.now().toLocalDateTime(systemTZ)
+            return CalendarDate(
+                year = localDate.year,
+                month = localDate.monthNumber,
+                dayOfMonth = localDate.dayOfMonth,
+                utcTimeMillis = localDate.date
+                    .atTime(Midnight)
+                    .toInstant(TimeZone.UTC)
+                    .toEpochMilliseconds()
+            )
+        }
 
     override val firstDayOfWeek: Int
         get() = PlatformDateFormat.firstDayOfWeek
@@ -42,13 +56,12 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
         get() = TimeZone.currentSystemDefault()
 
     fun weekdayNames(locale: CalendarLocale): List<Pair<String, String>> {
-        return PlatformDateFormat.weekdayNames(locale) ?: EnglishWeekdaysNames
+        return PlatformDateFormat.weekdayNames(locale)
     }
 
     override fun getDateInputFormat(locale: CalendarLocale): DateInputFormat {
         return PlatformDateFormat
             .getDateInputFormat(locale)
-            .applyCalendarModelStyle()
     }
 
     override fun getCanonicalDate(timeInMillis: Long): CalendarDate {
@@ -57,13 +70,13 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
             .toLocalDateTime(TimeZone.UTC)
             .date
             .atStartOfDayIn(TimeZone.UTC)
-            .toCalendarDate()
+            .toCalendarDate(TimeZone.UTC)
     }
 
     override fun getMonth(timeInMillis: Long): CalendarMonth {
         return Instant
             .fromEpochMilliseconds(timeInMillis)
-            .toCalendarMonth()
+            .toCalendarMonth(TimeZone.UTC)
     }
 
     override fun getMonth(date: CalendarDate): CalendarMonth {
@@ -75,26 +88,29 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
             year = year,
             monthNumber = month,
             dayOfMonth = 1,
-        ).atStartOfDayIn(systemTZ)
+        ).atTime(Midnight)
+            .toInstant(TimeZone.UTC)
 
         return getMonth(instant.toEpochMilliseconds())
     }
 
     override fun getDayOfWeek(date: CalendarDate): Int {
-        return Instant
-            .fromEpochMilliseconds(date.utcTimeMillis)
-            .toLocalDateTime(systemTZ)
-            .dayOfWeek.isoDayNumber
+        return LocalDate(
+            year = date.year,
+            monthNumber = date.month,
+            dayOfMonth = date.dayOfMonth
+        ).dayOfWeek.isoDayNumber
     }
 
     override fun plusMonths(from: CalendarMonth, addedMonthsCount: Int): CalendarMonth {
         return Instant
             .fromEpochMilliseconds(from.startUtcTimeMillis)
-            .toLocalDateTime(systemTZ)
+            .toLocalDateTime(TimeZone.UTC)
             .date
             .plus(DatePeriod(months = addedMonthsCount))
-            .atStartOfDayIn(systemTZ)
-            .toCalendarMonth()
+            .atTime(Midnight)
+            .toInstant(TimeZone.UTC)
+            .toCalendarMonth(TimeZone.UTC)
     }
 
     override fun minusMonths(from: CalendarMonth, subtractedMonthsCount: Int): CalendarMonth {
@@ -114,7 +130,7 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
     }
 
     private fun Instant.toCalendarMonth(
-        timeZone : TimeZone = systemTZ
+        timeZone : TimeZone
     ) : CalendarMonth {
 
         val dateTime = toLocalDateTime(timeZone)
@@ -133,66 +149,18 @@ internal class KotlinxDatetimeCalendarModel : CalendarModel {
             daysFromStartOfWeekToFirstOfMonth = monthStart
                 .daysFromStartOfWeekToFirstOfMonth(),
             startUtcTimeMillis = monthStart
-                .atStartOfDayIn(TimeZone.UTC)
+                .atTime(Midnight)
+                .toInstant(TimeZone.UTC)
                 .toEpochMilliseconds()
         )
     }
-
-    /**
-     * Applies some specific rules to fit the Android one
-     * */
-    private fun DateInputFormat.applyCalendarModelStyle() : DateInputFormat {
-
-        var pattern = patternWithDelimiters
-        // the following checks are the result of testing
-
-        // most of time dateFormat returns dd.MM.y -> we need dd.MM.yyyy
-        if (!pattern.contains("yyyy", true)) {
-
-            // it can also return dd.MM.yy because such formats exist so check for it
-            while (pattern.contains("yy", true)) {
-                pattern = pattern.replace("yy", "y",true)
-            }
-
-            pattern = pattern.replace("y", "yyyy",true)
-        }
-
-        // it can return M.d -> we need MM.dd
-        if ("MM" !in pattern){
-            pattern = pattern.replace("M","MM")
-        }
-        if ("dd" !in pattern){
-            pattern = pattern.replace("d", "dd")
-        }
-
-        // it can return "yyyy. MM. dd."
-        pattern = pattern
-            .dropWhile { !it.isLetter() } // remove prefix non-letters
-            .dropLastWhile { !it.isLetter() } // remove suffix non-letters
-            .filter { it != ' ' } // remove whitespaces
-
-        val delimiter = pattern.first { !it.isLetter() }
-
-        return DateInputFormat(pattern, delimiter)
-    }
-
 
     private fun LocalDate.daysFromStartOfWeekToFirstOfMonth() =
         (dayOfWeek.isoDayNumber - firstDayOfWeek).let { if (it > 0) it else 7 + it }
 }
 
-private val EnglishWeekdaysNames = listOf(
-    "Monday" to "Mon",
-    "Tuesday" to "Tue",
-    "Wednesday" to "Wed",
-    "Thursday" to "Thu",
-    "Friday" to "Fri",
-    "Saturday" to "Sat",
-    "Sunday" to "Sun",
-)
-
 internal fun Instant.toCalendarDate(
-    timeZone : TimeZone = TimeZone.currentSystemDefault()
+    timeZone : TimeZone
 ) : CalendarDate {
 
     val dateTime = toLocalDateTime(timeZone)
@@ -204,6 +172,8 @@ internal fun Instant.toCalendarDate(
         utcTimeMillis = toEpochMilliseconds()
     )
 }
+
+internal val Midnight = LocalTime(0,0)
 
 private fun Int.isLeapYear() = this % 4 == 0 && (this % 100 != 0 || this % 400 == 0)
 
