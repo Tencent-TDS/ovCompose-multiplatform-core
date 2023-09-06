@@ -28,7 +28,6 @@ import androidx.compose.material.Button
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ExposedDropdownMenu
 import androidx.compose.material.ExposedDropdownMenuBox
 import androidx.compose.material.ExposedDropdownMenuDefaults
 import androidx.compose.material.MaterialTheme
@@ -428,7 +427,7 @@ fun ExposedDropdownMenu3Sample() {
             trailingIcon = { ExposedDropdownMenuDefaults3.TrailingIcon(expanded = expanded) },
             colors = ExposedDropdownMenuDefaults3.textFieldColors(),
         )
-        ExposedDropdownMenu3(
+        ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
