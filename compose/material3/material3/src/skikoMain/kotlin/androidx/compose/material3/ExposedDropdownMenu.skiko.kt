@@ -704,7 +704,7 @@ private fun updateHeight(
 ) {
     coordinates ?: return
     val boundsInWindow = coordinates.boundsInWindow()
-    val visibleWindowBounds = windowInfo.size.toIntRect()
+    val visibleWindowBounds = windowInfo.containerSize.toIntRect()
     val heightAbove = boundsInWindow.top - visibleWindowBounds.top
     val heightBelow = visibleWindowBounds.height - boundsInWindow.bottom
     onHeightUpdate(max(heightAbove, heightBelow).toInt() - verticalMarginInPx)
