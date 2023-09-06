@@ -16,44 +16,30 @@
 
 package androidx.compose.material
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
-import androidx.compose.foundation.interaction.InteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.platform.WindowInfo
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
@@ -79,6 +65,7 @@ import kotlin.math.max
  * @param modifier The modifier to apply to this layout
  * @param content The content to be displayed inside ExposedDropdownMenuBox.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @ExperimentalMaterialApi
 @Composable
 actual fun ExposedDropdownMenuBox(
@@ -111,13 +98,11 @@ actual fun ExposedDropdownMenuBox(
     Box(
         modifier.onGloballyPositioned {
             width = it.size.width
-            updateHeight(
-                windowInfo,
-                it,
-                verticalMarginInPx
-            ) { newHeight ->
-                menuHeight = newHeight
-            }
+            val boundsInWindow = it.boundsInWindow()
+            val visibleWindowBounds = windowInfo.containerSize.toIntRect()
+            val heightAbove = boundsInWindow.top - visibleWindowBounds.top
+            val heightBelow = visibleWindowBounds.height - boundsInWindow.bottom
+            menuHeight = max(heightAbove, heightBelow).toInt() - verticalMarginInPx
         }.expandable(
             onExpandedChange = { onExpandedChange(!expanded) },
             menuLabel = getString(Strings.ExposedDropdownMenu)
@@ -166,19 +151,4 @@ private fun Modifier.expandable(
         onExpandedChange()
         true
     }
-}
-
-@OptIn(ExperimentalComposeUiApi::class)
-private fun updateHeight(
-    windowInfo: WindowInfo,
-    coordinates: LayoutCoordinates?,
-    verticalMarginInPx: Int,
-    onHeightUpdate: (Int) -> Unit
-) {
-    coordinates ?: return
-    val boundsInWindow = coordinates.boundsInWindow()
-    val visibleWindowBounds = windowInfo.size.toIntRect()
-    val heightAbove = boundsInWindow.top - visibleWindowBounds.top
-    val heightBelow = visibleWindowBounds.height - boundsInWindow.bottom
-    onHeightUpdate(max(heightAbove, heightBelow).toInt() - verticalMarginInPx)
 }
