@@ -64,6 +64,9 @@ def addMavenRepositories(RepositoryHandler handler) {
         handler.google()
         handler.gradlePluginPortal()
         handler.maven {
+               url("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
+        }
+        handler.maven {
                url("https://maven.pkg.jetbrains.space/public/p/compose/dev")
         }
         handler.maven {
@@ -75,6 +78,12 @@ def addMavenRepositories(RepositoryHandler handler) {
             content {
                 includeModule("com.android.tools", "r8")
             }
+        }
+        handler.maven {
+            url("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
+        }
+        handler.maven {
+            url("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev")
         }
     }
     // Ordering appears to be important: b/229733266

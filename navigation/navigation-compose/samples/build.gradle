@@ -22,7 +22,7 @@ plugins {
     id("AndroidXComposePlugin")
     id("org.jetbrains.kotlin.android")
     id ("kotlin-parcelize")
-    alias(libs.plugins.kotlinSerialization)
+//    alias(libs.plugins.kotlinSerialization)
 }
 
 dependencies {

@@ -29,9 +29,9 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
-import kotlinx.serialization.Serializable
+//import kotlinx.serialization.Serializable
 
-@Serializable // Not used at the moment, but added here to test compose with kotlinx.serialization compilation
+//@Serializable // Not used at the moment, but added here to test compose with kotlinx.serialization compilation
 public class Id(public val id: Applier<String>)
 
 @Composable // Not used at the moment, but added here to test compose with kotlinx.serialization compilation

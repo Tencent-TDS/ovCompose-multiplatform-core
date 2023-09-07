@@ -40,4 +40,5 @@ import androidx.compose.runtime.ReadOnlyComposable
 @ReadOnlyComposable
 fun isSystemInDarkTheme() = _isSystemInDarkTheme()
 
+@Composable
 internal expect fun _isSystemInDarkTheme(): Boolean

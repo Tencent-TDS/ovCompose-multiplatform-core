@@ -240,7 +240,7 @@ fun sortPomDependencies(pom: String): String {
             // original order.
             element.content().replaceAll {
                 val index = deps.indexOf(it)
-                if (index >= 0) {
+                if (index >= 0 && index < sortedDeps.size) {
                     sortedDeps[index]
                 } else {
                     it

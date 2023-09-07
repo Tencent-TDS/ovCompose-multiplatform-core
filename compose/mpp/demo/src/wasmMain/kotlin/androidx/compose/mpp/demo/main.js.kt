@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-package androidx.compose.animation
+package androidx.compose.mpp.demo
 
-import androidx.compose.animation.core.DecayAnimationSpec
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.window.CanvasBasedWindow
+import androidx.compose.ui.window.Window
+import org.jetbrains.skiko.SkiaLayer
+import org.w3c.dom.HTMLCanvasElement
 
-/**
- * Create default [DecayAnimationSpec] representing a default fling curve for a platform.
- */
-@Composable
-@Deprecated("Replace with rememberSplineBasedDecay<Float>")
-expect fun defaultDecayAnimationSpec(): DecayAnimationSpec<Float>
-
-@Composable
-expect fun <T> rememberSplineBasedDecay(): DecayAnimationSpec<T>
+@OptIn(ExperimentalComposeUiApi::class)
+fun main() {
+    CanvasBasedWindow("Compose/JS sample", canvasElementId = "canvas1") {
+        val app = remember { App() }
+        app.Content()
+    }
+}

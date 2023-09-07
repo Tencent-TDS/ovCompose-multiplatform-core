@@ -43,7 +43,7 @@ dependencies {
     compileOnlyAarAsJar(androidxArtifact(":lifecycle:lifecycle-runtime"))
     compileOnlyAarAsJar("androidx.savedstate:savedstate:1.2.0")
 
-    ksp(libs.moshiCodeGen)
+//    ksp(libs.moshiCodeGen)
 
     testImplementation(libs.assertj)
     testImplementationAarAsJar("androidx.compose.runtime:runtime:1.2.1")

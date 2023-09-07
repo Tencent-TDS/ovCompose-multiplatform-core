@@ -31,4 +31,5 @@ androidXComposeMultiplatform {
     desktop()
     js()
     darwin()
+    wasm()
 }

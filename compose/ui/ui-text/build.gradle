@@ -252,3 +252,9 @@ androidx {
 android {
     namespace "androidx.compose.ui.text"
 }
+
+project.tasks.configureEach {
+    if (name == "compileJsWasmMainKotlinMetadata") {
+        enabled = false
+    }
+}

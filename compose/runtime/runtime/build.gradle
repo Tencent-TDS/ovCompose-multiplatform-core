@@ -233,6 +233,12 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                     implementation(libs.kotlinTestJs)
                 }
             }
+            wasmTest {
+                dependencies {
+                    //implementation(libs.kotlinTestJs)
+                    implementation(libs.create("kotlinTestWasm"))
+                }
+            }
             nativeTest {
                 dependsOn(nonEmulatorCommonTest)
                 kotlin.srcDir("src/nativeTest/kotlin")

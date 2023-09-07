@@ -385,3 +385,9 @@ if (!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         verifyKotlinModule(variant)
     }
 }
+
+project.tasks.configureEach {
+    if (name == "compileJsWasmMainKotlinMetadata") {
+        enabled = false
+    }
+}

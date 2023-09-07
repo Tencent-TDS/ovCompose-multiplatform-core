@@ -153,3 +153,9 @@ androidx {
 android {
     namespace "androidx.compose.animation"
 }
+
+project.tasks.configureEach {
+    if (name == "compileJsWasmMainKotlinMetadata") {
+        enabled = false
+    }
+}
