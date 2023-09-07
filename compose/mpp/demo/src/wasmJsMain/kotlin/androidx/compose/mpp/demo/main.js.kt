@@ -16,6 +16,7 @@
 
 package androidx.compose.mpp.demo
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.CanvasBasedWindow
@@ -28,5 +29,14 @@ fun main() {
     CanvasBasedWindow("Compose/JS sample", canvasElementId = "canvas1") {
         val app = remember { App() }
         app.Content()
+
+        // TODO: crashes k/wasm (see rememberTextFieldOverscrollEffect)
+        // Uncaught (in promise) RuntimeError: unreachable
+        //    at <compose-multiplatform-core.compose.mpp:demo>.androidx.compose.mpp.demo.returnsNullable (main.js.kt:39:40)
+        // val l = returnsNullable()
     }
 }
+
+
+@Composable
+internal fun returnsNullable(): Any? = null

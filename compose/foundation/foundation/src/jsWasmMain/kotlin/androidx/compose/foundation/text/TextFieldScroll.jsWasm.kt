@@ -22,10 +22,42 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.unit.Velocity
 
 @ExperimentalFoundationApi
 @Composable
-internal actual fun rememberTextFieldOverscrollEffect(): OverscrollEffect? = null
+// It should return null, but k/wasm crashed:
+// Uncaught RuntimeError: unreachable
+//    at <compose-multiplatform-core.compose.mpp:demo>.androidx.compose.foundation.text.rememberTextFieldOverscrollEffect (TextFieldScroll.jsWasm.kt:25:78
+internal actual fun rememberTextFieldOverscrollEffect(): OverscrollEffect? {
+    return effect
+}
+
+private val effect = object : OverscrollEffect {
+    override fun applyToScroll(
+        delta: Offset,
+        source: NestedScrollSource,
+        performScroll: (Offset) -> Offset
+    ): Offset {
+        return Offset.Zero
+    }
+
+    override suspend fun applyToFling(
+        velocity: Velocity,
+        performFling: suspend (Velocity) -> Velocity
+    ) {
+
+    }
+
+    override val isInProgress: Boolean
+        get() = false
+    override val effectModifier: Modifier
+        get() = Modifier
+
+}
 
 internal actual fun Modifier.textFieldScroll(
     scrollerPosition: TextFieldScrollerPosition,

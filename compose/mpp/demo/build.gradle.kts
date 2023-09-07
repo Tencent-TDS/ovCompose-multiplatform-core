@@ -59,6 +59,7 @@ kotlin {
         moduleName = "mpp-demo"
         browser {
             commonWebpackConfig {
+                outputFileName = "demo.js"
                 devServer = (devServer ?: KotlinWebpackConfig.DevServer()).copy(
                     open = mapOf(
                         "app" to mapOf(
@@ -279,4 +280,12 @@ project.tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile>().config
         "-Xwasm-generate-wat",
         "-Xwasm-enable-array-range-checks"
     )
+}
+
+
+// TODO: workaround webpack compilation issue (it tries to find 'skia' module, but we provide it manually via imports)
+project.tasks.getByName("wasmJsDevelopmentExecutableCompileSync").doLast {
+    val f = project.buildDir.resolve("../../../../build/js/packages/mpp-demo/kotlin/mpp-demo.uninstantiated.mjs").normalize()
+    val t = f.readText().replace("'skia': imports['skia'] ?? await import('skia'),", "'skia': imports['skia'],")
+    f.writeText(t)
 }
