@@ -36,8 +36,15 @@ internal actual fun getTextFieldPointerModifier(
     val selectionModifier =
         Modifier.longPressDragGestureFilter(manager.touchSelectionObserver, enabled)
     Modifier
-        .tapPressTextFieldModifier(interactionSource, enabled) { offset ->
-            tapTextFieldToFocus(state, focusRequester, !readOnly)
+        .tapPressTextFieldModifier(
+            interactionSource,
+            enabled
+        ) { offset ->
+            tapTextFieldToFocus(
+                state,
+                focusRequester,
+                !readOnly
+            )
             if (state.hasFocus) {
                 if (state.handleState != HandleState.Selection) {
                     state.layoutResult?.let { layoutResult ->

@@ -20,10 +20,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.input.OffsetMapping
 
-@OptIn(InternalFoundationTextApi::class)
 internal actual fun getTextFieldPointerModifier(
     manager: TextFieldSelectionManager,
     enabled: Boolean,
@@ -32,39 +30,12 @@ internal actual fun getTextFieldPointerModifier(
     focusRequester: FocusRequester,
     readOnly: Boolean,
     offsetMapping: OffsetMapping
-): Modifier = if (isInTouchMode) {
-    val selectionModifier =
-        Modifier.longPressDragGestureFilter(manager.touchSelectionObserver, enabled)
-    Modifier
-        .tapPressTextFieldModifier(interactionSource, enabled) { offset ->
-            tapTextFieldToFocus(state, focusRequester, !readOnly)
-            if (state.hasFocus) {
-                if (state.handleState != HandleState.Selection) {
-                    state.layoutResult?.let { layoutResult ->
-                        TextFieldDelegate.setCursorOffset(
-                            offset,
-                            layoutResult,
-                            state.processor,
-                            offsetMapping,
-                            state.onValueChange
-                        )
-                        // Won't enter cursor state when text is empty.
-                        if (state.textDelegate.text.isNotEmpty()) {
-                            state.handleState = HandleState.Cursor
-                        }
-                    }
-                } else {
-                    manager.deselect(offset)
-                }
-            }
-        }
-        .then(selectionModifier)
-        .pointerHoverIcon(textPointerIcon)
-} else {
-    Modifier
-        .mouseDragGestureDetector(
-            observer = manager.mouseSelectionObserver,
-            enabled = enabled
-        )
-        .pointerHoverIcon(textPointerIcon)
-}
+): Modifier = getDefaultTextFieldPointerModifier(
+    manager,
+    enabled,
+    interactionSource,
+    state,
+    focusRequester,
+    readOnly,
+    offsetMapping,
+)
