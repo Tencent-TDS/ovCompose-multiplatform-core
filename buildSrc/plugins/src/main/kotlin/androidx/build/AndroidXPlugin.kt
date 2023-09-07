@@ -48,13 +48,19 @@ class AndroidXPlugin : Plugin<Project> {
                 if (it.requested.module.group == "org.jetbrains.kotlinx" &&
                     it.requested.module.name.contains("kotlinx-coroutines", true)
                 ) {
-                    if (isWasm) it.useVersion("1.7.2-wasm0")
+                    if (isWasm) it.useVersion("1.7.2-wasm1")
                 }
 
                 if (it.requested.module.group == "org.jetbrains.kotlinx" &&
                     it.requested.module.name.contains("atomicfu", true)
                 ) {
-                    if (isWasm) it.useVersion("0.21.0-wasm0")
+                    if (isWasm) it.useVersion("0.22.0-wasm0")
+                }
+
+                if (it.requested.module.group == "org.jetbrains.kotlinx" &&
+                    it.requested.module.name.contains("datetime", true)
+                ) {
+                    if (isWasm) it.useVersion("0.4.0-wasm2")
                 }
             }
         }

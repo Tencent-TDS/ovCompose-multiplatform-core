@@ -177,12 +177,12 @@ kotlin {
             }
         }
 
-        val wasmMain by getting {
+        val wasmJsMain by getting {
             dependsOn(skikoMain)
             resources.setSrcDirs(resources.srcDirs)
             resources.srcDirs(unzipTask.map { it.destinationDir })
             dependencies {
-                implementation(kotlin("stdlib-wasm"))
+                implementation(kotlin("stdlib-wasm-js"))
             }
         }
 

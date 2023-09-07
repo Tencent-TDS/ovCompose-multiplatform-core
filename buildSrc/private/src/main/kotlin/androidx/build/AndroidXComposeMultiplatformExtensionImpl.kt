@@ -78,7 +78,7 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         val jvmMain = getOrCreateJvmMain()
         androidMain.dependsOn(jvmMain)
 
-        val androidTest = sourceSets.getByName("androidTest")
+        val androidTest = sourceSets.getByName("androidUnitTest")
         val jvmTest = getOrCreateJvmTest()
         androidTest.dependsOn(jvmTest)
     }
@@ -146,31 +146,31 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
             }
         }
 
-        project.tasks.getByName("wasmTestProcessResources").apply {
+        project.tasks.getByName("wasmJsTestProcessResources").apply {
             dependsOn(loadTestsTask)
         }
 
-        project.tasks.getByName("wasmBrowserTest").apply {
-            doFirst {
-                // TODO: remove doFirst - it's a workaround for https://youtrack.jetbrains.com/issue/KT-58293
-                val name = getDashedProjectName() + "-wasm-test"
-                val fileName = "$name.uninstantiated.mjs"
-                project.rootProject.buildDir.resolve(
-                    "js/packages/$name/kotlin/$fileName"
-                ).also { file ->
-                    val oldContent = file.readText()
-                    val newContent = oldContent.replace("(jsException) =>", "(e) =>")
-                    file.writeText(newContent)
-                }
-            }
+        project.tasks.getByName("wasmJsBrowserTest").apply {
+//            doFirst {
+//                // TODO: remove doFirst - it's a workaround for https://youtrack.jetbrains.com/issue/KT-58293
+//                val name = getDashedProjectName() + "-wasm-test"
+//                val fileName = "$name.uninstantiated.mjs"
+//                project.rootProject.buildDir.resolve(
+//                    "js/packages/$name/kotlin/$fileName"
+//                ).also { file ->
+//                    val oldContent = file.readText()
+//                    val newContent = oldContent.replace("(jsException) =>", "(e) =>")
+//                    file.writeText(newContent)
+//                }
+//            }
             dependsOn(unzipTask)
         }
 
         val commonMain = sourceSets.getByName("commonMain")
-        val wasmMain = sourceSets.getByName("wasmMain")
+        val wasmMain = sourceSets.getByName("wasmJsMain")
         wasmMain.dependsOn(commonMain)
 
-        sourceSets.getByName("wasmTest").also {
+        sourceSets.getByName("wasmJsTest").also {
             it.resources.setSrcDirs(it.resources.srcDirs)
             it.resources.srcDirs(unzipTask.map { it.destinationDir })
         }

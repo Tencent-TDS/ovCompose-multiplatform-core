@@ -149,7 +149,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             desktopMain.dependsOn(skikoMain)
             nativeMain.dependsOn(skikoMain)
             jsMain.dependsOn(skikoMain)
-            wasmMain.dependsOn(skikoMain)
+            wasmJsMain.dependsOn(skikoMain)
 
             desktopMain.dependencies {
                 implementation(libs.truth)

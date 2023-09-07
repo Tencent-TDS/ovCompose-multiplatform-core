@@ -95,10 +95,10 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             }
 
             if (project.kotlinWasmEnabled.toBoolean()) {
-                wasmMain {
+                wasmJsMain {
                     dependsOn(jsNativeMain)
                     dependencies {
-                        implementation(kotlin("stdlib-wasm"))
+                        implementation(kotlin("stdlib-wasm-js"))
                     }
                 }
             }

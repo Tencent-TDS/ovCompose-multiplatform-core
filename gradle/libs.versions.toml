@@ -20,7 +20,7 @@ androidxTestMonitor = "1.7.0-alpha01"
 androidxTestCore = "1.6.0-alpha01"
 androidxTestExtJunit = "1.2.0-alpha01"
 androidxTestExtTruth = "1.6.0-alpha01"
-atomicFu = "0.21.0"
+atomicFu = "0.22.0"
 autoService = "1.0-rc6"
 autoValue = "1.6.3"
 byteBuddy = "1.12.10"
@@ -37,9 +37,9 @@ guavaJre = "31.1-jre"
 hilt = "2.44"
 incap = "0.2"
 jcodec = "0.2.5"
-kotlin = "1.9.0"
+kotlin = "1.9.20-Beta-205"
 kotlinBenchmark = "0.4.7"
-kotlinNative = "1.9.0"
+kotlinNative = "1.9.20-Beta-205"
 kotlinBinaryCompatibilityValidator = "0.13.2"
 kotlinCompileTesting = "1.4.9"
 kotlinCoroutines = "1.7.2"
@@ -192,7 +192,7 @@ kotlinTestAnnotationsCommon = { module = "org.jetbrains.kotlin:kotlin-test-annot
 kotlinTestCommon = { module = "org.jetbrains.kotlin:kotlin-test-common", version.ref = "kotlin" }
 kotlinTestJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kotlinTestJs = { module = "org.jetbrains.kotlin:kotlin-test-js", version.ref = "kotlin" }
-kotlinTestWasm = { module = "org.jetbrains.kotlin:kotlin-test-wasm", version.ref = "kotlin" }
+kotlinTestWasm = { module = "org.jetbrains.kotlin:kotlin-test-wasm-js", version.ref = "kotlin" }
 kotlinReflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlinPoet = { module = "com.squareup:kotlinpoet", version = "1.12.0" }
 kotlinPoetJavaPoet = { module = "com.squareup:kotlinpoet-javapoet", version = "1.12.0" }
@@ -260,7 +260,7 @@ skikoWindowsX64 = { module = "org.jetbrains.skiko:skiko-awt-runtime-windows-x64"
 skikoWindowsArm64 = { module = "org.jetbrains.skiko:skiko-awt-runtime-windows-arm64", version.ref = "skiko" }
 skikoLinuxX64 = { module = "org.jetbrains.skiko:skiko-awt-runtime-linux-x64", version.ref = "skiko" }
 skikoLinuxArm64 = { module = "org.jetbrains.skiko:skiko-awt-runtime-linux-arm64", version.ref = "skiko" }
-skikoWasmWasm = { module = "org.jetbrains.skiko:skiko-wasm", version.ref = "skiko" }
+skikoWasmWasm = { module = "org.jetbrains.skiko:skiko-wasm-js", version.ref = "skiko" }
 skikoWasm = { module = "org.jetbrains.skiko:skiko-js-wasm-runtime", version.ref = "skiko" }
 sqldelightAndroid = { module = "com.squareup.sqldelight:android-driver", version.ref = "sqldelight" }
 sqldelightCoroutinesExt = { module = "com.squareup.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
