@@ -16,11 +16,15 @@
 
 package androidx.compose.foundation.text
 
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.OffsetMapping
 
 @OptIn(InternalFoundationTextApi::class)
@@ -32,14 +36,66 @@ internal actual fun getTextFieldPointerModifier(
     focusRequester: FocusRequester,
     readOnly: Boolean,
     offsetMapping: OffsetMapping
-): Modifier = if (isInTouchMode) {
-    val selectionModifier =
-        Modifier.longPressDragGestureFilter(manager.touchSelectionObserver, enabled)
-    Modifier
-        .tapPressTextFieldModifier(
+): Modifier = if (enabled) {
+    if (isInTouchMode) {
+        val selectionModifier = getSelectionModifier(manager)
+        val tapHandlerModifier = getTapHandlerModifier(
             interactionSource,
-            enabled
-        ) { offset ->
+            state,
+            focusRequester,
+            readOnly,
+            offsetMapping,
+            manager
+        )
+        Modifier
+            .then(tapHandlerModifier)
+            .then(selectionModifier)
+            .pointerHoverIcon(textPointerIcon)
+    } else {
+        Modifier
+            .mouseDragGestureDetector(
+                observer = manager.mouseSelectionObserver,
+                enabled = enabled
+            )
+            .pointerHoverIcon(textPointerIcon)
+    }
+} else {
+    Modifier
+}
+
+@OptIn(InternalFoundationTextApi::class)
+private fun getTapHandlerModifier(
+    interactionSource: MutableInteractionSource?,
+    state: TextFieldState,
+    focusRequester: FocusRequester,
+    readOnly: Boolean,
+    offsetMapping: OffsetMapping,
+    manager: TextFieldSelectionManager
+) = Modifier.then(Modifier.pointerInput(interactionSource) {
+    detectTapGestures(
+        onDoubleTap = { touchPointOffset ->
+            tapTextFieldToFocus(
+                state,
+                focusRequester,
+                !readOnly
+            )
+
+            if (manager.value.text.isEmpty()) return
+            manager.enterSelectionMode()
+            state?.layoutResult?.let { layoutResult ->
+                val offset = layoutResult.getOffsetForPosition(touchPointOffset)
+                manager.updateSelection(
+                    value = manager.value,
+                    transformedStartOffset = offset,
+                    transformedEndOffset = offset,
+                    isStartHandle = false,
+                    adjustment = SelectionAdjustment.Word
+                )
+                manager.dragBeginOffsetInText = offset
+            }
+
+        },
+        onTap = { touchPointOffset ->
             tapTextFieldToFocus(
                 state,
                 focusRequester,
@@ -49,7 +105,7 @@ internal actual fun getTextFieldPointerModifier(
                 if (state.handleState != HandleState.Selection) {
                     state.layoutResult?.let { layoutResult ->
                         TextFieldDelegate.setCursorOffset(
-                            offset,
+                            touchPointOffset,
                             layoutResult,
                             state.processor,
                             offsetMapping,
@@ -61,17 +117,26 @@ internal actual fun getTextFieldPointerModifier(
                         }
                     }
                 } else {
-                    manager.deselect(offset)
+                    manager.deselect(touchPointOffset)
                 }
             }
         }
-        .then(selectionModifier)
-        .pointerHoverIcon(textPointerIcon)
-} else {
-    Modifier
-        .mouseDragGestureDetector(
-            observer = manager.mouseSelectionObserver,
-            enabled = enabled
-        )
-        .pointerHoverIcon(textPointerIcon)
+    )
+})
+
+private fun getSelectionModifier(manager: TextFieldSelectionManager): Modifier {
+    val selectionModifier =
+        Modifier
+            .then(Modifier.pointerInput(Unit) {
+                detectDragGesturesAfterLongPress(onDragStart = {
+                    manager.touchSelectionObserver.onStart(
+                        startPoint = it
+                    )
+                },
+                    onDrag = { _, delta -> manager.touchSelectionObserver.onDrag(delta = delta) },
+                    onDragCancel = { manager.touchSelectionObserver.onCancel() },
+                    onDragEnd = { manager.touchSelectionObserver.onStop() }
+                )
+            })
+    return selectionModifier
 }
