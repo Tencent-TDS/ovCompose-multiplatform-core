@@ -26,8 +26,8 @@ var wasmTestMjsFile;
 var wasmTestFile;
 try {
     const files = fs.readdirSync(wasmPath);
-    wasmTestMjsFile = files.filter(file => file.endsWith('-wasm-test.mjs'))[0];
-    wasmTestFile = files.filter(file => file.endsWith('-wasm-test.wasm'))[0];
+    wasmTestMjsFile = files.filter(file => file.endsWith('-wasm-js-test.mjs'))[0];
+    wasmTestFile = files.filter(file => file.endsWith('-wasm-js-test.wasm'))[0];
 } catch (error) {
     console.error('[karma-config] Error:', error);
 }
@@ -60,7 +60,9 @@ config.proxies = {
 
 config.preprocessors[wasmTestsLoaderWasm] = ["webpack"];
 
+const staticLoadMJs = path.resolve(basePath, "..", "static", "load.mjs")
 config.files = config.files.filter((x) => x !== wasmTestsMjs);
+config.files = config.files.filter((x) => x !== staticLoadMJs);
 
 config.files = [
     path.resolve(wasmPath, "skiko.js"),

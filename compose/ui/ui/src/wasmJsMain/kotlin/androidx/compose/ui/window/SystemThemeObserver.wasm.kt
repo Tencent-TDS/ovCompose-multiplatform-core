@@ -17,14 +17,15 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.SystemTheme
 import org.w3c.dom.Window
 
+internal actual fun getSystemThemeObserver(window: Window): SystemThemeObserver {
+    return object : SystemThemeObserver {
+        override val currentSystemTheme: State<SystemTheme>
+            get() = mutableStateOf(SystemTheme.Unknown)
 
-internal interface SystemThemeObserver {
-    val currentSystemTheme: State<SystemTheme>
-
-    fun dispose()
+        override fun dispose() {}
+    }
 }
-
-internal expect fun getSystemThemeObserver(window: Window): SystemThemeObserver

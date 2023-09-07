@@ -41,7 +41,7 @@ class AndroidXPlugin : Plugin<Project> {
             val conf = it
             conf.resolutionStrategy.eachDependency {
                 if (it.requested.module.name.contains("kotlin-stdlib")) {
-//                     it.useVersion("1.9.0-dev-6584")
+                     it.useVersion("1.9.20-Beta-205")
                 }
                 val isWasm = conf.name.contains("wasm", true)
 
