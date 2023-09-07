@@ -33,7 +33,6 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 
-@OptIn(InternalFoundationTextApi::class)
 internal actual fun getTextFieldPointerModifier(
     manager: TextFieldSelectionManager,
     enabled: Boolean,
@@ -78,6 +77,10 @@ private fun getTapHandlerModifier(
     offsetMapping: OffsetMapping,
     manager: TextFieldSelectionManager
 ) = Modifier.then(Modifier.pointerInput(interactionSource) {
+    /*
+    We need to move tap recognizer here from selection modifier (as it is in common)
+    because otherwise we have onDoubleTap call and onTap call, and onDoubleTap will execute before onTap.
+     */
     detectTapGestures(
         onDoubleTap = { touchPointOffset ->
             tapTextFieldToFocus(
