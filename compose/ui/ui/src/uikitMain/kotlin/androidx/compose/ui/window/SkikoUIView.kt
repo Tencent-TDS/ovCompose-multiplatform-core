@@ -462,7 +462,8 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
         val p = (position as? IntermediateTextPosition)?.position ?: return null
         val endOfDocument = input?.endOfDocument()
         return if (endOfDocument != null) {
-            IntermediateTextPosition(max(min(p + offset, endOfDocument), 0))
+            val result = input?.positionFromPosition(position = p, offset = offset)
+            IntermediateTextPosition(result ?: max(min(p + offset, endOfDocument), 0))
         } else {
             null
         }

@@ -102,6 +102,9 @@ internal interface IOSSkikoInput {
      */
     fun unmarkText()
 
+    //TODO doc
+    fun positionFromPosition(position: Long, offset: Long): Long
+
     object Empty : IOSSkikoInput {
         override fun hasText(): Boolean = false
         override fun insertText(text: String) = Unit
@@ -115,5 +118,6 @@ internal interface IOSSkikoInput {
         override fun setMarkedText(markedText: String?, selectedRange: IntRange) = Unit
         override fun markedTextRange(): IntRange? = null
         override fun unmarkText() = Unit
+        override fun positionFromPosition(position: Long, offset: Long): Long = 0
     }
 }

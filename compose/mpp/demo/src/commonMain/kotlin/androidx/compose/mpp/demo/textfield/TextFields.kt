@@ -50,7 +50,9 @@ val TextFields = Screen.Selection(
         }
     },
     Screen.Example("Emoji") {
-        EmojiExample()
+        ClearFocusBox {
+            EmojiExample()
+        }
     }
 )
 

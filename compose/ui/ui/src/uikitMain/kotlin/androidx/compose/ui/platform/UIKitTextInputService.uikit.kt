@@ -20,6 +20,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.text.input.*
 import kotlin.math.min
+import org.jetbrains.skia.BreakIterator
 import org.jetbrains.skiko.SkikoKey
 import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.UIKit.*
@@ -298,6 +299,33 @@ internal class UIKitTextInputService(
          */
         override fun unmarkText() {
             sendEditCommand(FinishComposingTextCommand())
+        }
+
+        override fun positionFromPosition(position: Long, offset: Long): Long {
+            val text = getState()?.text ?: return 0
+
+            if (position + offset >= text.lastIndex + 1) {
+                return (text.lastIndex + 1).toLong()
+            }
+            if (position + offset <= 0) {
+                return 0
+            }
+            var currentOffset = offset
+            var resultPosition = position.toInt()
+
+            val it = BreakIterator.makeCharacterInstance()
+            it.setText(text)
+
+            while (currentOffset > 0) { // Move forward
+                resultPosition = it.following(resultPosition)
+                currentOffset--
+            }
+            while (currentOffset < 0) { // Move backward
+                resultPosition = it.preceding(resultPosition)
+                currentOffset++
+            }
+            println("positionFromPosition, position: $position, offset: $offset, result: $resultPosition")
+            return resultPosition.toLong()
         }
 
     }
