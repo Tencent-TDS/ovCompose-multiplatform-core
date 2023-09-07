@@ -55,21 +55,21 @@ kotlin {
         browser()
         binaries.executable()
     }
-//    wasm() {
-//        moduleName = "mpp-demo"
-//        browser {
-//            commonWebpackConfig {
-//                devServer = (devServer ?: KotlinWebpackConfig.DevServer()).copy(
-//                    open = mapOf(
-//                        "app" to mapOf(
-//                            "name" to "google-chrome",
-//                        )
-//                    ),
-//                )
-//            }
-//        }
-//        binaries.executable()
-//    }
+    wasm() {
+        moduleName = "mpp-demo"
+        browser {
+            commonWebpackConfig {
+                devServer = (devServer ?: KotlinWebpackConfig.DevServer()).copy(
+                    open = mapOf(
+                        "app" to mapOf(
+                            "name" to "google-chrome",
+                        )
+                    ),
+                )
+            }
+        }
+        binaries.executable()
+    }
     macosX64() {
         binaries {
             executable() {
@@ -177,14 +177,14 @@ kotlin {
             }
         }
 
-//        val wasmMain by getting {
-//            dependsOn(skikoMain)
-//            resources.setSrcDirs(resources.srcDirs)
-//            resources.srcDirs(unzipTask.map { it.destinationDir })
-//            dependencies {
-//                implementation(kotlin("stdlib-wasm"))
-//            }
-//        }
+        val wasmMain by getting {
+            dependsOn(skikoMain)
+            resources.setSrcDirs(resources.srcDirs)
+            resources.srcDirs(unzipTask.map { it.destinationDir })
+            dependencies {
+                implementation(kotlin("stdlib-wasm"))
+            }
+        }
 
         val nativeMain by creating { dependsOn(skikoMain) }
         val darwinMain by creating { dependsOn(nativeMain) }

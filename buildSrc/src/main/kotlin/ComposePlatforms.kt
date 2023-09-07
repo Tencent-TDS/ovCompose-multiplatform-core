@@ -11,6 +11,7 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
     AndroidDebug("Android"),
     AndroidRelease("Android"),
     Js("Web"),
+    Wasm("Web"),
     MacosX64("Macos"),
     MacosArm64("Macos"),
     UikitX64("UiKit"),
