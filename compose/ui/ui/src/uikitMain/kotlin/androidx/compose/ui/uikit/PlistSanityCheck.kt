@@ -37,7 +37,7 @@ internal object PlistSanityCheck {
                     .objectForInfoDictionaryKey("CADisableMinimumFrameDurationOnPhone") as? NSNumber
 
                 if (entry?.boolValue != true) {
-                    println("WARNING: `Info.plist` doesn't have a valid `CADisableMinimumFrameDurationOnPhone` entry. Framerate will be restricted to 60hz on iPhones. To support high frequency rendering on iPhones, add `CADisableMinimumFrameDurationOnPhone` entry to `Info.plist` and set it to YES.")
+                    println("WARNING: `Info.plist` doesn't have a valid `CADisableMinimumFrameDurationOnPhone` entry. Framerate will be restricted to 60hz on iPhones. To support high frequency rendering on iPhones, add `<key>CADisableMinimumFrameDurationOnPhone</key><true/>` entry to `Info.plist`.")
                 }
             }
         }
