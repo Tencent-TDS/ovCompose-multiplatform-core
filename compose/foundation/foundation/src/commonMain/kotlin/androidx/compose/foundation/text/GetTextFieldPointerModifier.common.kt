@@ -33,6 +33,7 @@ internal expect fun getTextFieldPointerModifier(
     offsetMapping: OffsetMapping
 ): Modifier
 
+@OptIn(InternalFoundationTextApi::class)
 internal fun getDefaultTextFieldPointerModifier(
     manager: TextFieldSelectionManager,
     enabled: Boolean,

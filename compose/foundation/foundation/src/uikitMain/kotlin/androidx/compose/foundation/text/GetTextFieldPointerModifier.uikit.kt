@@ -21,11 +21,17 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
+import androidx.compose.foundation.text.selection.getTextFieldSelection
+import androidx.compose.foundation.text.selection.isSelectionHandleInVisibleBound
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TextFieldValue
 
 @OptIn(InternalFoundationTextApi::class)
 internal actual fun getTextFieldPointerModifier(
@@ -79,21 +85,7 @@ private fun getTapHandlerModifier(
                 focusRequester,
                 !readOnly
             )
-
-            if (manager.value.text.isEmpty()) return
-            manager.enterSelectionMode()
-            state?.layoutResult?.let { layoutResult ->
-                val offset = layoutResult.getOffsetForPosition(touchPointOffset)
-                manager.updateSelection(
-                    value = manager.value,
-                    transformedStartOffset = offset,
-                    transformedEndOffset = offset,
-                    isStartHandle = false,
-                    adjustment = SelectionAdjustment.Word
-                )
-                manager.dragBeginOffsetInText = offset
-            }
-
+            manager.doDoubleTapSelection(touchPointOffset)
         },
         onTap = { touchPointOffset ->
             tapTextFieldToFocus(
