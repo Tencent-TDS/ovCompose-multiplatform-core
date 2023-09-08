@@ -612,22 +612,6 @@ internal class TextFieldSelectionManager(
         )
     }
 
-    internal fun doDoubleTapSelection(touchPointOffset: Offset) {
-        if (value.text.isEmpty()) return
-        enterSelectionMode()
-        state?.layoutResult?.let { layoutResult ->
-            val offset = layoutResult.getOffsetForPosition(touchPointOffset)
-            updateSelection(
-                value = value,
-                transformedStartOffset = offset,
-                transformedEndOffset = offset,
-                isStartHandle = false,
-                adjustment = SelectionAdjustment.Word
-            )
-            dragBeginOffsetInText = offset
-        }
-    }
-
     internal fun getHandleLineHeight(isStartHandle: Boolean): Float {
         val layoutResult = state?.layoutResult ?: return 0f
         val offset = if (isStartHandle) value.selection.start else value.selection.end

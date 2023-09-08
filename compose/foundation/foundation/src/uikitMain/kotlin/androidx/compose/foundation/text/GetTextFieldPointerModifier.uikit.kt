@@ -21,12 +21,18 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
+import androidx.compose.foundation.text.selection.getTextFieldSelection
+import androidx.compose.foundation.text.selection.isSelectionHandleInVisibleBound
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TextFieldValue
 
 internal actual fun getTextFieldPointerModifier(
     manager: TextFieldSelectionManager,
@@ -143,6 +149,64 @@ private fun TextFieldSelectionManager.doDoubleTapSelection(touchPointOffset: Off
             isStartHandle = false,
             adjustment = SelectionAdjustment.Word
         )
-//        dragBeginOffsetInText = offset
     }
+}
+
+/**
+ * Copied from TextFieldSelectionManager.kt
+ */
+private fun TextFieldSelectionManager.updateSelection(
+    value: TextFieldValue,
+    transformedStartOffset: Int,
+    transformedEndOffset: Int,
+    isStartHandle: Boolean,
+    adjustment: SelectionAdjustment
+) {
+    val transformedSelection = TextRange(
+        offsetMapping.originalToTransformed(value.selection.start),
+        offsetMapping.originalToTransformed(value.selection.end)
+    )
+
+    val newTransformedSelection = getTextFieldSelection(
+        textLayoutResult = state?.layoutResult?.value,
+        rawStartOffset = transformedStartOffset,
+        rawEndOffset = transformedEndOffset,
+        previousSelection = if (transformedSelection.collapsed) null else transformedSelection,
+        isStartHandle = isStartHandle,
+        adjustment = adjustment
+    )
+
+    val originalSelection = TextRange(
+        start = offsetMapping.transformedToOriginal(newTransformedSelection.start),
+        end = offsetMapping.transformedToOriginal(newTransformedSelection.end)
+    )
+
+    if (originalSelection == value.selection) return
+
+    hapticFeedBack?.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+
+    val newValue = createTextFieldValue(
+        annotatedString = value.annotatedString,
+        selection = originalSelection
+    )
+    onValueChange(newValue)
+
+    // showSelectionHandleStart/End might be set to false when scrolled out of the view.
+    // When the selection is updated, they must also be updated so that handles will be shown
+    // or hidden correctly.
+    state?.showSelectionHandleStart = isSelectionHandleInVisibleBound(true)
+    state?.showSelectionHandleEnd = isSelectionHandleInVisibleBound(false)
+}
+
+/**
+ * Copied from TextFieldSelectionManager.kt
+ */
+private fun createTextFieldValue(
+    annotatedString: AnnotatedString,
+    selection: TextRange
+): TextFieldValue {
+    return TextFieldValue(
+        annotatedString = annotatedString,
+        selection = selection
+    )
 }
