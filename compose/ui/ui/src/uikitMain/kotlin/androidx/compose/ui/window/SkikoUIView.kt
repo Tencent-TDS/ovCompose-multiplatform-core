@@ -457,6 +457,9 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
 
     /**
      * Attention! position may be null
+     * @param position a custom UITextPosition object that represents a location in a document.
+     * @param offset a character offset from position. It can be a positive or negative value.
+     * Offset should be considered as a number of Unicode characters. One Unicode character can contain several bytes.
      */
     override fun positionFromPosition(position: UITextPosition, offset: NSInteger): UITextPosition? {
         val p = (position as? IntermediateTextPosition)?.position ?: return null
