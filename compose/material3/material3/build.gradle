@@ -215,3 +215,9 @@ android {
             project.rootDir.absolutePath + "/golden/compose/material3/material3"
     namespace "androidx.compose.material3"
 }
+
+project.tasks.configureEach {
+    if (name == "compileJsWasmMainKotlinMetadata") {
+        enabled = false
+    }
+}
