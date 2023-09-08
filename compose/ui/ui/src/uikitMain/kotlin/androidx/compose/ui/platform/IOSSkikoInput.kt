@@ -102,7 +102,9 @@ internal interface IOSSkikoInput {
      */
     fun unmarkText()
 
-    //TODO doc
+    /**
+     * Returns the text position at a specified offset from another text position.
+     */
     fun positionFromPosition(position: Long, offset: Long): Long
 
     object Empty : IOSSkikoInput {

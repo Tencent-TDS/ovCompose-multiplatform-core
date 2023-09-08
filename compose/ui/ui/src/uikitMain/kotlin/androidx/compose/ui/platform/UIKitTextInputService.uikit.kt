@@ -324,7 +324,6 @@ internal class UIKitTextInputService(
                 resultPosition = it.preceding(resultPosition)
                 currentOffset++
             }
-            println("positionFromPosition, position: $position, offset: $offset, result: $resultPosition")
             return resultPosition.toLong()
         }
 
