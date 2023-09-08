@@ -117,10 +117,6 @@ private class ApplicationStateListener(
     }
 }
 
-private enum class DrawReason {
-    DISPLAY_LINK_CALLBACK, SYNCHRONOUS_DRAW_REQUEST
-}
-
 internal interface MetalRedrawerCallbacks {
     /**
      * Draw into a surface.
@@ -149,6 +145,7 @@ internal class MetalRedrawer(
         ?: throw IllegalStateException("Couldn't create Metal command queue")
     private val context = DirectContext.makeMetal(device.objcPtr(), queue.objcPtr())
     private val inflightCommandBuffers = mutableListOf<MTLCommandBufferProtocol>()
+    private var lastRenderTimestamp: NSTimeInterval = CACurrentMediaTime()
 
     // Semaphore for preventing command buffers count more than swapchain size to be scheduled/executed at the same time
     private val inflightSemaphore =
@@ -233,7 +230,9 @@ internal class MetalRedrawer(
         if (displayLinkConditions.needsRedrawOnNextVsync) {
             displayLinkConditions.needsRedrawOnNextVsync = false
 
-            draw(DrawReason.DISPLAY_LINK_CALLBACK)
+            val targetTimestamp = caDisplayLink?.targetTimestamp ?: return
+
+            draw(waitUntilCompletion = false, targetTimestamp)
         }
     }
 
@@ -241,25 +240,17 @@ internal class MetalRedrawer(
      * Immediately dispatch draw and block the thread until it's finished and presented on the screen.
      */
     fun drawSynchronously() {
-        draw(DrawReason.SYNCHRONOUS_DRAW_REQUEST)
-    }
-
-    private fun draw(reason: DrawReason) {
-        check(NSThread.isMainThread)
-
-        val caDisplayLink = caDisplayLink
-
         if (caDisplayLink == null) {
-            // TODO: anomaly, log
-            // Logger.warn { "draw should not be called after caDisplayLink was invalidated" }
             return
         }
 
-        // If called outside of unpaused CADisplayLink scope, targetTimestamp doesn't contain a valid value
-        val targetTimestamp = when (reason) {
-            DrawReason.DISPLAY_LINK_CALLBACK -> caDisplayLink.targetTimestamp
-            DrawReason.SYNCHRONOUS_DRAW_REQUEST -> CACurrentMediaTime()
-        }
+        draw(waitUntilCompletion = true, CACurrentMediaTime())
+    }
+
+    private fun draw(waitUntilCompletion: Boolean, targetTimestamp: NSTimeInterval) {
+        check(NSThread.isMainThread)
+
+        lastRenderTimestamp = maxOf(targetTimestamp, lastRenderTimestamp)
 
         autoreleasepool {
             val (width, height) = metalLayer.drawableSize.useContents {
@@ -303,7 +294,7 @@ internal class MetalRedrawer(
             }
 
             surface.canvas.clear(Color.WHITE)
-            callbacks.draw(surface, targetTimestamp)
+            callbacks.draw(surface, lastRenderTimestamp)
             surface.flushAndSubmit()
 
             val caTransactionCommands = callbacks.retrieveCATransactionCommands()
@@ -346,7 +337,7 @@ internal class MetalRedrawer(
 
             inflightCommandBuffers.add(commandBuffer)
 
-            if (reason == DrawReason.SYNCHRONOUS_DRAW_REQUEST) {
+            if (waitUntilCompletion) {
                 commandBuffer.waitUntilCompleted()
             }
         }
