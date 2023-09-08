@@ -53,8 +53,7 @@ internal actual fun getTextFieldPointerModifier(
             offsetMapping,
             manager
         )
-        Modifier
-            .then(tapHandlerModifier)
+        tapHandlerModifier
             .then(selectionModifier)
             .pointerHoverIcon(textPointerIcon)
     } else {
@@ -77,7 +76,7 @@ private fun getTapHandlerModifier(
     readOnly: Boolean,
     offsetMapping: OffsetMapping,
     manager: TextFieldSelectionManager
-) = Modifier.then(Modifier.pointerInput(interactionSource) {
+) = Modifier.pointerInput(interactionSource) {
     /*
     We need to move tap recognizer here from selection modifier (as it is in common)
     because otherwise we have onDoubleTap call and onTap call, and onDoubleTap will execute before onTap.
@@ -118,12 +117,11 @@ private fun getTapHandlerModifier(
             }
         }
     )
-})
+}
 
 private fun getSelectionModifier(manager: TextFieldSelectionManager): Modifier {
     val selectionModifier =
-        Modifier
-            .then(Modifier.pointerInput(Unit) {
+        Modifier.pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(onDragStart = {
                     manager.touchSelectionObserver.onStart(
                         startPoint = it
@@ -133,7 +131,7 @@ private fun getSelectionModifier(manager: TextFieldSelectionManager): Modifier {
                     onDragCancel = { manager.touchSelectionObserver.onCancel() },
                     onDragEnd = { manager.touchSelectionObserver.onStop() }
                 )
-            })
+            }
     return selectionModifier
 }
 
