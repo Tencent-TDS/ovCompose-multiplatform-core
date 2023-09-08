@@ -21,17 +21,12 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
-import androidx.compose.foundation.text.selection.getTextFieldSelection
-import androidx.compose.foundation.text.selection.isSelectionHandleInVisibleBound
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.input.TextFieldValue
 
 internal actual fun getTextFieldPointerModifier(
     manager: TextFieldSelectionManager,
@@ -134,4 +129,20 @@ private fun getSelectionModifier(manager: TextFieldSelectionManager): Modifier {
                 )
             })
     return selectionModifier
+}
+
+private fun TextFieldSelectionManager.doDoubleTapSelection(touchPointOffset: Offset) {
+    if (value.text.isEmpty()) return
+    enterSelectionMode()
+    state?.layoutResult?.let { layoutResult ->
+        val offset = layoutResult.getOffsetForPosition(touchPointOffset)
+        updateSelection(
+            value = value,
+            transformedStartOffset = offset,
+            transformedEndOffset = offset,
+            isStartHandle = false,
+            adjustment = SelectionAdjustment.Word
+        )
+//        dragBeginOffsetInText = offset
+    }
 }
