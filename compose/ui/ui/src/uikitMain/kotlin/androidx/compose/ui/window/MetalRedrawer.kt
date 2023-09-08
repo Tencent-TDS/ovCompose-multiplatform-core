@@ -169,6 +169,9 @@ internal class MetalRedrawer(
             displayLinkConditions.needsToBeProactive = value
         }
 
+    /**
+     * null after [dispose] call
+     */
     private var caDisplayLink: CADisplayLink? = CADisplayLink.displayLinkWithTarget(
         target = DisplayLinkProxy {
             this.handleDisplayLinkTick()
