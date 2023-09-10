@@ -49,9 +49,9 @@ val TextFields = Screen.Selection(
             PasswordTextfieldExample()
         }
     },
-    Screen.Example("CompoundEmoji") {
+    Screen.Example("Emoji") {
         ClearFocusBox {
-            CompoundEmojiExample()
+            EmojiExample()
         }
     }
 )
@@ -70,19 +70,5 @@ private fun AlmostFullscreen() {
     TextField(
         textState.value, { textState.value = it },
         Modifier.fillMaxSize().padding(vertical = 40.dp)
-    )
-}
-
-@Composable
-private fun CompoundEmojiExample() {
-    val textWithEmoji = remember {
-        mutableStateOf("Family emoji: \uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66, and some text at the end")
-    }
-    BasicTextField(
-        value = textWithEmoji.value,
-        onValueChange = {
-            textWithEmoji.value = it
-        },
-        keyboardOptions = KeyboardOptions(autoCorrect = false)
     )
 }
