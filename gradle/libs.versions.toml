@@ -162,7 +162,7 @@ gradleIncapHelper = { module = "net.ltgt.gradle.incap:incap", version.ref = "inc
 gradleIncapHelperProcessor = { module = "net.ltgt.gradle.incap:incap-processor", version.ref = "incap" }
 kotlinAnnotationProcessingEmbeddable = { module = "org.jetbrains.kotlin:kotlin-annotation-processing-embeddable", version.ref = "kotlin" }
 kotlinBenchmarkRuntime = { module = "org.jetbrains.kotlinx:kotlinx-benchmark-runtime", version.ref = "kotlinBenchmark" }
-kotlinBinaryCompatibilityValidatorGradlePluginz = { module = "org.jetbrains.kotlinx.binary-compatibility-validator:org.jetbrains.kotlinx.binary-compatibility-validator.gradle.plugin", version.ref = "kotlinBinaryCompatibilityValidator" }
+kotlinBinaryCompatibilityValidatorGradlePlugin = { module = "org.jetbrains.kotlinx.binary-compatibility-validator:org.jetbrains.kotlinx.binary-compatibility-validator.gradle.plugin", version.ref = "kotlinBinaryCompatibilityValidator" }
 kotlinBom = { module = "org.jetbrains.kotlin:kotlin-bom", version.ref = "kotlin" }
 kotlinCompiler = { module = "org.jetbrains.kotlin:kotlin-compiler", version.ref = "kotlin" }
 kotlinCompilerEmbeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
