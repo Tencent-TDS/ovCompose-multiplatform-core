@@ -101,10 +101,9 @@ private data class IOSVerticalScrollLayoutModifier(
 
             val additionalDeltaY = if (textLayoutResult != null) {
                 // On iOS we will scroll to one line before the cursor:
-                val scrollToLine = textLayoutResult.getLineForOffset(cursorOffset) - 1
-                textLayoutResult.multiParagraph.getLineHeight(
-                    lineIndex = scrollToLine.coerceAtLeast(0)
-                )
+                val cursorLine = textLayoutResult.getLineForOffset(cursorOffset)
+                val scrollToLine = (cursorLine - 1).coerceAtLeast(0)
+                textLayoutResult.multiParagraph.getLineHeight(scrollToLine)
             } else {
                 0f
             }
