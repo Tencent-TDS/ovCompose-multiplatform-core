@@ -40,8 +40,8 @@ dependencies {
     // implementation(androidxArtifact(":profileinstaller:profileinstaller"))
     // TODO: artifact is not found, so commented out
     // implementation(androidxArtifact(":recyclerview:recyclerview"))
-    implementation(project(":tracing:tracing-ktx"))
-    implementation(project(":tracing:tracing-perfetto"))
+    implementation(androidxArtifact(":tracing:tracing-ktx"))
+    implementation(androidxArtifact(":tracing:tracing-perfetto"))
     implementation(libs.material)
 
     implementation(androidxArtifact(":work:work-runtime"))
