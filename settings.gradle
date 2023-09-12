@@ -339,10 +339,10 @@ filteredProjects.add(":lint-checks")
 //   the project name in the IDE
 //   the Maven artifactId
 //
-def includeProject(String name, filePath, List<BuildType> filter = []) {
-    if (getRequestedProjectPrefix() != null) {
-        if (name.startsWith(getRequestedProjectPrefix())) filteredProjects.add(name)
-    } else if (shouldIncludeForFilter(filter)) filteredProjects.add(name)
+def includeProject(name, filePath, List<BuildType> filter = []) {
+    if (!shouldIncludeForFilter(filter)) return
+    settings.include(name)
+
     def file
     if (filePath != null) {
         if (filePath instanceof String) {
@@ -353,45 +353,11 @@ def includeProject(String name, filePath, List<BuildType> filter = []) {
         } else {
             file = filePath
         }
+        project(name).projectDir = file
     } else {
-        file = new File(rootDir, name.substring(1).replace(":", "/"))
+        file = project(name).projectDir
     }
-    allProjects[name] = file
-    File buildGradle = new File(file, "build.gradle")
-    if (buildGradle.exists()) {
-        def buildGradleProperty = settings.services.get(ObjectFactory).fileProperty().fileValue(buildGradle)
-        def contents = settings.providers.fileContents(buildGradleProperty).getAsText().get()
-        Set<String> links = new HashSet<String>()
-        for (line in contents.lines()) {
-            Matcher m = projectReferencePattern.matcher(line)
-            if (m.find()) {
-                links.add(m.group("name"))
-            }
-            if (multilineProjectReference.matcher(line).find()) {
-                throw new IllegalStateException(
-                        "Multi-line project() references are not supported. Please fix $file.absolutePath"
-                )
-            }
-            Matcher matcherInspection = inspection.matcher(line)
-            if (matcherInspection) {
-                links.add(matcherInspection.group(1))
-            }
-            if (composePlugin.matcher(line).find()) {
-                links.add(":compose:compiler:compiler")
-                links.add(":compose:lint:internal-lint-checks")
-            }
-            if (paparazziPlugin.matcher(line).find()) {
-                links.add(":test:screenshot:screenshot-proto")
-                links.add(":internal-testutils-paparazzi")
-            }
-            if (iconGenerator.matcher(line).find()) {
-                links.add(":compose:material:material:icons:generator")
-            }
-        }
-        projectReferences[name] = links
-    }
-    def isJBFork = true
-    if (!isJBFork) {
+    if (!file.exists()) {
         // This option is supported so that development/simplify_build_failure.sh can try
         // deleting entire projects at once to identify the cause of a build failure
         if (System.getenv("ALLOW_MISSING_PROJECTS") == null) {
@@ -473,7 +439,7 @@ includeProject(":benchmark:integration-tests:baselineprofile-library-producer", 
 includeProject(":benchmark:integration-tests:baselineprofile-library-app-target", [BuildType.MAIN])
 includeProject(":benchmark:integration-tests:dry-run-benchmark", [BuildType.MAIN])
 includeProject(":benchmark:integration-tests:macrobenchmark", [BuildType.MAIN])
-includeProject(":benchmark:integration-tests:macrobenchmark-target", [BuildType.MAIN])
+includeProject(":benchmark:integration-tests:macrobenchmark-target", [BuildType.MAIN, BuildType.COMPOSE])
 includeProject(":benchmark:integration-tests:startup-benchmark", [BuildType.MAIN])
 //includeProject(":biometric:biometric", [BuildType.MAIN])
 //includeProject(":biometric:biometric-ktx", [BuildType.MAIN])
@@ -1210,48 +1176,3 @@ includeProject(":external:paparazzi:paparazzi-agent", [BuildType.COMPOSE])
 includeBuild("placeholder")
 
 includeProject(":mpp", [BuildType.COMPOSE])
-// ---------------------------------------------------------------------
-// --- there should be no includeProject additions after this line -----
-// ---------------------------------------------------------------------
-
-// For a given project path add the transitive project references to the include set.
-void addReferences(String projectPath, Set<String> included) {
-    if (projectPath in included) return
-    included.add(projectPath)
-    for (reference in projectReferences[projectPath]) {
-        addReferences(reference, included)
-    }
-}
-
-void includeRequestedProjectsAndDependencies() {
-    // Adding by including `:foo:bar` Gradle will automatically load `:foo`, so we need to
-    // add those implicit parent project references.
-    for (projectPath in projectReferences.keySet()) {
-        Set<String> newReferences = new HashSet<>()
-        for (reference in projectReferences[projectPath]) {
-            String[] segments = reference.substring(1).split(":")
-            String subpath = ""
-            for (int i = 0; i < segments.length; i++) {
-                subpath += ":" + segments[i]
-                if (allProjects.containsKey(subpath)) {
-                    newReferences.add(subpath)
-                }
-            }
-        }
-        projectReferences[projectPath].addAll(newReferences)
-    }
-
-    Set<String> projectsToInclude = new HashSet<>()
-    for (filteredProject in filteredProjects) {
-        addReferences(filteredProject, projectsToInclude)
-    }
-    for (entry in projectsToInclude) {
-        if (entry !in projectReferences.keySet()) {
-            continue
-        }
-        settings.include(entry)
-        project(entry).projectDir = allProjects[entry]
-    }
-}
-
-includeRequestedProjectsAndDependencies()
