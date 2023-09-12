@@ -52,11 +52,11 @@ Execution failed for task ':compose:material3:material3:desktopApiCheck'.
 
 To fix this error:
 1. Run `./gradlew desktopApiDump`
-2. See what is changed in *.api files.
-3. If there are only additions - there is no binary incompatible changes.
+2. See what has changed in *.api files.
+3. If there are only additions - there is no binary incompatible change.
 4. If there are some removals - most probably there is a binary incompatible change and it needs to be fixed before merging it to the main branch.
 
-Note that only desktop have API checks at the moment, but in the future it will be added for all targets.
+Note that only desktop has API checks at the moment, but in the future it will be added for all targets.
 
 ### Publishing
 Compose Multiplatform core libraries can be published to local Maven with the following steps:
