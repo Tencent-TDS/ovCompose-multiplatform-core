@@ -110,7 +110,7 @@ tasks.register("publishComposeJbExtendedIconsToMavenLocal", ComposePublishingTas
     iconsPublications()
 }
 
-tasks.register("desktopCICheck") {
+tasks.register("checkDesktop") {
     dependsOn(allTasksWith(name = "desktopTest"))
     dependsOn(allTasksWith(name = "desktopApiCheck"))
 }

@@ -16,6 +16,12 @@
 
 package androidx.compose.mpp.demo.textfield
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.TextField
@@ -41,6 +47,16 @@ val TextFields = Screen.Selection(
     Screen.Example("Password Textfield Example") {
         ClearFocusBox {
             PasswordTextfieldExample()
+        }
+    },
+    Screen.Example("Emoji") {
+        ClearFocusBox {
+            EmojiExample()
+        }
+    },
+    Screen.Example("FastDelete") {
+        ClearFocusBox {
+            FastDelete()
         }
     },
 )
