@@ -27,7 +27,7 @@ Run tests for UIKit:
 ```
 
 ### API checks
-Compose Multiplatform stores all public API in *.api files. If any API is added/changed, `./gradlew desktopCICheck` will fail with an error that API is changed (it runs on CI). Example:
+Compose Multiplatform stores all public API in *.api files. If any API is added/changed, `./gradlew checkDesktop` will fail with an error that API is changed (it runs on CI). Example:
 
 ```
 Execution failed for task ':compose:material3:material3:desktopApiCheck'.
