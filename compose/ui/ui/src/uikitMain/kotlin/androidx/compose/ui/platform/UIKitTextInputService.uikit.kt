@@ -19,7 +19,9 @@ package androidx.compose.ui.platform
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.text.input.*
+import kotlin.math.absoluteValue
 import kotlin.math.min
+import kotlin.test.assertContains
 import org.jetbrains.skia.BreakIterator
 import org.jetbrains.skiko.SkikoKey
 import org.jetbrains.skiko.SkikoKeyboardEventKind
@@ -301,6 +303,9 @@ internal class UIKitTextInputService(
             sendEditCommand(FinishComposingTextCommand())
         }
 
+        /**
+         * Returns the text position at a specified offset from another text position.
+         */
         override fun positionFromPosition(position: Long, offset: Long): Long {
             val text = getState()?.text ?: return 0
 
@@ -310,20 +315,18 @@ internal class UIKitTextInputService(
             if (position + offset <= 0) {
                 return 0
             }
-            var currentOffset = offset
             var resultPosition = position.toInt()
+            val iterator = BreakIterator.makeCharacterInstance()
+            iterator.setText(text)
 
-            val it = BreakIterator.makeCharacterInstance()
-            it.setText(text)
+            repeat(offset.absoluteValue.toInt()) {
+                resultPosition = if (offset > 0) {
+                    iterator.following(resultPosition)
+                } else {
+                    iterator.preceding(resultPosition)
+                }
+            }
 
-            while (currentOffset > 0) { // Move forward
-                resultPosition = it.following(resultPosition)
-                currentOffset--
-            }
-            while (currentOffset < 0) { // Move backward
-                resultPosition = it.preceding(resultPosition)
-                currentOffset++
-            }
             return resultPosition.toLong()
         }
 

@@ -2,10 +2,12 @@ package androidx.compose.mpp.demo.textfield
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -32,9 +34,9 @@ fun EmojiExample() {
 
 @Composable
 private fun TextFieldExample(title: String, state: MutableState<String>) {
-    Column(Modifier.border(1.dp, Color.Black).padding(4.dp)) {
+    Column(Modifier.fillMaxWidth().padding(4.dp).border(1.dp, Color.Black).padding(4.dp)) {
         Text(title)
-        BasicTextField(
+        TextField(
             value = state.value,
             onValueChange = {
                 state.value = it
