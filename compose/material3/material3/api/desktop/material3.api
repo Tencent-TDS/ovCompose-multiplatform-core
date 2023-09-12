@@ -314,6 +314,13 @@ public final class androidx/compose/material3/ComposableSingletons$DateRangePick
 	public final fun getLambda-1$material3 ()Lkotlin/jvm/functions/Function2;
 }
 
+public final class androidx/compose/material3/ComposableSingletons$ModalBottomSheetKt {
+	public static final field INSTANCE Landroidx/compose/material3/ComposableSingletons$ModalBottomSheetKt;
+	public static field lambda-1 Lkotlin/jvm/functions/Function2;
+	public fun <init> ()V
+	public final fun getLambda-1$material3 ()Lkotlin/jvm/functions/Function2;
+}
+
 public final class androidx/compose/material3/ComposableSingletons$ScaffoldKt {
 	public static final field INSTANCE Landroidx/compose/material3/ComposableSingletons$ScaffoldKt;
 	public static field lambda-1 Lkotlin/jvm/functions/Function2;
@@ -325,6 +332,13 @@ public final class androidx/compose/material3/ComposableSingletons$ScaffoldKt {
 	public final fun getLambda-2$material3 ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda-3$material3 ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda-4$material3 ()Lkotlin/jvm/functions/Function2;
+}
+
+public final class androidx/compose/material3/ComposableSingletons$SearchBarKt {
+	public static final field INSTANCE Landroidx/compose/material3/ComposableSingletons$SearchBarKt;
+	public static field lambda-1 Lkotlin/jvm/functions/Function2;
+	public fun <init> ()V
+	public final fun getLambda-1$material3 ()Lkotlin/jvm/functions/Function2;
 }
 
 public final class androidx/compose/material3/ComposableSingletons$SnackbarHostKt {
@@ -739,6 +753,11 @@ public final class androidx/compose/material3/MenuItemColors {
 	public fun hashCode ()I
 }
 
+public final class androidx/compose/material3/ModalBottomSheetKt {
+	public static final fun ModalBottomSheet-EP0qOeE (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Landroidx/compose/material3/SheetState;Landroidx/compose/ui/graphics/Shape;JJFJLkotlin/jvm/functions/Function2;Landroidx/compose/foundation/layout/WindowInsets;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
+	public static final fun rememberModalBottomSheetState (ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)Landroidx/compose/material3/SheetState;
+}
+
 public final class androidx/compose/material3/NavigationBarDefaults {
 	public static final field $stable I
 	public static final field INSTANCE Landroidx/compose/material3/NavigationBarDefaults;
@@ -913,6 +932,34 @@ public final class androidx/compose/material3/ScaffoldDefaults {
 
 public final class androidx/compose/material3/ScaffoldKt {
 	public static final fun Scaffold-TvnljyQ (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;IJJLandroidx/compose/foundation/layout/WindowInsets;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class androidx/compose/material3/SearchBarColors {
+	public static final field $stable I
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContainerColor-0d7_KjU ()J
+	public final fun getDividerColor-0d7_KjU ()J
+	public final fun getInputFieldColors ()Landroidx/compose/material3/TextFieldColors;
+	public fun hashCode ()I
+}
+
+public final class androidx/compose/material3/SearchBarDefaults {
+	public static final field $stable I
+	public static final field INSTANCE Landroidx/compose/material3/SearchBarDefaults;
+	public final fun colors-Klgx-Pg (JJLandroidx/compose/material3/TextFieldColors;Landroidx/compose/runtime/Composer;II)Landroidx/compose/material3/SearchBarColors;
+	public final fun getDockedShape (Landroidx/compose/runtime/Composer;I)Landroidx/compose/ui/graphics/Shape;
+	public final fun getElevation-D9Ej5fM ()F
+	public final fun getFullScreenShape (Landroidx/compose/runtime/Composer;I)Landroidx/compose/ui/graphics/Shape;
+	public final fun getInputFieldHeight-D9Ej5fM ()F
+	public final fun getInputFieldShape (Landroidx/compose/runtime/Composer;I)Landroidx/compose/ui/graphics/Shape;
+	public final fun getWindowInsets (Landroidx/compose/runtime/Composer;I)Landroidx/compose/foundation/layout/WindowInsets;
+	public final synthetic fun inputFieldColors--u-KgnY (JJJLandroidx/compose/foundation/text/selection/TextSelectionColors;JJJJJJJJLandroidx/compose/runtime/Composer;III)Landroidx/compose/material3/TextFieldColors;
+	public final fun inputFieldColors-ITpI4ow (JJJJLandroidx/compose/foundation/text/selection/TextSelectionColors;JJJJJJJJJLandroidx/compose/runtime/Composer;III)Landroidx/compose/material3/TextFieldColors;
+}
+
+public final class androidx/compose/material3/SearchBarKt {
+	public static final fun DockedSearchBar-rpjkMjA (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;ZLkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/material3/SearchBarColors;FLandroidx/compose/foundation/interaction/MutableInteractionSource;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
+	public static final fun SearchBar-Id_Pb_0 (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;ZLkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/material3/SearchBarColors;FLandroidx/compose/foundation/layout/WindowInsets;Landroidx/compose/foundation/interaction/MutableInteractionSource;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
 }
 
 public final class androidx/compose/material3/SelectableChipBorder {
