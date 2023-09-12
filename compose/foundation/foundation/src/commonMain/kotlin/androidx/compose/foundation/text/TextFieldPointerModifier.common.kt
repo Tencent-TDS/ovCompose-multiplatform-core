@@ -23,7 +23,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.input.OffsetMapping
 
-internal expect fun getTextFieldPointerModifier(
+internal expect fun Modifier.textFieldPointer(
     manager: TextFieldSelectionManager,
     enabled: Boolean,
     interactionSource: MutableInteractionSource?,
@@ -34,7 +34,7 @@ internal expect fun getTextFieldPointerModifier(
 ): Modifier
 
 @OptIn(InternalFoundationTextApi::class)
-internal fun getDefaultTextFieldPointerModifier(
+internal fun Modifier.defaultTextFieldPointer(
     manager: TextFieldSelectionManager,
     enabled: Boolean,
     interactionSource: MutableInteractionSource?,
@@ -45,7 +45,7 @@ internal fun getDefaultTextFieldPointerModifier(
 ): Modifier = if (isInTouchMode) {
     val selectionModifier =
         Modifier.longPressDragGestureFilter(manager.touchSelectionObserver, enabled)
-    Modifier
+    this
         .tapPressTextFieldModifier(interactionSource, enabled) { offset ->
             tapTextFieldToFocus(state, focusRequester, !readOnly)
             if (state.hasFocus) {

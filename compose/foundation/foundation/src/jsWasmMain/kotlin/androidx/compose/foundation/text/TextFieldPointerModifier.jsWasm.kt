@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.input.OffsetMapping
 
-internal actual fun getTextFieldPointerModifier(
+internal actual fun Modifier.textFieldPointer(
     manager: TextFieldSelectionManager,
     enabled: Boolean,
     interactionSource: MutableInteractionSource?,
@@ -30,7 +30,7 @@ internal actual fun getTextFieldPointerModifier(
     focusRequester: FocusRequester,
     readOnly: Boolean,
     offsetMapping: OffsetMapping
-): Modifier = getDefaultTextFieldPointerModifier(
+): Modifier = Modifier.defaultTextFieldPointer(
     manager,
     enabled,
     interactionSource,

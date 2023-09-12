@@ -59,7 +59,6 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.IntrinsicMeasurable
@@ -367,7 +366,7 @@ internal fun CoreTextField(
         }
     }
 
-    val pointerModifier = getTextFieldPointerModifier(
+    val pointerModifier = Modifier.textFieldPointer(
         manager,
         enabled,
         interactionSource,

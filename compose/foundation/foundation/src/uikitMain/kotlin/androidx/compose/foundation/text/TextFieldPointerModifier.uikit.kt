@@ -34,7 +34,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 
-internal actual fun getTextFieldPointerModifier(
+internal actual fun Modifier.textFieldPointer(
     manager: TextFieldSelectionManager,
     enabled: Boolean,
     interactionSource: MutableInteractionSource?,
