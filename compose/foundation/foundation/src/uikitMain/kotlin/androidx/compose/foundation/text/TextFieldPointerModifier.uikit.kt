@@ -90,7 +90,7 @@ private fun getTapHandlerModifier(
             )
             manager.doDoubleTapSelection(touchPointOffset)
         },
-        onTap = { touchPointOffset ->
+        onPress = { touchPointOffset ->
             tapTextFieldToFocus(
                 state,
                 focusRequester,
