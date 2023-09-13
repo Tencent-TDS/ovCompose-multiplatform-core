@@ -235,14 +235,14 @@ internal class ComposeWindowDelegate(
         get() = bridge.renderApi
 
     var isTransparent: Boolean
-        get() = bridge.isTransparent
+        get() = bridge.transparency
         set(value) {
-            if (value != bridge.isTransparent) {
+            if (value != bridge.transparency) {
                 check(isUndecorated()) { "Transparent window should be undecorated!" }
                 check(!window.isDisplayable) {
                     "Cannot change transparency if window is already displayable."
                 }
-                bridge.isTransparent = value
+                bridge.transparency = value
                 if (value) {
                     if (hostOs != OS.Windows) {
                         window.background = Color(0, 0, 0, 0)
