@@ -40,6 +40,12 @@ actual interface WindowInfo {
     actual val isWindowFocused: Boolean
 
     /**
+     * Indicates if window is transparent.
+     */
+    @ExperimentalComposeUiApi
+    val isWindowTransparent: Boolean
+
+    /**
      * Indicates the state of keyboard modifiers (pressed or not).
      */
     @ExperimentalComposeUiApi
@@ -56,12 +62,13 @@ internal class WindowInfoImpl : WindowInfo {
     override var isWindowFocused: Boolean by mutableStateOf(false)
 
     @ExperimentalComposeUiApi
+    override var isWindowTransparent: Boolean by mutableStateOf(false)
+
+    @ExperimentalComposeUiApi
     override var keyboardModifiers: PointerKeyboardModifiers by GlobalKeyboardModifiers
 
     @ExperimentalComposeUiApi
     override var containerSize: IntSize by mutableStateOf(IntSize.Zero)
-
-    var isWindowTransparent: Boolean by mutableStateOf(false)
 
     companion object {
         // One instance across all windows makes sense, since the state of KeyboardModifiers is

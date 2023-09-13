@@ -128,8 +128,8 @@ actual fun Dialog(
     properties: DialogProperties,
     content: @Composable () -> Unit
 ) {
-    val windowInfo = LocalWindowInfo.current as? WindowInfoImpl
-    val blendMode = if (windowInfo != null && windowInfo.isWindowTransparent) {
+    val blendMode = if (LocalWindowInfo.current.isWindowTransparent) {
+        // Use background alpha channel to respect transparent window shape.
         BlendMode.SrcAtop
     } else {
         BlendMode.SrcOver
