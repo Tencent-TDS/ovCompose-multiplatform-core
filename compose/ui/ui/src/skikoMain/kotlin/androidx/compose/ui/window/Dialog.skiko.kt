@@ -35,6 +35,8 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
@@ -126,12 +128,18 @@ actual fun Dialog(
     properties: DialogProperties,
     content: @Composable () -> Unit
 ) {
+    val windowInfo = LocalWindowInfo.current as? WindowInfoImpl
+    val blendMode = if (windowInfo != null && windowInfo.isWindowTransparent) {
+        BlendMode.SrcAtop
+    } else {
+        BlendMode.SrcOver
+    }
     var modifier = Modifier
         .semantics { dialog() }
         .drawBehind {
             drawRect(
                 color = properties.scrimColor,
-                blendMode = BlendMode.SrcAtop
+                blendMode = blendMode
             )
         }
     if (properties.dismissOnBackPress) {
