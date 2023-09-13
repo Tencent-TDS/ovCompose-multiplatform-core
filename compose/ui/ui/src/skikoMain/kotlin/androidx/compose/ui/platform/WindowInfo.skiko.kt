@@ -61,6 +61,8 @@ internal class WindowInfoImpl : WindowInfo {
     @ExperimentalComposeUiApi
     override var containerSize: IntSize by mutableStateOf(IntSize.Zero)
 
+    var isWindowTransparent: Boolean by mutableStateOf(false)
+
     companion object {
         // One instance across all windows makes sense, since the state of KeyboardModifiers is
         // common for all windows.
