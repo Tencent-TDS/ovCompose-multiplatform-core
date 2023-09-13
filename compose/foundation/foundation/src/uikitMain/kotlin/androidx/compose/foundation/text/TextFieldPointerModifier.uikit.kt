@@ -57,7 +57,7 @@ internal actual fun Modifier.textFieldPointer(
             .then(selectionModifier)
             .pointerHoverIcon(textPointerIcon)
     } else {
-        Modifier
+        this
             .mouseDragGestureDetector(
                 observer = manager.mouseSelectionObserver,
                 enabled = enabled
