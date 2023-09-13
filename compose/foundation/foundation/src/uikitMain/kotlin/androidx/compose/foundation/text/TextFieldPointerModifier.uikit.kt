@@ -122,16 +122,17 @@ private fun getTapHandlerModifier(
 private fun getSelectionModifier(manager: TextFieldSelectionManager): Modifier {
     val selectionModifier =
         Modifier.pointerInput(Unit) {
-                detectDragGesturesAfterLongPress(onDragStart = {
+            detectDragGesturesAfterLongPress(
+                onDragStart = {
                     manager.touchSelectionObserver.onStart(
                         startPoint = it
                     )
                 },
-                    onDrag = { _, delta -> manager.touchSelectionObserver.onDrag(delta = delta) },
-                    onDragCancel = { manager.touchSelectionObserver.onCancel() },
-                    onDragEnd = { manager.touchSelectionObserver.onStop() }
-                )
-            }
+                onDrag = { _, delta -> manager.touchSelectionObserver.onDrag(delta = delta) },
+                onDragCancel = { manager.touchSelectionObserver.onCancel() },
+                onDragEnd = { manager.touchSelectionObserver.onStop() }
+            )
+        }
     return selectionModifier
 }
 
