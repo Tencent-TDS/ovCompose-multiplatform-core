@@ -65,7 +65,7 @@ internal actual fun Modifier.textFieldPointer(
             .pointerHoverIcon(textPointerIcon)
     }
 } else {
-    Modifier
+    this
 }
 
 @OptIn(InternalFoundationTextApi::class)
