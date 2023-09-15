@@ -51,6 +51,7 @@ internal class SyntheticEventSender(
      */
     var needUpdatePointerPosition: Boolean = false
 
+
     fun reset() {
         needUpdatePointerPosition = false
         previousEvent = null
