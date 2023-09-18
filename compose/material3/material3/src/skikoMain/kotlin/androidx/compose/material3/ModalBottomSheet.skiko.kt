@@ -18,10 +18,17 @@ package androidx.compose.material3
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 
 
 @Composable
@@ -31,9 +38,17 @@ internal actual fun ModalBottomSheetPopup(
     content: @Composable () -> Unit,
 ) {
     Popup(
+        popupPositionProvider = object : PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: IntRect,
+                windowSize: IntSize,
+                layoutDirection: LayoutDirection,
+                popupContentSize: IntSize
+            ) = IntOffset.Zero
+        },
         onDismissRequest = onDismissRequest
     ) {
-        Box(Modifier.windowInsetsPadding(windowInsets)) {
+        Box(Modifier.windowInsetsPadding(windowInsets.exclude(WindowInsets.systemBars))) {
             content()
         }
     }
