@@ -17,7 +17,7 @@
 package androidx.compose.foundation.text
 
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectRepeatingTapsGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
@@ -78,19 +78,13 @@ private fun getTapHandlerModifier(
     manager: TextFieldSelectionManager
 ) = Modifier.pointerInput(interactionSource) {
     /*
-    We need to move tap recognizer here from selection modifier (as it is in common)
-    because otherwise we have onDoubleTap call and onTap call, and onDoubleTap will execute before onTap.
+    We need to move tap recognizer here from selection modifier (as it is in common) because:
+    1) we need to handle triple tap
+    2) without rewriting, we have onDoubleTap call and onTap call, and onDoubleTap will execute before onTap.
      */
-    detectTapGestures(
-        onDoubleTap = { touchPointOffset ->
-            tapTextFieldToFocus(
-                state,
-                focusRequester,
-                !readOnly
-            )
-            manager.doDoubleTapSelection(touchPointOffset)
-        },
-        onPress = { touchPointOffset ->
+
+    detectRepeatingTapsGestures(
+        onTap = { touchPointOffset ->
             tapTextFieldToFocus(
                 state,
                 focusRequester,
@@ -115,6 +109,12 @@ private fun getTapHandlerModifier(
                     manager.deselect(touchPointOffset)
                 }
             }
+        },
+        onDoubleTap = {
+            manager.doRepeatingTapSelection(it, SelectionAdjustment.Word)
+        },
+        onTripleTap = {
+            manager.doRepeatingTapSelection(it, SelectionAdjustment.Paragraph)
         }
     )
 }
@@ -136,7 +136,7 @@ private fun getSelectionModifier(manager: TextFieldSelectionManager): Modifier {
     return selectionModifier
 }
 
-private fun TextFieldSelectionManager.doDoubleTapSelection(touchPointOffset: Offset) {
+private fun TextFieldSelectionManager.doRepeatingTapSelection(touchPointOffset: Offset, selectionAdjustment: SelectionAdjustment) {
     if (value.text.isEmpty()) return
     enterSelectionMode()
     state?.layoutResult?.let { layoutResult ->
@@ -146,7 +146,7 @@ private fun TextFieldSelectionManager.doDoubleTapSelection(touchPointOffset: Off
             transformedStartOffset = offset,
             transformedEndOffset = offset,
             isStartHandle = false,
-            adjustment = SelectionAdjustment.Word
+            adjustment = selectionAdjustment
         )
     }
 }
