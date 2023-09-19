@@ -31,7 +31,6 @@ internal suspend fun PointerInputScope.detectRepeatingTapsGestures(
     onTap: ((Offset) -> Unit)? = null,
     onDoubleTap: ((Offset) -> Unit)? = null,
     onTripleTap: ((Offset) -> Unit)? = null,
-    onLongTap: ((Offset) -> Unit)? = null
 ) {
     awaitEachGesture {
         val touchesCounter = TouchCounter(viewConfiguration)
