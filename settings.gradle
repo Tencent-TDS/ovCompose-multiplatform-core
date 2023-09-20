@@ -264,4 +264,6 @@ includeProject(":internal-testutils-paging", "testutils/testutils-paging")
 includeProject(":internal-testutils-gradle-plugin", "testutils/testutils-gradle-plugin")
 includeProject(":internal-testutils-mockito", "testutils/testutils-mockito")
 
+includeBuild("placeholder")
+
 includeProject(":mpp")
