@@ -36,7 +36,6 @@ import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.popup
 import androidx.compose.ui.semantics.semantics
@@ -421,6 +420,7 @@ private fun PopupLayout(
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
+    val platformPadding = platformPadding()
     var layoutParentBoundsInWindow: IntRect? by remember { mutableStateOf(null) }
     EmptyLayout(Modifier.parentBoundsInWindow { layoutParentBoundsInWindow = it })
     RootLayout(
@@ -429,12 +429,11 @@ private fun PopupLayout(
         onOutsidePointerEvent = onOutsidePointerEvent
     ) { owner ->
         val parentBounds = layoutParentBoundsInWindow ?: return@RootLayout
-        val density = LocalDensity.current
         val layoutDirection = LocalLayoutDirection.current
         val measurePolicy = rememberPopupMeasurePolicy(
             popupPositionProvider = popupPositionProvider,
             properties = properties,
-            platformPadding = with(density) { platformPadding() },
+            platformPadding = platformPadding,
             layoutDirection = layoutDirection,
             parentBounds = parentBounds
         ) {

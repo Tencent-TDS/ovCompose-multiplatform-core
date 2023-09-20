@@ -71,7 +71,9 @@ internal fun RootLayout(
         )
         scene.attach(owner)
         owner to owner.setContent(parent = parentComposition) {
-            content(owner)
+            platformOwnerContent {
+                content(owner)
+            }
         }
     }
     DisposableEffect(Unit) {
@@ -125,10 +127,7 @@ private fun Density.applyPlatformConstrains(
     platformPadding: RootLayoutPadding,
     usePlatformDefaultWidth: Boolean
 ): Constraints {
-    val platformConstraints = constraints.offset(
-        horizontal = -(platformPadding.left + platformPadding.right),
-        vertical = -(platformPadding.top + platformPadding.bottom)
-    )
+    val platformConstraints = constraints.offset(platformPadding)
     return if (usePlatformDefaultWidth) {
         platformConstraints.constrain(
             platformDefaultConstrains(constraints)
@@ -136,6 +135,12 @@ private fun Density.applyPlatformConstrains(
     } else {
         platformConstraints
     }
+}
+
+private fun Constraints.offset(platformPadding: RootLayoutPadding): Constraints {
+    val horizontal = platformPadding.left + platformPadding.right
+    val vertical = platformPadding.top + platformPadding.bottom
+    return offset(-horizontal, -vertical)
 }
 
 internal data class RootLayoutPadding(
@@ -163,7 +168,10 @@ internal fun positionWithPadding(
 }
 
 @Composable
-internal expect fun Density.platformPadding(): RootLayoutPadding
+internal expect fun platformPadding(): RootLayoutPadding
+
+@Composable
+internal expect fun platformOwnerContent(content: @Composable () -> Unit)
 
 private fun Density.platformDefaultConstrains(
     constraints: Constraints

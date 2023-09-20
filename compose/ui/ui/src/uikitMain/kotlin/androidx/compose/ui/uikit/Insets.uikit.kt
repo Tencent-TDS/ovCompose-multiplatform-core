@@ -18,7 +18,6 @@ package androidx.compose.ui.uikit
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.InternalComposeApi
-import androidx.compose.runtime.State
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -27,16 +26,16 @@ import androidx.compose.ui.unit.dp
  * Composition local for SafeArea of ComposeUIViewController
  */
 @InternalComposeApi
-val LocalSafeAreaState = staticCompositionLocalOf<State<IOSInsets>> {
-    error("CompositionLocal LocalSafeAreaTopState not present")
+val LocalSafeArea = staticCompositionLocalOf<IOSInsets> {
+    error("CompositionLocal LocalSafeArea not present")
 }
 
 /**
  * Composition local for layoutMargins of ComposeUIViewController
  */
 @InternalComposeApi
-val LocalLayoutMarginsState = staticCompositionLocalOf<State<IOSInsets>> {
-    error("CompositionLocal LocalLayoutMarginsState not present")
+val LocalLayoutMargins = staticCompositionLocalOf<IOSInsets> {
+    error("CompositionLocal LocalLayoutMargins not present")
 }
 
 /**

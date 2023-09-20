@@ -17,18 +17,50 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.InternalComposeApi
-import androidx.compose.ui.uikit.LocalSafeAreaState
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.uikit.IOSInsets
+import androidx.compose.ui.uikit.LocalLayoutMargins
+import androidx.compose.ui.uikit.LocalSafeArea
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 
 @OptIn(InternalComposeApi::class)
 @Composable
-internal actual fun Density.platformPadding(): RootLayoutPadding =
-    with(LocalSafeAreaState.current.value) {
-        RootLayoutPadding(
-            left = left.roundToPx(),
-            top = top.roundToPx(),
-            right = right.roundToPx(),
-            bottom = bottom.roundToPx()
-        )
-    }
+internal actual fun platformPadding(): RootLayoutPadding {
+    val density = LocalDensity.current
+    val safeArea = LocalSafeArea.current
+    return safeArea.toRootLayoutPadding(density)
+}
+
+
+@OptIn(InternalComposeApi::class)
+@Composable
+internal actual fun platformOwnerContent(content: @Composable () -> Unit) {
+    val safeArea = LocalSafeArea.current
+    val layoutMargins = LocalLayoutMargins.current
+    CompositionLocalProvider(
+        LocalSafeArea provides IOSInsets(),
+        LocalLayoutMargins provides layoutMargins.exclude(safeArea),
+        content = content
+    )
+}
+
+@OptIn(InternalComposeApi::class)
+private fun IOSInsets.toRootLayoutPadding(density: Density) = with(density) {
+    RootLayoutPadding(
+        left = left.roundToPx(),
+        top = top.roundToPx(),
+        right = right.roundToPx(),
+        bottom = bottom.roundToPx()
+    )
+}
+
+@OptIn(InternalComposeApi::class)
+private fun IOSInsets.exclude(insets: IOSInsets) = IOSInsets(
+    left = (left - insets.left).coerceAtLeast(0.dp),
+    top = (top - insets.top).coerceAtLeast(0.dp),
+    right = (right - insets.right).coerceAtLeast(0.dp),
+    bottom = (bottom - insets.bottom).coerceAtLeast(0.dp)
+)

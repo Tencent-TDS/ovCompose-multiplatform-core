@@ -17,8 +17,12 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.Density
 
 @Composable
-internal actual fun Density.platformPadding(): RootLayoutPadding =
+internal actual fun platformPadding(): RootLayoutPadding =
     RootLayoutPadding.Zero
+
+@Composable
+internal actual fun platformOwnerContent(content: @Composable () -> Unit) {
+    content()
+}

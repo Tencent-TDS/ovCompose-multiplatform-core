@@ -37,7 +37,7 @@ private fun IOSInsets.toWindowInsets() = WindowInsets(
 private val WindowInsets.Companion.iosSafeArea: WindowInsets
     @Composable
     @OptIn(InternalComposeApi::class)
-    get() = LocalSafeAreaState.current.value.toWindowInsets()
+    get() = LocalSafeArea.current.toWindowInsets()
 
 /**
  * This insets represents iOS layoutMargins.
@@ -45,7 +45,7 @@ private val WindowInsets.Companion.iosSafeArea: WindowInsets
 private val WindowInsets.Companion.layoutMargins: WindowInsets
     @Composable
     @OptIn(InternalComposeApi::class)
-    get() = LocalLayoutMarginsState.current.value.toWindowInsets()
+    get() = LocalLayoutMargins.current.toWindowInsets()
 
 /**
  * An insets type representing the window of a caption bar.

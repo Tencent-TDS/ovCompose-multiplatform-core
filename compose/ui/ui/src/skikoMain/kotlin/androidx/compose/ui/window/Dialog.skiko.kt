@@ -169,15 +169,15 @@ private fun DialogLayout(
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
+    val platformPadding = platformPadding()
     RootLayout(
         modifier = modifier,
         focusable = true,
         onOutsidePointerEvent = onOutsidePointerEvent
     ) { owner ->
-        val density = LocalDensity.current
         val measurePolicy = rememberDialogMeasurePolicy(
             properties = properties,
-            platformPadding = with(density) { platformPadding() }
+            platformPadding = platformPadding
         ) {
             owner.bounds = it
         }
