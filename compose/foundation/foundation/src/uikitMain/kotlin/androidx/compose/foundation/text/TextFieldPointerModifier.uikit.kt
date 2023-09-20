@@ -17,7 +17,7 @@
 package androidx.compose.foundation.text
 
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectRepeatingTapsGestures
+import androidx.compose.foundation.gestures.detectRepeatingTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
@@ -83,7 +83,7 @@ private fun getTapHandlerModifier(
     2) without rewriting, we have onDoubleTap call and onTap call, and onDoubleTap will execute before onTap.
      */
 
-    detectRepeatingTapsGestures(
+    detectRepeatingTapGestures(
         onTap = { touchPointOffset ->
             tapTextFieldToFocus(
                 state,

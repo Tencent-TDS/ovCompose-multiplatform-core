@@ -27,7 +27,22 @@ import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.util.fastAll
 
-internal suspend fun PointerInputScope.detectRepeatingTapsGestures(
+/**
+ * Detects repeating tap gestures on the given PointerInputScope.
+ *
+ * **Important**: for every tap sequence corresponding callback will be called.
+ *
+ * For example, if there is triple tap gesture, the call stack will look as follows: onTap, onDoubleTap, onTripleTap
+ *
+ * If there is a double tap gesture, the call stack will look as follows: onTap, onDoubleTap
+ *
+ * The order of callback execution is guaranteed.
+ *
+ * @param onTap  A callback function that will be called when a single tap gesture is detected. It will receive the position (Offset) where the tap occurred.
+ * @param onDoubleTap  A callback function that will be called when a double tap gesture is detected. It will receive the position (Offset) where the tap occurred.
+ * @param onTripleTap  A callback function that will be called when a triple tap gesture is detected. It will receive the position (Offset) where the tap occurred.
+ */
+internal suspend fun PointerInputScope.detectRepeatingTapGestures(
     onTap: ((Offset) -> Unit)? = null,
     onDoubleTap: ((Offset) -> Unit)? = null,
     onTripleTap: ((Offset) -> Unit)? = null,
