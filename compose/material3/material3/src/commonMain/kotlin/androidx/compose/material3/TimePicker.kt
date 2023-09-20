@@ -1586,7 +1586,7 @@ private enum class LayoutId {
     Selector, InnerCircle,
 }
 
-// TODO(https://github.com/JetBrains/compose-multiplatform/issues/3373) revert to expect get()
+// TODO(https://github.com/JetBrains/compose-multiplatform/issues/3373) fix expect composable getter
 @OptIn(ExperimentalMaterial3Api::class)
 internal val defaultTimePickerLayoutType: TimePickerLayoutType
     @Composable
