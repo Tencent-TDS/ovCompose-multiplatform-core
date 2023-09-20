@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformInsets
@@ -32,7 +33,7 @@ import androidx.compose.ui.unit.dp
 
 private val ZeroInsets = WindowInsets(0, 0, 0, 0)
 
-@OptIn(InternalComposeApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Stable
 private class PlatformWindowInsets(
     private val provider: ProvidableCompositionLocal<PlatformInsets>
@@ -69,7 +70,7 @@ private class PlatformWindowInsets(
  */
 private val WindowInsets.Companion.iosSafeArea: WindowInsets
     @Composable
-    @OptIn(InternalComposeApi::class)
+    @OptIn(InternalComposeApi::class, ExperimentalComposeUiApi::class)
     get() = PlatformWindowInsets(LocalSafeArea)
 
 /**
@@ -77,7 +78,7 @@ private val WindowInsets.Companion.iosSafeArea: WindowInsets
  */
 private val WindowInsets.Companion.layoutMargins: WindowInsets
     @Composable
-    @OptIn(InternalComposeApi::class)
+    @OptIn(InternalComposeApi::class, ExperimentalComposeUiApi::class)
     get() = PlatformWindowInsets(LocalLayoutMargins)
 
 /**

@@ -37,6 +37,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.semantics.popup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
@@ -420,7 +421,7 @@ private fun PopupLayout(
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val platformPadding = platformPadding()
+    val platformInsets = platformInsets()
     var layoutParentBoundsInWindow: IntRect? by remember { mutableStateOf(null) }
     EmptyLayout(Modifier.parentBoundsInWindow { layoutParentBoundsInWindow = it })
     RootLayout(
@@ -433,7 +434,7 @@ private fun PopupLayout(
         val measurePolicy = rememberPopupMeasurePolicy(
             popupPositionProvider = popupPositionProvider,
             properties = properties,
-            platformPadding = platformPadding,
+            platformInsets = platformInsets,
             layoutDirection = layoutDirection,
             parentBounds = parentBounds
         ) {
@@ -460,16 +461,16 @@ private fun Modifier.parentBoundsInWindow(
 private fun rememberPopupMeasurePolicy(
     popupPositionProvider: PopupPositionProvider,
     properties: PopupProperties,
-    platformPadding: RootLayoutPadding,
+    platformInsets: PlatformInsets,
     layoutDirection: LayoutDirection,
     parentBounds: IntRect,
     onBoundsChanged: (IntRect) -> Unit
-) = remember(popupPositionProvider, properties, platformPadding, layoutDirection, parentBounds, onBoundsChanged) {
+) = remember(popupPositionProvider, properties, platformInsets, layoutDirection, parentBounds, onBoundsChanged) {
     RootMeasurePolicy(
-        platformPadding = platformPadding,
+        platformInsets = platformInsets,
         usePlatformDefaultWidth = properties.usePlatformDefaultWidth
     ) { windowSize, contentSize ->
-        var position = positionWithPadding(platformPadding, windowSize) {
+        var position = positionWithInsets(platformInsets, windowSize) {
             popupPositionProvider.calculatePosition(
                 parentBounds, it, layoutDirection, contentSize
             )

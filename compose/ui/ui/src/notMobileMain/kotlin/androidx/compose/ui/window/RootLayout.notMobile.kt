@@ -17,10 +17,13 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.ui.platform.PlatformInsets
 
+@OptIn(InternalComposeApi::class)
 @Composable
-internal actual fun platformPadding(): RootLayoutPadding =
-    RootLayoutPadding.Zero
+internal actual fun platformInsets(): PlatformInsets =
+    PlatformInsets.Zero
 
 @Composable
 internal actual fun platformOwnerContent(content: @Composable () -> Unit) {

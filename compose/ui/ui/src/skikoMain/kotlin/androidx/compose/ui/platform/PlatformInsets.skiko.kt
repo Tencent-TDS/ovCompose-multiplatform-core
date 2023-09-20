@@ -17,16 +17,16 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
  * This class represents platform insets.
  */
+@ExperimentalComposeUiApi
 @Immutable
-@InternalComposeApi
 class PlatformInsets(
     @Stable
     val top: Dp = 0.dp,
@@ -65,3 +65,10 @@ class PlatformInsets(
         return "PlatformInsets(top=$top, bottom=$bottom, left=$left, right=$right)"
     }
 }
+
+internal fun PlatformInsets.exclude(insets: PlatformInsets) = PlatformInsets(
+    left = (left - insets.left).coerceAtLeast(0.dp),
+    top = (top - insets.top).coerceAtLeast(0.dp),
+    right = (right - insets.right).coerceAtLeast(0.dp),
+    bottom = (bottom - insets.bottom).coerceAtLeast(0.dp)
+)
