@@ -18,18 +18,51 @@ package androidx.compose.foundation.layout
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.InternalComposeApi
-import androidx.compose.ui.uikit.*
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.Stable
+import androidx.compose.ui.platform.LocalLayoutMargins
+import androidx.compose.ui.platform.LocalSafeArea
+import androidx.compose.ui.platform.PlatformInsets
+import androidx.compose.ui.uikit.InterfaceOrientation
+import androidx.compose.ui.uikit.LocalInterfaceOrientationState
+import androidx.compose.ui.uikit.LocalKeyboardOverlapHeightState
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
 private val ZeroInsets = WindowInsets(0, 0, 0, 0)
 
 @OptIn(InternalComposeApi::class)
-private fun IOSInsets.toWindowInsets() = WindowInsets(
-    top = top,
-    bottom = bottom,
-    left = left,
-    right = right,
-)
+@Stable
+private class PlatformWindowInsets(
+    private val provider: ProvidableCompositionLocal<PlatformInsets>
+) : WindowInsets {
+    private val insets
+        get() = provider.current
+
+    override fun getLeft(density: Density, layoutDirection: LayoutDirection): Int =
+        with(density) { insets.left.roundToPx() }
+
+    override fun getTop(density: Density): Int =
+        with(density) { insets.top.roundToPx() }
+
+    override fun getRight(density: Density, layoutDirection: LayoutDirection): Int =
+        with(density) { insets.right.roundToPx() }
+
+    override fun getBottom(density: Density): Int =
+        with(density) { insets.bottom.roundToPx() }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is PlatformWindowInsets) return false
+
+        return provider == other.provider
+    }
+
+    override fun hashCode(): Int = provider.hashCode()
+
+    override fun toString(): String = insets.toString()
+}
 
 /**
  * This insets represents iOS SafeAreas.
@@ -37,7 +70,7 @@ private fun IOSInsets.toWindowInsets() = WindowInsets(
 private val WindowInsets.Companion.iosSafeArea: WindowInsets
     @Composable
     @OptIn(InternalComposeApi::class)
-    get() = LocalSafeArea.current.toWindowInsets()
+    get() = PlatformWindowInsets(LocalSafeArea)
 
 /**
  * This insets represents iOS layoutMargins.
@@ -45,7 +78,7 @@ private val WindowInsets.Companion.iosSafeArea: WindowInsets
 private val WindowInsets.Companion.layoutMargins: WindowInsets
     @Composable
     @OptIn(InternalComposeApi::class)
-    get() = LocalLayoutMargins.current.toWindowInsets()
+    get() = PlatformWindowInsets(LocalLayoutMargins)
 
 /**
  * An insets type representing the window of a caption bar.

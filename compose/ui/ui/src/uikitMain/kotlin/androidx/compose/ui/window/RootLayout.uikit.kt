@@ -20,9 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.uikit.IOSInsets
-import androidx.compose.ui.uikit.LocalLayoutMargins
-import androidx.compose.ui.uikit.LocalSafeArea
+import androidx.compose.ui.platform.PlatformInsets
+import androidx.compose.ui.platform.LocalLayoutMargins
+import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 
@@ -41,14 +41,14 @@ internal actual fun platformOwnerContent(content: @Composable () -> Unit) {
     val safeArea = LocalSafeArea.current
     val layoutMargins = LocalLayoutMargins.current
     CompositionLocalProvider(
-        LocalSafeArea provides IOSInsets(),
+        LocalSafeArea provides PlatformInsets(),
         LocalLayoutMargins provides layoutMargins.exclude(safeArea),
         content = content
     )
 }
 
 @OptIn(InternalComposeApi::class)
-private fun IOSInsets.toRootLayoutPadding(density: Density) = with(density) {
+private fun PlatformInsets.toRootLayoutPadding(density: Density) = with(density) {
     RootLayoutPadding(
         left = left.roundToPx(),
         top = top.roundToPx(),
@@ -58,7 +58,7 @@ private fun IOSInsets.toRootLayoutPadding(density: Density) = with(density) {
 }
 
 @OptIn(InternalComposeApi::class)
-private fun IOSInsets.exclude(insets: IOSInsets) = IOSInsets(
+private fun PlatformInsets.exclude(insets: PlatformInsets) = PlatformInsets(
     left = (left - insets.left).coerceAtLeast(0.dp),
     top = (top - insets.top).coerceAtLeast(0.dp),
     right = (right - insets.right).coerceAtLeast(0.dp),

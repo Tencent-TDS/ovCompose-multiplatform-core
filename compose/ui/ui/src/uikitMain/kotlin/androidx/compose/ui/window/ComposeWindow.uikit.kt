@@ -50,7 +50,6 @@ import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skia.Canvas
-import org.jetbrains.skia.Surface
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.SkikoKeyboardEvent
@@ -149,8 +148,8 @@ internal actual class ComposeWindow : UIViewController {
     internal lateinit var configuration: ComposeUIViewControllerConfiguration
     private val keyboardOverlapHeightState = mutableStateOf(0f)
     private var isInsideSwiftUI = false
-    private var safeAreaState by mutableStateOf(IOSInsets())
-    private var layoutMarginsState by mutableStateOf(IOSInsets())
+    private var safeAreaState by mutableStateOf(PlatformInsets())
+    private var layoutMarginsState by mutableStateOf(PlatformInsets())
     private val interopContext = UIKitInteropContext(
         requestRedraw = {
             attachedComposeContext?.view?.needRedraw()
@@ -300,7 +299,7 @@ internal actual class ComposeWindow : UIViewController {
     fun viewSafeAreaInsetsDidChange() {
         // super.viewSafeAreaInsetsDidChange() // TODO: call super after Kotlin 1.8.20
         view.safeAreaInsets.useContents {
-            safeAreaState = IOSInsets(
+            safeAreaState = PlatformInsets(
                 top = top.dp,
                 bottom = bottom.dp,
                 left = left.dp,
@@ -308,7 +307,7 @@ internal actual class ComposeWindow : UIViewController {
             )
         }
         view.directionalLayoutMargins.useContents {
-            layoutMarginsState = IOSInsets(
+            layoutMarginsState = PlatformInsets(
                 top = top.dp,
                 bottom = bottom.dp,
                 left = leading.dp,

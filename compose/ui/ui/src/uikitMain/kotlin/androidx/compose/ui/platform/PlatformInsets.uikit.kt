@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.uikit
+package androidx.compose.ui.platform
 
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 
 /**
  * Composition local for SafeArea of ComposeUIViewController
  */
 @InternalComposeApi
-val LocalSafeArea = staticCompositionLocalOf<IOSInsets> {
+val LocalSafeArea = staticCompositionLocalOf<PlatformInsets> {
     error("CompositionLocal LocalSafeArea not present")
 }
 
@@ -34,19 +31,6 @@ val LocalSafeArea = staticCompositionLocalOf<IOSInsets> {
  * Composition local for layoutMargins of ComposeUIViewController
  */
 @InternalComposeApi
-val LocalLayoutMargins = staticCompositionLocalOf<IOSInsets> {
+val LocalLayoutMargins = staticCompositionLocalOf<PlatformInsets> {
     error("CompositionLocal LocalLayoutMargins not present")
 }
-
-/**
- * This class represents iOS Insets.
- * It contains equals and hashcode and can be used as Compose State<IOSInsets>.
- */
-@Immutable
-@InternalComposeApi
-data class IOSInsets(
-    val top: Dp = 0.dp,
-    val bottom: Dp = 0.dp,
-    val left: Dp = 0.dp,
-    val right: Dp = 0.dp,
-)
