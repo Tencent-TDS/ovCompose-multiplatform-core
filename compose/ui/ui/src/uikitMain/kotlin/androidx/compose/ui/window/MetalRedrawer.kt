@@ -384,14 +384,10 @@ internal class MetalRedrawer(
                 isInteropActive = true
             }
             val presentsWithTransaction =
-                isForcedToPresentWithTransactionEveryFrame || isInteropActive
+                isForcedToPresentWithTransactionEveryFrame || interopTransaction.isNotEmpty()
             metalLayer.presentsWithTransaction = presentsWithTransaction
 
-            // We only need to synchronize this specific frame if there are any pending changes or isForcedToPresentWithTransactionEveryFrame is true
-            val synchronizePresentation =
-                isForcedToPresentWithTransactionEveryFrame || (presentsWithTransaction && interopTransaction.isNotEmpty())
-
-            val mustEncodeAndPresentOnMainThread = synchronizePresentation || waitUntilCompletion
+            val mustEncodeAndPresentOnMainThread = presentsWithTransaction || waitUntilCompletion
 
             val commandBuffer = queue.commandBuffer()!!
             commandBuffer.enqueue()
@@ -403,8 +399,7 @@ internal class MetalRedrawer(
 
                 commandBuffer.label = "Present"
 
-                if (!synchronizePresentation) {
-                    // If there are no pending changes in UIKit interop, present the drawable ASAP
+                if (!presentsWithTransaction) {
                     commandBuffer.presentDrawable(metalDrawable)
                 }
 
@@ -414,11 +409,12 @@ internal class MetalRedrawer(
                 }
                 commandBuffer.commit()
 
-                if (synchronizePresentation) {
+                if (presentsWithTransaction) {
                     // If there are pending changes in UIKit interop, [waitUntilScheduled](https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443036-waituntilscheduled) is called
                     // to ensure that transaction is available
                     commandBuffer.waitUntilScheduled()
                     metalDrawable.present()
+
                     interopTransaction.actions.fastForEach {
                         it.invoke()
                     }
@@ -426,8 +422,6 @@ internal class MetalRedrawer(
                     if (interopTransaction.state == UIKitInteropState.ENDED) {
                         isInteropActive = false
                     }
-
-                    CATransaction.commit()
                 }
 
                 surface.close()
