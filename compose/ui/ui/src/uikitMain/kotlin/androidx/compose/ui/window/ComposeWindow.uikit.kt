@@ -607,15 +607,32 @@ internal actual class ComposeWindow : UIViewController {
 
             override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
                 point.useContents {
-                    val hitsInteropView = attachedComposeContext?.scene?.mainOwner?.hitInteropView(
-                        pointerPosition = Offset(
-                            (x * density.density).toFloat(),
-                            (y * density.density).toFloat()
-                        ),
-                        isTouchEvent = true,
-                    ) ?: false
+                    val position = Offset(
+                        (x * density.density).toFloat(),
+                        (y * density.density).toFloat()
+                    )
 
-                    !hitsInteropView
+                    // TODO: temporary solution copying control flow from [ComposeScene.processPress]
+                    // there is no fastReverseAny in Kotlin
+                    for (i in scene.owners.size - 1 downTo 0) {
+                        val owner = scene.owners[i]
+
+                        if (owner.isInBounds(position)) {
+                            val hitsInteropView = owner.hitInteropView(
+                                pointerPosition = position,
+                                isTouchEvent = true,
+                            )
+
+                            return@useContents !hitsInteropView
+                        } else {
+                            if (owner == scene.focusedOwner) {
+                                return@useContents true
+                            }
+                        }
+                    }
+
+                    // We didn't pass isInBounds check for any owner 🤷
+                    return@useContents true
                 }
 
             override fun onPointerEvent(event: SkikoPointerEvent) {

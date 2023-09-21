@@ -530,7 +530,7 @@ class ComposeScene internal constructor(
         forEachOwner { it.clearInvalidObservations() }
     }
 
-    private var focusedOwner: SkiaBasedOwner? = null
+    internal var focusedOwner: SkiaBasedOwner? = null
     private var gestureOwner: SkiaBasedOwner? = null
     private var lastHoverOwner: SkiaBasedOwner? = null
 
