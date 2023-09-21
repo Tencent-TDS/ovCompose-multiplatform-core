@@ -26,6 +26,7 @@ import androidx.compose.mpp.demo.components.material3.DateTimePickerExample
 import androidx.compose.mpp.demo.components.material3.DropdownMenu3Example
 import androidx.compose.mpp.demo.components.material3.ModalBottomSheet3Example
 import androidx.compose.mpp.demo.components.material3.ModalNavigationDrawerExample
+import androidx.compose.mpp.demo.components.material3.SearchBarExample
 import androidx.compose.mpp.demo.textfield.TextFields
 import androidx.compose.ui.graphics.Color
 
@@ -43,6 +44,7 @@ private val Material3Components = Screen.Selection(
     Screen.Example("DropdownMenu") { DropdownMenu3Example() },
     Screen.Example("ModalBottomSheet") { ModalBottomSheet3Example() },
     Screen.Example("ModalNavigationDrawer") { ModalNavigationDrawerExample() },
+    Screen.Example("SearchBar") { SearchBarExample() },
 )
 
 val Components = Screen.Selection(
