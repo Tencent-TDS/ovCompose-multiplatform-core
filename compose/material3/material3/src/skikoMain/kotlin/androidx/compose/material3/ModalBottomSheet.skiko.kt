@@ -49,6 +49,7 @@ internal actual fun ModalBottomSheetPopup(
         },
         onDismissRequest = onDismissRequest,
         properties = PopupProperties(
+            focusable = true,
             usePlatformInsets = false
         )
     ) {
