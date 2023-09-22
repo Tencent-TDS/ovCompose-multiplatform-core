@@ -35,8 +35,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.TransformOrigin
@@ -227,21 +229,24 @@ internal actual fun ExposedDropdownMenuBoxScope.ExposedDropdownMenuDefaultImpl(
 private fun Modifier.expandable(
     onExpandedChange: () -> Unit,
     menuLabel: String
-) = pointerInput(Unit) {
-    awaitEachGesture {
-        // Must be PointerEventPass.Initial to observe events before the text field consumes them
-        // in the Main pass
-        awaitFirstDown(pass = PointerEventPass.Initial)
-        val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
-        if (upEvent != null) {
-            onExpandedChange()
+) = composed {
+    val currentOnExpandedChange by rememberUpdatedState(onExpandedChange)
+    pointerInput(Unit) {
+        awaitEachGesture {
+            // Must be PointerEventPass.Initial to observe events before the text field consumes them
+            // in the Main pass
+            awaitFirstDown(pass = PointerEventPass.Initial)
+            val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+            if (upEvent != null) {
+                currentOnExpandedChange()
+            }
         }
-    }
-}.semantics {
-    contentDescription = menuLabel // this should be a localised string
-    onClick {
-        onExpandedChange()
-        true
+    }.semantics {
+        contentDescription = menuLabel // this should be a localised string
+        onClick {
+            currentOnExpandedChange()
+            true
+        }
     }
 }
 

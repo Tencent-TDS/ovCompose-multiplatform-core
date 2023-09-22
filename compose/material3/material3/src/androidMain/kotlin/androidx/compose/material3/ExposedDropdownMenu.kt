@@ -34,6 +34,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -246,22 +247,25 @@ private fun Modifier.expandable(
     menuDescription: String = getString(Strings.ExposedDropdownMenu),
     expandedDescription: String = getString(Strings.MenuExpanded),
     collapsedDescription: String = getString(Strings.MenuCollapsed),
-) = pointerInput(Unit) {
-    awaitEachGesture {
-        // Must be PointerEventPass.Initial to observe events before the text field consumes them
-        // in the Main pass
-        awaitFirstDown(pass = PointerEventPass.Initial)
-        val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
-        if (upEvent != null) {
-            onExpandedChange()
+) = composed {
+    val currentOnExpandedChange by rememberUpdatedState(onExpandedChange)
+    pointerInput(Unit) {
+        awaitEachGesture {
+            // Must be PointerEventPass.Initial to observe events before the text field consumes them
+            // in the Main pass
+            awaitFirstDown(pass = PointerEventPass.Initial)
+            val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+            if (upEvent != null) {
+                currentOnExpandedChange()
+            }
         }
-    }
-}.semantics {
-    stateDescription = if (expanded) expandedDescription else collapsedDescription
-    contentDescription = menuDescription
-    onClick {
-        onExpandedChange()
-        true
+    }.semantics {
+        stateDescription = if (expanded) expandedDescription else collapsedDescription
+        contentDescription = menuDescription
+        onClick {
+            currentOnExpandedChange()
+            true
+        }
     }
 }
 
