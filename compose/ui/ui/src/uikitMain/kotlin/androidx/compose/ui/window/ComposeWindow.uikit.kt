@@ -624,10 +624,8 @@ internal actual class ComposeWindow : UIViewController {
                             )
 
                             return@useContents !hitsInteropView
-                        } else {
-                            if (owner == scene.focusedOwner) {
-                                return@useContents true
-                            }
+                        } else if (owner == scene.focusedOwner) {
+                            return@useContents true
                         }
                     }
 
