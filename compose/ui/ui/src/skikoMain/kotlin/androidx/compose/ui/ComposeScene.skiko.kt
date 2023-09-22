@@ -514,7 +514,11 @@ class ComposeScene internal constructor(
     }
 
     internal fun hitTestInteropView(position: Offset): Boolean {
-        // TODO: temporary solution copying control flow from [processPress]
+        // TODO:
+        //  Temporary solution copying control flow from [processPress].
+        //  A proper solution is to send touches to scene as black box
+        //  and handle only that ones that were received in interop view
+        //  instead of using [pointInside].
         owners.fastForEachReversed { owner ->
             if (owner.isInBounds(position)) {
                 return owner.hitInteropView(
