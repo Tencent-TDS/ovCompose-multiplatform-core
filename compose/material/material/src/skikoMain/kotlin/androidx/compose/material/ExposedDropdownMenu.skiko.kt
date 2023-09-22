@@ -133,27 +133,3 @@ internal actual fun ExposedDropdownMenuBoxScope.ExposedDropdownMenuDefaultImpl(
         content = content
     )
 }
-
-private fun Modifier.expandable(
-    onExpandedChange: () -> Unit,
-    menuLabel: String
-) = composed {
-    val currentOnExpandedChange by rememberUpdatedState(onExpandedChange)
-    pointerInput(Unit) {
-        awaitEachGesture {
-            // Must be PointerEventPass.Initial to observe events before the text field consumes them
-            // in the Main pass
-            awaitFirstDown(pass = PointerEventPass.Initial)
-            val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
-            if (upEvent != null) {
-                currentOnExpandedChange()
-            }
-        }
-    }.semantics {
-        contentDescription = menuLabel // this should be a localised string
-        onClick {
-            currentOnExpandedChange()
-            true
-        }
-    }
-}
