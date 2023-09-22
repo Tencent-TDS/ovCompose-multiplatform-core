@@ -612,25 +612,7 @@ internal actual class ComposeWindow : UIViewController {
                         (y * density.density).toFloat()
                     )
 
-                    // TODO: temporary solution copying control flow from [ComposeScene.processPress]
-                    // there is no fastReverseAny in Kotlin
-                    for (i in scene.owners.size - 1 downTo 0) {
-                        val owner = scene.owners[i]
-
-                        if (owner.isInBounds(position)) {
-                            val hitsInteropView = owner.hitInteropView(
-                                pointerPosition = position,
-                                isTouchEvent = true,
-                            )
-
-                            return@useContents !hitsInteropView
-                        } else if (owner == scene.focusedOwner) {
-                            return@useContents true
-                        }
-                    }
-
-                    // We didn't pass isInBounds check for any owner 🤷
-                    return@useContents true
+                    !scene.hitTestInteropView(position)
                 }
 
             override fun onPointerEvent(event: SkikoPointerEvent) {
