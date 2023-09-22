@@ -202,8 +202,6 @@ internal class MetalRedrawer(
     private val context = DirectContext.makeMetal(device.objcPtr(), queue.objcPtr())
     private var lastRenderTimestamp: NSTimeInterval = CACurrentMediaTime()
     private val pictureRecorder = PictureRecorder()
-    private val renderingDispatchQueue =
-        dispatch_queue_create("MetalRedrawer.frameRenderEncoding", null)
 
     // Semaphore for preventing command buffers count more than swapchain size to be scheduled/executed at the same time
     private val inflightSemaphore =
@@ -442,6 +440,11 @@ internal class MetalRedrawer(
                 }
             }
         }
+    }
+
+    companion object {
+        private val renderingDispatchQueue =
+            dispatch_queue_create("RenderingDispatchQueue", null)
     }
 }
 
