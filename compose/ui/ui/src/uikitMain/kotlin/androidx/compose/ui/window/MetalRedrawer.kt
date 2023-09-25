@@ -293,8 +293,6 @@ internal class MetalRedrawer(
         caDisplayLink = null
 
         pictureRecorder.close()
-
-        context.flush()
         context.close()
     }
 
