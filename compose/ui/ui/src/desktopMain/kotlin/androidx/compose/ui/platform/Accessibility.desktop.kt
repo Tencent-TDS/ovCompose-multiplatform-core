@@ -17,6 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.node.LayoutNode
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -118,6 +119,15 @@ internal class AccessibilityControllerImpl(
                                     AccessibleState.CHECKED, null
                                 )
                         }
+                    }
+
+                    SemanticsProperties.ProgressBarRangeInfo -> {
+                        val value = entry.value as ProgressBarRangeInfo
+                        component.composeAccessibleContext.firePropertyChange(
+                            ACCESSIBLE_VALUE_PROPERTY,
+                            prev,
+                            value.current
+                        )
                     }
                 }
             }
