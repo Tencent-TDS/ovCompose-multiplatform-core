@@ -23,6 +23,9 @@ import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.foundation.text.selection.getTextFieldSelection
 import androidx.compose.foundation.text.selection.isSelectionHandleInVisibleBound
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
@@ -34,6 +37,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 
+@Composable
 internal fun Modifier.cupertinoTextFieldPointer(
     manager: TextFieldSelectionManager,
     enabled: Boolean,
@@ -53,7 +57,8 @@ internal fun Modifier.cupertinoTextFieldPointer(
             offsetMapping,
             manager
         )
-        tapHandlerModifier
+        this
+            .then(tapHandlerModifier)
             .then(selectionModifier)
             .pointerHoverIcon(textPointerIcon)
     } else {
@@ -68,6 +73,7 @@ internal fun Modifier.cupertinoTextFieldPointer(
     this
 }
 
+@Composable
 @OptIn(InternalFoundationTextApi::class)
 private fun getTapHandlerModifier(
     interactionSource: MutableInteractionSource?,
@@ -76,64 +82,71 @@ private fun getTapHandlerModifier(
     readOnly: Boolean,
     offsetMapping: OffsetMapping,
     manager: TextFieldSelectionManager
-) = Modifier.pointerInput(interactionSource) {
+): Modifier {
+    val currentState by rememberUpdatedState(state)
+    val currentFocusRequester by rememberUpdatedState(focusRequester)
+    val currentReadOnly by rememberUpdatedState(readOnly)
+    val currentOffsetMapping by rememberUpdatedState(offsetMapping)
+    val currentManager by rememberUpdatedState(manager)
     /*
     We need to move tap recognizer here from selection modifier (as it is in common) because:
     1) we need to handle triple tap
-    2) without rewriting, we have onDoubleTap call and onTap call, and onDoubleTap will execute before onTap.
-     */
-
-    detectRepeatingTapGestures(
-        onTap = { touchPointOffset ->
-            tapTextFieldToFocus(
-                state,
-                focusRequester,
-                !readOnly
-            )
-            if (state.hasFocus) {
-                if (state.handleState != HandleState.Selection) {
-                    state.layoutResult?.let { layoutResult ->
-                        TextFieldDelegate.setCursorOffset(
-                            touchPointOffset,
-                            layoutResult,
-                            state.processor,
-                            offsetMapping,
-                            state.onValueChange
-                        )
-                        // Won't enter cursor state when text is empty.
-                        if (state.textDelegate.text.isNotEmpty()) {
-                            state.handleState = HandleState.Cursor
+    2) without rewriting, we have onDoubleTap call and onTap call, and onDoubleTap will execute
+    before onTap.
+    */
+    return Modifier.pointerInput(interactionSource) {
+        detectRepeatingTapGestures(
+            onTap = { touchPointOffset ->
+                tapTextFieldToFocus(
+                    currentState,
+                    currentFocusRequester,
+                    !currentReadOnly
+                )
+                if (currentState.hasFocus) {
+                    if (currentState.handleState != HandleState.Selection) {
+                        currentState.layoutResult?.let { layoutResult ->
+                            TextFieldDelegate.setCursorOffset(
+                                touchPointOffset,
+                                layoutResult,
+                                currentState.processor,
+                                currentOffsetMapping,
+                                currentState.onValueChange
+                            )
+                            // Won't enter cursor state when text is empty.
+                            if (currentState.textDelegate.text.isNotEmpty()) {
+                                currentState.handleState = HandleState.Cursor
+                            }
                         }
+                    } else {
+                        currentManager.deselect(touchPointOffset)
                     }
-                } else {
-                    manager.deselect(touchPointOffset)
                 }
+            },
+            onDoubleTap = {
+                currentManager.doRepeatingTapSelection(it, SelectionAdjustment.Word)
+            },
+            onTripleTap = {
+                currentManager.doRepeatingTapSelection(it, SelectionAdjustment.Paragraph)
             }
-        },
-        onDoubleTap = {
-            manager.doRepeatingTapSelection(it, SelectionAdjustment.Word)
-        },
-        onTripleTap = {
-            manager.doRepeatingTapSelection(it, SelectionAdjustment.Paragraph)
-        }
-    )
+        )
+    }
 }
 
+@Composable
 private fun getSelectionModifier(manager: TextFieldSelectionManager): Modifier {
-    val selectionModifier =
-        Modifier.pointerInput(Unit) {
-            detectDragGesturesAfterLongPress(
-                onDragStart = {
-                    manager.touchSelectionObserver.onStart(
-                        startPoint = it
-                    )
-                },
-                onDrag = { _, delta -> manager.touchSelectionObserver.onDrag(delta = delta) },
-                onDragCancel = { manager.touchSelectionObserver.onCancel() },
-                onDragEnd = { manager.touchSelectionObserver.onStop() }
-            )
-        }
-    return selectionModifier
+    val currentManager by rememberUpdatedState(manager)
+    return Modifier.pointerInput(Unit) {
+        detectDragGesturesAfterLongPress(
+            onDragStart = {
+                currentManager.touchSelectionObserver.onStart(
+                    startPoint = it
+                )
+            },
+            onDrag = { _, delta -> currentManager.touchSelectionObserver.onDrag(delta = delta) },
+            onDragCancel = { currentManager.touchSelectionObserver.onCancel() },
+            onDragEnd = { currentManager.touchSelectionObserver.onStop() }
+        )
+    }
 }
 
 private fun TextFieldSelectionManager.doRepeatingTapSelection(touchPointOffset: Offset, selectionAdjustment: SelectionAdjustment) {

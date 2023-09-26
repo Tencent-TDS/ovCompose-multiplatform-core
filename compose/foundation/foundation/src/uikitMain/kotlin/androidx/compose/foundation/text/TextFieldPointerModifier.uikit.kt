@@ -18,10 +18,12 @@ package androidx.compose.foundation.text
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.input.OffsetMapping
 
+@Composable
 internal actual fun Modifier.textFieldPointer(
     manager: TextFieldSelectionManager,
     enabled: Boolean,
