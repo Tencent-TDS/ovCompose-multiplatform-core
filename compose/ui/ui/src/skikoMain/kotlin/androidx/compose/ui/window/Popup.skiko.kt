@@ -487,16 +487,16 @@ private fun rememberPopupMeasurePolicy(
                 -platformInsets.left.roundToPx(),
                 -platformInsets.top.roundToPx()
             )
-            val position = popupPositionProvider.calculatePosition(
+            val localPosition = popupPositionProvider.calculatePosition(
                 localBounds, it, layoutDirection, contentSize
             )
             if (properties.clippingEnabled) {
                 IntOffset(
-                    x = position.x.coerceIn(0, it.width - contentSize.width),
-                    y = position.y.coerceIn(0, it.height - contentSize.height)
+                    x = localPosition.x.coerceIn(0, it.width - contentSize.width),
+                    y = localPosition.y.coerceIn(0, it.height - contentSize.height)
                 )
             } else {
-                position
+                localPosition
             }
         }
         onBoundsChanged(IntRect(position, contentSize))
