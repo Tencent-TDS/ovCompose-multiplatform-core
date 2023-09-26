@@ -16,23 +16,11 @@
 
 package androidx.compose.foundation.text
 
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectRepeatingTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
-import androidx.compose.foundation.text.selection.getTextFieldSelection
-import androidx.compose.foundation.text.selection.isSelectionHandleInVisibleBound
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.input.TextFieldValue
 
 internal actual fun Modifier.textFieldPointer(
     manager: TextFieldSelectionManager,
@@ -42,170 +30,12 @@ internal actual fun Modifier.textFieldPointer(
     focusRequester: FocusRequester,
     readOnly: Boolean,
     offsetMapping: OffsetMapping
-): Modifier = if (enabled) {
-    if (isInTouchMode) {
-        val selectionModifier = getSelectionModifier(manager)
-        val tapHandlerModifier = getTapHandlerModifier(
-            interactionSource,
-            state,
-            focusRequester,
-            readOnly,
-            offsetMapping,
-            manager
-        )
-        tapHandlerModifier
-            .then(selectionModifier)
-            .pointerHoverIcon(textPointerIcon)
-    } else {
-        this
-            .mouseDragGestureDetector(
-                observer = manager.mouseSelectionObserver,
-                enabled = enabled
-            )
-            .pointerHoverIcon(textPointerIcon)
-    }
-} else {
-    this
-}
-
-@OptIn(InternalFoundationTextApi::class)
-private fun getTapHandlerModifier(
-    interactionSource: MutableInteractionSource?,
-    state: TextFieldState,
-    focusRequester: FocusRequester,
-    readOnly: Boolean,
-    offsetMapping: OffsetMapping,
-    manager: TextFieldSelectionManager
-) = Modifier.pointerInput(interactionSource) {
-    /*
-    We need to move tap recognizer here from selection modifier (as it is in common) because:
-    1) we need to handle triple tap
-    2) without rewriting, we have onDoubleTap call and onTap call, and onDoubleTap will execute before onTap.
-     */
-
-    detectRepeatingTapGestures(
-        onTap = { touchPointOffset ->
-            tapTextFieldToFocus(
-                state,
-                focusRequester,
-                !readOnly
-            )
-            if (state.hasFocus) {
-                if (state.handleState != HandleState.Selection) {
-                    state.layoutResult?.let { layoutResult ->
-                        TextFieldDelegate.setCursorOffset(
-                            touchPointOffset,
-                            layoutResult,
-                            state.processor,
-                            offsetMapping,
-                            state.onValueChange
-                        )
-                        // Won't enter cursor state when text is empty.
-                        if (state.textDelegate.text.isNotEmpty()) {
-                            state.handleState = HandleState.Cursor
-                        }
-                    }
-                } else {
-                    manager.deselect(touchPointOffset)
-                }
-            }
-        },
-        onDoubleTap = {
-            manager.doRepeatingTapSelection(it, SelectionAdjustment.Word)
-        },
-        onTripleTap = {
-            manager.doRepeatingTapSelection(it, SelectionAdjustment.Paragraph)
-        }
-    )
-}
-
-private fun getSelectionModifier(manager: TextFieldSelectionManager): Modifier {
-    val selectionModifier =
-        Modifier.pointerInput(Unit) {
-            detectDragGesturesAfterLongPress(
-                onDragStart = {
-                    manager.touchSelectionObserver.onStart(
-                        startPoint = it
-                    )
-                },
-                onDrag = { _, delta -> manager.touchSelectionObserver.onDrag(delta = delta) },
-                onDragCancel = { manager.touchSelectionObserver.onCancel() },
-                onDragEnd = { manager.touchSelectionObserver.onStop() }
-            )
-        }
-    return selectionModifier
-}
-
-private fun TextFieldSelectionManager.doRepeatingTapSelection(touchPointOffset: Offset, selectionAdjustment: SelectionAdjustment) {
-    if (value.text.isEmpty()) return
-    enterSelectionMode()
-    state?.layoutResult?.let { layoutResult ->
-        val offset = layoutResult.getOffsetForPosition(touchPointOffset)
-        updateSelection(
-            value = value,
-            transformedStartOffset = offset,
-            transformedEndOffset = offset,
-            isStartHandle = false,
-            adjustment = selectionAdjustment
-        )
-    }
-}
-
-/**
- * Copied from TextFieldSelectionManager.kt
- */
-private fun TextFieldSelectionManager.updateSelection(
-    value: TextFieldValue,
-    transformedStartOffset: Int,
-    transformedEndOffset: Int,
-    isStartHandle: Boolean,
-    adjustment: SelectionAdjustment
-) {
-    val transformedSelection = TextRange(
-        offsetMapping.originalToTransformed(value.selection.start),
-        offsetMapping.originalToTransformed(value.selection.end)
-    )
-
-    val newTransformedSelection = getTextFieldSelection(
-        textLayoutResult = state?.layoutResult?.value,
-        rawStartOffset = transformedStartOffset,
-        rawEndOffset = transformedEndOffset,
-        previousSelection = if (transformedSelection.collapsed) null else transformedSelection,
-        isStartHandle = isStartHandle,
-        adjustment = adjustment
-    )
-
-    val originalSelection = TextRange(
-        start = offsetMapping.transformedToOriginal(newTransformedSelection.start),
-        end = offsetMapping.transformedToOriginal(newTransformedSelection.end)
-    )
-
-    if (originalSelection == value.selection) return
-
-    hapticFeedBack?.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-
-    val newValue = createTextFieldValue(
-        annotatedString = value.annotatedString,
-        selection = originalSelection
-    )
-    onValueChange(newValue)
-
-    // showSelectionHandleStart/End might be set to false when scrolled out of the view.
-    // When the selection is updated, they must also be updated so that handles will be shown
-    // or hidden correctly.
-    state?.showSelectionHandleStart = isSelectionHandleInVisibleBound(true)
-    state?.showSelectionHandleEnd = isSelectionHandleInVisibleBound(false)
-}
-
-/**
- * Copied from TextFieldSelectionManager.kt
- */
-private fun createTextFieldValue(
-    annotatedString: AnnotatedString,
-    selection: TextRange
-): TextFieldValue {
-    return TextFieldValue(
-        annotatedString = annotatedString,
-        selection = selection
-    )
-}
+): Modifier = Modifier.cupertinoTextFieldPointer(
+    manager,
+    enabled,
+    interactionSource,
+    state,
+    focusRequester,
+    readOnly,
+    offsetMapping,
+)
