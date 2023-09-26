@@ -481,16 +481,23 @@ private fun rememberPopupMeasurePolicy(
         platformInsets = platformInsets,
         usePlatformDefaultWidth = properties.usePlatformDefaultWidth
     ) { windowSize, contentSize ->
-        var position = positionWithInsets(platformInsets, windowSize) {
-            popupPositionProvider.calculatePosition(
-                parentBounds, it, layoutDirection, contentSize
+        val position = positionWithInsets(platformInsets, windowSize) {
+            // Position provider should work with local coordinates.
+            val localBounds = parentBounds.translate(
+                -platformInsets.left.roundToPx(),
+                -platformInsets.top.roundToPx()
             )
-        }
-        if (properties.clippingEnabled) {
-            position = IntOffset(
-                x = position.x.coerceIn(0, windowSize.width - contentSize.width),
-                y = position.y.coerceIn(0, windowSize.height - contentSize.height)
+            val position = popupPositionProvider.calculatePosition(
+                localBounds, it, layoutDirection, contentSize
             )
+            if (properties.clippingEnabled) {
+                IntOffset(
+                    x = position.x.coerceIn(0, it.width - contentSize.width),
+                    y = position.y.coerceIn(0, it.height - contentSize.height)
+                )
+            } else {
+                position
+            }
         }
         onBoundsChanged(IntRect(position, contentSize))
         position
