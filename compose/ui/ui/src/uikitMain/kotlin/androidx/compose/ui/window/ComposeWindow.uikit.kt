@@ -697,8 +697,8 @@ private fun UITouch.offsetInView(view: UIView, density: Float) =
         Offset(x.toFloat() * density, y.toFloat() * density)
     }
 
-private fun UIEvent.historicalChangesForTouch(touch: UITouch, view: UIView, density: Float): MutableList<HistoricalChange> {
-    val touches = coalescedTouchesForTouch(touch) ?: return mutableListOf()
+private fun UIEvent.historicalChangesForTouch(touch: UITouch, view: UIView, density: Float): List<HistoricalChange> {
+    val touches = coalescedTouchesForTouch(touch) ?: return emptyList()
 
     return if (touches.size > 1) {
         // subList last index is exclusive, so the last touch in the list is not included
@@ -709,9 +709,9 @@ private fun UIEvent.historicalChangesForTouch(touch: UITouch, view: UIView, dens
                 uptimeMillis = (historicalTouch.timestamp * 1e3).toLong(),
                 position = historicalTouch.offsetInView(view, density)
             )
-        }.toMutableList()
+        }
     } else {
-        mutableListOf()
+        emptyList()
     }
 }
 
