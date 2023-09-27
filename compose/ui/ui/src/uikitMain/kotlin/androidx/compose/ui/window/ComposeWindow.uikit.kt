@@ -608,11 +608,6 @@ internal actual class ComposeWindow : UIViewController {
         skikoUIView.input = inputServices.skikoInput
         skikoUIView.inputTraits = inputTraits
         skikoUIView.delegate = object : SkikoUIViewDelegate {
-            /**
-             * Map of PointerId to its last known offset
-             */
-            private var lastKnownOffset = mutableMapOf<Long, Offset>()
-
             override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
                 scene.sendKeyEvent(KeyEvent(event))
             }
@@ -638,28 +633,13 @@ internal actual class ComposeWindow : UIViewController {
 
                         val position = touch.offsetInView(view, density)
 
-                        val overridedPosition: Offset? =
-                            if (phase == UITouchesEventPhase.ENDED) {
-                                val result = lastKnownOffset[id]
-                                lastKnownOffset.remove(id)
-
-                                result
-                            } else {
-                                lastKnownOffset[id] = position
-                                null
-                            }
-
                         ComposeScene.Pointer(
                             id = PointerId(id),
-                            position = overridedPosition ?: position,
+                            position = position,
                             pressed = touch.isPressed,
                             type = PointerType.Touch,
                             pressure = touch.force.toFloat(),
-                            historical = if (overridedPosition == null) {
-                                event.historicalChangesForTouch(touch, view, density)
-                            } else {
-                                mutableListOf()
-                            }
+                            historical = event.historicalChangesForTouch(touch, view, density)
                         )
                     } ?: listOf(),
                     timeMillis = (event.timestamp * 1e3).toLong(),
@@ -721,6 +701,8 @@ private fun UIEvent.historicalChangesForTouch(touch: UITouch, view: UIView, dens
     val touches = coalescedTouchesForTouch(touch) ?: return mutableListOf()
 
     return if (touches.size > 1) {
+        // subList last index is exclusive, so the last touch in the list is not included
+        // because it's the actual touch for which coalesced touches were requested
         touches.subList(0, touches.size - 1).map {
             val historicalTouch = it as UITouch
             HistoricalChange(
