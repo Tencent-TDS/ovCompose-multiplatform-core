@@ -599,7 +599,7 @@ class ComposeScene internal constructor(
         buttons: PointerButtons? = null,
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
-        button: PointerButton? = null
+        button: PointerButton? = null,
     ) {
         defaultPointerStateTracker.onPointerEvent(button, eventType)
 
@@ -889,7 +889,7 @@ class ComposeScene internal constructor(
          */
         val pressure: Float = 1.0f,
 
-        val historical: List<HistoricalChange> = mutableListOf()
+        val historical: List<HistoricalChange> = listOf()
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
