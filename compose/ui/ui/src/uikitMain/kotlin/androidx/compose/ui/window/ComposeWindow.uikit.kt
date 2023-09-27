@@ -692,7 +692,7 @@ internal actual class ComposeWindow : UIViewController {
     }
 }
 
-private fun UITouch.offsetInView(view: UIView, density: Float) =
+private fun UITouch.offsetInView(view: UIView, density: Float): Offset =
     locationInView(view).useContents {
         Offset(x.toFloat() * density, y.toFloat() * density)
     }
