@@ -889,7 +889,7 @@ class ComposeScene internal constructor(
          */
         val pressure: Float = 1.0f,
 
-        val historical: List<HistoricalChange> = listOf()
+        val historical: List<HistoricalChange> = emptyList()
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
