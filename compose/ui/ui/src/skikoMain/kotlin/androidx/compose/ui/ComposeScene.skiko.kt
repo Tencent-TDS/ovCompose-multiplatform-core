@@ -889,7 +889,6 @@ class ComposeScene internal constructor(
          */
         val pressure: Float = 1.0f,
 
-
         val historical: List<HistoricalChange> = mutableListOf()
     ) {
         override fun equals(other: Any?): Boolean {
