@@ -205,23 +205,16 @@ class VelocityTracker1D internal constructor(
             val age: Float = (newestSample.time - sample.time).toFloat()
             val delta: Float =
                 abs(sample.time - previousSample.time).toFloat()
-
+            previousSample = sample
             if (age > HorizonMilliseconds || delta > AssumePointerMoveStoppedMilliseconds) {
                 break
             }
 
-            // TODO: workaround for duplicating timestamps on iOS from synthetic events, leading to inadequate lsq2 solution
-            val eps = 0.5f // low age delta will discard dataPoint
-
-            if (delta > eps) {
-                previousSample = sample
-
-                dataPoints[sampleCount] = sample.dataPoint
-                time[sampleCount] = -age
-                sampleCount += 1
-            }
-
+            dataPoints[sampleCount] = sample.dataPoint
+            time[sampleCount] = -age
             index = (if (index == 0) HistorySize else index) - 1
+
+            sampleCount += 1
         } while (sampleCount < HistorySize)
 
         if (sampleCount >= minSampleSize) {
@@ -259,10 +252,6 @@ class VelocityTracker1D internal constructor(
         time: FloatArray,
         sampleCount: Int
     ): Float {
-        println("Points:")
-        for (i in 0 until sampleCount) {
-            println("${time[i]} ${dataPoints[i]}")
-        }
         // The 2nd coefficient is the derivative of the quadratic polynomial at
         // x = 0, and that happens to be the last timestamp that we end up
         // passing to polyFitLeastSquares.
