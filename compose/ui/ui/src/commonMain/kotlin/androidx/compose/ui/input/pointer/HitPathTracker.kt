@@ -98,6 +98,7 @@ internal class HitPathTracker(private val rootCoordinates: LayoutCoordinates) {
             isInBounds
         )
         if (!changed) {
+            root.cleanUpHover()
             return false
         }
         var dispatchHit = root.dispatchMainEventPass(
