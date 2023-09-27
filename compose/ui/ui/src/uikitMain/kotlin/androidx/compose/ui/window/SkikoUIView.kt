@@ -326,30 +326,6 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
         }
     }
 
-//    private fun UIEvent.toSkikoPointerEvent(kind: SkikoPointerEventKind): SkikoPointerEvent {
-//        val pointers = touchesForView(this@SkikoUIView).orEmpty().map {
-//            val touch = it as UITouch
-//            val (x, y) = touch.locationInView(this@SkikoUIView).useContents { x to y }
-//            SkikoPointer(
-//                x = x,
-//                y = y,
-//                pressed = touch.isPressed,
-//                device = SkikoPointerDevice.TOUCH,
-//                id = touch.hashCode().toLong(),
-//                pressure = touch.force
-//            )
-//        }
-//
-//        return SkikoPointerEvent(
-//            x = pointers.centroidX,
-//            y = pointers.centroidY,
-//            kind = kind,
-//            timestamp = (timestamp * 1_000).toLong(),
-//            pointers = pointers,
-//            platform = this
-//        )
-//    }
-
     override fun inputDelegate(): UITextInputDelegateProtocol? {
         return _inputDelegate
     }
