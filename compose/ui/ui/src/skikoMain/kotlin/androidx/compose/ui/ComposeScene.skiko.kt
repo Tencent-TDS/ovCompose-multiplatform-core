@@ -599,7 +599,7 @@ class ComposeScene internal constructor(
         buttons: PointerButtons? = null,
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
-        button: PointerButton? = null,
+        button: PointerButton? = null
     ) {
         defaultPointerStateTracker.onPointerEvent(button, eventType)
 
