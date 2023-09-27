@@ -641,7 +641,7 @@ internal actual class ComposeWindow : UIViewController {
                             pressure = touch.force.toFloat(),
                             historical = event.historicalChangesForTouch(touch, view, density)
                         )
-                    } ?: listOf(),
+                    } ?: emptyList(),
                     timeMillis = (event.timestamp * 1e3).toLong(),
                     nativeEvent = event
                 )
