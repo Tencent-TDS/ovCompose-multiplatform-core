@@ -62,6 +62,7 @@ import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoPointerEvent
 import org.jetbrains.skiko.currentNanoTime
 import platform.CoreGraphics.CGPoint
+import org.jetbrains.skiko.SkikoPointerEventKind
 import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert

@@ -570,7 +570,11 @@ private class DefaultDraggableState(val onDelta: (Float) -> Unit) : DraggableSta
 
 private sealed class DragEvent {
     class DragStarted(val startPoint: Offset) : DragEvent()
-    class DragStopped(val velocity: Velocity) : DragEvent()
+    class DragStopped(val velocity: Velocity) : DragEvent() {
+        init {
+            println("DragStopped with velocity: $velocity")
+        }
+    }
     object DragCancelled : DragEvent()
     class DragDelta(val delta: Offset) : DragEvent()
 }
