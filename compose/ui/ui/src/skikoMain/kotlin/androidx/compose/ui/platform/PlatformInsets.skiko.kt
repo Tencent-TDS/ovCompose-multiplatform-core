@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -72,3 +73,32 @@ internal fun PlatformInsets.exclude(insets: PlatformInsets) = PlatformInsets(
     right = (right - insets.right).coerceAtLeast(0.dp),
     bottom = (bottom - insets.bottom).coerceAtLeast(0.dp)
 )
+
+internal interface InsetsConfig {
+    val safeInsets: PlatformInsets
+        @Composable get
+
+    @Composable
+    fun excludeSafeInsets(content: @Composable () -> Unit)
+}
+
+internal object ZeroInsetsConfig : InsetsConfig {
+    override val safeInsets: PlatformInsets
+        @Composable get() = PlatformInsets.Zero
+
+    @Composable
+    override fun excludeSafeInsets(content: @Composable () -> Unit) {
+        content()
+    }
+}
+
+/**
+ * Represents the configuration for platform-specific insets.
+ *
+ * This variable is used to override insets in tests. The default value is expected to be
+ * different on each platform.
+ *
+ * TODO: Stabilize and make the window paddings in the foundation-layout module depend on it.
+ *  There is a plan to potentially move this variable into the [Platform] interface.
+ */
+internal expect var PlatformInsetsConfig: InsetsConfig

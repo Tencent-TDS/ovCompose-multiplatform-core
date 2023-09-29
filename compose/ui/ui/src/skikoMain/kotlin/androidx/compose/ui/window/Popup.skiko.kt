@@ -36,8 +36,11 @@ import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.InsetsConfig
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.PlatformInsets
+import androidx.compose.ui.platform.PlatformInsetsConfig
+import androidx.compose.ui.platform.ZeroInsetsConfig
 import androidx.compose.ui.semantics.popup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
@@ -428,7 +431,7 @@ private fun PopupLayout(
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val platformInsets = properties.insetsConfig.insets
+    val platformInsets = properties.insetsConfig.safeInsets
     var layoutParentBoundsInWindow: IntRect? by remember { mutableStateOf(null) }
     EmptyLayout(Modifier.parentBoundsInWindow { layoutParentBoundsInWindow = it })
     RootLayout(
@@ -447,7 +450,7 @@ private fun PopupLayout(
         ) {
             owner.bounds = it
         }
-        properties.insetsConfig.excludeInsets {
+        properties.insetsConfig.excludeSafeInsets {
             Layout(
                 content = content,
                 measurePolicy = measurePolicy
@@ -456,8 +459,8 @@ private fun PopupLayout(
     }
 }
 
-private val PopupProperties.insetsConfig: RootLayoutInsetsConfig
-    get() = if (usePlatformInsets) CurrentRootLayoutInsetsConfig else DefaultRootLayoutInsetsConfig
+private val PopupProperties.insetsConfig: InsetsConfig
+    get() = if (usePlatformInsets) PlatformInsetsConfig else ZeroInsetsConfig
 
 private fun Modifier.parentBoundsInWindow(
     onBoundsChanged: (IntRect) -> Unit

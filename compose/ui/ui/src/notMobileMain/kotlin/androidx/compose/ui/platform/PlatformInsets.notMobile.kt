@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.window
+package androidx.compose.ui.platform
 
-internal actual var CurrentRootLayoutInsetsConfig: RootLayoutInsetsConfig =
-    DefaultRootLayoutInsetsConfig
+internal actual var PlatformInsetsConfig: InsetsConfig = ZeroInsetsConfig
