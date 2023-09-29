@@ -585,11 +585,6 @@ internal fun CoreTextField(
 
     val overscrollEffect = rememberTextFieldOverscrollEffect()
 
-    fun Modifier.overscroll(): Modifier =
-        overscrollEffect?.let {
-            this then it.effectModifier
-        } ?: this
-
     // Modifiers that should be applied to the outer text field container. Usually those include
     // gesture and semantics modifiers.
     val decorationBoxModifier = modifier
@@ -613,6 +608,11 @@ internal fun CoreTextField(
 
     CoreTextFieldRootBox(decorationBoxModifier, manager) {
         decorationBox {
+            fun Modifier.overscroll(): Modifier =
+                overscrollEffect?.let {
+                    this then it.effectModifier
+                } ?: this
+
             // Modifiers applied directly to the internal input field implementation. In general,
             // these will most likely include draw, layout and IME related modifiers.
             val coreTextFieldModifier = Modifier
