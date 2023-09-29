@@ -75,9 +75,13 @@ internal fun PlatformInsets.exclude(insets: PlatformInsets) = PlatformInsets(
 )
 
 internal interface InsetsConfig {
+
+    // TODO: Add more granular control. Look at Android's [WindowInsetsCompat]
     val safeInsets: PlatformInsets
         @Composable get
 
+    // Don't make it public, it should be implementation details for creating new root layout nodes.
+    // TODO: Ensure encapsulation and proper control flow during refactoring [Owner]s
     @Composable
     fun excludeSafeInsets(content: @Composable () -> Unit)
 }
