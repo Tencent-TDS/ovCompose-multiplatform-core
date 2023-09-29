@@ -30,13 +30,13 @@ import androidx.compose.ui.unit.dp
 @Immutable
 class PlatformInsets(
     @Stable
-    val top: Dp = 0.dp,
-    @Stable
-    val bottom: Dp = 0.dp,
-    @Stable
     val left: Dp = 0.dp,
     @Stable
+    val top: Dp = 0.dp,
+    @Stable
     val right: Dp = 0.dp,
+    @Stable
+    val bottom: Dp = 0.dp,
 ) {
     companion object {
         val Zero = PlatformInsets(0.dp, 0.dp, 0.dp, 0.dp)
@@ -46,24 +46,24 @@ class PlatformInsets(
         if (this === other) return true
         if (other !is PlatformInsets) return false
 
-        if (top != other.top) return false
-        if (bottom != other.bottom) return false
         if (left != other.left) return false
+        if (top != other.top) return false
         if (right != other.right) return false
+        if (bottom != other.bottom) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = top.hashCode()
-        result = 31 * result + bottom.hashCode()
-        result = 31 * result + left.hashCode()
+        var result = left.hashCode()
+        result = 31 * result + top.hashCode()
         result = 31 * result + right.hashCode()
+        result = 31 * result + bottom.hashCode()
         return result
     }
 
     override fun toString(): String {
-        return "PlatformInsets(top=$top, bottom=$bottom, left=$left, right=$right)"
+        return "PlatformInsets(left=$left, top=$top, right=$right, bottom=$bottom)"
     }
 }
 
