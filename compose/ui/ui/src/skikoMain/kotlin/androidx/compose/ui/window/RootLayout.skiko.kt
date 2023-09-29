@@ -158,11 +158,25 @@ internal fun MeasureScope.positionWithInsets(
     return position + offset
 }
 
-@Composable
-internal expect fun platformInsets(): PlatformInsets
+internal interface RootLayoutInsetsConfig {
+    val insets: PlatformInsets
+        @Composable get
 
-@Composable
-internal expect fun platformOwnerContent(overrideInsets: Boolean, content: @Composable () -> Unit)
+    @Composable
+    fun excludeInsets(content: @Composable () -> Unit)
+}
+
+internal object DefaultRootLayoutInsetsConfig : RootLayoutInsetsConfig {
+    override val insets: PlatformInsets
+        @Composable get() = PlatformInsets.Zero
+
+    @Composable
+    override fun excludeInsets(content: @Composable () -> Unit) {
+        content()
+    }
+}
+
+internal expect var CurrentRootLayoutInsetsConfig: RootLayoutInsetsConfig
 
 private fun Density.platformDefaultConstrains(
     constraints: Constraints

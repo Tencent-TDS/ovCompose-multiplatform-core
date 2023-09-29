@@ -177,11 +177,7 @@ private fun DialogLayout(
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val platformInsets = if (properties.usePlatformInsets) {
-        platformInsets()
-    } else {
-        PlatformInsets.Zero
-    }
+    val platformInsets = properties.insetsConfig.insets
     RootLayout(
         modifier = modifier,
         focusable = true,
@@ -193,7 +189,7 @@ private fun DialogLayout(
         ) {
             owner.bounds = it
         }
-        platformOwnerContent(overrideInsets = properties.usePlatformInsets) {
+        properties.insetsConfig.excludeInsets {
             Layout(
                 content = content,
                 measurePolicy = measurePolicy
@@ -201,6 +197,9 @@ private fun DialogLayout(
         }
     }
 }
+
+private val DialogProperties.insetsConfig: RootLayoutInsetsConfig
+    get() = if (usePlatformInsets) CurrentRootLayoutInsetsConfig else DefaultRootLayoutInsetsConfig
 
 @Composable
 private fun rememberDialogMeasurePolicy(

@@ -428,11 +428,7 @@ private fun PopupLayout(
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val platformInsets = if (properties.usePlatformInsets) {
-        platformInsets()
-    } else {
-        PlatformInsets.Zero
-    }
+    val platformInsets = properties.insetsConfig.insets
     var layoutParentBoundsInWindow: IntRect? by remember { mutableStateOf(null) }
     EmptyLayout(Modifier.parentBoundsInWindow { layoutParentBoundsInWindow = it })
     RootLayout(
@@ -451,7 +447,7 @@ private fun PopupLayout(
         ) {
             owner.bounds = it
         }
-        platformOwnerContent(overrideInsets = properties.usePlatformInsets) {
+        properties.insetsConfig.excludeInsets {
             Layout(
                 content = content,
                 measurePolicy = measurePolicy
@@ -459,6 +455,9 @@ private fun PopupLayout(
         }
     }
 }
+
+private val PopupProperties.insetsConfig: RootLayoutInsetsConfig
+    get() = if (usePlatformInsets) CurrentRootLayoutInsetsConfig else DefaultRootLayoutInsetsConfig
 
 private fun Modifier.parentBoundsInWindow(
     onBoundsChanged: (IntRect) -> Unit

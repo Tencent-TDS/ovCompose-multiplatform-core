@@ -25,15 +25,12 @@ import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.exclude
 
 @OptIn(InternalComposeApi::class)
-@Composable
-internal actual fun platformInsets(): PlatformInsets {
-    return LocalSafeArea.current
-}
+private object SafeAreaRootLayoutInsetsConfig : RootLayoutInsetsConfig {
+    override val insets: PlatformInsets
+        @Composable get() = LocalSafeArea.current
 
-@OptIn(InternalComposeApi::class)
-@Composable
-internal actual fun platformOwnerContent(overrideInsets: Boolean, content: @Composable () -> Unit) {
-    if (overrideInsets) {
+    @Composable
+    override fun excludeInsets(content: @Composable () -> Unit) {
         val safeArea = LocalSafeArea.current
         val layoutMargins = LocalLayoutMargins.current
         CompositionLocalProvider(
@@ -41,7 +38,8 @@ internal actual fun platformOwnerContent(overrideInsets: Boolean, content: @Comp
             LocalLayoutMargins provides layoutMargins.exclude(safeArea),
             content = content
         )
-    } else {
-        content()
     }
 }
+
+internal actual var CurrentRootLayoutInsetsConfig: RootLayoutInsetsConfig =
+    SafeAreaRootLayoutInsetsConfig
