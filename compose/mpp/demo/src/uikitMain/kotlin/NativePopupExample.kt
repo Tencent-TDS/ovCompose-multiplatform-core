@@ -3,6 +3,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.mpp.demo.Screen
@@ -11,9 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.interop.UIKitView
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeUIViewController
+import platform.UIKit.UILabel
 import platform.UIKit.UINavigationController
 import platform.UIKit.navigationController
+import platform.UIKit.UIColor
 
 /*
  * Copyright 2023 The Android Open Source Project
@@ -63,6 +70,18 @@ private fun NativeNavigationPage() {
             )
         }) {
             Text("Push")
+        }
+
+        LazyVerticalGrid(GridCells.Fixed(2)) {
+            items(10) { index ->
+                UIKitView(factory = {
+                    val label = UILabel()
+                    label.text = "Lorem ipsum $index"
+                    label.backgroundColor = UIColor.whiteColor
+                    label.textColor = UIColor.blackColor
+                    label
+                }, Modifier.height(80.dp))
+            }
         }
     }
 }
