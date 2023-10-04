@@ -61,19 +61,19 @@ private data class CupertinoOverscrollAvailableDelta(
     val newOverscrollValue: Float
 )
 
+/**
+ * CupertinoOverscrollEffect
+ *
+ * @param density to be taken into consideration during computations;
+ * Cupertino formulas use DPs, and scroll machinery uses raw values.
+ *
+ * @param applyClip Some consumers of overscroll effect apply clip by themselves and some don't,
+ * thus this flag is needed to update our modifier chain and make the clipping correct in every case while avoiding redundancy
+ */
 @OptIn(ExperimentalFoundationApi::class)
 class CupertinoOverscrollEffect(
-    /**
-     * Density to be taken into consideration during computations; Cupertino formulas use
-     * DPs, and scroll machinery uses raw values.
-     */
     private val density: Float,
     layoutDirection: LayoutDirection,
-
-    /**
-     * Some consumers of overscroll effect apply clip by themselves and some don't, thus this flag is needed
-     * to update our modifier chain and make the clipping correct in every case while avoiding redundancy
-     */
     val applyClip: Boolean
 ) : OverscrollEffect {
     /*
