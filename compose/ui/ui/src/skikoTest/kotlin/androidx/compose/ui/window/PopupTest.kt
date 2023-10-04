@@ -594,7 +594,7 @@ class PopupTest {
     fun popupBoundsWithPlatformInsets() = runSkikoComposeUiTest(
         size = Size(200f, 200f)
     ) {
-        setPlatformInsets(PlatformInsets(50.dp, 10.dp, 5.dp, 5.dp))
+        setPlatformInsets(PlatformInsets(left = 5.dp, top = 50.dp, right = 5.dp, bottom = 10.dp))
         setContent {
             Popup(
                 popupPositionProvider = object : PopupPositionProvider {
