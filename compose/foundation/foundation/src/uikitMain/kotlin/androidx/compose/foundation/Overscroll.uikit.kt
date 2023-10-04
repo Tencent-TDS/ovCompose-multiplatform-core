@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 internal actual fun rememberOverscrollEffect(): OverscrollEffect =
     rememberOverscrollEffect(applyClip = false)
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun rememberOverscrollEffect(applyClip: Boolean): OverscrollEffect =
     if (UiKitScrollConfig.isRubberBandingOverscrollEnabled) {
