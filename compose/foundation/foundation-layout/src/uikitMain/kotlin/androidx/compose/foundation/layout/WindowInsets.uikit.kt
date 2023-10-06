@@ -80,7 +80,7 @@ actual val WindowInsets.Companion.displayCutout: WindowInsets
 actual val WindowInsets.Companion.ime: WindowInsets
     @Composable
     @OptIn(InternalComposeApi::class)
-    get() = WindowInsets(bottom = LocalKeyboardOverlapHeightState.current.value.dp)
+    get() = WindowInsets(bottom = LocalKeyboardOverlapHeightState.current.dp)
 
 /**
  * These insets represent the space where system gestures have priority over application gestures.
