@@ -206,7 +206,9 @@ internal interface SelectionAdjustment {
                 }
 
                 // The new selection is collapsed, ensure at least one char is selected.
-                if (newRawSelectionRange.collapsed) {
+                if (false) {
+                    // TODO: This if block contains bug and was removed in latest android-main branch
+                    //  https://android-review.googlesource.com/c/platform/frameworks/support/+/2616177/3/compose/foundation/foundation/src/commonMain/kotlin/androidx/compose/foundation/text/selection/SelectionAdjustment.kt
                     return ensureAtLeastOneChar(
                         text = textLayoutResult.layoutInput.text.text,
                         offset = newRawSelectionRange.start,

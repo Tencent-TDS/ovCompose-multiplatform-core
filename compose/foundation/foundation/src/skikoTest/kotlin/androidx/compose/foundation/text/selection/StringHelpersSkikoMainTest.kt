@@ -32,6 +32,12 @@ class StringHelpersSkikoMainTest {
     }
 
     @Test
+    fun StringHelpersTest_findFollowingBreak_empty_string() {
+        val result = "".findFollowingBreak(0)
+        assertEquals(result, -1)
+    }
+
+    @Test
     fun StringHelpersTest_findPrecedingBreak() {
         val result = complexString.findPrecedingBreak(7)
         assertEquals(result, 0)

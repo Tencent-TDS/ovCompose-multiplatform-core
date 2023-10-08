@@ -17,33 +17,20 @@
 package bugs
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.Text
 import androidx.compose.mpp.demo.Screen
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-val TextSelection = Screen.Example("TextSelection") {
+val SelectionContainer = Screen.Example("SelectionContainer") {
     // https://github.com/JetBrains/compose-multiplatform/issues/3718
     SelectionContainer {
-
-        Column {
-
-            Text("Some")
-
-            Spacer(Modifier.height(8.dp))
-
-            Text("multiline")
-
-            Spacer(Modifier.height(8.dp))
-
+        Column(Modifier.padding(40.dp)) {
+            Text("aaa")
             Text("")
-
-            Spacer(Modifier.height(8.dp))
-
-            Text("text to select in SelectionContainer")
+            Text("bbb")
         }
     }
 }
