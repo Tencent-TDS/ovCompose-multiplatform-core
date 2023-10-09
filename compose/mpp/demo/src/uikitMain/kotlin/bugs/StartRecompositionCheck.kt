@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 private var counter = 0
 
 // https://github.com/JetBrains/compose-multiplatform/issues/3778
+//TODO: We should write autotest to check this sample: https://youtrack.jetbrains.com/issue/COMPOSE-488/iOS-test-on-CI-to-check-recompositions-count
 val StartRecompositionCheck = Screen.Example("Start Recomposition Check") {
     val value = remember(LocalDensity.current) {
         (1..100).random()
