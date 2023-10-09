@@ -25,6 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 val SelectionContainer = Screen.Example("SelectionContainer") {
+    //TODO: This bug is already fixed in latest androidx-main branch.
+    // Related CL: https://android-review.googlesource.com/c/platform/frameworks/support/+/2616177/3/compose/foundation/foundation/src/commonMain/kotlin/androidx/compose/foundation/text/selection/SelectionAdjustment.kt
+    // Check and close this bug after merging androidx-main on jb-main branch.
+    // https://youtrack.jetbrains.com/issue/COMPOSE-478/fix-iOS-SelectionContainer
     // https://github.com/JetBrains/compose-multiplatform/issues/3718
     SelectionContainer {
         Column(Modifier.padding(40.dp)) {
