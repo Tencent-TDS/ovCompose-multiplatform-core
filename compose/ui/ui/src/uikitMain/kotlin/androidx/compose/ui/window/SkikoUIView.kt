@@ -53,6 +53,11 @@ internal interface SkikoUIViewDelegate {
     fun retrieveInteropTransaction(): UIKitInteropTransaction
 
     fun render(canvas: Canvas, targetTimestamp: NSTimeInterval)
+
+    /**
+     * A callback invoked when [UIView.didMoveToWindow] receives non null window
+     */
+    fun onAttachedToWindow() {}
 }
 
 internal enum class UITouchesEventPhase {
@@ -106,11 +111,6 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
 
             _redrawer.needsProactiveDisplayLink = needHighFrequencyPolling
         }
-
-    /**
-     * A callback to let ComposeWindow listen to [didMoveToWindow]
-     */
-    internal lateinit var onAttachedToWindow: () -> Unit
 
     constructor() : super(frame = CGRectZero.readValue())
 
@@ -203,7 +203,7 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
             _redrawer.maximumFramesPerSecond = it.maximumFramesPerSecond
         }
         if (window != null) {
-            onAttachedToWindow()
+            delegate?.onAttachedToWindow()
         }
     }
 

@@ -605,6 +605,7 @@ internal actual class ComposeWindow : UIViewController {
             density = density,
             invalidate = skikoUIView::needRedraw,
         )
+        val isReadyToShowContent = mutableStateOf(false)
 
         skikoUIView.input = inputServices.skikoInput
         skikoUIView.inputTraits = inputTraits
@@ -663,9 +664,12 @@ internal actual class ComposeWindow : UIViewController {
 
                 scene.render(canvas, nanos)
             }
-        }
 
-        val isReadyToShowContent = mutableStateOf(false)
+            override fun onAttachedToWindow() {
+                attachedComposeContext!!.scene.density = density
+                isReadyToShowContent.value = true
+            }
+        }
 
         scene.setContent(
             onPreviewKeyEvent = inputServices::onPreviewKeyEvent,
@@ -691,11 +695,6 @@ internal actual class ComposeWindow : UIViewController {
                 it.setConstraintsToFillView(view)
                 updateLayout(it)
             }
-
-        skikoUIView.onAttachedToWindow = {
-            attachedComposeContext!!.scene.density = density
-            isReadyToShowContent.value = true
-        }
     }
 }
 
