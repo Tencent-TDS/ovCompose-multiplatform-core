@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-package bugs
+package androidx.compose.mpp.demo.bug
 
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.Text
 import androidx.compose.mpp.demo.Screen
 
-val IosBugs = Screen.Selection(
-    "IosBugs",
-    UIKitViewAndDropDownMenu,
-    KeyboardEmptyWhiteSpace,
-    KeyboardPasswordType,
-    UIKitRenderSync,
-    DispatchersMainDelayCheck,
-)
+// https://github.com/JetBrains/compose-multiplatform/issues/3560
+val CodeViewerReproducer = Screen.Example("CodeViewerReproducer") {
+    SelectionContainer {
+        LazyColumn {
+            items(100) {
+                Text(text = "Text $it")
+            }
+        }
+    }
+}
