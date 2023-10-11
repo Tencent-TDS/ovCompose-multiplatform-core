@@ -26,5 +26,4 @@ val IosBugs = Screen.Selection(
     UIKitRenderSync,
     DispatchersMainDelayCheck,
     StartRecompositionCheck,
-    SelectionHandlePadding,
 )
