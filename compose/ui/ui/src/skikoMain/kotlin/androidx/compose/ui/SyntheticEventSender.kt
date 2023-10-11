@@ -27,13 +27,30 @@ import androidx.compose.ui.util.fastAny
 /**
  * Compose or user code can't work well if we miss some events.
  *
- * For example:
- * - if we miss Move before Press event with a different position
- * - if we send one event with 2 pressed touches without sending 1 pressed touch first
+ * This class generates new synthetic events based on the previous event, if something is missing.
  *
- * Platforms can send events this way.
+ * Synthetic events:
+ * 1. Synthetic Move, if we miss Move before Press/Release events with a different position
+ * for Mouse.
  *
- * This class generates new synthetic events based on the previous event, if something is missing
+ * Reason: Compose can receive a native Move and send it as Enter/Exit to the nodes.
+ * If we don't have some Move's before Press/Release, we can miss Enter/Exit.
+ *
+ * The alternative of sending synthetic moves is to send a native press/release as
+ * Enter/Exit separately from Press/Release.
+ * But this approach requires more changes - we need a separate HitPathTracker for Enter/Exit.
+ * The user code  won't see anything new with this approach
+ * (besides that Enter/Exit event will have nativeEvent.type == Release/Press)
+ *
+ * We don't send synthetic events for touch, as it doesn't have Enter/Exit, and it will be
+ * useless to send them.
+ * Besides, a Release of touch is different from a Release of mouse.
+ * Touch can be released in a different position
+ * (the finger is lifted, but we can still detect its position),
+ * Mouse can't be released in different position - we should move the cursor to this position.
+ *
+ * 2. Synthetic Press/Release if we send one event with 2 pressed touches without sending 1 pressed
+ * touch first. For example, iOS simulator can send 2 touches simultaneously.
  */
 internal class SyntheticEventSender(
     send: (PointerInputEvent) -> Unit
@@ -60,7 +77,7 @@ internal class SyntheticEventSender(
      * Send [event] and synthetic events before it if needed. On each sent event we just call [send]
      */
     fun send(event: PointerInputEvent) {
-        sendMissingMove(event)
+        sendMissingMoveForHover(event)
         sendMissingReleases(event)
         sendMissingPresses(event)
         sendInternal(event)
@@ -92,8 +109,9 @@ internal class SyntheticEventSender(
         )
     }
 
-    private fun sendMissingMove(currentEvent: PointerInputEvent) {
-        if (isMoveEventMissing(previousEvent, currentEvent)) {
+    private fun sendMissingMoveForHover(currentEvent: PointerInputEvent) {
+        if (currentEvent.pointers.any { it.issuesEnterExit } &&
+            isMoveEventMissing(previousEvent, currentEvent)) {
             sendSyntheticMove(currentEvent)
         }
     }
