@@ -23,5 +23,5 @@ val BugReproducers = Screen.Selection(
     NoRecompositionInLazyGrid,
     RoundedCornerCrashOnJS,
     CodeViewerReproducer,
-    SelectionContainer,
+    SelectionContainerCrash,
 )

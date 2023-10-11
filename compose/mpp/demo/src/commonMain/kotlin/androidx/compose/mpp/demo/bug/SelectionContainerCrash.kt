@@ -17,14 +17,11 @@
 package androidx.compose.mpp.demo.bug
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.Text
 import androidx.compose.mpp.demo.Screen
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
-val SelectionContainer = Screen.Example("SelectionContainer") {
+val SelectionContainerCrash = Screen.Example("SelectionContainer") {
     //TODO: This bug is already fixed in latest androidx-main branch.
     // Related CL: https://android-review.googlesource.com/c/platform/frameworks/support/+/2616177/3/compose/foundation/foundation/src/commonMain/kotlin/androidx/compose/foundation/text/selection/SelectionAdjustment.kt
     // Check and close this bug after merging androidx-main on jb-main branch.
