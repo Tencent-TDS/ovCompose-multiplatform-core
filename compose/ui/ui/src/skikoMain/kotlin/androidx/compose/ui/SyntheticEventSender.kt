@@ -110,6 +110,8 @@ internal class SyntheticEventSender(
     }
 
     private fun sendMissingMoveForHover(currentEvent: PointerInputEvent) {
+        // issuesEnterExit means that the pointer can issues hover events (enter/exit), and so we
+        // should generate a synthetic Move (see why we need to do that in the class description)
         if (currentEvent.pointers.any { it.issuesEnterExit } &&
             isMoveEventMissing(previousEvent, currentEvent)) {
             sendSyntheticMove(currentEvent)
