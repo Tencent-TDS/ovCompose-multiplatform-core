@@ -79,23 +79,17 @@ class SyntheticEventSenderTest {
     @Test
     fun `touch, shouldn't generate new move before non-move if position isn't the same`() {
         eventsSentBy(
-            mouseEvent(Enter, 10f, 20f, pressed = false),
-            mouseEvent(Press, 10f, 25f, pressed = true),
-            mouseEvent(Move, 10f, 30f, pressed = true),
-            mouseEvent(Release, 10f, 35f, pressed = false),
-            mouseEvent(Move, 10f, 40f, pressed = false),
-            mouseEvent(Press, 10f, 45f, pressed = true),
-            mouseEvent(Release, 10f, 50f, pressed = false),
-            mouseEvent(Exit, -1f, -1f, pressed = false),
+            event(Press, 1 to touch(10f, 25f, pressed = true)),
+            event(Move, 1 to touch(10f, 30f, pressed = true)),
+            event(Release, 1 to touch(10f, 35f, pressed = false)),
+            event(Press, 2 to touch(10f, 45f, pressed = true)),
+            event(Release, 2 to touch(10f, 50f, pressed = false)),
         ) positionAndDownShouldEqual listOf(
-            mouseEvent(Enter, 10f, 20f, pressed = false),
-            mouseEvent(Press, 10f, 25f, pressed = true),
-            mouseEvent(Move, 10f, 30f, pressed = true),
-            mouseEvent(Release, 10f, 35f, pressed = false),
-            mouseEvent(Move, 10f, 40f, pressed = false),
-            mouseEvent(Press, 10f, 45f, pressed = true),
-            mouseEvent(Release, 10f, 50f, pressed = false),
-            mouseEvent(Exit, -1f, -1f, pressed = false),
+            event(Press, 1 to touch(10f, 25f, pressed = true)),
+            event(Move, 1 to touch(10f, 30f, pressed = true)),
+            event(Release, 1 to touch(10f, 35f, pressed = false)),
+            event(Press, 2 to touch(10f, 45f, pressed = true)),
+            event(Release, 2 to touch(10f, 50f, pressed = false)),
         )
     }
 

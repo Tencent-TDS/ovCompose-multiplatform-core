@@ -134,11 +134,10 @@ internal class SyntheticEventSender(
                     type = PointerEventType.Release,
                     copyPointer = {
                         it.copySynthetic(
-                            down = if (it.id in sendingAsUp) {
-                                !sendingAsUp.contains(it.id)
-                            } else {
-                                it.down
-                            }
+                            // TODO is this a typo and it should be `it.id in newReleased`, as in sendMissingPresses?
+                            //  or maybe we can even write `down = !sendingAsUp.contains(it.id)` and `down = sendingAsDown.contains(it.id)`
+                            //  The test pass in both cases
+                            down = !sendingAsUp.contains(it.id)
                         )
                     }
                 )
@@ -163,11 +162,7 @@ internal class SyntheticEventSender(
                     type = PointerEventType.Press,
                     copyPointer = {
                         it.copySynthetic(
-                            down = if (it.id in newPressed) {
-                                sendingAsDown.contains(it.id)
-                            } else {
-                                it.down
-                            }
+                            down = sendingAsDown.contains(it.id)
                         )
                     }
                 )
