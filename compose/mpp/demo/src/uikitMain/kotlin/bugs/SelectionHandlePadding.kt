@@ -16,15 +16,11 @@
 
 package bugs
 
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.mpp.demo.Screen
+import androidx.compose.runtime.*
 
-val IosBugs = Screen.Selection(
-    "IosBugs",
-    UIKitViewAndDropDownMenu,
-    KeyboardEmptyWhiteSpace,
-    KeyboardPasswordType,
-    UIKitRenderSync,
-    DispatchersMainDelayCheck,
-    StartRecompositionCheck,
-    SelectionHandlePadding,
-)
+val SelectionHandlePadding = Screen.Example("SelectionHandlePadding") {
+    var text by remember { mutableStateOf("select the text from the left edge to see the bug") }
+    BasicTextField(text, { text = it })
+}
