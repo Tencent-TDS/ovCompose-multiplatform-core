@@ -95,7 +95,7 @@ internal actual fun SelectionHandle(
             }
         },
         properties = PopupProperties(
-            usePlatformInsets = false,
+            clippingEnabled = false,
         ),
     ) {
         Spacer(
