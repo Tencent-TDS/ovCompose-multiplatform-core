@@ -101,7 +101,6 @@ internal class SyntheticEventSender(
     private fun sendSyntheticMove(pointersSourceEvent: PointerInputEvent) {
         val previousEvent = previousEvent ?: return
         val idToPosition = pointersSourceEvent.pointers.associate { it.id to it.position }
-        println("synthetic move ${pointersSourceEvent.pointers[0].position.y}")
         sendInternal(
             previousEvent.copySynthetic(
                 type = PointerEventType.Move,

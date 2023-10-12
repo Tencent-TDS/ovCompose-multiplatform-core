@@ -71,7 +71,7 @@ class VelocityTracker {
      * This can be expensive. Only call this when you need the velocity.
      */
     fun calculateVelocity(): Velocity {
-        return Velocity(xVelocityTracker.calculateVelocity(), yVelocityTracker.calculateVelocity(true))
+        return Velocity(xVelocityTracker.calculateVelocity(), yVelocityTracker.calculateVelocity())
     }
 
     /**
@@ -186,7 +186,7 @@ class VelocityTracker1D internal constructor(
      *
      * This can be expensive. Only call this when you need the velocity.
      */
-    fun calculateVelocity(print: Boolean = false): Float {
+    fun calculateVelocity(): Float {
         val dataPoints = reusableDataPointsArray
         val time = reusableTimeArray
         var sampleCount = 0
@@ -224,7 +224,7 @@ class VelocityTracker1D internal constructor(
                     calculateImpulseVelocity(dataPoints, time, sampleCount, isDataDifferential)
                 }
                 Strategy.Lsq2 -> {
-                    calculateLeastSquaresVelocity(dataPoints, time, sampleCount, print)
+                    calculateLeastSquaresVelocity(dataPoints, time, sampleCount)
                 }
             } * 1000 // Multiply by "1000" to convert from units/ms to units/s
         }
@@ -250,30 +250,19 @@ class VelocityTracker1D internal constructor(
     private fun calculateLeastSquaresVelocity(
         dataPoints: FloatArray,
         time: FloatArray,
-        sampleCount: Int,
-        print: Boolean = false
+        sampleCount: Int
     ): Float {
         // The 2nd coefficient is the derivative of the quadratic polynomial at
         // x = 0, and that happens to be the last timestamp that we end up
         // passing to polyFitLeastSquares.
-        if (print) {
-            println("Calculating velocity:")
-            for (i in 0 until sampleCount) {
-                println("${dataPoints[i]} at ${time[i]}")
-            }
-        }
         return try {
-            val velocity = polyFitLeastSquares(
+            polyFitLeastSquares(
                 time,
                 dataPoints,
                 sampleCount,
                 2,
                 reusableVelocityCoefficients
             )[1]
-            if (print) {
-                println("velocity: $velocity")
-            }
-            velocity
         } catch (exception: IllegalArgumentException) {
             0f
         }
@@ -327,8 +316,6 @@ fun VelocityTracker.addPointerInputChange(event: PointerInputChange) {
     if (onlyPressedEventsForVelocityTracker && !event.pressed) {
         return
     }
-
-    println("addPointerInputChange y: ${event.position.y}; pressed: ${event.pressed}")
 
     // To calculate delta, for each step we want to  do currentPosition - previousPosition.
     // Initially the previous position is the previous position of the current event
