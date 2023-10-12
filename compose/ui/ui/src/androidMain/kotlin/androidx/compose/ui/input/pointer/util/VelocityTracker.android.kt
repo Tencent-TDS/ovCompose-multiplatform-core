@@ -17,7 +17,6 @@
 package androidx.compose.ui.input.pointer.util
 
 /**
- * Some platforms (e.g. iOS) velocity calculation is incorrect when end position is used in velocity calculation.
+ * Some platforms (e.g. iOS) ignore certain events during velocity calculation.
  */
-internal actual val onlyPressedEventsForVelocityTracker: Boolean
-    get() = false
+internal actual fun VelocityTracker.shouldUse(event: PointerInputChange): Boolean = true

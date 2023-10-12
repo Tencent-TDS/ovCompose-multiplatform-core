@@ -286,9 +286,9 @@ private fun Array<DataPointAtTime?>.set(index: Int, time: Long, dataPoint: Float
 }
 
 /**
- * Some platforms (e.g. iOS) velocity calculation is incorrect when end position is used in velocity calculation.
+ * Some platforms (e.g. iOS) ignore certain events during velocity calculation.
  */
-internal expect val onlyPressedEventsForVelocityTracker: Boolean
+internal expect fun VelocityTracker.shouldUse(event: PointerInputChange): Boolean
 
 /**
  * Track the positions and timestamps inside this event change.
@@ -313,7 +313,7 @@ fun VelocityTracker.addPointerInputChange(event: PointerInputChange) {
         resetTracking()
     }
 
-    if (onlyPressedEventsForVelocityTracker && !event.pressed) {
+    if (!shouldUse(event)) {
         return
     }
 
