@@ -27,7 +27,7 @@ byteBuddy = "1.12.10"
 asm = "9.3"
 cmake = "3.22.1"
 dagger = "2.44"
-datetime="0.4.0"
+datetime="0.4.1"
 dexmaker = "2.28.3"
 dokka = "1.8.10-dev-203"
 espresso = "3.6.0-alpha01"
@@ -37,13 +37,13 @@ guavaJre = "31.1-jre"
 hilt = "2.44"
 incap = "0.2"
 jcodec = "0.2.5"
-kotlin = "1.9.20-Beta-205"
+kotlin = "1.9.20-RC"
 kotlinBenchmark = "0.4.7"
-kotlinNative = "1.9.20-Beta-205"
+kotlinNative = "1.9.20-RC"
 kotlinBinaryCompatibilityValidator = "0.13.2"
 kotlinCompileTesting = "1.4.9"
 kotlinCoroutines = "1.7.2"
-kotlinSerialization = "1.3.3"
+kotlinSerialization = "1.6.1"
 ksp = "1.9.0-1.0.12"
 ktlint = "0.46.0"
 leakcanary = "2.8.1"
@@ -54,7 +54,7 @@ moshi = "1.13.0"
 protobuf = "3.21.8"
 paparazzi = "1.0.0"
 paparazziNative = "2022.1.1-canary-f5f9f71"
-skiko = "0.7.89"
+skiko = "0.7.89.1"
 sqldelight = "1.3.0"
 retrofit = "2.7.2"
 wire = "4.5.1"
@@ -185,7 +185,7 @@ kotlinStdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "k
 kotlinStdlibCommon = { module = "org.jetbrains.kotlin:kotlin-stdlib-common", version.ref = "kotlin" }
 kotlinStdlibJdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
 kotlinStdlibJs = { module = "org.jetbrains.kotlin:kotlin-stdlib-js", version.ref = "kotlin" }
-kotlinStdlibWasm = { module = "org.jetbrains.kotlin:kotlin-stdlib-wasm", version.ref = "kotlin" }
+kotlinStdlibWasm = { module = "org.jetbrains.kotlin:kotlin-stdlib-wasm-js", version.ref = "kotlin" }
 kotlinGradlePluginz = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinTest = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlinTestAnnotationsCommon = { module = "org.jetbrains.kotlin:kotlin-test-annotations-common", version.ref = "kotlin" }

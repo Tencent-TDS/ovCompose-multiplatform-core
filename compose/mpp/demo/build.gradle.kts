@@ -52,10 +52,15 @@ repositories {
 kotlin {
     jvm("desktop")
     js(IR) {
-        browser()
+        moduleName = "mpp-demo"
+        browser {
+            commonWebpackConfig {
+                outputFileName = "demo.js"
+            }
+        }
         binaries.executable()
     }
-    wasm() {
+    wasmJs() {
         moduleName = "mpp-demo"
         browser {
             commonWebpackConfig {
