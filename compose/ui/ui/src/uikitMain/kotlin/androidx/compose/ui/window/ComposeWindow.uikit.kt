@@ -157,16 +157,16 @@ private class AttachedComposeContext(
 internal actual class ComposeWindow : UIViewController {
 
     internal lateinit var configuration: ComposeUIViewControllerConfiguration
-    private val keyboardOverlapHeightState = mutableStateOf(0f)
+    private var keyboardOverlapHeightState by mutableStateOf(0f)
     private var isInsideSwiftUI = false
     private var safeAreaState by mutableStateOf(PlatformInsets())
     private var layoutMarginsState by mutableStateOf(PlatformInsets())
 
     /*
-     * Initial value is arbitarily chosen to avoid propagating invalid value logic
+     * Initial value is arbitrarily chosen to avoid propagating invalid value logic
      * It's never the case in real usage scenario to reflect that in type system
      */
-    private val interfaceOrientationState = mutableStateOf(
+    private var interfaceOrientationState by mutableStateOf(
         InterfaceOrientation.Portrait
     )
 
@@ -236,7 +236,7 @@ internal actual class ComposeWindow : UIViewController {
             val bottomIndent = screenHeight - composeViewBottomY
 
             if (bottomIndent < keyboardHeight) {
-                keyboardOverlapHeightState.value = (keyboardHeight - bottomIndent).toFloat()
+                keyboardOverlapHeightState = (keyboardHeight - bottomIndent).toFloat()
             }
 
             val scene = attachedComposeContext?.scene ?: return
@@ -255,7 +255,7 @@ internal actual class ComposeWindow : UIViewController {
         @Suppress("unused")
         @ObjCAction
         fun keyboardWillHide(arg: NSNotification) {
-            keyboardOverlapHeightState.value = 0f
+            keyboardOverlapHeightState = 0f
             if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
                 updateViewBounds(offsetY = 0.0)
             }
@@ -348,7 +348,7 @@ internal actual class ComposeWindow : UIViewController {
 
         // UIKit possesses all required info for layout at this point
         currentInterfaceOrientation?.let {
-            interfaceOrientationState.value = it
+            interfaceOrientationState = it
         }
 
         attachedComposeContext?.let {
@@ -679,10 +679,10 @@ internal actual class ComposeWindow : UIViewController {
                 CompositionLocalProvider(
                     LocalLayerContainer provides view,
                     LocalUIViewController provides this,
-                    LocalKeyboardOverlapHeightState provides keyboardOverlapHeightState,
+                    LocalKeyboardOverlapHeight provides keyboardOverlapHeightState,
                     LocalSafeArea provides safeAreaState,
                     LocalLayoutMargins provides layoutMarginsState,
-                    LocalInterfaceOrientationState provides interfaceOrientationState,
+                    LocalInterfaceOrientation provides interfaceOrientationState,
                     LocalSystemTheme provides systemTheme.value,
                     LocalUIKitInteropContext provides interopContext,
                     content = content
