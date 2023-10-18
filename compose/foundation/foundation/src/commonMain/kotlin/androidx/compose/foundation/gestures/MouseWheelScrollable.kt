@@ -91,8 +91,10 @@ internal abstract class MouseWheelScrollNode(
     var enabled
         get() = _enabled
         set(value) {
-            _enabled = value
-            pointerInputNode.resetPointerInputHandler()
+            if (_enabled != value) {
+                _enabled = value
+                pointerInputNode.resetPointerInputHandler()
+            }
         }
 
     override fun onPointerEvent(
