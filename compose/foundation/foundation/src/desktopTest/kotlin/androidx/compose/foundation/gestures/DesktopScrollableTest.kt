@@ -340,15 +340,19 @@ class DesktopScrollableTest {
     ) {
         var isEnabled by mutableStateOf(false)
         setContent {
-            Box(
-                Modifier
-                    .size(10.dp, 20.dp)
-                    .verticalScroll(
-                        state = rememberScrollState(),
-                        enabled = isEnabled,
-                    )
+            CompositionLocalProvider(
+                LocalScrollConfig provides WindowsWinUIConfig
             ) {
-                Box(Modifier.size(10.dp, 10000.dp).testTag("box"))
+                Box(
+                    Modifier
+                        .size(10.dp, 20.dp)
+                        .verticalScroll(
+                            state = rememberScrollState(),
+                            enabled = isEnabled,
+                        )
+                ) {
+                    Box(Modifier.size(10.dp, 10000.dp).testTag("box"))
+                }
             }
         }
 
