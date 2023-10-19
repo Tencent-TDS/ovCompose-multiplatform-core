@@ -479,11 +479,14 @@ class ComposeScene internal constructor(
      */
     val contentSize: IntSize
         get() {
-            check(!isClosed) { "ComposeScene is closed" }
             val mainOwner = mainOwner ?: return IntSize.Zero
-            mainOwner.measureAndLayout()
-            return mainOwner.contentSize
+            return contentSizeInConstraints(mainOwner.constraints)
         }
+
+    internal fun contentSizeInConstraints(constraints: Constraints): IntSize {
+        check(!isClosed) { "ComposeScene is closed" }
+        return mainOwner?.measureInConstraints(constraints) ?: IntSize.Zero
+    }
 
     /**
      * Sends any pending apply notifications and performs the changes they cause.
