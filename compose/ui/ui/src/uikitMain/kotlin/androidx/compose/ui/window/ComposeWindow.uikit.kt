@@ -163,8 +163,7 @@ internal actual class ComposeWindow : UIViewController {
 
     //invisible view to track system keyboard animation
     private val keyboardAnimationView: UIView by lazy {
-        UIView.new()!!.apply {
-            setFrame(CGRectMake(0.0, 0.0, 0.0, 0.0))
+        UIView(CGRectMake(0.0, 0.0, 0.0, 0.0)).apply {
             hidden = true
         }
     }
