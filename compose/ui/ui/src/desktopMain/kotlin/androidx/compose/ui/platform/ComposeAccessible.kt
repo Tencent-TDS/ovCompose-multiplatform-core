@@ -402,7 +402,7 @@ internal class ComposeAccessible(
                 setText != null -> AccessibleRole.TEXT
                 text != null -> AccessibleRole.LABEL
                 progressBarRangeInfo != null -> AccessibleRole.PROGRESS_BAR
-                else -> AccessibleRole.PANEL
+                else -> AccessibleRole.UNKNOWN
             }
         }
 
