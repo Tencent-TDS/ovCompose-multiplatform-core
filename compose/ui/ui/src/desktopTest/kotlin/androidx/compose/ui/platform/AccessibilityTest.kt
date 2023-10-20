@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.Button
 import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.Tab
@@ -126,9 +127,20 @@ class AccessibilityTest {
         }
     }
 
+    @Test
+    fun boxHasUnknownRole() {
+        rule.setContent {
+            Box(Modifier.testTag("box"))
+        }
+
+        rule.onNodeWithTag("box").apply {
+            val context = ComposeAccessible(fetchSemanticsNode()).accessibleContext!!
+            assertThat(context.accessibleRole).isEqualTo(AccessibleRole.UNKNOWN)
+        }
+    }
+
     private fun SemanticsNodeInteraction.assertHasAccessibleRole(role: AccessibleRole) {
         val accessibleContext = ComposeAccessible(fetchSemanticsNode()).accessibleContext!!
         assertThat(accessibleContext.accessibleRole).isEqualTo(role)
     }
-
 }
