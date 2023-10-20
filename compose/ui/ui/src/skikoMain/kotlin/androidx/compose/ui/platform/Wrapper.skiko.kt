@@ -24,9 +24,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.node.LayoutNode
+import androidx.compose.ui.window.RootNodeOwner
 
 /**
- * Composes the given composable into [SkiaBasedOwner]
+ * Composes the given composable into [RootNodeOwner]
  *
  * @param parent The parent composition reference to coordinate scheduling of composition updates
  *        If null then default root composition will be used.
@@ -35,7 +36,7 @@ import androidx.compose.ui.node.LayoutNode
  * @param content A `@Composable` function declaring the UI contents
  */
 @OptIn(ExperimentalComposeUiApi::class)
-internal fun SkiaBasedOwner.setContent(
+internal fun RootNodeOwner.setContent(
     parent: CompositionContext,
     getCompositionLocalContext: () -> CompositionLocalContext? = { null },
     content: @Composable () -> Unit

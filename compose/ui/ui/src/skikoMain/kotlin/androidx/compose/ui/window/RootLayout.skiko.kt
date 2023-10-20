@@ -30,7 +30,6 @@ import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.PlatformInsets
-import androidx.compose.ui.platform.SkiaBasedOwner
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.requireCurrent
 import androidx.compose.ui.unit.Constraints
@@ -53,24 +52,26 @@ internal fun RootLayout(
     modifier: Modifier,
     focusable: Boolean,
     onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
-    content: @Composable (SkiaBasedOwner) -> Unit
+    content: @Composable (RootNodeOwner) -> Unit
 ) {
     val scene = LocalComposeScene.requireCurrent()
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
     val parentComposition = rememberCompositionContext()
     val (owner, composition) = remember {
-        val owner = SkiaBasedOwner(
+        val owner = RootNodeOwner(
             scene = scene,
             platform = scene.platform,
             coroutineContext = parentComposition.effectCoroutineContext,
             initDensity = density,
             initLayoutDirection = layoutDirection,
+            constraints = scene.constraints,
             focusable = focusable,
             onOutsidePointerEvent = onOutsidePointerEvent,
             onPointerUpdate = scene::onPointerUpdate,
             modifier = modifier
         )
+        owner.initialize()
         scene.attach(owner)
         owner to owner.setContent(parent = parentComposition) {
             content(owner)

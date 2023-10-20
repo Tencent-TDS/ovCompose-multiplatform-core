@@ -66,11 +66,6 @@ internal abstract class ComposeBridge(
 ) {
     private var isDisposed = false
 
-    val sceneAccessible = ComposeSceneAccessible(
-        ownersProvider = { scene.owners.asReversed() },
-        mainOwnerProvider = { scene.mainOwner }
-    )
-
     private val _invisibleComponent = InvisibleComponent()
 
     abstract val component: JComponent
@@ -164,6 +159,8 @@ internal abstract class ComposeBridge(
             onComposeInvalidation()
         },
     )
+
+    val sceneAccessible = ComposeSceneAccessible(scene)
 
     var compositionLocalContext: CompositionLocalContext? by scene::compositionLocalContext
 

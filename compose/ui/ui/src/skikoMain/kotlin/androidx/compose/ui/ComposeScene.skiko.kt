@@ -32,9 +32,9 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.util.fastAny
-import androidx.compose.ui.util.fastForEach
-import androidx.compose.ui.util.fastForEachReversed
+import androidx.compose.ui.window.CombinedRootNodeOwner
+import androidx.compose.ui.window.RootNodeOwner
+import androidx.compose.ui.window.maxSize
 import kotlin.coroutines.CoroutineContext
 import kotlin.jvm.Volatile
 import kotlinx.coroutines.*
@@ -223,32 +223,6 @@ class ComposeScene internal constructor(
         requestUpdatePointer()
     }
 
-    /**
-     * Contains all registered [SkiaBasedOwner] (main frame, popups, etc.) in order of registration.
-     * So that Popup opened from main owner will have bigger index.
-     * This logic is used by accessibility.
-     */
-    internal val owners = mutableListOf<SkiaBasedOwner>()
-    private val listCopy = mutableListOf<SkiaBasedOwner>()
-
-    private inline fun forEachOwner(action: (SkiaBasedOwner) -> Unit) {
-        listCopy.addAll(owners)
-        try {
-            listCopy.fastForEach(action)
-        } finally {
-            listCopy.clear()
-        }
-    }
-
-    private inline fun forEachOwnerReversed(action: (SkiaBasedOwner) -> Unit) {
-        listCopy.addAll(owners)
-        try {
-            listCopy.fastForEachReversed(action)
-        } finally {
-            listCopy.clear()
-        }
-    }
-
     @Deprecated(
         message = "The scene isn't tracking list of roots anymore",
         level = DeprecationLevel.ERROR,
@@ -278,7 +252,7 @@ class ComposeScene internal constructor(
     private val recomposer = Recomposer(coroutineContext + job + effectDispatcher)
     private val syntheticEventSender = SyntheticEventSender(::processPointerInput)
 
-    internal var mainOwner: SkiaBasedOwner? = null
+    internal var mainOwner: RootNodeOwner? = null
     private var composition: Composition? = null
 
     /**
@@ -329,6 +303,7 @@ class ComposeScene internal constructor(
      * After calling this method, you cannot call any other method of this [ComposeScene].
      */
     fun close() {
+        check(!isClosed) { "ComposeScene is already closed" }
         composition?.dispose()
         mainOwner?.dispose()
         recomposer.cancel()
@@ -347,18 +322,9 @@ class ComposeScene internal constructor(
         effectDispatcher.hasTasks() ||
         recomposeDispatcher.hasTasks()
 
-    internal fun attach(owner: SkiaBasedOwner) {
-        check(!isClosed) { "ComposeScene is closed" }
-        owners.add(owner)
-        owner.requestLayout = ::requestLayout
-        owner.requestDraw = ::requestDraw
-        owner.dispatchSnapshotChanges = snapshotChanges::add
-        owner.constraints = constraints
-        if (owner.focusable) {
-            focusedOwner = owner
 
-            // Exit event to lastHoverOwner will be sent via synthetic event on next frame
-        }
+    internal fun attach(owner: RootNodeOwner) {
+        (mainOwner as CombinedRootNodeOwner?)?.attach(owner)
         if (isFocused) {
             owner.focusOwner.takeFocus()
         } else {
@@ -368,23 +334,8 @@ class ComposeScene internal constructor(
         invalidateIfNeeded()
     }
 
-    internal fun detach(owner: SkiaBasedOwner) {
-        check(!isClosed) { "ComposeScene is closed" }
-        owners.remove(owner)
-        owner.dispatchSnapshotChanges = null
-        owner.requestDraw = null
-        owner.requestLayout = null
-        if (owner == focusedOwner) {
-            focusedOwner = owners.lastOrNull { it.focusable }
-
-            // Enter event to new focusedOwner will be sent via synthetic event on next frame
-        }
-        if (owner == lastHoverOwner) {
-            lastHoverOwner = null
-        }
-        if (owner == gestureOwner) {
-            gestureOwner = null
-        }
+    internal fun detach(owner: RootNodeOwner) {
+        (mainOwner as CombinedRootNodeOwner?)?.detach(owner)
         requestUpdatePointer()
         invalidateIfNeeded()
     }
@@ -435,18 +386,11 @@ class ComposeScene internal constructor(
         syntheticEventSender.reset()
         composition?.dispose()
         mainOwner?.dispose()
-        val mainOwner = SkiaBasedOwner(
-            this,
-            platform,
-            platform.focusManager,
-            initDensity = density,
-            initLayoutDirection = layoutDirection,
-            coroutineContext = recomposer.effectCoroutineContext,
-            bounds = IntSize(constraints.maxWidth, constraints.maxHeight).toIntRect(),
-            onPointerUpdate = ::onPointerUpdate,
-            modifier = KeyInputElement(onKeyEvent = onKeyEvent, onPreKeyEvent = onPreviewKeyEvent)
+
+        val mainOwner = createMainLayer(
+            KeyInputElement(onKeyEvent = onKeyEvent, onPreKeyEvent = onPreviewKeyEvent)
         )
-        attach(mainOwner)
+
         composition = mainOwner.setContent(
             parentComposition ?: recomposer,
             { compositionLocalContext }
@@ -462,16 +406,39 @@ class ComposeScene internal constructor(
         recomposeDispatcher.flush()
     }
 
+    private fun createMainLayer(modifier: Modifier): RootNodeOwner {
+        val owner = CombinedRootNodeOwner(
+            scene = this,
+            platform = platform,
+            initDensity = density,
+            initLayoutDirection = layoutDirection,
+            coroutineContext = recomposer.effectCoroutineContext,
+            constraints = constraints,
+            onPointerUpdate = ::onPointerUpdate,
+            modifier = modifier
+        )
+        owner.initialize()
+        owner.requestLayout = ::requestLayout
+        owner.requestDraw = ::requestDraw
+        owner.dispatchSnapshotChanges = snapshotChanges::add
+        if (isFocused) {
+            owner.focusOwner.takeFocus()
+        } else {
+            owner.focusOwner.releaseFocus()
+        }
+        requestUpdatePointer()
+        invalidateIfNeeded()
+
+        return owner
+    }
+
     /**
      * Constraints used to measure and layout content.
      */
     var constraints: Constraints = Constraints()
         set(value) {
             field = value
-            forEachOwner {
-                it.constraints = constraints
-            }
-            mainOwner?.bounds = IntSize(constraints.maxWidth, constraints.maxHeight).toIntRect()
+            mainOwner?.constraints = constraints
         }
 
     /**
@@ -493,26 +460,8 @@ class ComposeScene internal constructor(
         snapshotChanges.perform()
     }
 
-    internal fun hitTestInteropView(position: Offset): Boolean {
-        // TODO:
-        //  Temporary solution copying control flow from [processPress].
-        //  A proper solution is to send touches to scene as black box
-        //  and handle only that ones that were received in interop view
-        //  instead of using [pointInside].
-        owners.fastForEachReversed { owner ->
-            if (owner.isInBounds(position)) {
-                return owner.hitInteropView(
-                    pointerPosition = position,
-                    isTouchEvent = true,
-                )
-            } else if (owner == focusedOwner) {
-                return false
-            }
-        }
-
-        // We didn't pass isInBounds check for any owner 🤷
-        return false
-    }
+    internal fun hitTestInteropView(position: Offset): Boolean =
+        mainOwner?.hitTestInteropView(position) ?: false
 
     /**
      * Render the current content on [canvas]. Passed [nanoTime] will be used to drive all
@@ -523,33 +472,13 @@ class ComposeScene internal constructor(
         frameClock.sendFrame(nanoTime) // Recomposition
         sendAndPerformSnapshotChanges() // Apply changes from recomposition phase to layout phase
         needLayout = false
-        forEachOwner { it.measureAndLayout() }
+        mainOwner?.measureAndLayout()
         syntheticEventSender.updatePointerPosition()
         sendAndPerformSnapshotChanges()  // Apply changes from layout phase to draw phase
         needDraw = false
-        forEachOwner { it.draw(canvas) }
-        forEachOwner { it.clearInvalidObservations() }
+        mainOwner?.draw(canvas)
+        mainOwner?.clearInvalidObservations()
     }
-
-    private var focusedOwner: SkiaBasedOwner? = null
-    private var gestureOwner: SkiaBasedOwner? = null
-    private var lastHoverOwner: SkiaBasedOwner? = null
-
-    /**
-     * Find hovered owner for position of first pointer.
-     */
-    private fun hoveredOwner(event: PointerInputEvent): SkiaBasedOwner? {
-        val position = event.pointers.first().position
-        return owners.lastOrNull { it.isInBounds(position) }
-    }
-
-    /**
-     * Check if [focusedOwner] blocks input for this owner.
-     */
-    private fun isInteractive(owner: SkiaBasedOwner?) =
-        focusedOwner == null || owner == null ||
-            owners.indexOf(focusedOwner) <= owners.indexOf(owner)
-
 
     // TODO(demin): return Boolean (when it is consumed)
     /**
@@ -643,7 +572,7 @@ class ComposeScene internal constructor(
             button,
         )
         needLayout = false
-        forEachOwner { it.measureAndLayout() }
+        mainOwner?.measureAndLayout()
         syntheticEventSender.updatePointerPosition()
         syntheticEventSender.send(event)
         updatePointerPositions(event)
@@ -673,133 +602,16 @@ class ComposeScene internal constructor(
     }
 
     private fun processPointerInput(event: PointerInputEvent) {
-        when (event.eventType) {
-            PointerEventType.Press -> processPress(event)
-            PointerEventType.Release -> processRelease(event)
-            PointerEventType.Move -> processMove(event)
-            PointerEventType.Enter -> processMove(event)
-            PointerEventType.Exit -> processMove(event)
-            PointerEventType.Scroll -> processScroll(event)
-        }
-
-        // Clean gestureOwner when there is no pressed pointers/buttons
-        if (!event.isGestureInProgress) {
-            gestureOwner = null
-        }
-    }
-
-    private fun processPress(event: PointerInputEvent) {
-        val currentGestureOwner = gestureOwner
-        if (currentGestureOwner != null) {
-            currentGestureOwner.processPointerInput(event)
-            return
-        }
-        val position = event.pointers.first().position
-        forEachOwnerReversed { owner ->
-
-            // If the position of in bounds of the owner - send event to it and stop processing
-            if (owner.isInBounds(position)) {
-                owner.processPointerInput(event)
-                gestureOwner = owner
-                return
-            }
-
-            // Input event is out of bounds - send click outside notification
-            owner.onOutsidePointerEvent?.invoke(event)
-
-            // if the owner is in focus, do not pass the event to underlying owners
-            if (owner == focusedOwner) {
-                return
-            }
-        }
-    }
-
-    private fun processRelease(event: PointerInputEvent) {
-        // Send Release to gestureOwner even if is not hovered or under focusedOwner
-        gestureOwner?.processPointerInput(event)
-        if (!event.isGestureInProgress) {
-            val owner = hoveredOwner(event)
-            if (isInteractive(owner)) {
-                processHover(event, owner)
-            } else if (gestureOwner == null) {
-                // If hovered owner is not interactive, then it means that
-                // - It's not focusedOwner
-                // - It placed under focusedOwner or not exist at all
-                // In all these cases the even happened outside focused owner bounds
-                focusedOwner?.onOutsidePointerEvent?.invoke(event)
-            }
-        }
-    }
-
-    private fun processMove(event: PointerInputEvent) {
-        var owner = when {
-            // All touch events or mouse with pressed button(s)
-            event.isGestureInProgress -> gestureOwner
-
-            // Do not generate Enter and Move
-            event.eventType == PointerEventType.Exit -> null
-
-            // Find owner under mouse position
-            else -> hoveredOwner(event)
-        }
-
-        // Even if the owner is not interactive, hover state still need to be updated
-        if (!isInteractive(owner)) {
-            owner = null
-        }
-        if (processHover(event, owner)) {
-            return
-        }
-        owner?.processPointerInput(
-            event.copy(eventType = PointerEventType.Move)
-        )
-    }
-
-    /**
-     * Updates hover state and generates [PointerEventType.Enter] and [PointerEventType.Exit]
-     * events. Returns true if [event] is consumed.
-     */
-    private fun processHover(event: PointerInputEvent, owner: SkiaBasedOwner?): Boolean {
-        if (event.pointers.fastAny { it.type != PointerType.Mouse }) {
-            // Track hover only for mouse
-            return false
-        }
-        // Cases:
-        // - move from outside to the window (owner != null, lastMoveOwner == null): Enter
-        // - move from the window to outside (owner == null, lastMoveOwner != null): Exit
-        // - move from one point of the window to another (owner == lastMoveOwner): Move
-        // - move from one popup to another (owner != lastMoveOwner): [Popup 1] Exit, [Popup 2] Enter
-        if (owner == lastHoverOwner) {
-            // Owner wasn't changed
-            return false
-        }
-        lastHoverOwner?.processPointerInput(
-            event.copy(eventType = PointerEventType.Exit),
-            isInBounds = false
-        )
-        owner?.processPointerInput(
-            event.copy(eventType = PointerEventType.Enter)
-        )
-        lastHoverOwner = owner
-
-        // Changing hovering state replaces Move event, so treat it as consumed
-        return true
-    }
-
-    private fun processScroll(event: PointerInputEvent) {
-        val owner = hoveredOwner(event)
-        if (isInteractive(owner)) {
-            owner?.processPointerInput(event)
-        }
+        mainOwner?.processPointerInput(event)
     }
 
     /**
      * Send [KeyEvent] to the content.
      * @return true if the event was consumed by the content
      */
-    fun sendKeyEvent(event: ComposeKeyEvent): Boolean = postponeInvalidation {
-        defaultPointerStateTracker.onKeyEvent(event)
-        focusedOwner?.sendKeyEvent(event) == true
+    fun sendKeyEvent(keyEvent: ComposeKeyEvent): Boolean = postponeInvalidation {
+        defaultPointerStateTracker.onKeyEvent(keyEvent)
+        mainOwner?.sendKeyEvent(keyEvent) == true
     }
 
     private var isFocused = true
@@ -810,15 +622,13 @@ class ComposeScene internal constructor(
      */
     @ExperimentalComposeUiApi
     fun releaseFocus() {
-        owners.forEach {
-            it.focusOwner.releaseFocus()
-        }
+        mainOwner?.focusOwner?.releaseFocus()
         isFocused = false
     }
 
     @ExperimentalComposeUiApi
     fun requestFocus() {
-        owners.findLast { it.focusable }?.focusOwner?.takeFocus()
+        mainOwner?.focusOwner?.takeFocus()
         isFocused = true
     }
 
@@ -832,7 +642,7 @@ class ComposeScene internal constructor(
      */
     @ExperimentalComposeUiApi
     fun moveFocus(focusDirection: FocusDirection): Boolean =
-        owners.lastOrNull()?.focusOwner?.moveFocus(focusDirection) ?: false
+        mainOwner?.focusOwner?.moveFocus(focusDirection) ?: false
 
     /**
      * Represents pointer such as mouse cursor, or touch/stylus press.
@@ -967,5 +777,3 @@ private fun pointerInputEvent(
 internal expect fun createSkiaLayer(): SkiaLayer
 
 internal expect fun NativeKeyEvent.toPointerKeyboardModifiers(): PointerKeyboardModifiers
-
-private val PointerInputEvent.isGestureInProgress get() = pointers.fastAny { it.down }

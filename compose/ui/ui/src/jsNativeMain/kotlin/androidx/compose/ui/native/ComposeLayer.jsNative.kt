@@ -143,12 +143,6 @@ internal class ComposeLayer(
         return focusRect.toDpRect(density)
     }
 
-    fun hitInteropView(point: Point, isTouchEvent: Boolean): Boolean =
-        scene.mainOwner?.hitInteropView(
-            pointerPosition = Offset(point.x * density.density, point.y * density.density),
-            isTouchEvent = isTouchEvent,
-        ) ?: false
-
     fun setContent(
         onPreviewKeyEvent: (ComposeKeyEvent) -> Boolean = { false },
         onKeyEvent: (ComposeKeyEvent) -> Boolean = { false },
