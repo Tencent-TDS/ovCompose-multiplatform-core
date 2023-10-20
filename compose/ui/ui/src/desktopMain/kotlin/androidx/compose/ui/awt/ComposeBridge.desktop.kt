@@ -182,7 +182,7 @@ internal abstract class ComposeBridge(
 
     /**
      * Provides the maximum constraints where ComposeScene can be rendered.
-     * Dimensions' sum of all displays is used for that.
+     * Dimensions' max dimension of all displays is used for that.
      * Since we cannot show more than on all the screens.
      *
      * See [scenePreferredSize]
@@ -191,8 +191,8 @@ internal abstract class ComposeBridge(
         val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
         val deviceBounds = ge.screenDevices.map { it.defaultConfiguration.bounds }
 
-        val totalWidth = deviceBounds.sumOf { it.width }
-        val totalHeight = deviceBounds.sumOf { it.height }
+        val totalWidth = deviceBounds.maxOfOrNull { it.width } ?: 0
+        val totalHeight = deviceBounds.maxOfOrNull { it.height } ?: 0
 
         val density = component.density.density
         return Constraints(
