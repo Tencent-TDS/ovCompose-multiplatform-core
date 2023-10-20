@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.assertThat
 import androidx.compose.ui.isEqualTo
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -136,6 +137,20 @@ class AccessibilityTest {
         rule.onNodeWithTag("box").apply {
             val context = ComposeAccessible(fetchSemanticsNode()).accessibleContext!!
             assertThat(context.accessibleRole).isEqualTo(AccessibleRole.UNKNOWN)
+        }
+    }
+
+    @Test
+    fun traversalGroupHasGroupRole() {
+        rule.setContent {
+            Box(Modifier.testTag("box").semantics {
+                isTraversalGroup = true
+            })
+        }
+
+        rule.onNodeWithTag("box").apply {
+            val context = ComposeAccessible(fetchSemanticsNode()).accessibleContext!!
+            assertThat(context.accessibleRole).isEqualTo(AccessibleRole.GROUP_BOX)
         }
     }
 

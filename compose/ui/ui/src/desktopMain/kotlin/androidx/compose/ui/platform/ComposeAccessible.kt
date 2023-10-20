@@ -171,6 +171,9 @@ internal class ComposeAccessible(
         val progressBarRangeInfo
             get() = semanticsNode.config.getOrNull(SemanticsProperties.ProgressBarRangeInfo)
 
+        val isTraversalGroup
+            get() = semanticsNode.config.getOrNull(SemanticsProperties.IsTraversalGroup)
+
         private fun makeScrollbarChild(
             vertical: Boolean
         ): Accessible {
@@ -402,6 +405,7 @@ internal class ComposeAccessible(
                 setText != null -> AccessibleRole.TEXT
                 text != null -> AccessibleRole.LABEL
                 progressBarRangeInfo != null -> AccessibleRole.PROGRESS_BAR
+                isTraversalGroup != null -> AccessibleRole.GROUP_BOX
                 else -> AccessibleRole.UNKNOWN
             }
         }
