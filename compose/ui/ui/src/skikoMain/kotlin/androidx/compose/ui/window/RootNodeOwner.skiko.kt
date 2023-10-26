@@ -87,7 +87,7 @@ internal open class RootNodeOwner(
     initDensity: Density = Density(1f, 1f),
     override val coroutineContext: CoroutineContext,
     initLayoutDirection: LayoutDirection,
-    open var constraints: Constraints,
+    constraints: Constraints,
     val focusable: Boolean = true,
     val onOutsidePointerEvent: ((PointerInputEvent) -> Unit)? = null,
     private val onPointerUpdate: () -> Unit = {},
@@ -101,9 +101,11 @@ internal open class RootNodeOwner(
         return bounds.contains(intOffset)
     }
 
-    var bounds by mutableStateOf(
-        constraints.maxSize.toIntRect()
-    )
+    // Cannot be constructor property because of need raw parameter access in other initializers.
+    @Suppress("CanBePrimaryConstructorProperty")
+    open var constraints: Constraints = constraints
+
+    var bounds by mutableStateOf(constraints.maxSize.toIntRect())
 
     override var density by mutableStateOf(initDensity)
 
@@ -135,7 +137,7 @@ internal open class RootNodeOwner(
     override val inputModeManager: InputModeManager
         get() = platform.inputModeManager
 
-    override val modifierLocalManager: ModifierLocalManager = ModifierLocalManager(this)
+    override val modifierLocalManager by lazy { ModifierLocalManager(this) }
 
     // TODO(b/177931787) : Consider creating a KeyInputManager like we have for FocusManager so
     //  that this common logic can be used by all owners.

@@ -67,7 +67,7 @@ internal class CombinedRootNodeOwner(
         set(value) {
             field = value
             forEachAttachedOwner { it.constraints = value }
-            bounds = constraints.maxSize.toIntRect()
+            bounds = value.maxSize.toIntRect()
         }
 
     override val accessibilityControllers
