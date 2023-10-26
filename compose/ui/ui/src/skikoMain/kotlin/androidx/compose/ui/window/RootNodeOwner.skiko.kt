@@ -32,7 +32,6 @@ import androidx.compose.ui.focus.FocusDirection.Companion.Out
 import androidx.compose.ui.focus.FocusDirection.Companion.Previous
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.InputMode.Companion.Keyboard
 import androidx.compose.ui.input.InputMode.Companion.Touch
 import androidx.compose.ui.input.InputModeManager
@@ -372,8 +371,8 @@ internal open class RootNodeOwner(
 
     override fun screenToLocal(positionOnScreen: Offset): Offset = positionOnScreen
 
-    open fun draw(canvas: org.jetbrains.skia.Canvas) {
-        root.draw(canvas.asComposeCanvas())
+    open fun draw(canvas: Canvas) {
+        root.draw(canvas)
     }
 
     open fun processPointerInput(event: PointerInputEvent) {

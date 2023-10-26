@@ -21,6 +21,7 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyInputElement
 import androidx.compose.ui.input.key.NativeKeyEvent
@@ -476,7 +477,7 @@ class ComposeScene internal constructor(
         syntheticEventSender.updatePointerPosition()
         sendAndPerformSnapshotChanges()  // Apply changes from layout phase to draw phase
         needDraw = false
-        mainOwner?.draw(canvas)
+        mainOwner?.draw(canvas.asComposeCanvas())
         mainOwner?.clearInvalidObservations()
     }
 

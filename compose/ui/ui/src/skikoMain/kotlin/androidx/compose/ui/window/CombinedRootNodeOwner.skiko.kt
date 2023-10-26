@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputEvent
@@ -324,7 +325,7 @@ internal class CombinedRootNodeOwner(
         forEachAttachedOwner { it.measureAndLayout(sendPointerUpdate) }
     }
 
-    override fun draw(canvas: org.jetbrains.skia.Canvas) {
+    override fun draw(canvas: Canvas) {
         super.draw(canvas)
         forEachAttachedOwner { it.draw(canvas) }
     }
