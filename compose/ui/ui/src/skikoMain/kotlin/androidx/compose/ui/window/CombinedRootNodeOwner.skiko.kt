@@ -65,6 +65,7 @@ internal class CombinedRootNodeOwner(
     override var constraints = constraints
         set(value) {
             field = value
+            forEachAttachedOwner { it.constraints = value }
             bounds = constraints.maxSize.toIntRect()
         }
 
