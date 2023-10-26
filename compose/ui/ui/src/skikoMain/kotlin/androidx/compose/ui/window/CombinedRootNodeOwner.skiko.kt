@@ -61,7 +61,6 @@ internal class CombinedRootNodeOwner(
      * This logic is used by accessibility.
      */
     internal val attachedOwners = mutableListOf<RootNodeOwner>()
-    private val listCopy = mutableListOf<RootNodeOwner>()
 
     override var constraints = constraints
         set(value) {
@@ -113,24 +112,34 @@ internal class CombinedRootNodeOwner(
             else -> attachedOwners.indexOf(focusedOwner) <= attachedOwners.indexOf(owner)
         }
 
-    private inline fun forEachAttachedOwner(action: (RootNodeOwner) -> Unit) {
-        listCopy.addAll(attachedOwners)
+    // Cache to reduce allocations
+    private val listCopy = mutableListOf<RootNodeOwner>()
+    private inline fun withOwnersCopy(
+        includeSelf: Boolean = false,
+        block: (List<RootNodeOwner>) -> Unit
+    ) {
+        // In case of recursive calls, allocate new list
+        val owners = if (listCopy.isEmpty()) listCopy else mutableListOf()
+        if (includeSelf) {
+            owners.add(this)
+        }
+        owners.addAll(attachedOwners)
         try {
-            listCopy.fastForEach(action)
+            block(owners)
         } finally {
-            listCopy.clear()
+            owners.clear()
         }
     }
 
-    private inline fun forEachOwnerReversed(action: (RootNodeOwner) -> Unit) {
-        listCopy.add(this)
-        listCopy.addAll(attachedOwners)
-        try {
-            listCopy.fastForEachReversed(action)
-        } finally {
-            listCopy.clear()
+    private inline fun forEachAttachedOwner(action: (RootNodeOwner) -> Unit) =
+        withOwnersCopy {
+            it.fastForEach(action)
         }
-    }
+
+    private inline fun forEachOwnerReversed(action: (RootNodeOwner) -> Unit) =
+        withOwnersCopy(includeSelf = true) {
+            it.fastForEachReversed(action)
+        }
 
     internal fun attach(owner: RootNodeOwner) {
         attachedOwners.add(owner)
