@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.test.junit4
 
-import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.platform.SkiaRootForTest
 
@@ -47,8 +46,7 @@ internal class ComposeRootRegistry {
     /**
      * Cleans up the changes made by [setupRegistry]. Call this after your test has run.
      */
-    @VisibleForTesting
-    internal fun tearDownRegistry() {
+    private fun tearDownRegistry() {
         // Stop accepting new roots
         SkiaRootForTest.onRootCreatedCallback = null
         SkiaRootForTest.onRootDisposedCallback = null
