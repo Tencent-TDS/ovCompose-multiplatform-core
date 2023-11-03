@@ -41,32 +41,32 @@ class AndroidXPlugin : Plugin<Project> {
             val conf = it
             conf.resolutionStrategy.eachDependency {
                 if (it.requested.module.name.contains("kotlin-stdlib")) {
-                     it.useVersion("1.9.20-RC")
+                     it.useVersion("1.9.20")
                 }
                 val isWasm = conf.name.contains("wasm", true)
 
                 if (it.requested.module.group == "org.jetbrains.kotlinx" &&
                     it.requested.module.name.contains("kotlinx-coroutines", true)
                 ) {
-                    if (isWasm) it.useVersion("1.7.2-wasm2")
+                    if (isWasm) it.useVersion("1.7.2-wasm3")
                 }
 
                 if (it.requested.module.group == "org.jetbrains.kotlinx" &&
                     it.requested.module.name.contains("kotlinx-serialization", true)
                 ) {
-                    if (isWasm) it.useVersion("1.6.1-wasm0")
+                    if (isWasm) it.useVersion("1.6.1-wasm1")
                 }
 
                 if (it.requested.module.group == "org.jetbrains.kotlinx" &&
                     it.requested.module.name.contains("atomicfu", true)
                 ) {
-                    if (isWasm) it.useVersion("0.22.0-wasm1")
+                    if (isWasm) it.useVersion("0.22.0-wasm2")
                 }
 
                 if (it.requested.module.group == "org.jetbrains.kotlinx" &&
                     it.requested.module.name.contains("datetime", true)
                 ) {
-                    if (isWasm) it.useVersion("0.4.1-wasm0")
+                    if (isWasm) it.useVersion("0.4.1-wasm1")
                 }
             }
         }
