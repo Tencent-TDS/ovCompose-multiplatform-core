@@ -25,14 +25,12 @@ import androidx.compose.ui.input.pointer.EmptyPointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.internal.JvmDefaultWithCompatibility
 import androidx.compose.ui.unit.IntSize
-import kotlin.AllowDifferentMembersInActual
 
 /**
  * Provides information about the Window that is hosting this compose hierarchy.
  */
 @Stable
 @JvmDefaultWithCompatibility
-@AllowDifferentMembersInActual
 actual interface WindowInfo {
     /**
      * Indicates whether the window hosting this compose hierarchy is in focus.

@@ -18,7 +18,6 @@ package androidx.compose.ui.graphics
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.geometry.Offset
-import kotlin.AllowDifferentMembersInActual
 import org.jetbrains.skia.ImageFilter
 
 /**
@@ -33,7 +32,6 @@ fun ImageFilter.asComposeRenderEffect(): RenderEffect =
  * and will be applied when drawn.
  */
 @Immutable
-@AllowDifferentMembersInActual
 actual sealed class RenderEffect actual constructor() {
 
     private var internalImageFilter: ImageFilter? = null

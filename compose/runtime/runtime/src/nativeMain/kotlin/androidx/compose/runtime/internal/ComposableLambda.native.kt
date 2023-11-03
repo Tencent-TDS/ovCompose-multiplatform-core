@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composer
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.RecomposeScope
 import androidx.compose.runtime.Stable
-import kotlin.AllowDifferentMembersInActual
 
 /**
  * A Restart is created to hold composable lambdas to track when they are invoked allowing
@@ -1139,7 +1138,6 @@ internal actual class ComposableLambdaImpl actual constructor(
 
 @ComposeCompilerApi
 @Stable
-@AllowDifferentMembersInActual
 actual interface ComposableLambda :
     Function2<Composer, Int, Any?>,
     Function3<Any?, Composer, Int, Any?>,
