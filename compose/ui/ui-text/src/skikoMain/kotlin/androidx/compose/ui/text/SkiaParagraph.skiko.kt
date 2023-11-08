@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Constraints
 import kotlin.math.floor
+import kotlin.math.roundToInt
 import org.jetbrains.skia.IRange
 import org.jetbrains.skia.paragraph.*
 
@@ -50,6 +51,9 @@ internal class SkiaParagraph(
         )
     }
 
+    internal val defaultFont
+        get() = layouter.defaultFont
+
     /**
      * Paragraph isn't always immutable, it could be changed via [paint] method without
      * rerunning layout
@@ -57,6 +61,10 @@ internal class SkiaParagraph(
     private var paragraph = layouter.layoutParagraph(
         width = width
     )
+        set(value) {
+            field = value
+            _lineMetrics = null
+        }
 
     init {
         paragraph.layout(width)
@@ -122,7 +130,7 @@ internal class SkiaParagraph(
         // workaround for https://bugs.chromium.org/p/skia/issues/detail?id=11321 :(
         // Otherwise it shows a big cursor on a new empty line https://github.com/JetBrains/compose-jb/issues/1895
         val isNewEmptyLine = offset - 1 == line.startIndex && offset == text.length
-        val metrics = layouter.defaultFont.metrics
+        val metrics = defaultFont.metrics
 
         val asc = line.ascent.let {
             if (isNewEmptyLine) {
@@ -164,6 +172,15 @@ internal class SkiaParagraph(
         lineMetrics.getOrNull(lineIndex)?.let { line ->
             floor((line.baseline + line.descent).toFloat())
         } ?: 0f
+
+    internal fun getLineAscent(lineIndex: Int): Int =
+        -(lineMetrics.getOrNull(lineIndex)?.ascent?.roundToInt() ?: 0)
+
+    internal fun getLineBaseline(lineIndex: Int): Int =
+        lineMetrics.getOrNull(lineIndex)?.baseline?.roundToInt() ?: 0
+
+    internal fun getLineDescent(lineIndex: Int): Int =
+        lineMetrics.getOrNull(lineIndex)?.descent?.roundToInt() ?: 0
 
     private fun lineMetricsForOffset(offset: Int): LineMetrics? {
         checkOffsetIsValid(offset)
@@ -240,30 +257,17 @@ internal class SkiaParagraph(
         }
     }
 
-    // workaround for https://bugs.chromium.org/p/skia/issues/detail?id=11321 :(
+    private var _lineMetrics: Array<LineMetrics>? = null
     private val lineMetrics: Array<LineMetrics>
-        get() = if (text == "") {
-            val metrics = layouter.defaultFont.metrics
-            val ascent = -metrics.ascent.toDouble()
-            val descent = metrics.descent.toDouble()
-            val baseline = paragraph.alphabeticBaseline.toDouble()
-            val height = with(layouter.paragraphStyle.strutStyle) {
-                if (isEnabled && !isHeightForced && isHeightOverridden && fontSize > 0.0f) {
-                    (height * fontSize).toDouble()
-                } else {
-                    ascent + descent
-                }
+        get() {
+            val lineMetrics = _lineMetrics ?: if (text.isEmpty()) {
+                layouter.emptyLineMetrics(paragraph)
+            } else {
+                paragraph.lineMetrics // This creates a new objects every time
+            }.also {
+                _lineMetrics = it
             }
-
-            arrayOf(
-                LineMetrics(
-                    0, 0, 0, 0, true,
-                    ascent, descent, ascent, height, 0.0, 0.0, baseline, 0
-                )
-            )
-        } else {
-            @Suppress("UNCHECKED_CAST", "USELESS_CAST")
-            paragraph.lineMetrics as Array<LineMetrics>
+            return lineMetrics
         }
 
     private fun getBoxForwardByOffset(offset: Int): TextBox? {

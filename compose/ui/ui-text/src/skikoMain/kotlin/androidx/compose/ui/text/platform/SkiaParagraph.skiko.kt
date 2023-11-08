@@ -114,15 +114,6 @@ internal actual fun ActualParagraph(
     constraints
 )
 
-private fun fontSizeInHierarchy(density: Density, base: Float, other: TextUnit): Float {
-    return when {
-        other.isUnspecified -> base
-        other.isEm -> base * other.value
-        other.isSp -> with(density) { other.toPx() }
-        else -> error("Unexpected size in fontSizeInHierarchy")
-    }
-}
-
 // Computed ComputedStyles always have font/letter size in pixels for particular `density`.
 // It's important because density could be changed in runtime, and it should force
 // SkTextStyle to be recalculated. Or we can have different densities in different windows.
@@ -175,14 +166,7 @@ internal data class ComputedStyle(
         drawStyle = spanStyle.drawStyle,
         blendMode = blendMode,
         lineHeight = if (lineHeight.isSpecified) {
-            with(density) {
-                when {
-                    lineHeight.isUnspecified -> spanStyle.fontSize.toPx()
-                    lineHeight.isEm -> spanStyle.fontSize.toPx() * lineHeight.value
-                    lineHeight.isSp -> lineHeight.toPx()
-                    else -> error("Unexpected size in ComputedStyle")
-                }
-            }
+            lineHeight.toPx(density, spanStyle.fontSize)
         } else null,
     )
 
@@ -253,7 +237,7 @@ internal data class ComputedStyle(
     }
 
     fun merge(density: Density, other: SpanStyle) {
-        val fontSize = fontSizeInHierarchy(density, fontSize, other.fontSize)
+        val fontSize = other.fontSize.toPx(density, fontSize)
         textForegroundStyle = textForegroundStyle.merge(other.textForegroundStyle)
         other.fontFamily?.let { fontFamily = it }
         this.fontSize = fontSize
@@ -262,13 +246,7 @@ internal data class ComputedStyle(
         other.fontSynthesis?.let { fontSynthesis = it }
         other.fontFeatureSettings?.let { fontFeatureSettings = it }
         if (!other.letterSpacing.isUnspecified) {
-            letterSpacing = with(other.letterSpacing) {
-                when {
-                    isEm -> fontSize * value
-                    isSp -> with(density) { toPx() }
-                    else -> throw UnsupportedOperationException()
-                }
-            }
+            letterSpacing = other.letterSpacing.toPx(density, fontSize)
         }
         other.baselineShift?.let { baselineShift = it }
         other.textGeometricTransform?.let { textGeometricTransform = it }
@@ -303,8 +281,6 @@ internal class ParagraphBuilder(
 ) {
     private lateinit var initialStyle: SpanStyle
     private lateinit var defaultStyle: ComputedStyle
-    internal lateinit var paragraphStyle: ParagraphStyle
-        private set
     private lateinit var ops: List<Op>
 
     /**
@@ -329,15 +305,12 @@ internal class ParagraphBuilder(
 
         var pos = 0
         val ps = textStyleToParagraphStyle(textStyle, defaultStyle)
-        paragraphStyle = ps
-
         if (maxLines != Int.MAX_VALUE) {
             ps.maxLinesCount = maxLines
             ps.ellipsis = ellipsis
         }
 
         // this downcast is always safe because of sealed types, and we control construction
-        @OptIn(ExperimentalTextApi::class)
         val platformFontLoader = (fontFamilyResolver as FontFamilyResolverImpl).platformFontLoader
         val fontCollection = when (platformFontLoader) {
             is SkiaFontLoader -> platformFontLoader.fontCollection
@@ -479,15 +452,13 @@ internal class ParagraphBuilder(
                     val currentStyle = mergeStyles(activeStyles)
                     val op = Op.PutPlaceholder(
                         cut = cut,
-                        width = fontSizeInHierarchy(
+                        width = cut.placeholder.width.toPx(
                             density,
-                            currentStyle.fontSize,
-                            cut.placeholder.width
+                            currentStyle.fontSize
                         ),
-                        height = fontSizeInHierarchy(
+                        height = cut.placeholder.height.toPx(
                             density,
-                            currentStyle.fontSize,
-                            cut.placeholder.height
+                            currentStyle.fontSize
                         ),
                     )
                     ops.add(op)
@@ -549,12 +520,58 @@ internal class ParagraphBuilder(
         val loadResult = textStyle.resolveFontFamily(fontFamilyResolver)
         SkFont(loadResult?.typeface, defaultStyle.fontSize)
     }
+
+    // workaround for https://bugs.chromium.org/p/skia/issues/detail?id=11321 :(
+    internal fun emptyLineMetrics(paragraph: SkParagraph): Array<LineMetrics> {
+        val metrics = defaultFont.metrics
+        var ascent = metrics.ascent.toDouble()
+        var descent = metrics.descent.toDouble()
+        val baseline = paragraph.alphabeticBaseline.toDouble()
+        val lineHeightStyle = textStyle.lineHeightStyle ?: LineHeightStyle.Default
+        val heightMultiplier = defaultStyle.lineHeight?.let {
+            it / defaultStyle.fontSize
+        } ?: 1f
+        if (!lineHeightStyle.trim.isTrimFirstLineTop()) {
+            ascent *= heightMultiplier // TODO: Support non-proportional alignment
+        }
+        if (!lineHeightStyle.trim.isTrimLastLineBottom()) {
+            descent *= heightMultiplier // TODO: Support non-proportional alignment
+        }
+        val height = descent - ascent
+        return arrayOf(
+            LineMetrics(
+                startIndex = 0,
+                endIndex = 0,
+                endExcludingWhitespaces = 0,
+                endIncludingNewline = 0,
+                isHardBreak = true,
+                ascent = ascent,
+                descent = descent,
+                unscaledAscent = ascent,
+                height = height,
+                width = 0.0,
+                left = 0.0,
+                baseline = baseline,
+                lineNumber = 0
+            )
+        )
+    }
 }
 
 private fun TextUnit.orDefaultFontSize() = when {
     isUnspecified -> DefaultFontSize
     isEm -> DefaultFontSize * value
     else -> this
+}
+
+private fun TextUnit.toPx(density: Density, fontSize: TextUnit): Float =
+    toPx(density, with(density) { fontSize.toPx() })
+
+private fun TextUnit.toPx(density: Density, fontSize: Float): Float = when {
+    isUnspecified -> fontSize
+    isEm -> fontSize * value
+    isSp -> with(density) { toPx() }
+    else -> error("Unexpected size in TextUnit.toPx")
 }
 
 private fun LineHeightStyle.Trim.toHeightMode(): HeightMode = when(this) {
