@@ -41,6 +41,7 @@ import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import org.jetbrains.skia.FontFeature
+import org.jetbrains.skia.FontMetrics
 import org.jetbrains.skia.Paint
 import org.jetbrains.skia.paragraph.*
 import org.jetbrains.skia.paragraph.ParagraphStyle
@@ -524,19 +525,12 @@ internal class ParagraphBuilder(
     // workaround for https://bugs.chromium.org/p/skia/issues/detail?id=11321 :(
     internal fun emptyLineMetrics(paragraph: SkParagraph): Array<LineMetrics> {
         val metrics = defaultFont.metrics
-        var ascent = metrics.ascent.toDouble()
-        var descent = metrics.descent.toDouble()
-        val baseline = paragraph.alphabeticBaseline.toDouble()
-        val lineHeightStyle = textStyle.lineHeightStyle ?: LineHeightStyle.Default
         val heightMultiplier = defaultStyle.lineHeight?.let {
-            it / defaultStyle.fontSize
-        } ?: 1f
-        if (!lineHeightStyle.trim.isTrimFirstLineTop()) {
-            ascent *= heightMultiplier // TODO: Support non-proportional alignment
-        }
-        if (!lineHeightStyle.trim.isTrimLastLineBottom()) {
-            descent *= heightMultiplier // TODO: Support non-proportional alignment
-        }
+            it / defaultStyle.fontSize.toDouble()
+        } ?: 1.0
+        val ascent = metrics.ascent * heightMultiplier // TODO: Support non-proportional alignment
+        val descent = metrics.descent * heightMultiplier // TODO: Support non-proportional alignment
+        val baseline = paragraph.alphabeticBaseline.toDouble()
         val height = descent - ascent
         return arrayOf(
             LineMetrics(
@@ -545,7 +539,7 @@ internal class ParagraphBuilder(
                 endExcludingWhitespaces = 0,
                 endIncludingNewline = 0,
                 isHardBreak = true,
-                ascent = ascent,
+                ascent = -ascent,
                 descent = descent,
                 unscaledAscent = ascent,
                 height = height,
@@ -606,6 +600,7 @@ private fun SpanStyle.copyWithDefaultFontSize(drawStyle: DrawStyle? = null): Spa
     )
 }
 
+// TODO: Remove from public
 fun FontStyle.toSkFontStyle(): SkFontStyle {
     return when (this) {
         FontStyle.Italic -> org.jetbrains.skia.FontStyle.ITALIC
@@ -613,6 +608,7 @@ fun FontStyle.toSkFontStyle(): SkFontStyle {
     }
 }
 
+// TODO: Remove from public
 fun TextDecoration.toSkDecorationStyle(color: Color): SkDecorationStyle {
     val underline = contains(TextDecoration.Underline)
     val overline = false
@@ -631,6 +627,7 @@ fun TextDecoration.toSkDecorationStyle(color: Color): SkDecorationStyle {
     )
 }
 
+// TODO: Remove from public
 fun PlaceholderVerticalAlign.toSkPlaceholderAlignment(): PlaceholderAlignment {
     return when (this) {
         PlaceholderVerticalAlign.AboveBaseline -> PlaceholderAlignment.ABOVE_BASELINE

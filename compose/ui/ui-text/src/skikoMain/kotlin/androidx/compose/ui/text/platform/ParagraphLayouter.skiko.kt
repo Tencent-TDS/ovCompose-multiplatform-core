@@ -76,6 +76,7 @@ internal class ParagraphLayouter(
     private var width: Float = Float.NaN
 
     val defaultFont get() = builder.defaultFont
+    val textStyle get() = builder.textStyle
 
     internal fun emptyLineMetrics(paragraph: Paragraph): Array<LineMetrics> =
         builder.emptyLineMetrics(paragraph)
