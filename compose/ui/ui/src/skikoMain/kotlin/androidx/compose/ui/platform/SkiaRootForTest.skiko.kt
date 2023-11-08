@@ -51,9 +51,11 @@ interface SkiaRootForTest : RootForTest {
          * SkikoComposeUiTest to keep track of all attached roots. Not to be
          * set or used by any other component.
          */
+        // TODO: Move to "Shared Context" (aka Platform now)
         @InternalComposeUiApi
         var onRootCreatedCallback: ((SkiaRootForTest) -> Unit)? = null
 
+        // TODO: Move to "Shared Context" (aka Platform now)
         @InternalComposeUiApi
         var onRootDisposedCallback: ((SkiaRootForTest) -> Unit)? = null
     }
