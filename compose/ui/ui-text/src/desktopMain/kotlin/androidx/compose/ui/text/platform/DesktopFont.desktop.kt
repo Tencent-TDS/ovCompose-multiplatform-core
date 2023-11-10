@@ -164,7 +164,7 @@ internal actual fun loadTypeface(font: Font): SkTypeface {
         is ResourceFont -> typefaceResource(font.name)
         is FileFont -> SkTypeface.makeFromFile(font.file.toString())
         is LoadedFont -> SkTypeface.makeFromData(Data.makeFromBytes(font.data))
-        is SystemInstalledFont -> SkTypeface.makeFromName(font.identity, font.skFontStyle)
+        is SystemFont -> SkTypeface.makeFromName(font.identity, font.skFontStyle)
     }
 }
 

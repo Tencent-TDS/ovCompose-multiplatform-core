@@ -43,7 +43,7 @@ expect sealed class PlatformFont() : Font {
  * A Font that already installed in system.
  */
 @ExperimentalTextApi
-class SystemInstalledFont(
+class SystemFont(
     override val identity: String,
     override val weight: FontWeight = FontWeight.Normal,
     override val style: FontStyle = FontStyle.Normal
@@ -201,7 +201,7 @@ internal class FontCache {
     private fun ensureRegistered(fontFamily: FontFamily): List<String> =
         when (fontFamily) {
             is FontListFontFamily -> {
-                val fonts = fontFamily.fonts.filterIsInstance<SystemInstalledFont>()
+                val fonts = fontFamily.fonts.filterIsInstance<SystemFont>()
                 if (fonts.size == fontFamily.fonts.size) {
                     fonts.map { it.identity }
                 } else {
