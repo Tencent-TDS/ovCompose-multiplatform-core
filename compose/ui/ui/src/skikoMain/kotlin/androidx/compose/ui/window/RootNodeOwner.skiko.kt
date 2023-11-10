@@ -287,6 +287,10 @@ internal open class RootNodeOwner(
         contentSize = computeContentSize()
     }
 
+    override fun measureAndLayoutForTest() {
+        measureAndLayout()
+    }
+
     // Don't use mainOwner.root.width here, as it strictly coerced by [constraints]
     private fun computeContentSize() = IntSize(
         root.children.maxOfOrNull { it.outerCoordinator.measuredWidth } ?: 0,
@@ -321,13 +325,7 @@ internal open class RootNodeOwner(
         affectsLookahead: Boolean,
         forceRequest: Boolean
     ) {
-        if (affectsLookahead) {
-            if (measureAndLayoutDelegate.requestLookaheadRelayout(layoutNode, forceRequest)) {
-                requestLayout?.invoke()
-            }
-        } else if (measureAndLayoutDelegate.requestRelayout(layoutNode, forceRequest)) {
-            requestLayout?.invoke()
-        }
+        this.onRequestMeasure(layoutNode, affectsLookahead, forceRequest, scheduleMeasureAndLayout = true)
     }
 
     override fun requestOnPositionedCallback(layoutNode: LayoutNode) {

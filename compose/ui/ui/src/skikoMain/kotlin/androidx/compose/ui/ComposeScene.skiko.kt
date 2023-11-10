@@ -392,6 +392,9 @@ class ComposeScene internal constructor(
             KeyInputElement(onKeyEvent = onKeyEvent, onPreKeyEvent = onPreviewKeyEvent)
         )
 
+        this.mainOwner = mainOwner
+
+        // setContent might spawn more owners, so this.mainOwner should be set before that.
         composition = mainOwner.setContent(
             parentComposition ?: recomposer,
             { compositionLocalContext }
@@ -401,7 +404,6 @@ class ComposeScene internal constructor(
                 content = content
             )
         }
-        this.mainOwner = mainOwner
 
         // to perform all pending work synchronously
         recomposeDispatcher.flush()

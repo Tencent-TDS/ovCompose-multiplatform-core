@@ -26,6 +26,8 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.node.LayoutNode
+import androidx.compose.ui.node.Owner
 import androidx.compose.ui.platform.Platform
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -323,6 +325,11 @@ internal class CombinedRootNodeOwner(
     override fun measureAndLayout(sendPointerUpdate: Boolean) {
         super.measureAndLayout(sendPointerUpdate)
         forEachAttachedOwner { it.measureAndLayout(sendPointerUpdate) }
+    }
+
+    override fun measureAndLayout(layoutNode: LayoutNode, constraints: Constraints) {
+        super.measureAndLayout(layoutNode, constraints)
+        forEachAttachedOwner { it.measureAndLayout(layoutNode, constraints) }
     }
 
     override fun draw(canvas: Canvas) {
