@@ -498,8 +498,24 @@ internal class ParagraphBuilder(
             pStyle.alignment = it.toSkAlignment()
         }
 
-        val lineHeightStyle = style.lineHeightStyle ?: LineHeightStyle.Default
-        pStyle.heightMode = lineHeightStyle.trim.toHeightMode()
+        val lineHeight = computedStyle.lineHeight
+        if (lineHeight != null && lineHeight > computedStyle.fontSize) {
+            val lineHeightStyle = style.lineHeightStyle ?: LineHeightStyle.Default
+            pStyle.heightMode = lineHeightStyle.trim.toHeightMode()
+        } else {
+            /*
+             * "DISABLE_ALL" replaces calculated from lineHeight
+             * ascent for the first line and descent for the last line
+             * to default font's values.
+             *
+             * To match android behavior, set it without taking into account trim value
+             * in case when lineHeight < fontSize. This keeps the single line height NOT less
+             * than defined in font. Note that it just ensures of minimal external paddings,
+             * internal (between lines in multiline text) calculated as-is.
+             */
+            pStyle.heightMode = HeightMode.DISABLE_ALL
+        }
+
         // TODO: Support lineHeightStyle.alignment. Currently it's not exposed in skia
 
         pStyle.direction = textDirection.toSkDirection()
