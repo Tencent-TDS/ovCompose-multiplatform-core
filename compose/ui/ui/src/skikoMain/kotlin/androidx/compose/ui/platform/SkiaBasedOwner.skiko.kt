@@ -249,8 +249,7 @@ internal class SkiaBasedOwner(
      * Provides a way to measure Owner's content in given [constraints]
      * Draw/pointer and other callbacks won't be called here like in [measureAndLayout] functions
      */
-    @ExperimentalComposeUiApi
-    fun measureInConstraints(constraints: Constraints): IntSize {
+    internal fun measureInConstraints(constraints: Constraints): IntSize {
         val oldConstraints = this.constraints
         try {
             // TODO: is it possible to measure without reassigning root constraints?

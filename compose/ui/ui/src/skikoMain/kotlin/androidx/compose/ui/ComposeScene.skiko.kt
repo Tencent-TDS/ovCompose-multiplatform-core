@@ -483,7 +483,13 @@ class ComposeScene internal constructor(
             return contentSizeInConstraints(mainOwner.constraints)
         }
 
-    internal fun contentSizeInConstraints(constraints: Constraints): IntSize {
+    /**
+     * Provides [ComposeScene] content size in given [constraints]
+     *
+     * This function doesn't change current [ComposeScene] scene constraints.
+     */
+    @ExperimentalComposeUiApi
+    fun contentSizeInConstraints(constraints: Constraints): IntSize {
         check(!isClosed) { "ComposeScene is closed" }
         return mainOwner?.measureInConstraints(constraints) ?: IntSize.Zero
     }
