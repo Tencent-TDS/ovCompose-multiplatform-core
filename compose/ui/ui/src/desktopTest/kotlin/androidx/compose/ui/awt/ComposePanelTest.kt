@@ -53,6 +53,8 @@ import org.junit.Test
 class ComposePanelTest {
     @Test
     fun `don't override user preferred size`() {
+        assumeFalse(GraphicsEnvironment.getLocalGraphicsEnvironment().isHeadlessInstance)
+
         runBlocking(MainUIDispatcher) {
             val composePanel = ComposePanel()
             composePanel.preferredSize = Dimension(234, 345)
