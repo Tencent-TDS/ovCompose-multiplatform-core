@@ -18,6 +18,7 @@ package androidx.compose.ui.awt
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.Text
 import androidx.compose.runtime.LaunchedEffect
@@ -296,7 +297,7 @@ class ComposePanelTest {
         runBlocking(MainUIDispatcher) {
             val composePanel = ComposePanel()
             composePanel.setContent {
-                LazyColumn {
+                LazyColumn(modifier = Modifier.sizeIn(maxHeight = 500.dp)) {
                     repeat(100_000) {
                         item {
                             Text("Text $it")
@@ -316,7 +317,7 @@ class ComposePanelTest {
                 frame.isVisible = true
                 delay(1000)
                 assertTrue(content.size.width > 2)
-                assertTrue(content.size.height > 2)
+                assertEquals(500, content.size.height)
             } finally {
                 frame.dispose()
             }

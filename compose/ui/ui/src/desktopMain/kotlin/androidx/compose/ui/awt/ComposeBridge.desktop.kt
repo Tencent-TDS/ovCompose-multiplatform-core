@@ -181,28 +181,7 @@ internal abstract class ComposeBridge(
     }
 
     /**
-     * Provides the maximum constraints where ComposeScene can be rendered.
-     * Dimensions' max dimension of all displays is used for that.
-     * Since we cannot show more than on all the screens.
-     *
-     * See [scenePreferredSize]
-     */
-    private fun getMaxConstraints(): Constraints {
-        val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
-        val deviceBounds = ge.screenDevices.map { it.defaultConfiguration.bounds }
-
-        val totalWidth = deviceBounds.maxOfOrNull { it.width } ?: 0
-        val totalHeight = deviceBounds.maxOfOrNull { it.height } ?: 0
-
-        val density = component.density.density
-        return Constraints(
-            maxWidth = (totalWidth * density).toInt(),
-            maxHeight = (totalHeight * density).toInt()
-        )
-    }
-
-    /**
-     * Provides the size of ComposeScene content inside max possible constraints
+     * Provides the size of ComposeScene content inside infinity constraints
      *
      * This is needed for the bridge between Compose and Swing since
      * in some cases, Swing's LayoutManagers need
@@ -217,7 +196,7 @@ internal abstract class ComposeBridge(
     protected val scenePreferredSize: Dimension
         get() {
             val contentSize =
-                scene.contentSizeInConstraints(getMaxConstraints())
+                scene.contentSizeInConstraints(Constraints())
             return Dimension(
                 (contentSize.width / component.density.density).toInt(),
                 (contentSize.height / component.density.density).toInt()
