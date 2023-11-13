@@ -254,7 +254,7 @@ internal class SkiaBasedOwner(
         try {
             // TODO: is it possible to measure without reassigning root constraints?
             measureAndLayoutDelegate.updateRootConstraints(constraints)
-            measureAndLayoutDelegate.measureAndLayout()
+            measureAndLayoutDelegate.measureOnly()
 
             // Don't use mainOwner.root.width here, as it strictly coerced by [constraints]
             return IntSize(
