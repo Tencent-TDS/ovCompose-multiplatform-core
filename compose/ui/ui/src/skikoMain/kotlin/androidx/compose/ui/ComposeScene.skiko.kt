@@ -477,7 +477,7 @@ class ComposeScene internal constructor(
     /**
      * Returns the current content size
      */
-    @Deprecated("Will be removed in 1.7", replaceWith = ReplaceWith("calculateContentSize()"))
+    @Deprecated("Use calculateContentSize() instead", replaceWith = ReplaceWith("calculateContentSize()"))
     val contentSize: IntSize
         get() {
             val mainOwner = mainOwner ?: return IntSize.Zero
