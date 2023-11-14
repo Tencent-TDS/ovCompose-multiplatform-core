@@ -477,6 +477,7 @@ class ComposeScene internal constructor(
     /**
      * Returns the current content size
      */
+    @Deprecated("Will be removed in 1.7", replaceWith = ReplaceWith("calculateContentSize()"))
     val contentSize: IntSize
         get() {
             val mainOwner = mainOwner ?: return IntSize.Zero
@@ -484,12 +485,21 @@ class ComposeScene internal constructor(
         }
 
     /**
+     * Returns the current content size in infinity constraints.
+     *
+     * @throws IllegalStateException when [ComposeScene] content has lazy layouts without maximum size bounds
+     * (e.g. LazyColumn without maximum height).
+     */
+    fun calculateContentSize(): IntSize {
+        return contentSizeInConstraints(Constraints())
+    }
+
+    /**
      * Provides [ComposeScene] content size in given [constraints]
      *
      * This function doesn't change current [ComposeScene] scene constraints.
      */
-    @ExperimentalComposeUiApi
-    fun contentSizeInConstraints(constraints: Constraints): IntSize {
+    private fun contentSizeInConstraints(constraints: Constraints): IntSize {
         check(!isClosed) { "ComposeScene is closed" }
         return mainOwner?.measureInConstraints(constraints) ?: IntSize.Zero
     }

@@ -195,8 +195,7 @@ internal abstract class ComposeBridge(
      */
     protected val scenePreferredSize: Dimension
         get() {
-            val contentSize =
-                scene.contentSizeInConstraints(Constraints())
+            val contentSize = scene.calculateContentSize()
             return Dimension(
                 (contentSize.width / component.density.density).toInt(),
                 (contentSize.height / component.density.density).toInt()
