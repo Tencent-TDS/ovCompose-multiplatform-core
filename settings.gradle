@@ -7,6 +7,7 @@ pluginManagement {
         maven {
             url = new File(buildscript.sourceFile.parent + "/../../prebuilts/androidx/external").getCanonicalFile()
         }
+        maven { url = "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/dev/" }
         def isJBFork = true
         if (isJBFork) {
             mavenLocal()

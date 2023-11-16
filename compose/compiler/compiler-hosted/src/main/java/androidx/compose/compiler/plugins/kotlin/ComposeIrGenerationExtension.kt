@@ -42,7 +42,7 @@ import androidx.compose.compiler.plugins.kotlin.lower.hiddenfromobjc.AddHiddenFr
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.serialization.DeclarationTable
-import org.jetbrains.kotlin.backend.common.serialization.signature.IdSignatureSerializer
+import org.jetbrains.kotlin.backend.common.serialization.signature.IdSignatureFactory
 import org.jetbrains.kotlin.backend.common.serialization.signature.PublicIdSignatureComputer
 import org.jetbrains.kotlin.ir.backend.js.lower.serialization.ir.JsGlobalDeclarationTable
 import org.jetbrains.kotlin.ir.backend.js.lower.serialization.ir.JsManglerIr
@@ -171,7 +171,7 @@ class ComposeIrGenerationExtension(
         }
 
         val idSignatureBuilder = when {
-            pluginContext.platform.isJs() -> IdSignatureSerializer(
+            pluginContext.platform.isJs() -> IdSignatureFactory(
                 PublicIdSignatureComputer(mangler!!),
                 DeclarationTable(JsGlobalDeclarationTable(pluginContext.irBuiltIns))
             )

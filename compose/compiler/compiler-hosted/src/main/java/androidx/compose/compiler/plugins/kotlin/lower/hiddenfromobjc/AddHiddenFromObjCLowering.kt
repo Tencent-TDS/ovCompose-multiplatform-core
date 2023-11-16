@@ -24,7 +24,9 @@ import androidx.compose.compiler.plugins.kotlin.lower.containsComposableAnnotati
 import androidx.compose.compiler.plugins.kotlin.lower.needsComposableRemapping
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
+import org.jetbrains.kotlin.fir.resolve.dfa.stackOf
 import org.jetbrains.kotlin.ir.IrStatement
+import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
@@ -63,6 +65,27 @@ class AddHiddenFromObjCLowering(
         module.transformChildrenVoid(this)
     }
 
+    private val shouldAnnotateClass = stackOf<Boolean>()
+    private var currentShouldAnnotateClass = false
+
+    override fun visitClass(declaration: IrClass): IrStatement {
+        shouldAnnotateClass.push(currentShouldAnnotateClass)
+        currentShouldAnnotateClass = false
+
+        val cls = super.visitClass(declaration) as IrClass
+
+        // We see an issue only with data classes containing something Composable.
+        // Adding an annotation to all classes makes the FirNativeHiddenFromObjCInheritanceChecker (kotlin) complain.
+        // data classes can't be open, so it should work.
+        if (currentShouldAnnotateClass && cls.isData) {
+            cls.addHiddenFromObjCAnnotation()
+            hideFromObjCDeclarationsSet.add(cls)
+        }
+
+        currentShouldAnnotateClass = shouldAnnotateClass.pop()
+        return cls
+    }
+
     override fun visitFunction(declaration: IrFunction): IrStatement {
         val f = super.visitFunction(declaration) as IrFunction
         if (f.isLocal ||
@@ -73,6 +96,7 @@ class AddHiddenFromObjCLowering(
         if (f.hasComposableAnnotation() || f.needsComposableRemapping()) {
             f.addHiddenFromObjCAnnotation()
             hideFromObjCDeclarationsSet.add(f)
+            currentShouldAnnotateClass = true
         }
 
         return f
@@ -89,6 +113,7 @@ class AddHiddenFromObjCLowering(
         if (shouldAdd) {
             p.addHiddenFromObjCAnnotation()
             hideFromObjCDeclarationsSet.add(p)
+            currentShouldAnnotateClass = true
         }
 
         return p
@@ -99,6 +124,6 @@ class AddHiddenFromObjCLowering(
             type = hiddenFromObjCAnnotation.defaultType,
             constructorSymbol = hiddenFromObjCAnnotation.constructors.first()
         )
-        pluginContext.annotationsRegistrar.addMetadataVisibleAnnotationsToElement(this, annotation)
+        pluginContext.metadataDeclarationRegistrar.addMetadataVisibleAnnotationsToElement(this, annotation)
     }
 }

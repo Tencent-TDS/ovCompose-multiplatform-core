@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.FirElement
+import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirFunctionCallChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirPropertyAccessExpressionChecker
@@ -35,12 +36,7 @@ import org.jetbrains.kotlin.fir.declarations.FirPropertyAccessor
 import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.declarations.InlineStatus
 import org.jetbrains.kotlin.fir.declarations.utils.isInline
-import org.jetbrains.kotlin.fir.expressions.FirCatch
-import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
-import org.jetbrains.kotlin.fir.expressions.FirLambdaArgumentExpression
-import org.jetbrains.kotlin.fir.expressions.FirPropertyAccessExpression
-import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
-import org.jetbrains.kotlin.fir.expressions.FirTryExpression
+import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.expressions.impl.FirResolvedArgumentList
 import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.references.toResolvedCallableSymbol
@@ -53,7 +49,7 @@ import org.jetbrains.kotlin.psi.KtFunction
 import org.jetbrains.kotlin.psi.KtFunctionLiteral
 import org.jetbrains.kotlin.psi.KtLambdaExpression
 
-object ComposablePropertyAccessExpressionChecker : FirPropertyAccessExpressionChecker() {
+object ComposablePropertyAccessExpressionChecker : FirPropertyAccessExpressionChecker(MppCheckerKind.Common) {
     override fun check(
         expression: FirPropertyAccessExpression,
         context: CheckerContext,
@@ -67,7 +63,7 @@ object ComposablePropertyAccessExpressionChecker : FirPropertyAccessExpressionCh
     }
 }
 
-object ComposableFunctionCallChecker : FirFunctionCallChecker() {
+object ComposableFunctionCallChecker : FirFunctionCallChecker(MppCheckerKind.Common) {
     override fun check(
         expression: FirFunctionCall,
         context: CheckerContext,
@@ -342,7 +338,7 @@ private inline fun CheckerContext.visitCurrentScope(
 private fun CheckerContext.findValueParameterForLambdaAtIndex(
     elementIndex: Int
 ): FirValueParameter? {
-    val argument = containingElements.getOrNull(elementIndex - 1) as? FirLambdaArgumentExpression
+    val argument = containingElements.getOrNull(elementIndex - 1) as? FirAnonymousFunctionExpression
         ?: return null
     val argumentList = containingElements.getOrNull(elementIndex - 2) as? FirResolvedArgumentList
         ?: return null

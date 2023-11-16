@@ -20,7 +20,7 @@ import androidx.compose.compiler.plugins.kotlin.lower.DeepCopyPreservingMetadata
 import androidx.compose.compiler.plugins.kotlin.lower.hasAnnotationSafe
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContextImpl
-import org.jetbrains.kotlin.backend.common.serialization.signature.IdSignatureSerializer
+import org.jetbrains.kotlin.backend.common.serialization.signature.IdSignatureFactory
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
@@ -56,7 +56,7 @@ import org.jetbrains.kotlin.ir.util.toIrConst
 @JvmDefaultWithCompatibility
 internal interface DecoyTransformBase {
     val context: IrPluginContext
-    val signatureBuilder: IdSignatureSerializer
+    val signatureBuilder: IdSignatureFactory
 
     fun IrFunction.getSignatureId(): Long {
         return if (this is IrLazyFunctionBase) {

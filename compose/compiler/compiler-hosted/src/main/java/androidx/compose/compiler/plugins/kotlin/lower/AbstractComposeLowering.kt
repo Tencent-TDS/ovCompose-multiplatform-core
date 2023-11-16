@@ -1010,7 +1010,7 @@ abstract class AbstractComposeLowering(
         val function = symbol.owner
         val fqName = function.kotlinFqName
         return when (origin) {
-            is IrStatementOrigin.GET_PROPERTY -> {
+            IrStatementOrigin.GET_PROPERTY -> {
                 // If we are in a GET_PROPERTY call, then this should usually resolve to
                 // non-null, but in case it doesn't, just return false
                 val prop = (function as? IrSimpleFunction)
@@ -1049,19 +1049,19 @@ abstract class AbstractComposeLowering(
                 false
             }
 
-            is IrStatementOrigin.PLUS,
-            is IrStatementOrigin.MUL,
-            is IrStatementOrigin.MINUS,
-            is IrStatementOrigin.ANDAND,
-            is IrStatementOrigin.OROR,
-            is IrStatementOrigin.DIV,
-            is IrStatementOrigin.EQ,
-            is IrStatementOrigin.EQEQ,
-            is IrStatementOrigin.EQEQEQ,
-            is IrStatementOrigin.GT,
-            is IrStatementOrigin.GTEQ,
-            is IrStatementOrigin.LT,
-            is IrStatementOrigin.LTEQ -> {
+            IrStatementOrigin.PLUS,
+            IrStatementOrigin.MUL,
+            IrStatementOrigin.MINUS,
+            IrStatementOrigin.ANDAND,
+            IrStatementOrigin.OROR,
+            IrStatementOrigin.DIV,
+            IrStatementOrigin.EQ,
+            IrStatementOrigin.EQEQ,
+            IrStatementOrigin.EQEQEQ,
+            IrStatementOrigin.GT,
+            IrStatementOrigin.GTEQ,
+            IrStatementOrigin.LT,
+            IrStatementOrigin.LTEQ -> {
                 // special case mathematical operators that are in the stdlib. These are
                 // immutable operations so the overall result is static if the operands are
                 // also static

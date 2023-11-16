@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:OptIn(IrImplementationDetail::class, IDEAPluginsCompatibilityAPI::class)
+
 package androidx.compose.compiler.plugins.kotlin.lower
 
 import androidx.compose.compiler.plugins.kotlin.ComposeCallableIds
@@ -42,6 +44,7 @@ import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
 import org.jetbrains.kotlin.backend.jvm.ir.isInlineClassType
 import org.jetbrains.kotlin.builtins.StandardNames
 import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.IrImplementationDetail
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.declarations.addValueParameter
@@ -49,28 +52,9 @@ import org.jetbrains.kotlin.ir.builders.irBlockBody
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.builders.irReturn
-import org.jetbrains.kotlin.ir.declarations.IrAnonymousInitializer
-import org.jetbrains.kotlin.ir.declarations.IrAttributeContainer
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrDeclaration
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationBase
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
-import org.jetbrains.kotlin.ir.declarations.IrEnumEntry
-import org.jetbrains.kotlin.ir.declarations.IrField
-import org.jetbrains.kotlin.ir.declarations.IrFile
-import org.jetbrains.kotlin.ir.declarations.IrFunction
-import org.jetbrains.kotlin.ir.declarations.IrLocalDelegatedProperty
-import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
-import org.jetbrains.kotlin.ir.declarations.IrPackageFragment
-import org.jetbrains.kotlin.ir.declarations.IrProperty
-import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
-import org.jetbrains.kotlin.ir.declarations.IrTypeAlias
-import org.jetbrains.kotlin.ir.declarations.IrTypeParameter
-import org.jetbrains.kotlin.ir.declarations.IrValueDeclaration
-import org.jetbrains.kotlin.ir.declarations.IrValueParameter
-import org.jetbrains.kotlin.ir.declarations.IrVariable
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
 import org.jetbrains.kotlin.ir.declarations.impl.IrVariableImpl
-import org.jetbrains.kotlin.ir.declarations.name
 import org.jetbrains.kotlin.ir.expressions.IrBlock
 import org.jetbrains.kotlin.ir.expressions.IrBody
 import org.jetbrains.kotlin.ir.expressions.IrBreakContinue
@@ -142,6 +126,7 @@ import org.jetbrains.kotlin.name.SpecialNames
 import org.jetbrains.kotlin.platform.isJs
 import org.jetbrains.kotlin.platform.jvm.isJvm
 import org.jetbrains.kotlin.util.OperatorNameConventions
+import org.jetbrains.kotlin.utils.IDEAPluginsCompatibilityAPI
 
 /**
  * An enum of the different "states" a parameter of a composable function can have relating to
@@ -868,7 +853,7 @@ class ComposableFunctionBodyTransformer(
             scope.realizeCoalescableGroup()
         }
 
-        declaration.body = IrBlockBodyImpl(
+        declaration.body = IrFactoryImpl.createBlockBody(
             body.startOffset,
             body.endOffset,
             listOfNotNull(
@@ -879,12 +864,14 @@ class ComposableFunctionBodyTransformer(
                             scope,
                             irFunctionSourceKey()
                         )
+
                     collectSourceInformation && !hasExplicitGroups ->
                         irSourceInformationMarkerStart(
                             body,
                             scope,
                             irFunctionSourceKey()
                         )
+
                     else -> null
                 },
                 *scope.markerPreamble.statements.toTypedArray(),
@@ -894,11 +881,12 @@ class ComposableFunctionBodyTransformer(
                     outerGroupRequired -> irEndReplaceableGroup(scope = scope)
                     collectSourceInformation && !hasExplicitGroups ->
                         irSourceInformationMarkerEnd(body, scope)
+
                     else -> null
                 },
                 returnVar?.let { irReturnVar(declaration.symbol, it) }
-            )
-        )
+            ))
+
         if (!outerGroupRequired && !hasExplicitGroups) {
             scope.realizeEndCalls {
                 irComposite(
@@ -1054,7 +1042,7 @@ class ComposableFunctionBodyTransformer(
                 endOffset = body.endOffset
             )
             scope.realizeCoalescableGroup()
-            declaration.body = IrBlockBodyImpl(
+            declaration.body = IrFactoryImpl.createBlockBody(
                 body.startOffset,
                 body.endOffset,
                 listOfNotNull(
@@ -1068,7 +1056,7 @@ class ComposableFunctionBodyTransformer(
             )
         } else {
             scope.realizeCoalescableGroup()
-            declaration.body = IrBlockBodyImpl(
+            declaration.body = IrFactoryImpl.createBlockBody(
                 body.startOffset,
                 body.endOffset,
                 listOfNotNull(
@@ -1251,7 +1239,7 @@ class ComposableFunctionBodyTransformer(
 
         scope.realizeGroup(endWithTraceEventEnd)
 
-        declaration.body = IrBlockBodyImpl(
+        declaration.body = IrFactoryImpl.createBlockBody(
             body.startOffset,
             body.endOffset,
             listOfNotNull(
