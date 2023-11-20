@@ -67,17 +67,13 @@ class SystemFont(
  */
 class LoadedFont internal constructor(
     override val identity: String,
-    val getData: () -> ByteArray,
+    internal val getData: () -> ByteArray,
     override val weight: FontWeight,
     override val style: FontStyle
 ) : PlatformFont() {
     @ExperimentalTextApi
     override val loadingStrategy: FontLoadingStrategy = FontLoadingStrategy.Blocking
 
-    @Deprecated(
-        message = "Use getData() instead",
-        replaceWith = ReplaceWith(expression = "this.getData()")
-    )
     val data: ByteArray get() = getData()
 
     override fun equals(other: Any?): Boolean {
@@ -139,13 +135,6 @@ private class SkiaBackedTypeface(
  *
  * @see FontFamily
  */
-@Deprecated(
-    message = "Use Font with lazy getData argument instead",
-    replaceWith = ReplaceWith(
-        "Font(identity, getData = { data }, weight, style)",
-        "androidx.compose.ui.text.platform.Font"
-    )
-)
 fun Font(
     identity: String,
     data: ByteArray,
