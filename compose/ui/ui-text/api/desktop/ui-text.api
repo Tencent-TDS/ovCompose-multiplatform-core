@@ -1345,7 +1345,6 @@ public final class androidx/compose/ui/text/platform/LoadedFont : androidx/compo
 	public static final field $stable I
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getData ()[B
-	public final fun getGetData ()Lkotlin/jvm/functions/Function0;
 	public fun getIdentity ()Ljava/lang/String;
 	public fun getLoadingStrategy-PKNRLFQ ()I
 	public fun getStyle-_-LCdwA ()I
