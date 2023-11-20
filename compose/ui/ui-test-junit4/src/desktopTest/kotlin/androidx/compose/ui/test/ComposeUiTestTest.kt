@@ -133,7 +133,7 @@ class ComposeUiTestTest {
     }
 
     @Test
-    fun rendererDropdownShouldWork() {
+    fun effectShouldBeCancelledImmediately() {
         runComposeUiTest {
             var runEffect by mutableStateOf(false)
 
