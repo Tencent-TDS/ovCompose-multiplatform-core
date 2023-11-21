@@ -148,6 +148,7 @@ internal abstract class ComposeBridge(
     private val windowInfo = WindowInfoImpl()
     private val desktopTextInputService = DesktopTextInputService(platformComponent)
     protected val platformContext = DesktopPlatformContext()
+    internal var rootForTestListener: PlatformContext.RootForTestListener? by DelegateRootForTestListener()
 
     private val semanticsOwnerListener = DesktopSemanticsOwnerListener()
     val sceneAccessible = ComposeSceneAccessible {
@@ -460,7 +461,7 @@ internal abstract class ComposeBridge(
         }
 
         override val rootForTestListener: PlatformContext.RootForTestListener?
-            get() = null
+            get() = this@ComposeBridge.rootForTestListener
         override val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener?
             get() = this@ComposeBridge.semanticsOwnerListener
     }

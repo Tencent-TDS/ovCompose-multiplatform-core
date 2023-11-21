@@ -70,6 +70,9 @@ class ComposeWindow @ExperimentalComposeUiApi constructor(
 
     internal val scene: ComposeScene
         get() = delegate.scene
+    internal var rootForTestListener
+        get() = delegate.rootForTestListener
+        set(value) { delegate.rootForTestListener = value }
 
     // Don't override the accessible context of JFrame, since accessibility work through HardwareLayer
     internal val windowAccessible: Accessible

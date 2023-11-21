@@ -33,6 +33,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
+import kotlin.reflect.KProperty
 
 /**
  * Platform specific bindings for [Owner].
@@ -132,4 +133,38 @@ private object EmptyTextToolbar : TextToolbar {
 private object EmptyFocusManager : FocusManager {
     override fun clearFocus(force: Boolean) = Unit
     override fun moveFocus(focusDirection: FocusDirection) = false
+}
+
+/**
+ * Helper delegate to re-send missing events to a new listener.
+ */
+internal class DelegateRootForTestListener : PlatformContext.RootForTestListener {
+    private val roots = mutableSetOf<PlatformRootForTest>()
+    private var listener: PlatformContext.RootForTestListener? = null
+
+    override fun onRootForTestCreated(root: PlatformRootForTest) {
+        roots.add(root)
+        listener?.onRootForTestCreated(root)
+    }
+
+    override fun onRootForTestDisposed(root: PlatformRootForTest) {
+        roots.remove(root)
+        listener?.onRootForTestDisposed(root)
+    }
+
+    @Suppress("RedundantNullableReturnType")
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): PlatformContext.RootForTestListener? {
+        return this
+    }
+
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, value: PlatformContext.RootForTestListener?) {
+        listener = value
+        sendMissingEvents()
+    }
+
+    private fun sendMissingEvents() {
+        for (root in roots) {
+            listener?.onRootForTestCreated(root)
+        }
+    }
 }

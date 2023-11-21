@@ -49,6 +49,9 @@ class ComposeDialog : JDialog {
 
     internal val scene: ComposeScene
         get() = delegate.scene
+    internal var rootForTestListener
+        get() = delegate.rootForTestListener
+        set(value) { delegate.rootForTestListener = value }
 
     private fun createDelegate() = ComposeWindowDelegate(
         window = this,
