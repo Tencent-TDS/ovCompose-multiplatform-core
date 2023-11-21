@@ -40,6 +40,10 @@ import androidx.compose.ui.platform.GlobalSnapshotManager
 import kotlin.coroutines.CoroutineContext
 import kotlin.jvm.Volatile
 
+/**
+ * BaseComposeScene is an internal abstract class that implements the ComposeScene interface.
+ * It provides a base implementation for managing composition, input events, and rendering.
+ */
 @OptIn(InternalComposeUiApi::class)
 internal abstract class BaseComposeScene(
     coroutineContext: CoroutineContext,

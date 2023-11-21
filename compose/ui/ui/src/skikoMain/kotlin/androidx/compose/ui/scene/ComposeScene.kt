@@ -26,12 +26,14 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyInputModifierNode
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -44,12 +46,18 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import org.jetbrains.skiko.currentNanoTime
 
+/**
+ * Represents a static [CompositionLocal] key for a [ComposeScene] in Jetpack Compose.
+ *
+ * @see ComposeScene
+ */
 @OptIn(InternalComposeUiApi::class)
 internal val LocalComposeScene = staticCompositionLocalOf<ComposeScene?> { null }
 
@@ -66,15 +74,13 @@ internal fun CompositionLocal<ComposeScene?>.requireCurrent(): ComposeScene {
  * A virtual container that encapsulates Compose UI content. UI content can be constructed via
  * [setContent] method and with any Composable that manipulates [LayoutNode] tree.
  *
- * To specify available size for the content, you should use [constraints].
- *
  * After [ComposeScene] will no longer needed, you should call [close] method, so all resources
  * and subscriptions will be properly closed. Otherwise, there can be a memory leak.
  */
 @InternalComposeUiApi
 interface ComposeScene {
     /**
-     * Density of the content which will be used to convert [dp] units.
+     * Density of the content which will be used to convert [Dp] units.
      */
     var density: Density
 
@@ -83,8 +89,18 @@ interface ComposeScene {
      */
     var layoutDirection: LayoutDirection
 
+    /**
+     * Represents the scene size in scaled pixels ([Dp]).
+     * It's used to apply constrains to the content.
+     */
     var size: IntSize?
 
+    /**
+     * The object that used to share "context" between multiple scenes on the screen.
+     * Also, it provides a way for platform interaction that required within a scene.
+     *
+     * @see ComposeSceneContext
+     */
     val composeSceneContext: ComposeSceneContext
 
     /**
@@ -95,10 +111,21 @@ interface ComposeScene {
     var compositionLocalContext: CompositionLocalContext?
 
     /**
-     * The mouse cursor position or null if cursor is not inside a scene.
+     * The last known position of pointer cursor position or `null` if cursor is not inside a scene.
      */
     val lastKnownPointerPosition: Offset?
 
+    /**
+     * The interface to manages focus within a [ComposeScene].
+     *
+     * This interface extends the [FocusManager] interface and provides additional functions
+     * specific to managing focus within a [ComposeScene].
+     * It can be used to request and release focus, as well as retrieve the coordinates of
+     * the currently focused item.
+     *
+     * @see ComposeSceneFocusManager
+     * @see FocusManager
+     */
     val focusManager: ComposeSceneFocusManager
 
     /**
@@ -137,6 +164,17 @@ interface ComposeScene {
      */
     fun setContent(content: @Composable () -> Unit)
 
+    /**
+     * Sets the key event listener for the ComposeScene.
+     *
+     * @param onPreviewKeyEvent This callback is invoked when the user interacts with the hardware
+     * keyboard. It gives ancestors of a focused component the chance to intercept a [KeyEvent].
+     * Return true to stop propagation of this event. If you return false, the key event will be sent
+     * to this [onPreviewKeyEvent]'s child. If none of the children consume the event, it will be
+     * sent back up to the root using the [onKeyEvent] callback.
+     * @param onKeyEvent This callback is invoked when the user interacts with the hardware keyboard.
+     * While implementing this callback, return true to stop propagation of this event.
+     */
     fun setKeyEventListener(
         onPreviewKeyEvent: ((KeyEvent) -> Boolean)? = null,
         onKeyEvent: ((KeyEvent) -> Boolean)? = null,
@@ -147,8 +185,6 @@ interface ComposeScene {
      * animations in the content (or any other code, which uses [withFrameNanos]
      */
     fun render(canvas: Canvas, nanoTime: Long)
-
-    // TODO: hitTestInteropView
 
     /**
      * Send pointer event to the content.

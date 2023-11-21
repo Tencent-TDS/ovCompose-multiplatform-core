@@ -19,8 +19,10 @@ package androidx.compose.ui.scene
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Composition
 import androidx.compose.runtime.CompositionContext
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -38,11 +40,13 @@ import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.RootNodeOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -54,6 +58,28 @@ import androidx.compose.ui.util.fastForEachReversed
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 
+/**
+ * Constructs a combined [ComposeScene] using the specified parameters. Unlike the standard
+ * [ComposeScene], this version doesn't employ [ComposeSceneContext.createPlatformLayer] to
+ * position a new [LayoutNode] tree. Rather, it keeps track of the added layers on its own in
+ * order to render (and also divide input among them) everything on a single canvas.
+ *
+ * After [ComposeScene] will no longer needed, you should call [ComposeScene.close] method, so
+ * all resources and subscriptions will be properly closed. Otherwise, there can be a memory leak.
+ *
+ * @param density Initial density of the content which will be used to convert [Dp] units.
+ * @param layoutDirection Initial layout direction of the content.
+ * @param size The size of the ComposeScene. Default value is `null`, which means the size will be
+ * determined by the contents.
+ * @param coroutineContext Context which will be used to launch effects ([LaunchedEffect],
+ * [rememberCoroutineScope]) and run recompositions.
+ * @param composeSceneContext The [ComposeSceneContext] to ...
+ * @param invalidate The function to be called when the content need to be recomposed or
+ * re-rendered. If you draw your content using [ComposeScene.render] method, in this callback you
+ * should schedule the next [ComposeScene.render] in your rendering loop.
+ * @return The created ComposeScene.
+ */
+@Suppress("FunctionName")
 @InternalComposeUiApi
 fun CombinedComposeScene(
     density: Density = Density(1f),
