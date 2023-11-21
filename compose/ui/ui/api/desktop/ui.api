@@ -3109,8 +3109,8 @@ public final class androidx/compose/ui/platform/LocalSoftwareKeyboardController 
 
 public abstract interface class androidx/compose/ui/platform/PlatformContext {
 	public static final field Companion Landroidx/compose/ui/platform/PlatformContext$Companion;
-	public fun getFocusManager ()Landroidx/compose/ui/focus/FocusManager;
 	public abstract fun getInputModeManager ()Landroidx/compose/ui/input/InputModeManager;
+	public fun getParentFocusManager ()Landroidx/compose/ui/focus/FocusManager;
 	public fun getRootForTestListener ()Landroidx/compose/ui/platform/PlatformContext$RootForTestListener;
 	public fun getSemanticsOwnerListener ()Landroidx/compose/ui/platform/PlatformContext$SemanticsOwnerListener;
 	public fun getTextInputService ()Landroidx/compose/ui/text/input/PlatformTextInputService;
