@@ -202,6 +202,7 @@ private class CombinedComposeSceneImpl(
         )
     }
 
+    @Deprecated("To be removed. Temporary hack for iOS interop")
     override fun hitTestInteropView(position: Offset): Boolean {
         // TODO:
         //  Temporary solution copying control flow from [processPress].

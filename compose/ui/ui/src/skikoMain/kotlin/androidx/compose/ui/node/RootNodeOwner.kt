@@ -65,7 +65,6 @@ import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.input.PlatformTextInputPluginRegistry
 import androidx.compose.ui.text.input.PlatformTextInputPluginRegistryImpl
 import androidx.compose.ui.text.input.TextInputService
-import androidx.compose.ui.text.platform.FontLoader
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
@@ -248,7 +247,7 @@ internal class RootNodeOwner(
         override val windowInfo get() = platformContext.windowInfo
 
         @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
-        override val fontLoader = FontLoader()
+        override val fontLoader = androidx.compose.ui.text.platform.FontLoader()
         override val fontFamilyResolver = createFontFamilyResolver()
         override val layoutDirection get() = _layoutDirection
         override var showLayoutBounds = false
@@ -347,8 +346,8 @@ internal class RootNodeOwner(
         override fun getFocusDirection(keyEvent: KeyEvent): FocusDirection? {
             return when (keyEvent.key) {
                 Key.Tab -> if (keyEvent.isShiftPressed) FocusDirection.Previous else FocusDirection.Next
-                Key.DirectionCenter -> FocusDirection.In
-                Key.Back -> FocusDirection.Out
+                Key.DirectionCenter -> FocusDirection.Enter
+                Key.Back -> FocusDirection.Exit
                 else -> null
             }
         }

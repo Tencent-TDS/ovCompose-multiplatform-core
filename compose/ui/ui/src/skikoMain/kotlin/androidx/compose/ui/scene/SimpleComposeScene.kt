@@ -125,6 +125,7 @@ private class SimpleComposeSceneImpl(
         )
     }
 
+    @Deprecated("To be removed. Temporary hack for iOS interop")
     override fun hitTestInteropView(position: Offset): Boolean {
         return mainOwner.hitTestInteropView(position)
     }
