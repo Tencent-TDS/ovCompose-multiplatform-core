@@ -74,7 +74,7 @@ class LoadedFont internal constructor(
     @ExperimentalTextApi
     override val loadingStrategy: FontLoadingStrategy = FontLoadingStrategy.Blocking
 
-    val data: ByteArray by lazy { getData() }
+    val data: ByteArray get() = getData()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
