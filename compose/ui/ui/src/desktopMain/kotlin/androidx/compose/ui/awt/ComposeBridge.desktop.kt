@@ -295,7 +295,13 @@ internal abstract class ComposeBridge(
         if (isDisposed) return@catchExceptions
         desktopTextInputService.onKeyEvent(event)
         setCurrentKeyboardModifiers(event.toPointerKeyboardModifiers())
-        if (scene.sendKeyEvent(ComposeKeyEvent(event))) {
+
+        val composeEvent = ComposeKeyEvent(event)
+        if (onPreviewKeyEvent(composeEvent)) {
+            event.consume()
+        } else if (scene.sendKeyEvent(composeEvent)) {
+            event.consume()
+        } else if (onKeyEvent(composeEvent)) {
             event.consume()
         }
     }
@@ -308,14 +314,15 @@ internal abstract class ComposeBridge(
         isDisposed = true
     }
 
+    private var onPreviewKeyEvent: (ComposeKeyEvent) -> Boolean = { false }
+    private var onKeyEvent: (ComposeKeyEvent) -> Boolean = { false }
+
     fun setKeyEventListener(
         onPreviewKeyEvent: (ComposeKeyEvent) -> Boolean = { false },
         onKeyEvent: (ComposeKeyEvent) -> Boolean = { false },
     ) {
-        scene.setKeyEventListener(
-            onPreviewKeyEvent = onPreviewKeyEvent,
-            onKeyEvent = onKeyEvent
-        )
+        this.onPreviewKeyEvent = onPreviewKeyEvent
+        this.onKeyEvent = onKeyEvent
     }
 
     fun setContent(content: @Composable () -> Unit) {

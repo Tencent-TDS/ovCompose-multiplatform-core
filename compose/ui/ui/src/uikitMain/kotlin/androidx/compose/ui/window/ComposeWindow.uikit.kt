@@ -688,7 +688,10 @@ internal actual class ComposeWindow : UIViewController {
         skikoUIView.inputTraits = inputTraits
         skikoUIView.delegate = object : SkikoUIViewDelegate {
             override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
-                scene.sendKeyEvent(KeyEvent(event))
+                val composeEvent = KeyEvent(event)
+                if (!inputServices.onPreviewKeyEvent(composeEvent)) {
+                    scene.sendKeyEvent(composeEvent)
+                }
             }
 
             override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
@@ -748,10 +751,6 @@ internal actual class ComposeWindow : UIViewController {
             }
         }
 
-        scene.setKeyEventListener(
-            onPreviewKeyEvent = inputServices::onPreviewKeyEvent,
-            onKeyEvent = { false },
-        )
         scene.setContent {
             if (!isReadyToShowContent.value) return@setContent
             CompositionLocalProvider(

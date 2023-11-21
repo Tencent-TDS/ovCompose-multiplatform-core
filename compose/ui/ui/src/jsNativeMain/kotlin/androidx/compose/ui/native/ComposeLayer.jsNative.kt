@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.native
 
-import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
@@ -30,8 +29,6 @@ import androidx.compose.ui.scene.CombinedComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skia.Canvas
@@ -147,19 +144,11 @@ internal class ComposeLayer(
         layer.needRedraw()
     }
 
-    fun setContent(
-        onPreviewKeyEvent: (ComposeKeyEvent) -> Boolean = { false },
-        onKeyEvent: (ComposeKeyEvent) -> Boolean = { false },
-        content: @Composable () -> Unit
-    ) {
+    fun setContent(content: @Composable () -> Unit) {
         // If we call it before attaching, everything probably will be fine,
         // but the first composition will be useless, as we set density=1
         // (we don't know the real density if we have unattached component)
         _initContent = {
-            scene.setKeyEventListener(
-                onPreviewKeyEvent = onPreviewKeyEvent,
-                onKeyEvent = onKeyEvent
-            )
             scene.setContent(content)
         }
 

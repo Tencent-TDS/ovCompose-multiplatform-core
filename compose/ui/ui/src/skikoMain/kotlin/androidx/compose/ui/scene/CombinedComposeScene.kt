@@ -189,18 +189,6 @@ private class CombinedComposeSceneImpl(
         super.close()
     }
 
-    override fun setKeyEventListener(
-        onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
-        onKeyEvent: ((KeyEvent) -> Boolean)?
-    ) {
-        mainOwner.setRootModifier(
-            KeyInputElement(
-                onKeyEvent = onKeyEvent,
-                onPreKeyEvent = onPreviewKeyEvent
-            )
-        )
-    }
-
     override fun calculateContentSize(): IntSize {
         check(!isClosed) { "ComposeScene is closed" }
         return mainOwner.measureInConstraints(Constraints())

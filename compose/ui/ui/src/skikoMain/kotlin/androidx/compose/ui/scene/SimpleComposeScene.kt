@@ -25,14 +25,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.key.KeyInputElement
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.node.RootNodeOwner
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toIntRect
@@ -113,18 +110,6 @@ private class SimpleComposeSceneImpl(
         check(!isClosed) { "ComposeScene is already closed" }
         mainOwner.dispose()
         super.close()
-    }
-
-    override fun setKeyEventListener(
-        onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
-        onKeyEvent: ((KeyEvent) -> Boolean)?
-    ) {
-        mainOwner.setRootModifier(
-            KeyInputElement(
-                onKeyEvent = onKeyEvent,
-                onPreKeyEvent = onPreviewKeyEvent
-            )
-        )
     }
 
     override fun calculateContentSize(): IntSize {
