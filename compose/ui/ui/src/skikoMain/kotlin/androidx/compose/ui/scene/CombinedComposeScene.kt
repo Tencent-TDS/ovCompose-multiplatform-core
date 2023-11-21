@@ -59,7 +59,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 
 /**
- * Constructs a combined [ComposeScene] using the specified parameters. Unlike the standard
+ * Constructs a combined [ComposeScene] using the specified parameters. Unlike the regular
  * [ComposeScene], this version doesn't employ [ComposeSceneContext.createPlatformLayer] to
  * position a new [LayoutNode] tree. Rather, it keeps track of the added layers on its own in
  * order to render (and also divide input among them) everything on a single canvas.
@@ -73,11 +73,14 @@ import kotlinx.coroutines.Dispatchers
  * determined by the contents.
  * @param coroutineContext Context which will be used to launch effects ([LaunchedEffect],
  * [rememberCoroutineScope]) and run recompositions.
- * @param composeSceneContext The [ComposeSceneContext] to ...
+ * @param composeSceneContext The context to share resources between multiple scenes and provide
+ * a way for platform interaction.
  * @param invalidate The function to be called when the content need to be recomposed or
  * re-rendered. If you draw your content using [ComposeScene.render] method, in this callback you
  * should schedule the next [ComposeScene.render] in your rendering loop.
- * @return The created ComposeScene.
+ * @return The created [ComposeScene].
+ *
+ * @see ComposeScene
  */
 @Suppress("FunctionName")
 @InternalComposeUiApi
@@ -97,7 +100,6 @@ fun CombinedComposeScene(
     invalidate = invalidate
 )
 
-@OptIn(InternalComposeUiApi::class)
 private class CombinedComposeSceneImpl(
     density: Density,
     layoutDirection: LayoutDirection,

@@ -26,17 +26,30 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 
+/**
+ * An extra layer for the [ComposeScene].
+ * This is utilized to display content as a new [LayoutNode] tree.
+ * It is designed to be implemented by platform as adapter for separate platform view/canvas.
+ *
+ * @see Popup
+ * @see Dialog
+ */
 @InternalComposeUiApi
 interface ComposeSceneLayer {
     /**
-     * Density of the content which will be used to convert [dp] units.
+     * Density of the content which will be used to convert [Dp] units.
      */
     var density: Density
 
@@ -45,20 +58,41 @@ interface ComposeSceneLayer {
      */
     var layoutDirection: LayoutDirection
 
+    /**
+     * The real bounds of content in scaled pixels relative to window.
+     * This property is used to set the position and size of [Popup]/[Dialog].
+     * The implementation should be ready to react on the changes in size/position that can
+     * happen during recompositions.
+     */
     var bounds: IntRect
 
+    /**
+     * The color of the background fill. It can be set to null if no background drawing is necessary.
+     * The anticipated behavior from the implementation is to draw a full-window-sized rectangle
+     * using this color. This rectangle should be layered above the main scene content/canvas
+     * but below the content of this layer.
+     *
+     * @see DialogProperties.scrimColor
+     */
     var scrimColor: Color?
 
+    /**
+     * Indicates if the layer is able to receive focus. When set to true, it can process IME events and key presses,
+     * for example, the pressing of the back button.
+     *
+     * This flag also influences the expected behavior of [setOutsidePointerEventListener]:
+     * when [focusable] is true, touch events outside of this layer's bounds are not propagated to
+     * the content layered below this one.
+     *
+     * @see PopupProperties.focusable
+     */
     var focusable: Boolean
 
     /**
-     * Close all resources and subscriptions. Not calling this method when [ComposeScene] is no
-     * longer needed will cause a memory leak.
-     *
-     * All effects launched via [LaunchedEffect] or [rememberCoroutineScope] will be cancelled
-     * (but not immediately).
-     *
-     * After calling this method, you cannot call any other method of this [ComposeScene].
+     * Close all resources and subscriptions. It's anticipated that the platform implementation
+     * will automatically close all layers along with the parent scene.
+     * Once this method has been called, invoking any other method of this [ComposeSceneLayer]
+     * is prohibited.
      */
     fun close()
 
@@ -74,7 +108,7 @@ interface ComposeSceneLayer {
     fun setContent(content: @Composable () -> Unit)
 
     /**
-     * Sets the key event listener.
+     * Sets the root key event listener.
      *
      * @param onPreviewKeyEvent This callback is invoked when the user interacts with the hardware
      * keyboard. It gives ancestors of a focused component the chance to intercept a [KeyEvent].
@@ -89,12 +123,30 @@ interface ComposeSceneLayer {
         onKeyEvent: ((KeyEvent) -> Boolean)? = null,
     )
 
+    /**
+     * Establishes a callback function that is triggered when a pointer event occurs outside
+     * of [bounds]. It's important to note that any gestures initiated within the [bounds] should
+     * be entirely handled by this layer, without activating this event.
+     *
+     * @param onOutsidePointerEvent The callback function that is invoked when a pointer event
+     * occurs outside. It accepts a boolean parameter to denote if the event is intended to close
+     * this layer. When the parameter is true, it typically signifies that it's the primary (left)
+     * mouse button or single pointer that executed a full click (press and release) outside
+     * of [bounds], and false in all other cases.
+     */
     fun setOutsidePointerEventListener(
-        onOutsidePointerEvent: ((Boolean) -> Unit)? = null,
+        onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)? = null,
     )
 }
 
-@OptIn(InternalComposeUiApi::class)
+/**
+ * Creates and remembers a [ComposeSceneLayer] to be used as an extra layer for
+ * the current [ComposeScene]. This layer can be utilized to display content
+ * as a new [LayoutNode] tree.
+ *
+ * @param focusable Indicates whether the layer is focusable. Default value is false.
+ * @return The created [ComposeSceneLayer].
+ */
 @Composable
 internal fun rememberComposeSceneLayer(
     focusable: Boolean = false

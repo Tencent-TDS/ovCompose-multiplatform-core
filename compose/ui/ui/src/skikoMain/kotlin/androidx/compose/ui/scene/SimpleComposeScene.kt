@@ -19,6 +19,8 @@ package androidx.compose.ui.scene
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Composition
 import androidx.compose.runtime.CompositionContext
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.geometry.Offset
@@ -26,16 +28,38 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerInputEvent
+import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.RootNodeOwner
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toIntRect
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
-
+/**
+ * Constructs a [ComposeScene] using the specified parameters.
+ *
+ * After [ComposeScene] will no longer needed, you should call [ComposeScene.close] method, so
+ * all resources and subscriptions will be properly closed. Otherwise, there can be a memory leak.
+ *
+ * @param density Initial density of the content which will be used to convert [Dp] units.
+ * @param layoutDirection Initial layout direction of the content.
+ * @param size The size of the ComposeScene. Default value is `null`, which means the size will be
+ * determined by the contents.
+ * @param coroutineContext Context which will be used to launch effects ([LaunchedEffect],
+ * [rememberCoroutineScope]) and run recompositions.
+ * @param composeSceneContext The context to share resources between multiple scenes and provide
+ * a way for platform interaction.
+ * @param invalidate The function to be called when the content need to be recomposed or
+ * re-rendered. If you draw your content using [ComposeScene.render] method, in this callback you
+ * should schedule the next [ComposeScene.render] in your rendering loop.
+ * @return The created [ComposeScene].
+ *
+ * @see ComposeScene
+ */
 @InternalComposeUiApi
 fun ComposeScene(
     density: Density = Density(1f),
@@ -53,7 +77,6 @@ fun ComposeScene(
     invalidate = invalidate
 )
 
-@OptIn(InternalComposeUiApi::class)
 private class SimpleComposeSceneImpl(
     density: Density,
     layoutDirection: LayoutDirection,
