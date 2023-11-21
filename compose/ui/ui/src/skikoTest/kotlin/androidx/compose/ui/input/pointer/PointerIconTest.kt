@@ -350,7 +350,7 @@ private fun ComposeScene(
     invalidate: () -> Unit = {},
 ) = ComposeScene(
     coroutineContext = coroutineContext,
-    composeSceneContext = object : ComposeSceneContext by ComposeSceneContext.Empty {
+    composeSceneContext = object : ComposeSceneContext {
         override val platformContext get() = platformContext
     },
     invalidate = invalidate

@@ -73,6 +73,17 @@ interface ComposeSceneLayer {
      */
     fun setContent(content: @Composable () -> Unit)
 
+    /**
+     * Sets the key event listener.
+     *
+     * @param onPreviewKeyEvent This callback is invoked when the user interacts with the hardware
+     * keyboard. It gives ancestors of a focused component the chance to intercept a [KeyEvent].
+     * Return true to stop propagation of this event. If you return false, the key event will be sent
+     * to this [onPreviewKeyEvent]'s child. If none of the children consume the event, it will be
+     * sent back up to the root using the [onKeyEvent] callback.
+     * @param onKeyEvent This callback is invoked when the user interacts with the hardware keyboard.
+     * While implementing this callback, return true to stop propagation of this event.
+     */
     fun setKeyEventListener(
         onPreviewKeyEvent: ((KeyEvent) -> Boolean)? = null,
         onKeyEvent: ((KeyEvent) -> Boolean)? = null,

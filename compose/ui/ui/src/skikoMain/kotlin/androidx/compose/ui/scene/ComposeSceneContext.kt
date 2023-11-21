@@ -22,10 +22,26 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 
+/**
+ * Interface representing the context for [ComposeScene].
+ * It's used to share resources between multiple scenes and provide a way for platform interaction.
+ */
 @InternalComposeUiApi
 interface ComposeSceneContext {
+    /**
+     * Represents the platform-specific context used for platform interaction in a [ComposeScene].
+     */
     val platformContext: PlatformContext get() = PlatformContext.Empty
 
+    /**
+     * Creates a platform-specific layer for the [ComposeScene].
+     *
+     * @param density The density of the layer.
+     * @param layoutDirection The layout direction of the layer.
+     * @param focusable Indicates whether the layer is focusable.
+     * @param compositionContext The composition context for the layer.
+     * @return The created [ComposeSceneLayer] representing the platform-specific layer.
+     */
     fun createPlatformLayer(
         density: Density,
         layoutDirection: LayoutDirection,
@@ -36,6 +52,10 @@ interface ComposeSceneContext {
     }
 
     companion object {
+        /**
+         * Represents an empty implementation of [ComposeSceneContext] and used to provide
+         * a default value.
+         */
         val Empty = object : ComposeSceneContext {
         }
     }

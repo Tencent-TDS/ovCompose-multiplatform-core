@@ -34,6 +34,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyInputModifierNode
+import androidx.compose.ui.input.pointer.InteropViewCatchPointerModifier
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -51,6 +52,8 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.Popup
 import org.jetbrains.skiko.currentNanoTime
 
 /**
@@ -236,9 +239,27 @@ interface ComposeScene {
      */
     fun sendKeyEvent(keyEvent: KeyEvent): Boolean
 
-    // FIXME: To be removed. Temporary hack for iOS interop
+    /**
+     * If [position] is inside interop view, then [ComposeScene] skip touches to forward it to
+     * platform interop view.
+     *
+     * @see InteropViewCatchPointerModifier
+     */
+    @Deprecated("To be removed. Temporary hack for iOS interop")
     fun hitTestInteropView(position: Offset): Boolean
 
+    /**
+     * Creates a new [ComposeSceneLayer] with the specified parameters.
+     * It's used to create a new layer for [Popup] or [Dialog].
+     *
+     * @see rememberComposeSceneLayer
+     *
+     * @param density The density of the layer.
+     * @param layoutDirection The layout direction of the layer.
+     * @param focusable Indicates whether the layer is focusable.
+     * @param compositionContext The composition context for the layer.
+     * @return The created [ComposeSceneLayer].
+     */
     fun createLayer(
         density: Density,
         layoutDirection: LayoutDirection,

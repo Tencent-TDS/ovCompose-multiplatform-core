@@ -31,10 +31,14 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.SyntheticEventSender
 import androidx.compose.ui.input.pointer.areAnyPressed
 import androidx.compose.ui.input.pointer.copyFor
+import androidx.compose.ui.node.RootNodeOwner
 import org.jetbrains.skiko.currentNanoTime
 
 /**
  * Handles input events for [ComposeScene].
+ * It's used to encapsulate input handling and share between scene implementations.
+ * Also, it's passed to [RootNodeOwner] to handle [onPointerUpdate] callback and provide
+ * interface for initiating input from tests.
  *
  * @see SyntheticEventSender
  */
@@ -47,11 +51,16 @@ internal class ComposeSceneInputHandler(
     private val syntheticEventSender = SyntheticEventSender(processPointerInputEvent)
 
     /**
-     * The mouse cursor position or null if cursor is not inside a scene.
+     * The mouse cursor (also works with touch pointer) position
+     * or `null` if cursor is not inside a scene.
      */
     val lastKnownPointerPosition: Offset?
         get() = pointerPositions.values.firstOrNull()
 
+    /**
+     * Indicates if there were invalidations and triggering [BaseComposeScene.measureAndLayout]
+     * is now required.
+     */
     val hasInvalidations: Boolean
         get() = syntheticEventSender.needUpdatePointerPosition
 

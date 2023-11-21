@@ -157,7 +157,7 @@ internal abstract class ComposeBridge(
     private val sceneCoroutineContext = MainUIDispatcher + coroutineExceptionHandler
     internal val scene = CombinedComposeScene(
         coroutineContext = sceneCoroutineContext,
-        composeSceneContext = object : ComposeSceneContext by ComposeSceneContext.Empty {
+        composeSceneContext = object : ComposeSceneContext {
             override val platformContext get() = this@ComposeBridge.platformContext
         },
         density = Density(1f),

@@ -694,6 +694,7 @@ internal actual class ComposeWindow : UIViewController {
                 }
             }
 
+            @Suppress("DEPRECATION")
             override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
                 point.useContents {
                     val position = Offset(
