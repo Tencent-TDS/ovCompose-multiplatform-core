@@ -97,6 +97,8 @@ internal abstract class BaseComposeScene(
 
     /**
      * The last known position of pointer cursor position or `null` if cursor is not inside a scene.
+     *
+     * TODO: Move it to PlatformContext
      */
     val lastKnownPointerPosition by inputHandler::lastKnownPointerPosition
 
