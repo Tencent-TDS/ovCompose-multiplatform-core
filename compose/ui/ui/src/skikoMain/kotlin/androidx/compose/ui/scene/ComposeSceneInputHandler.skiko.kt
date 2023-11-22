@@ -42,6 +42,7 @@ import org.jetbrains.skiko.currentNanoTime
  * @see SyntheticEventSender
  */
 internal class ComposeSceneInputHandler(
+    private val prepareForPointerInputEvent: () -> Unit,
     processPointerInputEvent: (PointerInputEvent) -> Unit,
     private val processKeyEvent: (KeyEvent) -> Boolean,
 ) {
@@ -112,6 +113,7 @@ internal class ComposeSceneInputHandler(
             keyboardModifiers,
             button,
         )
+        prepareForPointerInputEvent()
         syntheticEventSender.send(event)
         updatePointerPositions(event)
     }

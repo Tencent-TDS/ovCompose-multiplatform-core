@@ -56,7 +56,11 @@ internal abstract class BaseComposeScene(
 ) : ComposeScene {
     protected val snapshotInvalidationTracker = SnapshotInvalidationTracker(::invalidateIfNeeded)
     protected val inputHandler: ComposeSceneInputHandler =
-        ComposeSceneInputHandler(::processPointerInputEvent, ::processKeyEvent)
+        ComposeSceneInputHandler(
+            prepareForPointerInputEvent = ::doLayout,
+            processPointerInputEvent = ::processPointerInputEvent,
+            processKeyEvent = ::processKeyEvent
+        )
 
     private val frameClock = BroadcastFrameClock(onNewAwaiters = ::invalidateIfNeeded)
     private val recomposer: ComposeSceneRecomposer =
@@ -144,10 +148,7 @@ internal abstract class BaseComposeScene(
         recomposer.performScheduledTasks()
         frameClock.sendFrame(nanoTime) // Recomposition
 
-        snapshotInvalidationTracker.onLayout()
-        measureAndLayout()
-        inputHandler.onLayout()
-
+        doLayout()
         snapshotInvalidationTracker.onDraw()
         draw(canvas)
     }
@@ -163,10 +164,6 @@ internal abstract class BaseComposeScene(
         nativeEvent: Any?,
         button: PointerButton?
     ) = postponeInvalidation {
-        snapshotInvalidationTracker.onLayout()
-        measureAndLayout()
-        inputHandler.onLayout()
-
         inputHandler.onPointerEvent(
             eventType = eventType,
             position = position,
@@ -192,10 +189,6 @@ internal abstract class BaseComposeScene(
         nativeEvent: Any?,
         button: PointerButton?,
     ) = postponeInvalidation {
-        snapshotInvalidationTracker.onLayout()
-        measureAndLayout()
-        inputHandler.onLayout()
-
         inputHandler.onPointerEvent(
             eventType = eventType,
             pointers = pointers,
@@ -210,6 +203,12 @@ internal abstract class BaseComposeScene(
 
     override fun sendKeyEvent(keyEvent: KeyEvent): Boolean = postponeInvalidation {
         inputHandler.onKeyEvent(keyEvent)
+    }
+
+    private fun doLayout() {
+        snapshotInvalidationTracker.onLayout()
+        measureAndLayout()
+        inputHandler.onLayout()
     }
 
     protected abstract fun createComposition(content: @Composable () -> Unit): Composition

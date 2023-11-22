@@ -424,23 +424,17 @@ internal class RootNodeOwner(
             keyboardModifiers: PointerKeyboardModifiers?,
             nativeEvent: Any?,
             button: PointerButton?
-        ) {
-            snapshotInvalidationTracker.onLayout()
-            measureAndLayout()
-            inputHandler.onLayout()
-
-            inputHandler.onPointerEvent(
-                eventType = eventType,
-                position = position,
-                scrollDelta = scrollDelta,
-                timeMillis = timeMillis,
-                type = type,
-                buttons = buttons,
-                keyboardModifiers = keyboardModifiers,
-                nativeEvent = nativeEvent,
-                button = button
-            )
-        }
+        ) = inputHandler.onPointerEvent(
+            eventType = eventType,
+            position = position,
+            scrollDelta = scrollDelta,
+            timeMillis = timeMillis,
+            type = type,
+            buttons = buttons,
+            keyboardModifiers = keyboardModifiers,
+            nativeEvent = nativeEvent,
+            button = button
+        )
 
         /**
          * Handles the input initiated by tests.
@@ -454,29 +448,22 @@ internal class RootNodeOwner(
             timeMillis: Long,
             nativeEvent: Any?,
             button: PointerButton?,
-        ) {
-            snapshotInvalidationTracker.onLayout()
-            measureAndLayout()
-            inputHandler.onLayout()
-
-            inputHandler.onPointerEvent(
-                eventType = eventType,
-                pointers = pointers,
-                buttons = buttons,
-                keyboardModifiers = keyboardModifiers,
-                scrollDelta = scrollDelta,
-                timeMillis = timeMillis,
-                nativeEvent = nativeEvent,
-                button = button
-            )
-        }
+        ) = inputHandler.onPointerEvent(
+            eventType = eventType,
+            pointers = pointers,
+            buttons = buttons,
+            keyboardModifiers = keyboardModifiers,
+            scrollDelta = scrollDelta,
+            timeMillis = timeMillis,
+            nativeEvent = nativeEvent,
+            button = button
+        )
 
         /**
          * Handles the input initiated by tests or accessibility.
          */
-        override fun sendKeyEvent(keyEvent: KeyEvent): Boolean {
-            return inputHandler.onKeyEvent(keyEvent)
-        }
+        override fun sendKeyEvent(keyEvent: KeyEvent): Boolean =
+            inputHandler.onKeyEvent(keyEvent)
     }
 
     private inner class PointerIconServiceImpl : PointerIconService {
