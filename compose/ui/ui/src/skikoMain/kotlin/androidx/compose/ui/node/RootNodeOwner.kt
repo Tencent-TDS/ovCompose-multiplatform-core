@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.PlatformClipboardManager
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformRootForTest
 import androidx.compose.ui.platform.RenderNodeLayer
+import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.semantics.EmptySemanticsElement
@@ -74,6 +75,12 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.round
 import kotlin.coroutines.CoroutineContext
 
+/**
+ * Owner of root [LayoutNode].
+ *
+ * It hides [Owner]/[RootForTest] implementations, but provides everything that
+ * [ComposeScene] need.
+ */
 internal class RootNodeOwner(
     density: Density,
     layoutDirection: LayoutDirection,

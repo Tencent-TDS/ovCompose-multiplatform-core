@@ -24,8 +24,11 @@ import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.node.Owner
 import androidx.compose.ui.node.RootForTest
+import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import org.jetbrains.skiko.currentNanoTime
@@ -37,12 +40,14 @@ import org.jetbrains.skiko.currentNanoTime
 @InternalComposeUiApi
 interface PlatformRootForTest : RootForTest {
     /**
-     * TODO
+     * The non-clipped area of the [Owner] in scaled pixels relative to window.
+     * It's used to check if [SemanticsNode] is visible (in screen bounds).
      */
     val visibleBounds: IntRect
 
     /**
-     * Whether the Owner has pending layout work.
+     * Whether the [Owner] has pending layout work.
+     * It's used to check if it's in idle state.
      */
     val hasPendingMeasureOrLayout: Boolean
 

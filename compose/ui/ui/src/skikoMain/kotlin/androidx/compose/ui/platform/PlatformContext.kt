@@ -27,6 +27,8 @@ import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.node.Owner
+import androidx.compose.ui.node.RootForTest
+import androidx.compose.ui.scene.CombinedComposeScene
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
@@ -36,11 +38,22 @@ import androidx.compose.ui.text.input.TextFieldValue
 import kotlin.reflect.KProperty
 
 /**
- * Platform specific bindings for [Owner].
+ * Platform context that provides platform-specific bindings.
  */
 @InternalComposeUiApi
 interface PlatformContext {
+    /**
+     * The value that will be provided to [LocalWindowInfo] by default.
+     */
     val windowInfo: WindowInfo
+
+    /**
+     * Indicates if the compose view is positioned in a transparent window.
+     * This is used when rendering the scrim of a dialog - if set to true, a special blending mode
+     * will be used to take into account the existing alpha-channel values.
+     *
+     * @see CombinedComposeScene
+     */
     var isWindowTransparent: Boolean
         get() = false
         set(_) {}
@@ -54,7 +67,14 @@ interface PlatformContext {
     val parentFocusManager: FocusManager get() = EmptyFocusManager
     fun requestFocus(): Boolean = false
 
+    /**
+     * The listener to track [RootForTest]s lifecycle.
+     */
     val rootForTestListener: RootForTestListener? get() = null
+
+    /**
+     * The listener to track [SemanticsOwner]s lifecycle.
+     */
     val semanticsOwnerListener: SemanticsOwnerListener? get() = null
 
     interface RootForTestListener {
