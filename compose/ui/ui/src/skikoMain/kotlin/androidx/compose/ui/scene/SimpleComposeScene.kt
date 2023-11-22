@@ -198,6 +198,3 @@ private class SimpleComposeSceneImpl(
             focusOwner.moveFocus(focusDirection)
     }
 }
-
-private val ComposeScene.semanticsOwnerListener
-    get() = composeSceneContext.platformContext.semanticsOwnerListener

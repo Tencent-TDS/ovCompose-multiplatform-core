@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.scene.BaseComposeScene
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -42,5 +43,8 @@ class DesktopWindowInfoTest {
     }
 }
 
-private val ComposeScene.windowInfo
-    get() = composeSceneContext.platformContext.windowInfo
+private val ComposeScene.windowInfo: WindowInfo
+    get() {
+        this as BaseComposeScene
+        return composeSceneContext.platformContext.windowInfo
+    }

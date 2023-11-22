@@ -37,17 +37,21 @@ import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.node.SnapshotInvalidationTracker
 import androidx.compose.ui.platform.GlobalSnapshotManager
+import androidx.compose.ui.platform.PlatformContext
 import kotlin.coroutines.CoroutineContext
 import kotlin.jvm.Volatile
 
 /**
  * BaseComposeScene is an internal abstract class that implements the ComposeScene interface.
  * It provides a base implementation for managing composition, input events, and rendering.
+ *
+ * @property composeSceneContext the object that used to share "context" between multiple scenes
+ * on the screen. Also, it provides a way for platform interaction that required within a scene.
  */
 @OptIn(InternalComposeUiApi::class)
 internal abstract class BaseComposeScene(
     coroutineContext: CoroutineContext,
-    override val composeSceneContext: ComposeSceneContext,
+    val composeSceneContext: ComposeSceneContext,
     private val invalidate: () -> Unit,
 ) : ComposeScene {
     protected val snapshotInvalidationTracker = SnapshotInvalidationTracker(::invalidateIfNeeded)
@@ -218,3 +222,20 @@ internal abstract class BaseComposeScene(
 
     protected abstract fun draw(canvas: Canvas)
 }
+
+internal val BaseComposeScene.semanticsOwnerListener
+    get() = composeSceneContext.platformContext.semanticsOwnerListener
+
+// TODO: Remove the cast once there is a way to obtain [PlatformContext] without the scene
+internal val ComposeScene.platformContext: PlatformContext
+    get() {
+        this as BaseComposeScene
+        return composeSceneContext.platformContext
+    }
+
+// TODO: Remove the cast once there is a way to obtain it from [PlatformContext]
+internal val ComposeScene.lastKnownPointerPosition: Offset?
+    get() {
+        this as BaseComposeScene
+        return lastKnownPointerPosition
+    }

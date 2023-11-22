@@ -593,9 +593,6 @@ private class CombinedComposeSceneImpl(
     }
 }
 
-private val ComposeScene.semanticsOwnerListener
-    get() = composeSceneContext.platformContext.semanticsOwnerListener
-
 private val PointerInputEvent.isGestureInProgress get() = pointers.fastAny { it.down }
 
 private fun PointerInputEvent.isMainAction() =

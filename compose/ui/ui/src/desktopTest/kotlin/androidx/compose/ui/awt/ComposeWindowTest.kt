@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.BaseComposeScene
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.sendMouseEvent
@@ -293,5 +294,8 @@ class ComposeWindowTest {
     private class TestException : Exception()
 }
 
-private val ComposeScene.windowInfo
-    get() = composeSceneContext.platformContext.windowInfo
+private val ComposeScene.windowInfo: WindowInfo
+    get() {
+        this as BaseComposeScene
+        return composeSceneContext.platformContext.windowInfo
+    }

@@ -77,6 +77,11 @@ internal fun CompositionLocal<ComposeScene?>.requireCurrent(): ComposeScene {
  *
  * After [ComposeScene] will no longer needed, you should call [close] method, so all resources
  * and subscriptions will be properly closed. Otherwise, there can be a memory leak.
+ *
+ * It is marked as [InternalComposeUiApi] and used by default Compose entry points
+ * (such as application, runComposeUiTest, ComposeWindow). While it can be used by
+ * third-party users for integrating Compose into other platforms, it does not come
+ * with any guarantee of stability.
  */
 @InternalComposeUiApi
 interface ComposeScene {
@@ -97,14 +102,6 @@ interface ComposeScene {
      * the window size will be utilized to bounds verification.
      */
     var size: IntSize?
-
-    /**
-     * The object that used to share "context" between multiple scenes on the screen.
-     * Also, it provides a way for platform interaction that required within a scene.
-     *
-     * @see ComposeSceneContext
-     */
-    val composeSceneContext: ComposeSceneContext
 
     /**
      * Top-level composition locals, which will be provided for the Composable content, which is set by [setContent].

@@ -29,7 +29,9 @@ import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.scene.BaseComposeScene
 import androidx.compose.ui.scene.LocalComposeScene
+import androidx.compose.ui.scene.platformContext
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.ComponentUpdater
@@ -399,8 +401,7 @@ fun Window(
     val windowExceptionHandlerFactory by rememberUpdatedState(
         LocalWindowExceptionHandlerFactory.current
     )
-    val parentScene = LocalComposeScene.current
-    val parentPlatformContext = parentScene?.composeSceneContext?.platformContext
+    val parentPlatformContext = LocalComposeScene.current?.platformContext
     val layoutDirection = LocalLayoutDirection.current
     AwtWindow(
         visible = visible,
