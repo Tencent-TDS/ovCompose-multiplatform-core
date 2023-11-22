@@ -425,6 +425,7 @@ internal abstract class ComposeBridge(
         val accessibilityControllers get() = _accessibilityControllers.values.reversed()
 
         override fun onSemanticsOwnerCreated(semanticsOwner: SemanticsOwner) {
+            check(semanticsOwner !in _accessibilityControllers)
             val accessibilityController = AccessibilityController(
                 owner = semanticsOwner,
                 desktopComponent = platformComponent,
