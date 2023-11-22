@@ -417,7 +417,10 @@ internal abstract class ComposeBridge(
     }
 
     private inner class DesktopSemanticsOwnerListener : PlatformContext.SemanticsOwnerListener {
-        // Keep insertion-order via linked map
+        /**
+         * A new [SemanticsOwner] is always created above existing ones. So, usage of [LinkedHashMap]
+         * is required here to keep insertion-order (that equal to [SemanticsOwner]s order).
+         */
         private val _accessibilityControllers = linkedMapOf<SemanticsOwner, AccessibilityController>()
         val accessibilityControllers get() = _accessibilityControllers.values.reversed()
 

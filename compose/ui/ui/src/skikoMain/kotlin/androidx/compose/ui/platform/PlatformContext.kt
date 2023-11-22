@@ -29,6 +29,7 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.node.Owner
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.scene.CombinedComposeScene
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
@@ -69,11 +70,15 @@ interface PlatformContext {
 
     /**
      * The listener to track [RootForTest]s lifecycle.
+     *
+     * @see RootForTestListener
      */
     val rootForTestListener: RootForTestListener? get() = null
 
     /**
      * The listener to track [SemanticsOwner]s lifecycle.
+     *
+     * @see SemanticsOwnerListener
      */
     val semanticsOwnerListener: SemanticsOwnerListener? get() = null
 
@@ -83,9 +88,30 @@ interface PlatformContext {
     }
 
     interface SemanticsOwnerListener {
+        /**
+         * Callback method that is called when a [SemanticsOwner] is created.
+         * A new [SemanticsOwner] is always created above existing ones.
+         *
+         * @param semanticsOwner the [SemanticsOwner] that was created
+         */
         fun onSemanticsOwnerCreated(semanticsOwner: SemanticsOwner)
+
+        /**
+         * Callback method that is called when a [SemanticsOwner] is disposed.
+         *
+         * @param semanticsOwner the [SemanticsOwner] that was disposed
+         */
         fun onSemanticsOwnerDisposed(semanticsOwner: SemanticsOwner)
 
+        /**
+         * Callback method that is called when a [SemanticsNode] is added to or deleted from
+         * the Semantics tree. It will also be called when a [SemanticsNode] in the Semantics tree
+         * has some property change.
+         *
+         * @param semanticsOwner the [SemanticsOwner] whose semantics have changed
+         *
+         * @see Owner.onSemanticsChange
+         */
         fun onSemanticsChange(semanticsOwner: SemanticsOwner)
     }
 
