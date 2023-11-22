@@ -144,10 +144,10 @@ private class CombinedComposeSceneImpl(
             forEachLayer { it.size = value }
         }
 
-    override val focusManager: ComposeSceneFocusManager =
-        ComposeSceneFocusManagerImpl()
+    private val _focusManager = ComposeSceneFocusManagerImpl()
+    override val focusManager: ComposeSceneFocusManager
+        get() = _focusManager
 
-    private var isFocused = true
     private val layers = mutableListOf<AttachedComposeSceneLayer>()
     private val _layersCopyCache = CopiedList {
         it.addAll(layers)
@@ -390,11 +390,11 @@ private class CombinedComposeSceneImpl(
         compositionContext = compositionContext,
     )
 
-    private fun onOwnerAdded(owner: RootNodeOwner) = with(owner.focusOwner) {
-        if (isFocused) {
-            takeFocus()
+    private fun onOwnerAdded(owner: RootNodeOwner) {
+        if (_focusManager.isFocused) {
+            owner.focusOwner.takeFocus()
         } else {
-            releaseFocus()
+            owner.focusOwner.releaseFocus()
         }
     }
 
@@ -449,6 +449,9 @@ private class CombinedComposeSceneImpl(
 
     private inner class ComposeSceneFocusManagerImpl : ComposeSceneFocusManager {
         private val focusOwner get() = focusedOwner.focusOwner
+        var isFocused = true
+            private set
+
         override fun requestFocus() {
             focusOwner.takeFocus()
             isFocused = true
