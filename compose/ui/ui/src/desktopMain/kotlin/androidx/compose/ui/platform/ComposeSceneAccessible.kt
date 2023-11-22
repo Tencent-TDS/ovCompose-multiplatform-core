@@ -34,14 +34,14 @@ import javax.accessibility.*
  * Note about a11y for focus-based tools (e.g. VoiceOver).
  * Now focus-based tools are supported on [org.jetbrains.skiko.HardwareLayer] side.
  * When Compose's [androidx.compose.ui.semantics.SemanticsNode] is focused
- * [AccessibilityControllerImpl.onFocusReceived] is called and
+ * [AccessibilityController.onFocusReceived] is called and
  * [org.jetbrains.skiko.HardwareLayer] provides mapped [ComposeAccessible] to accessibility tool.
  *
- * @see AccessibilityControllerImpl
+ * @see AccessibilityController
  * @see ComposeAccessible
  */
 internal class ComposeSceneAccessible(
-    private val provider: () -> List<AccessibilityController>,
+    private val accessibilityControllersProvider: () -> List<AccessibilityController>,
 ) : Accessible {
     private val a11yDisabled by lazy {
         System.getProperty("compose.accessibility.enable") == "false" ||
@@ -61,7 +61,7 @@ internal class ComposeSceneAccessible(
 
     private inner class ComposeSceneAccessibleContext : AccessibleContext(), AccessibleComponent {
         private val accessibilityControllers: List<AccessibilityController>
-            get() = provider()
+            get() = accessibilityControllersProvider()
 
         private val accessibilityController: AccessibilityController?
             get() = accessibilityControllers.firstOrNull()

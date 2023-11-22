@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerButton
@@ -30,7 +29,6 @@ import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
 import org.jetbrains.skiko.currentNanoTime
 
 /**
@@ -74,7 +72,6 @@ interface PlatformRootForTest : RootForTest {
      *
      * @see ComposeScene.sendPointerEvent
      */
-    @ExperimentalComposeUiApi
     fun sendPointerEvent(
         eventType: PointerEventType,
         pointers: List<ComposeScenePointer>,

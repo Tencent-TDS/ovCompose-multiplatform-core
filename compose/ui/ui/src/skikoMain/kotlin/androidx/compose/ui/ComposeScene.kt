@@ -52,7 +52,6 @@ import org.jetbrains.skiko.currentNanoTime
     "Replaced with interface in scene package",
     replaceWith = ReplaceWith("androidx.compose.ui.scene.ComposeScene")
 )
-@OptIn(InternalComposeUiApi::class)
 class ComposeScene internal constructor(
     coroutineContext: CoroutineContext,
     composeSceneContext: ComposeSceneContext,

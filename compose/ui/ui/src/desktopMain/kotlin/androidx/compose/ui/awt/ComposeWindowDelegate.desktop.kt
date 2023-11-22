@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
-import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.LayoutDirection
@@ -63,9 +62,7 @@ internal class ComposeWindowDelegate(
         get() = bridge.scene
     internal val windowAccessible: Accessible
         get() = bridge.sceneAccessible
-    internal var rootForTestListener
-        get() = bridge.rootForTestListener
-        set(value) { bridge.rootForTestListener = value }
+    internal var rootForTestListener by bridge::rootForTestListener
     val undecoratedWindowResizer = UndecoratedWindowResizer(window)
 
     private val _pane = object : JLayeredPane() {
@@ -149,7 +146,7 @@ internal class ComposeWindowDelegate(
         modifier: Modifier = Modifier,
         content: @Composable () -> Unit
     ) {
-        bridge.setKeyEventListener(
+        bridge.setKeyEventListeners(
             onPreviewKeyEvent = onPreviewKeyEvent,
             onKeyEvent = onKeyEvent
         )

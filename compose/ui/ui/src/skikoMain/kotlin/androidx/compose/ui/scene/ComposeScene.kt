@@ -61,13 +61,11 @@ import org.jetbrains.skiko.currentNanoTime
  *
  * @see ComposeScene
  */
-@OptIn(InternalComposeUiApi::class)
 internal val LocalComposeScene = staticCompositionLocalOf<ComposeScene?> { null }
 
 /**
  * The local [ComposeScene] is typically not-null. This extension can be used in these cases.
  */
-@OptIn(InternalComposeUiApi::class)
 @Composable
 internal fun CompositionLocal<ComposeScene?>.requireCurrent(): ComposeScene {
     return current ?: error("CompositionLocal LocalComposeScene not provided")
@@ -94,7 +92,9 @@ interface ComposeScene {
 
     /**
      * Represents the scene size in scaled pixels ([Dp]).
-     * It's used to apply constrains to the content.
+     * This is used to impose constraints on the content. If the size is undefined, it can be
+     * set to `null`. In such a case, the content will be laid out without any restrictions and
+     * the window size will be utilized to bounds verification.
      */
     var size: IntSize?
 
@@ -112,11 +112,6 @@ interface ComposeScene {
      * `null` if no composition locals should be provided.
      */
     var compositionLocalContext: CompositionLocalContext?
-
-    /**
-     * The last known position of pointer cursor position or `null` if cursor is not inside a scene.
-     */
-    val lastKnownPointerPosition: Offset?
 
     /**
      * The interface to manages focus within a [ComposeScene].

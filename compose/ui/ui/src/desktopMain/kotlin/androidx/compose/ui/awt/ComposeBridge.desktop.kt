@@ -298,11 +298,10 @@ internal abstract class ComposeBridge(
         setCurrentKeyboardModifiers(event.toPointerKeyboardModifiers())
 
         val composeEvent = ComposeKeyEvent(event)
-        if (onPreviewKeyEvent(composeEvent)) {
-            event.consume()
-        } else if (scene.sendKeyEvent(composeEvent)) {
-            event.consume()
-        } else if (onKeyEvent(composeEvent)) {
+        if (onPreviewKeyEvent(composeEvent) ||
+            scene.sendKeyEvent(composeEvent) ||
+            onKeyEvent(composeEvent)
+        ) {
             event.consume()
         }
     }
@@ -318,7 +317,7 @@ internal abstract class ComposeBridge(
     private var onPreviewKeyEvent: (ComposeKeyEvent) -> Boolean = { false }
     private var onKeyEvent: (ComposeKeyEvent) -> Boolean = { false }
 
-    fun setKeyEventListener(
+    fun setKeyEventListeners(
         onPreviewKeyEvent: (ComposeKeyEvent) -> Boolean = { false },
         onKeyEvent: (ComposeKeyEvent) -> Boolean = { false },
     ) {
@@ -358,6 +357,9 @@ internal abstract class ComposeBridge(
             height = (component.height * scale).toInt()
         )
         windowInfo.containerSize = size
+
+        // Zero size will literally limit scene's content size to zero,
+        // so it case of late initialization skip this to avoid extra layout run.
         scene.size = size.takeIf { size != IntSize.Zero }
     }
 
@@ -426,22 +428,20 @@ internal abstract class ComposeBridge(
 
         override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
             check(semanticsOwner !in _accessibilityControllers)
-            val accessibilityController = AccessibilityController(
+            _accessibilityControllers[semanticsOwner] = AccessibilityController(
                 owner = semanticsOwner,
                 desktopComponent = platformComponent,
                 coroutineContext = sceneCoroutineContext,
                 onFocusReceived = {
                     requestNativeFocusOnAccessible(it)
                 }
-            )
-            _accessibilityControllers[semanticsOwner] = accessibilityController
-            accessibilityController.syncLoop()
+            ).also {
+                it.syncLoop()
+            }
         }
 
         override fun onSemanticsOwnerRemoved(semanticsOwner: SemanticsOwner) {
-            val accessibilityController = _accessibilityControllers[semanticsOwner] ?: return
-            _accessibilityControllers.remove(semanticsOwner)
-            accessibilityController.dispose()
+            _accessibilityControllers.remove(semanticsOwner)?.dispose()
         }
 
         override fun onSemanticsChange(semanticsOwner: SemanticsOwner) {

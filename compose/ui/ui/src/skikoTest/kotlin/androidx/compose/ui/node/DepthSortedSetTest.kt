@@ -55,8 +55,6 @@ class DepthSortedSetTest {
 
     @Test
     fun sortedByDepth() = runSkikoComposeUiTest {
-        setContent {  }
-
         val owner = DepthTestOwner()
         val root = LayoutNode()
         root.attach(owner)
@@ -82,8 +80,6 @@ class DepthSortedSetTest {
 
     @Test
     fun sortedByDepthWithItemsOfTheSameDepth() = runSkikoComposeUiTest {
-        setContent {  }
-
         val owner = DepthTestOwner()
         val root = LayoutNode()
         root.attach(owner)
@@ -114,8 +110,6 @@ class DepthSortedSetTest {
 
     @Test
     fun modifyingSetWhileWeIterate() = runSkikoComposeUiTest {
-        setContent {  }
-
         val owner = DepthTestOwner()
         val root = LayoutNode()
         root.attach(owner)
@@ -163,8 +157,6 @@ class DepthSortedSetTest {
 
     @Test
     fun modifyingDepthAfterAddingThrows() = runSkikoComposeUiTest {
-        setContent {  }
-
         val owner = DepthTestOwner()
         val root = LayoutNode()
         root.attach(owner)

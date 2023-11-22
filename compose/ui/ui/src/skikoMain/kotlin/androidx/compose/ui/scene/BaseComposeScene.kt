@@ -95,7 +95,10 @@ internal abstract class BaseComposeScene(
 
     override var compositionLocalContext: CompositionLocalContext? by mutableStateOf(null)
 
-    override val lastKnownPointerPosition by inputHandler::lastKnownPointerPosition
+    /**
+     * The last known position of pointer cursor position or `null` if cursor is not inside a scene.
+     */
+    val lastKnownPointerPosition by inputHandler::lastKnownPointerPosition
 
     init {
         GlobalSnapshotManager.ensureStarted()
