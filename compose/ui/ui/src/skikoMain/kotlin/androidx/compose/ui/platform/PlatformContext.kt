@@ -69,14 +69,14 @@ interface PlatformContext {
     fun requestFocus(): Boolean = false
 
     /**
-     * The listener to track [RootForTest]s lifecycle.
+     * The listener to track [RootForTest]s.
      *
      * @see RootForTestListener
      */
     val rootForTestListener: RootForTestListener? get() = null
 
     /**
-     * The listener to track [SemanticsOwner]s lifecycle.
+     * The listener to track [SemanticsOwner]s.
      *
      * @see SemanticsOwnerListener
      */
@@ -89,19 +89,15 @@ interface PlatformContext {
 
     interface SemanticsOwnerListener {
         /**
-         * Callback method that is called when a [SemanticsOwner] is created.
+         * Callback method that is called when a [SemanticsOwner] is appended to tracking.
          * A new [SemanticsOwner] is always created above existing ones.
-         *
-         * @param semanticsOwner the [SemanticsOwner] that was created
          */
-        fun onSemanticsOwnerCreated(semanticsOwner: SemanticsOwner)
+        fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner)
 
         /**
          * Callback method that is called when a [SemanticsOwner] is disposed.
-         *
-         * @param semanticsOwner the [SemanticsOwner] that was disposed
          */
-        fun onSemanticsOwnerDisposed(semanticsOwner: SemanticsOwner)
+        fun onSemanticsOwnerRemoved(semanticsOwner: SemanticsOwner)
 
         /**
          * Callback method that is called when a [SemanticsNode] is added to or deleted from

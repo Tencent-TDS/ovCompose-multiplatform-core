@@ -3134,8 +3134,8 @@ public abstract interface class androidx/compose/ui/platform/PlatformContext$Roo
 
 public abstract interface class androidx/compose/ui/platform/PlatformContext$SemanticsOwnerListener {
 	public abstract fun onSemanticsChange (Landroidx/compose/ui/semantics/SemanticsOwner;)V
-	public abstract fun onSemanticsOwnerCreated (Landroidx/compose/ui/semantics/SemanticsOwner;)V
-	public abstract fun onSemanticsOwnerDisposed (Landroidx/compose/ui/semantics/SemanticsOwner;)V
+	public abstract fun onSemanticsOwnerAppended (Landroidx/compose/ui/semantics/SemanticsOwner;)V
+	public abstract fun onSemanticsOwnerRemoved (Landroidx/compose/ui/semantics/SemanticsOwner;)V
 }
 
 public final class androidx/compose/ui/platform/PlatformInsets {

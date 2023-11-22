@@ -28,7 +28,6 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerInputEvent
-import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.RootNodeOwner
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Constraints
@@ -126,11 +125,12 @@ private class SimpleComposeSceneImpl(
         ComposeSceneFocusManagerImpl()
 
     init {
-        mainOwner.focusOwner.takeFocus()
+        onOwnerAppended(mainOwner)
     }
 
     override fun close() {
         check(!isClosed) { "ComposeScene is already closed" }
+        onOwnerRemoved(mainOwner)
         mainOwner.dispose()
         super.close()
     }
@@ -179,6 +179,15 @@ private class SimpleComposeSceneImpl(
         compositionContext = compositionContext
     )
 
+    private fun onOwnerAppended(owner: RootNodeOwner) {
+        owner.focusOwner.takeFocus()
+        semanticsOwnerListener?.onSemanticsOwnerAppended(owner.semanticsOwner)
+    }
+
+    private fun onOwnerRemoved(owner: RootNodeOwner) {
+        semanticsOwnerListener?.onSemanticsOwnerRemoved(owner.semanticsOwner)
+    }
+
     private inner class ComposeSceneFocusManagerImpl : ComposeSceneFocusManager {
         private val focusOwner get() = mainOwner.focusOwner
         override fun requestFocus() = focusOwner.takeFocus()
@@ -189,3 +198,6 @@ private class SimpleComposeSceneImpl(
             focusOwner.moveFocus(focusDirection)
     }
 }
+
+private val ComposeScene.semanticsOwnerListener
+    get() = composeSceneContext.platformContext.semanticsOwnerListener

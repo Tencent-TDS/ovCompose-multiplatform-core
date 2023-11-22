@@ -424,7 +424,7 @@ internal abstract class ComposeBridge(
         private val _accessibilityControllers = linkedMapOf<SemanticsOwner, AccessibilityController>()
         val accessibilityControllers get() = _accessibilityControllers.values.reversed()
 
-        override fun onSemanticsOwnerCreated(semanticsOwner: SemanticsOwner) {
+        override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
             check(semanticsOwner !in _accessibilityControllers)
             val accessibilityController = AccessibilityController(
                 owner = semanticsOwner,
@@ -438,7 +438,7 @@ internal abstract class ComposeBridge(
             accessibilityController.syncLoop()
         }
 
-        override fun onSemanticsOwnerDisposed(semanticsOwner: SemanticsOwner) {
+        override fun onSemanticsOwnerRemoved(semanticsOwner: SemanticsOwner) {
             val accessibilityController = _accessibilityControllers[semanticsOwner] ?: return
             _accessibilityControllers.remove(semanticsOwner)
             accessibilityController.dispose()

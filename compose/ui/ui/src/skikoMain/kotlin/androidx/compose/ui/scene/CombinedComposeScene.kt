@@ -181,11 +181,12 @@ private class CombinedComposeSceneImpl(
     private var lastHoverOwner: RootNodeOwner? = null
 
     init {
-        onOwnerAdded(mainOwner)
+        onOwnerAppended(mainOwner)
     }
 
     override fun close() {
         check(!isClosed) { "ComposeScene is already closed" }
+        onOwnerRemoved(mainOwner)
         mainOwner.dispose()
         forEachLayer { it.close() }
         super.close()
@@ -390,12 +391,13 @@ private class CombinedComposeSceneImpl(
         compositionContext = compositionContext,
     )
 
-    private fun onOwnerAdded(owner: RootNodeOwner) {
+    private fun onOwnerAppended(owner: RootNodeOwner) {
         if (_focusManager.isFocused) {
             owner.focusOwner.takeFocus()
         } else {
             owner.focusOwner.releaseFocus()
         }
+        semanticsOwnerListener?.onSemanticsOwnerAppended(owner.semanticsOwner)
     }
 
     private fun onOwnerRemoved(owner: RootNodeOwner) {
@@ -405,22 +407,23 @@ private class CombinedComposeSceneImpl(
         if (owner == gestureOwner) {
             gestureOwner = null
         }
+        semanticsOwnerListener?.onSemanticsOwnerRemoved(owner.semanticsOwner)
     }
 
-    private fun attach(layer: AttachedComposeSceneLayer) {
+    private fun attachLayer(layer: AttachedComposeSceneLayer) {
         check(!isClosed) { "ComposeScene is closed" }
         layers.add(layer)
 
         if (layer.focusable) {
             requestFocus(layer)
         }
-        onOwnerAdded(layer.owner)
+        onOwnerAppended(layer.owner)
 
         inputHandler.onPointerUpdate()
         invalidateIfNeeded()
     }
 
-    private fun detach(layer: AttachedComposeSceneLayer) {
+    private fun detachLayer(layer: AttachedComposeSceneLayer) {
         check(!isClosed) { "ComposeScene is closed" }
         layers.remove(layer)
 
@@ -538,12 +541,12 @@ private class CombinedComposeSceneImpl(
         private var keyInput: Modifier by mutableStateOf(Modifier)
 
         init {
-            attach(this)
+            attachLayer(this)
         }
 
         override fun close() {
             if (isClosed) return
-            detach(this)
+            detachLayer(this)
             composition?.dispose()
             composition = null
             owner.dispose()
@@ -589,6 +592,9 @@ private class CombinedComposeSceneImpl(
         }
     }
 }
+
+private val ComposeScene.semanticsOwnerListener
+    get() = composeSceneContext.platformContext.semanticsOwnerListener
 
 private val PointerInputEvent.isGestureInProgress get() = pointers.fastAny { it.down }
 

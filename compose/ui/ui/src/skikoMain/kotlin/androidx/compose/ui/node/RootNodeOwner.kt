@@ -136,12 +136,10 @@ internal class RootNodeOwner(
         snapshotObserver.startObserving()
         owner.root.attach(owner)
         platformContext.rootForTestListener?.onRootForTestCreated(rootForTest)
-        platformContext.semanticsOwnerListener?.onSemanticsOwnerCreated(semanticsOwner)
     }
 
     fun dispose() {
         check(!isDisposed) { "RootNodeOwner is already disposed" }
-        platformContext.semanticsOwnerListener?.onSemanticsOwnerDisposed(semanticsOwner)
         platformContext.rootForTestListener?.onRootForTestDisposed(rootForTest)
         snapshotObserver.stopObserving()
         // we don't need to call root.detach() because root will be garbage collected
