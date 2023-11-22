@@ -29,12 +29,10 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.node.RootForTest
-import androidx.compose.ui.scene.CombinedComposeScene
+import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -134,7 +132,7 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
 
     private val surface = Surface.makeRasterN32Premul(width, height)
 
-    private val scene = CombinedComposeScene(
+    private val scene = MultiLayerComposeScene(
         density = density,
         layoutDirection = layoutDirection,
         coroutineContext = coroutineContext,

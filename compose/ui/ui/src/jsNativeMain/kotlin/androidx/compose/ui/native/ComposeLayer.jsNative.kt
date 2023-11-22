@@ -25,7 +25,7 @@ import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.toCompose
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.scene.CombinedComposeScene
+import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
@@ -116,7 +116,7 @@ internal class ComposeLayer(
         layer.skikoView = view
     }
 
-    private val scene = CombinedComposeScene(
+    private val scene = MultiLayerComposeScene(
         coroutineContext = Dispatchers.Main,
         composeSceneContext = object : ComposeSceneContext {
             override val platformContext get() = platformContext

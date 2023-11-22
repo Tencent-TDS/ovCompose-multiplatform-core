@@ -39,7 +39,7 @@ import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.platform.*
-import androidx.compose.ui.scene.CombinedComposeScene
+import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeScenePointer
@@ -674,7 +674,7 @@ internal actual class ComposeWindow : UIViewController {
             override val inputModeManager = DefaultInputModeManager(InputMode.Touch)
         }
 
-        val scene = CombinedComposeScene(
+        val scene = MultiLayerComposeScene(
             coroutineContext = Dispatchers.Main,
             composeSceneContext = object : ComposeSceneContext {
                 override val platformContext get() = platformContext

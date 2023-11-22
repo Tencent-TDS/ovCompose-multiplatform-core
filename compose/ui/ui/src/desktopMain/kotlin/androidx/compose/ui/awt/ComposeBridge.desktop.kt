@@ -25,7 +25,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.*
-import androidx.compose.ui.scene.CombinedComposeScene
+import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.toPointerKeyboardModifiers
@@ -156,7 +156,7 @@ internal abstract class ComposeBridge(
     }
 
     private val sceneCoroutineContext = MainUIDispatcher + coroutineExceptionHandler
-    internal val scene = CombinedComposeScene(
+    internal val scene = MultiLayerComposeScene(
         coroutineContext = sceneCoroutineContext,
         composeSceneContext = object : ComposeSceneContext {
             override val platformContext get() = this@ComposeBridge.platformContext

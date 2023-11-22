@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalPointerIconService
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
+import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.unit.IntOffset
@@ -93,7 +94,7 @@ class PointerIconTest {
     fun commitsToComponent() {
         val iconContext = IconPlatformContext()
         val surface = Surface.makeRasterN32Premul(100, 100)
-        val scene = ComposeScene(
+        val scene = SingleLayerComposeScene(
             platformContext = iconContext,
         )
 
@@ -123,7 +124,7 @@ class PointerIconTest {
     fun preservedIfSameEventDispatchedTwice() {
         val iconContext = IconPlatformContext()
         val surface = Surface.makeRasterN32Premul(100, 100)
-        val scene = ComposeScene(
+        val scene = SingleLayerComposeScene(
             platformContext = iconContext,
         )
 
@@ -221,7 +222,7 @@ class PointerIconTest {
         val frameDispatcher = FrameDispatcher(coroutineContext) {
             scene.render(surface.canvas.asComposeCanvas(), 1)
         }
-        scene = ComposeScene(
+        scene = SingleLayerComposeScene(
             coroutineContext = coroutineContext,
             platformContext = iconContext,
             invalidate = {
@@ -264,7 +265,7 @@ class PointerIconTest {
         val frameDispatcher = FrameDispatcher(coroutineContext) {
             scene.render(surface.canvas.asComposeCanvas(), 1)
         }
-        scene = ComposeScene(
+        scene = SingleLayerComposeScene(
             coroutineContext = coroutineContext,
             platformContext = iconContext,
             invalidate = {
@@ -344,11 +345,11 @@ class PointerIconTest {
     }
 }
 
-private fun ComposeScene(
+private fun SingleLayerComposeScene(
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
     platformContext: PlatformContext,
     invalidate: () -> Unit = {},
-) = ComposeScene(
+) = SingleLayerComposeScene(
     coroutineContext = coroutineContext,
     composeSceneContext = object : ComposeSceneContext {
         override val platformContext get() = platformContext

@@ -59,9 +59,9 @@ import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 
 /**
- * Constructs a combined [ComposeScene] using the specified parameters. Unlike the regular
- * [ComposeScene], this version doesn't employ [ComposeSceneContext.createPlatformLayer] to
- * position a new [LayoutNode] tree. Rather, it keeps track of the added layers on its own in
+ * Constructs a multi-layer [ComposeScene] using the specified parameters. Unlike
+ * [SingleLayerComposeScene], this version doesn't employ [ComposeSceneContext.createPlatformLayer]
+ * to position a new [LayoutNode] tree. Rather, it keeps track of the added layers on its own in
  * order to render (and also divide input among them) everything on a single canvas.
  *
  * After [ComposeScene] will no longer needed, you should call [ComposeScene.close] method, so
@@ -84,14 +84,14 @@ import kotlinx.coroutines.Dispatchers
  */
 @Suppress("FunctionName")
 @InternalComposeUiApi
-fun CombinedComposeScene(
+fun MultiLayerComposeScene(
     density: Density = Density(1f),
     layoutDirection: LayoutDirection = LayoutDirection.Ltr,
     size: IntSize? = null,
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
     composeSceneContext: ComposeSceneContext = ComposeSceneContext.Empty,
     invalidate: () -> Unit = {},
-): ComposeScene = CombinedComposeSceneImpl(
+): ComposeScene = MultiLayerComposeSceneImpl(
     density = density,
     layoutDirection = layoutDirection,
     size = size,
@@ -100,7 +100,7 @@ fun CombinedComposeScene(
     invalidate = invalidate
 )
 
-private class CombinedComposeSceneImpl(
+private class MultiLayerComposeSceneImpl(
     density: Density,
     layoutDirection: LayoutDirection,
     size: IntSize?,

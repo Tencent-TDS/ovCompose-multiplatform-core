@@ -38,8 +38,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toIntRect
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
+
 /**
- * Constructs a [ComposeScene] using the specified parameters.
+ * Constructs a single-layer [ComposeScene] using the specified parameters.
  *
  * After [ComposeScene] will no longer needed, you should call [ComposeScene.close] method, so
  * all resources and subscriptions will be properly closed. Otherwise, there can be a memory leak.
@@ -59,15 +60,16 @@ import kotlinx.coroutines.Dispatchers
  *
  * @see ComposeScene
  */
+@Suppress("FunctionName")
 @InternalComposeUiApi
-fun ComposeScene(
+fun SingleLayerComposeScene(
     density: Density = Density(1f),
     layoutDirection: LayoutDirection = LayoutDirection.Ltr,
     size: IntSize? = null,
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
     composeSceneContext: ComposeSceneContext = ComposeSceneContext.Empty,
     invalidate: () -> Unit = {},
-): ComposeScene = SimpleComposeSceneImpl(
+): ComposeScene = SingleLayerComposeSceneImpl(
     density = density,
     layoutDirection = layoutDirection,
     size = size,
@@ -76,7 +78,7 @@ fun ComposeScene(
     invalidate = invalidate
 )
 
-private class SimpleComposeSceneImpl(
+private class SingleLayerComposeSceneImpl(
     density: Density,
     layoutDirection: LayoutDirection,
     size: IntSize?,

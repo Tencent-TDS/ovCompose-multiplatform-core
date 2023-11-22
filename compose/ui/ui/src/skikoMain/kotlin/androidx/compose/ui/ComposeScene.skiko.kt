@@ -161,7 +161,7 @@ class ComposeScene internal constructor(
         invalidate = invalidate
     )
 
-    private val replacement = androidx.compose.ui.scene.CombinedComposeScene(
+    private val replacement = androidx.compose.ui.scene.MultiLayerComposeScene(
         density = density,
         layoutDirection = layoutDirection,
         coroutineContext = coroutineContext,
