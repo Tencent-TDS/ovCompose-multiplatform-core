@@ -18,11 +18,9 @@ package androidx.compose.ui.scene
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCompositionContext
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent

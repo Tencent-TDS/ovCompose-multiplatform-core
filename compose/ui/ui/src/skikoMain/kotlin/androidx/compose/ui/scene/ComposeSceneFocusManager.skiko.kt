@@ -18,7 +18,6 @@ package androidx.compose.ui.scene
 
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.focus.FocusOwnerImpl
 import androidx.compose.ui.geometry.Rect
 
 /**
