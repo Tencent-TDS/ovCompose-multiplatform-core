@@ -18,15 +18,10 @@ package androidx.compose.foundation.text
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.findNextNonWhitespaceSymbolsSubsequenceStartOffset
-import androidx.compose.ui.text.halfSymbolsOffset
 import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.isPunctuation
-import androidx.compose.ui.text.isWhitespace
 
 /**
  * Sets and adjusts the cursor offset when the TextField is focused in a Cupertino style.
@@ -85,7 +80,6 @@ internal fun TextFieldDelegate.Companion.cupertinoSetCursorOffsetFocused(
  * @param currentText The current text in the TextField.
  * @return The desired cursor position after evaluating the given parameters.
  */
-@OptIn(ExperimentalTextApi::class)
 internal fun determineCursorDesiredOffset(
     offset: Int,
     currentValue: TextFieldValue,
@@ -93,7 +87,8 @@ internal fun determineCursorDesiredOffset(
     currentText: String
 ): Int {
     val caretOffsetPosition: Int
-    if (isCaretTapped(offset, currentValue.selection.start)) {
+    val previousCaretPosition = currentValue.selection.start
+    if (offset == previousCaretPosition) {
         caretOffsetPosition = offset
     } else if (textLayoutResult.isLeftEdgeTapped(offset)) {
         val lineNumber = textLayoutResult.value.getLineForOffset(offset)
@@ -115,7 +110,6 @@ internal fun determineCursorDesiredOffset(
     return caretOffsetPosition
 }
 
-@OptIn(ExperimentalTextApi::class)
 private fun isPunctuationOrSpaceTapped(
     caretOffset: Int,
     currentText: String
@@ -127,7 +121,6 @@ private fun isPunctuationOrSpaceTapped(
     return currentText.isPunctuation(caretOffset) || currentText.isWhitespace(caretOffset)
 }
 
-@OptIn(ExperimentalTextApi::class)
 private fun TextLayoutResultProxy.isFirstHalfOfWordTapped(
     caretOffset: Int,
     currentText: String
@@ -136,13 +129,6 @@ private fun TextLayoutResultProxy.isFirstHalfOfWordTapped(
     val word = currentText.substring(wordBoundary.start, wordBoundary.end)
     val middleIndex = wordBoundary.start + word.halfSymbolsOffset()
     return caretOffset < middleIndex
-}
-
-private fun isCaretTapped(
-    caretOffset: Int,
-    previousCaretOffset: Int
-): Boolean {
-    return previousCaretOffset == caretOffset
 }
 
 private fun TextLayoutResultProxy.isLeftEdgeTapped(caretOffset: Int): Boolean {

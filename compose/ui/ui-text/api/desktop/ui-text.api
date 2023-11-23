@@ -95,13 +95,6 @@ public final class androidx/compose/ui/text/AnnotatedStringKt {
 	public static final fun withStyle (Landroidx/compose/ui/text/AnnotatedString$Builder;Landroidx/compose/ui/text/SpanStyle;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
 }
 
-public final class androidx/compose/ui/text/CharHelpers_skikoKt {
-	public static final fun findNextNonWhitespaceSymbolsSubsequenceStartOffset (ILjava/lang/String;)I
-	public static final fun halfSymbolsOffset (Ljava/lang/String;)I
-	public static final fun isPunctuation (Ljava/lang/String;I)Z
-	public static final fun isWhitespace (Ljava/lang/String;I)Z
-}
-
 public final class androidx/compose/ui/text/DesktopTextStyle_skikoKt {
 	public static final fun lerp (Landroidx/compose/ui/text/PlatformParagraphStyle;Landroidx/compose/ui/text/PlatformParagraphStyle;F)Landroidx/compose/ui/text/PlatformParagraphStyle;
 	public static final fun lerp (Landroidx/compose/ui/text/PlatformSpanStyle;Landroidx/compose/ui/text/PlatformSpanStyle;F)Landroidx/compose/ui/text/PlatformSpanStyle;
