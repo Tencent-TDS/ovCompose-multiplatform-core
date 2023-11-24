@@ -27,6 +27,7 @@ import org.gradle.api.Action
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.internal.publication.DefaultMavenPublication
+import org.gradle.api.attributes.Usage
 import org.gradle.api.tasks.Copy
 import org.gradle.kotlin.dsl.creating
 import org.gradle.kotlin.dsl.dependencies

@@ -79,7 +79,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         // NOTE: Keep this list in sync with runtime's targets.
         watchosArm64()
         watchosArm32()
-        watchosX86()
         watchosX64()
         watchosSimulatorArm64()
         tvosArm64()
