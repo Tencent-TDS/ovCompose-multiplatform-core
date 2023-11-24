@@ -79,7 +79,7 @@ private typealias ActionKey = SemanticsPropertyKey<AccessibilityAction<() -> Boo
  */
 internal class ComposeAccessible(
     var semanticsNode: SemanticsNode,
-    val controller: AccessibilityControllerImpl? = null
+    val controller: AccessibilityController? = null
 ) : Accessible,
     // Must be a subclass of java.awt.Component because CAccessible only registers property
     // listeners with the accessible context if the Accessible is an instance of java.awt.Component
@@ -91,7 +91,15 @@ internal class ComposeAccessible(
 
     val composeAccessibleContext: ComposeAccessibleComponent by lazy { ComposeAccessibleComponent() }
 
-    override fun getAccessibleContext(): AccessibleContext {
+    var removed = false
+
+    override fun getAccessibleContext(): AccessibleContext? {
+        if (removed) {
+            // The accessibility system keeps calling functions on the context even after the node
+            // has been removed. We return null so it doesn't do that.
+            return null
+        }
+
         // see doc for [nativeInitializeAccessible] for details, why this initialization is needed
         if (isNativelyInitialized.compareAndSet(false, true)) {
             nativeInitializeAccessible(this)
@@ -162,6 +170,13 @@ internal class ComposeAccessible(
 
         val progressBarRangeInfo
             get() = semanticsNode.config.getOrNull(SemanticsProperties.ProgressBarRangeInfo)
+
+        val isContainer
+            @Suppress("DEPRECATION")
+            get() = semanticsNode.config.getOrNull(SemanticsProperties.IsContainer)
+
+        val isTraversalGroup
+            get() = semanticsNode.config.getOrNull(SemanticsProperties.IsTraversalGroup)
 
         private fun makeScrollbarChild(
             vertical: Boolean
@@ -394,7 +409,9 @@ internal class ComposeAccessible(
                 setText != null -> AccessibleRole.TEXT
                 text != null -> AccessibleRole.LABEL
                 progressBarRangeInfo != null -> AccessibleRole.PROGRESS_BAR
-                else -> AccessibleRole.PANEL
+                isContainer != null -> AccessibleRole.GROUP_BOX
+                isTraversalGroup != null -> AccessibleRole.GROUP_BOX
+                else -> AccessibleRole.UNKNOWN
             }
         }
 

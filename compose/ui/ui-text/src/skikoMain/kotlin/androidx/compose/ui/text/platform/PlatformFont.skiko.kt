@@ -19,9 +19,17 @@ import org.jetbrains.skia.Typeface as SkTypeface
 import androidx.compose.ui.text.Cache
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.ExpireAfterAccessCache
-import androidx.compose.ui.text.WeakKeysCache
-import androidx.compose.ui.text.font.*
+import androidx.compose.ui.text.font.DefaultFontFamily
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontListFontFamily
+import androidx.compose.ui.text.font.FontLoadingStrategy
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.GenericFontFamily
+import androidx.compose.ui.text.font.LoadedFontFamily
 import androidx.compose.ui.text.font.Typeface
+import androidx.compose.ui.text.font.createFontFamilyResolver
 import org.jetbrains.skia.FontMgr
 import org.jetbrains.skia.paragraph.FontCollection
 import org.jetbrains.skia.paragraph.TypefaceFontProvider
@@ -32,10 +40,24 @@ expect sealed class PlatformFont() : Font {
 }
 
 /**
+ * A Font that already installed in system.
+ */
+@ExperimentalTextApi
+class SystemFont(
+    override val identity: String,
+    override val weight: FontWeight = FontWeight.Normal,
+    override val style: FontStyle = FontStyle.Normal
+) : PlatformFont() {
+    override fun toString(): String {
+        return "SystemInstalledFont(identity='$identity', weight=$weight, style=$style)"
+    }
+}
+
+/**
  * Defines a Font using byte array with loaded font data.
  *
  * @param identity Unique identity for a font. Used internally to distinguish fonts.
- * @param data Byte array with loaded font data.
+ * @param getData should return Byte array with loaded font data.
  * @param weight The weight of the font. The system uses this to match a font to a font request
  * that is given in a [androidx.compose.ui.text.SpanStyle].
  * @param style The style of the font, normal or italic. The system uses this to match a font to a
@@ -45,12 +67,14 @@ expect sealed class PlatformFont() : Font {
  */
 class LoadedFont internal constructor(
     override val identity: String,
-    val data: ByteArray,
+    internal val getData: () -> ByteArray,
     override val weight: FontWeight,
     override val style: FontStyle
 ) : PlatformFont() {
     @ExperimentalTextApi
     override val loadingStrategy: FontLoadingStrategy = FontLoadingStrategy.Blocking
+
+    val data: ByteArray get() = getData()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -76,6 +100,33 @@ class LoadedFont internal constructor(
  * Creates a Font using byte array with loaded font data.
  *
  * @param identity Unique identity for a font. Used internally to distinguish fonts.
+ * @param getData should return Byte array with loaded font data.
+ * @param weight The weight of the font. The system uses this to match a font to a font request
+ * that is given in a [androidx.compose.ui.text.SpanStyle].
+ * @param style The style of the font, normal or italic. The system uses this to match a font to a
+ * font request that is given in a [androidx.compose.ui.text.SpanStyle].
+ *
+ * @see FontFamily
+ */
+fun Font(
+    identity: String,
+    getData: () -> ByteArray,
+    weight: FontWeight = FontWeight.Normal,
+    style: FontStyle = FontStyle.Normal
+): Font = LoadedFont(identity, getData, weight, style)
+
+private class SkiaBackedTypeface(
+    alias: String?,
+    val nativeTypeface: SkTypeface
+) : Typeface {
+    val alias = alias ?: nativeTypeface.familyName
+    override val fontFamily: FontFamily? = null
+}
+
+/**
+ * Creates a Font using byte array with loaded font data.
+ *
+ * @param identity Unique identity for a font. Used internally to distinguish fonts.
  * @param data Byte array with loaded font data.
  * @param weight The weight of the font. The system uses this to match a font to a font request
  * that is given in a [androidx.compose.ui.text.SpanStyle].
@@ -89,14 +140,12 @@ fun Font(
     data: ByteArray,
     weight: FontWeight = FontWeight.Normal,
     style: FontStyle = FontStyle.Normal
-): Font = LoadedFont(identity, data, weight, style)
-
-internal class SkiaBackedTypeface(
-    val alias: String?,
-    val nativeTypeface: SkTypeface
-) : Typeface {
-    override val fontFamily: FontFamily? = null
-}
+): Font = Font(
+    identity = identity,
+    getData = { data },
+    weight = weight,
+    style = style,
+)
 
 /**
  * Returns a Compose [Typeface] from Skia [SkTypeface].
@@ -150,11 +199,6 @@ internal class FontCache {
         fonts.setAssetFontManager(fontProvider)
     }
 
-    private fun mapGenericFontFamily(generic: GenericFontFamily): List<String> {
-        return GenericFontFamiliesMapping[generic.name]
-            ?: error("Unknown generic font family ${generic.name}")
-    }
-
     internal fun load(font: PlatformFont): FontLoadResult {
         val typeface = typefacesCache.get(font.cacheKey) {
             loadTypeface(font)
@@ -183,19 +227,23 @@ internal class FontCache {
     private fun ensureRegistered(fontFamily: FontFamily): List<String> =
         when (fontFamily) {
             is FontListFontFamily -> {
-                // not supported
-                throw IllegalArgumentException(
-                    "Don't load FontListFontFamily through ensureRegistered: $fontFamily"
-                )
+                val fonts = fontFamily.fonts.filterIsInstance<SystemFont>()
+                if (fonts.size == fontFamily.fonts.size) {
+                    fonts.map { it.identity }
+                } else {
+                    // not supported
+                    throw IllegalArgumentException(
+                        "Don't load FontListFontFamily through ensureRegistered: $fontFamily"
+                    )
+                }
             }
             is LoadedFontFamily -> {
                 val typeface = fontFamily.typeface as SkiaBackedTypeface
-                val alias = typeface.alias ?: typeface.nativeTypeface.familyName
-                ensureRegistered(typeface.nativeTypeface, alias)
-                listOf(alias)
+                ensureRegistered(typeface.nativeTypeface, typeface.alias)
+                listOf(typeface.alias)
             }
-            is GenericFontFamily -> mapGenericFontFamily(fontFamily)
-            FontFamily.Default -> mapGenericFontFamily(FontFamily.SansSerif)
+            is GenericFontFamily -> fontFamily.aliases
+            is DefaultFontFamily -> FontFamily.SansSerif.aliases
             else -> throw IllegalArgumentException("Unknown font family type: $fontFamily")
         }
 }
@@ -214,7 +262,11 @@ internal enum class Platform {
 internal expect fun currentPlatform(): Platform
 internal expect fun loadTypeface(font: Font): SkTypeface
 
-internal val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
+internal val GenericFontFamily.aliases
+    get() = GenericFontFamiliesMapping[name]
+        ?: error("Unknown generic font family $name")
+
+private val GenericFontFamiliesMapping: Map<String, List<String>> by lazy {
     when (currentPlatform()) {
         Platform.Linux ->
             mapOf(

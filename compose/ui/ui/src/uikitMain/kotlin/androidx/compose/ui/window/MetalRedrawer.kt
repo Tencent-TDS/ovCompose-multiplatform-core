@@ -381,7 +381,11 @@ internal class MetalRedrawer(
                 isForcedToPresentWithTransactionEveryFrame || interopTransaction.isNotEmpty()
             metalLayer.presentsWithTransaction = presentsWithTransaction
 
-            val mustEncodeAndPresentOnMainThread = presentsWithTransaction || waitUntilCompletion
+            // TODO: encoding on separate thread requires investigation for reported crashes
+            //  https://github.com/JetBrains/compose-multiplatform/issues/3862
+            //  https://youtrack.jetbrains.com/issue/COMPOSE-608/iOS-reproduce-and-investigate-parallel-rendering-encoding-crash
+            // val mustEncodeAndPresentOnMainThread = presentsWithTransaction || waitUntilCompletion
+            val mustEncodeAndPresentOnMainThread = true
 
             val encodeAndPresentBlock = {
                 surface.canvas.drawPicture(picture)

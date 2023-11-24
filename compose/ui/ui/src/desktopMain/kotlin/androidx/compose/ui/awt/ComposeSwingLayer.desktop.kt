@@ -76,7 +76,7 @@ internal class SwingComposeBridge(
             }
 
             override fun getPreferredSize(): Dimension {
-                return if (isPreferredSizeSet) super.getPreferredSize() else sceneDimension
+                return if (isPreferredSizeSet) super.getPreferredSize() else scenePreferredSize
             }
 
             override fun getAccessibleContext(): AccessibleContext? {
@@ -94,7 +94,7 @@ internal class SwingComposeBridge(
         get() = component
 
     override fun requestNativeFocusOnAccessible(accessible: Accessible) {
-        // TODO: support a11y
+        component.requestNativeFocusOnAccessible(accessible)
     }
 
     override fun onComposeInvalidation() {

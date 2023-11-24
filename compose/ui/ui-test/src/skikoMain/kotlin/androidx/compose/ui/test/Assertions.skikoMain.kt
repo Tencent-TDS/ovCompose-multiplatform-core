@@ -20,11 +20,9 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.LayoutInfo
-import androidx.compose.ui.platform.SkiaRootForTest
+import androidx.compose.ui.platform.PlatformRootForTest
 import androidx.compose.ui.semantics.SemanticsNode
-import androidx.compose.ui.unit.toSize
 
-@OptIn(InternalComposeUiApi::class)
 internal actual fun SemanticsNodeInteraction.checkIsDisplayed(): Boolean {
     // hierarchy check - check layout nodes are visible
     val errorMessageOnFail = "Failed to perform isDisplayed check."
@@ -48,15 +46,14 @@ internal actual fun SemanticsNodeInteraction.checkIsDisplayed(): Boolean {
     return (globalRect.width > 0f && globalRect.height > 0f)
 }
 
-@OptIn(InternalComposeUiApi::class)
 internal actual fun SemanticsNode.clippedNodeBoundsInWindow(): Rect {
     return boundsInRoot.translate(Offset(0f, 0f))
 }
 
 @OptIn(InternalComposeUiApi::class)
 internal actual fun SemanticsNode.isInScreenBounds(): Boolean {
-    // TODO: Replace _content_ size to view bounds.
-    val composeView = (root as SkiaRootForTest).scene
+    val platformRootForTest = root as PlatformRootForTest
+    val visibleBounds = platformRootForTest.visibleBounds
 
     // Window relative bounds of our node
     val nodeBoundsInWindow = clippedNodeBoundsInWindow()
@@ -65,10 +62,10 @@ internal actual fun SemanticsNode.isInScreenBounds(): Boolean {
     }
 
     // Window relative bounds of our compose root view that are visible on the screen
-    return nodeBoundsInWindow.top >= 0 &&
-        nodeBoundsInWindow.left >= 0 &&
-        nodeBoundsInWindow.right <= composeView.contentSize.width &&
-        nodeBoundsInWindow.bottom <= composeView.contentSize.height
+    return nodeBoundsInWindow.top >= visibleBounds.top &&
+        nodeBoundsInWindow.left >= visibleBounds.left &&
+        nodeBoundsInWindow.right <= visibleBounds.right &&
+        nodeBoundsInWindow.bottom <= visibleBounds.bottom
 }
 
 /**

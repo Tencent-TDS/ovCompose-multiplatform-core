@@ -25,11 +25,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCompositionContext
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.LocalComposeScene
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.scene.BaseComposeScene
+import androidx.compose.ui.scene.LocalComposeScene
+import androidx.compose.ui.scene.platformContext
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.ComponentUpdater
@@ -399,20 +401,19 @@ fun Window(
     val windowExceptionHandlerFactory by rememberUpdatedState(
         LocalWindowExceptionHandlerFactory.current
     )
-    val parentScene = LocalComposeScene.current
+    val parentPlatformContext = LocalComposeScene.current?.platformContext
     val layoutDirection = LocalLayoutDirection.current
     AwtWindow(
         visible = visible,
         create = {
             create().apply {
-                parentScene?.addChildScene(scene)
+                this.rootForTestListener = parentPlatformContext?.rootForTestListener
                 this.compositionLocalContext = compositionLocalContext
                 this.exceptionHandler = windowExceptionHandlerFactory.exceptionHandler(this)
                 setContent(onPreviewKeyEvent, onKeyEvent, content)
             }
         },
         dispose = {
-            parentScene?.removeChildScene(it.scene)
             dispose(it)
         },
         update = {
@@ -460,7 +461,6 @@ fun FrameWindowScope.MenuBar(content: @Composable MenuBarScope.() -> Unit) {
         val menu = JMenuBar()
         val composition = menu.setContent(parentComposition, content)
         window.jMenuBar = menu
-        composition to menu
 
         onDispose {
             window.jMenuBar = null

@@ -1359,7 +1359,9 @@ public abstract class androidx/compose/ui/text/platform/PlatformFont : androidx/
 }
 
 public final class androidx/compose/ui/text/platform/PlatformFont_skikoKt {
+	public static final fun Font-wCLgNak (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/text/font/FontWeight;I)Landroidx/compose/ui/text/font/Font;
 	public static final fun Font-wCLgNak (Ljava/lang/String;[BLandroidx/compose/ui/text/font/FontWeight;I)Landroidx/compose/ui/text/font/Font;
+	public static synthetic fun Font-wCLgNak$default (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/text/font/FontWeight;IILjava/lang/Object;)Landroidx/compose/ui/text/font/Font;
 	public static synthetic fun Font-wCLgNak$default (Ljava/lang/String;[BLandroidx/compose/ui/text/font/FontWeight;IILjava/lang/Object;)Landroidx/compose/ui/text/font/Font;
 	public static final fun Typeface (Lorg/jetbrains/skia/Typeface;Ljava/lang/String;)Landroidx/compose/ui/text/font/Typeface;
 	public static synthetic fun Typeface$default (Lorg/jetbrains/skia/Typeface;Ljava/lang/String;ILjava/lang/Object;)Landroidx/compose/ui/text/font/Typeface;
@@ -1382,6 +1384,16 @@ public final class androidx/compose/ui/text/platform/SkiaParagraph_skikoKt {
 	public static final fun toSkDecorationStyle-4WTKRHQ (Landroidx/compose/ui/text/style/TextDecoration;J)Lorg/jetbrains/skia/paragraph/DecorationStyle;
 	public static final fun toSkFontStyle-nzbMABs (I)Lorg/jetbrains/skia/FontStyle;
 	public static final fun toSkPlaceholderAlignment-do9X-Gg (I)Lorg/jetbrains/skia/paragraph/PlaceholderAlignment;
+}
+
+public final class androidx/compose/ui/text/platform/SystemFont : androidx/compose/ui/text/platform/PlatformFont {
+	public static final field $stable I
+	public synthetic fun <init> (Ljava/lang/String;Landroidx/compose/ui/text/font/FontWeight;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Landroidx/compose/ui/text/font/FontWeight;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getIdentity ()Ljava/lang/String;
+	public fun getStyle-_-LCdwA ()I
+	public fun getWeight ()Landroidx/compose/ui/text/font/FontWeight;
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class androidx/compose/ui/text/style/BaselineShift {

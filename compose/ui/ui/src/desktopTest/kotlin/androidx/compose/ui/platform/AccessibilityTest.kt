@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.Button
 import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.Tab
@@ -25,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.assertThat
 import androidx.compose.ui.isEqualTo
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.isContainer
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -53,7 +56,7 @@ class AccessibilityTest {
         }
 
         val node = rule.onNodeWithTag("text").fetchSemanticsNode()
-        val accessibleContext = ComposeAccessible(node).accessibleContext
+        val accessibleContext = ComposeAccessible(node).accessibleContext!!
         val accessibleText = accessibleContext.accessibleText!!
         assertEquals(22, accessibleText.charCount)
 
@@ -115,7 +118,7 @@ class AccessibilityTest {
         }
 
         rule.onNodeWithTag("progressbar").apply {
-            val context = ComposeAccessible(fetchSemanticsNode()).accessibleContext
+            val context = ComposeAccessible(fetchSemanticsNode()).accessibleContext!!
             val value = context.accessibleValue
                 ?: fail("No accessibleValue on LinearProgressIndicator")
 
@@ -124,12 +127,51 @@ class AccessibilityTest {
             assertThat(value.maximumAccessibleValue).isEqualTo(1f)
             assertThat(value.currentAccessibleValue).isEqualTo(0.2f)
         }
+    }
 
+    @Test
+    fun boxHasUnknownRole() {
+        rule.setContent {
+            Box(Modifier.testTag("box"))
+        }
+
+        rule.onNodeWithTag("box").apply {
+            val context = ComposeAccessible(fetchSemanticsNode()).accessibleContext!!
+            assertThat(context.accessibleRole).isEqualTo(AccessibleRole.UNKNOWN)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    @Test
+    fun containerHasGroupRole() {
+        rule.setContent {
+            Box(Modifier.testTag("box").semantics {
+                isContainer = true
+            })
+        }
+
+        rule.onNodeWithTag("box").apply {
+            val context = ComposeAccessible(fetchSemanticsNode()).accessibleContext!!
+            assertThat(context.accessibleRole).isEqualTo(AccessibleRole.GROUP_BOX)
+        }
+    }
+
+    @Test
+    fun traversalGroupHasGroupRole() {
+        rule.setContent {
+            Box(Modifier.testTag("box").semantics {
+                isTraversalGroup = true
+            })
+        }
+
+        rule.onNodeWithTag("box").apply {
+            val context = ComposeAccessible(fetchSemanticsNode()).accessibleContext!!
+            assertThat(context.accessibleRole).isEqualTo(AccessibleRole.GROUP_BOX)
+        }
     }
 
     private fun SemanticsNodeInteraction.assertHasAccessibleRole(role: AccessibleRole) {
-        val accessibleContext = ComposeAccessible(fetchSemanticsNode()).accessibleContext
+        val accessibleContext = ComposeAccessible(fetchSemanticsNode()).accessibleContext!!
         assertThat(accessibleContext.accessibleRole).isEqualTo(role)
     }
-
 }

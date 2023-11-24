@@ -17,6 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.node.LayoutNode
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -27,7 +28,11 @@ import javax.accessibility.Accessible
 import javax.accessibility.AccessibleComponent
 import javax.accessibility.AccessibleContext.*
 import javax.accessibility.AccessibleState
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * This class provides a mapping from compose tree of [owner] to tree of [ComposeAccessible],
@@ -39,11 +44,12 @@ import kotlinx.coroutines.delay
  * @see ComposeSceneAccessible
  * @see ComposeAccessible
  */
-internal class AccessibilityControllerImpl(
-    private val owner: SemanticsOwner,
+internal class AccessibilityController(
+    val owner: SemanticsOwner,
     val desktopComponent: PlatformComponent,
+    coroutineContext: CoroutineContext,
     private val onFocusReceived: (ComposeAccessible) -> Unit
-) : AccessibilityController {
+) {
     private var currentNodesInvalidated = true
     var _currentNodes: Map<Int, ComposeAccessible> = emptyMap()
     val currentNodes: Map<Int, ComposeAccessible>
@@ -55,12 +61,13 @@ internal class AccessibilityControllerImpl(
         }
 
     @Suppress("UNUSED_PARAMETER")
-    fun fireNewNodeEvent(accessible: ComposeAccessible) {}
+    private fun onNodeAdded(accessible: ComposeAccessible) {}
 
-    @Suppress("UNUSED_PARAMETER")
-    fun fireRemovedNodeEvent(accessible: ComposeAccessible) {}
+    private fun onNodeRemoved(accessible: ComposeAccessible) {
+        accessible.removed = true
+    }
 
-    fun fireChangedNodeEvent(
+    private fun onNodeChanged(
         component: ComposeAccessible,
         previousSemanticsNode: SemanticsNode,
         newSemanticsNode: SemanticsNode
@@ -119,6 +126,15 @@ internal class AccessibilityControllerImpl(
                                 )
                         }
                     }
+
+                    SemanticsProperties.ProgressBarRangeInfo -> {
+                        val value = entry.value as ProgressBarRangeInfo
+                        component.composeAccessibleContext.firePropertyChange(
+                            ACCESSIBLE_VALUE_PROPERTY,
+                            prev,
+                            value.current
+                        )
+                    }
                 }
             }
         }
@@ -140,12 +156,21 @@ internal class AccessibilityControllerImpl(
         SyncLoopState.lastAccessTimeMillis = System.currentTimeMillis()
     }
 
-    override suspend fun syncLoop() {
-        while (true) {
-            if (currentNodesInvalidated && SyncLoopState.shouldSync) {
-                syncNodes()
+    private val job = Job()
+    private val coroutineScope = CoroutineScope(coroutineContext + job)
+
+    fun dispose() {
+        job.cancel()
+    }
+
+    fun syncLoop() {
+        coroutineScope.launch {
+            while (true) {
+                if (currentNodesInvalidated && SyncLoopState.shouldSync) {
+                    syncNodes()
+                }
+                delay(100)
             }
-            delay(100)
         }
     }
 
@@ -160,10 +185,10 @@ internal class AccessibilityControllerImpl(
             nodes[currentNode.id] = previous[currentNode.id]?.let {
                 val prevSemanticsNode = it.semanticsNode
                 it.semanticsNode = currentNode
-                fireChangedNodeEvent(it, prevSemanticsNode, currentNode)
+                onNodeChanged(it, prevSemanticsNode, currentNode)
                 it
             } ?: ComposeAccessible(currentNode, this).also {
-                fireNewNodeEvent(it)
+                onNodeAdded(it)
             }
 
             // TODO fake nodes?
@@ -178,18 +203,14 @@ internal class AccessibilityControllerImpl(
         findAllSemanticNodesRecursive(rootSemanticNode)
         for ((id, prevNode) in previous.entries) {
             if (nodes[id] == null) {
-                fireRemovedNodeEvent(prevNode)
+                onNodeRemoved(prevNode)
             }
         }
         _currentNodes = nodes
         currentNodesInvalidated = false
     }
 
-    override fun onLayoutChange(layoutNode: LayoutNode) {
-        currentNodesInvalidated = true
-    }
-
-    override fun onSemanticsChange() {
+    fun onSemanticsChange() {
         currentNodesInvalidated = true
     }
 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.mpp.demo.bug.BugReproducers
 import androidx.compose.mpp.demo.components.Components
 import androidx.compose.mpp.demo.textfield.android.AndroidTextFieldSamples
 import androidx.compose.runtime.Composable
@@ -99,7 +100,11 @@ class App(
             }
 
             is Screen.FullscreenExample -> {
-                screen.content { navigationStack.removeLast() }
+                screen.content {
+                    if (navigationStack.size > 1) {
+                        navigationStack.removeLast()
+                    }
+                }
             }
         }
     }
@@ -126,7 +131,7 @@ class App(
                         Icon(
                             Icons.Filled.ArrowBack,
                             contentDescription = "Back",
-                            modifier = Modifier.clickable { navigationStack.removeLast() }
+                            modifier = Modifier.backButton()
                         )
                     }
                 )
@@ -168,7 +173,7 @@ class App(
                                     Icon(
                                         Icons.Filled.ArrowBack,
                                         contentDescription = "Back",
-                                        modifier = Modifier.clickable { navigationStack.removeLast() }
+                                        modifier = Modifier.backButton()
                                     )
                                     Spacer(Modifier.width(16.dp))
                                 }
@@ -193,6 +198,12 @@ class App(
             ) {
                 content()
             }
+        }
+    }
+
+    private fun Modifier.backButton() = clickable {
+        if (navigationStack.size > 1) {
+            navigationStack.removeLast()
         }
     }
 }

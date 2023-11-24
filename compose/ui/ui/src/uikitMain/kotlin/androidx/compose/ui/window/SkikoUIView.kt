@@ -53,6 +53,11 @@ internal interface SkikoUIViewDelegate {
     fun retrieveInteropTransaction(): UIKitInteropTransaction
 
     fun render(canvas: Canvas, targetTimestamp: NSTimeInterval)
+
+    /**
+     * A callback invoked when [UIView.didMoveToWindow] receives non null window
+     */
+    fun onAttachedToWindow() {}
 }
 
 internal enum class UITouchesEventPhase {
@@ -60,7 +65,6 @@ internal enum class UITouchesEventPhase {
 }
 
 @Suppress("CONFLICTING_OVERLOADS")
-@ExportObjCClass
 internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
     companion object : UIViewMeta() {
         override fun layerClass() = CAMetalLayer
@@ -196,6 +200,9 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
         window?.screen?.let {
             contentScaleFactor = it.scale
             _redrawer.maximumFramesPerSecond = it.maximumFramesPerSecond
+        }
+        if (window != null) {
+            delegate?.onAttachedToWindow()
         }
     }
 
@@ -487,9 +494,13 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
     }
 
     override fun offsetFromPosition(from: UITextPosition, toPosition: UITextPosition): NSInteger {
-        val fromPosition = from as IntermediateTextPosition
-        val to = toPosition as IntermediateTextPosition
-        return to.position - fromPosition.position
+        if (from !is IntermediateTextPosition) {
+            error("from !is IntermediateTextPosition")
+        }
+        if (toPosition !is IntermediateTextPosition) {
+            error("toPosition !is IntermediateTextPosition")
+        }
+        return toPosition.position - from.position
     }
 
     override fun tokenizer(): UITextInputTokenizerProtocol = @Suppress("CONFLICTING_OVERLOADS") object : UITextInputStringTokenizer() {
@@ -507,10 +518,19 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
          * TRUE if the text position is at the given text-unit boundary in the given direction; FALSE if it is not at the boundary.
          */
         override fun isPosition(
-            position: UITextPosition,
+            position: UITextPosition, // Attention! position may be null.
             atBoundary: UITextGranularity,
             inDirection: UITextDirection
-        ): Boolean = TODO("implement isPosition")
+        ): Boolean {
+            if (position !is IntermediateTextPosition) {
+                return false
+            }
+            return input?.isPositionAtBoundary(
+                position = position.position.toInt(),
+                atBoundary = atBoundary,
+                inDirection = inDirection,
+            ) ?: false
+        }
 
         /**
          * Return whether a text position is within a text unit of a specified granularity in a specified direction.
@@ -526,10 +546,19 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
          * If the text position is at a boundary, return TRUE only if the boundary is part of the text unit in the given direction.
          */
         override fun isPosition(
-            position: UITextPosition,
+            position: UITextPosition, // Attention! position may be null.
             withinTextUnit: UITextGranularity,
             inDirection: UITextDirection
-        ): Boolean = TODO("implement isPosition")
+        ): Boolean {
+            if (position !is IntermediateTextPosition) {
+                return false
+            }
+            return input?.isPositionWithingTextUnit(
+                position = position.position.toInt(),
+                withinTextUnit = withinTextUnit,
+                inDirection = inDirection,
+            ) ?: false
+        }
 
         /**
          * Return the next text position at a boundary of a text unit of the given granularity in a given direction.
@@ -547,7 +576,12 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
             position: UITextPosition,
             toBoundary: UITextGranularity,
             inDirection: UITextDirection
-        ): UITextPosition? = null
+        ): UITextPosition? {
+            return null
+            if (position !is IntermediateTextPosition) {
+                error("position !is IntermediateTextPosition")
+            }
+        }
 
         /**
          * Return the range for the text enclosing a text position in a text unit of a given granularity in a given direction.
@@ -567,7 +601,9 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
             withGranularity: UITextGranularity,
             inDirection: UITextDirection
         ): UITextRange? {
-            position as IntermediateTextPosition
+            if (position !is IntermediateTextPosition) {
+                error("position !is IntermediateTextPosition")
+            }
             return input?.rangeEnclosingPosition(
                 position = position.position.toInt(),
                 withGranularity = withGranularity,
@@ -587,6 +623,9 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
         position: UITextPosition,
         inDirection: UITextLayoutDirection
     ): UITextRange? {
+        if (position !is IntermediateTextPosition) {
+            error("position !is IntermediateTextPosition")
+        }
         TODO("characterRangeByExtendingPosition, inDirection: ${inDirection.directionToStr()}")
     }
 
@@ -595,6 +634,9 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
         inDirection: UITextStorageDirection
     ): NSWritingDirection {
         return NSWritingDirectionLeftToRight // TODO support RTL text direction
+        if (position !is IntermediateTextPosition) {
+            error("position !is IntermediateTextPosition")
+        }
     }
 
     override fun setBaseWritingDirection(writingDirection: NSWritingDirection, forRange: UITextRange) {
@@ -610,6 +652,9 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
             Ideally, here should be correct rect for caret from Compose.
          */
         return CGRectMake(x = 1.0, y = 1.0, width = 1.0, height = 1.0)
+        if (position !is IntermediateTextPosition) {
+            error("position !is IntermediateTextPosition")
+        }
     }
 
     override fun selectionRectsForRange(range: UITextRange): List<*> = listOf<UITextSelectionRect>()
@@ -619,9 +664,15 @@ internal class SkikoUIView : UIView, UIKeyInputProtocol, UITextInputProtocol {
 
     override fun textStylingAtPosition(position: UITextPosition, inDirection: UITextStorageDirection): Map<Any?, *>? {
         return NSDictionary.dictionary()
+        if (position !is IntermediateTextPosition) {
+            error("position !is IntermediateTextPosition")
+        }
     }
 
     override fun characterOffsetOfPosition(position: UITextPosition, withinRange: UITextRange): NSInteger {
+        if (position !is IntermediateTextPosition) {
+            error("position !is IntermediateTextPosition")
+        }
         TODO("characterOffsetOfPosition")
     }
 
