@@ -45,7 +45,7 @@ import org.w3c.dom.HTMLTitleElement
 
 @OptIn(InternalComposeApi::class)
 private class ComposeWindow(
-    val canvasId: String,
+    canvasId: String,
     content: @Composable () -> Unit,
 )  {
 
