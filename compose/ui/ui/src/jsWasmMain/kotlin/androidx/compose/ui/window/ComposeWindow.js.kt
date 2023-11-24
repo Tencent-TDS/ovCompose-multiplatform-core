@@ -201,7 +201,6 @@ fun CanvasBasedWindow(
             LaunchedEffect(Unit) {
                 while (isActive) {
                     val newSize = actualRequestResize()
-                    println("resize composeWindow $composeWindow to size $newSize")
                     composeWindow?.resize(newSize)
                     delay(100) // throttle
                 }
