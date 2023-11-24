@@ -46,7 +46,7 @@ import org.w3c.dom.HTMLTitleElement
 @OptIn(InternalComposeApi::class)
 private class ComposeWindow(
     val canvasId: String,
-    val content: @Composable () -> Unit,
+    content: @Composable () -> Unit,
 )  {
 
     private val density: Density = Density(
