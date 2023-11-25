@@ -122,7 +122,7 @@ fun ComposeUIViewController(
     )
 }
 
-// FIXME: It's better to rename it now
+//todo New Compose Scene FIXME: It's better to rename it now
 private class AttachedComposeContext(
     val scene: ComposeScene,
     val view: SkikoUIView,
@@ -159,7 +159,7 @@ private class AttachedComposeContext(
 
     fun dispose() {
         scene.close()
-        //todo почистить все слои
+        //todo New Compose Scene почистить все слои
         // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
         // Thus they need to be executed now.
         interopContext.retrieve().actions.forEach { it.invoke() }
@@ -674,8 +674,8 @@ private class ComposeWindow(
                         }
 
                         return object : ComposeSceneLayer {
-                            override var density: Density = Density(1f)//todo
-                            override var layoutDirection: LayoutDirection = LayoutDirection.Ltr//todo
+                            override var density: Density = Density(1f)////todo New Compose Scene
+                            override var layoutDirection: LayoutDirection = LayoutDirection.Ltr////todo New Compose Scene
                             override var bounds: IntRect
                                 get() = IntRect(
                                     offset = IntOffset(
@@ -702,12 +702,12 @@ private class ComposeWindow(
                             override var focusable: Boolean = true
 
                             override fun close() {
-                                // TODO delete platform views
+                                //todo New Compose Scene delete platform views
                                 println("ComposeSceneContext close")
                             }
 
                             override fun setContent(content: @Composable () -> Unit) {
-                                // TODO Размер сцены scene.size - полный экран
+                                //todo New Compose Scene  Размер сцены scene.size - полный экран
                                 //  Сделать translate Canvas по размеру -bounds.position, размер канвы bounds.size
                                 //  translate делать при каждой отрисовке
                                 //  canvas.translate(x, y)
