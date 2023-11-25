@@ -14,11 +14,17 @@
  * limitations under the License.
  */
 
+@file:OptIn(ExperimentalComposeApi::class)
+
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -26,6 +32,7 @@ import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEvent
@@ -42,7 +49,9 @@ import androidx.compose.ui.platform.*
 import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
+import androidx.compose.ui.scene.ComposeSceneLayer
 import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.uikit.*
 import androidx.compose.ui.unit.*
@@ -105,11 +114,13 @@ fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController =
-    ComposeWindow(
+): UIViewController {
+
+    return ComposeWindow(
         configuration = ComposeUIViewControllerConfiguration().apply(configure),
         content = content,
     )
+}
 
 // FIXME: It's better to rename it now
 private class AttachedComposeContext(
@@ -148,6 +159,7 @@ private class AttachedComposeContext(
 
     fun dispose() {
         scene.close()
+        //todo почистить все слои
         // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
         // Thus they need to be executed now.
         interopContext.retrieve().actions.forEach { it.invoke() }
@@ -582,7 +594,167 @@ private class ComposeWindow(
         if (attachedComposeContext != null) {
             return // already attached
         }
+        val isReadyToShowContent = mutableStateOf(false)
+        val en = buildEntities()
+        val platformContext = object : PlatformContext by PlatformContext.Empty {
+            override val windowInfo: WindowInfo
+                get() = _windowInfo
+            override val textInputService: PlatformTextInputService = en.inputServices
+            override val viewConfiguration = object : ViewConfiguration by EmptyViewConfiguration {
 
+                // this value is originating from iOS 16 drag behavior reverse engineering
+                override val touchSlop: Float get() = with(density) { 10.dp.toPx() }
+            }
+            override val textToolbar = object : TextToolbar {
+                override fun showMenu(
+                    rect: Rect,
+                    onCopyRequested: (() -> Unit)?,
+                    onPasteRequested: (() -> Unit)?,
+                    onCutRequested: (() -> Unit)?,
+                    onSelectAllRequested: (() -> Unit)?
+                ) {
+                    val skiaRect = with(density) {
+                        org.jetbrains.skia.Rect.makeLTRB(
+                            l = rect.left / density,
+                            t = rect.top / density,
+                            r = rect.right / density,
+                            b = rect.bottom / density,
+                        )
+                    }
+                    en.skikoUIView.showTextMenu(
+                        targetRect = skiaRect,
+                        textActions = object : TextActions {
+                            override val copy: (() -> Unit)? = onCopyRequested
+                            override val cut: (() -> Unit)? = onCutRequested
+                            override val paste: (() -> Unit)? = onPasteRequested
+                            override val selectAll: (() -> Unit)? = onSelectAllRequested
+                        }
+                    )
+                }
+
+                /**
+                 * TODO on UIKit native behaviour is hide text menu, when touch outside
+                 */
+                override fun hide() = en.skikoUIView.hideTextMenu()
+
+                override val status: TextToolbarStatus
+                    get() = if (en.skikoUIView.isTextMenuShown())
+                        TextToolbarStatus.Shown
+                    else
+                        TextToolbarStatus.Hidden
+            }
+
+            override val inputModeManager = DefaultInputModeManager(InputMode.Touch)
+        }
+        val coroutineDispatcher = Dispatchers.Main
+
+        val scene = if (configuration.singleLayerComposeScene) {
+            SingleLayerComposeScene(
+                coroutineContext = coroutineDispatcher,
+                composeSceneContext = object : ComposeSceneContext {
+                    override val platformContext get() = platformContext
+                    override fun createPlatformLayer(
+                        density: Density,
+                        layoutDirection: LayoutDirection,
+                        focusable: Boolean,
+                        compositionContext: CompositionContext
+                    ): ComposeSceneLayer {
+                        val currentScene = SingleLayerComposeScene(
+                            coroutineContext = compositionContext.effectCoroutineContext,
+                            composeSceneContext = this,
+                            density = density,
+                            invalidate = {},
+                            layoutDirection = layoutDirection,
+                        )
+                        val en = buildEntities()
+                        en.skikoUIView.delegate = createSkikoUIViewDelegate(currentScene, en.interopContext, isReadyToShowContent, en.inputServices)
+                        AttachedComposeContext(currentScene, en.skikoUIView, en.interopContext).also {
+                            it.setConstraintsToFillView(view)
+                            updateLayout(it)
+                        }
+
+                        return object : ComposeSceneLayer {
+                            override var density: Density = Density(1f)//todo
+                            override var layoutDirection: LayoutDirection = LayoutDirection.Ltr//todo
+                            override var bounds: IntRect
+                                get() = IntRect(
+                                    offset = IntOffset(
+                                        x = en.skikoUIView.bounds.useContents { origin.x.toInt() },
+                                        y = en.skikoUIView.bounds.useContents { origin.y.toInt() },
+                                    ),
+                                    size = IntSize(
+                                        width = en.skikoUIView.bounds.useContents { size.width.toInt() },
+                                        height = en.skikoUIView.bounds.useContents { size.height.toInt() },
+                                    )
+                                )
+                                set(value) {
+                                    println("ComposeSceneLayer, set bounds $value")
+                                    en.skikoUIView.setBounds(
+                                        CGRectMake(
+                                            value.left.toDouble(),
+                                            value.top.toDouble(),
+                                            value.width.toDouble(),
+                                            value.height.toDouble()
+                                        )
+                                    )
+                                }
+                            override var scrimColor: Color? = null
+                            override var focusable: Boolean = true
+
+                            override fun close() {
+                                // TODO delete platform views
+                                println("ComposeSceneContext close")
+                            }
+
+                            override fun setContent(content: @Composable () -> Unit) {
+                                // TODO Размер сцены scene.size - полный экран
+                                //  Сделать translate Canvas по размеру -bounds.position, размер канвы bounds.size
+                                //  translate делать при каждой отрисовке
+                                //  canvas.translate(x, y)
+                                //  drawContainedDrawModifiers(canvas)
+                                //  canvas.translate(-x, -y)
+                                //  А размер канвы задавать в bounds set(value) {...
+                                currentScene.setContentWithProvider(isReadyToShowContent, en.interopContext, content)
+                            }
+
+                            override fun setKeyEventListener(
+                                onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
+                                onKeyEvent: ((KeyEvent) -> Boolean)?
+                            ) {
+
+                            }
+
+                            override fun setOutsidePointerEventListener(onOutsidePointerEvent: ((mainEvent: Boolean) -> Unit)?) {
+
+                            }
+                        }
+                    }
+                },
+                density = density,
+                invalidate = en.skikoUIView::needRedraw,
+            )
+        } else {
+            MultiLayerComposeScene(
+                coroutineContext = coroutineDispatcher,
+                composeSceneContext = object : ComposeSceneContext {
+                    override val platformContext get() = platformContext
+                },
+                density = density,
+                invalidate = en.skikoUIView::needRedraw,
+            )
+        }
+
+        en.skikoUIView.delegate = createSkikoUIViewDelegate(scene, en.interopContext, isReadyToShowContent, en.inputServices)
+
+        scene.setContentWithProvider(isReadyToShowContent, en.interopContext, content)
+        attachedComposeContext =
+            AttachedComposeContext(scene, en.skikoUIView, en.interopContext).also {
+                it.setConstraintsToFillView(view)
+                updateLayout(it)
+            }
+    }
+
+    private fun buildEntities(): EntermidateEntities {
         val skikoUIView = SkikoUIView()
 
         val interopContext = UIKitInteropContext(requestRedraw = skikoUIView::needRedraw)
@@ -607,143 +779,91 @@ private class ComposeWindow(
             selectionWillChange = { skikoUIView.selectionWillChange() },
             selectionDidChange = { skikoUIView.selectionDidChange() },
         )
-
         val inputTraits = inputServices.skikoUITextInputTraits
-
-        val platformContext = object : PlatformContext by PlatformContext.Empty {
-            override val windowInfo: WindowInfo
-                get() = _windowInfo
-            override val textInputService: PlatformTextInputService = inputServices
-            override val viewConfiguration = object : ViewConfiguration by EmptyViewConfiguration {
-
-                // this value is originating from iOS 16 drag behavior reverse engineering
-                override val touchSlop: Float get() = with(density) { 10.dp.toPx() }
-            }
-            override val textToolbar = object : TextToolbar {
-                override fun showMenu(
-                    rect: Rect,
-                    onCopyRequested: (() -> Unit)?,
-                    onPasteRequested: (() -> Unit)?,
-                    onCutRequested: (() -> Unit)?,
-                    onSelectAllRequested: (() -> Unit)?
-                ) {
-                    val skiaRect = with(density) {
-                        org.jetbrains.skia.Rect.makeLTRB(
-                            l = rect.left / density,
-                            t = rect.top / density,
-                            r = rect.right / density,
-                            b = rect.bottom / density,
-                        )
-                    }
-                    skikoUIView.showTextMenu(
-                        targetRect = skiaRect,
-                        textActions = object : TextActions {
-                            override val copy: (() -> Unit)? = onCopyRequested
-                            override val cut: (() -> Unit)? = onCutRequested
-                            override val paste: (() -> Unit)? = onPasteRequested
-                            override val selectAll: (() -> Unit)? = onSelectAllRequested
-                        }
-                    )
-                }
-
-                /**
-                 * TODO on UIKit native behaviour is hide text menu, when touch outside
-                 */
-                override fun hide() = skikoUIView.hideTextMenu()
-
-                override val status: TextToolbarStatus
-                    get() = if (skikoUIView.isTextMenuShown())
-                        TextToolbarStatus.Shown
-                    else
-                        TextToolbarStatus.Hidden
-            }
-
-            override val inputModeManager = DefaultInputModeManager(InputMode.Touch)
-        }
-
-        val scene = MultiLayerComposeScene(
-            coroutineContext = Dispatchers.Main,
-            composeSceneContext = object : ComposeSceneContext {
-                override val platformContext get() = platformContext
-            },
-            density = density,
-            invalidate = skikoUIView::needRedraw,
-        )
-        val isReadyToShowContent = mutableStateOf(false)
-
         skikoUIView.input = inputServices.skikoInput
         skikoUIView.inputTraits = inputTraits
-        skikoUIView.delegate = object : SkikoUIViewDelegate {
-            override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
-                val composeEvent = KeyEvent(event)
-                if (!inputServices.onPreviewKeyEvent(composeEvent)) {
-                    scene.sendKeyEvent(composeEvent)
-                }
-            }
+        return EntermidateEntities(
+            skikoUIView,
+            interopContext,
+            inputServices
+        )
+    }
 
-            @Suppress("DEPRECATION")
-            override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
-                point.useContents {
-                    val position = Offset(
-                        (x * density.density).toFloat(),
-                        (y * density.density).toFloat()
-                    )
-
-                    !scene.hitTestInteropView(position)
-                }
-
-            override fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase) {
-                val density = density.density
-
-                scene.sendPointerEvent(
-                    eventType = phase.toPointerEventType(),
-                    pointers = event.touchesForView(view)?.map {
-                        val touch = it as UITouch
-                        val id = touch.hashCode().toLong()
-
-                        val position = touch.offsetInView(view, density)
-
-                        ComposeScenePointer(
-                            id = PointerId(id),
-                            position = position,
-                            pressed = touch.isPressed,
-                            type = PointerType.Touch,
-                            pressure = touch.force.toFloat(),
-                            historical = event.historicalChangesForTouch(touch, view, density)
-                        )
-                    } ?: emptyList(),
-                    timeMillis = (event.timestamp * 1e3).toLong(),
-                    nativeEvent = event
-                )
-            }
-
-            override fun retrieveInteropTransaction(): UIKitInteropTransaction =
-                interopContext.retrieve()
-
-            override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
-                // The calculation is split in two instead of
-                // `(targetTimestamp * 1e9).toLong()`
-                // to avoid losing precision for fractional part
-                val integral = floor(targetTimestamp)
-                val fractional = targetTimestamp - integral
-                val secondsToNanos = 1_000_000_000L
-                val nanos =
-                    integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
-
-                scene.render(canvas.asComposeCanvas(), nanos)
-            }
-
-            override fun onAttachedToWindow() {
-                attachedComposeContext!!.scene.density = density
-                isReadyToShowContent.value = true
+    private fun createSkikoUIViewDelegate(
+        scene: ComposeScene,
+        interopContext: UIKitInteropContext,
+        isReadyToShowContent: MutableState<Boolean>,
+        inputServices: UIKitTextInputService,
+    ) = object : SkikoUIViewDelegate {
+        override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
+            val composeEvent = KeyEvent(event)
+            if (!inputServices.onPreviewKeyEvent(composeEvent)) {
+                scene.sendKeyEvent(composeEvent)
             }
         }
 
-        scene.setContent {
+        @Suppress("DEPRECATION")
+        override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
+            point.useContents {
+                val position = Offset(
+                    (x * density.density).toFloat(),
+                    (y * density.density).toFloat()
+                )
+
+                !scene.hitTestInteropView(position)
+            }
+
+        override fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase) {
+            val density = density.density
+
+            scene.sendPointerEvent(
+                eventType = phase.toPointerEventType(),
+                pointers = event.touchesForView(view)?.map {
+                    val touch = it as UITouch
+                    val id = touch.hashCode().toLong()
+
+                    val position = touch.offsetInView(view, density)
+
+                    ComposeScenePointer(
+                        id = PointerId(id),
+                        position = position,
+                        pressed = touch.isPressed,
+                        type = PointerType.Touch,
+                        pressure = touch.force.toFloat(),
+                        historical = event.historicalChangesForTouch(touch, view, density)
+                    )
+                } ?: emptyList(),
+                timeMillis = (event.timestamp * 1e3).toLong(),
+                nativeEvent = event
+            )
+        }
+
+        override fun retrieveInteropTransaction(): UIKitInteropTransaction =
+            interopContext.retrieve()
+
+        override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
+            // The calculation is split in two instead of
+            // `(targetTimestamp * 1e9).toLong()`
+            // to avoid losing precision for fractional part
+            val integral = floor(targetTimestamp)
+            val fractional = targetTimestamp - integral
+            val secondsToNanos = 1_000_000_000L
+            val nanos = integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
+            scene.render(canvas.asComposeCanvas(), nanos)
+        }
+
+        override fun onAttachedToWindow() {
+            attachedComposeContext!!.scene.density = density
+            isReadyToShowContent.value = true
+        }
+    }
+
+    private fun ComposeScene.setContentWithProvider(isReadyToShowContent: State<Boolean>, interopContext: UIKitInteropContext, content: @Composable ()->Unit) {
+        setContent {
             if (!isReadyToShowContent.value) return@setContent
             CompositionLocalProvider(
                 LocalLayerContainer provides view,
-                LocalUIViewController provides this,
+                LocalUIViewController provides this@ComposeWindow,
                 LocalKeyboardOverlapHeight provides keyboardOverlapHeight,
                 LocalSafeArea provides safeArea,
                 LocalLayoutMargins provides layoutMargins,
@@ -753,12 +873,6 @@ private class ComposeWindow(
                 content = content
             )
         }
-
-        attachedComposeContext =
-            AttachedComposeContext(scene, skikoUIView, interopContext).also {
-                it.setConstraintsToFillView(view)
-                updateLayout(it)
-            }
     }
 }
 
@@ -827,3 +941,9 @@ private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
         else -> SystemTheme.Unknown
     }
 }
+
+internal class EntermidateEntities(
+    val skikoUIView: SkikoUIView,
+    val interopContext: UIKitInteropContext,
+    val inputServices: UIKitTextInputService,
+)
