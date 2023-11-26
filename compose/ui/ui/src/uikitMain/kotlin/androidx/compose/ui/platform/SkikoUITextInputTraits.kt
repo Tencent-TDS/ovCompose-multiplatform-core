@@ -34,6 +34,9 @@ import platform.UIKit.UIReturnKeyType
 import platform.UIKit.UITextAutocapitalizationType
 import platform.UIKit.UITextAutocorrectionType
 import platform.UIKit.UITextContentType
+import platform.UIKit.UITextContentTypeEmailAddress
+import platform.UIKit.UITextContentTypePassword
+import platform.UIKit.UITextContentTypeTelephoneNumber
 import platform.UIKit.UITextSmartDashesType
 import platform.UIKit.UITextSmartInsertDeleteType
 import platform.UIKit.UITextSmartQuotesType
@@ -108,21 +111,19 @@ internal fun getUITextInputTraits(currentImeOptions: ImeOptions?) =
                 else -> UIReturnKeyType.UIReturnKeyDefault
             }
 
-        override fun textContentType(): UITextContentType? = null
-//           TODO: Prevent Issue https://youtrack.jetbrains.com/issue/COMPOSE-319/iOS-Bug-password-TextField-changes-behavior-for-all-other-TextFieds
-//            when (currentImeOptions?.keyboardType) {
-//                KeyboardType.Password, KeyboardType.NumberPassword -> UITextContentTypePassword
-//                KeyboardType.Email -> UITextContentTypeEmailAddress
-//                KeyboardType.Phone -> UITextContentTypeTelephoneNumber
-//                else -> null
-//            }
+        override fun textContentType(): UITextContentType? =
+            when (currentImeOptions?.keyboardType) {
+                KeyboardType.Password, KeyboardType.NumberPassword -> UITextContentTypePassword
+                KeyboardType.Email -> UITextContentTypeEmailAddress
+                KeyboardType.Phone -> UITextContentTypeTelephoneNumber
+                else -> null
+            }
 
-        override fun isSecureTextEntry(): Boolean = false
-//           TODO: Prevent Issue https://youtrack.jetbrains.com/issue/COMPOSE-319/iOS-Bug-password-TextField-changes-behavior-for-all-other-TextFieds
-//            when (currentImeOptions?.keyboardType) {
-//                KeyboardType.Password, KeyboardType.NumberPassword -> true
-//                else -> false
-//            }
+        override fun isSecureTextEntry(): Boolean =
+            when (currentImeOptions?.keyboardType) {
+                KeyboardType.Password, KeyboardType.NumberPassword -> true
+                else -> false
+            }
 
         override fun enablesReturnKeyAutomatically(): Boolean = false
 
