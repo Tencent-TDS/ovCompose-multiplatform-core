@@ -98,15 +98,12 @@ class App(
                     }
                 }
             }
-
-            is Screen.FullscreenExample -> {
-                screen.content {
-                    if (navigationStack.size > 1) {
-                        navigationStack.removeLast()
-                    }
-                }
-            }
         }
+//        Popup {
+//            Box(Modifier.size(200.dp).background(Color.Blue.copy(alpha = 0.5f))) {
+//                Text("I am Popup", Modifier.align(Alignment.Center))
+//            }
+//        }
     }
 
     @Composable

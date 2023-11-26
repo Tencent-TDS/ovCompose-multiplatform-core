@@ -106,6 +106,7 @@ internal class SkikoUIView(
 
     init {
         multipleTouchEnabled = true
+        translatesAutoresizingMaskIntoConstraints = false
 
         _metalLayer.also {
             // Workaround for KN compiler bug

@@ -56,6 +56,7 @@ import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.uikit.*
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.di.KeyboardEventHandler
+import androidx.compose.ui.window.di.SkikoUIViewDelegateImpl
 import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -600,20 +601,35 @@ private class ComposeWindow(
             return // already attached
         }
         val isReadyToShowContent = mutableStateOf(false)
-        val tempSkikoUIView = SkikoUIView()
+        val skikoUIView = SkikoUIView()
 
         var workaroundNullableScene: ComposeScene? = null//todo bad
-        val en = buildEntities(tempSkikoUIView, { workaroundNullableScene!! })
+        val interopContext = UIKitInteropContext(requestRedraw = skikoUIView::needRedraw)
+        view.addSubview(skikoUIView)
+
+        val inputServices = UIKitTextInputService(//todo maybe inputServices also needs in SingleLayerComposeScene
+            updateView = {
+                skikoUIView.setNeedsDisplay() // redraw on next frame
+                CATransaction.flush() // clear all animations
+                skikoUIView.reloadInputViews() // update input (like screen keyboard)//todo redundant?
+            },
+            rootViewProvider = { requireComposeWindow().view },
+            densityProvider = {density}
+        )
+        val keyboardEventHandler = createKeyboardEventHandler({workaroundNullableScene!!}, inputServices)
+        skikoUIView.keyboardEventHandler = keyboardEventHandler
+        inputServices.keyboardEventHandler = keyboardEventHandler
+
         val platformContext = object : PlatformContext by PlatformContext.Empty {
             override val windowInfo: WindowInfo
                 get() = _windowInfo
-            override val textInputService: PlatformTextInputService = en.inputServices
+            override val textInputService: PlatformTextInputService = inputServices
             override val viewConfiguration = object : ViewConfiguration by EmptyViewConfiguration {
 
                 // this value is originating from iOS 16 drag behavior reverse engineering
                 override val touchSlop: Float get() = with(density) { 10.dp.toPx() }
             }
-            override val textToolbar = en.inputServices
+            override val textToolbar = inputServices
             override val inputModeManager = DefaultInputModeManager(InputMode.Touch)
         }
         val coroutineDispatcher = Dispatchers.Main
@@ -636,30 +652,33 @@ private class ComposeWindow(
                             invalidate = {},
                             layoutDirection = layoutDirection,
                         )
-                        val en = buildEntities(SkikoUIView(), { currentScene })
-                        en.skikoUIView.delegate = createSkikoUIViewDelegate(currentScene, en.interopContext, isReadyToShowContent, en.inputServices)
-                        AttachedComposeContext(currentScene, en.skikoUIView, en.interopContext).also {
+                        val skikoUIView = SkikoUIView()
+                        val interopContext = UIKitInteropContext(requestRedraw = skikoUIView::needRedraw)
+                        view.addSubview(skikoUIView)
+
+                        skikoUIView.delegate = SkikoUIViewDelegateImpl({ currentScene }, interopContext, isReadyToShowContent, {density})
+                        AttachedComposeContext(currentScene, skikoUIView, interopContext).also {
                             it.setConstraintsToFillView(view)
                             updateLayout(it)
                         }
 
                         return object : ComposeSceneLayer {
-                            override var density: Density = Density(1f)////todo New Compose Scene
-                            override var layoutDirection: LayoutDirection = LayoutDirection.Ltr////todo New Compose Scene
+                            override var density: Density = density
+                            override var layoutDirection: LayoutDirection = layoutDirection
                             override var bounds: IntRect
                                 get() = IntRect(
                                     offset = IntOffset(
-                                        x = en.skikoUIView.bounds.useContents { origin.x.toInt() },
-                                        y = en.skikoUIView.bounds.useContents { origin.y.toInt() },
+                                        x = skikoUIView.bounds.useContents { origin.x.toInt() },
+                                        y = skikoUIView.bounds.useContents { origin.y.toInt() },
                                     ),
                                     size = IntSize(
-                                        width = en.skikoUIView.bounds.useContents { size.width.toInt() },
-                                        height = en.skikoUIView.bounds.useContents { size.height.toInt() },
+                                        width = skikoUIView.bounds.useContents { size.width.toInt() },
+                                        height = skikoUIView.bounds.useContents { size.height.toInt() },
                                     )
                                 )
                                 set(value) {
                                     println("ComposeSceneLayer, set bounds $value")
-                                    en.skikoUIView.setBounds(
+                                    skikoUIView.setBounds(
                                         CGRectMake(
                                             value.left.toDouble(),
                                             value.top.toDouble(),
@@ -684,7 +703,7 @@ private class ComposeWindow(
                                 //  drawContainedDrawModifiers(canvas)
                                 //  canvas.translate(-x, -y)
                                 //  А размер канвы задавать в bounds set(value) {...
-                                currentScene.setContentWithProvider(isReadyToShowContent, en.interopContext, content)
+                                currentScene.setContentWithProvider(isReadyToShowContent, interopContext, content)
                             }
 
                             override fun setKeyEventListener(
@@ -701,7 +720,7 @@ private class ComposeWindow(
                     }
                 },
                 density = density,
-                invalidate = en.skikoUIView::needRedraw,
+                invalidate = skikoUIView::needRedraw,
             )
         } else {
             MultiLayerComposeScene(
@@ -710,47 +729,25 @@ private class ComposeWindow(
                     override val platformContext get() = platformContext
                 },
                 density = density,
-                invalidate = en.skikoUIView::needRedraw,
+                invalidate = skikoUIView::needRedraw,
             )
         }.also {
             workaroundNullableScene = it
         }
 
-        en.skikoUIView.delegate = createSkikoUIViewDelegate(scene, en.interopContext, isReadyToShowContent, en.inputServices)
+        skikoUIView.delegate = SkikoUIViewDelegateImpl(
+            { scene },
+            interopContext,
+            isReadyToShowContent,
+            {density}
+        )
 
-        scene.setContentWithProvider(isReadyToShowContent, en.interopContext, content)
+        scene.setContentWithProvider(isReadyToShowContent, interopContext, content)
         attachedComposeContext =
-            AttachedComposeContext(scene, en.skikoUIView, en.interopContext).also {
+            AttachedComposeContext(scene, skikoUIView, interopContext).also {
                 it.setConstraintsToFillView(view)
                 updateLayout(it)
             }
-    }
-
-    private fun buildEntities(skikoUIView : SkikoUIView, sceneProvider:()->ComposeScene): EntermidateEntities {
-        val interopContext = UIKitInteropContext(requestRedraw = skikoUIView::needRedraw)
-
-        skikoUIView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(skikoUIView)
-
-        val inputServices = UIKitTextInputService(
-            updateView = {
-                skikoUIView.setNeedsDisplay() // redraw on next frame
-                platform.QuartzCore.CATransaction.flush() // clear all animations
-                skikoUIView.reloadInputViews() // update input (like screen keyboard)//todo redundant?
-            },
-            rootViewProvider = { requireComposeWindow().view },
-            densityProvider = {density}
-        )
-
-        val keyboardEventHandler = createKeyboardEventHandler(sceneProvider, inputServices)
-        skikoUIView.keyboardEventHandler = keyboardEventHandler
-        inputServices.keyboardEventHandler = keyboardEventHandler
-
-        return EntermidateEntities(
-            skikoUIView,
-            interopContext,
-            inputServices
-        )
     }
 
     private fun createKeyboardEventHandler(
@@ -764,69 +761,6 @@ private class ComposeWindow(
             if (!inputServices.onPreviewKeyEvent(composeEvent)) {
                 scene.sendKeyEvent(composeEvent)
             }
-        }
-    }
-
-    private fun createSkikoUIViewDelegate(
-        scene: ComposeScene,
-        interopContext: UIKitInteropContext,
-        isReadyToShowContent: MutableState<Boolean>,
-        inputServices: UIKitTextInputService,
-    ) = object : SkikoUIViewDelegate {
-
-        @Suppress("DEPRECATION")
-        override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
-            point.useContents {
-                val position = Offset(
-                    (x * density.density).toFloat(),
-                    (y * density.density).toFloat()
-                )
-
-                !scene.hitTestInteropView(position)
-            }
-
-        override fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase) {
-            val density = density.density
-
-            scene.sendPointerEvent(
-                eventType = phase.toPointerEventType(),
-                pointers = event.touchesForView(view)?.map {
-                    val touch = it as UITouch
-                    val id = touch.hashCode().toLong()
-
-                    val position = touch.offsetInView(view, density)
-
-                    ComposeScenePointer(
-                        id = PointerId(id),
-                        position = position,
-                        pressed = touch.isPressed,
-                        type = PointerType.Touch,
-                        pressure = touch.force.toFloat(),
-                        historical = event.historicalChangesForTouch(touch, view, density)
-                    )
-                } ?: emptyList(),
-                timeMillis = (event.timestamp * 1e3).toLong(),
-                nativeEvent = event
-            )
-        }
-
-        override fun retrieveInteropTransaction(): UIKitInteropTransaction =
-            interopContext.retrieve()
-
-        override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
-            // The calculation is split in two instead of
-            // `(targetTimestamp * 1e9).toLong()`
-            // to avoid losing precision for fractional part
-            val integral = floor(targetTimestamp)
-            val fractional = targetTimestamp - integral
-            val secondsToNanos = 1_000_000_000L
-            val nanos = integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
-            scene.render(canvas.asComposeCanvas(), nanos)
-        }
-
-        override fun onAttachedToWindow() {
-            attachedComposeContext!!.scene.density = density
-            isReadyToShowContent.value = true
         }
     }
 
@@ -847,43 +781,6 @@ private class ComposeWindow(
         }
     }
 }
-
-private fun UITouch.offsetInView(view: UIView, density: Float): Offset =
-    locationInView(view).useContents {
-        Offset(x.toFloat() * density, y.toFloat() * density)
-    }
-
-private fun UIEvent.historicalChangesForTouch(touch: UITouch, view: UIView, density: Float): List<HistoricalChange> {
-    val touches = coalescedTouchesForTouch(touch) ?: return emptyList()
-
-    return if (touches.size > 1) {
-        // subList last index is exclusive, so the last touch in the list is not included
-        // because it's the actual touch for which coalesced touches were requested
-        touches.subList(0, touches.size - 1).map {
-            val historicalTouch = it as UITouch
-            HistoricalChange(
-                uptimeMillis = (historicalTouch.timestamp * 1e3).toLong(),
-                position = historicalTouch.offsetInView(view, density)
-            )
-        }
-    } else {
-        emptyList()
-    }
-}
-
-private val UITouch.isPressed
-    get() = when (phase) {
-        UITouchPhase.UITouchPhaseEnded, UITouchPhase.UITouchPhaseCancelled -> false
-        else -> true
-    }
-
-private fun UITouchesEventPhase.toPointerEventType(): PointerEventType =
-    when (this) {
-        UITouchesEventPhase.BEGAN -> PointerEventType.Press
-        UITouchesEventPhase.MOVED -> PointerEventType.Move
-        UITouchesEventPhase.ENDED -> PointerEventType.Release
-        UITouchesEventPhase.CANCELLED -> PointerEventType.Release
-    }
 
 private fun UIViewController.checkIfInsideSwiftUI(): Boolean {
     var parent = parentViewController
@@ -913,9 +810,3 @@ private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
         else -> SystemTheme.Unknown
     }
 }
-
-internal class EntermidateEntities(
-    val skikoUIView: SkikoUIView,
-    val interopContext: UIKitInteropContext,
-    val inputServices: UIKitTextInputService,
-)
