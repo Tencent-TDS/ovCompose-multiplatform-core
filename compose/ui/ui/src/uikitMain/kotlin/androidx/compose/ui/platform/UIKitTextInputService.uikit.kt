@@ -22,6 +22,7 @@ import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.window.IntermediateTextInputUIView
+import androidx.compose.ui.window.di.FocusStack
 import androidx.compose.ui.window.di.KeyboardEventHandler
 import kotlin.math.absoluteValue
 import kotlin.math.min
@@ -34,6 +35,7 @@ internal class UIKitTextInputService(
     private val updateView: () -> Unit,
     private val rootViewProvider: ()->UIView,
     private val densityProvider: () -> Density,
+    private val focusStack: FocusStack,
 ) : PlatformTextInputService, TextToolbar {
 
     private val rootView get() = rootViewProvider()
@@ -423,11 +425,15 @@ internal class UIKitTextInputService(
     }
 
     override fun showSoftwareKeyboard() {
-        _textUIView?.becomeFirstResponder()
+        _textUIView?.let {
+            focusStack.push(it)
+        }
     }
 
     override fun hideSoftwareKeyboard() {
-        _textUIView?.resignFirstResponder()
+        _textUIView?.let {
+            focusStack.popUntilNext(it)
+        }
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {

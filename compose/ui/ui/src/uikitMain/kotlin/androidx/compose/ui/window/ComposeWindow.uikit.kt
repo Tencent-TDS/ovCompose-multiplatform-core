@@ -23,50 +23,39 @@ import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.InternalComposeApi
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.pointer.HistoricalChange
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.PointerId
-import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.interop.UIKitInteropContext
-import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
-import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.uikit.*
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.window.di.FocusStack
+import androidx.compose.ui.window.di.FocusStackImpl
 import androidx.compose.ui.window.di.KeyboardEventHandler
 import androidx.compose.ui.window.di.SkikoUIViewDelegateImpl
-import kotlin.math.floor
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
-import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.SkikoKeyboardEvent
@@ -74,7 +63,6 @@ import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
 import platform.CoreGraphics.CGFloat
-import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSize
@@ -175,7 +163,8 @@ private class AttachedComposeContext(
 @ExportObjCClass
 private class ComposeWindow(
     private val configuration: ComposeUIViewControllerConfiguration,
-    private val content: @Composable () -> Unit
+    private val content: @Composable () -> Unit,
+    private val focusStack: FocusStack = FocusStackImpl(),
 ) : UIViewController(nibName = null, bundle = null) {
 
     private fun requireComposeWindow() = this //TODO temp
@@ -602,6 +591,7 @@ private class ComposeWindow(
         }
         val isReadyToShowContent = mutableStateOf(false)
         val skikoUIView = SkikoUIView()
+        focusStack.push(skikoUIView)
 
         var workaroundNullableScene: ComposeScene? = null//todo bad
         val interopContext = UIKitInteropContext(requestRedraw = skikoUIView::needRedraw)
@@ -614,7 +604,8 @@ private class ComposeWindow(
                 skikoUIView.reloadInputViews() // update input (like screen keyboard)//todo redundant?
             },
             rootViewProvider = { requireComposeWindow().view },
-            densityProvider = {density}
+            densityProvider = {density},
+            focusStack = focusStack,
         )
         val keyboardEventHandler = createKeyboardEventHandler({workaroundNullableScene!!}, inputServices)
         skikoUIView.keyboardEventHandler = keyboardEventHandler
@@ -653,6 +644,9 @@ private class ComposeWindow(
                             layoutDirection = layoutDirection,
                         )
                         val skikoUIView = SkikoUIView()
+                        if (focusable) {
+                            focusStack.push(skikoUIView)
+                        }
                         val interopContext = UIKitInteropContext(requestRedraw = skikoUIView::needRedraw)
                         view.addSubview(skikoUIView)
 
@@ -692,6 +686,9 @@ private class ComposeWindow(
 
                             override fun close() {
                                 //todo New Compose Scene delete platform views
+                                focusStack.popUntilNext(skikoUIView)
+                                skikoUIView.dispose()
+                                skikoUIView.removeFromSuperview()
                                 println("ComposeSceneContext close")
                             }
 
