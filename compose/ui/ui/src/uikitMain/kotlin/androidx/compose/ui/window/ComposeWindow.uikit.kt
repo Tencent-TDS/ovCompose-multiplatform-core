@@ -117,7 +117,7 @@ fun ComposeUIViewController(
         configuration = ComposeUIViewControllerConfiguration().apply(configure),
         content = content,
         focusStack = FocusStackImpl(),
-        createSkikoUIView = { focusable: Boolean, keyboardEventHandler: KeyboardEventHandler, delegate: SkikoUIViewDelegate ->
+        createViewWrapper = { focusable: Boolean, keyboardEventHandler: KeyboardEventHandler, delegate: SkikoUIViewDelegate ->
             ComposeViewWrapperImpl(
                 SkikoUIView(focusable, keyboardEventHandler, delegate)
             )
@@ -131,7 +131,6 @@ private class AttachedComposeContext(
     val viewWrapper: ComposeViewWrapper,
     val interopContext: UIKitInteropContext
 ) {
-    val view get() = viewWrapper.view
     private var constraints: List<NSLayoutConstraint> = emptyList()
         set(value) {
             if (field.isNotEmpty()) {
@@ -144,20 +143,20 @@ private class AttachedComposeContext(
     fun setConstraintsToCenterInView(parentView: UIView, size: CValue<CGSize>) {
         size.useContents {
             constraints = listOf(
-                view.centerXAnchor.constraintEqualToAnchor(parentView.centerXAnchor),
-                view.centerYAnchor.constraintEqualToAnchor(parentView.centerYAnchor),
-                view.widthAnchor.constraintEqualToConstant(width),
-                view.heightAnchor.constraintEqualToConstant(height)
+                viewWrapper.view.centerXAnchor.constraintEqualToAnchor(parentView.centerXAnchor),
+                viewWrapper.view.centerYAnchor.constraintEqualToAnchor(parentView.centerYAnchor),
+                viewWrapper.view.widthAnchor.constraintEqualToConstant(width),
+                viewWrapper.view.heightAnchor.constraintEqualToConstant(height)
             )
         }
     }
 
     fun setConstraintsToFillView(parentView: UIView) {
         constraints = listOf(
-            view.leftAnchor.constraintEqualToAnchor(parentView.leftAnchor),
-            view.rightAnchor.constraintEqualToAnchor(parentView.rightAnchor),
-            view.topAnchor.constraintEqualToAnchor(parentView.topAnchor),
-            view.bottomAnchor.constraintEqualToAnchor(parentView.bottomAnchor)
+            viewWrapper.view.leftAnchor.constraintEqualToAnchor(parentView.leftAnchor),
+            viewWrapper.view.rightAnchor.constraintEqualToAnchor(parentView.rightAnchor),
+            viewWrapper.view.topAnchor.constraintEqualToAnchor(parentView.topAnchor),
+            viewWrapper.view.bottomAnchor.constraintEqualToAnchor(parentView.bottomAnchor)
         )
     }
 
@@ -177,7 +176,7 @@ private class ComposeWindow(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
     private val focusStack: FocusStack,
-    private val createSkikoUIView: (focusable: Boolean, KeyboardEventHandler, SkikoUIViewDelegate) -> ComposeViewWrapper,
+    private val createViewWrapper: (focusable: Boolean, KeyboardEventHandler, SkikoUIViewDelegate) -> ComposeViewWrapper,
 ) : UIViewController(nibName = null, bundle = null) {
 
     private fun requireComposeWindow() = this //TODO temp
@@ -240,7 +239,7 @@ private class ComposeWindow(
 
     private val density: Density
         get() = Density(
-            attachedComposeContext?.view?.contentScaleFactor?.toFloat() ?: 1f,
+            attachedComposeContext?.viewWrapper?.view?.contentScaleFactor?.toFloat() ?: 1f,
             fontScale
         )
 
@@ -357,7 +356,7 @@ private class ComposeWindow(
         }
 
         private fun calcFocusedLiftingY(focusedRect: DpRect, keyboardHeight: Double): Double {
-            val viewHeight = attachedComposeContext?.view?.frame?.useContents {
+            val viewHeight = attachedComposeContext?.viewWrapper?.view?.frame?.useContents {
                 size.height
             } ?: 0.0
 
@@ -492,7 +491,7 @@ private class ComposeWindow(
         }
 
         val startSnapshotView =
-            attachedComposeContext.view.snapshotViewAfterScreenUpdates(false) ?: return
+            attachedComposeContext.viewWrapper.view.snapshotViewAfterScreenUpdates(false) ?: return
 
         startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(startSnapshotView)
@@ -510,7 +509,7 @@ private class ComposeWindow(
         attachedComposeContext.viewWrapper.isForcedToPresentWithTransactionEveryFrame = true
 
         attachedComposeContext.setConstraintsToCenterInView(view, size)
-        attachedComposeContext.view.transform = withTransitionCoordinator.targetTransform
+        attachedComposeContext.viewWrapper.view.transform = withTransitionCoordinator.targetTransform
 
         view.layoutIfNeeded()
 
@@ -519,7 +518,7 @@ private class ComposeWindow(
                 startSnapshotView.alpha = 0.0
                 startSnapshotView.transform =
                     CGAffineTransformInvert(withTransitionCoordinator.targetTransform)
-                attachedComposeContext.view.transform = CGAffineTransformIdentity.readValue()
+                attachedComposeContext.viewWrapper.view.transform = CGAffineTransformIdentity.readValue()
             },
             completion = {
                 startSnapshotView.removeFromSuperview()
@@ -607,14 +606,14 @@ private class ComposeWindow(
 
         class ViewDI(focusable: Boolean, val buildScene: ViewDI.() -> ComposeScene) {
             val scene: ComposeScene by lazy { this.buildScene() }
-            val skikoUIView:ComposeViewWrapper by lazy { createSkikoUIView(focusable, keyboardEventHandler, delegate) }
-            val interopContext by lazy { UIKitInteropContext(requestRedraw = { skikoUIView.needRedraw() }) }
+            val viewWrapper:ComposeViewWrapper by lazy { createViewWrapper(focusable, keyboardEventHandler, delegate) }
+            val interopContext by lazy { UIKitInteropContext(requestRedraw = { viewWrapper.needRedraw() }) }
             val uiKitTextInputService:UIKitTextInputService by lazy {
                 UIKitTextInputService(
                     updateView = {
-                        skikoUIView.view.setNeedsDisplay() // redraw on next frame
+                        viewWrapper.view.setNeedsDisplay() // redraw on next frame
                         CATransaction.flush() // clear all animations
-                        skikoUIView.view.reloadInputViews() // update input (like screen keyboard)//todo redundant?
+                        viewWrapper.view.reloadInputViews() // update input (like screen keyboard)//todo redundant?
                     },
                     rootViewProvider = { requireComposeWindow().view },
                     densityProvider = {density},
@@ -649,6 +648,22 @@ private class ComposeWindow(
                     {density}
                 )
             }
+            val attachedComposeContext: AttachedComposeContext by lazy {
+                AttachedComposeContext(
+                    scene,
+                    viewWrapper,
+                    interopContext
+                )
+            }
+        }
+
+        fun ViewDI.doBoilerplate(focusable: Boolean) {
+            view.addSubview(viewWrapper.view)
+            attachedComposeContext.setConstraintsToFillView(view)
+            updateLayout(attachedComposeContext)
+            if (focusable) {
+                focusStack.push(viewWrapper.view)
+            }
         }
 
         if (configuration.singleLayerComposeScene) {
@@ -668,7 +683,7 @@ private class ComposeWindow(
                             override val platformContext: PlatformContext get() = this@ViewDI.platformContext
                         },
                         density = density,
-                        invalidate = skikoUIView::needRedraw,
+                        invalidate = viewWrapper::needRedraw,
                         layoutDirection = layoutDirection,
                     )
                 }
@@ -694,15 +709,8 @@ private class ComposeWindow(
                             compositionContext.effectCoroutineContext,
                             { this },
                         ).run {
-                            AttachedComposeContext(scene, skikoUIView, interopContext).also {
-                                view.addSubview(it.view)
-                                it.view.alpha = 0.5
-                                it.setConstraintsToFillView(view)
-                                updateLayout(it)
-                                if (focusable) {
-                                    focusStack.push(it.view)
-                                }
-                            }
+                            doBoilerplate(focusable)
+                            viewWrapper.view.alpha = 0.5
 
                             object : ComposeSceneLayer {
                                 override var density: Density = density
@@ -710,17 +718,17 @@ private class ComposeWindow(
                                 override var bounds: IntRect
                                     get() = IntRect(
                                         offset = IntOffset(
-                                            x = skikoUIView.view.bounds.useContents { origin.x.toInt() },
-                                            y = skikoUIView.view.bounds.useContents { origin.y.toInt() },
+                                            x = viewWrapper.view.bounds.useContents { origin.x.toInt() },
+                                            y = viewWrapper.view.bounds.useContents { origin.y.toInt() },
                                         ),
                                         size = IntSize(
-                                            width = skikoUIView.view.bounds.useContents { size.width.toInt() },
-                                            height = skikoUIView.view.bounds.useContents { size.height.toInt() },
+                                            width = viewWrapper.view.bounds.useContents { size.width.toInt() },
+                                            height = viewWrapper.view.bounds.useContents { size.height.toInt() },
                                         )
                                     )
                                     set(value) {
                                         println("ComposeSceneLayer, set bounds $value")
-                                        skikoUIView.view.setBounds(
+                                        viewWrapper.view.setBounds(
                                             CGRectMake(
                                                 value.left.toDouble(),
                                                 value.top.toDouble(),
@@ -734,9 +742,9 @@ private class ComposeWindow(
 
                                 override fun close() {
                                     println("ComposeSceneContext close")
-                                    focusStack.popUntilNext(skikoUIView.view)
-                                    skikoUIView.dispose()
-                                    skikoUIView.view.removeFromSuperview()
+                                    focusStack.popUntilNext(viewWrapper.view)
+                                    viewWrapper.dispose()
+                                    viewWrapper.view.removeFromSuperview()
                                 }
 
                                 override fun setContent(content: @Composable () -> Unit) {
@@ -748,7 +756,7 @@ private class ComposeWindow(
                                     //  canvas.translate(-x, -y)
                                     //  А размер канвы задавать в bounds set(value) {...
                                     scene.setContentWithProvider(
-                                        skikoUIView.isReadyToShowContent,
+                                        viewWrapper.isReadyToShowContent,
                                         interopContext,
                                         content
                                     )
@@ -777,18 +785,13 @@ private class ComposeWindow(
                         override val platformContext: PlatformContext get() = this@ViewDI.platformContext
                     },
                     density = density,
-                    invalidate = skikoUIView::needRedraw,
+                    invalidate = viewWrapper::needRedraw,
                 )
             }
         }.apply {
-            scene.setContentWithProvider(skikoUIView.isReadyToShowContent, interopContext, content)
-            attachedComposeContext =
-                AttachedComposeContext(scene, skikoUIView, interopContext).also {
-                    view.addSubview(it.view)
-                    it.setConstraintsToFillView(view)
-                    updateLayout(it)
-                    focusStack.push(it.view)
-                }
+            scene.setContentWithProvider(viewWrapper.isReadyToShowContent, interopContext, content)
+            doBoilerplate(true)
+            this@ComposeWindow.attachedComposeContext = attachedComposeContext//todo bad
         }
     }
 
