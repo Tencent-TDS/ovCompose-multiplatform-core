@@ -101,16 +101,12 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api "androidx.annotation:annotation:1.1.0"
             }
 
-            jsMain {
-                dependencies {
-                    implementation(kotlin("stdlib-js"))
-                }
-            }
+            jsMain {}
 
             if (project.kotlinWasmEnabled.toBoolean()) {
                 wasmJsMain {
                     dependencies {
-                        implementation(kotlin("stdlib-wasm-js"))
+                        implementation(libs.kotlinStdlib)
                     }
                 }
             }

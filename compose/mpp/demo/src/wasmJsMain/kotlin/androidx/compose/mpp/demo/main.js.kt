@@ -29,11 +29,6 @@ fun main() {
     CanvasBasedWindow("Compose/JS sample", canvasElementId = "canvas1") {
         val app = remember { App() }
         app.Content()
-
-        // TODO: crashes k/wasm (see rememberTextFieldOverscrollEffect)
-        // Uncaught (in promise) RuntimeError: unreachable
-        //    at <compose-multiplatform-core.compose.mpp:demo>.androidx.compose.mpp.demo.returnsNullable (main.js.kt:39:40)
-        // val l = returnsNullable()
     }
 }
 

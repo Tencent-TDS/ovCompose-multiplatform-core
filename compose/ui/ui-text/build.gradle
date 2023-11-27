@@ -135,10 +135,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             jsMain {
                 dependsOn(jsWasmMain)
-                dependencies {
-                    implementation(kotlin("stdlib-js"))
-                    api(libs.skikoCommon)
-                }
             }
 
             if (project.kotlinWasmEnabled.toBoolean()) {

@@ -137,7 +137,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 wasmJsMain {
                     dependsOn(jsWasmMain)
                     dependencies {
-                        implementation(kotlin("stdlib-wasm-js"))
+                        implementation(libs.kotlinStdlib)
                     }
                 }
             }

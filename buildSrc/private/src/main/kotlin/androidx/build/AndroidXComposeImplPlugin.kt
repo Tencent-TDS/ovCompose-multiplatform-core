@@ -375,19 +375,7 @@ private fun configureComposeCompilerPlugin(
         val configuration = project.configurations.create(COMPILER_PLUGIN_CONFIGURATION)
         // Add Compose compiler plugin to kotlinPlugin configuration, making sure it works
         // for Playground builds as well
-        project.dependencies.add(COMPILER_PLUGIN_CONFIGURATION, "org.jetbrains.compose.compiler:compiler:1.5.3")
-//        project.dependencies.add(COMPILER_PLUGIN_CONFIGURATION, "org.jetbrains.compose.compiler:compiler:1.5.1")
-//        project.dependencies.add(
-//            COMPILER_PLUGIN_CONFIGURATION,
-//            if (ProjectLayoutType.isPlayground(project)) {
-//                AndroidXPlaygroundRootImplPlugin.projectOrArtifact(
-//                    project.rootProject,
-//                    ":compose:compiler:compiler"
-//                )
-//            } else {
-//                project.rootProject.resolveProject(":compose:compiler:compiler")
-//            }
-//        )
+        project.dependencies.add(COMPILER_PLUGIN_CONFIGURATION, "org.jetbrains.compose.compiler:compiler:1.5.4")
         val kotlinPlugin = configuration.incoming.artifactView { view ->
             view.attributes { attributes ->
                 attributes.attribute(

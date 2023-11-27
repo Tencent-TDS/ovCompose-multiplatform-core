@@ -109,7 +109,7 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     @OptIn(ExperimentalWasmDsl::class)
     override fun wasm(): Unit = multiplatformExtension.run {
         if (!isKotlinWasmTargetEnabled) return@run
-        wasm {
+        wasmJs {
             d8()
             browser {
                 testTask(Action<KotlinJsTest> {
@@ -126,6 +126,7 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         val resourcesDir = "${project.buildDir}/resources"
         val skikoWasm by project.configurations.creating
 
+        // Below code helps configure the tests for k/wasm targets
         project.dependencies {
             skikoWasm("org.jetbrains.skiko:skiko-js-wasm-runtime:${skikoVersion}")
         }
@@ -152,18 +153,6 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         }
 
         project.tasks.getByName("wasmJsBrowserTest").apply {
-//            doFirst {
-//                // TODO: remove doFirst - it's a workaround for https://youtrack.jetbrains.com/issue/KT-58293
-//                val name = getDashedProjectName() + "-wasm-test"
-//                val fileName = "$name.uninstantiated.mjs"
-//                project.rootProject.buildDir.resolve(
-//                    "js/packages/$name/kotlin/$fileName"
-//                ).also { file ->
-//                    val oldContent = file.readText()
-//                    val newContent = oldContent.replace("(jsException) =>", "(e) =>")
-//                    file.writeText(newContent)
-//                }
-//            }
             dependsOn(unzipTask)
         }
 
