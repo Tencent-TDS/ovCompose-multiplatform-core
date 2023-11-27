@@ -651,132 +651,136 @@ private class ComposeWindow(
             }
         }
 
-            if (configuration.singleLayerComposeScene) {
-                fun prepareSingleLayerComposeScene(
-                    density: Density,
-                    layoutDirection: LayoutDirection,
-                    focusable: Boolean,
-                    coroutineContext: CoroutineContext,
-                    prepareComposeSceneContext: () -> ComposeSceneContext,
-                ):ViewDI {
-                    return ViewDI(focusable) {
-                        SingleLayerComposeScene(
-                            coroutineContext = coroutineContext,
-                            composeSceneContext = object : ComposeSceneContext by prepareComposeSceneContext() {
-                                //todo do we need new platform context on every SingleLayerComposeScene?
-                                override val platformContext: PlatformContext get() = this@ViewDI.platformContext
-                            },
-                            density = density,
-                            invalidate = skikoUIView::needRedraw,
-                            layoutDirection = layoutDirection,
-                        )
-                    }
+        if (configuration.singleLayerComposeScene) {
+            fun prepareSingleLayerComposeScene(
+                density: Density,
+                layoutDirection: LayoutDirection,
+                focusable: Boolean,
+                coroutineContext: CoroutineContext,
+                prepareComposeSceneContext: () -> ComposeSceneContext,
+            ): ViewDI {
+                return ViewDI(focusable) {
+                    SingleLayerComposeScene(
+                        coroutineContext = coroutineContext,
+                        composeSceneContext = object :
+                            ComposeSceneContext by prepareComposeSceneContext() {
+                            //todo do we need new platform context on every SingleLayerComposeScene?
+                            override val platformContext: PlatformContext get() = this@ViewDI.platformContext
+                        },
+                        density = density,
+                        invalidate = skikoUIView::needRedraw,
+                        layoutDirection = layoutDirection,
+                    )
                 }
-                
-                prepareSingleLayerComposeScene(
-                    density = density,
-                    layoutDirection = LayoutDirection.Ltr,//todo get from system?
-                    focusable = true,
-                    coroutineContext = coroutineDispatcher
-                ) {
-                    object : ComposeSceneContext {
-                        override fun createPlatformLayer(
-                            density: Density,
-                            layoutDirection: LayoutDirection,
-                            focusable: Boolean,
-                            compositionContext: CompositionContext
-                        ): ComposeSceneLayer {
-                            return prepareSingleLayerComposeScene(
-                                density,
-                                layoutDirection,
-                                focusable,
-                                compositionContext.effectCoroutineContext,
-                                { this },
-                            ).run {
-                                AttachedComposeContext(scene, skikoUIView, interopContext).also {
-                                    view.addSubview(it.view)
-                                    it.view.alpha = 0.5
-                                    it.setConstraintsToFillView(view)
-                                    updateLayout(it)
-                                    if (focusable) {
-                                        focusStack.push(it.view)
-                                    }
-                                }
+            }
 
-                                object : ComposeSceneLayer {
-                                    override var density: Density = density
-                                    override var layoutDirection: LayoutDirection = layoutDirection
-                                    override var bounds: IntRect
-                                        get() = IntRect(
-                                            offset = IntOffset(
-                                                x = skikoUIView.view.bounds.useContents { origin.x.toInt() },
-                                                y = skikoUIView.view.bounds.useContents { origin.y.toInt() },
-                                            ),
-                                            size = IntSize(
-                                                width = skikoUIView.view.bounds.useContents { size.width.toInt() },
-                                                height = skikoUIView.view.bounds.useContents { size.height.toInt() },
+            prepareSingleLayerComposeScene(
+                density = density,
+                layoutDirection = LayoutDirection.Ltr,//todo get from system?
+                focusable = true,
+                coroutineContext = coroutineDispatcher
+            ) {
+                object : ComposeSceneContext {
+                    override fun createPlatformLayer(
+                        density: Density,
+                        layoutDirection: LayoutDirection,
+                        focusable: Boolean,
+                        compositionContext: CompositionContext
+                    ): ComposeSceneLayer {
+                        return prepareSingleLayerComposeScene(
+                            density,
+                            layoutDirection,
+                            focusable,
+                            compositionContext.effectCoroutineContext,
+                            { this },
+                        ).run {
+                            AttachedComposeContext(scene, skikoUIView, interopContext).also {
+                                view.addSubview(it.view)
+                                it.view.alpha = 0.5
+                                it.setConstraintsToFillView(view)
+                                updateLayout(it)
+                                if (focusable) {
+                                    focusStack.push(it.view)
+                                }
+                            }
+
+                            object : ComposeSceneLayer {
+                                override var density: Density = density
+                                override var layoutDirection: LayoutDirection = layoutDirection
+                                override var bounds: IntRect
+                                    get() = IntRect(
+                                        offset = IntOffset(
+                                            x = skikoUIView.view.bounds.useContents { origin.x.toInt() },
+                                            y = skikoUIView.view.bounds.useContents { origin.y.toInt() },
+                                        ),
+                                        size = IntSize(
+                                            width = skikoUIView.view.bounds.useContents { size.width.toInt() },
+                                            height = skikoUIView.view.bounds.useContents { size.height.toInt() },
+                                        )
+                                    )
+                                    set(value) {
+                                        println("ComposeSceneLayer, set bounds $value")
+                                        skikoUIView.view.setBounds(
+                                            CGRectMake(
+                                                value.left.toDouble(),
+                                                value.top.toDouble(),
+                                                value.width.toDouble(),
+                                                value.height.toDouble()
                                             )
                                         )
-                                        set(value) {
-                                            println("ComposeSceneLayer, set bounds $value")
-                                            skikoUIView.view.setBounds(
-                                                CGRectMake(
-                                                    value.left.toDouble(),
-                                                    value.top.toDouble(),
-                                                    value.width.toDouble(),
-                                                    value.height.toDouble()
-                                                )
-                                            )
-                                        }
-                                    override var scrimColor: Color? = null
-                                    override var focusable: Boolean = true
-
-                                    override fun close() {
-                                        println("ComposeSceneContext close")
-                                        focusStack.popUntilNext(skikoUIView.view)
-                                        skikoUIView.dispose()
-                                        skikoUIView.view.removeFromSuperview()
                                     }
+                                override var scrimColor: Color? = null
+                                override var focusable: Boolean = true
 
-                                    override fun setContent(content: @Composable () -> Unit) {
-                                        //todo New Compose Scene  Размер сцены scene.size - полный экран
-                                        //  Сделать translate Canvas по размеру -bounds.position, размер канвы bounds.size
-                                        //  translate делать при каждой отрисовке
-                                        //  canvas.translate(x, y)
-                                        //  drawContainedDrawModifiers(canvas)
-                                        //  canvas.translate(-x, -y)
-                                        //  А размер канвы задавать в bounds set(value) {...
-                                        scene.setContentWithProvider(skikoUIView.isReadyToShowContent, interopContext, content)
-                                    }
+                                override fun close() {
+                                    println("ComposeSceneContext close")
+                                    focusStack.popUntilNext(skikoUIView.view)
+                                    skikoUIView.dispose()
+                                    skikoUIView.view.removeFromSuperview()
+                                }
 
-                                    override fun setKeyEventListener(
-                                        onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
-                                        onKeyEvent: ((KeyEvent) -> Boolean)?
-                                    ) {
+                                override fun setContent(content: @Composable () -> Unit) {
+                                    //todo New Compose Scene  Размер сцены scene.size - полный экран
+                                    //  Сделать translate Canvas по размеру -bounds.position, размер канвы bounds.size
+                                    //  translate делать при каждой отрисовке
+                                    //  canvas.translate(x, y)
+                                    //  drawContainedDrawModifiers(canvas)
+                                    //  canvas.translate(-x, -y)
+                                    //  А размер канвы задавать в bounds set(value) {...
+                                    scene.setContentWithProvider(
+                                        skikoUIView.isReadyToShowContent,
+                                        interopContext,
+                                        content
+                                    )
+                                }
 
-                                    }
+                                override fun setKeyEventListener(
+                                    onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
+                                    onKeyEvent: ((KeyEvent) -> Boolean)?
+                                ) {
 
-                                    override fun setOutsidePointerEventListener(onOutsidePointerEvent: ((mainEvent: Boolean) -> Unit)?) {
+                                }
 
-                                    }
+                                override fun setOutsidePointerEventListener(onOutsidePointerEvent: ((mainEvent: Boolean) -> Unit)?) {
+
                                 }
                             }
                         }
                     }
                 }
-            } else {
-                ViewDI(true) {
-                    MultiLayerComposeScene(
-                        coroutineContext = coroutineDispatcher,
-                        composeSceneContext = object : ComposeSceneContext {
-                            override val platformContext:PlatformContext get() = this@ViewDI.platformContext
-                        },
-                        density = density,
-                        invalidate = skikoUIView::needRedraw,
-                    )
-                }
             }
-        .apply {
+        } else {
+            ViewDI(true) {
+                MultiLayerComposeScene(
+                    coroutineContext = coroutineDispatcher,
+                    composeSceneContext = object : ComposeSceneContext {
+                        override val platformContext: PlatformContext get() = this@ViewDI.platformContext
+                    },
+                    density = density,
+                    invalidate = skikoUIView::needRedraw,
+                )
+            }
+        }.apply {
             scene.setContentWithProvider(skikoUIView.isReadyToShowContent, interopContext, content)
             attachedComposeContext =
                 AttachedComposeContext(scene, skikoUIView, interopContext).also {
