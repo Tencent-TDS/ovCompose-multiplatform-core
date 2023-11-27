@@ -602,12 +602,27 @@ private class ComposeWindow(
             return // already attached
         }
 
-        val coroutineDispatcher:CoroutineDispatcher = Dispatchers.Main
+        val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Main
 
-        class ViewDI(focusable: Boolean, val buildScene: ViewDI.() -> ComposeScene) {
-            val scene: ComposeScene by lazy { this.buildScene() }
-            val viewWrapper:ComposeViewWrapper by lazy { createViewWrapper(focusable, keyboardEventHandler, delegate) }
-            val interopContext by lazy { UIKitInteropContext(requestRedraw = { viewWrapper.needRedraw() }) }
+        class ViewDI(focusable: Boolean, val buildScene: SceneEntities.() -> ComposeScene):SceneEntities {
+            override val scene: ComposeScene by lazy { this.buildScene() }
+            override val viewWrapper:ComposeViewWrapper by lazy { createViewWrapper(focusable, keyboardEventHandler, delegate) }
+            override val interopContext:UIKitInteropContext by lazy { UIKitInteropContext(requestRedraw = { viewWrapper.needRedraw() }) }
+            override val platformContext: PlatformContext by lazy {
+                PlatformContextImpl(
+                    inputServices = inputServices,
+                    textToolbar = textToolbar,
+                    windowInfo = _windowInfo,
+                    densityProvider = { density }
+                )
+            }
+            override val attachedComposeContext: AttachedComposeContext by lazy {
+                AttachedComposeContext(
+                    scene,
+                    viewWrapper,
+                    interopContext
+                )
+            }
             val uiKitTextInputService:UIKitTextInputService by lazy {
                 UIKitTextInputService(
                     updateView = {
@@ -633,14 +648,6 @@ private class ComposeWindow(
                     }
                 }
             }
-            val platformContext: PlatformContext by lazy {
-                PlatformContextImpl(
-                    inputServices = inputServices,
-                    textToolbar = textToolbar,
-                    windowInfo = _windowInfo,
-                    densityProvider = { density }
-                )
-            }
             val delegate: SkikoUIViewDelegate by lazy {
                 SkikoUIViewDelegateImpl(
                     { scene },
@@ -648,16 +655,9 @@ private class ComposeWindow(
                     {density}
                 )
             }
-            val attachedComposeContext: AttachedComposeContext by lazy {
-                AttachedComposeContext(
-                    scene,
-                    viewWrapper,
-                    interopContext
-                )
-            }
         }
 
-        fun ViewDI.doBoilerplate(focusable: Boolean) {
+        fun SceneEntities.doBoilerplate(focusable: Boolean) {
             view.addSubview(viewWrapper.view)
             attachedComposeContext.setConstraintsToFillView(view)
             updateLayout(attachedComposeContext)
@@ -673,7 +673,7 @@ private class ComposeWindow(
                 focusable: Boolean,
                 coroutineContext: CoroutineContext,
                 prepareComposeSceneContext: () -> ComposeSceneContext,
-            ): ViewDI {
+            ): SceneEntities {
                 return ViewDI(focusable) {
                     SingleLayerComposeScene(
                         coroutineContext = coroutineContext,
@@ -787,7 +787,7 @@ private class ComposeWindow(
                     density = density,
                     invalidate = viewWrapper::needRedraw,
                 )
-            }
+            } as SceneEntities
         }.apply {
             scene.setContentWithProvider(viewWrapper.isReadyToShowContent, interopContext, content)
             doBoilerplate(true)
@@ -840,4 +840,12 @@ private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
         UIUserInterfaceStyle.UIUserInterfaceStyleDark -> SystemTheme.Dark
         else -> SystemTheme.Unknown
     }
+}
+
+private interface SceneEntities {
+    val scene: ComposeScene
+    val viewWrapper:ComposeViewWrapper
+    val interopContext:UIKitInteropContext
+    val platformContext: PlatformContext
+    val attachedComposeContext: AttachedComposeContext
 }
