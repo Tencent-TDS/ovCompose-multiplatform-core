@@ -50,7 +50,9 @@ import androidx.compose.ui.window.di.ComposeViewWrapperImpl
 import androidx.compose.ui.window.di.FocusStack
 import androidx.compose.ui.window.di.FocusStackImpl
 import androidx.compose.ui.window.di.KeyboardEventHandler
+import androidx.compose.ui.window.di.PlatformContextImpl
 import androidx.compose.ui.window.di.SkikoUIViewDelegateImpl
+import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
@@ -601,12 +603,13 @@ private class ComposeWindow(
             return // already attached
         }
 
-        class Entities(focusable: Boolean, val buildScene: Entities.() -> ComposeScene) {
-            val coroutineDispatcher:CoroutineDispatcher = Dispatchers.Main
+        val coroutineDispatcher:CoroutineDispatcher = Dispatchers.Main
+
+        class ViewDI(focusable: Boolean, val buildScene: ViewDI.() -> ComposeScene) {
             val scene: ComposeScene by lazy { this.buildScene() }
             val skikoUIView:ComposeViewWrapper by lazy { createSkikoUIView(focusable, keyboardEventHandler, delegate) }
             val interopContext by lazy { UIKitInteropContext(requestRedraw = { skikoUIView.needRedraw() }) }
-            val uiKitTextInputService:UIKitTextInputService by lazy {//todo split val to interfaces
+            val uiKitTextInputService:UIKitTextInputService by lazy {
                 UIKitTextInputService(
                     updateView = {
                         skikoUIView.view.setNeedsDisplay() // redraw on next frame
@@ -632,18 +635,12 @@ private class ComposeWindow(
                 }
             }
             val platformContext: PlatformContext by lazy {
-                object : PlatformContext by PlatformContext.Empty {
-                    override val windowInfo: WindowInfo
-                        get() = _windowInfo
-                    override val textInputService: PlatformTextInputService = inputServices
-                    override val viewConfiguration = object : ViewConfiguration by EmptyViewConfiguration {
-
-                        // this value is originating from iOS 16 drag behavior reverse engineering
-                        override val touchSlop: Float get() = with(density) { 10.dp.toPx() }
-                    }
-                    override val textToolbar: TextToolbar = this@Entities.textToolbar
-                    override val inputModeManager = DefaultInputModeManager(InputMode.Touch)
-                }
+                PlatformContextImpl(
+                    inputServices = inputServices,
+                    textToolbar = textToolbar,
+                    windowInfo = _windowInfo,
+                    densityProvider = { density }
+                )
             }
             val delegate: SkikoUIViewDelegate by lazy {
                 SkikoUIViewDelegateImpl(
@@ -653,39 +650,49 @@ private class ComposeWindow(
                 )
             }
         }
-        fun prepateInnerEntities(
-            composeSceneContext: ComposeSceneContext,
-            density: Density,
-            layoutDirection: LayoutDirection,
-            focusable: Boolean,
-            compositionContext: CompositionContext
-        ):Entities {
-            return Entities(focusable) {
-                SingleLayerComposeScene(
-                    coroutineContext = compositionContext.effectCoroutineContext,
-                    composeSceneContext = object : ComposeSceneContext by composeSceneContext {
-                        //todo do we need new platform context on every SingleLayerComposeScene?
-                        override val platformContext: PlatformContext get() = this@Entities.platformContext
-                    },
-                    density = density,
-                    invalidate = {},
-                    layoutDirection = layoutDirection,
-                )
-            }
-        }
-        Entities(true) {
+        ViewDI(true) {
             if (configuration.singleLayerComposeScene) {
-                SingleLayerComposeScene(
-                    coroutineContext = coroutineDispatcher,
-                    composeSceneContext = object : ComposeSceneContext {
-                        override val platformContext:PlatformContext get() = this@Entities.platformContext
+                fun prepareSingleLayerComposeScene(
+                    density: Density,
+                    layoutDirection: LayoutDirection,
+                    focusable: Boolean,
+                    coroutineContext: CoroutineContext,
+                    prepareComposeSceneContext: () -> ComposeSceneContext,
+                ):ViewDI {
+                    return ViewDI(focusable) {
+                        SingleLayerComposeScene(
+                            coroutineContext = coroutineContext,
+                            composeSceneContext = object : ComposeSceneContext by prepareComposeSceneContext() {
+                                //todo do we need new platform context on every SingleLayerComposeScene?
+                                override val platformContext: PlatformContext get() = this@ViewDI.platformContext
+                            },
+                            density = density,
+                            invalidate = skikoUIView::needRedraw,
+                            layoutDirection = layoutDirection,
+                        )
+                    }
+                }
+                
+                prepareSingleLayerComposeScene(
+                    density = density,
+                    layoutDirection = LayoutDirection.Ltr,//todo get from system?
+                    focusable = true,
+                    coroutineContext = coroutineDispatcher
+                ) {
+                    object : ComposeSceneContext {
                         override fun createPlatformLayer(
                             density: Density,
                             layoutDirection: LayoutDirection,
                             focusable: Boolean,
                             compositionContext: CompositionContext
                         ): ComposeSceneLayer {
-                            return prepateInnerEntities(this, density, layoutDirection, focusable, compositionContext).run {
+                            return prepareSingleLayerComposeScene(
+                                density,
+                                layoutDirection,
+                                focusable,
+                                compositionContext.effectCoroutineContext,
+                                { this },
+                            ).run {
                                 AttachedComposeContext(scene, skikoUIView, interopContext).also {
                                     view.addSubview(it.view)
                                     it.view.alpha = 0.5
@@ -755,15 +762,13 @@ private class ComposeWindow(
                                 }
                             }
                         }
-                    },
-                    density = density,
-                    invalidate = skikoUIView::needRedraw,
-                )
+                    }
+                }.scene
             } else {
                 MultiLayerComposeScene(
                     coroutineContext = coroutineDispatcher,
                     composeSceneContext = object : ComposeSceneContext {
-                        override val platformContext:PlatformContext get() = this@Entities.platformContext
+                        override val platformContext:PlatformContext get() = this@ViewDI.platformContext
                     },
                     density = density,
                     invalidate = skikoUIView::needRedraw,
