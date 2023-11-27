@@ -36,15 +36,14 @@ internal class UIKitTextInputService(
     private val rootViewProvider: ()->UIView,
     private val densityProvider: () -> Density,
     private val focusStack: FocusStack,
+    private val keyboardEventHandler: KeyboardEventHandler,
 ) : PlatformTextInputService, TextToolbar {
 
     private val rootView get() = rootViewProvider()
     private var currentInput: CurrentInput? = null
     private var currentImeOptions: ImeOptions? = null
     private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
-
     private var _textUIView: IntermediateTextInputUIView? = null
-    lateinit var keyboardEventHandler: KeyboardEventHandler //todo
 
     /**
      * Workaround to prevent calling textWillChange, textDidChange, selectionWillChange, and

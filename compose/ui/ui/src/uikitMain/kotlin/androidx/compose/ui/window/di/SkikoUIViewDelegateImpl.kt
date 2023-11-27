@@ -42,11 +42,9 @@ import platform.UIKit.UITouch
 import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
 
-
 internal class SkikoUIViewDelegateImpl(
     val sceneProvider: () -> ComposeScene,
     val interopContext: UIKitInteropContext,
-    val isReadyToShowContent: MutableState<Boolean>,
     val densityProvider: ()-> Density
 ) : SkikoUIViewDelegate {
     val scene get() = sceneProvider()
@@ -104,7 +102,6 @@ internal class SkikoUIViewDelegateImpl(
 
     override fun onAttachedToWindow() {
         scene.density = density
-        isReadyToShowContent.value = true
     }
 }
 

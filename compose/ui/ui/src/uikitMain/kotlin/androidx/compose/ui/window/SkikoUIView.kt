@@ -16,6 +16,9 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.interop.UIKitInteropAction
 import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.platform.IOSSkikoInput
@@ -67,13 +70,15 @@ internal enum class UITouchesEventPhase {
 @Suppress("CONFLICTING_OVERLOADS")//todo in all places redundant?
 internal class SkikoUIView(
     val focusable: Boolean,
+    private val keyboardEventHandler: KeyboardEventHandler,
+    val delegate: SkikoUIViewDelegate
 ) : UIView(frame = CGRectZero.readValue()) {
     companion object : UIViewMeta() {//todo redundant?
         override fun layerClass() = CAMetalLayer
     }
 
-    var delegate: SkikoUIViewDelegate? = null
-    var keyboardEventHandler: KeyboardEventHandler? = null
+    private val _isReadyToShowContent: MutableState<Boolean> = mutableStateOf(false)
+    val isReadyToShowContent: State<Boolean> = _isReadyToShowContent
 
     private val _device: MTLDeviceProtocol =
         MTLCreateSystemDefaultDevice() ?: throw IllegalStateException("Metal is not supported on this system")
@@ -143,6 +148,7 @@ internal class SkikoUIView(
         }
         if (window != null) {
             delegate?.onAttachedToWindow()
+            _isReadyToShowContent.value = true
         }
     }
 
@@ -174,7 +180,7 @@ internal class SkikoUIView(
             for (press in withEvent.allPresses) {
                 val uiPress = press as? UIPress
                 if (uiPress != null) {
-                    keyboardEventHandler?.onKeyboardEvent(
+                    keyboardEventHandler.onKeyboardEvent(
                         toSkikoKeyboardEvent(press, SkikoKeyboardEventKind.DOWN)
                     )
                 }
@@ -188,7 +194,7 @@ internal class SkikoUIView(
             for (press in withEvent.allPresses) {
                 val uiPress = press as? UIPress
                 if (uiPress != null) {
-                    keyboardEventHandler?.onKeyboardEvent(
+                    keyboardEventHandler.onKeyboardEvent(
                         toSkikoKeyboardEvent(press, SkikoKeyboardEventKind.UP)
                     )
                 }
