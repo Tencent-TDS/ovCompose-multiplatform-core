@@ -66,7 +66,7 @@ internal enum class UITouchesEventPhase {
 
 @Suppress("CONFLICTING_OVERLOADS")//todo in all places redundant?
 internal class SkikoUIView(
-
+    val focusable: Boolean,
 ) : UIView(frame = CGRectZero.readValue()) {
     companion object : UIViewMeta() {//todo redundant?
         override fun layerClass() = CAMetalLayer
@@ -122,6 +122,8 @@ internal class SkikoUIView(
             it.framebufferOnly = false
         }
     }
+
+    override fun isUserInteractionEnabled(): Boolean = focusable
 
     fun needRedraw() = _redrawer.needRedraw()
 

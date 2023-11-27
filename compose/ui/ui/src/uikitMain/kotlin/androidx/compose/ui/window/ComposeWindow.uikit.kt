@@ -111,6 +111,8 @@ fun ComposeUIViewController(
     return ComposeWindow(
         configuration = ComposeUIViewControllerConfiguration().apply(configure),
         content = content,
+        focusStack = FocusStackImpl(),
+        createSkikoUIView = {focusable: Boolean -> SkikoUIView(focusable)},
     )
 }
 
@@ -164,7 +166,8 @@ private class AttachedComposeContext(
 private class ComposeWindow(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
-    private val focusStack: FocusStack = FocusStackImpl(),
+    private val focusStack: FocusStack,
+    private val createSkikoUIView: (focusable: Boolean) -> SkikoUIView,
 ) : UIViewController(nibName = null, bundle = null) {
 
     private fun requireComposeWindow() = this //TODO temp
@@ -590,14 +593,11 @@ private class ComposeWindow(
             return // already attached
         }
         val isReadyToShowContent = mutableStateOf(false)
-        val skikoUIView = SkikoUIView()
-        focusStack.push(skikoUIView)
+        val skikoUIView = createSkikoUIView(true)
 
         var workaroundNullableScene: ComposeScene? = null//todo bad
         val interopContext = UIKitInteropContext(requestRedraw = skikoUIView::needRedraw)
-        view.addSubview(skikoUIView)
-
-        val inputServices = UIKitTextInputService(//todo maybe inputServices also needs in SingleLayerComposeScene
+        val inputServices = UIKitTextInputService(
             updateView = {
                 skikoUIView.setNeedsDisplay() // redraw on next frame
                 CATransaction.flush() // clear all animations
@@ -638,22 +638,27 @@ private class ComposeWindow(
                     ): ComposeSceneLayer {
                         val currentScene = SingleLayerComposeScene(
                             coroutineContext = compositionContext.effectCoroutineContext,
-                            composeSceneContext = this,
+                            composeSceneContext = object : ComposeSceneContext by this {
+                                //todo do we need new platform context on every SingleLayerComposeScene?
+                                override val platformContext: PlatformContext get() = super.platformContext
+                            },
                             density = density,
                             invalidate = {},
                             layoutDirection = layoutDirection,
                         )
-                        val skikoUIView = SkikoUIView()
-                        if (focusable) {
-                            focusStack.push(skikoUIView)
-                        }
+                        val skikoUIView = createSkikoUIView(focusable)
                         val interopContext = UIKitInteropContext(requestRedraw = skikoUIView::needRedraw)
-                        view.addSubview(skikoUIView)
 
                         skikoUIView.delegate = SkikoUIViewDelegateImpl({ currentScene }, interopContext, isReadyToShowContent, {density})
                         AttachedComposeContext(currentScene, skikoUIView, interopContext).also {
+                            view.addSubview(it.view)
+                            it.view.alpha = 0.5
                             it.setConstraintsToFillView(view)
                             updateLayout(it)
+                            if (focusable) {
+                                skikoUIView.keyboardEventHandler//todo
+                                focusStack.push(it.view)
+                            }
                         }
 
                         return object : ComposeSceneLayer {
@@ -738,12 +743,14 @@ private class ComposeWindow(
             isReadyToShowContent,
             {density}
         )
-
         scene.setContentWithProvider(isReadyToShowContent, interopContext, content)
+
         attachedComposeContext =
             AttachedComposeContext(scene, skikoUIView, interopContext).also {
+                view.addSubview(it.view)
                 it.setConstraintsToFillView(view)
                 updateLayout(it)
+                focusStack.push(it.view)
             }
     }
 
