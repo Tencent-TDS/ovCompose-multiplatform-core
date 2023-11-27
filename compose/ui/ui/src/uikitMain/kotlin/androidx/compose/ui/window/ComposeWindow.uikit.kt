@@ -122,7 +122,19 @@ fun ComposeUIViewController(
                 SkikoUIView(focusable, keyboardEventHandler, delegate)
             )
         },
-    )
+        densityProvider = {
+            val contentSizeCategory =
+                requireComposeWindow().traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
+
+            val fontScale: Float = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
+            Density(
+                requireComposeWindow().attachedComposeContext?.viewWrapper?.view?.contentScaleFactor?.toFloat() ?: 1f,
+                fontScale
+            )
+        }
+    ).also {
+        composeWindow = it
+    }
 }
 
 //todo New Compose Scene FIXME: It's better to rename it now
@@ -177,6 +189,7 @@ private class ComposeWindow(
     private val content: @Composable () -> Unit,
     private val focusStack: FocusStack,
     private val createViewWrapper: (focusable: Boolean, KeyboardEventHandler, SkikoUIViewDelegate) -> ComposeViewWrapper,
+    private val densityProvider: () -> Density
 ) : UIViewController(nibName = null, bundle = null) {
 
     private fun requireComposeWindow() = this //TODO temp
@@ -229,21 +242,7 @@ private class ComposeWindow(
         isWindowFocused = true
     }
 
-    private val fontScale: Float
-        get() {
-            val contentSizeCategory =
-                traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
-
-            return uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
-        }
-
-    private val density: Density
-        get() = Density(
-            attachedComposeContext?.viewWrapper?.view?.contentScaleFactor?.toFloat() ?: 1f,
-            fontScale
-        )
-
-    private var attachedComposeContext: AttachedComposeContext? = null
+    internal var attachedComposeContext: AttachedComposeContext? = null
 
     private val keyboardVisibilityListener = object : NSObject() {
         @Suppress("unused")
@@ -256,7 +255,7 @@ private class ComposeWindow(
             val keyboardInfo = userInfo[UIKeyboardFrameEndUserInfoKey] as NSValue
             val keyboardHeight = keyboardInfo.CGRectValue().useContents { size.height }
             if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
-                val focusedRect = scene.focusManager.getFocusRect()?.toDpRect(density)
+                val focusedRect = scene.focusManager.getFocusRect()?.toDpRect(densityProvider())
 
                 if (focusedRect != null) {
                     updateViewBounds(
@@ -451,7 +450,7 @@ private class ComposeWindow(
     }
 
     private fun updateLayout(context: AttachedComposeContext) {
-        val scale = density.density
+        val scale = densityProvider().density
         val size = view.frame.useContents {
             IntSize(
                 width = (size.width * scale).roundToInt(),
@@ -459,7 +458,7 @@ private class ComposeWindow(
             )
         }
         _windowInfo.containerSize = size
-        context.scene.density = density
+        context.scene.density = densityProvider()
         context.scene.size = size
 
         context.viewWrapper.needRedraw()
@@ -613,7 +612,7 @@ private class ComposeWindow(
                     inputServices = inputServices,
                     textToolbar = textToolbar,
                     windowInfo = _windowInfo,
-                    densityProvider = { density }
+                    densityProvider = densityProvider
                 )
             }
             override val attachedComposeContext: AttachedComposeContext by lazy {
@@ -631,7 +630,7 @@ private class ComposeWindow(
                         viewWrapper.view.reloadInputViews() // update input (like screen keyboard)//todo redundant?
                     },
                     rootViewProvider = { requireComposeWindow().view },
-                    densityProvider = {density},
+                    densityProvider = densityProvider,
                     focusStack = focusStack,
                     keyboardEventHandler = keyboardEventHandler
                 )
@@ -652,7 +651,7 @@ private class ComposeWindow(
                 SkikoUIViewDelegateImpl(
                     { scene },
                     interopContext,
-                    {density}
+                    densityProvider,
                 )
             }
         }
@@ -690,7 +689,7 @@ private class ComposeWindow(
             }
 
             prepareSingleLayerComposeScene(
-                density = density,
+                density = densityProvider(),
                 layoutDirection = LayoutDirection.Ltr,//todo get from system?
                 focusable = true,
                 coroutineContext = coroutineDispatcher
@@ -784,7 +783,7 @@ private class ComposeWindow(
                     composeSceneContext = object : ComposeSceneContext {
                         override val platformContext: PlatformContext get() = this@ViewDI.platformContext
                     },
-                    density = density,
+                    density = densityProvider(),
                     invalidate = viewWrapper::needRedraw,
                 )
             } as SceneEntities
