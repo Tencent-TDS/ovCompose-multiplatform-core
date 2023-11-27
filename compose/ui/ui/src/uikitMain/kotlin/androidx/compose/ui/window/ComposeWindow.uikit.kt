@@ -650,7 +650,7 @@ private class ComposeWindow(
                 )
             }
         }
-        ViewDI(true) {
+
             if (configuration.singleLayerComposeScene) {
                 fun prepareSingleLayerComposeScene(
                     density: Density,
@@ -763,18 +763,20 @@ private class ComposeWindow(
                             }
                         }
                     }
-                }.scene
+                }
             } else {
-                MultiLayerComposeScene(
-                    coroutineContext = coroutineDispatcher,
-                    composeSceneContext = object : ComposeSceneContext {
-                        override val platformContext:PlatformContext get() = this@ViewDI.platformContext
-                    },
-                    density = density,
-                    invalidate = skikoUIView::needRedraw,
-                )
+                ViewDI(true) {
+                    MultiLayerComposeScene(
+                        coroutineContext = coroutineDispatcher,
+                        composeSceneContext = object : ComposeSceneContext {
+                            override val platformContext:PlatformContext get() = this@ViewDI.platformContext
+                        },
+                        density = density,
+                        invalidate = skikoUIView::needRedraw,
+                    )
+                }
             }
-        }.apply {
+        .apply {
             scene.setContentWithProvider(skikoUIView.isReadyToShowContent, interopContext, content)
             attachedComposeContext =
                 AttachedComposeContext(scene, skikoUIView, interopContext).also {
