@@ -99,31 +99,29 @@ private val PUSH_DIRECTIONAL_ISOLATE_RANGE: IntRange = 0x2066..0x2068
  */
 private const val POP_DIRECTIONAL_ISOLATE_CODE_POINT: Int = 0x2069
 
-private val String.codePointsOutsideDirectionalIsolate
-    get() = sequence {
-        var openIsolateCount = 0
-        for (codePoint in codePoints) {
-            if (codePoint in PUSH_DIRECTIONAL_ISOLATE_RANGE) {
-                openIsolateCount++
-            } else if (codePoint == POP_DIRECTIONAL_ISOLATE_CODE_POINT) {
-                if (openIsolateCount > 0) {
-                    openIsolateCount--
-                }
-            } else if (openIsolateCount == 0) {
-                yield(codePoint)
+private val String.codePointsOutsideDirectionalIsolate get() = sequence {
+    var openIsolateCount = 0
+    for (codePoint in codePoints) {
+        if (codePoint in PUSH_DIRECTIONAL_ISOLATE_RANGE) {
+            openIsolateCount++
+        } else if (codePoint == POP_DIRECTIONAL_ISOLATE_CODE_POINT) {
+            if (openIsolateCount > 0) {
+                openIsolateCount--
             }
-        }
-    }
-
-internal val String.codePoints
-    get() = sequence {
-        var index = 0
-        while (index < length) {
-            val codePoint = codePointAt(index)
+        } else if (openIsolateCount == 0) {
             yield(codePoint)
-            index += codePoint.charCount()
         }
     }
+}
+
+internal val String.codePoints get() = sequence {
+    var index = 0
+    while (index < length) {
+        val codePoint = codePointAt(index)
+        yield(codePoint)
+        index += codePoint.charCount()
+    }
+}
 
 /**
  * Returns the character (Unicode code point) at the specified index.
