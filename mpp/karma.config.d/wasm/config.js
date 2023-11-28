@@ -20,7 +20,7 @@ const fs = require('fs');
 config.browserConsoleLogOptions.level = "debug";
 
 const basePath = config.basePath;
-const wasmPath = path.resolve(basePath, "..", "kotlin")
+const wasmPath = path.resolve(basePath, "kotlin")
 
 var wasmTestMjsFile;
 var wasmTestFile;
@@ -33,9 +33,9 @@ try {
 }
 
 
-const wasmTestsMjs = path.resolve(basePath, "..", "kotlin", wasmTestMjsFile)
-const wasmTestsWasm = path.resolve(basePath, "..", "kotlin", wasmTestFile)
-const wasmTestsLoaderWasm = path.resolve(basePath, "..", "kotlin", "load-test-template.mjs")
+const wasmTestsMjs = path.resolve(basePath, "kotlin", wasmTestMjsFile)
+const wasmTestsWasm = path.resolve(basePath, "kotlin", wasmTestFile)
+const wasmTestsLoaderWasm = path.resolve(basePath, "kotlin", "load-test-template.mjs")
 
 const debug = message => console.log(`[karma-config] ${message}`);
 
@@ -55,12 +55,12 @@ config.proxies = {
     "/wasm/": wasmPath,
     ["/" + wasmTestMjsFile]: wasmTestsMjs,
     ["/" + wasmTestFile]: wasmTestsWasm,
-    "/resources": path.resolve(basePath, "..", "kotlin")
+    "/resources": path.resolve(basePath, "kotlin")
 }
 
 config.preprocessors[wasmTestsLoaderWasm] = ["webpack"];
 
-const staticLoadMJs = path.resolve(basePath, "..", "static", "load.mjs")
+const staticLoadMJs = path.resolve(basePath, "static", "load.mjs")
 config.files = config.files.filter((x) => x !== wasmTestsMjs);
 config.files = config.files.filter((x) => x !== staticLoadMJs);
 
