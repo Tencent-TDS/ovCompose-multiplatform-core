@@ -21,23 +21,11 @@ import androidx.compose.ui.window.SkikoUIView
 import platform.UIKit.UIView
 
 internal interface ComposeViewState<T> {
-    val view: T
-    val isReadyToShowContent: State<Boolean>
-    fun needRedraw()
-    fun dispose()
-    var isForcedToPresentWithTransactionEveryFrame:Boolean
+
 }
 
 internal class ComposeViewStateImpl(
     private val skikoUIView: SkikoUIView,
 ) : ComposeViewState<UIView> {
-    override val view: UIView = skikoUIView
-    override val isReadyToShowContent: State<Boolean> = skikoUIView.isReadyToShowContent
-    override fun needRedraw() = skikoUIView.needRedraw()
-    override fun dispose() = skikoUIView.dispose()
-    override var isForcedToPresentWithTransactionEveryFrame: Boolean
-        get() = skikoUIView.isForcedToPresentWithTransactionEveryFrame
-        set(value) {
-            skikoUIView.isForcedToPresentWithTransactionEveryFrame = value
-        }
+
 }
