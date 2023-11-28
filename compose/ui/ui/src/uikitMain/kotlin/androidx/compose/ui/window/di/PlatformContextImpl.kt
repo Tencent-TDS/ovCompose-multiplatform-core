@@ -30,9 +30,10 @@ import androidx.compose.ui.unit.dp
 internal class PlatformContextImpl(
     inputServices: PlatformTextInputService,
     override val textToolbar: TextToolbar,
-    override val windowInfo: WindowInfo,
+    private val windowInfoProvider: () -> WindowInfo,
     densityProvider: () -> Density,
 ) : PlatformContext by PlatformContext.Empty {
+    override val windowInfo: WindowInfo get() = windowInfoProvider()
     override val textInputService: PlatformTextInputService = inputServices
     override val viewConfiguration = object : ViewConfiguration by EmptyViewConfiguration {
         // this value is originating from iOS 16 drag behavior reverse engineering

@@ -30,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.interop.LocalUIKitInteropContext
@@ -59,7 +58,6 @@ import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
@@ -117,8 +115,7 @@ fun ComposeUIViewController(
 
         val fontScale: Float = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
         Density(
-            uiViewController.attachedComposeContext?.viewWrapper?.view?.contentScaleFactor?.toFloat()
-                ?: 1f,
+            uiViewController.attachedComposeContext?.viewWrapper?.view?.contentScaleFactor?.toFloat() ?: 1f,//todo attachedComposeContext null
             fontScale
         )
     }
@@ -129,135 +126,98 @@ fun ComposeUIViewController(
             )
         }
     val focusStack: FocusStack = FocusStackImpl()
-    val createSceneEntities = { focusable: Boolean, buildScene: SceneEntities.() -> ComposeScene ->
-        class ViewDI(focusable: Boolean, buildScene: SceneEntities.() -> ComposeScene) :
-            SceneEntities {
-            override val scene: ComposeScene by lazy { buildScene() }
-            override val viewWrapper: ComposeViewWrapper by lazy {
-                createViewWrapper(
-                    focusable,
-                    keyboardEventHandler,
-                    delegate
-                )
-            }
-            override val interopContext: UIKitInteropContext by lazy {
-                UIKitInteropContext(
-                    requestRedraw = { viewWrapper.needRedraw() })
-            }
-            override val platformContext: PlatformContext by lazy {
-                PlatformContextImpl(
-                    inputServices = inputServices,
-                    textToolbar = textToolbar,
-                    windowInfo = uiViewController._windowInfo,
-                    densityProvider = densityProvider,
-                )
-            }
-            override val attachedComposeContext: AttachedComposeContext by lazy {
-                AttachedComposeContext(
-                    scene,
-                    viewWrapper,
-                    interopContext
-                )
-            }
-            val uiKitTextInputService: UIKitTextInputService by lazy {
-                UIKitTextInputService(
-                    updateView = {
-                        viewWrapper.view.setNeedsDisplay() // redraw on next frame
-                        CATransaction.flush() // clear all animations
-                        viewWrapper.view.reloadInputViews() // update input (like screen keyboard)//todo redundant?
-                    },
-                    rootViewProvider = { uiViewController.view },
-                    densityProvider = densityProvider,
-                    focusStack = focusStack,
-                    keyboardEventHandler = keyboardEventHandler
-                )
-            }
-            val inputServices: PlatformTextInputService get() = uiKitTextInputService
-            val textToolbar: TextToolbar get() = uiKitTextInputService
-            val keyboardEventHandler: KeyboardEventHandler by lazy {
-                object : KeyboardEventHandler {
-                    override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
-                        val composeEvent = KeyEvent(event)
-                        if (!uiKitTextInputService.onPreviewKeyEvent(composeEvent)) {
-                            scene.sendKeyEvent(composeEvent)
+    val createSceneEntities: () -> SceneEntities = {
+        fun createSceneEntities3(focusable: Boolean, buildScene: SceneEntities.() -> ComposeScene):SceneEntities {
+            class ViewDI(focusable: Boolean, buildScene: SceneEntities.() -> ComposeScene) : SceneEntities {
+                override val scene: ComposeScene by lazy { buildScene() }
+                override val viewWrapper: ComposeViewWrapper by lazy {
+                    createViewWrapper(
+                        focusable,
+                        keyboardEventHandler,
+                        delegate
+                    )
+                }
+                override val interopContext: UIKitInteropContext by lazy {
+                    UIKitInteropContext(
+                        requestRedraw = { viewWrapper.needRedraw() })
+                }
+                override val platformContext: PlatformContext by lazy {
+                    PlatformContextImpl(
+                        inputServices = inputServices,
+                        textToolbar = textToolbar,
+                        windowInfoProvider = { uiViewController._windowInfo },
+                        densityProvider = densityProvider,
+                    )
+                }
+                override val attachedComposeContext: AttachedComposeContext by lazy {
+                    AttachedComposeContext(
+                        scene,
+                        viewWrapper,
+                        interopContext
+                    )
+                }
+                val uiKitTextInputService: UIKitTextInputService by lazy {
+                    UIKitTextInputService(
+                        updateView = {
+                            viewWrapper.view.setNeedsDisplay() // redraw on next frame
+                            CATransaction.flush() // clear all animations
+                            viewWrapper.view.reloadInputViews() // update input (like screen keyboard)//todo redundant?
+                        },
+                        rootViewProvider = { uiViewController.view },
+                        densityProvider = densityProvider,
+                        focusStack = focusStack,
+                        keyboardEventHandler = keyboardEventHandler
+                    )
+                }
+                val inputServices: PlatformTextInputService get() = uiKitTextInputService
+                val textToolbar: TextToolbar get() = uiKitTextInputService
+                val keyboardEventHandler: KeyboardEventHandler by lazy {
+                    object : KeyboardEventHandler {
+                        override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
+                            val composeEvent = KeyEvent(event)
+                            if (!uiKitTextInputService.onPreviewKeyEvent(composeEvent)) {
+                                scene.sendKeyEvent(composeEvent)
+                            }
                         }
                     }
                 }
-            }
-            val delegate: SkikoUIViewDelegate by lazy {
-                SkikoUIViewDelegateImpl(
-                    { scene },
-                    interopContext,
-                    densityProvider,
-                )
-            }
-        }
-        ViewDI(focusable, buildScene)
-    }
-    val uiViewController: UIViewController by lazy {
-        ComposeWindow(
-            configuration = ComposeUIViewControllerConfiguration().apply(configure),
-            content = content,
-            densityProvider = densityProvider,
-            createViewWrapper = createViewWrapper,
-            focusStack = focusStack,
-            createSceneEntities = createSceneEntities,
-        )
-    }
-}.uiViewController
-
-@OptIn(InternalComposeApi::class)
-@ExportObjCClass
-private class ComposeWindow(
-    val configuration: ComposeUIViewControllerConfiguration,
-    val content: @Composable () -> Unit,
-    val densityProvider: () -> Density,
-    val createViewWrapper: (focusable: Boolean, KeyboardEventHandler, SkikoUIViewDelegate) -> ComposeViewWrapper,
-    val focusStack: FocusStack,
-    val createSceneEntities: (focusable: Boolean, buildScene: SceneEntities.() -> ComposeScene) -> SceneEntities,
-) : UIViewController(nibName = null, bundle = null) {
-
-    private fun attachComposeIfNeeded() {
-        if (attachedComposeContext != null) {
-            return // already attached
-        }
-
-        val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Main
-
-        fun SceneEntities.doBoilerplate(focusable: Boolean) {
-            view.addSubview(viewWrapper.view)
-            attachedComposeContext.setConstraintsToFillView(view)
-            updateLayout(attachedComposeContext)
-            if (focusable) {
-                focusStack.push(viewWrapper.view)
-            }
-        }
-
-        if (configuration.singleLayerComposeScene) {
-            fun prepareSingleLayerComposeScene(
-                density: Density,
-                layoutDirection: LayoutDirection,
-                focusable: Boolean,
-                coroutineContext: CoroutineContext,
-                prepareComposeSceneContext: () -> ComposeSceneContext,
-            ): SceneEntities {
-                return createSceneEntities(focusable) {
-                    SingleLayerComposeScene(
-                        coroutineContext = coroutineContext,
-                        composeSceneContext = object :
-                            ComposeSceneContext by prepareComposeSceneContext() {
-                            //todo do we need new platform context on every SingleLayerComposeScene?
-                            override val platformContext: PlatformContext get() = this@createSceneEntities.platformContext
-                        },
-                        density = density,
-                        invalidate = viewWrapper::needRedraw,
-                        layoutDirection = layoutDirection,
+                val delegate: SkikoUIViewDelegate by lazy {
+                    SkikoUIViewDelegateImpl(
+                        { scene },
+                        interopContext,
+                        densityProvider,
                     )
                 }
             }
+            return ViewDI(focusable, buildScene)
+        }
 
+        fun prepareSingleLayerComposeScene(
+            densityProvider: ()->Density,
+            layoutDirection: LayoutDirection,
+            focusable: Boolean,
+            coroutineContext: CoroutineContext,
+            prepareComposeSceneContext: () -> ComposeSceneContext,
+        ): SceneEntities {
+            return createSceneEntities3(focusable) {
+                SingleLayerComposeScene(
+                    coroutineContext = coroutineContext,
+                    composeSceneContext = object :
+                        ComposeSceneContext by prepareComposeSceneContext() {
+                        //todo do we need new platform context on every SingleLayerComposeScene?
+                        override val platformContext: PlatformContext get() = this@createSceneEntities3.platformContext
+                    },
+                    density = densityProvider(),
+                    invalidate = viewWrapper::needRedraw,
+                    layoutDirection = layoutDirection,
+                )
+            }
+        }
+
+        val coroutineDispatcher = Dispatchers.Main
+        if (configuration.singleLayerComposeScene) {
             prepareSingleLayerComposeScene(
-                density = densityProvider(),
+                densityProvider = densityProvider,
                 layoutDirection = LayoutDirection.Ltr,//todo get from system?
                 focusable = true,
                 coroutineContext = coroutineDispatcher
@@ -270,13 +230,13 @@ private class ComposeWindow(
                         compositionContext: CompositionContext
                     ): ComposeSceneLayer {
                         return prepareSingleLayerComposeScene(
-                            density,
+                            densityProvider,
                             layoutDirection,
                             focusable,
                             compositionContext.effectCoroutineContext,
                             { this },
                         ).run {
-                            doBoilerplate(focusable)
+                            uiViewController.doBoilerplate(this, focusable)
                             viewWrapper.view.alpha = 0.5
 
                             object : ComposeSceneLayer {
@@ -322,7 +282,8 @@ private class ComposeWindow(
                                     //  drawContainedDrawModifiers(canvas)
                                     //  canvas.translate(-x, -y)
                                     //  А размер канвы задавать в bounds set(value) {...
-                                    scene.setContentWithProvider(
+                                    uiViewController.setContentWithProvider(
+                                        scene,
                                         viewWrapper.isReadyToShowContent,
                                         interopContext,
                                         content
@@ -345,23 +306,50 @@ private class ComposeWindow(
                 }
             }
         } else {
-            createSceneEntities(true) {
+            createSceneEntities3(true) {
                 MultiLayerComposeScene(
                     coroutineContext = coroutineDispatcher,
                     composeSceneContext = object : ComposeSceneContext {
-                        override val platformContext: PlatformContext get() = this@createSceneEntities.platformContext
+                        override val platformContext: PlatformContext get() = this@createSceneEntities3.platformContext
                     },
                     density = densityProvider(),
                     invalidate = viewWrapper::needRedraw,
                 )
-            } as SceneEntities
-        }.apply {
-            scene.setContentWithProvider(viewWrapper.isReadyToShowContent, interopContext, content)
-            doBoilerplate(true)
-            this@ComposeWindow.attachedComposeContext = attachedComposeContext//todo bad
+            }
         }
     }
+    val configuration by lazy {
+        ComposeUIViewControllerConfiguration().apply(configure)
+    }
+    val uiViewController: ComposeWindow by lazy {//todo UIViewController
+        ComposeWindow(
+            configuration = configuration,
+            content = content,
+            densityProvider = densityProvider,
+            focusStack = focusStack,
+            createSceneEntities = createSceneEntities,
+        )
+    }
+}.uiViewController
 
+@OptIn(InternalComposeApi::class)
+@ExportObjCClass
+private class ComposeWindow(
+    val configuration: ComposeUIViewControllerConfiguration,
+    val content: @Composable () -> Unit,
+    val densityProvider: () -> Density,
+    val focusStack: FocusStack,
+    val createSceneEntities: () -> SceneEntities,
+) : UIViewController(nibName = null, bundle = null) {
+
+    fun doBoilerplate(sceneEntities: SceneEntities, focusable: Boolean) {
+        view.addSubview(sceneEntities.viewWrapper.view)
+        sceneEntities.attachedComposeContext.setConstraintsToFillView(view)
+        updateLayout(sceneEntities.attachedComposeContext)
+        if (focusable) {
+            focusStack.push(sceneEntities.viewWrapper.view)
+        }
+    }
 
     private var keyboardOverlapHeight by mutableStateOf(0f)
     private var isInsideSwiftUI = false
@@ -765,19 +753,33 @@ private class ComposeWindow(
         attachedComposeContext = null
     }
 
-    //todo here was fun attachComposeIfNeeded
+    private fun attachComposeIfNeeded() {
+        if (attachedComposeContext != null) {
+            return // already attached
+        }
+        createSceneEntities().apply {
+            setContentWithProvider(scene, viewWrapper.isReadyToShowContent, interopContext, content)
+            doBoilerplate(this, true)
+            this@ComposeWindow.attachedComposeContext = attachedComposeContext//todo bad
+        }
+    }
 
-    private fun ComposeScene.setContentWithProvider(isReadyToShowContent: State<Boolean>, interopContext: UIKitInteropContext, content: @Composable ()->Unit) {
-        setContent {
+    fun setContentWithProvider(
+        scene: ComposeScene,
+        isReadyToShowContent: State<Boolean>,
+        interopContext: UIKitInteropContext,
+        content: @Composable () -> Unit
+    ) {
+        scene.setContent {
             if (!isReadyToShowContent.value) return@setContent
             CompositionLocalProvider(
-                LocalLayerContainer provides view,
-                LocalUIViewController provides this@ComposeWindow,
-                LocalKeyboardOverlapHeight provides keyboardOverlapHeight,
-                LocalSafeArea provides safeArea,
-                LocalLayoutMargins provides layoutMargins,
-                LocalInterfaceOrientation provides interfaceOrientation,
-                LocalSystemTheme provides systemTheme.value,
+                LocalLayerContainer provides this.view,
+                LocalUIViewController provides this,
+                LocalKeyboardOverlapHeight provides this.keyboardOverlapHeight,
+                LocalSafeArea provides this.safeArea,
+                LocalLayoutMargins provides this.layoutMargins,
+                LocalInterfaceOrientation provides this.interfaceOrientation,
+                LocalSystemTheme provides this.systemTheme.value,
                 LocalUIKitInteropContext provides interopContext,
                 content = content
             )
