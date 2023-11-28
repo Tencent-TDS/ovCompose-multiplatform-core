@@ -22,7 +22,6 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
     TvosSimulatorArm64("TvOs"),
     WatchosArm64("WatchOs"),
     WatchosArm32("WatchOs"),
-//    WatchosX86("WatchOs"), // not available anymore
     WatchosX64("WatchOs"),
     WatchosSimulatorArm64("WatchOs"),
     LinuxX64("Linux"),
@@ -54,7 +53,6 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
             ComposePlatforms.TvosSimulatorArm64,
             ComposePlatforms.WatchosArm64,
             ComposePlatforms.WatchosArm32,
-//            ComposePlatforms.WatchosX86,
             ComposePlatforms.WatchosX64,
             ComposePlatforms.WatchosSimulatorArm64,
             ComposePlatforms.LinuxX64,

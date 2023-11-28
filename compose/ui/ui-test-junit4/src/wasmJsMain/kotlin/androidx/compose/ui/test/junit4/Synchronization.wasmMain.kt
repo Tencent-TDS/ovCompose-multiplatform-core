@@ -32,3 +32,11 @@ internal actual fun <T> runOnUiThread(action: () -> T): T {
 // TODO: in a browser we have only 1 thread and it's actually a UI thread.
 // But returning `true` here breaks `setContent` - `waitForIdle` is not called, but seems to be necessary.
 internal actual fun isOnUiThread(): Boolean = false
+
+
+/**
+ * Throws an [UnsupportedOperationException].
+ */
+internal actual fun sleep(timeMillis: Long) {
+    throw UnsupportedOperationException("sleep is not supported in JS target")
+}

@@ -110,7 +110,6 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     override fun wasm(): Unit = multiplatformExtension.run {
         if (!isKotlinWasmTargetEnabled) return@run
         wasmJs {
-            d8()
             browser {
                 testTask(Action<KotlinJsTest> {
                     it.useKarma {

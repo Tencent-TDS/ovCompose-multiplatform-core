@@ -75,7 +75,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         // NOTE: Keep this list in sync with runtime-saveable's targets.
         watchosArm64()
         watchosArm32()
-//        watchosX86()
         watchosX64()
         watchosSimulatorArm64()
         tvosArm64()
@@ -179,8 +178,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             watchosArm64Test.dependsOn(watchOsTest)
             watchosArm32Main.dependsOn(watchOsMain)
             watchosArm32Test.dependsOn(watchOsTest)
-//            watchosX86Main.dependsOn(watchOsMain)
-//            watchosX86Test.dependsOn(watchOsTest)
             watchosX64Main.dependsOn(watchOsMain)
             watchosX64Test.dependsOn(watchOsTest)
             watchosSimulatorArm64Main.dependsOn(watchOsMain)
@@ -230,7 +227,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             wasmJsTest {
                 dependsOn(nonEmulatorCommonTest)
                 dependencies {
-                    //implementation(libs.kotlinTestJs)
                     implementation(libs.create("kotlinTestWasm"))
                 }
             }

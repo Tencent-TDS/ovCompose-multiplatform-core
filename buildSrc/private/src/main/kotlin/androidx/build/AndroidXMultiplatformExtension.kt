@@ -302,7 +302,7 @@ open class AndroidXMultiplatformExtension(val project: Project) {
     ): KotlinJsTargetDsl? {
         requestedPlatforms.add(PlatformIdentifier.WASM)
         return if (project.enableWasm()) {
-            kotlinExtension.wasm().also {
+            kotlinExtension.wasmJs().also {
                 block?.execute(it)
             }
         } else {
