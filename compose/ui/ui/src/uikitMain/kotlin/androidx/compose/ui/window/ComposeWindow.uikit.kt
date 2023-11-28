@@ -194,7 +194,7 @@ fun ComposeUIViewController(
         }
         ViewDI(focusable, buildScene)
     }
-    val uiViewController: UIViewController by lazy {
+    val uiViewController: ComposeWindow by lazy {//todo UIViewController type
         ComposeWindow(
             configuration = ComposeUIViewControllerConfiguration().apply(configure),
             content = content,
