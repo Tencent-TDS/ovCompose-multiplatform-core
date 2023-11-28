@@ -194,7 +194,7 @@ fun ComposeUIViewController(
         }
         ViewDI(focusable, buildScene)
     }
-    val uiViewController: ComposeWindow by lazy {//todo UIViewController type
+    val uiViewController: UIViewController by lazy {
         ComposeWindow(
             configuration = ComposeUIViewControllerConfiguration().apply(configure),
             content = content,
@@ -216,6 +216,153 @@ private class ComposeWindow(
     val focusStack: FocusStack,
     val createSceneEntities: (focusable: Boolean, buildScene: SceneEntities.() -> ComposeScene) -> SceneEntities,
 ) : UIViewController(nibName = null, bundle = null) {
+
+    private fun attachComposeIfNeeded() {
+        if (attachedComposeContext != null) {
+            return // already attached
+        }
+
+        val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Main
+
+        fun SceneEntities.doBoilerplate(focusable: Boolean) {
+            view.addSubview(viewWrapper.view)
+            attachedComposeContext.setConstraintsToFillView(view)
+            updateLayout(attachedComposeContext)
+            if (focusable) {
+                focusStack.push(viewWrapper.view)
+            }
+        }
+
+        if (configuration.singleLayerComposeScene) {
+            fun prepareSingleLayerComposeScene(
+                density: Density,
+                layoutDirection: LayoutDirection,
+                focusable: Boolean,
+                coroutineContext: CoroutineContext,
+                prepareComposeSceneContext: () -> ComposeSceneContext,
+            ): SceneEntities {
+                return createSceneEntities(focusable) {
+                    SingleLayerComposeScene(
+                        coroutineContext = coroutineContext,
+                        composeSceneContext = object :
+                            ComposeSceneContext by prepareComposeSceneContext() {
+                            //todo do we need new platform context on every SingleLayerComposeScene?
+                            override val platformContext: PlatformContext get() = this@createSceneEntities.platformContext
+                        },
+                        density = density,
+                        invalidate = viewWrapper::needRedraw,
+                        layoutDirection = layoutDirection,
+                    )
+                }
+            }
+
+            prepareSingleLayerComposeScene(
+                density = densityProvider(),
+                layoutDirection = LayoutDirection.Ltr,//todo get from system?
+                focusable = true,
+                coroutineContext = coroutineDispatcher
+            ) {
+                object : ComposeSceneContext {
+                    override fun createPlatformLayer(
+                        density: Density,
+                        layoutDirection: LayoutDirection,
+                        focusable: Boolean,
+                        compositionContext: CompositionContext
+                    ): ComposeSceneLayer {
+                        return prepareSingleLayerComposeScene(
+                            density,
+                            layoutDirection,
+                            focusable,
+                            compositionContext.effectCoroutineContext,
+                            { this },
+                        ).run {
+                            doBoilerplate(focusable)
+                            viewWrapper.view.alpha = 0.5
+
+                            object : ComposeSceneLayer {
+                                override var density: Density = density
+                                override var layoutDirection: LayoutDirection = layoutDirection
+                                override var bounds: IntRect
+                                    get() = IntRect(
+                                        offset = IntOffset(
+                                            x = viewWrapper.view.bounds.useContents { origin.x.toInt() },
+                                            y = viewWrapper.view.bounds.useContents { origin.y.toInt() },
+                                        ),
+                                        size = IntSize(
+                                            width = viewWrapper.view.bounds.useContents { size.width.toInt() },
+                                            height = viewWrapper.view.bounds.useContents { size.height.toInt() },
+                                        )
+                                    )
+                                    set(value) {
+                                        println("ComposeSceneLayer, set bounds $value")
+                                        viewWrapper.view.setBounds(
+                                            CGRectMake(
+                                                value.left.toDouble(),
+                                                value.top.toDouble(),
+                                                value.width.toDouble(),
+                                                value.height.toDouble()
+                                            )
+                                        )
+                                    }
+                                override var scrimColor: Color? = null
+                                override var focusable: Boolean = true
+
+                                override fun close() {
+                                    println("ComposeSceneContext close")
+                                    focusStack.popUntilNext(viewWrapper.view)
+                                    viewWrapper.dispose()
+                                    viewWrapper.view.removeFromSuperview()
+                                }
+
+                                override fun setContent(content: @Composable () -> Unit) {
+                                    //todo New Compose Scene  Размер сцены scene.size - полный экран
+                                    //  Сделать translate Canvas по размеру -bounds.position, размер канвы bounds.size
+                                    //  translate делать при каждой отрисовке
+                                    //  canvas.translate(x, y)
+                                    //  drawContainedDrawModifiers(canvas)
+                                    //  canvas.translate(-x, -y)
+                                    //  А размер канвы задавать в bounds set(value) {...
+                                    scene.setContentWithProvider(
+                                        viewWrapper.isReadyToShowContent,
+                                        interopContext,
+                                        content
+                                    )
+                                }
+
+                                override fun setKeyEventListener(
+                                    onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
+                                    onKeyEvent: ((KeyEvent) -> Boolean)?
+                                ) {
+
+                                }
+
+                                override fun setOutsidePointerEventListener(onOutsidePointerEvent: ((mainEvent: Boolean) -> Unit)?) {
+
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            createSceneEntities(true) {
+                MultiLayerComposeScene(
+                    coroutineContext = coroutineDispatcher,
+                    composeSceneContext = object : ComposeSceneContext {
+                        override val platformContext: PlatformContext get() = this@createSceneEntities.platformContext
+                    },
+                    density = densityProvider(),
+                    invalidate = viewWrapper::needRedraw,
+                )
+            } as SceneEntities
+        }.apply {
+            scene.setContentWithProvider(viewWrapper.isReadyToShowContent, interopContext, content)
+            doBoilerplate(true)
+            this@ComposeWindow.attachedComposeContext = attachedComposeContext//todo bad
+        }
+    }
+
+
     private var keyboardOverlapHeight by mutableStateOf(0f)
     private var isInsideSwiftUI = false
     private var safeArea by mutableStateOf(PlatformInsets())
@@ -618,150 +765,7 @@ private class ComposeWindow(
         attachedComposeContext = null
     }
 
-    private fun attachComposeIfNeeded() {
-        if (attachedComposeContext != null) {
-            return // already attached
-        }
-
-        val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Main
-
-        fun SceneEntities.doBoilerplate(focusable: Boolean) {
-            view.addSubview(viewWrapper.view)
-            attachedComposeContext.setConstraintsToFillView(view)
-            updateLayout(attachedComposeContext)
-            if (focusable) {
-                focusStack.push(viewWrapper.view)
-            }
-        }
-
-        if (configuration.singleLayerComposeScene) {
-            fun prepareSingleLayerComposeScene(
-                density: Density,
-                layoutDirection: LayoutDirection,
-                focusable: Boolean,
-                coroutineContext: CoroutineContext,
-                prepareComposeSceneContext: () -> ComposeSceneContext,
-            ): SceneEntities {
-                return createSceneEntities(focusable) {
-                    SingleLayerComposeScene(
-                        coroutineContext = coroutineContext,
-                        composeSceneContext = object :
-                            ComposeSceneContext by prepareComposeSceneContext() {
-                            //todo do we need new platform context on every SingleLayerComposeScene?
-                            override val platformContext: PlatformContext get() = this@createSceneEntities.platformContext
-                        },
-                        density = density,
-                        invalidate = viewWrapper::needRedraw,
-                        layoutDirection = layoutDirection,
-                    )
-                }
-            }
-
-            prepareSingleLayerComposeScene(
-                density = densityProvider(),
-                layoutDirection = LayoutDirection.Ltr,//todo get from system?
-                focusable = true,
-                coroutineContext = coroutineDispatcher
-            ) {
-                object : ComposeSceneContext {
-                    override fun createPlatformLayer(
-                        density: Density,
-                        layoutDirection: LayoutDirection,
-                        focusable: Boolean,
-                        compositionContext: CompositionContext
-                    ): ComposeSceneLayer {
-                        return prepareSingleLayerComposeScene(
-                            density,
-                            layoutDirection,
-                            focusable,
-                            compositionContext.effectCoroutineContext,
-                            { this },
-                        ).run {
-                            doBoilerplate(focusable)
-                            viewWrapper.view.alpha = 0.5
-
-                            object : ComposeSceneLayer {
-                                override var density: Density = density
-                                override var layoutDirection: LayoutDirection = layoutDirection
-                                override var bounds: IntRect
-                                    get() = IntRect(
-                                        offset = IntOffset(
-                                            x = viewWrapper.view.bounds.useContents { origin.x.toInt() },
-                                            y = viewWrapper.view.bounds.useContents { origin.y.toInt() },
-                                        ),
-                                        size = IntSize(
-                                            width = viewWrapper.view.bounds.useContents { size.width.toInt() },
-                                            height = viewWrapper.view.bounds.useContents { size.height.toInt() },
-                                        )
-                                    )
-                                    set(value) {
-                                        println("ComposeSceneLayer, set bounds $value")
-                                        viewWrapper.view.setBounds(
-                                            CGRectMake(
-                                                value.left.toDouble(),
-                                                value.top.toDouble(),
-                                                value.width.toDouble(),
-                                                value.height.toDouble()
-                                            )
-                                        )
-                                    }
-                                override var scrimColor: Color? = null
-                                override var focusable: Boolean = true
-
-                                override fun close() {
-                                    println("ComposeSceneContext close")
-                                    focusStack.popUntilNext(viewWrapper.view)
-                                    viewWrapper.dispose()
-                                    viewWrapper.view.removeFromSuperview()
-                                }
-
-                                override fun setContent(content: @Composable () -> Unit) {
-                                    //todo New Compose Scene  Размер сцены scene.size - полный экран
-                                    //  Сделать translate Canvas по размеру -bounds.position, размер канвы bounds.size
-                                    //  translate делать при каждой отрисовке
-                                    //  canvas.translate(x, y)
-                                    //  drawContainedDrawModifiers(canvas)
-                                    //  canvas.translate(-x, -y)
-                                    //  А размер канвы задавать в bounds set(value) {...
-                                    scene.setContentWithProvider(
-                                        viewWrapper.isReadyToShowContent,
-                                        interopContext,
-                                        content
-                                    )
-                                }
-
-                                override fun setKeyEventListener(
-                                    onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
-                                    onKeyEvent: ((KeyEvent) -> Boolean)?
-                                ) {
-
-                                }
-
-                                override fun setOutsidePointerEventListener(onOutsidePointerEvent: ((mainEvent: Boolean) -> Unit)?) {
-
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            createSceneEntities(true) {
-                MultiLayerComposeScene(
-                    coroutineContext = coroutineDispatcher,
-                    composeSceneContext = object : ComposeSceneContext {
-                        override val platformContext: PlatformContext get() = this@createSceneEntities.platformContext
-                    },
-                    density = densityProvider(),
-                    invalidate = viewWrapper::needRedraw,
-                )
-            } as SceneEntities
-        }.apply {
-            scene.setContentWithProvider(viewWrapper.isReadyToShowContent, interopContext, content)
-            doBoilerplate(true)
-            this@ComposeWindow.attachedComposeContext = attachedComposeContext//todo bad
-        }
-    }
+    //todo here was fun attachComposeIfNeeded
 
     private fun ComposeScene.setContentWithProvider(isReadyToShowContent: State<Boolean>, interopContext: UIKitInteropContext, content: @Composable ()->Unit) {
         setContent {
