@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.runtime.MutableState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.pointer.HistoricalChange
@@ -28,8 +27,6 @@ import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.window.SkikoUIViewDelegate
-import androidx.compose.ui.window.UITouchesEventPhase
 import kotlin.math.floor
 import kotlin.math.roundToLong
 import kotlinx.cinterop.CValue
@@ -45,7 +42,7 @@ import platform.UIKit.UIView
 internal class SkikoUIViewDelegateImpl(
     val sceneProvider: () -> ComposeScene,
     val interopContext: UIKitInteropContext,
-    val densityProvider: ()-> Density
+    val densityProvider: () -> Density
 ) : SkikoUIViewDelegate {
     val scene get() = sceneProvider()
     val density get() = densityProvider()
@@ -113,7 +110,11 @@ private fun UITouchesEventPhase.toPointerEventType(): PointerEventType =
         UITouchesEventPhase.CANCELLED -> PointerEventType.Release
     }
 
-private fun UIEvent.historicalChangesForTouch(touch: UITouch, view: UIView, density: Float): List<HistoricalChange> {
+private fun UIEvent.historicalChangesForTouch(
+    touch: UITouch,
+    view: UIView,
+    density: Float
+): List<HistoricalChange> {
     val touches = coalescedTouchesForTouch(touch) ?: return emptyList()
 
     return if (touches.size > 1) {

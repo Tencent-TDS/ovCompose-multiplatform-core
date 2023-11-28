@@ -17,7 +17,6 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.InternalComposeApi
@@ -27,32 +26,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.platform.*
-import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.scene.ComposeSceneContext
-import androidx.compose.ui.scene.ComposeSceneLayer
-import androidx.compose.ui.scene.SingleLayerComposeScene
-import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.uikit.*
 import androidx.compose.ui.unit.*
-import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
-import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
-import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
@@ -98,42 +87,53 @@ fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController = object: ComposeViewState<ComposeWindow, UIView> {
+): UIViewController = object: ComposeViewState<ComposeRootUIViewController, UIView> {
     override val densityProvider = {
         val contentSizeCategory =
-            view.traitCollection.preferredContentSizeCategory
-                ?: UIContentSizeCategoryUnspecified
+            rootView.traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
 
         val fontScale: Float = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
         Density(
-            view.rootSceneViewState?.sceneView?.contentScaleFactor?.toFloat() ?: 1f,
+            rootView.rootSceneViewState?.sceneView?.contentScaleFactor?.toFloat() ?: 1f,
             fontScale
         )
     }
     override val focusStack: FocusStack = FocusStackImpl()
-    override fun createSceneViewState(): SceneViewState<UIView> = createSceneUIViewState()
+
+    @OptIn(ExperimentalComposeApi::class)
+    override fun createSceneViewState(): SceneViewState<UIView> =
+        if (configuration.singleLayerComposeScene) {
+            createSingleLayerSceneUIViewState()
+        } else {
+            createMultiLayerSceneUIViewState()
+        }
     override val configuration by lazy {
         ComposeUIViewControllerConfiguration().apply(configure)
     }
-    override val view: ComposeWindow by lazy {//todo UIViewController
-        ComposeWindow(
+    override val windowInfo = WindowInfoImpl().apply {
+        isWindowFocused = true
+    }
+    override val rootView: ComposeRootUIViewController by lazy {//todo UIViewController
+        ComposeRootUIViewController(
             configuration = configuration,
             content = content,
             densityProvider = densityProvider,
             focusStack = focusStack,
             createSceneViewState = ::createSceneViewState,
+            updateContainerSize = { windowInfo.containerSize = it }
         )
     }
-}.view
+}.rootView
 
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
-internal class ComposeWindow(
+internal class ComposeRootUIViewController(
     val configuration: ComposeUIViewControllerConfiguration,
     val content: @Composable () -> Unit,
     val densityProvider: () -> Density,
     val focusStack: FocusStack,
     val createSceneViewState: () -> SceneViewState<UIView>,
+    val updateContainerSize: (IntSize) -> Unit,
 ) : UIViewController(nibName = null, bundle = null) {
 
     fun doBoilerplate(sceneViewState: SceneViewState<UIView>, focusable: Boolean) {
@@ -172,7 +172,7 @@ internal class ComposeWindow(
 
     /*
      * On iOS >= 13.0 interfaceOrientation will be deduced from [UIWindowScene] of [UIWindow]
-     * to which our [ComposeWindow] is attached.
+     * to which our [ComposeRootUIViewController] is attached.
      * It's never UIInterfaceOrientationUnknown, if accessed after owning [UIWindow] was made key and visible:
      * https://developer.apple.com/documentation/uikit/uiwindow/1621601-makekeyandvisible?language=objc
      */
@@ -188,10 +188,6 @@ internal class ComposeWindow(
                 InterfaceOrientation.getByRawValue(UIApplication.sharedApplication.statusBarOrientation)
             }
         }
-
-    val _windowInfo = WindowInfoImpl().apply {
-        isWindowFocused = true
-    }
 
     var rootSceneViewState: SceneViewState<UIView>? = null
 
@@ -237,7 +233,7 @@ internal class ComposeWindow(
 
             //attach to root view if needed
             if (keyboardAnimationView.superview == null) {
-                this@ComposeWindow.view.addSubview(keyboardAnimationView)
+                this@ComposeRootUIViewController.view.addSubview(keyboardAnimationView)
             }
 
             //cancel previous animation
@@ -408,7 +404,7 @@ internal class ComposeWindow(
                 height = (size.height * scale).roundToInt()
             )
         }
-        _windowInfo.containerSize = size
+        updateContainerSize(size)
         sceneViewState.scene.density = densityProvider()
         sceneViewState.scene.size = size
 
@@ -608,12 +604,4 @@ private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
         UIUserInterfaceStyle.UIUserInterfaceStyleDark -> SystemTheme.Dark
         else -> SystemTheme.Unknown
     }
-}
-
-internal interface ComposeViewState<View, SceneView> {
-    val densityProvider: () -> Density
-    val focusStack: FocusStack
-    fun createSceneViewState(): SceneViewState<SceneView>
-    val configuration: ComposeUIViewControllerConfiguration
-    val view: View
 }
