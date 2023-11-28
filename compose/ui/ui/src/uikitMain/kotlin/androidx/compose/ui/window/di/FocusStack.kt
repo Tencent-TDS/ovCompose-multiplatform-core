@@ -33,6 +33,11 @@ interface FocusStack {
      * Pop all elements until some element. Also pop this element too.
      */
     fun popUntilNext(view: UIView)
+
+    /**
+     * Return first added element or null
+     */
+    fun first(): UIView?
 }
 
 internal class FocusStackImpl : FocusStack {
@@ -54,5 +59,7 @@ internal class FocusStackImpl : FocusStack {
             list.lastOrNull()?.becomeFirstResponder()
         }
     }
+
+    override fun first(): UIView? = list.firstOrNull()
 
 }
