@@ -25,7 +25,6 @@ import androidx.compose.foundation.text.selection.getTextFieldSelection
 import androidx.compose.foundation.text.selection.isSelectionHandleInVisibleBound
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -49,7 +48,7 @@ internal fun Modifier.cupertinoTextFieldPointer(
     offsetMapping: OffsetMapping
 ): Modifier = if (enabled) {
     if (isInTouchMode) {
-        val selectionModifier = getLongPressHandlerModifier(state, offsetMapping)
+        val longPressHandlerModifier = getLongPressHandlerModifier(state, offsetMapping)
         val tapHandlerModifier = getTapHandlerModifier(
             interactionSource,
             state,
@@ -60,7 +59,7 @@ internal fun Modifier.cupertinoTextFieldPointer(
         )
         this
             .then(tapHandlerModifier)
-            .then(selectionModifier)
+            .then(longPressHandlerModifier)
             .pointerHoverIcon(textPointerIcon)
     } else {
         this
@@ -147,59 +146,51 @@ private fun getLongPressHandlerModifier(
 ): Modifier {
     val currentState by rememberUpdatedState(state)
     val currentOffsetMapping by rememberUpdatedState(offsetMapping)
-    var dragTotalDistance = remember { Offset.Zero }
-    var dragBeginOffset = remember { Offset.Zero }
-    var currentDragPosition: Offset?
-
-    val longTapActionsObserver = object : TextDragObserver {
-        // Unnecessary
-        override fun onDown(point: Offset) {}
-
-        // Unnecessary
-        override fun onUp() {}
-
-        override fun onStart(startPoint: Offset) {
-            currentState.layoutResult?.let { layoutResult ->
-                TextFieldDelegate.setCursorOffset(
-                    startPoint,
-                    layoutResult,
-                    currentState.processor,
-                    currentOffsetMapping,
-                    currentState.onValueChange
-                )
-                dragBeginOffset = startPoint
-                currentDragPosition = dragBeginOffset
-            }
-            dragTotalDistance = Offset.Zero
-            currentState.showFloatingToolbar = false
-        }
-
-        override fun onDrag(delta: Offset) {
-            dragTotalDistance += delta
-            state.layoutResult?.let { layoutResult ->
-                currentDragPosition = dragBeginOffset + dragTotalDistance
-                TextFieldDelegate.setCursorOffset(
-                    currentDragPosition!!,
-                    layoutResult,
-                    currentState.processor,
-                    currentOffsetMapping,
-                    currentState.onValueChange
-                )
-            }
-        }
-
-        override fun onStop() {
-            currentState.showFloatingToolbar = true
-            currentDragPosition = null
-        }
-
-        override fun onCancel() {
-            currentDragPosition = null
-        }
-
-    }
 
     return Modifier.pointerInput(Unit) {
+        val longTapActionsObserver =
+            object : TextDragObserver {
+                var dragTotalDistance = Offset.Zero
+                var dragBeginOffset = Offset.Zero
+
+                override fun onStart(startPoint: Offset) {
+                    currentState.layoutResult?.let { layoutResult ->
+                        TextFieldDelegate.setCursorOffset(
+                            startPoint,
+                            layoutResult,
+                            currentState.processor,
+                            currentOffsetMapping,
+                            currentState.onValueChange
+                        )
+                        dragBeginOffset = startPoint
+                    }
+                    dragTotalDistance = Offset.Zero
+                }
+
+                override fun onDrag(delta: Offset) {
+                    dragTotalDistance += delta
+                    currentState.layoutResult?.let { layoutResult ->
+                        val currentDragPosition = dragBeginOffset + dragTotalDistance
+                        TextFieldDelegate.setCursorOffset(
+                            currentDragPosition,
+                            layoutResult,
+                            currentState.processor,
+                            currentOffsetMapping,
+                            currentState.onValueChange
+                        )
+                    }
+                }
+
+                // Unnecessary here
+                override fun onDown(point: Offset) {}
+
+                override fun onUp() {}
+
+                override fun onStop() {}
+
+                override fun onCancel() {}
+            }
+
         detectDragGesturesAfterLongPress(
             onDragStart = { longTapActionsObserver.onStart(it) },
             onDrag = { _, delta -> longTapActionsObserver.onDrag(delta = delta) },
