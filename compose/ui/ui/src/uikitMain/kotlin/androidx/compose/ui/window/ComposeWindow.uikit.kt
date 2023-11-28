@@ -44,8 +44,8 @@ import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.uikit.*
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.window.di.ComposeViewWrapper
-import androidx.compose.ui.window.di.ComposeViewWrapperImpl
+import androidx.compose.ui.window.di.ComposeViewState
+import androidx.compose.ui.window.di.ComposeViewStateImpl
 import androidx.compose.ui.window.di.FocusStack
 import androidx.compose.ui.window.di.FocusStackImpl
 import androidx.compose.ui.window.di.KeyboardEventHandler
@@ -121,16 +121,17 @@ fun ComposeUIViewController(
     }
     val createViewWrapper =
         { focusable: Boolean, keyboardEventHandler: KeyboardEventHandler, delegate: SkikoUIViewDelegate ->
-            ComposeViewWrapperImpl(
+            ComposeViewStateImpl(
                 SkikoUIView(focusable, keyboardEventHandler, delegate)
             )
         }
     val focusStack: FocusStack = FocusStackImpl()
-    val createSceneEntities: () -> SceneEntities = {
-        fun createSceneEntities3(focusable: Boolean, buildScene: SceneEntities.() -> ComposeScene):SceneEntities {
-            class ViewDI(focusable: Boolean, buildScene: SceneEntities.() -> ComposeScene) : SceneEntities {
+    val createSceneEntities: () -> SceneEntities<UIView> = {
+
+        fun createSceneEntities3(focusable: Boolean, buildScene: SceneEntities<UIView>.() -> ComposeScene):SceneEntities<UIView> {
+            class ViewDI(focusable: Boolean, buildScene: SceneEntities<UIView>.() -> ComposeScene) : SceneEntities<UIView> {
                 override val scene: ComposeScene by lazy { buildScene() }
-                override val viewWrapper: ComposeViewWrapper by lazy {
+                override val viewWrapper: ComposeViewState<UIView> by lazy {
                     createViewWrapper(
                         focusable,
                         keyboardEventHandler,
@@ -198,7 +199,7 @@ fun ComposeUIViewController(
             focusable: Boolean,
             coroutineContext: CoroutineContext,
             prepareComposeSceneContext: () -> ComposeSceneContext,
-        ): SceneEntities {
+        ): SceneEntities<UIView> {
             return createSceneEntities3(focusable) {
                 SingleLayerComposeScene(
                     coroutineContext = coroutineContext,
@@ -339,10 +340,10 @@ private class ComposeWindow(
     val content: @Composable () -> Unit,
     val densityProvider: () -> Density,
     val focusStack: FocusStack,
-    val createSceneEntities: () -> SceneEntities,
+    val createSceneEntities: () -> SceneEntities<UIView>,
 ) : UIViewController(nibName = null, bundle = null) {
 
-    fun doBoilerplate(sceneEntities: SceneEntities, focusable: Boolean) {
+    fun doBoilerplate(sceneEntities: SceneEntities<UIView>, focusable: Boolean) {
         view.addSubview(sceneEntities.viewWrapper.view)
         sceneEntities.attachedComposeContext.setConstraintsToFillView(view)
         updateLayout(sceneEntities.attachedComposeContext)
@@ -816,9 +817,9 @@ private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
     }
 }
 
-private interface SceneEntities {
+private interface SceneEntities<View> {
     val scene: ComposeScene
-    val viewWrapper:ComposeViewWrapper
+    val viewWrapper:ComposeViewState<View>
     val interopContext:UIKitInteropContext
     val platformContext: PlatformContext
     val attachedComposeContext: AttachedComposeContext
@@ -827,7 +828,7 @@ private interface SceneEntities {
 //todo New Compose Scene FIXME: It's better to rename it now
 private class AttachedComposeContext(
     val scene: ComposeScene,
-    val viewWrapper: ComposeViewWrapper,
+    val viewWrapper: ComposeViewState<UIView>,
     val interopContext: UIKitInteropContext,
 ) {
     private var constraints: List<NSLayoutConstraint> = emptyList()
