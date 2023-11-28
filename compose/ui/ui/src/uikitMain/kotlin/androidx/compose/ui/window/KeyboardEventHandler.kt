@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.window.di
+package androidx.compose.ui.window
 
 import org.jetbrains.skiko.SkikoKeyboardEvent
 

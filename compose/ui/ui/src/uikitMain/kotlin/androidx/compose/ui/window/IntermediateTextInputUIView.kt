@@ -19,7 +19,6 @@ package androidx.compose.ui.window
 import androidx.compose.ui.platform.IOSSkikoInput
 import androidx.compose.ui.platform.SkikoUITextInputTraits
 import androidx.compose.ui.platform.TextActions
-import androidx.compose.ui.window.di.KeyboardEventHandler
 import kotlinx.cinterop.*
 import org.jetbrains.skia.Rect
 import org.jetbrains.skiko.SkikoInputModifiers

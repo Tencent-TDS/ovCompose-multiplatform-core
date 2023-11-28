@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.window.di
+package androidx.compose.ui.window
 
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.platform.DefaultInputModeManager

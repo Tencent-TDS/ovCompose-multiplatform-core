@@ -24,7 +24,6 @@ import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.platform.IOSSkikoInput
 import androidx.compose.ui.platform.SkikoUITextInputTraits
 import androidx.compose.ui.platform.TextActions
-import androidx.compose.ui.window.di.KeyboardEventHandler
 import kotlinx.cinterop.*
 import org.jetbrains.skia.Rect
 import platform.CoreGraphics.*

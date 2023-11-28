@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalComposeApi::class)
-
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
@@ -44,11 +42,6 @@ import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.uikit.*
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.window.di.FocusStack
-import androidx.compose.ui.window.di.FocusStackImpl
-import androidx.compose.ui.window.di.KeyboardEventHandler
-import androidx.compose.ui.window.di.PlatformContextImpl
-import androidx.compose.ui.window.di.SkikoUIViewDelegateImpl
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
@@ -105,267 +98,37 @@ fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController = object {
-    val densityProvider = {
+): UIViewController = object: ComposeViewState<ComposeWindow, UIView> {
+    override val densityProvider = {
         val contentSizeCategory =
-            uiViewController.traitCollection.preferredContentSizeCategory
+            view.traitCollection.preferredContentSizeCategory
                 ?: UIContentSizeCategoryUnspecified
 
         val fontScale: Float = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
         Density(
-            uiViewController.rootSceneViewState?.view?.contentScaleFactor?.toFloat() ?: 1f,
+            view.rootSceneViewState?.sceneView?.contentScaleFactor?.toFloat() ?: 1f,
             fontScale
         )
     }
-    val focusStack: FocusStack = FocusStackImpl()
-    val createSceneViewState: () -> SceneViewState<UIView> = {
-        fun createStateWithSceneBuilder(
-            focusable: Boolean,
-            buildScene: SceneViewState<UIView>.() -> ComposeScene
-        ): SceneViewState<UIView> = object : SceneViewState<UIView> {
-            override val view: SkikoUIView by lazy {
-                SkikoUIView(
-                    focusable,
-                    keyboardEventHandler,
-                    delegate
-                )
-            }
-            override val isReadyToShowContent: State<Boolean> by lazy {
-                view.isReadyToShowContent
-            }
-
-            override fun needRedraw() = view.needRedraw()
-            override fun dispose() {
-                //todo New Compose Scene почистить все слои
-                view.dispose()
-                scene.close()
-                // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
-                // Thus they need to be executed now.
-                interopContext.retrieve().actions.forEach { it.invoke() }
-            }
-
-            override var isForcedToPresentWithTransactionEveryFrame: Boolean
-                get() = view.isForcedToPresentWithTransactionEveryFrame
-                set(value) {
-                    view.isForcedToPresentWithTransactionEveryFrame = value
-                }
-
-            override val scene: ComposeScene by lazy { buildScene() }
-            override val interopContext: UIKitInteropContext by lazy {
-                UIKitInteropContext(
-                    requestRedraw = { needRedraw() })
-            }
-            override val platformContext: PlatformContext by lazy {
-                PlatformContextImpl(
-                    inputServices = inputServices,
-                    textToolbar = textToolbar,
-                    windowInfoProvider = { uiViewController._windowInfo },
-                    densityProvider = densityProvider,
-                )
-            }
-            val uiKitTextInputService: UIKitTextInputService by lazy {
-                UIKitTextInputService(
-                    updateView = {
-                        view.setNeedsDisplay() // redraw on next frame
-                        CATransaction.flush() // clear all animations
-                        view.reloadInputViews() // update input (like screen keyboard)//todo redundant?
-                    },
-                    rootViewProvider = { uiViewController.view },
-                    densityProvider = densityProvider,
-                    focusStack = focusStack,
-                    keyboardEventHandler = keyboardEventHandler
-                )
-            }
-            val inputServices: PlatformTextInputService get() = uiKitTextInputService
-            val textToolbar: TextToolbar get() = uiKitTextInputService
-            val keyboardEventHandler: KeyboardEventHandler by lazy {
-                object : KeyboardEventHandler {
-                    override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
-                        val composeEvent = KeyEvent(event)
-                        if (!uiKitTextInputService.onPreviewKeyEvent(composeEvent)) {
-                            scene.sendKeyEvent(composeEvent)
-                        }
-                    }
-                }
-            }
-            val delegate: SkikoUIViewDelegate by lazy {
-                SkikoUIViewDelegateImpl(
-                    { scene },
-                    interopContext,
-                    densityProvider,
-                )
-            }
-            private var constraints: List<NSLayoutConstraint> = emptyList()
-                set(value) {
-                    if (field.isNotEmpty()) {
-                        NSLayoutConstraint.deactivateConstraints(field)
-                    }
-                    field = value
-                    NSLayoutConstraint.activateConstraints(value)
-                }
-
-            override fun setConstraintsToCenterInView(parentView: UIView, size: CValue<CGSize>) {
-                size.useContents {
-                    constraints = listOf(
-                        view.centerXAnchor.constraintEqualToAnchor(parentView.centerXAnchor),
-                        view.centerYAnchor.constraintEqualToAnchor(parentView.centerYAnchor),
-                        view.widthAnchor.constraintEqualToConstant(width),
-                        view.heightAnchor.constraintEqualToConstant(height)
-                    )
-                }
-            }
-
-            override fun setConstraintsToFillView(parentView: UIView) {
-                constraints = listOf(
-                    view.leftAnchor.constraintEqualToAnchor(parentView.leftAnchor),
-                    view.rightAnchor.constraintEqualToAnchor(parentView.rightAnchor),
-                    view.topAnchor.constraintEqualToAnchor(parentView.topAnchor),
-                    view.bottomAnchor.constraintEqualToAnchor(parentView.bottomAnchor)
-                )
-            }
-        }
-
-        fun prepareSingleLayerComposeScene(
-            densityProvider: () -> Density,
-            layoutDirection: LayoutDirection,
-            focusable: Boolean,
-            coroutineContext: CoroutineContext,
-            prepareComposeSceneContext: () -> ComposeSceneContext,
-        ): SceneViewState<UIView> = createStateWithSceneBuilder(focusable) {
-            SingleLayerComposeScene(
-                coroutineContext = coroutineContext,
-                composeSceneContext = object :
-                    ComposeSceneContext by prepareComposeSceneContext() {
-                    //todo do we need new platform context on every SingleLayerComposeScene?
-                    override val platformContext: PlatformContext get() = this@createStateWithSceneBuilder.platformContext
-                },
-                density = densityProvider(),
-                invalidate = ::needRedraw,
-                layoutDirection = layoutDirection,
-            )
-        }
-
-        val coroutineDispatcher = Dispatchers.Main
-        if (configuration.singleLayerComposeScene) {
-            prepareSingleLayerComposeScene(
-                densityProvider = densityProvider,
-                layoutDirection = LayoutDirection.Ltr,//todo get from system?
-                focusable = true,
-                coroutineContext = coroutineDispatcher
-            ) {
-                object : ComposeSceneContext {
-                    override fun createPlatformLayer(
-                        density: Density,
-                        layoutDirection: LayoutDirection,
-                        focusable: Boolean,
-                        compositionContext: CompositionContext
-                    ): ComposeSceneLayer {
-                        return prepareSingleLayerComposeScene(
-                            densityProvider,
-                            layoutDirection,
-                            focusable,
-                            compositionContext.effectCoroutineContext,
-                            { this },
-                        ).run {
-                            uiViewController.doBoilerplate(this, focusable)
-                            view.alpha = 0.5
-
-                            object : ComposeSceneLayer {
-                                override var density: Density = density
-                                override var layoutDirection: LayoutDirection = layoutDirection
-                                override var bounds: IntRect
-                                    get() = IntRect(
-                                        offset = IntOffset(
-                                            x = view.bounds.useContents { origin.x.toInt() },
-                                            y = view.bounds.useContents { origin.y.toInt() },
-                                        ),
-                                        size = IntSize(
-                                            width = view.bounds.useContents { size.width.toInt() },
-                                            height = view.bounds.useContents { size.height.toInt() },
-                                        )
-                                    )
-                                    set(value) {
-                                        println("ComposeSceneLayer, set bounds $value")
-                                        view.setBounds(
-                                            CGRectMake(
-                                                value.left.toDouble(),
-                                                value.top.toDouble(),
-                                                value.width.toDouble(),
-                                                value.height.toDouble()
-                                            )
-                                        )
-                                    }
-                                override var scrimColor: Color? = null
-                                override var focusable: Boolean = true
-
-                                override fun close() {
-                                    println("ComposeSceneContext close")
-                                    focusStack.popUntilNext(view)
-                                    dispose()
-                                    view.removeFromSuperview()
-                                }
-
-                                override fun setContent(content: @Composable () -> Unit) {
-                                    //todo New Compose Scene  Размер сцены scene.size - полный экран
-                                    //  Сделать translate Canvas по размеру -bounds.position, размер канвы bounds.size
-                                    //  translate делать при каждой отрисовке
-                                    //  canvas.translate(x, y)
-                                    //  drawContainedDrawModifiers(canvas)
-                                    //  canvas.translate(-x, -y)
-                                    //  А размер канвы задавать в bounds set(value) {...
-                                    uiViewController.setContentWithProvider(
-                                        scene,
-                                        isReadyToShowContent,
-                                        interopContext,
-                                        content
-                                    )
-                                }
-
-                                override fun setKeyEventListener(
-                                    onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
-                                    onKeyEvent: ((KeyEvent) -> Boolean)?
-                                ) {
-
-                                }
-
-                                override fun setOutsidePointerEventListener(onOutsidePointerEvent: ((mainEvent: Boolean) -> Unit)?) {
-
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            createStateWithSceneBuilder(true) {
-                MultiLayerComposeScene(
-                    coroutineContext = coroutineDispatcher,
-                    composeSceneContext = object : ComposeSceneContext {
-                        override val platformContext: PlatformContext get() = this@createStateWithSceneBuilder.platformContext
-                    },
-                    density = densityProvider(),
-                    invalidate = ::needRedraw,
-                )
-            }
-        }
-    }
-    val configuration by lazy {
+    override val focusStack: FocusStack = FocusStackImpl()
+    override fun createSceneViewState(): SceneViewState<UIView> = createSceneUIViewState()
+    override val configuration by lazy {
         ComposeUIViewControllerConfiguration().apply(configure)
     }
-    val uiViewController: ComposeWindow by lazy {//todo UIViewController
+    override val view: ComposeWindow by lazy {//todo UIViewController
         ComposeWindow(
             configuration = configuration,
             content = content,
             densityProvider = densityProvider,
             focusStack = focusStack,
-            createSceneViewState = createSceneViewState,
+            createSceneViewState = ::createSceneViewState,
         )
     }
-}.uiViewController
+}.view
 
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
-private class ComposeWindow(
+internal class ComposeWindow(
     val configuration: ComposeUIViewControllerConfiguration,
     val content: @Composable () -> Unit,
     val densityProvider: () -> Density,
@@ -374,11 +137,11 @@ private class ComposeWindow(
 ) : UIViewController(nibName = null, bundle = null) {
 
     fun doBoilerplate(sceneViewState: SceneViewState<UIView>, focusable: Boolean) {
-        view.addSubview(sceneViewState.view)
+        view.addSubview(sceneViewState.sceneView)
         sceneViewState.setConstraintsToFillView(view)
         updateLayout(sceneViewState)
         if (focusable) {
-            focusStack.push(sceneViewState.view)
+            focusStack.push(sceneViewState.sceneView)
         }
     }
 
@@ -543,7 +306,7 @@ private class ComposeWindow(
         }
 
         private fun calcFocusedLiftingY(focusedRect: DpRect, keyboardHeight: Double): Double {
-            val viewHeight = rootSceneViewState?.view?.frame?.useContents {
+            val viewHeight = rootSceneViewState?.sceneView?.frame?.useContents {
                 size.height
             } ?: 0.0
 
@@ -678,7 +441,7 @@ private class ComposeWindow(
         }
 
         val startSnapshotView =
-            rootSceneViewState.view.snapshotViewAfterScreenUpdates(false) ?: return
+            rootSceneViewState.sceneView.snapshotViewAfterScreenUpdates(false) ?: return
 
         startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(startSnapshotView)
@@ -696,7 +459,7 @@ private class ComposeWindow(
         rootSceneViewState.isForcedToPresentWithTransactionEveryFrame = true
 
         rootSceneViewState.setConstraintsToCenterInView(view, size)
-        rootSceneViewState.view.transform = withTransitionCoordinator.targetTransform
+        rootSceneViewState.sceneView.transform = withTransitionCoordinator.targetTransform
 
         view.layoutIfNeeded()
 
@@ -705,7 +468,7 @@ private class ComposeWindow(
                 startSnapshotView.alpha = 0.0
                 startSnapshotView.transform =
                     CGAffineTransformInvert(withTransitionCoordinator.targetTransform)
-                rootSceneViewState.view.transform = CGAffineTransformIdentity.readValue()
+                rootSceneViewState.sceneView.transform = CGAffineTransformIdentity.readValue()
             },
             completion = {
                 startSnapshotView.removeFromSuperview()
@@ -847,17 +610,10 @@ private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
     }
 }
 
-private interface SceneViewState<V> {
-    val view: V
-    val isReadyToShowContent: State<Boolean>
-    fun needRedraw()
-    fun dispose()
-    var isForcedToPresentWithTransactionEveryFrame:Boolean
-
-    val scene: ComposeScene
-    val interopContext:UIKitInteropContext
-    val platformContext: PlatformContext
-
-    fun setConstraintsToCenterInView(parentView: V, size: CValue<CGSize>)
-    fun setConstraintsToFillView(parentView: V)
+internal interface ComposeViewState<View, SceneView> {
+    val densityProvider: () -> Density
+    val focusStack: FocusStack
+    fun createSceneViewState(): SceneViewState<SceneView>
+    val configuration: ComposeUIViewControllerConfiguration
+    val view: View
 }

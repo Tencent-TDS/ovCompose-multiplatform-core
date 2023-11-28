@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.window.di
+package androidx.compose.ui.window
 
 import androidx.compose.ui.util.fastForEachReversed
 import platform.UIKit.UIView
