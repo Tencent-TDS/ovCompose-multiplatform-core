@@ -276,18 +276,8 @@ tasks.create("runDesktop", JavaExec::class.java) {
 
 project.tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile>().configureEach {
     kotlinOptions.freeCompilerArgs += listOf(
-//        "-Xklib-enable-signature-clash-checks=false",
-        //"-Xplugin=${project.properties["compose.plugin.path"]}",
         "-Xir-dce",
         "-Xwasm-generate-wat",
         "-Xwasm-enable-array-range-checks"
     )
-}
-
-
-// TODO: workaround webpack compilation issue (it tries to find 'skia' module, but we provide it manually via imports)
-project.tasks.getByName("wasmJsDevelopmentExecutableCompileSync").doLast {
-    val f = project.buildDir.resolve("../../../../build/js/packages/mpp-demo/kotlin/mpp-demo.uninstantiated.mjs").normalize()
-    val t = f.readText().replace("'skia': imports['skia'] ?? await import('skia'),", "'skia': imports['skia'],")
-    f.writeText(t)
 }

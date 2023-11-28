@@ -22,15 +22,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.unit.Velocity
 
 @ExperimentalFoundationApi
 @Composable
-internal actual fun rememberTextFieldOverscrollEffect(): OverscrollEffect? {
-    return null
-}
+internal actual fun rememberTextFieldOverscrollEffect(): OverscrollEffect? = null
 
 internal actual fun Modifier.textFieldScroll(
     scrollerPosition: TextFieldScrollerPosition,
