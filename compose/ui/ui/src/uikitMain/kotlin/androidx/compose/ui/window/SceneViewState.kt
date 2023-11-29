@@ -73,6 +73,7 @@ internal interface SceneViewState<V> {
     fun setConstraintsToCenterInView(parentView: V, size: CValue<CGSize>)
     fun setConstraintsToFillView(parentView: V)
     fun setContentWithCompositionLocals(content: @Composable () -> Unit)
+    fun display(focusable: Boolean)
 }
 
 private val coroutineDispatcher = Dispatchers.Main
@@ -100,7 +101,7 @@ internal fun ComposeViewState<UIViewController, UIView>.createSingleLayerSceneUI
                     compositionContext.effectCoroutineContext,
                     { this },
                 ).run {
-                    doBoilerplate(this, focusable)
+                    display(focusable)
                     sceneView.alpha = 0.5
 
                     object : ComposeSceneLayer {
@@ -133,7 +134,6 @@ internal fun ComposeViewState<UIViewController, UIView>.createSingleLayerSceneUI
 
                         override fun close() {
                             println("ComposeSceneContext close")
-                            focusStack.popUntilNext(sceneView)
                             dispose()
                             sceneView.removeFromSuperview()
                         }
@@ -196,6 +196,7 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
     override fun needRedraw() = sceneView.needRedraw()
     override fun dispose() {
         //todo dispose all nested ComposeViewState
+        focusStack.popUntilNext(sceneView)
         sceneView.dispose()
         scene.close()
         // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
@@ -239,6 +240,15 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
                     }
                 }
             }
+        }
+    }
+
+    override fun display(focusable: Boolean) {
+        rootView.view.addSubview(sceneView)
+        setConstraintsToFillView(rootView.view)
+        updateLayout(this)
+        if (focusable) {
+            focusStack.push(sceneView)
         }
     }
 

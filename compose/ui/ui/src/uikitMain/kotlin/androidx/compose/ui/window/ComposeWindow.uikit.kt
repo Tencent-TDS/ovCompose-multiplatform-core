@@ -138,15 +138,6 @@ fun ComposeUIViewController(
         sceneViewState.needRedraw()
     }
 
-    override fun doBoilerplate(sceneViewState: SceneViewState<UIView>, focusable: Boolean) {
-        rootView.view.addSubview(sceneViewState.sceneView)
-        sceneViewState.setConstraintsToFillView(rootView.view)
-        updateLayout(sceneViewState)
-        if (focusable) {
-            focusStack.push(sceneViewState.sceneView)
-        }
-    }
-
     val keyboardVisibilityListener = KeyboardVisibilityListenerImpl(
         configuration = configuration,
         uiViewControllerProvider = { rootView },
@@ -160,7 +151,6 @@ fun ComposeUIViewController(
             content = content,
             createSceneViewState = ::createSceneViewState,
             updateLayout = ::updateLayout,
-            doBoilerplate = ::doBoilerplate,
             keyboardVisibilityListener = keyboardVisibilityListener,
             sceneStates = sceneStates,
             safeAreaState = safeAreaState,
@@ -178,7 +168,6 @@ internal class ComposeRootUIViewController(
     private val content: @Composable () -> Unit,
     private val createSceneViewState: () -> SceneViewState<UIView>,
     private val updateLayout: (sceneViewState: SceneViewState<UIView>) -> Unit,
-    private val doBoilerplate: (sceneViewState: SceneViewState<UIView>, focusable: Boolean) -> Unit,//todo
     private val keyboardVisibilityListener: KeyboardVisibilityListener,
     private val sceneStates: MutableList<SceneViewState<UIView>>,
     private val safeAreaState: MutableState<PlatformInsets>,
@@ -422,7 +411,7 @@ internal class ComposeRootUIViewController(
         }
         val sceneViewState = createSceneViewState()
         sceneViewState.setContentWithCompositionLocals(content)
-        doBoilerplate(sceneViewState, true)
+        sceneViewState.display(focusable = true)
         sceneStates.add(sceneViewState)
     }
 

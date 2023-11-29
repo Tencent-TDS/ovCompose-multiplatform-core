@@ -37,7 +37,6 @@ internal interface ComposeViewState<RootView, SceneView> { //TODO rename to Entr
     fun createSceneViewState(): SceneViewState<SceneView>
     fun updateContainerSize(size: IntSize)
     fun updateLayout(sceneViewState: SceneViewState<SceneView>)
-    fun doBoilerplate(sceneViewState: SceneViewState<SceneView>, focusable: Boolean)
     @Composable
     fun EntrypointCompositionLocals(content: @Composable () -> Unit)
 }
