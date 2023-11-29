@@ -25,8 +25,9 @@ enum class SystemTheme {
     Dark, Light, Unknown
 }
 
+@Suppress("RemoveExplicitTypeArguments")
 @InternalComposeApi
-val LocalSystemTheme = staticCompositionLocalOf {
+val LocalSystemTheme = staticCompositionLocalOf<SystemTheme> {
     currentSystemTheme.asComposeSystemTheme()
 }
 

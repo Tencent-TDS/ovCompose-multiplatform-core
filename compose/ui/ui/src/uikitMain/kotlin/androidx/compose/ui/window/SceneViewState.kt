@@ -18,10 +18,17 @@ package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
+import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.interop.LocalLayerContainer
+import androidx.compose.ui.interop.LocalUIKitInteropContext
+import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.interop.UIKitInteropContext
+import androidx.compose.ui.platform.LocalLayoutMargins
+import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.UIKitTextInputService
@@ -31,6 +38,8 @@ import androidx.compose.ui.scene.ComposeSceneLayer
 import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.text.input.PlatformTextInputService
+import androidx.compose.ui.uikit.LocalInterfaceOrientation
+import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
@@ -63,6 +72,7 @@ internal interface SceneViewState<V> {
 
     fun setConstraintsToCenterInView(parentView: V, size: CValue<CGSize>)
     fun setConstraintsToFillView(parentView: V)
+    fun setContentWithCompositionLocals(content: @Composable () -> Unit)
 }
 
 private val coroutineDispatcher = Dispatchers.Main
@@ -136,12 +146,7 @@ internal fun ComposeViewState<UIViewController, UIView>.createSingleLayerSceneUI
                             //  drawContainedDrawModifiers(canvas)
                             //  canvas.translate(-x, -y)
                             //  А размер канвы задавать в bounds set(value) {...
-                            setContentWithCompositionLocalProvider(
-                                scene,
-                                isReadyToShowContent,
-                                interopContext,
-                                content
-                            )
+                            setContentWithCompositionLocals(content)
                         }
 
                         override fun setKeyEventListener(
@@ -161,7 +166,7 @@ internal fun ComposeViewState<UIViewController, UIView>.createSingleLayerSceneUI
     }
 
 internal fun ComposeViewState<UIViewController, UIView>.createMultiLayerSceneUIViewState(): SceneViewState<UIView> {
-    return createStateWithSceneBuilder(::updateContainerSize, true) {
+    return createStateWithSceneBuilder(focusable = true) {
         MultiLayerComposeScene(
             coroutineContext = coroutineDispatcher,
             composeSceneContext = object : ComposeSceneContext {
@@ -174,7 +179,6 @@ internal fun ComposeViewState<UIViewController, UIView>.createMultiLayerSceneUIV
 }
 
 private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuilder(
-    updateContainerSize: (IntSize) -> Unit,
     focusable: Boolean,
     buildScene: SceneViewState<UIView>.() -> ComposeScene,
 ): SceneViewState<UIView> = object : SceneViewState<UIView> {
@@ -218,6 +222,26 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
             densityProvider = densityProvider,
         )
     }
+
+    @Composable
+    fun SceneCompositionLocal(content: @Composable () -> Unit) =
+        CompositionLocalProvider(
+            LocalUIKitInteropContext provides interopContext,
+            content = content
+        )
+
+    override fun setContentWithCompositionLocals(content: @Composable () -> Unit) {
+        scene.setContent {
+            if (isReadyToShowContent.value) { // TODO add link to issue with recomposition twice description
+                EntrypointCompositionLocals {
+                    SceneCompositionLocal {
+                        content()
+                    }
+                }
+            }
+        }
+    }
+
     val uiKitTextInputService: UIKitTextInputService by lazy {
         UIKitTextInputService(
             updateView = {
@@ -284,7 +308,7 @@ private fun ComposeViewState<UIViewController, UIView>.prepareSingleLayerCompose
     focusable: Boolean,
     coroutineContext: CoroutineContext,
     prepareComposeSceneContext: () -> ComposeSceneContext,
-): SceneViewState<UIView> = createStateWithSceneBuilder(::updateContainerSize, focusable) {
+): SceneViewState<UIView> = createStateWithSceneBuilder(focusable) {
     SingleLayerComposeScene(
         coroutineContext = coroutineContext,
         composeSceneContext = object :

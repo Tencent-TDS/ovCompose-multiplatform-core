@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,14 +64,36 @@ import platform.darwin.sel_registerName
 fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
     ComposeUIViewController(configure = {}, content = content)
 
+@OptIn(InternalComposeApi::class)
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
 ): UIViewController = object: ComposeViewState<UIViewController, UIView> {
 
-    override val sceneStates: MutableList<SceneViewState<UIView>> by lazy {
-        mutableListOf()
-    }
+    override val sceneStates: MutableList<SceneViewState<UIView>> = mutableListOf()
+    val safeAreaState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
+    val layoutMarginsState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
+    /*
+     * Initial value is arbitrarily chosen to avoid propagating invalid value logic
+     * It's never the case in real usage scenario to reflect that in type system
+     */
+    val interfaceOrientationState: MutableState<InterfaceOrientation> = mutableStateOf(
+        InterfaceOrientation.Portrait
+    )
+    val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
+
+    @Composable
+    override fun EntrypointCompositionLocals(content: @Composable () -> Unit) =
+        CompositionLocalProvider(
+            LocalUIViewController provides rootView,
+            LocalLayerContainer provides rootView.view,
+            LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
+            LocalSafeArea provides safeAreaState.value,
+            LocalLayoutMargins provides layoutMarginsState.value,
+            LocalInterfaceOrientation provides interfaceOrientationState.value,
+            LocalSystemTheme provides systemThemeState.value,
+            content = content
+        )
 
     override val densityProvider by lazy {
         DensityProviderImpl(
@@ -124,15 +147,6 @@ fun ComposeUIViewController(
         }
     }
 
-    override fun setContentWithCompositionLocalProvider(
-        scene: ComposeScene,
-        isReadyToShowContent: State<Boolean>,
-        interopContext: UIKitInteropContext,
-        content: @Composable () -> Unit
-    ) {
-        rootView.setContentWithCompositionLocalProvider(scene, isReadyToShowContent, interopContext, content)
-    }
-
     val keyboardVisibilityListener = KeyboardVisibilityListenerImpl(
         configuration = configuration,
         uiViewControllerProvider = { rootView },
@@ -149,6 +163,10 @@ fun ComposeUIViewController(
             doBoilerplate = ::doBoilerplate,
             keyboardVisibilityListener = keyboardVisibilityListener,
             sceneStates = sceneStates,
+            safeAreaState = safeAreaState,
+            layoutMarginsState = layoutMarginsState,
+            interfaceOrientationState = interfaceOrientationState,
+            systemThemeState = systemThemeState,
         )
     }
 }.rootView
@@ -156,30 +174,24 @@ fun ComposeUIViewController(
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
 internal class ComposeRootUIViewController(
-    val configuration: ComposeUIViewControllerConfiguration,
-    val content: @Composable () -> Unit,
-    val createSceneViewState: () -> SceneViewState<UIView>,
-    val updateLayout: (sceneViewState: SceneViewState<UIView>) -> Unit,
-    val doBoilerplate: (sceneViewState: SceneViewState<UIView>, focusable: Boolean) -> Unit,
-    val keyboardVisibilityListener: KeyboardVisibilityListener,
-    val sceneStates: MutableList<SceneViewState<UIView>>,
+    private val configuration: ComposeUIViewControllerConfiguration,
+    private val content: @Composable () -> Unit,
+    private val createSceneViewState: () -> SceneViewState<UIView>,
+    private val updateLayout: (sceneViewState: SceneViewState<UIView>) -> Unit,
+    private val doBoilerplate: (sceneViewState: SceneViewState<UIView>, focusable: Boolean) -> Unit,//todo
+    private val keyboardVisibilityListener: KeyboardVisibilityListener,
+    private val sceneStates: MutableList<SceneViewState<UIView>>,
+    private val safeAreaState: MutableState<PlatformInsets>,
+    private val layoutMarginsState: MutableState<PlatformInsets>,
+    private val interfaceOrientationState: MutableState<InterfaceOrientation>,
+    private val systemThemeState: MutableState<SystemTheme>,
 ) : UIViewController(nibName = null, bundle = null) {
 
     private var isInsideSwiftUI = false
-    private var safeArea by mutableStateOf(PlatformInsets())
-    private var layoutMargins by mutableStateOf(PlatformInsets())
 
-    /*
-     * Initial value is arbitrarily chosen to avoid propagating invalid value logic
-     * It's never the case in real usage scenario to reflect that in type system
-     */
-    private var interfaceOrientation by mutableStateOf(
-        InterfaceOrientation.Portrait
-    )
-
-    private val systemTheme = mutableStateOf(
-        traitCollection.userInterfaceStyle.asComposeSystemTheme()
-    )
+    init {
+        systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
+    }
 
     /*
      * On iOS >= 13.0 interfaceOrientation will be deduced from [UIWindowScene] of [UIWindow]
@@ -219,7 +231,7 @@ internal class ComposeRootUIViewController(
     fun viewSafeAreaInsetsDidChange() {
         // super.viewSafeAreaInsetsDidChange() // TODO: call super after Kotlin 1.8.20
         view.safeAreaInsets.useContents {
-            safeArea = PlatformInsets(
+            safeAreaState.value = PlatformInsets(
                 left = left.dp,
                 top = top.dp,
                 right = right.dp,
@@ -227,7 +239,7 @@ internal class ComposeRootUIViewController(
             )
         }
         view.directionalLayoutMargins.useContents {
-            layoutMargins = PlatformInsets(
+            layoutMarginsState.value = PlatformInsets(
                 left = leading.dp, // TODO: Check RTL support
                 top = top.dp,
                 right = trailing.dp, // TODO: Check RTL support
@@ -254,7 +266,7 @@ internal class ComposeRootUIViewController(
     override fun traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
 
-        systemTheme.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
+        systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
     }
 
     override fun viewWillLayoutSubviews() {
@@ -262,7 +274,7 @@ internal class ComposeRootUIViewController(
 
         // UIKit possesses all required info for layout at this point
         currentInterfaceOrientation?.let {
-            interfaceOrientation = it
+            interfaceOrientationState.value = it
         }
 
         sceneStates.forEach {
@@ -409,37 +421,11 @@ internal class ComposeRootUIViewController(
             return // already attached
         }
         val sceneViewState = createSceneViewState()
-        setContentWithCompositionLocalProvider(
-            sceneViewState.scene,
-            sceneViewState.isReadyToShowContent,
-            sceneViewState.interopContext,
-            content
-        )
+        sceneViewState.setContentWithCompositionLocals(content)
         doBoilerplate(sceneViewState, true)
         sceneStates.add(sceneViewState)
     }
 
-    fun setContentWithCompositionLocalProvider(
-        scene: ComposeScene,
-        isReadyToShowContent: State<Boolean>,
-        interopContext: UIKitInteropContext,
-        content: @Composable () -> Unit
-    ) {
-        scene.setContent {
-            if (!isReadyToShowContent.value) return@setContent // TODO add link to issue with recomposition twice
-            CompositionLocalProvider(
-                LocalLayerContainer provides this.view,
-                LocalUIViewController provides this,
-                LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
-                LocalSafeArea provides this.safeArea,
-                LocalLayoutMargins provides this.layoutMargins,
-                LocalInterfaceOrientation provides this.interfaceOrientation,
-                LocalSystemTheme provides this.systemTheme.value,
-                LocalUIKitInteropContext provides interopContext,
-                content = content
-            )
-        }
-    }
 }
 
 private fun UIViewController.checkIfInsideSwiftUI(): Boolean {
