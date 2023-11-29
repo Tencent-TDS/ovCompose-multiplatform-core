@@ -76,6 +76,7 @@ def addMavenRepositories(RepositoryHandler handler) {
                 includeModule("com.android.tools", "r8")
             }
         }
+        // TODO: remove wasm/experimental repo when we have all libs available in mavenCentral
         handler.maven {
             url("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
         }
