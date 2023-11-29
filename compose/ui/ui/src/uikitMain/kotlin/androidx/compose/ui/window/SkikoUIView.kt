@@ -68,10 +68,11 @@ internal enum class UITouchesEventPhase {
 
 @Suppress("CONFLICTING_OVERLOADS")//todo in all places redundant?
 internal class SkikoUIView(
-    val focusable: Boolean,
+    private val focusable: Boolean,
     private val keyboardEventHandler: KeyboardEventHandler,
-    val delegate: SkikoUIViewDelegate
+    private val delegate: SkikoUIViewDelegate,
 ) : UIView(frame = CGRectZero.readValue()) {
+
     companion object : UIViewMeta() {//todo redundant?
         override fun layerClass() = CAMetalLayer
     }
@@ -86,11 +87,11 @@ internal class SkikoUIView(
         _metalLayer,
         callbacks = object : MetalRedrawerCallbacks {
             override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
-                delegate?.render(canvas, targetTimestamp)
+                delegate.render(canvas, targetTimestamp)
             }
 
             override fun retrieveInteropTransaction(): UIKitInteropTransaction =
-                delegate?.retrieveInteropTransaction() ?: UIKitInteropTransaction.empty
+                delegate.retrieveInteropTransaction()
 
         }
     )
@@ -146,7 +147,7 @@ internal class SkikoUIView(
             _redrawer.maximumFramesPerSecond = it.maximumFramesPerSecond
         }
         if (window != null) {
-            delegate?.onAttachedToWindow()
+            delegate.onAttachedToWindow()
             _isReadyToShowContent.value = true
         }
     }
@@ -206,7 +207,7 @@ internal class SkikoUIView(
      * https://developer.apple.com/documentation/uikit/uiview/1622533-point
      */
     override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean =
-        delegate?.pointInside(point, withEvent) ?: super.pointInside(point, withEvent)
+        delegate.pointInside(point, withEvent) ?: super.pointInside(point, withEvent)
 
 
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
@@ -215,7 +216,7 @@ internal class SkikoUIView(
         _touchesCount += touches.size
 
         withEvent?.let { event ->
-            delegate?.onTouchesEvent(this, event, UITouchesEventPhase.BEGAN)
+            delegate.onTouchesEvent(this, event, UITouchesEventPhase.BEGAN)
         }
     }
 
@@ -225,7 +226,7 @@ internal class SkikoUIView(
         _touchesCount -= touches.size
 
         withEvent?.let { event ->
-            delegate?.onTouchesEvent(this, event, UITouchesEventPhase.ENDED)
+            delegate.onTouchesEvent(this, event, UITouchesEventPhase.ENDED)
         }
     }
 
@@ -233,7 +234,7 @@ internal class SkikoUIView(
         super.touchesMoved(touches, withEvent)
 
         withEvent?.let { event ->
-            delegate?.onTouchesEvent(this, event, UITouchesEventPhase.MOVED)
+            delegate.onTouchesEvent(this, event, UITouchesEventPhase.MOVED)
         }
     }
 
@@ -243,7 +244,7 @@ internal class SkikoUIView(
         _touchesCount -= touches.size
 
         withEvent?.let { event ->
-            delegate?.onTouchesEvent(this, event, UITouchesEventPhase.CANCELLED)
+            delegate.onTouchesEvent(this, event, UITouchesEventPhase.CANCELLED)
         }
     }
 
