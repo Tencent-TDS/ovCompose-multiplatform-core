@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +47,7 @@ import platform.CoreGraphics.CGSize
 import platform.QuartzCore.CATransaction
 import platform.UIKit.NSLayoutConstraint
 import platform.UIKit.UIView
+import platform.UIKit.UIViewController
 import platform.UIKit.reloadInputViews
 
 internal interface SceneViewState<V> {
@@ -65,7 +67,9 @@ internal interface SceneViewState<V> {
 
 private val coroutineDispatcher = Dispatchers.Main
 
-internal fun ComposeViewState<ComposeRootUIViewController, UIView>.createSingleLayerSceneUIViewState(): SceneViewState<UIView> =
+internal fun ComposeViewState<UIViewController, UIView>.createSingleLayerSceneUIViewState(
+    updateContainerSize: (IntSize) -> Unit,
+): SceneViewState<UIView> =
     prepareSingleLayerComposeScene(
         densityProvider = densityProvider,
         layoutDirection = LayoutDirection.Ltr, //TODO get from system
@@ -86,7 +90,7 @@ internal fun ComposeViewState<ComposeRootUIViewController, UIView>.createSingleL
                     compositionContext.effectCoroutineContext,
                     { this },
                 ).run {
-                    rootView.doBoilerplate(this, focusable)
+                    doBoilerplate(this, focusable)
                     sceneView.alpha = 0.5
 
                     object : ComposeSceneLayer {
@@ -132,7 +136,7 @@ internal fun ComposeViewState<ComposeRootUIViewController, UIView>.createSingleL
                             //  drawContainedDrawModifiers(canvas)
                             //  canvas.translate(-x, -y)
                             //  А размер канвы задавать в bounds set(value) {...
-                            rootView.setContentWithProvider(
+                            setContentWithProvider(
                                 scene,
                                 isReadyToShowContent,
                                 interopContext,
@@ -156,8 +160,8 @@ internal fun ComposeViewState<ComposeRootUIViewController, UIView>.createSingleL
         }
     }
 
-internal fun ComposeViewState<ComposeRootUIViewController, UIView>.createMultiLayerSceneUIViewState(): SceneViewState<UIView> {
-    return createStateWithSceneBuilder(true) {
+internal fun ComposeViewState<UIViewController, UIView>.createMultiLayerSceneUIViewState(): SceneViewState<UIView> {
+    return createStateWithSceneBuilder(::updateContainerSize, true) {
         MultiLayerComposeScene(
             coroutineContext = coroutineDispatcher,
             composeSceneContext = object : ComposeSceneContext {
@@ -169,9 +173,10 @@ internal fun ComposeViewState<ComposeRootUIViewController, UIView>.createMultiLa
     }
 }
 
-private fun ComposeViewState<ComposeRootUIViewController, UIView>.createStateWithSceneBuilder(
+private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuilder(
+    updateContainerSize: (IntSize) -> Unit,
     focusable: Boolean,
-    buildScene: SceneViewState<UIView>.() -> ComposeScene
+    buildScene: SceneViewState<UIView>.() -> ComposeScene,
 ): SceneViewState<UIView> = object : SceneViewState<UIView> {
     override val sceneView: SkikoUIView by lazy {
         SkikoUIView(
@@ -273,13 +278,13 @@ private fun ComposeViewState<ComposeRootUIViewController, UIView>.createStateWit
     }
 }
 
-private fun ComposeViewState<ComposeRootUIViewController, UIView>.prepareSingleLayerComposeScene(
+private fun ComposeViewState<UIViewController, UIView>.prepareSingleLayerComposeScene(
     densityProvider: () -> Density,
     layoutDirection: LayoutDirection,
     focusable: Boolean,
     coroutineContext: CoroutineContext,
     prepareComposeSceneContext: () -> ComposeSceneContext,
-): SceneViewState<UIView> = createStateWithSceneBuilder(focusable) {
+): SceneViewState<UIView> = createStateWithSceneBuilder(::updateContainerSize, focusable) {
     SingleLayerComposeScene(
         coroutineContext = coroutineContext,
         composeSceneContext = object :

@@ -87,7 +87,7 @@ fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController = object: ComposeViewState<ComposeRootUIViewController, UIView> {
+): UIViewController = object: ComposeViewState<UIViewController, UIView> {
     override val densityProvider = {
         val contentSizeCategory =
             rootView.traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
@@ -103,7 +103,7 @@ fun ComposeUIViewController(
     @OptIn(ExperimentalComposeApi::class)
     override fun createSceneViewState(): SceneViewState<UIView> =
         if (configuration.singleLayerComposeScene) {
-            createSingleLayerSceneUIViewState()
+            createSingleLayerSceneUIViewState(updateContainerSize = ::updateContainerSize)
         } else {
             createMultiLayerSceneUIViewState()
         }
@@ -113,14 +113,48 @@ fun ComposeUIViewController(
     override val windowInfo = WindowInfoImpl().apply {
         isWindowFocused = true
     }
+    override fun updateContainerSize(size: IntSize) {
+        windowInfo.containerSize = size
+    }
+    override fun updateLayout(sceneViewState: SceneViewState<UIView>) {
+        val scale = densityProvider().density
+        val size = rootView.view.frame.useContents {
+            IntSize(
+                width = (size.width * scale).roundToInt(),
+                height = (size.height * scale).roundToInt()
+            )
+        }
+        updateContainerSize(size)
+        sceneViewState.scene.density = densityProvider()
+        sceneViewState.scene.size = size
+
+        sceneViewState.needRedraw()
+    }
+    override fun doBoilerplate(sceneViewState: SceneViewState<UIView>, focusable: Boolean) {
+        rootView.view.addSubview(sceneViewState.sceneView)
+        sceneViewState.setConstraintsToFillView(rootView.view)
+        updateLayout(sceneViewState)
+        if (focusable) {
+            focusStack.push(sceneViewState.sceneView)
+        }
+    }
+
+    override fun setContentWithProvider(
+        scene: ComposeScene,
+        isReadyToShowContent: State<Boolean>,
+        interopContext: UIKitInteropContext,
+        content: @Composable () -> Unit
+    ) {
+        rootView.setContentWithProvider(scene, isReadyToShowContent, interopContext, content)
+    }
     override val rootView: ComposeRootUIViewController by lazy {//todo UIViewController
         ComposeRootUIViewController(
             configuration = configuration,
             content = content,
             densityProvider = densityProvider,
-            focusStack = focusStack,
             createSceneViewState = ::createSceneViewState,
-            updateContainerSize = { windowInfo.containerSize = it }
+            updateLayout = ::updateLayout,
+            doBoilerplate = ::doBoilerplate,
         )
     }
 }.rootView
@@ -131,19 +165,10 @@ internal class ComposeRootUIViewController(
     val configuration: ComposeUIViewControllerConfiguration,
     val content: @Composable () -> Unit,
     val densityProvider: () -> Density,
-    val focusStack: FocusStack,
     val createSceneViewState: () -> SceneViewState<UIView>,
-    val updateContainerSize: (IntSize) -> Unit,
+    val updateLayout:(sceneViewState: SceneViewState<UIView>)->Unit,
+    val doBoilerplate:(sceneViewState: SceneViewState<UIView>, focusable: Boolean)->Unit,
 ) : UIViewController(nibName = null, bundle = null) {
-
-    fun doBoilerplate(sceneViewState: SceneViewState<UIView>, focusable: Boolean) {
-        view.addSubview(sceneViewState.sceneView)
-        sceneViewState.setConstraintsToFillView(view)
-        updateLayout(sceneViewState)
-        if (focusable) {
-            focusStack.push(sceneViewState.sceneView)
-        }
-    }
 
     private var keyboardOverlapHeight by mutableStateOf(0f)
     private var isInsideSwiftUI = false
@@ -396,21 +421,6 @@ internal class ComposeRootUIViewController(
         }
     }
 
-    private fun updateLayout(sceneViewState: SceneViewState<UIView>) {
-        val scale = densityProvider().density
-        val size = view.frame.useContents {
-            IntSize(
-                width = (size.width * scale).roundToInt(),
-                height = (size.height * scale).roundToInt()
-            )
-        }
-        updateContainerSize(size)
-        sceneViewState.scene.density = densityProvider()
-        sceneViewState.scene.size = size
-
-        sceneViewState.needRedraw()
-    }
-
     override fun viewWillTransitionToSize(
         size: CValue<CGSize>,
         withTransitionCoordinator: UIViewControllerTransitionCoordinatorProtocol
@@ -561,7 +571,7 @@ internal class ComposeRootUIViewController(
         content: @Composable () -> Unit
     ) {
         scene.setContent {
-            if (!isReadyToShowContent.value) return@setContent
+            if (!isReadyToShowContent.value) return@setContent // TODO add link to issue with recomposition twice
             CompositionLocalProvider(
                 LocalLayerContainer provides this.view,
                 LocalUIViewController provides this,

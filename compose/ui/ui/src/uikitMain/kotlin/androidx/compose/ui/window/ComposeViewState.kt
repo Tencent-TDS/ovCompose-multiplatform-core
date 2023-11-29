@@ -16,16 +16,31 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
+import platform.UIKit.UIView
+import platform.UIKit.UIViewController
 
 internal interface ComposeViewState<RootView, SceneView> {
+    val rootView: RootView
     val densityProvider: () -> Density
     val focusStack: FocusStack
-    fun createSceneViewState(): SceneViewState<SceneView>
     val configuration: ComposeUIViewControllerConfiguration
-    val windowInfo: WindowInfo
-    val rootView: RootView
+    val windowInfo: WindowInfo//todo maybe we need windowInfo on each scene
+    fun createSceneViewState(): SceneViewState<SceneView>
+    fun updateContainerSize(size: IntSize)
+    fun updateLayout(sceneViewState: SceneViewState<SceneView>)
+    fun doBoilerplate(sceneViewState: SceneViewState<SceneView>, focusable: Boolean)
+    fun setContentWithProvider(
+        scene: ComposeScene,
+        isReadyToShowContent: State<Boolean>,
+        interopContext: UIKitInteropContext,
+        content: @Composable () -> Unit
+    )
 }
-
