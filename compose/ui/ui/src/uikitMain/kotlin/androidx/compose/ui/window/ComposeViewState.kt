@@ -38,7 +38,7 @@ internal interface ComposeViewState<RootView, SceneView> {
     fun updateContainerSize(size: IntSize)
     fun updateLayout(sceneViewState: SceneViewState<SceneView>)
     fun doBoilerplate(sceneViewState: SceneViewState<SceneView>, focusable: Boolean)
-    fun setContentWithProvider(
+    fun setContentWithCompositionLocalProvider(
         scene: ComposeScene,
         isReadyToShowContent: State<Boolean>,
         interopContext: UIKitInteropContext,

@@ -136,7 +136,7 @@ internal fun ComposeViewState<UIViewController, UIView>.createSingleLayerSceneUI
                             //  drawContainedDrawModifiers(canvas)
                             //  canvas.translate(-x, -y)
                             //  А размер канвы задавать в bounds set(value) {...
-                            setContentWithProvider(
+                            setContentWithCompositionLocalProvider(
                                 scene,
                                 isReadyToShowContent,
                                 interopContext,

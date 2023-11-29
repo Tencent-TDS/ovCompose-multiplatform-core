@@ -124,13 +124,13 @@ fun ComposeUIViewController(
         }
     }
 
-    override fun setContentWithProvider(
+    override fun setContentWithCompositionLocalProvider(
         scene: ComposeScene,
         isReadyToShowContent: State<Boolean>,
         interopContext: UIKitInteropContext,
         content: @Composable () -> Unit
     ) {
-        rootView.setContentWithProvider(scene, isReadyToShowContent, interopContext, content)
+        rootView.setContentWithCompositionLocalProvider(scene, isReadyToShowContent, interopContext, content)
     }
 
     val keyboardVisibilityListener = KeyboardVisibilityListenerImpl(
@@ -409,7 +409,7 @@ internal class ComposeRootUIViewController(
             return // already attached
         }
         val sceneViewState = createSceneViewState()
-        setContentWithProvider(
+        setContentWithCompositionLocalProvider(
             sceneViewState.scene,
             sceneViewState.isReadyToShowContent,
             sceneViewState.interopContext,
@@ -419,7 +419,7 @@ internal class ComposeRootUIViewController(
         sceneStates.add(sceneViewState)
     }
 
-    fun setContentWithProvider(
+    fun setContentWithCompositionLocalProvider(
         scene: ComposeScene,
         isReadyToShowContent: State<Boolean>,
         interopContext: UIKitInteropContext,
