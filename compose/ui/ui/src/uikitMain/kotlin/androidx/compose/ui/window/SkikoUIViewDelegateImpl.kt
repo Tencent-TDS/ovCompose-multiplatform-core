@@ -42,7 +42,7 @@ import platform.UIKit.UIView
 internal class SkikoUIViewDelegateImpl(
     val sceneProvider: () -> ComposeScene,
     val interopContext: UIKitInteropContext,
-    val densityProvider: () -> Density
+    val densityProvider: DensityProvider,
 ) : SkikoUIViewDelegate {
     val scene get() = sceneProvider()
     val density get() = densityProvider()

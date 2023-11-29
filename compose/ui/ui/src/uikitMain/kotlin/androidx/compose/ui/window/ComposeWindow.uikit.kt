@@ -60,27 +60,6 @@ import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 import platform.darwin.sel_registerName
 
-private val uiContentSizeCategoryToFontScaleMap = mapOf(
-    UIContentSizeCategoryExtraSmall to 0.8f,
-    UIContentSizeCategorySmall to 0.85f,
-    UIContentSizeCategoryMedium to 0.9f,
-    UIContentSizeCategoryLarge to 1f, // default preference
-    UIContentSizeCategoryExtraLarge to 1.1f,
-    UIContentSizeCategoryExtraExtraLarge to 1.2f,
-    UIContentSizeCategoryExtraExtraExtraLarge to 1.3f,
-
-    // These values don't work well if they match scale shown by
-    // Text Size control hint, because iOS uses non-linear scaling
-    // calculated by UIFontMetrics, while Compose uses linear.
-    UIContentSizeCategoryAccessibilityMedium to 1.4f, // 160% native
-    UIContentSizeCategoryAccessibilityLarge to 1.5f, // 190% native
-    UIContentSizeCategoryAccessibilityExtraLarge to 1.6f, // 235% native
-    UIContentSizeCategoryAccessibilityExtraExtraLarge to 1.7f, // 275% native
-    UIContentSizeCategoryAccessibilityExtraExtraExtraLarge to 1.8f, // 310% native
-
-    // UIContentSizeCategoryUnspecified
-)
-
 fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
     ComposeUIViewController(configure = {}, content = content)
 
@@ -88,16 +67,9 @@ fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
 ): UIViewController = object: ComposeViewState<UIViewController, UIView> {
-    override val densityProvider = {
-        val contentSizeCategory =
-            rootView.traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
-
-        val fontScale: Float = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
-        Density(
-            rootView.rootSceneViewState?.sceneView?.contentScaleFactor?.toFloat() ?: 1f,
-            fontScale
-        )
-    }
+    override val densityProvider = DensityProviderImpl(
+        rootViewProvider = { rootView }
+    )
     override val focusStack: FocusStack = FocusStackImpl()
 
     @OptIn(ExperimentalComposeApi::class)
@@ -107,15 +79,18 @@ fun ComposeUIViewController(
         } else {
             createMultiLayerSceneUIViewState()
         }
+
     override val configuration by lazy {
         ComposeUIViewControllerConfiguration().apply(configure)
     }
     override val windowInfo = WindowInfoImpl().apply {
         isWindowFocused = true
     }
+
     override fun updateContainerSize(size: IntSize) {
         windowInfo.containerSize = size
     }
+
     override fun updateLayout(sceneViewState: SceneViewState<UIView>) {
         val scale = densityProvider().density
         val size = rootView.view.frame.useContents {
@@ -130,6 +105,7 @@ fun ComposeUIViewController(
 
         sceneViewState.needRedraw()
     }
+
     override fun doBoilerplate(sceneViewState: SceneViewState<UIView>, focusable: Boolean) {
         rootView.view.addSubview(sceneViewState.sceneView)
         sceneViewState.setConstraintsToFillView(rootView.view)
@@ -147,7 +123,8 @@ fun ComposeUIViewController(
     ) {
         rootView.setContentWithProvider(scene, isReadyToShowContent, interopContext, content)
     }
-    override val rootView: ComposeRootUIViewController by lazy {//todo UIViewController
+
+    override val rootView: ComposeRootUIViewController by lazy {
         ComposeRootUIViewController(
             configuration = configuration,
             content = content,
@@ -164,10 +141,10 @@ fun ComposeUIViewController(
 internal class ComposeRootUIViewController(
     val configuration: ComposeUIViewControllerConfiguration,
     val content: @Composable () -> Unit,
-    val densityProvider: () -> Density,
+    val densityProvider: DensityProvider,
     val createSceneViewState: () -> SceneViewState<UIView>,
-    val updateLayout:(sceneViewState: SceneViewState<UIView>)->Unit,
-    val doBoilerplate:(sceneViewState: SceneViewState<UIView>, focusable: Boolean)->Unit,
+    val updateLayout: (sceneViewState: SceneViewState<UIView>) -> Unit,
+    val doBoilerplate: (sceneViewState: SceneViewState<UIView>, focusable: Boolean) -> Unit,
 ) : UIViewController(nibName = null, bundle = null) {
 
     private var keyboardOverlapHeight by mutableStateOf(0f)

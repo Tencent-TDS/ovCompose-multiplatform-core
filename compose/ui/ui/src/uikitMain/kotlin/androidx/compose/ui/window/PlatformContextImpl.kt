@@ -31,7 +31,7 @@ internal class PlatformContextImpl(
     inputServices: PlatformTextInputService,
     override val textToolbar: TextToolbar,
     override val windowInfo: WindowInfo,
-    densityProvider: () -> Density,
+    densityProvider: DensityProvider,
 ) : PlatformContext by PlatformContext.Empty {
     override val textInputService: PlatformTextInputService = inputServices
     override val viewConfiguration = object : ViewConfiguration by EmptyViewConfiguration {

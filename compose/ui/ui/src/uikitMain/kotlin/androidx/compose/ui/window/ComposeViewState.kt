@@ -29,7 +29,7 @@ import platform.UIKit.UIViewController
 
 internal interface ComposeViewState<RootView, SceneView> {
     val rootView: RootView
-    val densityProvider: () -> Density
+    val densityProvider: DensityProvider
     val focusStack: FocusStack
     val configuration: ComposeUIViewControllerConfiguration
     val windowInfo: WindowInfo//todo maybe we need windowInfo on each scene

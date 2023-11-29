@@ -21,6 +21,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.window.DensityProvider
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.KeyboardEventHandler
@@ -34,7 +35,7 @@ import platform.UIKit.*
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
     private val rootViewProvider: ()->UIView,
-    private val densityProvider: () -> Density,
+    private val densityProvider: DensityProvider,
     private val focusStack: FocusStack,
     private val keyboardEventHandler: KeyboardEventHandler,
 ) : PlatformTextInputService, TextToolbar {

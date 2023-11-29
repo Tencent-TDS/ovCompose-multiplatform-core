@@ -279,7 +279,7 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
 }
 
 private fun ComposeViewState<UIViewController, UIView>.prepareSingleLayerComposeScene(
-    densityProvider: () -> Density,
+    densityProvider: DensityProvider,
     layoutDirection: LayoutDirection,
     focusable: Boolean,
     coroutineContext: CoroutineContext,
