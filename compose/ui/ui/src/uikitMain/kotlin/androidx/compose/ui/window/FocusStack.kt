@@ -22,29 +22,30 @@ import platform.UIKit.UIView
 /**
  * Stack to remember previously focused UIView.
  */
-interface FocusStack {
+interface FocusStack<V> {
 
     /**
-     * Add new UIView and focus on it.
+     * Add new view to stack and focus on it.
      */
-    fun push(view: UIView)
+    fun pushAndFocus(view: V)
 
     /**
      * Pop all elements until some element. Also pop this element too.
+     * Last remaining element in Stack will be focused.
      */
-    fun popUntilNext(view: UIView)
+    fun popUntilNext(view: V)
 
     /**
-     * Return first added element or null
+     * Return first added view or null
      */
-    fun first(): UIView?
+    fun first(): V?
 }
 
-internal class FocusStackImpl : FocusStack {
+internal class FocusStackImpl : FocusStack<UIView> {
 
     private var list = emptyList<UIView>()
 
-    override fun push(view: UIView) {
+    override fun pushAndFocus(view: UIView) {
         list += view
         view.becomeFirstResponder()
     }

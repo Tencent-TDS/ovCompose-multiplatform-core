@@ -195,8 +195,9 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
 
     override fun needRedraw() = sceneView.needRedraw()
     override fun dispose() {
-        //todo dispose all nested ComposeViewState
-        focusStack.popUntilNext(sceneView)
+        if (focusable) {
+            focusStack.popUntilNext(sceneView)
+        }
         sceneView.dispose()
         scene.close()
         // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
@@ -248,7 +249,7 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
         setConstraintsToFillView(rootView.view)
         updateLayout(this)
         if (focusable) {
-            focusStack.push(sceneView)
+            focusStack.pushAndFocus(sceneView)
         }
     }
 

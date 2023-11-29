@@ -82,6 +82,8 @@ fun ComposeUIViewController(
     )
     val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
 
+    override val focusStack: FocusStack<UIView> = FocusStackImpl()
+
     @Composable
     override fun EntrypointCompositionLocals(content: @Composable () -> Unit) =
         CompositionLocalProvider(
@@ -101,8 +103,6 @@ fun ComposeUIViewController(
             sceneStates = sceneStates,
         )
     }
-
-    override val focusStack: FocusStack = FocusStackImpl()
 
     @OptIn(ExperimentalComposeApi::class)
     override fun createSceneViewState(): SceneViewState<UIView> =

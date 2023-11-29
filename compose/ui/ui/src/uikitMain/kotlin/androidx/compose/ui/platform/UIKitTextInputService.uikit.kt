@@ -34,9 +34,9 @@ import platform.UIKit.*
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
-    private val rootViewProvider: ()->UIView,
+    private val rootViewProvider: () -> UIView,
     private val densityProvider: DensityProvider,
-    private val focusStack: FocusStack,
+    private val focusStack: FocusStack<UIView>,
     private val keyboardEventHandler: KeyboardEventHandler,
 ) : PlatformTextInputService, TextToolbar {
 
@@ -426,7 +426,7 @@ internal class UIKitTextInputService(
 
     override fun showSoftwareKeyboard() {
         _textUIView?.let {
-            focusStack.push(it)
+            focusStack.pushAndFocus(it)
         }
     }
 

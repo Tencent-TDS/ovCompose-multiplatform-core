@@ -30,7 +30,7 @@ import platform.UIKit.UIViewController
 internal interface ComposeViewState<RootView, SceneView> { //TODO rename to Entrypoint or ViewController
     val rootView: RootView
     val densityProvider: DensityProvider
-    val focusStack: FocusStack
+    val focusStack: FocusStack<UIView>
     val configuration: ComposeUIViewControllerConfiguration
     val windowInfo: WindowInfo //TODO maybe we need windowInfo on each scene
     val sceneStates:List<SceneViewState<SceneView>>
