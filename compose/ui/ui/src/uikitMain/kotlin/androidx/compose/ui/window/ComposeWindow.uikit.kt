@@ -124,6 +124,13 @@ fun ComposeUIViewController(
         rootView.setContentWithProvider(scene, isReadyToShowContent, interopContext, content)
     }
 
+    val keyboardVisibilityListener = KeyboardVisibilityListenerImpl(
+        configuration = configuration,
+        uiViewControllerProvider = { rootView },
+        rootSceneViewStateProvider = { rootView.rootSceneViewState },
+        densityProvider = densityProvider,
+    )
+
     override val rootView: ComposeRootUIViewController by lazy {
         ComposeRootUIViewController(
             configuration = configuration,
@@ -132,6 +139,7 @@ fun ComposeUIViewController(
             createSceneViewState = ::createSceneViewState,
             updateLayout = ::updateLayout,
             doBoilerplate = ::doBoilerplate,
+            keyboardVisibilityListener = keyboardVisibilityListener,
         )
     }
 }.rootView
@@ -145,20 +153,12 @@ internal class ComposeRootUIViewController(
     val createSceneViewState: () -> SceneViewState<UIView>,
     val updateLayout: (sceneViewState: SceneViewState<UIView>) -> Unit,
     val doBoilerplate: (sceneViewState: SceneViewState<UIView>, focusable: Boolean) -> Unit,
+    val keyboardVisibilityListener: KeyboardVisibilityListener,
 ) : UIViewController(nibName = null, bundle = null) {
 
-    private var keyboardOverlapHeight by mutableStateOf(0f)
     private var isInsideSwiftUI = false
     private var safeArea by mutableStateOf(PlatformInsets())
     private var layoutMargins by mutableStateOf(PlatformInsets())
-
-    //invisible view to track system keyboard animation
-    private val keyboardAnimationView: UIView by lazy {
-        UIView(CGRectMake(0.0, 0.0, 0.0, 0.0)).apply {
-            hidden = true
-        }
-    }
-    private var keyboardAnimationListener: CADisplayLink? = null
 
     /*
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
@@ -193,152 +193,17 @@ internal class ComposeRootUIViewController(
 
     var rootSceneViewState: SceneViewState<UIView>? = null
 
-    private val keyboardVisibilityListener = object : NSObject() {
+    private val nativeKeyboardVisibilityListener = object : NSObject() {
         @Suppress("unused")
         @ObjCAction
         fun keyboardWillShow(arg: NSNotification) {
-            animateKeyboard(arg, true)
-
-            val scene = rootSceneViewState?.scene ?: return
-            val userInfo = arg.userInfo ?: return
-            val keyboardInfo = userInfo[UIKeyboardFrameEndUserInfoKey] as NSValue
-            val keyboardHeight = keyboardInfo.CGRectValue().useContents { size.height }
-            if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
-                val focusedRect = scene.focusManager.getFocusRect()?.toDpRect(densityProvider())
-
-                if (focusedRect != null) {
-                    updateViewBounds(
-                        offsetY = calcFocusedLiftingY(focusedRect, keyboardHeight)
-                    )
-                }
-            }
+            keyboardVisibilityListener.keyboardWillShow(arg)
         }
 
         @Suppress("unused")
         @ObjCAction
         fun keyboardWillHide(arg: NSNotification) {
-            animateKeyboard(arg, false)
-
-            if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
-                updateViewBounds(offsetY = 0.0)
-            }
-        }
-
-        private fun animateKeyboard(arg: NSNotification, isShow: Boolean) {
-            val userInfo = arg.userInfo!!
-
-            //return actual keyboard height during animation
-            fun getCurrentKeyboardHeight(): CGFloat {
-                val layer = keyboardAnimationView.layer.presentationLayer() ?: return 0.0
-                return layer.frame.useContents { origin.y }
-            }
-
-            //attach to root view if needed
-            if (keyboardAnimationView.superview == null) {
-                this@ComposeRootUIViewController.view.addSubview(keyboardAnimationView)
-            }
-
-            //cancel previous animation
-            keyboardAnimationView.layer.removeAllAnimations()
-            keyboardAnimationListener?.invalidate()
-
-            //synchronize actual keyboard height with keyboardAnimationView without animation
-            val current = getCurrentKeyboardHeight()
-            CATransaction.begin()
-            CATransaction.setValue(true, kCATransactionDisableActions)
-            keyboardAnimationView.setFrame(CGRectMake(0.0, current, 0.0, 0.0))
-            CATransaction.commit()
-
-            //animation listener
-            keyboardAnimationListener = CADisplayLink.displayLinkWithTarget(
-                target = object : NSObject() {
-                    val bottomIndent: CGFloat
-
-                    init {
-                        val screenHeight = UIScreen.mainScreen.bounds.useContents { size.height }
-                        val composeViewBottomY = UIScreen.mainScreen.coordinateSpace.convertPoint(
-                            point = CGPointMake(0.0, view.frame.useContents { size.height }),
-                            fromCoordinateSpace = view.coordinateSpace
-                        ).useContents { y }
-                        bottomIndent = screenHeight - composeViewBottomY
-                    }
-
-                    @Suppress("unused")
-                    @ObjCAction
-                    fun animationDidUpdate() {
-                        val currentHeight = getCurrentKeyboardHeight()
-                        if (bottomIndent < currentHeight) {
-                            keyboardOverlapHeight = (currentHeight - bottomIndent).toFloat()
-                        }
-                    }
-                },
-                selector = sel_registerName("animationDidUpdate")
-            ).apply {
-                addToRunLoop(NSRunLoop.mainRunLoop(), NSDefaultRunLoopMode)
-            }
-
-            //start system animation with duration
-            val duration = userInfo[UIKeyboardAnimationDurationUserInfoKey] as? Double ?: 0.0
-            val toValue: CGFloat = if (isShow) {
-                val keyboardInfo = userInfo[UIKeyboardFrameEndUserInfoKey] as NSValue
-                keyboardInfo.CGRectValue().useContents { size.height }
-            } else {
-                0.0
-            }
-            UIView.animateWithDuration(
-                duration = duration,
-                animations = {
-                    //set final destination for animation
-                    keyboardAnimationView.setFrame(CGRectMake(0.0, toValue, 0.0, 0.0))
-                },
-                completion = { isFinished ->
-                    if (isFinished) {
-                        keyboardAnimationListener?.invalidate()
-                        keyboardAnimationListener = null
-                        keyboardAnimationView.removeFromSuperview()
-                    } else {
-                        //animation was canceled by other animation
-                    }
-                }
-            )
-        }
-
-        private fun calcFocusedLiftingY(focusedRect: DpRect, keyboardHeight: Double): Double {
-            val viewHeight = rootSceneViewState?.sceneView?.frame?.useContents {
-                size.height
-            } ?: 0.0
-
-            val hiddenPartOfFocusedElement: Double =
-                keyboardHeight - viewHeight + focusedRect.bottom.value
-            return if (hiddenPartOfFocusedElement > 0) {
-                // If focused element is partially hidden by the keyboard, we need to lift it upper
-                val focusedTopY = focusedRect.top.value
-                val isFocusedElementRemainsVisible = hiddenPartOfFocusedElement < focusedTopY
-                if (isFocusedElementRemainsVisible) {
-                    // We need to lift focused element to be fully visible
-                    hiddenPartOfFocusedElement
-                } else {
-                    // In this case focused element height is bigger than remain part of the screen after showing the keyboard.
-                    // Top edge of focused element should be visible. Same logic on Android.
-                    maxOf(focusedTopY, 0f).toDouble()
-                }
-            } else {
-                // Focused element is not hidden by the keyboard.
-                0.0
-            }
-        }
-
-        private fun updateViewBounds(offsetX: Double = 0.0, offsetY: Double = 0.0) {
-            view.layer.setBounds(
-                view.frame.useContents {
-                    CGRectMake(
-                        x = offsetX,
-                        y = offsetY,
-                        width = size.width,
-                        height = size.height
-                    )
-                }
-            )
+            keyboardVisibilityListener.keyboardWillHide(arg)
         }
     }
 
@@ -473,14 +338,14 @@ internal class ComposeRootUIViewController(
         super.viewDidAppear(animated)
 
         NSNotificationCenter.defaultCenter.addObserver(
-            observer = keyboardVisibilityListener,
-            selector = NSSelectorFromString(keyboardVisibilityListener::keyboardWillShow.name + ":"),
+            observer = nativeKeyboardVisibilityListener,
+            selector = NSSelectorFromString(nativeKeyboardVisibilityListener::keyboardWillShow.name + ":"),
             name = UIKeyboardWillShowNotification,
             `object` = null
         )
         NSNotificationCenter.defaultCenter.addObserver(
-            observer = keyboardVisibilityListener,
-            selector = NSSelectorFromString(keyboardVisibilityListener::keyboardWillHide.name + ":"),
+            observer = nativeKeyboardVisibilityListener,
+            selector = NSSelectorFromString(nativeKeyboardVisibilityListener::keyboardWillHide.name + ":"),
             name = UIKeyboardWillHideNotification,
             `object` = null
         )
@@ -494,12 +359,12 @@ internal class ComposeRootUIViewController(
         super.viewWillDisappear(animated)
 
         NSNotificationCenter.defaultCenter.removeObserver(
-            observer = keyboardVisibilityListener,
+            observer = nativeKeyboardVisibilityListener,
             name = UIKeyboardWillShowNotification,
             `object` = null
         )
         NSNotificationCenter.defaultCenter.removeObserver(
-            observer = keyboardVisibilityListener,
+            observer = nativeKeyboardVisibilityListener,
             name = UIKeyboardWillHideNotification,
             `object` = null
         )
@@ -552,7 +417,7 @@ internal class ComposeRootUIViewController(
             CompositionLocalProvider(
                 LocalLayerContainer provides this.view,
                 LocalUIViewController provides this,
-                LocalKeyboardOverlapHeight provides this.keyboardOverlapHeight,
+                LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
                 LocalSafeArea provides this.safeArea,
                 LocalLayoutMargins provides this.layoutMargins,
                 LocalInterfaceOrientation provides this.interfaceOrientation,

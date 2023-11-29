@@ -59,7 +59,7 @@ internal class SkikoUIViewDelegateImpl(
         }
 
     override fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase) {
-        val density = density.density
+        val density: Float = density.density
 
         scene.sendPointerEvent(
             eventType = phase.toPointerEventType(),
@@ -142,4 +142,3 @@ private fun UITouch.offsetInView(view: UIView, density: Float): Offset =
     locationInView(view).useContents {
         Offset(x.toFloat() * density, y.toFloat() * density)
     }
-
