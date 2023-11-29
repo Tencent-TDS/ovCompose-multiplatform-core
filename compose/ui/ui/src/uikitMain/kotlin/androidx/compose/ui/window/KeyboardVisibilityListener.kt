@@ -53,12 +53,11 @@ internal interface KeyboardVisibilityListener {
 internal class KeyboardVisibilityListenerImpl(
     val configuration: ComposeUIViewControllerConfiguration,
     val uiViewControllerProvider: () -> UIViewController,
-    val rootSceneViewStateProvider: () -> SceneViewState<UIView>?,//TODO pass list of all scenes, or last shown focusable scene only
+    val sceneStates: List<SceneViewState<UIView>>,
     val densityProvider: DensityProvider,
 ) : KeyboardVisibilityListener {
 
     override val keyboardOverlapHeightState: MutableState<Float> get() = mutableStateOf(0f)
-    private val rootSceneViewState get() = rootSceneViewStateProvider()
     private val view get() = uiViewControllerProvider().view
     private val uiViewController get() = uiViewControllerProvider()
 
@@ -73,7 +72,8 @@ internal class KeyboardVisibilityListenerImpl(
     override fun keyboardWillShow(arg: NSNotification) {
         animateKeyboard(arg, true)
 
-        val scene = rootSceneViewState?.scene ?: return
+        val sceneViewState = sceneStates.firstOrNull() ?: return // todo iterate on all scenes
+        val scene = sceneViewState.scene
         val userInfo = arg.userInfo ?: return
         val keyboardInfo = userInfo[UIKeyboardFrameEndUserInfoKey] as NSValue
         val keyboardHeight = keyboardInfo.CGRectValue().useContents { size.height }
@@ -82,7 +82,7 @@ internal class KeyboardVisibilityListenerImpl(
 
             if (focusedRect != null) {
                 updateViewBounds(
-                    offsetY = calcFocusedLiftingY(focusedRect, keyboardHeight)
+                    offsetY = calcFocusedLiftingY(sceneViewState, focusedRect, keyboardHeight)
                 )
             }
         }
@@ -175,10 +175,10 @@ internal class KeyboardVisibilityListenerImpl(
         )
     }
 
-    private fun calcFocusedLiftingY(focusedRect: DpRect, keyboardHeight: Double): Double {
-        val viewHeight = rootSceneViewState?.sceneView?.frame?.useContents {
+    private fun calcFocusedLiftingY(sceneState: SceneViewState<UIView>, focusedRect: DpRect, keyboardHeight: Double): Double {
+        val viewHeight = sceneState.sceneView.frame.useContents {
             size.height
-        } ?: 0.0
+        }
 
         val hiddenPartOfFocusedElement: Double =
             keyboardHeight - viewHeight + focusedRect.bottom.value

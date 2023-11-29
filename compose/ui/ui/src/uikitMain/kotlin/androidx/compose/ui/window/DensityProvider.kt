@@ -30,6 +30,7 @@ import platform.UIKit.UIContentSizeCategoryLarge
 import platform.UIKit.UIContentSizeCategoryMedium
 import platform.UIKit.UIContentSizeCategorySmall
 import platform.UIKit.UIContentSizeCategoryUnspecified
+import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
 internal interface DensityProvider {
@@ -37,15 +38,20 @@ internal interface DensityProvider {
     operator fun invoke() = density
 }
 
-internal class DensityProviderImpl(val rootViewProvider:()->ComposeRootUIViewController): DensityProvider {
+internal class DensityProviderImpl(
+    val uiViewControllerProvider: () -> UIViewController,
+    val sceneStates: List<SceneViewState<UIView>>,
+): DensityProvider {
+
+    val uiViewController get() = uiViewControllerProvider()
+
     override val density: Density get() {
-        val rootView = rootViewProvider()
         val contentSizeCategory =
-            rootView.traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
+            uiViewController.traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
         val fontScale: Float = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
 
         return Density(
-            rootView.rootSceneViewState?.sceneView?.contentScaleFactor?.toFloat() ?: 1.0f,
+            sceneStates.firstOrNull()?.sceneView?.contentScaleFactor?.toFloat() ?: 1.0f,
             fontScale
         )
     }

@@ -33,6 +33,7 @@ internal interface ComposeViewState<RootView, SceneView> {
     val focusStack: FocusStack
     val configuration: ComposeUIViewControllerConfiguration
     val windowInfo: WindowInfo//todo maybe we need windowInfo on each scene
+    val sceneStates:List<SceneViewState<SceneView>>
     fun createSceneViewState(): SceneViewState<SceneView>
     fun updateContainerSize(size: IntSize)
     fun updateLayout(sceneViewState: SceneViewState<SceneView>)

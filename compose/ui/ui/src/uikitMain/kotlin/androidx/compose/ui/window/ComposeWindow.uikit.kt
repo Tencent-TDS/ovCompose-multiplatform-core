@@ -67,9 +67,18 @@ fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
 ): UIViewController = object: ComposeViewState<UIViewController, UIView> {
-    override val densityProvider = DensityProviderImpl(
-        rootViewProvider = { rootView }
-    )
+
+    override val sceneStates: MutableList<SceneViewState<UIView>> by lazy {
+        mutableListOf()
+    }
+
+    override val densityProvider by lazy {
+        DensityProviderImpl(
+            uiViewControllerProvider = { rootView },
+            sceneStates = sceneStates,
+        )
+    }
+
     override val focusStack: FocusStack = FocusStackImpl()
 
     @OptIn(ExperimentalComposeApi::class)
@@ -127,7 +136,7 @@ fun ComposeUIViewController(
     val keyboardVisibilityListener = KeyboardVisibilityListenerImpl(
         configuration = configuration,
         uiViewControllerProvider = { rootView },
-        rootSceneViewStateProvider = { rootView.rootSceneViewState },
+        sceneStates = sceneStates,
         densityProvider = densityProvider,
     )
 
@@ -135,11 +144,11 @@ fun ComposeUIViewController(
         ComposeRootUIViewController(
             configuration = configuration,
             content = content,
-            densityProvider = densityProvider,
             createSceneViewState = ::createSceneViewState,
             updateLayout = ::updateLayout,
             doBoilerplate = ::doBoilerplate,
             keyboardVisibilityListener = keyboardVisibilityListener,
+            sceneStates = sceneStates,
         )
     }
 }.rootView
@@ -149,11 +158,11 @@ fun ComposeUIViewController(
 internal class ComposeRootUIViewController(
     val configuration: ComposeUIViewControllerConfiguration,
     val content: @Composable () -> Unit,
-    val densityProvider: DensityProvider,
     val createSceneViewState: () -> SceneViewState<UIView>,
     val updateLayout: (sceneViewState: SceneViewState<UIView>) -> Unit,
     val doBoilerplate: (sceneViewState: SceneViewState<UIView>, focusable: Boolean) -> Unit,
     val keyboardVisibilityListener: KeyboardVisibilityListener,
+    val sceneStates: MutableList<SceneViewState<UIView>>,
 ) : UIViewController(nibName = null, bundle = null) {
 
     private var isInsideSwiftUI = false
@@ -190,8 +199,6 @@ internal class ComposeRootUIViewController(
                 InterfaceOrientation.getByRawValue(UIApplication.sharedApplication.statusBarOrientation)
             }
         }
-
-    var rootSceneViewState: SceneViewState<UIView>? = null
 
     private val nativeKeyboardVisibilityListener = object : NSObject() {
         @Suppress("unused")
@@ -258,7 +265,7 @@ internal class ComposeRootUIViewController(
             interfaceOrientation = it
         }
 
-        rootSceneViewState?.let {
+        sceneStates.forEach {
             updateLayout(it)
         }
     }
@@ -278,52 +285,52 @@ internal class ComposeRootUIViewController(
             return
         }
 
-        val rootSceneViewState = rootSceneViewState ?: return
+        sceneStates.forEach { sceneViewState ->
+            // Happens during orientation change from LandscapeLeft to LandscapeRight, for example
+            val isSameSizeTransition = view.frame.useContents {
+                CGSizeEqualToSize(size, this.size.readValue())
+            }
+            if (isSameSizeTransition) {
+                return
+            }
 
-        // Happens during orientation change from LandscapeLeft to LandscapeRight, for example
-        val isSameSizeTransition = view.frame.useContents {
-            CGSizeEqualToSize(size, this.size.readValue())
-        }
-        if (isSameSizeTransition) {
-            return
-        }
+            val startSnapshotView =
+                sceneViewState.sceneView.snapshotViewAfterScreenUpdates(false) ?: return
 
-        val startSnapshotView =
-            rootSceneViewState.sceneView.snapshotViewAfterScreenUpdates(false) ?: return
-
-        startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(startSnapshotView)
-        size.useContents {
-            NSLayoutConstraint.activateConstraints(
-                listOf(
-                    startSnapshotView.widthAnchor.constraintEqualToConstant(height),
-                    startSnapshotView.heightAnchor.constraintEqualToConstant(width),
-                    startSnapshotView.centerXAnchor.constraintEqualToAnchor(view.centerXAnchor),
-                    startSnapshotView.centerYAnchor.constraintEqualToAnchor(view.centerYAnchor)
+            startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(startSnapshotView)
+            size.useContents {
+                NSLayoutConstraint.activateConstraints(
+                    listOf(
+                        startSnapshotView.widthAnchor.constraintEqualToConstant(height),
+                        startSnapshotView.heightAnchor.constraintEqualToConstant(width),
+                        startSnapshotView.centerXAnchor.constraintEqualToAnchor(view.centerXAnchor),
+                        startSnapshotView.centerYAnchor.constraintEqualToAnchor(view.centerYAnchor)
+                    )
                 )
+            }
+
+            sceneViewState.isForcedToPresentWithTransactionEveryFrame = true
+
+            sceneViewState.setConstraintsToCenterInView(view, size)
+            sceneViewState.sceneView.transform = withTransitionCoordinator.targetTransform
+
+            view.layoutIfNeeded()
+
+            withTransitionCoordinator.animateAlongsideTransition(
+                animation = {
+                    startSnapshotView.alpha = 0.0
+                    startSnapshotView.transform =
+                        CGAffineTransformInvert(withTransitionCoordinator.targetTransform)
+                    sceneViewState.sceneView.transform = CGAffineTransformIdentity.readValue()
+                },
+                completion = {
+                    startSnapshotView.removeFromSuperview()
+                    sceneViewState.setConstraintsToFillView(view)
+                    sceneViewState.isForcedToPresentWithTransactionEveryFrame = false
+                }
             )
         }
-
-        rootSceneViewState.isForcedToPresentWithTransactionEveryFrame = true
-
-        rootSceneViewState.setConstraintsToCenterInView(view, size)
-        rootSceneViewState.sceneView.transform = withTransitionCoordinator.targetTransform
-
-        view.layoutIfNeeded()
-
-        withTransitionCoordinator.animateAlongsideTransition(
-            animation = {
-                startSnapshotView.alpha = 0.0
-                startSnapshotView.transform =
-                    CGAffineTransformInvert(withTransitionCoordinator.targetTransform)
-                rootSceneViewState.sceneView.transform = CGAffineTransformIdentity.readValue()
-            },
-            completion = {
-                startSnapshotView.removeFromSuperview()
-                rootSceneViewState.setConstraintsToFillView(view)
-                rootSceneViewState.isForcedToPresentWithTransactionEveryFrame = false
-            }
-        )
     }
 
     override fun viewWillAppear(animated: Boolean) {
@@ -391,19 +398,25 @@ internal class ComposeRootUIViewController(
     }
 
     private fun dispose() {
-        rootSceneViewState?.dispose()
-        rootSceneViewState = null
+        sceneStates.reversed().forEach {
+            it.dispose()
+        }
+        sceneStates.clear()
     }
 
     private fun attachComposeIfNeeded() {
-        if (rootSceneViewState != null) {
+        if (sceneStates.isNotEmpty()) {
             return // already attached
         }
-        createSceneViewState().let {
-            setContentWithProvider(it.scene, it.isReadyToShowContent, it.interopContext, content)
-            doBoilerplate(it, true)
-            rootSceneViewState = it//todo bad
-        }
+        val sceneViewState = createSceneViewState()
+        setContentWithProvider(
+            sceneViewState.scene,
+            sceneViewState.isReadyToShowContent,
+            sceneViewState.interopContext,
+            content
+        )
+        doBoilerplate(sceneViewState, true)
+        sceneStates.add(sceneViewState)
     }
 
     fun setContentWithProvider(
