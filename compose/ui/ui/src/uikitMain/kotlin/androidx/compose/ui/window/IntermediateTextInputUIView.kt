@@ -31,6 +31,10 @@ import platform.QuartzCore.CAMetalLayer
 import platform.UIKit.*
 import platform.darwin.NSInteger
 
+/**
+ * Hidden UIView to interact with iOS Keyboard and TextInput system.
+ * TODO maybe need to call to update UIKit text features reloadInputViews()
+ */
 @Suppress("CONFLICTING_OVERLOADS")
 internal class IntermediateTextInputUIView(
     private val keyboardEventHandler: KeyboardEventHandler,

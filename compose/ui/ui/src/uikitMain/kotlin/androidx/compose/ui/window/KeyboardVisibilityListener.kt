@@ -53,7 +53,7 @@ internal interface KeyboardVisibilityListener {
 internal class KeyboardVisibilityListenerImpl(
     val configuration: ComposeUIViewControllerConfiguration,
     val uiViewControllerProvider: () -> UIViewController,
-    val sceneStates: List<SceneViewState<UIView>>,
+    val sceneStates: List<SceneState<UIView>>,
     val densityProvider: DensityProvider,
 ) : KeyboardVisibilityListener {
 
@@ -175,7 +175,7 @@ internal class KeyboardVisibilityListenerImpl(
         )
     }
 
-    private fun calcFocusedLiftingY(sceneState: SceneViewState<UIView>, focusedRect: DpRect, keyboardHeight: Double): Double {
+    private fun calcFocusedLiftingY(sceneState: SceneState<UIView>, focusedRect: DpRect, keyboardHeight: Double): Double {
         val viewHeight = sceneState.sceneView.frame.useContents {
             size.height
         }

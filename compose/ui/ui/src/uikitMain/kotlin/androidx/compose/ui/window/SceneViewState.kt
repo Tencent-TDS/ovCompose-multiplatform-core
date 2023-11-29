@@ -59,9 +59,9 @@ import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.UIKit.reloadInputViews
 
-internal interface SceneViewState<V> {
+internal interface SceneState<V> {
     val sceneView: V
-    val isReadyToShowContent: State<Boolean>
+    val isReadyToShowContent: State<Boolean>//TODO it is redundant workaround
     fun needRedraw()
     fun dispose()
     var isForcedToPresentWithTransactionEveryFrame: Boolean
@@ -78,9 +78,7 @@ internal interface SceneViewState<V> {
 
 private val coroutineDispatcher = Dispatchers.Main
 
-internal fun ComposeViewState<UIViewController, UIView>.createSingleLayerSceneUIViewState(
-    updateContainerSize: (IntSize) -> Unit,
-): SceneViewState<UIView> =
+internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayerSceneUIViewState(): SceneState<UIView> =
     prepareSingleLayerComposeScene(
         densityProvider = densityProvider,
         layoutDirection = LayoutDirection.Ltr, //TODO get from system
@@ -165,7 +163,7 @@ internal fun ComposeViewState<UIViewController, UIView>.createSingleLayerSceneUI
         }
     }
 
-internal fun ComposeViewState<UIViewController, UIView>.createMultiLayerSceneUIViewState(): SceneViewState<UIView> {
+internal fun RootViewControllerState<UIViewController, UIView>.createMultiLayerSceneUIViewState(): SceneState<UIView> {
     return createStateWithSceneBuilder(focusable = true) {
         MultiLayerComposeScene(
             coroutineContext = coroutineDispatcher,
@@ -178,10 +176,10 @@ internal fun ComposeViewState<UIViewController, UIView>.createMultiLayerSceneUIV
     }
 }
 
-private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuilder(
+private fun RootViewControllerState<UIViewController, UIView>.createStateWithSceneBuilder(
     focusable: Boolean,
-    buildScene: SceneViewState<UIView>.() -> ComposeScene,
-): SceneViewState<UIView> = object : SceneViewState<UIView> {
+    buildScene: SceneState<UIView>.() -> ComposeScene,
+): SceneState<UIView> = object : SceneState<UIView> {
     override val sceneView: SkikoUIView by lazy {
         SkikoUIView(
             focusable,
@@ -194,6 +192,7 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
     }
 
     override fun needRedraw() = sceneView.needRedraw()
+
     override fun dispose() {
         if (focusable) {
             focusStack.popUntilNext(sceneView)
@@ -212,10 +211,12 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
         }
 
     override val scene: ComposeScene by lazy { buildScene() }
+
     override val interopContext: UIKitInteropContext by lazy {
         UIKitInteropContext(
             requestRedraw = { needRedraw() })
     }
+
     override val platformContext: PlatformContext by lazy {
         PlatformContextImpl(
             inputServices = uiKitTextInputService,
@@ -258,7 +259,6 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
             updateView = {
                 sceneView.setNeedsDisplay() // redraw on next frame
                 CATransaction.flush() // clear all animations
-                sceneView.reloadInputViews() // update input (like screen keyboard)//todo redundant?
             },
             rootViewProvider = { rootView.view },
             densityProvider = densityProvider,
@@ -266,6 +266,7 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
             keyboardEventHandler = keyboardEventHandler
         )
     }
+
     val keyboardEventHandler: KeyboardEventHandler by lazy {
         object : KeyboardEventHandler {
             override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
@@ -276,6 +277,7 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
             }
         }
     }
+
     val delegate: SkikoUIViewDelegate by lazy {
         SkikoUIViewDelegateImpl(
             { scene },
@@ -283,6 +285,7 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
             densityProvider,
         )
     }
+
     private var constraints: List<NSLayoutConstraint> = emptyList()
         set(value) {
             if (field.isNotEmpty()) {
@@ -313,13 +316,13 @@ private fun ComposeViewState<UIViewController, UIView>.createStateWithSceneBuild
     }
 }
 
-private fun ComposeViewState<UIViewController, UIView>.prepareSingleLayerComposeScene(
+private fun RootViewControllerState<UIViewController, UIView>.prepareSingleLayerComposeScene(
     densityProvider: DensityProvider,
     layoutDirection: LayoutDirection,
     focusable: Boolean,
     coroutineContext: CoroutineContext,
     prepareComposeSceneContext: () -> ComposeSceneContext,
-): SceneViewState<UIView> = createStateWithSceneBuilder(focusable) {
+): SceneState<UIView> = createStateWithSceneBuilder(focusable) {
     SingleLayerComposeScene(
         coroutineContext = coroutineContext,
         composeSceneContext = object :

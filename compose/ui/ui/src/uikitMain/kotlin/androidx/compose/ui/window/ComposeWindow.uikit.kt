@@ -68,9 +68,9 @@ fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController = object: ComposeViewState<UIViewController, UIView> {
+): UIViewController = object: RootViewControllerState<UIViewController, UIView> {
 
-    override val sceneStates: MutableList<SceneViewState<UIView>> = mutableListOf()
+    override val sceneStates: MutableList<SceneState<UIView>> = mutableListOf()
     val safeAreaState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
     val layoutMarginsState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
     /*
@@ -105,9 +105,9 @@ fun ComposeUIViewController(
     }
 
     @OptIn(ExperimentalComposeApi::class)
-    override fun createSceneViewState(): SceneViewState<UIView> =
-        if (configuration.singleLayerComposeScene) {
-            createSingleLayerSceneUIViewState(updateContainerSize = ::updateContainerSize)
+    override fun createSceneViewState(): SceneState<UIView> =
+        if (configuration.platformLayers) {
+            createSingleLayerSceneUIViewState()
         } else {
             createMultiLayerSceneUIViewState()
         }
@@ -123,7 +123,7 @@ fun ComposeUIViewController(
         windowInfo.containerSize = size
     }
 
-    override fun updateLayout(sceneViewState: SceneViewState<UIView>) {
+    override fun updateLayout(sceneViewState: SceneState<UIView>) {
         val scale = densityProvider().density
         val size = rootView.view.frame.useContents {
             IntSize(
@@ -145,8 +145,8 @@ fun ComposeUIViewController(
         densityProvider = densityProvider,
     )
 
-    override val rootView: ComposeRootUIViewController by lazy {
-        ComposeRootUIViewController(
+    override val rootView: RootUIViewController by lazy {
+        RootUIViewController(
             configuration = configuration,
             content = content,
             createSceneViewState = ::createSceneViewState,
@@ -163,13 +163,13 @@ fun ComposeUIViewController(
 
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
-internal class ComposeRootUIViewController(
+internal class RootUIViewController(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
-    private val createSceneViewState: () -> SceneViewState<UIView>,
-    private val updateLayout: (sceneViewState: SceneViewState<UIView>) -> Unit,
+    private val createSceneViewState: () -> SceneState<UIView>,
+    private val updateLayout: (sceneViewState: SceneState<UIView>) -> Unit,
     private val keyboardVisibilityListener: KeyboardVisibilityListener,
-    private val sceneStates: MutableList<SceneViewState<UIView>>,
+    private val sceneStates: MutableList<SceneState<UIView>>,
     private val safeAreaState: MutableState<PlatformInsets>,
     private val layoutMarginsState: MutableState<PlatformInsets>,
     private val interfaceOrientationState: MutableState<InterfaceOrientation>,
@@ -184,7 +184,7 @@ internal class ComposeRootUIViewController(
 
     /*
      * On iOS >= 13.0 interfaceOrientation will be deduced from [UIWindowScene] of [UIWindow]
-     * to which our [ComposeRootUIViewController] is attached.
+     * to which our [RootUIViewController] is attached.
      * It's never UIInterfaceOrientationUnknown, if accessed after owning [UIWindow] was made key and visible:
      * https://developer.apple.com/documentation/uikit/uiwindow/1621601-makekeyandvisible?language=objc
      */

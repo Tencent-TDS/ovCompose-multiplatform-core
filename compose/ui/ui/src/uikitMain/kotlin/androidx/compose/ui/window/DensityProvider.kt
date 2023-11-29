@@ -40,7 +40,7 @@ internal interface DensityProvider {
 
 internal class DensityProviderImpl(
     val uiViewControllerProvider: () -> UIViewController,
-    val sceneStates: List<SceneViewState<UIView>>,
+    val sceneStates: List<SceneState<UIView>>,
 ): DensityProvider {
 
     val uiViewController get() = uiViewControllerProvider()

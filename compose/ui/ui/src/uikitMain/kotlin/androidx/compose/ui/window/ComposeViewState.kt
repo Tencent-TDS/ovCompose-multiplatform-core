@@ -27,16 +27,16 @@ import androidx.compose.ui.unit.IntSize
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
-internal interface ComposeViewState<RootView, SceneView> { //TODO rename to Entrypoint or ViewController
+internal interface RootViewControllerState<RootView, SceneView> { //TODO rename to Entrypoint or ViewController
     val rootView: RootView
     val densityProvider: DensityProvider
     val focusStack: FocusStack<UIView>
     val configuration: ComposeUIViewControllerConfiguration
     val windowInfo: WindowInfo //TODO maybe we need windowInfo on each scene
-    val sceneStates:List<SceneViewState<SceneView>>
-    fun createSceneViewState(): SceneViewState<SceneView>
+    val sceneStates:List<SceneState<SceneView>>
+    fun createSceneViewState(): SceneState<SceneView>
     fun updateContainerSize(size: IntSize)
-    fun updateLayout(sceneViewState: SceneViewState<SceneView>)
+    fun updateLayout(sceneViewState: SceneState<SceneView>)
     @Composable
     fun EntrypointCompositionLocals(content: @Composable () -> Unit)
 }
