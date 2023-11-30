@@ -140,6 +140,8 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
         mutableStateOf(calcLayoutMargin())
     }
 
+    val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
+
     override fun updateSafeArea() {
         safeAreaState.value = calcSafeArea()
         layoutMarginsState.value = calcLayoutMargin()
@@ -174,9 +176,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             keyboardEventHandler,
             delegate
         )
-    }
-    override val isReadyToShowContent: State<Boolean> by lazy {
-        sceneView.isReadyToShowContent
     }
 
     override fun needRedraw() = sceneView.needRedraw()
