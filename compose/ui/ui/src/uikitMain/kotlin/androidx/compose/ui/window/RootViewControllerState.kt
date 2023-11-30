@@ -36,12 +36,16 @@ import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import kotlin.math.roundToInt
 import kotlinx.cinterop.useContents
+import platform.UIKit.UIApplication
+import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
-internal interface RootViewControllerState<RootView, SceneView> { //TODO rename to Entrypoint or ViewController
+internal interface RootViewControllerState<RootView, SceneView> {
+    val layoutDirection: LayoutDirection
     val rootViewController: RootView
     val densityProvider: DensityProvider
     val focusStack: FocusStack<UIView>
@@ -60,6 +64,11 @@ internal fun createRootUIViewControllerState(
     content: @Composable () -> Unit,
 ) = object : RootViewControllerState<UIViewController, UIView> {
 
+    override val layoutDirection get() =
+        when (UIApplication.sharedApplication().userInterfaceLayoutDirection) {
+            UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
+            else -> LayoutDirection.Ltr
+        }
     override val sceneStates: MutableList<SceneState<UIView>> = mutableListOf()
     val safeAreaState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
     val layoutMarginsState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
