@@ -17,15 +17,10 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
-import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.platform.WindowInfo
-import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import platform.UIKit.UIView
-import platform.UIKit.UIViewController
 
 internal interface RootViewControllerState<RootView, SceneView> { //TODO rename to Entrypoint or ViewController
     val rootView: RootView
@@ -34,9 +29,8 @@ internal interface RootViewControllerState<RootView, SceneView> { //TODO rename 
     val configuration: ComposeUIViewControllerConfiguration
     val windowInfo: WindowInfo //TODO maybe we need windowInfo on each scene
     val sceneStates:List<SceneState<SceneView>>
-    fun createSceneViewState(): SceneState<SceneView>
     fun updateContainerSize(size: IntSize)
-    fun updateLayout(sceneViewState: SceneState<SceneView>)
+    fun updateLayout(sceneState: SceneState<SceneView>)
     @Composable
     fun EntrypointCompositionLocals(content: @Composable () -> Unit)
 }

@@ -105,9 +105,9 @@ fun ComposeUIViewController(
     }
 
     @OptIn(ExperimentalComposeApi::class)
-    override fun createSceneViewState(): SceneState<UIView> =
+    fun createRootSceneViewState(): SceneState<UIView> =
         if (configuration.platformLayers) {
-            createSingleLayerSceneUIViewState()
+            createSingleLayerSceneUIViewState(focusable = true)
         } else {
             createMultiLayerSceneUIViewState()
         }
@@ -123,7 +123,7 @@ fun ComposeUIViewController(
         windowInfo.containerSize = size
     }
 
-    override fun updateLayout(sceneViewState: SceneState<UIView>) {
+    override fun updateLayout(sceneState: SceneState<UIView>) {
         val scale = densityProvider().density
         val size = rootView.view.frame.useContents {
             IntSize(
@@ -132,10 +132,10 @@ fun ComposeUIViewController(
             )
         }
         updateContainerSize(size)
-        sceneViewState.scene.density = densityProvider()
-        sceneViewState.scene.size = size
+        sceneState.scene.density = densityProvider()
+        sceneState.scene.size = size
 
-        sceneViewState.needRedraw()
+        sceneState.needRedraw()
     }
 
     val keyboardVisibilityListener = KeyboardVisibilityListenerImpl(
@@ -149,7 +149,7 @@ fun ComposeUIViewController(
         RootUIViewController(
             configuration = configuration,
             content = content,
-            createSceneViewState = ::createSceneViewState,
+            createRootSceneViewState = ::createRootSceneViewState,
             updateLayout = ::updateLayout,
             keyboardVisibilityListener = keyboardVisibilityListener,
             sceneStates = sceneStates,
@@ -166,7 +166,7 @@ fun ComposeUIViewController(
 internal class RootUIViewController(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
-    private val createSceneViewState: () -> SceneState<UIView>,
+    private val createRootSceneViewState: () -> SceneState<UIView>,
     private val updateLayout: (sceneViewState: SceneState<UIView>) -> Unit,
     private val keyboardVisibilityListener: KeyboardVisibilityListener,
     private val sceneStates: MutableList<SceneState<UIView>>,
@@ -409,7 +409,7 @@ internal class RootUIViewController(
         if (sceneStates.isNotEmpty()) {
             return // already attached
         }
-        val sceneViewState = createSceneViewState()
+        val sceneViewState = createRootSceneViewState()
         sceneViewState.setContentWithCompositionLocals(content)
         sceneViewState.display(focusable = true)
         sceneStates.add(sceneViewState)

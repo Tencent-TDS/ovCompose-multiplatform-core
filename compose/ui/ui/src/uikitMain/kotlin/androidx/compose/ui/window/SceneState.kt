@@ -20,33 +20,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
-import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.interop.LocalUIKitInteropContext
-import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.interop.UIKitInteropContext
-import androidx.compose.ui.platform.LocalLayoutMargins
-import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
 import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SingleLayerComposeScene
-import androidx.compose.ui.text.input.PlatformTextInputService
-import androidx.compose.ui.uikit.LocalInterfaceOrientation
-import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.coroutines.CoroutineContext
-import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +47,6 @@ import platform.QuartzCore.CATransaction
 import platform.UIKit.NSLayoutConstraint
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
-import platform.UIKit.reloadInputViews
 
 internal interface SceneState<V> {
     val sceneView: V
@@ -65,6 +54,7 @@ internal interface SceneState<V> {
     fun needRedraw()
     fun dispose()
     var isForcedToPresentWithTransactionEveryFrame: Boolean
+    val layers:MutableList<LayerState<V>>
 
     val scene: ComposeScene
     val interopContext: UIKitInteropContext
@@ -74,15 +64,19 @@ internal interface SceneState<V> {
     fun setConstraintsToFillView(parentView: V)
     fun setContentWithCompositionLocals(content: @Composable () -> Unit)
     fun display(focusable: Boolean)
+
+    val delegate: SkikoUIViewDelegate
+    val keyboardEventHandler: KeyboardEventHandler
+    val uiKitTextInputService: UIKitTextInputService
 }
 
 private val coroutineDispatcher = Dispatchers.Main
 
-internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayerSceneUIViewState(): SceneState<UIView> =
+internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayerSceneUIViewState(focusable: Boolean): SceneState<UIView> =
     prepareSingleLayerComposeScene(
         densityProvider = densityProvider,
         layoutDirection = LayoutDirection.Ltr, //TODO get from system
-        focusable = true,
+        focusable = focusable,
         coroutineContext = coroutineDispatcher
     ) {
         object : ComposeSceneContext {
@@ -99,65 +93,11 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayer
                     compositionContext.effectCoroutineContext,
                     { this },
                 ).run {
-                    display(focusable)
-                    sceneView.alpha = 0.5
-
-                    object : ComposeSceneLayer {
-                        override var density: Density = density
-                        override var layoutDirection: LayoutDirection = layoutDirection
-                        override var bounds: IntRect
-                            get() = IntRect(
-                                offset = IntOffset(
-                                    x = sceneView.bounds.useContents { origin.x.toInt() },
-                                    y = sceneView.bounds.useContents { origin.y.toInt() },
-                                ),
-                                size = IntSize(
-                                    width = sceneView.bounds.useContents { size.width.toInt() },
-                                    height = sceneView.bounds.useContents { size.height.toInt() },
-                                )
-                            )
-                            set(value) {
-                                println("ComposeSceneLayer, set bounds $value")
-                                sceneView.setBounds(
-                                    CGRectMake(
-                                        value.left.toDouble(),
-                                        value.top.toDouble(),
-                                        value.width.toDouble(),
-                                        value.height.toDouble()
-                                    )
-                                )
-                            }
-                        override var scrimColor: Color? = null
-                        override var focusable: Boolean = true
-
-                        override fun close() {
-                            println("ComposeSceneContext close")
-                            dispose()
-                            sceneView.removeFromSuperview()
-                        }
-
-                        override fun setContent(content: @Composable () -> Unit) {
-                            //todo New Compose Scene  Размер сцены scene.size - полный экран
-                            //  Сделать translate Canvas по размеру -bounds.position, размер канвы bounds.size
-                            //  translate делать при каждой отрисовке
-                            //  canvas.translate(x, y)
-                            //  drawContainedDrawModifiers(canvas)
-                            //  canvas.translate(-x, -y)
-                            //  А размер канвы задавать в bounds set(value) {...
-                            setContentWithCompositionLocals(content)
-                        }
-
-                        override fun setKeyEventListener(
-                            onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
-                            onKeyEvent: ((KeyEvent) -> Boolean)?
-                        ) {
-                            //todo
-                        }
-
-                        override fun setOutsidePointerEventListener(onOutsidePointerEvent: ((mainEvent: Boolean) -> Unit)?) {
-                            //todo
-                        }
-                    }
+                    val layerState = createLayerState(this, density, layoutDirection, focusable, compositionContext)
+                    layerState.sceneState.display(focusable)
+                    layerState.sceneState.sceneView.alpha = 0.5
+                    layers.add(layerState)
+                    layerState.layer
                 }
             }
         }
@@ -180,6 +120,7 @@ private fun RootViewControllerState<UIViewController, UIView>.createStateWithSce
     focusable: Boolean,
     buildScene: SceneState<UIView>.() -> ComposeScene,
 ): SceneState<UIView> = object : SceneState<UIView> {
+    override val layers: MutableList<LayerState<UIView>> = mutableListOf()
     override val sceneView: SkikoUIView by lazy {
         SkikoUIView(
             focusable,
@@ -254,7 +195,7 @@ private fun RootViewControllerState<UIViewController, UIView>.createStateWithSce
         }
     }
 
-    val uiKitTextInputService: UIKitTextInputService by lazy {
+    override val uiKitTextInputService: UIKitTextInputService by lazy {
         UIKitTextInputService(
             updateView = {
                 sceneView.setNeedsDisplay() // redraw on next frame
@@ -267,7 +208,7 @@ private fun RootViewControllerState<UIViewController, UIView>.createStateWithSce
         )
     }
 
-    val keyboardEventHandler: KeyboardEventHandler by lazy {
+    override val keyboardEventHandler: KeyboardEventHandler by lazy {
         object : KeyboardEventHandler {
             override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
                 val composeEvent = KeyEvent(event)
@@ -278,7 +219,7 @@ private fun RootViewControllerState<UIViewController, UIView>.createStateWithSce
         }
     }
 
-    val delegate: SkikoUIViewDelegate by lazy {
+    override val delegate: SkikoUIViewDelegate by lazy {
         SkikoUIViewDelegateImpl(
             { scene },
             interopContext,
@@ -286,7 +227,7 @@ private fun RootViewControllerState<UIViewController, UIView>.createStateWithSce
         )
     }
 
-    private var constraints: List<NSLayoutConstraint> = emptyList()
+    private var constraints: List<NSLayoutConstraint> = emptyList()//todo duplicate
         set(value) {
             if (field.isNotEmpty()) {
                 NSLayoutConstraint.deactivateConstraints(field)
