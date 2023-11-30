@@ -77,6 +77,7 @@ internal class SkikoUIView(
         override fun layerClass() = CAMetalLayer
     }
 
+    var onAttachedToWindow: (() -> Unit)? = null
     private val _isReadyToShowContent: MutableState<Boolean> = mutableStateOf(false)
     val isReadyToShowContent: State<Boolean> = _isReadyToShowContent
 
@@ -147,6 +148,7 @@ internal class SkikoUIView(
             _redrawer.maximumFramesPerSecond = it.maximumFramesPerSecond
         }
         if (window != null) {
+            onAttachedToWindow?.invoke()
             delegate.onAttachedToWindow()
             _isReadyToShowContent.value = true
         }

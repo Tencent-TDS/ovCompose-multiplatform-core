@@ -320,9 +320,13 @@ internal class RootUIViewController(
             return // already attached
         }
         val sceneViewState = createRootSceneViewState()
-        sceneViewState.setContentWithCompositionLocals(content)
-        sceneViewState.display(focusable = true)
         sceneStates.add(sceneViewState)
+        sceneViewState.display(
+            focusable = true,
+            onDisplayed = {
+                sceneViewState.setContentWithCompositionLocals(content)
+            }
+        )
     }
 
 }

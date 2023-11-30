@@ -52,7 +52,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
         }
 
     override fun display() {
-        sceneState.display(focusable = focusable)
+        sceneState.display(focusable = focusable, onDisplayed = {})
     }
 
     override val layer = object : ComposeSceneLayer {

@@ -24,11 +24,16 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropContext
+import androidx.compose.ui.platform.DefaultInputModeManager
+import androidx.compose.ui.platform.EmptyViewConfiguration
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.UIKitTextInputService
+import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.ComposeScene
@@ -36,12 +41,14 @@ import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
 import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SingleLayerComposeScene
+import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
@@ -73,7 +80,7 @@ internal interface SceneState<V> {
     fun setConstraintsToCenterInView(parentView: V, size: CValue<CGSize>)
     fun setConstraintsToFillView(parentView: V)
     fun setContentWithCompositionLocals(content: @Composable () -> Unit)
-    fun display(focusable: Boolean)
+    fun display(focusable: Boolean, onDisplayed: () -> Unit)
 
     val delegate: SkikoUIViewDelegate
     val keyboardEventHandler: KeyboardEventHandler
@@ -104,7 +111,8 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     }
 
     override fun updateLayout() {
-        val scale = densityProvider().density
+        val density = densityProvider()
+        val scale = density.density
         //TODO Old code updates layout based on rootViewController size. Maybe we need to rewrite it for SingleLayerComposeScene
         val size = rootViewController.view.frame.useContents {
             IntSize(
@@ -113,7 +121,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             )
         }
         windowInfo.containerSize = size
-        scene.density = densityProvider()
+        scene.density = density
         scene.size = size
         needRedraw()
     }
@@ -197,13 +205,17 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
         }
     }
 
-    override fun display(focusable: Boolean) {
+    override fun display(focusable: Boolean, onDisplayed: () -> Unit) {
+        sceneView.onAttachedToWindow = {
+            sceneView.onAttachedToWindow = null
+            updateLayout()
+            onDisplayed()
+            if (focusable) {
+                focusStack.pushAndFocus(sceneView)
+            }
+        }
         rootViewController.view.addSubview(sceneView)
         setConstraintsToFillView(rootViewController.view)
-        updateLayout()
-        if (focusable) {
-            focusStack.pushAndFocus(sceneView)
-        }
     }
 
     override val uiKitTextInputService: UIKitTextInputService by lazy {
