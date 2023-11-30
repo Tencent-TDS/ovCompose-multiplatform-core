@@ -93,9 +93,8 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayer
                     compositionContext.effectCoroutineContext,
                     { this },
                 ).run {
-                    val layerState = createLayerState(this, density, layoutDirection, focusable, compositionContext)
-                    layerState.sceneState.display(focusable)
-                    layerState.sceneState.sceneView.alpha = 0.5
+                    val layerState = createLayerState(density, layoutDirection, focusable)
+                    layerState.display()
                     layers.add(layerState)
                     layerState.layer
                 }

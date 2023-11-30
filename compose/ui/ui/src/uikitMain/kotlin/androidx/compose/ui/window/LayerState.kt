@@ -37,18 +37,23 @@ import platform.UIKit.UIViewController
 
 internal interface LayerState<V> {
     val layer: ComposeSceneLayer
-    val sceneState: SceneState<V>
+    fun display()
 }
 
 internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
-    parentSceneState: SceneState<UIView>,
     density: Density,
     layoutDirection: LayoutDirection,
     focusable: Boolean,
-    compositionContext: CompositionContext
 ): LayerState<UIView> = object : LayerState<UIView> {
 
-    override val sceneState: SceneState<UIView> = createSingleLayerSceneUIViewState(focusable = focusable)
+    val sceneState: SceneState<UIView> =
+        createSingleLayerSceneUIViewState(focusable = focusable).also {
+            it.sceneView.alpha = 0.5 //todo remove after
+        }
+
+    override fun display() {
+        sceneState.display(focusable = focusable)
+    }
 
     override val layer = object : ComposeSceneLayer {
         override var density: Density = density
