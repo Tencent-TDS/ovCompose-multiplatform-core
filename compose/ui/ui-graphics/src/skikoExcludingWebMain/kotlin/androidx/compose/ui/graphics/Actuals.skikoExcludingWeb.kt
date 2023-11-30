@@ -27,7 +27,7 @@ import org.jetbrains.skia.ImageInfo
    On Desktop/JVM:
    11 ms for the current (default) implementation vs ~50ms for Bitmap.fromImage.
    
-   The implementation for web uses `Btimap.fromImage`, see Actuals.jsWasm.kt
+   The implementation for web uses `Bitmap.fromImage`, see Actuals.jsWasm.kt
 */
 internal  actual fun Image.toBitmap(): Bitmap {
     val bitmap = Bitmap()
