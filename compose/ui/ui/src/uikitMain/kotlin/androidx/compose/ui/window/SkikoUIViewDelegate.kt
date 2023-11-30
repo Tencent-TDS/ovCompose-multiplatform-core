@@ -26,7 +26,6 @@ import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeScenePointer
-import androidx.compose.ui.unit.Density
 import kotlin.math.floor
 import kotlin.math.roundToLong
 import kotlinx.cinterop.CValue
@@ -38,6 +37,17 @@ import platform.UIKit.UIEvent
 import platform.UIKit.UITouch
 import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
+
+internal enum class UITouchesEventPhase {
+    BEGAN, MOVED, ENDED, CANCELLED
+}
+
+internal interface SkikoUIViewDelegate {
+    fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean
+    fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase)
+    fun retrieveInteropTransaction(): UIKitInteropTransaction
+    fun render(canvas: Canvas, targetTimestamp: NSTimeInterval)
+}
 
 internal class SkikoUIViewDelegateImpl(
     val sceneProvider: () -> ComposeScene,
@@ -93,9 +103,6 @@ internal class SkikoUIViewDelegateImpl(
         scene.render(canvas.asComposeCanvas(), nanos)
     }
 
-    override fun onAttachedToWindow() {
-        scene.density = density
-    }
 }
 
 private fun UITouchesEventPhase.toPointerEventType(): PointerEventType =

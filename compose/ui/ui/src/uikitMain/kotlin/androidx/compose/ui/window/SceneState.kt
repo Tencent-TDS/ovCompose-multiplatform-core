@@ -30,7 +30,10 @@ import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.platform.DefaultInputModeManager
 import androidx.compose.ui.platform.EmptyViewConfiguration
+import androidx.compose.ui.platform.LocalLayoutMargins
+import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.ViewConfiguration
@@ -81,6 +84,7 @@ internal interface SceneState<V> {
     fun setConstraintsToFillView(parentView: V)
     fun setContentWithCompositionLocals(content: @Composable () -> Unit)
     fun display(focusable: Boolean, onDisplayed: () -> Unit)
+    fun updateSafeArea()
 
     val delegate: SkikoUIViewDelegate
     val keyboardEventHandler: KeyboardEventHandler
@@ -101,6 +105,44 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     override val layers: MutableList<LayerState<UIView>> = mutableListOf()
     override val windowInfo = WindowInfoImpl().apply {
         isWindowFocused = focusable
+    }
+
+    fun calcSafeArea(): PlatformInsets =
+        rootViewController.view.safeAreaInsets.useContents {
+            PlatformInsets(
+                left = left.dp,
+                top = top.dp,
+                right = right.dp,
+                bottom = bottom.dp,
+            )
+        }.also {
+            println("calcSafeArea $it")
+        }
+
+    fun calcLayoutMargin(): PlatformInsets =
+        rootViewController.view.directionalLayoutMargins.useContents {
+            PlatformInsets(
+                left = leading.dp, // TODO: Check RTL support
+                top = top.dp,
+                right = trailing.dp, // TODO: Check RTL support
+                bottom = bottom.dp,
+            )
+        }.also {
+            println("calcLayoutMargin $it")
+        }
+
+    val safeAreaState: MutableState<PlatformInsets> by lazy {
+        //TODO It calcs 0,0,0,0 on initialization
+        mutableStateOf(calcSafeArea())
+    }
+    val layoutMarginsState: MutableState<PlatformInsets> by lazy {
+        //TODO It calcs 0,0,0,0 on initialization
+        mutableStateOf(calcLayoutMargin())
+    }
+
+    override fun updateSafeArea() {
+        safeAreaState.value = calcSafeArea()
+        layoutMarginsState.value = calcLayoutMargin()
     }
 
     override val densityProvider by lazy {
@@ -181,7 +223,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             viewProvider = { rootViewController.view },
             sceneStates = sceneStates,
             densityProvider = densityProvider,
-            sceneStateProvider = {this}
+            sceneStateProvider = { this },
         )
     }
 
@@ -190,6 +232,8 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
         CompositionLocalProvider(
             LocalUIKitInteropContext provides interopContext,
             LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
+            LocalSafeArea provides safeAreaState.value,
+            LocalLayoutMargins provides layoutMarginsState.value,
             content = content
         )
 

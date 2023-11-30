@@ -80,31 +80,30 @@ class App(
 
     @Composable
     fun Content() {
-        Column(
-            Modifier
-                .windowInsetsPadding(WindowInsets.systemBars)
-                .onKeyEvent {
-                    if (it.type == KeyEventType.KeyDown && (it.key == Key.A || it.key == Key.B)) {
-                        println("Column onKeyEvent ${it.key}")
-                        true
-                    } else {
-                        false
+        when (val screen = navigationStack.last()) {
+            is Screen.Example -> {
+                ExampleScaffold(backgroundColor = screen.backgroundColor) {
+                    screen.content()
+                }
+            }
+
+            is Screen.Selection -> {
+                SelectionScaffold {
+                    LazyColumn(Modifier.fillMaxSize()) {
+                        items(screen.screens) {
+                            Text(it.title, Modifier.clickable {
+                                navigationStack.add(it)
+                            }.padding(16.dp).fillMaxWidth())
+                        }
                     }
                 }
-        ) {
-            CustomFocusable()
-            var text by remember { mutableStateOf("Hello Compose") }
-            repeat(15) {
-                TextField(text, { text = it })
             }
-        }
-        Popup {
-            Box(Modifier.size(200.dp).background(Color.Blue.copy(alpha = 0.5f))) {
-                Text("I am Popup", Modifier.align(Alignment.Center))
-            }
-            if (false) Popup {
-                Box(Modifier.size(200.dp).background(Color.Yellow.copy(alpha = 0.5f))) {
-                    Text("I am Popup in Popup", Modifier.align(Alignment.Center))
+
+            is Screen.FullscreenExample -> {
+                screen.content {
+                    if (navigationStack.size > 1) {
+                        navigationStack.removeLast()
+                    }
                 }
             }
         }

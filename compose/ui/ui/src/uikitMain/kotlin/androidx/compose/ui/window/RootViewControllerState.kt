@@ -29,16 +29,12 @@ import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformInsets
-import androidx.compose.ui.platform.WindowInfo
-import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
-import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import kotlin.math.roundToInt
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEach
 import kotlinx.cinterop.useContents
 import platform.Foundation.NSNotification
 import platform.UIKit.UIApplication
@@ -70,8 +66,6 @@ internal fun createRootUIViewControllerState(
             else -> LayoutDirection.Ltr
         }
     override val sceneStates: MutableList<SceneState<UIView>> = mutableListOf()
-    val safeAreaState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
-    val layoutMarginsState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
 
     /*
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
@@ -89,8 +83,6 @@ internal fun createRootUIViewControllerState(
         CompositionLocalProvider(
             LocalUIViewController provides rootViewController,
             LocalLayerContainer provides rootViewController.view,
-            LocalSafeArea provides safeAreaState.value,
-            LocalLayoutMargins provides layoutMarginsState.value,
             LocalInterfaceOrientation provides interfaceOrientationState.value,
             LocalSystemTheme provides systemThemeState.value,
             content = content
@@ -121,10 +113,13 @@ internal fun createRootUIViewControllerState(
             createRootSceneViewState = ::createRootSceneViewState,
             keyboardVisibilityListener = keyboardVisibilityListener,
             sceneStates = sceneStates,
-            safeAreaState = safeAreaState,
-            layoutMarginsState = layoutMarginsState,
             interfaceOrientationState = interfaceOrientationState,
             systemThemeState = systemThemeState,
+            onViewSafeAreaInsetsDidChange = {
+                sceneStates.fastForEach {
+                    it.updateSafeArea()
+                }
+            }
         )
     }
 

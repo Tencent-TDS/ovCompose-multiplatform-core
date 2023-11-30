@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.*
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.uikit.*
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.util.fastForEachReversed
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
@@ -80,10 +81,9 @@ internal class RootUIViewController(
     private val createRootSceneViewState: () -> SceneState<UIView>,
     private val keyboardVisibilityListener: KeyboardVisibilityListener,
     private val sceneStates: MutableList<SceneState<UIView>>,
-    private val safeAreaState: MutableState<PlatformInsets>,
-    private val layoutMarginsState: MutableState<PlatformInsets>,
     private val interfaceOrientationState: MutableState<InterfaceOrientation>,
     private val systemThemeState: MutableState<SystemTheme>,
+    private val onViewSafeAreaInsetsDidChange: () -> Unit,
 ) : UIViewController(nibName = null, bundle = null) {
 
     private var isInsideSwiftUI = false
@@ -129,22 +129,7 @@ internal class RootUIViewController(
     @ObjCAction
     fun viewSafeAreaInsetsDidChange() {
         // super.viewSafeAreaInsetsDidChange() // TODO: call super after Kotlin 1.8.20
-        view.safeAreaInsets.useContents {
-            safeAreaState.value = PlatformInsets(
-                left = left.dp,
-                top = top.dp,
-                right = right.dp,
-                bottom = bottom.dp,
-            )
-        }
-        view.directionalLayoutMargins.useContents {
-            layoutMarginsState.value = PlatformInsets(
-                left = leading.dp, // TODO: Check RTL support
-                top = top.dp,
-                right = trailing.dp, // TODO: Check RTL support
-                bottom = bottom.dp,
-            )
-        }
+        onViewSafeAreaInsetsDidChange()
     }
 
     override fun loadView() {
@@ -269,7 +254,6 @@ internal class RootUIViewController(
         )
 
         configuration.delegate.viewDidAppear(animated)
-
     }
 
     // viewDidUnload() is deprecated and not called.
@@ -309,7 +293,7 @@ internal class RootUIViewController(
     }
 
     private fun dispose() {
-        sceneStates.reversed().forEach {
+        sceneStates.fastForEachReversed {
             it.dispose()
         }
         sceneStates.clear()

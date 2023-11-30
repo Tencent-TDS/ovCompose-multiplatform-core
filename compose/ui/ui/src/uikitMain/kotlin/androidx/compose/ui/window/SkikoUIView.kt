@@ -45,27 +45,6 @@ import org.jetbrains.skiko.SkikoPointerDevice
 import org.jetbrains.skiko.SkikoPointerEvent
 import org.jetbrains.skiko.SkikoPointerEventKind
 
-
-internal interface SkikoUIViewDelegate {
-
-    fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean
-
-    fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase)
-
-    fun retrieveInteropTransaction(): UIKitInteropTransaction
-
-    fun render(canvas: Canvas, targetTimestamp: NSTimeInterval)
-
-    /**
-     * A callback invoked when [UIView.didMoveToWindow] receives non null window
-     */
-    fun onAttachedToWindow() {}
-}
-
-internal enum class UITouchesEventPhase {
-    BEGAN, MOVED, ENDED, CANCELLED
-}
-
 @Suppress("CONFLICTING_OVERLOADS")//todo in all places redundant?
 internal class SkikoUIView(
     private val focusable: Boolean,
@@ -149,7 +128,6 @@ internal class SkikoUIView(
         }
         if (window != null) {
             onAttachedToWindow?.invoke()
-            delegate.onAttachedToWindow()
             _isReadyToShowContent.value = true
         }
     }
