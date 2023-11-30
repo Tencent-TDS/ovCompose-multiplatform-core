@@ -526,8 +526,7 @@ internal actual class ComposeWindow : UIViewController {
     override fun viewDidAppear(animated: Boolean) {
         super.viewDidAppear(animated)
 
-        val workaround = CMPAccessibilityElement(view)
-        workaround.accessibilityFrame = view.bounds
+        test_CMPUIKitUtils()
 
         NSNotificationCenter.defaultCenter.addObserver(
             observer = keyboardVisibilityListener,

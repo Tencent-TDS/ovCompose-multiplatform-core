@@ -14,13 +14,24 @@
  * limitations under the License.
  */
 
-#import <Foundation/Foundation.h>
+import UIKit
 
-//! Project version number for CMPUIKitUtils.
-FOUNDATION_EXPORT double CMPUIKitUtilsVersionNumber;
+class MockAppDelegate: NSObject, UIApplicationDelegate {
+    var window: UIWindow?
 
-//! Project version string for CMPUIKitUtils.
-FOUNDATION_EXPORT const unsigned char CMPUIKitUtilsVersionString[];
+    func setUpClearWindow() {
+        window = UIWindow(frame: UIScreen.main.bounds)
+        window?.backgroundColor = .systemBackground
 
-#import "CMPView.h"
-#import "CMPViewController.h"
+        UIView.setAnimationsEnabled(false)
+        window?.layer.speed = 10000
+
+        window?.rootViewController = UIViewController()
+        window?.makeKeyAndVisible()
+    }
+
+    func cleanUp() {
+        window = nil
+        UIWindow(frame: UIScreen.main.bounds).makeKeyAndVisible()
+    }
+}

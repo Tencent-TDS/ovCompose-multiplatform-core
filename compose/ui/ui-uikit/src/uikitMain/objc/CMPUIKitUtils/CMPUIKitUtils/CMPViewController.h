@@ -18,9 +18,10 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface CMPAccessibilityElement : UIAccessibilityElement
+@interface CMPViewController : UIViewController
 
-- (NSString *)getName;
+- (void)viewControllerDidEnterWindowHierarchy;
+- (void)viewControllerDidLeaveWindowHierarchy;
 
 @end
 

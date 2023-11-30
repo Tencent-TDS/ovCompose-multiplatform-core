@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
-//! Project version number for CMPUIKitUtils.
-FOUNDATION_EXPORT double CMPUIKitUtilsVersionNumber;
+NS_ASSUME_NONNULL_BEGIN
 
-//! Project version string for CMPUIKitUtils.
-FOUNDATION_EXPORT const unsigned char CMPUIKitUtilsVersionString[];
+@interface CMPView : UIView
 
-#import "CMPView.h"
-#import "CMPViewController.h"
+@property (nonatomic, copy) void (^windowDidChangeBlock)(void);
+
+@end
+
+NS_ASSUME_NONNULL_END
+
+void test_CMPUIKitUtils(void);

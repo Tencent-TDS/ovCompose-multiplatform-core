@@ -14,27 +14,20 @@
  * limitations under the License.
  */
 
-#import "CMPAccessibilityElement.h"
+#import "CMPView.h"
 
-@implementation CMPAccessibilityElement
+@implementation CMPView
 
-- (NSInteger)accessibilityElementCount {
-    NSLog(@"CMPAccessibilityElement: accessibilityElementCount");
-    return 0;
-}
+- (void)willMoveToWindow:(UIWindow *)newWindow {
+    [super willMoveToWindow:newWindow];
 
-- (nullable id)accessibilityElementAtIndex:(NSInteger)index {
-    NSLog(@"CMPAccessibilityElement: accessibilityElementAtIndex");
-    return nil;
-}
-
-- (NSInteger)indexOfAccessibilityElement:(id)element {
-    NSLog(@"CMPAccessibilityElement: indexOfAccessibilityElement");
-    return 0;
-}
-
-- (NSString *)getName {
-    return @"Hello from CMPAccessibility";
+    if (self.windowDidChangeBlock) {
+        self.windowDidChangeBlock();
+    }
 }
 
 @end
+
+void test_CMPUIKitUtils(void) {
+    NSLog(@"Hello from CMPUIKitUtils");
+}

@@ -15,7 +15,3 @@
  */
 
 package androidx.compose.ui.uikit.utils
-
-abstract class Accessibility {
-    abstract fun getPlatform(): String
-}
