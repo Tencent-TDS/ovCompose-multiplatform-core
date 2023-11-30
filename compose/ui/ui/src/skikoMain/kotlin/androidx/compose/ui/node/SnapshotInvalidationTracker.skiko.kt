@@ -51,9 +51,6 @@ internal class SnapshotInvalidationTracker(
     }
 
     fun onLayout() {
-        // Apply changes from recomposition phase to layout phase
-        sendAndPerformSnapshotChanges()
-
         needLayout = false
     }
 
@@ -63,9 +60,6 @@ internal class SnapshotInvalidationTracker(
     }
 
     fun onDraw() {
-        // Apply changes from layout phase to draw phase
-        sendAndPerformSnapshotChanges()
-
         needDraw = false
     }
 
