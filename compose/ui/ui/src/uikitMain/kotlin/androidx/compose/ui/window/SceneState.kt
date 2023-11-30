@@ -91,8 +91,10 @@ internal interface SceneState<V> {
     val uiKitTextInputService: UIKitTextInputService
 
     /**
-     * TODO This is workaround. Need to fix it. Maybe recomposition comes twice because of default density 1.0 and lazy density
+     * TODO This is workaround. Need to fix it.
      *  https://github.com/JetBrains/compose-multiplatform-core/pull/861
+     *  Density problem was fixed
+     *  But there are still problem with safeArea
      */
     val isReadyToShowContent: State<Boolean>
 }
@@ -115,8 +117,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
                 right = right.dp,
                 bottom = bottom.dp,
             )
-        }.also {
-            println("calcSafeArea $it")
         }
 
     fun calcLayoutMargin(): PlatformInsets =
@@ -127,8 +127,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
                 right = trailing.dp, // TODO: Check RTL support
                 bottom = bottom.dp,
             )
-        }.also {
-            println("calcLayoutMargin $it")
         }
 
     val safeAreaState: MutableState<PlatformInsets> by lazy {
@@ -212,8 +210,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             densityProvider = densityProvider,
         )
     }
-
-    val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
 
     override val keyboardVisibilityListener by lazy {
         KeyboardVisibilityListenerImpl(
