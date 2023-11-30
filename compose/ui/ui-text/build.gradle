@@ -111,6 +111,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(project(":compose:runtime:runtime-saveable"))
 
                 implementation(project(":compose:ui:ui-util"))
+                implementation(project(":compose:ui:ui-geometry"))
             }
 
             jvmMain.dependencies {

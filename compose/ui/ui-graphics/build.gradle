@@ -85,6 +85,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api(project(":compose:ui:ui-unit"))
                 implementation(project(":compose:runtime:runtime"))
                 implementation(project(":compose:ui:ui-util"))
+                implementation(project(":compose:ui:ui-geometry"))
             }
 
             androidMain.dependencies {
