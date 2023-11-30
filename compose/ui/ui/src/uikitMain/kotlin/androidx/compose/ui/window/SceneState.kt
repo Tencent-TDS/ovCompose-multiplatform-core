@@ -70,71 +70,9 @@ internal interface SceneState<V> {
     val uiKitTextInputService: UIKitTextInputService
 }
 
-private val coroutineDispatcher = Dispatchers.Main
-
-internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayerSceneUIViewState(
-    focusable: Boolean
-): SceneState<UIView> = prepareSingleLayerComposeScene(
-    densityProvider = densityProvider,
-    focusable = focusable,
-    coroutineContext = coroutineDispatcher
-) {
-    object : ComposeSceneContext {
-        override fun createPlatformLayer(
-            density: Density,
-            layoutDirection: LayoutDirection,
-            focusable: Boolean,
-            compositionContext: CompositionContext
-        ): ComposeSceneLayer {
-            return prepareSingleLayerComposeScene(
-                densityProvider = densityProvider,
-                focusable = focusable,
-                coroutineContext = compositionContext.effectCoroutineContext,
-                prepareComposeSceneContext = { this },
-            ).run {
-                val layerState = createLayerState(density, layoutDirection, focusable)
-                layerState.display()
-                layers.add(layerState)
-                layerState.layer
-            }
-        }
-    }
-}
-
-private fun RootViewControllerState<UIViewController, UIView>.prepareSingleLayerComposeScene(
-    densityProvider: DensityProvider,
+internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     focusable: Boolean,
-    coroutineContext: CoroutineContext,
-    prepareComposeSceneContext: () -> ComposeSceneContext,
-): SceneState<UIView> = createSceneState(focusable) {
-    SingleLayerComposeScene(
-        coroutineContext = coroutineContext,
-        composeSceneContext = object : ComposeSceneContext by prepareComposeSceneContext() {
-            //todo do we need new platform context on every SingleLayerComposeScene?
-            override val platformContext: PlatformContext get() = this@createSceneState.platformContext
-        },
-        density = densityProvider(),
-        invalidate = ::needRedraw,
-        layoutDirection = layoutDirection,
-    )
-}
-
-internal fun RootViewControllerState<UIViewController, UIView>.createMultiLayerSceneUIViewState(): SceneState<UIView> =
-    createSceneState(focusable = true) {
-        MultiLayerComposeScene(
-            coroutineContext = coroutineDispatcher,
-            composeSceneContext = object : ComposeSceneContext {
-                override val platformContext: PlatformContext get() = this@createSceneState.platformContext
-            },
-            density = densityProvider(),
-            invalidate = ::needRedraw,
-            layoutDirection = layoutDirection,
-        )
-    }
-
-private fun RootViewControllerState<UIViewController, UIView>.createSceneState(
-    focusable: Boolean,
-    buildScene: SceneState<UIView>.() -> ComposeScene,
+    buildScene: (SceneState<UIView>) -> ComposeScene,
 ): SceneState<UIView> = object : SceneState<UIView> {
     override val layers: MutableList<LayerState<UIView>> = mutableListOf()
     override val sceneView: SkikoUIView by lazy {
@@ -167,7 +105,7 @@ private fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             sceneView.isForcedToPresentWithTransactionEveryFrame = value
         }
 
-    override val scene: ComposeScene by lazy { buildScene() }
+    override val scene: ComposeScene by lazy { buildScene(this) }
 
     override val interopContext: UIKitInteropContext by lazy {
         UIKitInteropContext(
