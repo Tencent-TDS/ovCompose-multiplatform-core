@@ -18,7 +18,9 @@ package androidx.compose.ui.node
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.createSynchronizedObject
+import androidx.compose.ui.getCurrentThreadId
 import androidx.compose.ui.synchronized
+import kotlinx.atomicfu.atomic
 
 /**
  * SnapshotCommandList is a class that manages commands and invalidations for snapshot-based recomposition.
@@ -32,6 +34,13 @@ internal class SnapshotInvalidationTracker(
     private val snapshotChanges = CommandList(invalidate)
     private var needLayout = true
     private var needDraw = true
+
+    /**
+     * The id of the thread currently inside [rendering].
+     *
+     * Note that it's not valid to have more than one thread calling it at the same time.
+     */
+    private val renderingThreadId = atomic<Long?>(null)
 
     val hasInvalidations: Boolean
         get() = needLayout || needDraw || snapshotChanges.hasCommands
@@ -66,7 +75,10 @@ internal class SnapshotInvalidationTracker(
      * @return the observer for monitoring snapshot changes
      */
     fun snapshotObserver() = OwnerSnapshotObserver { command ->
-        snapshotChanges.add(command)
+        if (renderingThreadId.value == getCurrentThreadId())
+            command()
+        else
+            snapshotChanges.add(command)
     }
 
     /**
@@ -75,6 +87,21 @@ internal class SnapshotInvalidationTracker(
     fun sendAndPerformSnapshotChanges() {
         Snapshot.sendApplyNotifications()
         snapshotChanges.perform()
+    }
+
+    /**
+     * [ComposeScene.render] should wrap itself in this; makes sure that inside `render`, the calls
+     * to [OwnerSnapshotObserver] are performed synchronously.
+     *
+     * See [OwnerSnapshotObserverTest.observeReadsChangedBeforeDisposeEffect] for more details.
+     */
+    inline fun rendering(crossinline block: () -> Unit) {
+        try {
+            renderingThreadId.value = getCurrentThreadId()
+            block()
+        } finally {
+            renderingThreadId.value = null
+        }
     }
 }
 

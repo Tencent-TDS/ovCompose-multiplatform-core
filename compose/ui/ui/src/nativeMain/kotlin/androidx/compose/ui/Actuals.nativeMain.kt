@@ -19,3 +19,11 @@ package androidx.compose.ui
 internal actual fun areObjectsOfSameType(a: Any, b: Any): Boolean {
     return a::class == b::class
 }
+
+private val threadCounter = kotlin.native.concurrent.AtomicLong(0)
+
+@kotlin.native.concurrent.ThreadLocal
+private var threadId: Long = threadCounter.addAndGet(1)
+
+internal actual fun getCurrentThreadId(): Long = threadId
+

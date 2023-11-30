@@ -146,12 +146,14 @@ internal abstract class BaseComposeScene(
     }
 
     override fun render(canvas: Canvas, nanoTime: Long) = postponeInvalidation {
-        recomposer.performScheduledTasks()
-        frameClock.sendFrame(nanoTime) // Recomposition
+        snapshotInvalidationTracker.rendering {
+            recomposer.performScheduledTasks()
+            frameClock.sendFrame(nanoTime) // Recomposition
 
-        doLayout()
-        snapshotInvalidationTracker.onDraw()
-        draw(canvas)
+            doLayout()
+            snapshotInvalidationTracker.onDraw()
+            draw(canvas)
+        }
     }
 
     override fun sendPointerEvent(
