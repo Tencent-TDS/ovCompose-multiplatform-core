@@ -45,19 +45,18 @@ import platform.darwin.sel_registerName
 internal interface KeyboardVisibilityListener {
     fun keyboardWillShow(arg: NSNotification)
     fun keyboardWillHide(arg: NSNotification)
-
-    val keyboardOverlapHeightState: MutableState<Float>
 }
 
 internal class KeyboardVisibilityListenerImpl(
     val configuration: ComposeUIViewControllerConfiguration,
+    val keyboardOverlapHeightState: MutableState<Float>,
     val viewProvider: () -> UIView,
     val sceneStates: List<SceneState<UIView>>,
     val densityProvider: DensityProvider,
+    val sceneStateProvider: () -> SceneState<UIView>,
 ) : KeyboardVisibilityListener {
 
     val view get() = viewProvider()
-    override val keyboardOverlapHeightState: MutableState<Float> get() = mutableStateOf(0f)
 
     //invisible view to track system keyboard animation
     private val keyboardAnimationView: UIView by lazy {
@@ -70,8 +69,8 @@ internal class KeyboardVisibilityListenerImpl(
     override fun keyboardWillShow(arg: NSNotification) {
         animateKeyboard(arg, true)
 
-        val sceneViewState = sceneStates.firstOrNull() ?: return // todo iterate on all scenes
-        val scene = sceneViewState.scene
+        val sceneState = sceneStateProvider()
+        val scene = sceneState.scene
         val userInfo = arg.userInfo ?: return
         val keyboardInfo = userInfo[UIKeyboardFrameEndUserInfoKey] as NSValue
         val keyboardHeight = keyboardInfo.CGRectValue().useContents { size.height }
@@ -80,7 +79,7 @@ internal class KeyboardVisibilityListenerImpl(
 
             if (focusedRect != null) {
                 updateViewBounds(
-                    offsetY = calcFocusedLiftingY(sceneViewState, focusedRect, keyboardHeight)
+                    offsetY = calcFocusedLiftingY(sceneState, focusedRect, keyboardHeight)
                 )
             }
         }
@@ -174,7 +173,7 @@ internal class KeyboardVisibilityListenerImpl(
     }
 
     private fun calcFocusedLiftingY(sceneState: SceneState<UIView>, focusedRect: DpRect, keyboardHeight: Double): Double {
-        val viewHeight = sceneState.sceneView.frame.useContents {
+        val viewHeight = sceneState.sceneView.frame.useContents {// todo use layer bounds for Popup and Dialog
             size.height
         }
 

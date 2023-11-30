@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.math.roundToInt
 import kotlinx.cinterop.useContents
+import platform.Foundation.NSNotification
 import platform.UIKit.UIApplication
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIView
@@ -52,6 +53,7 @@ internal interface RootViewControllerState<RootView, SceneView> {
     val density: Density get() = densityProvider()
     val focusStack: FocusStack<UIView>
     val sceneStates: List<SceneState<SceneView>>
+    val configuration: ComposeUIViewControllerConfiguration
 
     @Composable
     fun EntrypointCompositionLocals(content: @Composable () -> Unit)
@@ -63,20 +65,13 @@ internal fun createRootUIViewControllerState(
     content: @Composable () -> Unit,
 ) = object : RootViewControllerState<UIViewController, UIView> {
 
+    override val configuration = configuration
     override val layoutDirection get() =
         when (UIApplication.sharedApplication().userInterfaceLayoutDirection) {
             UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
             else -> LayoutDirection.Ltr
         }
     override val sceneStates: MutableList<SceneState<UIView>> = mutableListOf()
-    val keyboardVisibilityListener by lazy {
-        KeyboardVisibilityListenerImpl(
-            configuration = configuration,
-            viewProvider = { rootViewController.view },
-            sceneStates = sceneStates,
-            densityProvider = densityProvider,
-        )
-    }
     val safeAreaState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
     val layoutMarginsState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
 
@@ -96,7 +91,6 @@ internal fun createRootUIViewControllerState(
         CompositionLocalProvider(
             LocalUIViewController provides rootViewController,
             LocalLayerContainer provides rootViewController.view,
-            LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
             LocalSafeArea provides safeAreaState.value,
             LocalLayoutMargins provides layoutMarginsState.value,
             LocalInterfaceOrientation provides interfaceOrientationState.value,
@@ -118,6 +112,16 @@ internal fun createRootUIViewControllerState(
         } else {
             createMultiLayerSceneUIViewState()
         }
+
+    val keyboardVisibilityListener = object : KeyboardVisibilityListener {
+        override fun keyboardWillShow(arg: NSNotification) = sceneStates.forEach {
+            it.keyboardVisibilityListener.keyboardWillShow(arg)
+        }
+
+        override fun keyboardWillHide(arg: NSNotification) = sceneStates.forEach {
+            it.keyboardVisibilityListener.keyboardWillHide(arg)
+        }
+    }
 
     override val rootViewController: RootUIViewController by lazy {
         RootUIViewController(

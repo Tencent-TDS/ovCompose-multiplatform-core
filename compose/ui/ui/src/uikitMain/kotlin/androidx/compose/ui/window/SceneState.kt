@@ -19,7 +19,10 @@ package androidx.compose.ui.window
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.interop.LocalUIKitInteropContext
@@ -33,6 +36,7 @@ import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
 import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SingleLayerComposeScene
+import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
@@ -60,6 +64,7 @@ internal interface SceneState<V> {
     val layers:MutableList<LayerState<V>>
     val windowInfo: WindowInfo
     fun updateLayout()
+    val keyboardVisibilityListener: KeyboardVisibilityListener
 
     val scene: ComposeScene
     val interopContext: UIKitInteropContext
@@ -75,6 +80,7 @@ internal interface SceneState<V> {
     val uiKitTextInputService: UIKitTextInputService
 }
 
+@OptIn(InternalComposeApi::class)
 internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     focusable: Boolean,
     buildScene: (SceneState<UIView>) -> ComposeScene,
@@ -145,10 +151,24 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
         )
     }
 
+    val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
+
+    override val keyboardVisibilityListener by lazy {
+        KeyboardVisibilityListenerImpl(
+            configuration = configuration,
+            keyboardOverlapHeightState = keyboardOverlapHeightState,
+            viewProvider = { rootViewController.view },
+            sceneStates = sceneStates,
+            densityProvider = densityProvider,
+            sceneStateProvider = {this}
+        )
+    }
+
     @Composable
     fun SceneCompositionLocal(content: @Composable () -> Unit) =
         CompositionLocalProvider(
             LocalUIKitInteropContext provides interopContext,
+            LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
             content = content
         )
 
