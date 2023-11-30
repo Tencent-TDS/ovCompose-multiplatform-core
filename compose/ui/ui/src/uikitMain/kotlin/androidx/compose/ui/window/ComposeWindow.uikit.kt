@@ -78,7 +78,6 @@ internal class RootUIViewController(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
     private val createRootSceneViewState: () -> SceneState<UIView>,
-    private val updateLayout: (sceneViewState: SceneState<UIView>) -> Unit,
     private val keyboardVisibilityListener: KeyboardVisibilityListener,
     private val sceneStates: MutableList<SceneState<UIView>>,
     private val safeAreaState: MutableState<PlatformInsets>,
@@ -178,7 +177,7 @@ internal class RootUIViewController(
         }
 
         sceneStates.forEach {
-            updateLayout(it)
+            it.updateLayout()
         }
     }
 

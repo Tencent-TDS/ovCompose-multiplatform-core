@@ -26,6 +26,8 @@ import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.UIKitTextInputService
+import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
@@ -50,11 +53,13 @@ import platform.UIKit.UIViewController
 
 internal interface SceneState<V> {
     val sceneView: V
-    val isReadyToShowContent: State<Boolean>//TODO it is redundant workaround
+    val isReadyToShowContent: State<Boolean>
     fun needRedraw()
     fun dispose()
     var isForcedToPresentWithTransactionEveryFrame: Boolean
     val layers:MutableList<LayerState<V>>
+    val windowInfo: WindowInfo
+    fun updateLayout()
 
     val scene: ComposeScene
     val interopContext: UIKitInteropContext
@@ -75,6 +80,25 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     buildScene: (SceneState<UIView>) -> ComposeScene,
 ): SceneState<UIView> = object : SceneState<UIView> {
     override val layers: MutableList<LayerState<UIView>> = mutableListOf()
+    override val windowInfo = WindowInfoImpl().apply {
+        isWindowFocused = focusable
+    }
+
+    override fun updateLayout() {
+        val scale = densityProvider().density
+        //TODO Old code updates layout based on rootViewController size. Maybe we need to rewrite it for SingleLayerComposeScene
+        val size = rootViewController.view.frame.useContents {
+            IntSize(
+                width = (size.width * scale).roundToInt(),
+                height = (size.height * scale).roundToInt()
+            )
+        }
+        windowInfo.containerSize = size
+        scene.density = densityProvider()
+        scene.size = size
+        needRedraw()
+    }
+
     override val sceneView: SkikoUIView by lazy {
         SkikoUIView(
             focusable,
@@ -130,7 +154,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
 
     override fun setContentWithCompositionLocals(content: @Composable () -> Unit) {
         scene.setContent {
-            if (isReadyToShowContent.value) { // TODO add link to issue with recomposition twice description
+            if (isReadyToShowContent.value) { // TODO This is workaround. Need add link to issue with recomposition twice description.
                 EntrypointCompositionLocals {
                     SceneCompositionLocal {
                         content()
@@ -143,7 +167,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     override fun display(focusable: Boolean) {
         rootViewController.view.addSubview(sceneView)
         setConstraintsToFillView(rootViewController.view)
-        updateLayout(this)
+        updateLayout()
         if (focusable) {
             focusStack.pushAndFocus(sceneView)
         }

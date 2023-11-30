@@ -51,10 +51,7 @@ internal interface RootViewControllerState<RootView, SceneView> {
     val densityProvider: DensityProvider
     val density: Density get() = densityProvider()
     val focusStack: FocusStack<UIView>
-    val windowInfo: WindowInfo //TODO maybe we need windowInfo on each scene
     val sceneStates: List<SceneState<SceneView>>
-    fun updateContainerSize(size: IntSize)
-    fun updateLayout(sceneState: SceneState<SceneView>)
 
     @Composable
     fun EntrypointCompositionLocals(content: @Composable () -> Unit)
@@ -122,35 +119,11 @@ internal fun createRootUIViewControllerState(
             createMultiLayerSceneUIViewState()
         }
 
-    override val windowInfo = WindowInfoImpl().apply {
-        isWindowFocused = true
-    }
-
-    override fun updateContainerSize(size: IntSize) {
-        windowInfo.containerSize = size
-    }
-
-    override fun updateLayout(sceneState: SceneState<UIView>) {
-        val scale = densityProvider().density
-        val size = rootViewController.view.frame.useContents {
-            IntSize(
-                width = (size.width * scale).roundToInt(),
-                height = (size.height * scale).roundToInt()
-            )
-        }
-        updateContainerSize(size)
-        sceneState.scene.density = densityProvider()
-        sceneState.scene.size = size
-
-        sceneState.needRedraw()
-    }
-
     override val rootViewController: RootUIViewController by lazy {
         RootUIViewController(
             configuration = configuration,
             content = content,
             createRootSceneViewState = ::createRootSceneViewState,
-            updateLayout = ::updateLayout,
             keyboardVisibilityListener = keyboardVisibilityListener,
             sceneStates = sceneStates,
             safeAreaState = safeAreaState,
