@@ -21,6 +21,14 @@ import org.jetbrains.skia.ColorAlphaType
 import org.jetbrains.skia.Image
 import org.jetbrains.skia.ImageInfo
 
+/*
+   We use this implementation for non-web targets only. It's faster than `Bitmap.fromImage`.
+   The difference becomes noticeable when running a loop of 100 calls.
+   On Desktop/JVM:
+   11 ms for the current (default) implementation vs ~50ms for Bitmap.fromImage.
+   
+   The implementation for web uses `Btimap.fromImage`, see Actuals.jsWasm.kt
+*/
 internal  actual fun Image.toBitmap(): Bitmap {
     val bitmap = Bitmap()
     bitmap.allocPixels(ImageInfo.makeN32(width, height, ColorAlphaType.PREMUL))
