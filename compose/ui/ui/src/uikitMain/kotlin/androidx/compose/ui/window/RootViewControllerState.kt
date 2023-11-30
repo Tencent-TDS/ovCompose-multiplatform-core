@@ -17,20 +17,134 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.SystemTheme
+import androidx.compose.ui.interop.LocalLayerContainer
+import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.platform.LocalLayoutMargins
+import androidx.compose.ui.platform.LocalSafeArea
+import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
+import androidx.compose.ui.uikit.InterfaceOrientation
+import androidx.compose.ui.uikit.LocalInterfaceOrientation
+import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.IntSize
+import kotlin.math.roundToInt
+import kotlinx.cinterop.useContents
 import platform.UIKit.UIView
+import platform.UIKit.UIViewController
 
 internal interface RootViewControllerState<RootView, SceneView> { //TODO rename to Entrypoint or ViewController
-    val rootView: RootView
+    val rootViewController: RootView
     val densityProvider: DensityProvider
     val focusStack: FocusStack<UIView>
-    val configuration: ComposeUIViewControllerConfiguration
     val windowInfo: WindowInfo //TODO maybe we need windowInfo on each scene
-    val sceneStates:List<SceneState<SceneView>>
+    val sceneStates: List<SceneState<SceneView>>
     fun updateContainerSize(size: IntSize)
     fun updateLayout(sceneState: SceneState<SceneView>)
+
     @Composable
     fun EntrypointCompositionLocals(content: @Composable () -> Unit)
+}
+
+@OptIn(InternalComposeApi::class)
+internal fun createRootUIViewControllerState(
+    configuration: ComposeUIViewControllerConfiguration,
+    content: @Composable () -> Unit,
+) = object : RootViewControllerState<UIViewController, UIView> {
+
+    override val sceneStates: MutableList<SceneState<UIView>> = mutableListOf()
+    val safeAreaState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
+    val layoutMarginsState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
+
+    /*
+     * Initial value is arbitrarily chosen to avoid propagating invalid value logic
+     * It's never the case in real usage scenario to reflect that in type system
+     */
+    val interfaceOrientationState: MutableState<InterfaceOrientation> = mutableStateOf(
+        InterfaceOrientation.Portrait
+    )
+    val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
+
+    override val focusStack: FocusStack<UIView> = FocusStackImpl()
+
+    @Composable
+    override fun EntrypointCompositionLocals(content: @Composable () -> Unit) =
+        CompositionLocalProvider(
+            LocalUIViewController provides rootViewController,
+            LocalLayerContainer provides rootViewController.view,
+            LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
+            LocalSafeArea provides safeAreaState.value,
+            LocalLayoutMargins provides layoutMarginsState.value,
+            LocalInterfaceOrientation provides interfaceOrientationState.value,
+            LocalSystemTheme provides systemThemeState.value,
+            content = content
+        )
+
+    override val densityProvider by lazy {
+        DensityProviderImpl(
+            uiViewControllerProvider = { rootViewController },
+            sceneStates = sceneStates,
+        )
+    }
+
+    @OptIn(ExperimentalComposeApi::class)
+    fun createRootSceneViewState(): SceneState<UIView> =
+        if (configuration.platformLayers) {
+            createSingleLayerSceneUIViewState(focusable = true)
+        } else {
+            createMultiLayerSceneUIViewState()
+        }
+
+    override val windowInfo = WindowInfoImpl().apply {
+        isWindowFocused = true
+    }
+
+    override fun updateContainerSize(size: IntSize) {
+        windowInfo.containerSize = size
+    }
+
+    override fun updateLayout(sceneState: SceneState<UIView>) {
+        val scale = densityProvider().density
+        val size = rootViewController.view.frame.useContents {
+            IntSize(
+                width = (size.width * scale).roundToInt(),
+                height = (size.height * scale).roundToInt()
+            )
+        }
+        updateContainerSize(size)
+        sceneState.scene.density = densityProvider()
+        sceneState.scene.size = size
+
+        sceneState.needRedraw()
+    }
+
+    val keyboardVisibilityListener = KeyboardVisibilityListenerImpl(
+        configuration = configuration,
+        uiViewControllerProvider = { rootViewController },
+        sceneStates = sceneStates,
+        densityProvider = densityProvider,
+    )
+
+    override val rootViewController: RootUIViewController by lazy {
+        RootUIViewController(
+            configuration = configuration,
+            content = content,
+            createRootSceneViewState = ::createRootSceneViewState,
+            updateLayout = ::updateLayout,
+            keyboardVisibilityListener = keyboardVisibilityListener,
+            sceneStates = sceneStates,
+            safeAreaState = safeAreaState,
+            layoutMarginsState = layoutMarginsState,
+            interfaceOrientationState = interfaceOrientationState,
+            systemThemeState = systemThemeState,
+        )
+    }
 }

@@ -186,8 +186,8 @@ private fun RootViewControllerState<UIViewController, UIView>.createStateWithSce
     }
 
     override fun display(focusable: Boolean) {
-        rootView.view.addSubview(sceneView)
-        setConstraintsToFillView(rootView.view)
+        rootViewController.view.addSubview(sceneView)
+        setConstraintsToFillView(rootViewController.view)
         updateLayout(this)
         if (focusable) {
             focusStack.pushAndFocus(sceneView)
@@ -200,7 +200,7 @@ private fun RootViewControllerState<UIViewController, UIView>.createStateWithSce
                 sceneView.setNeedsDisplay() // redraw on next frame
                 CATransaction.flush() // clear all animations
             },
-            rootViewProvider = { rootView.view },
+            rootViewProvider = { rootViewController.view },
             densityProvider = densityProvider,
             focusStack = focusStack,
             keyboardEventHandler = keyboardEventHandler

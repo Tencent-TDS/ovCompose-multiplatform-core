@@ -64,102 +64,13 @@ import platform.darwin.sel_registerName
 fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
     ComposeUIViewController(configure = {}, content = content)
 
-@OptIn(InternalComposeApi::class)
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController = object: RootViewControllerState<UIViewController, UIView> {
-
-    override val sceneStates: MutableList<SceneState<UIView>> = mutableListOf()
-    val safeAreaState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
-    val layoutMarginsState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
-    /*
-     * Initial value is arbitrarily chosen to avoid propagating invalid value logic
-     * It's never the case in real usage scenario to reflect that in type system
-     */
-    val interfaceOrientationState: MutableState<InterfaceOrientation> = mutableStateOf(
-        InterfaceOrientation.Portrait
-    )
-    val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
-
-    override val focusStack: FocusStack<UIView> = FocusStackImpl()
-
-    @Composable
-    override fun EntrypointCompositionLocals(content: @Composable () -> Unit) =
-        CompositionLocalProvider(
-            LocalUIViewController provides rootView,
-            LocalLayerContainer provides rootView.view,
-            LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
-            LocalSafeArea provides safeAreaState.value,
-            LocalLayoutMargins provides layoutMarginsState.value,
-            LocalInterfaceOrientation provides interfaceOrientationState.value,
-            LocalSystemTheme provides systemThemeState.value,
-            content = content
-        )
-
-    override val densityProvider by lazy {
-        DensityProviderImpl(
-            uiViewControllerProvider = { rootView },
-            sceneStates = sceneStates,
-        )
-    }
-
-    @OptIn(ExperimentalComposeApi::class)
-    fun createRootSceneViewState(): SceneState<UIView> =
-        if (configuration.platformLayers) {
-            createSingleLayerSceneUIViewState(focusable = true)
-        } else {
-            createMultiLayerSceneUIViewState()
-        }
-
-    override val configuration by lazy {
-        ComposeUIViewControllerConfiguration().apply(configure)
-    }
-    override val windowInfo = WindowInfoImpl().apply {
-        isWindowFocused = true
-    }
-
-    override fun updateContainerSize(size: IntSize) {
-        windowInfo.containerSize = size
-    }
-
-    override fun updateLayout(sceneState: SceneState<UIView>) {
-        val scale = densityProvider().density
-        val size = rootView.view.frame.useContents {
-            IntSize(
-                width = (size.width * scale).roundToInt(),
-                height = (size.height * scale).roundToInt()
-            )
-        }
-        updateContainerSize(size)
-        sceneState.scene.density = densityProvider()
-        sceneState.scene.size = size
-
-        sceneState.needRedraw()
-    }
-
-    val keyboardVisibilityListener = KeyboardVisibilityListenerImpl(
-        configuration = configuration,
-        uiViewControllerProvider = { rootView },
-        sceneStates = sceneStates,
-        densityProvider = densityProvider,
-    )
-
-    override val rootView: RootUIViewController by lazy {
-        RootUIViewController(
-            configuration = configuration,
-            content = content,
-            createRootSceneViewState = ::createRootSceneViewState,
-            updateLayout = ::updateLayout,
-            keyboardVisibilityListener = keyboardVisibilityListener,
-            sceneStates = sceneStates,
-            safeAreaState = safeAreaState,
-            layoutMarginsState = layoutMarginsState,
-            interfaceOrientationState = interfaceOrientationState,
-            systemThemeState = systemThemeState,
-        )
-    }
-}.rootView
+): UIViewController = createRootUIViewControllerState(
+    configuration = ComposeUIViewControllerConfiguration().apply(configure),
+    content = content,
+).rootViewController
 
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
