@@ -57,7 +57,6 @@ import platform.UIKit.UIViewController
 
 internal interface SceneState<V> {
     val sceneView: V
-    val isReadyToShowContent: State<Boolean>
     fun needRedraw()
     fun dispose()
     var isForcedToPresentWithTransactionEveryFrame: Boolean
@@ -65,6 +64,7 @@ internal interface SceneState<V> {
     val windowInfo: WindowInfo
     fun updateLayout()
     val keyboardVisibilityListener: KeyboardVisibilityListener
+    val densityProvider: DensityProvider
 
     val scene: ComposeScene
     val interopContext: UIKitInteropContext
@@ -78,6 +78,12 @@ internal interface SceneState<V> {
     val delegate: SkikoUIViewDelegate
     val keyboardEventHandler: KeyboardEventHandler
     val uiKitTextInputService: UIKitTextInputService
+
+    /**
+     * TODO This is workaround. Need to fix it. Maybe recomposition comes twice because of default density 1.0 and lazy density
+     *  https://github.com/JetBrains/compose-multiplatform-core/pull/861
+     */
+    val isReadyToShowContent: State<Boolean>
 }
 
 @OptIn(InternalComposeApi::class)
@@ -88,6 +94,13 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     override val layers: MutableList<LayerState<UIView>> = mutableListOf()
     override val windowInfo = WindowInfoImpl().apply {
         isWindowFocused = focusable
+    }
+
+    override val densityProvider by lazy {
+        DensityProviderImpl(
+            uiViewControllerProvider = { rootViewController },
+            viewProvider = { sceneView },
+        )
     }
 
     override fun updateLayout() {
@@ -174,7 +187,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
 
     override fun setContentWithCompositionLocals(content: @Composable () -> Unit) {
         scene.setContent {
-            if (isReadyToShowContent.value) { // TODO This is workaround. Need add link to issue with recomposition twice description.
+            if (isReadyToShowContent.value) {
                 EntrypointCompositionLocals {
                     SceneCompositionLocal {
                         content()

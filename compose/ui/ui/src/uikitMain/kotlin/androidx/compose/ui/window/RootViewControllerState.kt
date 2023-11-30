@@ -49,8 +49,6 @@ import platform.UIKit.UIViewController
 internal interface RootViewControllerState<RootView, SceneView> {
     val rootViewController: RootView
     val layoutDirection: LayoutDirection
-    val densityProvider: DensityProvider
-    val density: Density get() = densityProvider()
     val focusStack: FocusStack<UIView>
     val sceneStates: List<SceneState<SceneView>>
     val configuration: ComposeUIViewControllerConfiguration
@@ -97,13 +95,6 @@ internal fun createRootUIViewControllerState(
             LocalSystemTheme provides systemThemeState.value,
             content = content
         )
-
-    override val densityProvider by lazy {
-        DensityProviderImpl(
-            uiViewControllerProvider = { rootViewController },
-            sceneStates = sceneStates,
-        )
-    }
 
     @OptIn(ExperimentalComposeApi::class)
     fun createRootSceneViewState(): SceneState<UIView> =

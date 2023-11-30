@@ -35,7 +35,6 @@ private val coroutineDispatcher = Dispatchers.Main
 internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayerSceneUIViewState(
     focusable: Boolean
 ): SceneState<UIView> = prepareSingleLayerComposeScene(
-    densityProvider = densityProvider,
     focusable = focusable,
     coroutineContext = coroutineDispatcher
 ) { sceneState: SceneState<UIView> ->
@@ -48,7 +47,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayer
             compositionContext: CompositionContext
         ): ComposeSceneLayer {
             return prepareSingleLayerComposeScene(
-                densityProvider = densityProvider,
                 focusable = focusable,
                 coroutineContext = compositionContext.effectCoroutineContext,
                 prepareComposeSceneContext = { this },
@@ -63,7 +61,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayer
 }
 
 private fun RootViewControllerState<UIViewController, UIView>.prepareSingleLayerComposeScene(
-    densityProvider: DensityProvider,
     focusable: Boolean,
     coroutineContext: CoroutineContext,
     prepareComposeSceneContext: (sceneState:SceneState<UIView>) -> ComposeSceneContext,
@@ -71,7 +68,7 @@ private fun RootViewControllerState<UIViewController, UIView>.prepareSingleLayer
     SingleLayerComposeScene(
         coroutineContext = coroutineContext,
         composeSceneContext = prepareComposeSceneContext(sceneState),
-        density = densityProvider(),
+        density = sceneState.densityProvider(),
         invalidate = sceneState::needRedraw,
         layoutDirection = layoutDirection,
     )

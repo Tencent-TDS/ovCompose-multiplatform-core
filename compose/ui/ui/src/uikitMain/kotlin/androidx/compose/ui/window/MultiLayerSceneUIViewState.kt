@@ -32,7 +32,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createMultiLayerS
             composeSceneContext = object : ComposeSceneContext {
                 override val platformContext: PlatformContext get() = sceneState.platformContext
             },
-            density = densityProvider(),
+            density = sceneState.densityProvider(),
             invalidate = sceneState::needRedraw,
             layoutDirection = layoutDirection,
         )
