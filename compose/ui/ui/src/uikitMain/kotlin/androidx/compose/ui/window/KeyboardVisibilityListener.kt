@@ -39,7 +39,6 @@ import platform.UIKit.UIKeyboardAnimationDurationUserInfoKey
 import platform.UIKit.UIKeyboardFrameEndUserInfoKey
 import platform.UIKit.UIScreen
 import platform.UIKit.UIView
-import platform.UIKit.UIViewController
 import platform.darwin.NSObject
 import platform.darwin.sel_registerName
 
@@ -52,14 +51,13 @@ internal interface KeyboardVisibilityListener {
 
 internal class KeyboardVisibilityListenerImpl(
     val configuration: ComposeUIViewControllerConfiguration,
-    val uiViewControllerProvider: () -> UIViewController,
+    val viewProvider: () -> UIView,
     val sceneStates: List<SceneState<UIView>>,
     val densityProvider: DensityProvider,
 ) : KeyboardVisibilityListener {
 
+    val view get() = viewProvider()
     override val keyboardOverlapHeightState: MutableState<Float> get() = mutableStateOf(0f)
-    private val view get() = uiViewControllerProvider().view
-    private val uiViewController get() = uiViewControllerProvider()
 
     //invisible view to track system keyboard animation
     private val keyboardAnimationView: UIView by lazy {
@@ -107,7 +105,7 @@ internal class KeyboardVisibilityListenerImpl(
 
         //attach to root view if needed
         if (keyboardAnimationView.superview == null) {
-            uiViewController.view.addSubview(keyboardAnimationView)
+            view.addSubview(keyboardAnimationView)
         }
 
         //cancel previous animation
@@ -212,5 +210,4 @@ internal class KeyboardVisibilityListenerImpl(
             }
         )
     }
-
 }

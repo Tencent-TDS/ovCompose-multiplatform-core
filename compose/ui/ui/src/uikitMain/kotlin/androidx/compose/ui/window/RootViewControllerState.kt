@@ -35,6 +35,7 @@ import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.math.roundToInt
@@ -45,9 +46,10 @@ import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
 internal interface RootViewControllerState<RootView, SceneView> {
-    val layoutDirection: LayoutDirection
     val rootViewController: RootView
+    val layoutDirection: LayoutDirection
     val densityProvider: DensityProvider
+    val density: Density get() = densityProvider()
     val focusStack: FocusStack<UIView>
     val windowInfo: WindowInfo //TODO maybe we need windowInfo on each scene
     val sceneStates: List<SceneState<SceneView>>
@@ -70,6 +72,14 @@ internal fun createRootUIViewControllerState(
             else -> LayoutDirection.Ltr
         }
     override val sceneStates: MutableList<SceneState<UIView>> = mutableListOf()
+    val keyboardVisibilityListener by lazy {
+        KeyboardVisibilityListenerImpl(
+            configuration = configuration,
+            viewProvider = { rootViewController.view },
+            sceneStates = sceneStates,
+            densityProvider = densityProvider,
+        )
+    }
     val safeAreaState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
     val layoutMarginsState: MutableState<PlatformInsets> = mutableStateOf(PlatformInsets())
 
@@ -135,13 +145,6 @@ internal fun createRootUIViewControllerState(
         sceneState.needRedraw()
     }
 
-    val keyboardVisibilityListener = KeyboardVisibilityListenerImpl(
-        configuration = configuration,
-        uiViewControllerProvider = { rootViewController },
-        sceneStates = sceneStates,
-        densityProvider = densityProvider,
-    )
-
     override val rootViewController: RootUIViewController by lazy {
         RootUIViewController(
             configuration = configuration,
@@ -156,4 +159,5 @@ internal fun createRootUIViewControllerState(
             systemThemeState = systemThemeState,
         )
     }
+
 }
