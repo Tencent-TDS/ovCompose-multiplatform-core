@@ -155,7 +155,7 @@ kotlin {
                 implementation(project(":compose:ui:ui-graphics"))
                 implementation(project(":compose:ui:ui-text"))
                 implementation(libs.kotlinCoroutinesCore)
-                api("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.1-wasm1")
+                api(libs.kotlinSerializationCore)
             }
         }
 
