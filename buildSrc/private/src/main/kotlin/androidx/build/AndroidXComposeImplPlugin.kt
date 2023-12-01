@@ -141,7 +141,7 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                 val isWasm = compile.kotlinOptions.freeCompilerArgs.contains("-Xwasm")
 
                 compile.kotlinOptions.freeCompilerArgs += listOf(
-                    "-P", "plugin:androidx.compose.compiler.plugins.kotlin:generateDecoys=${!isWasm}",
+                    "-P", "plugin:androidx.compose.compiler.plugins.kotlin:generateDecoys=false",
                     "-Xklib-enable-signature-clash-checks=false",
                 )
             }
