@@ -42,7 +42,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayer
             focusable: Boolean,
             compositionContext: CompositionContext
         ): ComposeSceneLayer {
-            println("create layer focusable: $focusable")
             val layerState = createLayerState(
                 parentSceneState = sceneState,
                 coroutineContext = coroutineDispatcher,
