@@ -21,12 +21,15 @@ import androidx.compose.runtime.CompositionContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.scene.ComposeScene
+import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
+import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGRectMake
@@ -41,14 +44,30 @@ internal interface LayerState<V> {
 }
 
 internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
-    density: Density,
-    layoutDirection: LayoutDirection,
+    parentSceneState: SceneState<UIView>,
+    coroutineContext: CoroutineContext,
+    composeSceneContext: ComposeSceneContext,
     focusable: Boolean,
 ): LayerState<UIView> = object : LayerState<UIView> {
 
+    /**
+     * Internal Compose scene for rendering
+     */
     val sceneState: SceneState<UIView> =
-        createSingleLayerSceneUIViewState(focusable = focusable).also {
-            it.sceneView.alpha = 0.5 //todo remove after
+        createSceneState(focusable = focusable) {
+            SingleLayerComposeScene(
+                coroutineContext = coroutineContext,
+                composeSceneContext = composeSceneContext,
+                density = parentSceneState.densityProvider(),
+                invalidate = parentSceneState::needRedraw,
+                layoutDirection = layoutDirection,
+            )
+        }.also {
+            //todo for debugging only
+            it.sceneView.alpha = 0.5
+            it.sceneView.setBounds(
+                CGRectMake(0.0, 0.0, 2000.0, 3000.0)
+            )
         }
 
     override fun display() {
@@ -56,9 +75,10 @@ internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
     }
 
     override val layer = object : ComposeSceneLayer {
-        override var density: Density = density
-        override var layoutDirection: LayoutDirection = layoutDirection
-        override var bounds: IntRect
+        override var density: Density = parentSceneState.densityProvider()
+        override var layoutDirection: LayoutDirection = this@createLayerState.layoutDirection
+        val boundsStub: IntRect = IntRect(0,0,0,0)
+        var goodBounds: IntRect
             get() = IntRect(
                 offset = IntOffset(
                     x = sceneState.sceneView.bounds.useContents { origin.x.toInt() },
@@ -79,6 +99,11 @@ internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
                         value.height.toDouble()
                     )
                 )
+            }
+        override var bounds: IntRect
+            get() = boundsStub
+            set(value) {
+
             }
         override var scrimColor: Color? = null
         override var focusable: Boolean = focusable

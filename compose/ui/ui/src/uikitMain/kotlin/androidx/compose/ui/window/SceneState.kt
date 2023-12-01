@@ -290,7 +290,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
         )
     }
 
-    private var constraints: List<NSLayoutConstraint> = emptyList()//todo duplicate
+    private var constraints: List<NSLayoutConstraint> = emptyList()
         set(value) {
             if (field.isNotEmpty()) {
                 NSLayoutConstraint.deactivateConstraints(field)

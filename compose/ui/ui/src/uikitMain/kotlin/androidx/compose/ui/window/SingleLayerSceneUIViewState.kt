@@ -21,7 +21,6 @@ import androidx.compose.runtime.CompositionContext
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
-import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -33,12 +32,13 @@ import platform.UIKit.UIViewController
 private val coroutineDispatcher = Dispatchers.Main
 
 internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayerSceneUIViewState(
-    focusable: Boolean
+    focusable: Boolean,
 ): SceneState<UIView> = prepareSingleLayerComposeScene(
     focusable = focusable,
     coroutineContext = coroutineDispatcher
 ) { sceneState: SceneState<UIView> ->
     object : ComposeSceneContext {
+        val currentComposeSceneContext = this
         override val platformContext: PlatformContext get() = sceneState.platformContext
         override fun createPlatformLayer(
             density: Density,
@@ -46,21 +46,20 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayer
             focusable: Boolean,
             compositionContext: CompositionContext
         ): ComposeSceneLayer {
-            return prepareSingleLayerComposeScene(
-                focusable = focusable,
-                coroutineContext = compositionContext.effectCoroutineContext,
-                prepareComposeSceneContext = { this },
-            ).run {
-                val layerState = createLayerState(density, layoutDirection, focusable)
-                layerState.display()
-                layers.add(layerState)
-                layerState.layer
-            }
+            val layerState = createLayerState(
+                parentSceneState = sceneState,
+                coroutineContext = coroutineDispatcher,
+                composeSceneContext = currentComposeSceneContext,
+                focusable = focusable
+            )
+            layerState.display()
+            sceneState.layers.add(layerState)
+            return layerState.layer
         }
     }
 }
 
-private fun RootViewControllerState<UIViewController, UIView>.prepareSingleLayerComposeScene(
+private fun RootViewControllerState<UIViewController, UIView>.prepareSingleLayerComposeScene(//todo inline
     focusable: Boolean,
     coroutineContext: CoroutineContext,
     prepareComposeSceneContext: (sceneState:SceneState<UIView>) -> ComposeSceneContext,
