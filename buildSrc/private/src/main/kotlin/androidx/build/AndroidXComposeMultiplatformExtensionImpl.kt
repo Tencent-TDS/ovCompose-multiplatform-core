@@ -73,7 +73,7 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         get() = project.properties["kotlinWasmEnabled"] == "true"
 
     override fun android(): Unit = multiplatformExtension.run {
-        android()
+        androidTarget()
 
         val androidMain = sourceSets.getByName("androidMain")
         val jvmMain = getOrCreateJvmMain()

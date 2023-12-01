@@ -39,5 +39,3 @@ __pycache__
 
 # Don't ignore src files under build package
 !**/src/**/build
-/jbdeps/android-sdk/linux/*
-/jbdeps/android-sdk/darwin/*

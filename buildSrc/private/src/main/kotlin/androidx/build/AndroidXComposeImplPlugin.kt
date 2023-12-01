@@ -138,7 +138,7 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
             }
 
             project.tasks.withType(KotlinJsCompile::class.java).configureEach { compile ->
-                val isWasm = compile.kotlinOptions.freeCompilerArgs.contains("-Xwasm")
+                // val isWasm = compile.kotlinOptions.freeCompilerArgs.contains("-Xwasm")
 
                 compile.kotlinOptions.freeCompilerArgs += listOf(
                     "-P", "plugin:androidx.compose.compiler.plugins.kotlin:generateDecoys=false",
@@ -376,7 +376,11 @@ private fun configureComposeCompilerPlugin(
         val configuration = project.configurations.create(COMPILER_PLUGIN_CONFIGURATION)
         // Add Compose compiler plugin to kotlinPlugin configuration, making sure it works
         // for Playground builds as well
-        project.dependencies.add(COMPILER_PLUGIN_CONFIGURATION, "org.jetbrains.compose.compiler:compiler:1.5.4")
+        val compilerPluginVersion = project.properties["jetbrains.compose.compiler.version"] as String
+        project.dependencies.add(
+            COMPILER_PLUGIN_CONFIGURATION,
+            "org.jetbrains.compose.compiler:compiler:$compilerPluginVersion"
+        )
         val kotlinPlugin = configuration.incoming.artifactView { view ->
             view.attributes { attributes ->
                 attributes.attribute(

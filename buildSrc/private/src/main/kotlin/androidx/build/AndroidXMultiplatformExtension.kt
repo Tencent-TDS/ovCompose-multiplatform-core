@@ -108,8 +108,6 @@ open class AndroidXMultiplatformExtension(val project: Project) {
             field = value
         }
 
-    val presets: NamedDomainObjectCollection<KotlinTargetPreset<*>>
-        get() = kotlinExtension.presets
     val targets: NamedDomainObjectCollection<KotlinTarget>
         get() = kotlinExtension.targets
 
@@ -156,7 +154,7 @@ open class AndroidXMultiplatformExtension(val project: Project) {
     ): KotlinAndroidTarget? {
         requestedPlatforms.add(PlatformIdentifier.ANDROID)
         return if (project.enableJvm()) {
-            kotlinExtension.android {
+            kotlinExtension.androidTarget {
                 block?.execute(this)
             }
         } else { null }
