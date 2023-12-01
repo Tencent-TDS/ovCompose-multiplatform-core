@@ -30,38 +30,37 @@ import platform.UIKit.UIViewController
 
 private val coroutineDispatcher = Dispatchers.Main
 
-internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayerSceneUIViewState(
-    focusable: Boolean,
-): SceneState<UIView> = createSceneState(focusable = focusable) { sceneState ->
-    val context = object : ComposeSceneContext {
-        val currentComposeSceneContext = this
-        override val platformContext: PlatformContext get() = sceneState.platformContext
-        override fun createPlatformLayer(
-            density: Density,
-            layoutDirection: LayoutDirection,
-            focusable: Boolean,
-            compositionContext: CompositionContext
-        ): ComposeSceneLayer {
-            val layerState = createLayerState(
-                parentSceneState = sceneState,
-                coroutineContext = coroutineDispatcher,
-                composeSceneContext = currentComposeSceneContext,
-                focusable = focusable
-            )
-            layerState.display()
-            sceneState.layers.add(layerState)
-            return layerState.layer
+internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayerSceneUIViewState(): SceneState<UIView> =
+    createSceneState(focusable = true) { sceneState ->
+        val context = object : ComposeSceneContext {
+            val currentComposeSceneContext = this
+            override val platformContext: PlatformContext get() = sceneState.platformContext
+            override fun createPlatformLayer(
+                density: Density,
+                layoutDirection: LayoutDirection,
+                focusable: Boolean,
+                compositionContext: CompositionContext
+            ): ComposeSceneLayer {
+                val layerState = createLayerState(
+                    parentSceneState = sceneState,
+                    coroutineContext = coroutineDispatcher,
+                    composeSceneContext = currentComposeSceneContext,
+                    focusable = focusable
+                )
+                layerState.display()
+                sceneState.layers.add(layerState)
+                return layerState.layer
+            }
         }
-    }
 
-    SingleLayerComposeScene(
-        coroutineContext = coroutineDispatcher,
-        density = sceneState.densityProvider(),
-        invalidate = sceneState::needRedraw,
-        layoutDirection = layoutDirection,
-        composeSceneContext = context,
-    )
-}
+        SingleLayerComposeScene(
+            coroutineContext = coroutineDispatcher,
+            density = sceneState.densityProvider(),
+            invalidate = sceneState::needRedraw,
+            layoutDirection = layoutDirection,
+            composeSceneContext = context,
+        )
+    }
 
 internal fun RootViewControllerState<UIViewController, UIView>.createMultiLayerSceneUIViewState(): SceneState<UIView> =
     createSceneState(focusable = true) { sceneState ->

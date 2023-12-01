@@ -91,7 +91,7 @@ internal fun createRootUIViewControllerState(
     @OptIn(ExperimentalComposeApi::class)
     fun createRootSceneViewState(): SceneState<UIView> =
         if (configuration.platformLayers) {
-            createSingleLayerSceneUIViewState(focusable = true)
+            createSingleLayerSceneUIViewState()
         } else {
             createMultiLayerSceneUIViewState()
         }
