@@ -23,6 +23,7 @@ import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEvent
@@ -89,14 +90,6 @@ internal interface SceneState<V> {
     val delegate: SkikoUIViewDelegate
     val keyboardEventHandler: KeyboardEventHandler
     val uiKitTextInputService: UIKitTextInputService
-
-    /**
-     * TODO This is workaround. Need to fix it.
-     *  https://github.com/JetBrains/compose-multiplatform-core/pull/861
-     *  Density problem was fixed
-     *  But there are still problem with safeArea
-     */
-    val isReadyToShowContent: State<Boolean>
 }
 
 @OptIn(InternalComposeApi::class)
@@ -129,12 +122,20 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             )
         }
 
+    /**
+     * TODO This is workaround we need to fix.
+     *  https://github.com/JetBrains/compose-multiplatform-core/pull/861
+     *  Density problem already was fixed.
+     *  But there are still problem with safeArea.
+     */
+    val isReadyToShowContent: State<Boolean> get() = sceneView.isReadyToShowContent
+
     val safeAreaState: MutableState<PlatformInsets> by lazy {
-        //TODO It calcs 0,0,0,0 on initialization
+        //TODO It calc 0,0,0,0 on initialization
         mutableStateOf(calcSafeArea())
     }
     val layoutMarginsState: MutableState<PlatformInsets> by lazy {
-        //TODO It calcs 0,0,0,0 on initialization
+        //TODO It calc 0,0,0,0 on initialization
         mutableStateOf(calcLayoutMargin())
     }
 
