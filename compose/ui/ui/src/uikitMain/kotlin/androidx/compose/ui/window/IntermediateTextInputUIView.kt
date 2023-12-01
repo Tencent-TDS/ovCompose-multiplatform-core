@@ -38,7 +38,7 @@ import platform.darwin.NSInteger
 @Suppress("CONFLICTING_OVERLOADS")
 internal class IntermediateTextInputUIView(
     private val keyboardEventHandler: KeyboardEventHandler,
-) : UIView(frame = CGRectMake(0.0, 0.0, 1000.0, 2000.0)),//todo size
+) : UIView(frame = CGRectMake(0.0, 0.0, 1000.0, 2000.0)),//todo size with constraints
     UIKeyInputProtocol,
     UITextInputProtocol
 {

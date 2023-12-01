@@ -54,7 +54,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
      * Internal Compose scene for rendering
      */
     val sceneState: SceneState<UIView> =
-        createSceneState(focusable = focusable) {
+        createSceneState(focusable = focusable, transparentBackground = true) {
             SingleLayerComposeScene(
                 coroutineContext = coroutineContext,
                 composeSceneContext = composeSceneContext,
@@ -63,11 +63,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
                 layoutDirection = layoutDirection,
             )
         }.also {
-            //todo for debugging only
-            it.sceneView.alpha = 0.5
-            it.sceneView.setBounds(
-                CGRectMake(0.0, 0.0, 2000.0, 3000.0)
-            )
+            //it.sceneView.alpha = 0.5 //todo for debugging only
         }
 
     override fun display() {
@@ -77,51 +73,23 @@ internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
     override val layer = object : ComposeSceneLayer {
         override var density: Density = parentSceneState.densityProvider()
         override var layoutDirection: LayoutDirection = this@createLayerState.layoutDirection
-        val boundsStub: IntRect = IntRect(0,0,0,0)
-        var goodBounds: IntRect
-            get() = IntRect(
-                offset = IntOffset(
-                    x = sceneState.sceneView.bounds.useContents { origin.x.toInt() },
-                    y = sceneState.sceneView.bounds.useContents { origin.y.toInt() },
-                ),
-                size = IntSize(
-                    width = sceneState.sceneView.bounds.useContents { size.width.toInt() },
-                    height = sceneState.sceneView.bounds.useContents { size.height.toInt() },
-                )
-            )
-            set(value) {
-                println("ComposeSceneLayer, set bounds $value")
-                sceneState.sceneView.setBounds(
-                    CGRectMake(
-                        value.left.toDouble(),
-                        value.top.toDouble(),
-                        value.width.toDouble(),
-                        value.height.toDouble()
-                    )
-                )
-            }
         override var bounds: IntRect
-            get() = boundsStub
+            get() = sceneState.bounds
             set(value) {
-
+                with(bounds) {
+                    println("ComposeSceneLayer, set bounds (x:$left, y:$top, w:$width, h:$height)")
+                }
+                sceneState.bounds = value
             }
         override var scrimColor: Color? = null
         override var focusable: Boolean = focusable
 
         override fun close() {
-            println("ComposeSceneContext close")
             sceneState.dispose()
             sceneState.sceneView.removeFromSuperview()
         }
 
         override fun setContent(content: @Composable () -> Unit) {
-            //todo New Compose Scene  Размер сцены scene.size - полный экран
-            //  Сделать translate Canvas по размеру -bounds.position, размер канвы bounds.size
-            //  translate делать при каждой отрисовке
-            //  canvas.translate(x, y)
-            //  drawContainedDrawModifiers(canvas)
-            //  canvas.translate(-x, -y)
-            //  А размер канвы задавать в bounds set(value) {...
             sceneState.setContentWithCompositionLocals(content)
         }
 

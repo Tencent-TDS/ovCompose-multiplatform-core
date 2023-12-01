@@ -26,6 +26,7 @@ import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.compose.ui.unit.IntRect
 import kotlin.math.floor
 import kotlin.math.roundToLong
 import kotlinx.cinterop.CValue
@@ -47,6 +48,7 @@ internal interface SkikoUIViewDelegate {
     fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase)
     fun retrieveInteropTransaction(): UIKitInteropTransaction
     fun render(canvas: Canvas, targetTimestamp: NSTimeInterval)
+    var bounds: IntRect?
 }
 
 internal class SkikoUIViewDelegateImpl(
@@ -56,6 +58,7 @@ internal class SkikoUIViewDelegateImpl(
 ) : SkikoUIViewDelegate {
     val scene get() = sceneProvider()
     val density get() = densityProvider()
+    override var bounds: IntRect? = null
 
     @Suppress("DEPRECATION")
     override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
@@ -100,7 +103,12 @@ internal class SkikoUIViewDelegateImpl(
         val fractional = targetTimestamp - integral
         val secondsToNanos = 1_000_000_000L
         val nanos = integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
-        scene.render(canvas.asComposeCanvas(), nanos)
+        val composeCanvas = canvas.asComposeCanvas()
+        val dx = bounds?.left?.toFloat() ?: 0f
+        val dy = bounds?.top?.toFloat() ?: 0f
+        composeCanvas.translate(-dx, -dy)
+        scene.render(composeCanvas, nanos)
+        composeCanvas.translate(dx, dy)
     }
 
 }

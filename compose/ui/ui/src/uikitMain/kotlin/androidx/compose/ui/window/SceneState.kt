@@ -90,11 +90,13 @@ internal interface SceneState<V> {
     val delegate: SkikoUIViewDelegate
     val keyboardEventHandler: KeyboardEventHandler
     val uiKitTextInputService: UIKitTextInputService
+    var bounds: IntRect
 }
 
 @OptIn(InternalComposeApi::class)
 internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     focusable: Boolean,
+    transparentBackground: Boolean,
     buildScene: (SceneState<UIView>) -> ComposeScene,
 ): SceneState<UIView> = object : SceneState<UIView> {
     override val layers: MutableList<LayerState<UIView>> = mutableListOf()
@@ -170,8 +172,24 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     }
 
     override val sceneView: SkikoUIView by lazy {
-        SkikoUIView(focusable, keyboardEventHandler, delegate)
+        SkikoUIView(focusable, keyboardEventHandler, delegate, transparentBackground)
     }
+
+    override var bounds: IntRect
+        get() = delegate.bounds ?: IntRect.Zero
+        set(value) {
+            constraints = emptyList()
+            delegate.bounds = value
+            val density = densityProvider().density
+            sceneView.setFrame(
+                CGRectMake(
+                    value.left.toDouble() / density,
+                    value.top.toDouble() / density,
+                    value.width.toDouble() / density,
+                    value.height.toDouble() / density
+                )
+            )
+        }
 
     override fun needRedraw() = sceneView.needRedraw()
 

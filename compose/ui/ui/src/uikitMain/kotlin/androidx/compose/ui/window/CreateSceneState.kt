@@ -31,7 +31,7 @@ import platform.UIKit.UIViewController
 private val coroutineDispatcher = Dispatchers.Main
 
 internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayerSceneUIViewState(): SceneState<UIView> =
-    createSceneState(focusable = true) { sceneState ->
+    createSceneState(focusable = true, transparentBackground = false) { sceneState ->
         val context = object : ComposeSceneContext {
             val currentComposeSceneContext = this
             override val platformContext: PlatformContext get() = sceneState.platformContext
@@ -63,7 +63,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayer
     }
 
 internal fun RootViewControllerState<UIViewController, UIView>.createMultiLayerSceneUIViewState(): SceneState<UIView> =
-    createSceneState(focusable = true) { sceneState ->
+    createSceneState(focusable = true, transparentBackground = false) { sceneState ->
         MultiLayerComposeScene(
             coroutineContext = coroutineDispatcher,
             composeSceneContext = object : ComposeSceneContext {

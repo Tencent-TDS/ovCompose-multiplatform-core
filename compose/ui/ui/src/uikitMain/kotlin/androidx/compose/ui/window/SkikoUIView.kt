@@ -50,7 +50,8 @@ internal class SkikoUIView(
     private val focusable: Boolean,
     private val keyboardEventHandler: KeyboardEventHandler,
     private val delegate: SkikoUIViewDelegate,
-) : UIView(frame = CGRectZero.readValue()) {
+    private val transparentBackground: Boolean,
+) : UIView(frame = CGRectMake(0.0, 0.0, 1000.0, 1500.0)) {
 
     companion object : UIViewMeta() {//todo redundant?
         override fun layerClass() = CAMetalLayer
@@ -72,8 +73,8 @@ internal class SkikoUIView(
 
             override fun retrieveInteropTransaction(): UIKitInteropTransaction =
                 delegate.retrieveInteropTransaction()
-
-        }
+        },
+        transparentBackground = transparentBackground,
     )
 
     /*
@@ -92,6 +93,7 @@ internal class SkikoUIView(
     init {
         multipleTouchEnabled = true
         translatesAutoresizingMaskIntoConstraints = false
+        opaque = !transparentBackground
 
         _metalLayer.also {
             // Workaround for KN compiler bug
@@ -103,7 +105,7 @@ internal class SkikoUIView(
             doubleArrayOf(0.0, 0.0, 0.0, 0.0).usePinned { pinned ->
                 it.backgroundColor = CGColorCreate(CGColorSpaceCreateDeviceRGB(), pinned.addressOf(0))
             }
-            it.setOpaque(true)
+            it.setOpaque(!transparentBackground)
             it.framebufferOnly = false
         }
     }
@@ -187,7 +189,7 @@ internal class SkikoUIView(
      * https://developer.apple.com/documentation/uikit/uiview/1622533-point
      */
     override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean =
-        delegate.pointInside(point, withEvent) ?: super.pointInside(point, withEvent)
+        delegate.pointInside(point, withEvent)
 
 
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
