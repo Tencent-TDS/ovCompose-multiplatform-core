@@ -16,15 +16,14 @@
 
 package androidx.compose.ui.window
 
-
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
+import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
@@ -33,11 +32,8 @@ private val coroutineDispatcher = Dispatchers.Main
 
 internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayerSceneUIViewState(
     focusable: Boolean,
-): SceneState<UIView> = prepareSingleLayerComposeScene(
-    focusable = focusable,
-    coroutineContext = coroutineDispatcher
-) { sceneState: SceneState<UIView> ->
-    object : ComposeSceneContext {
+): SceneState<UIView> = createSceneState(focusable = focusable) { sceneState ->
+    val context = object : ComposeSceneContext {
         val currentComposeSceneContext = this
         override val platformContext: PlatformContext get() = sceneState.platformContext
         override fun createPlatformLayer(
@@ -46,6 +42,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayer
             focusable: Boolean,
             compositionContext: CompositionContext
         ): ComposeSceneLayer {
+            println("create layer focusable: $focusable")
             val layerState = createLayerState(
                 parentSceneState = sceneState,
                 coroutineContext = coroutineDispatcher,
@@ -57,18 +54,25 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayer
             return layerState.layer
         }
     }
-}
 
-private fun RootViewControllerState<UIViewController, UIView>.prepareSingleLayerComposeScene(//todo inline
-    focusable: Boolean,
-    coroutineContext: CoroutineContext,
-    prepareComposeSceneContext: (sceneState:SceneState<UIView>) -> ComposeSceneContext,
-): SceneState<UIView> = createSceneState(focusable) {sceneState ->
     SingleLayerComposeScene(
-        coroutineContext = coroutineContext,
-        composeSceneContext = prepareComposeSceneContext(sceneState),
+        coroutineContext = coroutineDispatcher,
         density = sceneState.densityProvider(),
         invalidate = sceneState::needRedraw,
         layoutDirection = layoutDirection,
+        composeSceneContext = context,
     )
 }
+
+internal fun RootViewControllerState<UIViewController, UIView>.createMultiLayerSceneUIViewState(): SceneState<UIView> =
+    createSceneState(focusable = true) { sceneState ->
+        MultiLayerComposeScene(
+            coroutineContext = coroutineDispatcher,
+            composeSceneContext = object : ComposeSceneContext {
+                override val platformContext: PlatformContext get() = sceneState.platformContext
+            },
+            density = sceneState.densityProvider(),
+            invalidate = sceneState::needRedraw,
+            layoutDirection = layoutDirection,
+        )
+    }
