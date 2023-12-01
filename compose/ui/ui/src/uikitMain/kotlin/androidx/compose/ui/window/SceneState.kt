@@ -170,11 +170,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     }
 
     override val sceneView: SkikoUIView by lazy {
-        SkikoUIView(
-            focusable,
-            keyboardEventHandler,
-            delegate
-        )
+        SkikoUIView(focusable, keyboardEventHandler, delegate)
     }
 
     override fun needRedraw() = sceneView.needRedraw()
