@@ -39,9 +39,7 @@ import platform.darwin.NSInteger
 internal class IntermediateTextInputUIView(
     private val keyboardEventHandler: KeyboardEventHandler,
 ) : UIView(frame = CGRectMake(0.0, 0.0, 1000.0, 2000.0)),//todo size with constraints
-    UIKeyInputProtocol,
-    UITextInputProtocol
-{
+    UIKeyInputProtocol, UITextInputProtocol {
     private var _inputDelegate: UITextInputDelegateProtocol? = null
     var input: IOSSkikoInput? = null
     var inputTraits: SkikoUITextInputTraits = object : SkikoUITextInputTraits {}
