@@ -346,9 +346,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             }
 
             is SceneLayout.Bounds -> {
-                with(value.rect) {
-                    println("ComposeSceneLayer, setLayout Bounds (x:$left, y:$top, w:$width, h:$height)")
-                }
                 delegate.metalOffset = -value.rect.topLeft.toOffset()
                 val density = densityProvider().density
                 sceneView.setFrame(

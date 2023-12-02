@@ -51,7 +51,7 @@ internal class SkikoUIView(
     private val keyboardEventHandler: KeyboardEventHandler,
     private val delegate: SkikoUIViewDelegate,
     private val transparentBackground: Boolean,
-) : UIView(frame = CGRectMake(0.0, 0.0, 1000.0, 1500.0)) {
+) : UIView(frame = CGRectMake(0.0, 0.0, 1.0, 1.0)) { // todo not zero size need to first render in SceneLayer
 
     companion object : UIViewMeta() {//todo redundant?
         override fun layerClass() = CAMetalLayer
