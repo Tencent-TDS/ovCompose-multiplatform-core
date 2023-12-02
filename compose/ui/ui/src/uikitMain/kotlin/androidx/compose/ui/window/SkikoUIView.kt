@@ -45,15 +45,21 @@ import org.jetbrains.skiko.SkikoPointerDevice
 import org.jetbrains.skiko.SkikoPointerEvent
 import org.jetbrains.skiko.SkikoPointerEventKind
 
-@Suppress("CONFLICTING_OVERLOADS")//todo in all places redundant?
 internal class SkikoUIView(
     private val focusable: Boolean,
     private val keyboardEventHandler: KeyboardEventHandler,
     private val delegate: SkikoUIViewDelegate,
     private val transparentBackground: Boolean,
-) : UIView(frame = CGRectMake(0.0, 0.0, 1.0, 1.0)) { // todo not zero size need to first render in SceneLayer
+) : UIView(
+    frame = CGRectMake(
+        x = 0.0,
+        y = 0.0,
+        width = 1.0, // TODO: Non zero size need to first render with ComposeSceneLayer
+        height = 1.0
+    )
+) {
 
-    companion object : UIViewMeta() {//todo redundant?
+    companion object : UIViewMeta() {
         override fun layerClass() = CAMetalLayer
     }
 

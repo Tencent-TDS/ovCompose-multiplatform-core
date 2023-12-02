@@ -33,7 +33,7 @@ import platform.darwin.NSInteger
 
 /**
  * Hidden UIView to interact with iOS Keyboard and TextInput system.
- * TODO maybe need to call to update UIKit text features reloadInputViews()
+ * TODO maybe need to call to update UIKit text features reloadInputViews() ?
  */
 @Suppress("CONFLICTING_OVERLOADS")
 internal class IntermediateTextInputUIView(
@@ -42,10 +42,6 @@ internal class IntermediateTextInputUIView(
     UIKeyInputProtocol,
     UITextInputProtocol
 {
-    companion object : UIViewMeta() {//todo redundant?
-        override fun layerClass() = CAMetalLayer
-    }
-
     private var _inputDelegate: UITextInputDelegateProtocol? = null
     var input: IOSSkikoInput? = null
     var inputTraits: SkikoUITextInputTraits = object : SkikoUITextInputTraits {}
@@ -279,7 +275,7 @@ internal class IntermediateTextInputUIView(
         return toPosition.position - from.position
     }
 
-    override fun tokenizer(): UITextInputTokenizerProtocol = @Suppress("CONFLICTING_OVERLOADS") object : UITextInputStringTokenizer() {
+    override fun tokenizer(): UITextInputTokenizerProtocol = object : UITextInputStringTokenizer() {
 
         /**
          * Return whether a text position is at a boundary of a text unit of a specified granularity in a specified direction.
