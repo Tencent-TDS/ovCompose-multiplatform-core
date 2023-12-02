@@ -62,8 +62,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
                 invalidate = parentSceneState::needRedraw,
                 layoutDirection = layoutDirection,
             )
-        }.also {
-            //it.sceneView.alpha = 0.5 //todo for debugging only
         }
 
     override fun display() {
@@ -74,12 +72,11 @@ internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
         override var density: Density = parentSceneState.densityProvider()
         override var layoutDirection: LayoutDirection = this@createLayerState.layoutDirection
         override var bounds: IntRect
-            get() = sceneState.bounds
+            get() = sceneState.getViewBounds()
             set(value) {
-                with(bounds) {
-                    println("ComposeSceneLayer, set bounds (x:$left, y:$top, w:$width, h:$height)")
-                }
-                sceneState.bounds = value
+                sceneState.setLayout(
+                    SceneLayout.Bounds(rect = value)
+                )
             }
         override var scrimColor: Color? = null
         override var focusable: Boolean = focusable

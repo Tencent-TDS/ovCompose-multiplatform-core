@@ -24,6 +24,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEvent
@@ -53,18 +54,25 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.util.fastForEach
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
+import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skiko.SkikoKeyboardEvent
+import platform.CoreGraphics.CGAffineTransformIdentity
+import platform.CoreGraphics.CGAffineTransformInvert
 import platform.CoreGraphics.CGRectMake
+import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
 import platform.QuartzCore.CATransaction
 import platform.UIKit.NSLayoutConstraint
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
+import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 
 internal interface SceneState<V> {
     val sceneView: V
@@ -82,15 +90,23 @@ internal interface SceneState<V> {
     val interopContext: UIKitInteropContext
     val platformContext: PlatformContext
 
-    fun setConstraintsToCenterInView(parentView: V, size: CValue<CGSize>)
-    fun setConstraintsToFillView(parentView: V)
     fun setContentWithCompositionLocals(content: @Composable () -> Unit)
     fun updateSafeArea()
 
     val delegate: SkikoUIViewDelegate
     val keyboardEventHandler: KeyboardEventHandler
     val uiKitTextInputService: UIKitTextInputService
-    var bounds: IntRect
+
+    fun setLayout(value: SceneLayout)
+    fun getViewBounds(): IntRect
+    fun animateTransition(targetSize: CValue<CGSize>, coordinator: UIViewControllerTransitionCoordinatorProtocol)
+}
+
+sealed interface SceneLayout {
+    object Undefined : SceneLayout
+    object UseConstraintsToFillContainer : SceneLayout
+    class UseConstraintsToCenter(val size: CValue<CGSize>) : SceneLayout
+    class Bounds(val rect: IntRect) : SceneLayout
 }
 
 @OptIn(InternalComposeApi::class)
@@ -129,6 +145,9 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
      *  https://github.com/JetBrains/compose-multiplatform-core/pull/861
      *  Density problem already was fixed.
      *  But there are still problem with safeArea.
+     *  Elijah founded possible solution:
+     *   https://developer.apple.com/documentation/uikit/uiviewcontroller/4195485-viewisappearing
+     *   It is public for iOS 17 and hope back ported for iOS 13 as well (but we need to check)
      */
     val isReadyToShowContent: State<Boolean> get() = sceneView.isReadyToShowContent
 
@@ -158,7 +177,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     override fun updateLayout() {
         val density = densityProvider()
         val scale = density.density
-        //TODO: Old code updates layout based on rootViewController size.
+        //TODO: Current code updates layout based on rootViewController size.
         // Maybe we need to rewrite it for SingleLayerComposeScene.
         val size = rootViewController.view.frame.useContents {
             IntSize(
@@ -175,22 +194,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     override val sceneView: SkikoUIView by lazy {
         SkikoUIView(focusable, keyboardEventHandler, delegate, transparentBackground)
     }
-
-    override var bounds: IntRect
-        get() = delegate.bounds ?: IntRect.Zero
-        set(value) {
-            constraints = emptyList()
-            delegate.bounds = value
-            val density = densityProvider().density
-            sceneView.setFrame(
-                CGRectMake(
-                    value.left.toDouble() / density,
-                    value.top.toDouble() / density,
-                    value.width.toDouble() / density,
-                    value.height.toDouble() / density
-                )
-            )
-        }
 
     override fun needRedraw() = sceneView.needRedraw()
 
@@ -270,7 +273,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             }
         }
         rootViewController.view.addSubview(sceneView)
-        setConstraintsToFillView(rootViewController.view)
     }
 
     override val uiKitTextInputService: UIKitTextInputService by lazy {
@@ -314,25 +316,111 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             NSLayoutConstraint.activateConstraints(value)
         }
 
-    override fun setConstraintsToCenterInView(parentView: UIView, size: CValue<CGSize>) {
-//        if (delegate.bounds != null) return
-        size.useContents {
-            constraints = listOf(
-                sceneView.centerXAnchor.constraintEqualToAnchor(parentView.centerXAnchor),
-                sceneView.centerYAnchor.constraintEqualToAnchor(parentView.centerYAnchor),
-                sceneView.widthAnchor.constraintEqualToConstant(width),
-                sceneView.heightAnchor.constraintEqualToConstant(height)
-            )
+    private var _layout:SceneLayout = SceneLayout.Undefined
+    override fun setLayout(value: SceneLayout) {
+        _layout = value
+
+        when (value) {
+            SceneLayout.UseConstraintsToFillContainer -> {
+                delegate.metalOffset = Offset.Zero
+                sceneView.setFrame(CGRectZero.readValue())
+                constraints = listOf(
+                    sceneView.leftAnchor.constraintEqualToAnchor(rootViewController.view.leftAnchor),
+                    sceneView.rightAnchor.constraintEqualToAnchor(rootViewController.view.rightAnchor),
+                    sceneView.topAnchor.constraintEqualToAnchor(rootViewController.view.topAnchor),
+                    sceneView.bottomAnchor.constraintEqualToAnchor(rootViewController.view.bottomAnchor)
+                )
+            }
+
+            is SceneLayout.UseConstraintsToCenter -> {
+                delegate.metalOffset = Offset.Zero
+                sceneView.setFrame(CGRectZero.readValue())
+                constraints = value.size.useContents {
+                    listOf(
+                        sceneView.centerXAnchor.constraintEqualToAnchor(rootViewController.view.centerXAnchor),
+                        sceneView.centerYAnchor.constraintEqualToAnchor(rootViewController.view.centerYAnchor),
+                        sceneView.widthAnchor.constraintEqualToConstant(width),
+                        sceneView.heightAnchor.constraintEqualToConstant(height)
+                    )
+                }
+            }
+
+            is SceneLayout.Bounds -> {
+                with(value.rect) {
+                    println("ComposeSceneLayer, setLayout Bounds (x:$left, y:$top, w:$width, h:$height)")
+                }
+                delegate.metalOffset = -value.rect.topLeft.toOffset()
+                val density = densityProvider().density
+                sceneView.setFrame(
+                    with(value.rect) {
+                        CGRectMake(
+                            x = left.toDouble() / density,
+                            y = top.toDouble() / density,
+                            width = width.toDouble() / density,
+                            height = height.toDouble() / density
+                        )
+                    }
+                )
+                constraints = emptyList()
+            }
+            is SceneLayout.Undefined -> error("setLayout, SceneLayout.Undefined")
         }
+        sceneView.updateMetalLayerSize()
     }
 
-    override fun setConstraintsToFillView(parentView: UIView) {
-//        if (delegate.bounds != null) return
-        constraints = listOf(
-            sceneView.leftAnchor.constraintEqualToAnchor(parentView.leftAnchor),
-            sceneView.rightAnchor.constraintEqualToAnchor(parentView.rightAnchor),
-            sceneView.topAnchor.constraintEqualToAnchor(parentView.topAnchor),
-            sceneView.bottomAnchor.constraintEqualToAnchor(parentView.bottomAnchor)
+    override fun getViewBounds(): IntRect = sceneView.frame.useContents {
+        val density = densityProvider().density
+        IntRect(
+            offset = IntOffset(
+                x = (origin.x * density).roundToInt(),
+                y = (origin.y * density).roundToInt(),
+            ),
+            size = IntSize(
+                width = (size.width * density).roundToInt(),
+                height = (size.height * density).roundToInt(),
+            )
+        )
+    }
+
+    override fun animateTransition(
+        targetSize: CValue<CGSize>,
+        coordinator: UIViewControllerTransitionCoordinatorProtocol
+    ) {
+        if (_layout is SceneLayout.Bounds) {
+            //TODO Add logic to SceneLayout.Bounds too
+            return
+        }
+
+        val startSnapshotView = sceneView.snapshotViewAfterScreenUpdates(false) ?: return
+        startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
+        rootViewController.view.addSubview(startSnapshotView)
+        targetSize.useContents {
+            NSLayoutConstraint.activateConstraints(
+                listOf(
+                    startSnapshotView.widthAnchor.constraintEqualToConstant(height),
+                    startSnapshotView.heightAnchor.constraintEqualToConstant(width),
+                    startSnapshotView.centerXAnchor.constraintEqualToAnchor(rootViewController.view.centerXAnchor),
+                    startSnapshotView.centerYAnchor.constraintEqualToAnchor(rootViewController.view.centerYAnchor)
+                )
+            )
+        }
+
+        isForcedToPresentWithTransactionEveryFrame = true
+
+        setLayout(SceneLayout.UseConstraintsToCenter(size = targetSize))
+        sceneView.transform = coordinator.targetTransform
+
+        coordinator.animateAlongsideTransition(
+            animation = {
+                startSnapshotView.alpha = 0.0
+                startSnapshotView.transform = CGAffineTransformInvert(coordinator.targetTransform)
+                sceneView.transform = CGAffineTransformIdentity.readValue()
+            },
+            completion = {
+                startSnapshotView.removeFromSuperview()
+                setLayout(SceneLayout.UseConstraintsToFillContainer)
+                isForcedToPresentWithTransactionEveryFrame = false
+            }
         )
     }
 }

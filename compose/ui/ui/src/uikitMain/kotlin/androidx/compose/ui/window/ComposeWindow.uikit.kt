@@ -181,52 +181,18 @@ internal class RootUIViewController(
             return
         }
 
-        sceneStates.forEach { sceneViewState ->
-            // Happens during orientation change from LandscapeLeft to LandscapeRight, for example
-            val isSameSizeTransition = view.frame.useContents {
-                CGSizeEqualToSize(size, this.size.readValue())
-            }
-            if (isSameSizeTransition) {
-                return
-            }
-
-            val startSnapshotView =
-                sceneViewState.sceneView.snapshotViewAfterScreenUpdates(false) ?: return
-
-            startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(startSnapshotView)
-            size.useContents {
-                NSLayoutConstraint.activateConstraints(
-                    listOf(
-                        startSnapshotView.widthAnchor.constraintEqualToConstant(height),
-                        startSnapshotView.heightAnchor.constraintEqualToConstant(width),
-                        startSnapshotView.centerXAnchor.constraintEqualToAnchor(view.centerXAnchor),
-                        startSnapshotView.centerYAnchor.constraintEqualToAnchor(view.centerYAnchor)
-                    )
-                )
-            }
-
-            sceneViewState.isForcedToPresentWithTransactionEveryFrame = true
-
-            sceneViewState.setConstraintsToCenterInView(view, size)
-            sceneViewState.sceneView.transform = withTransitionCoordinator.targetTransform
-
-            view.layoutIfNeeded()
-
-            withTransitionCoordinator.animateAlongsideTransition(
-                animation = {
-                    startSnapshotView.alpha = 0.0
-                    startSnapshotView.transform =
-                        CGAffineTransformInvert(withTransitionCoordinator.targetTransform)
-                    sceneViewState.sceneView.transform = CGAffineTransformIdentity.readValue()
-                },
-                completion = {
-                    startSnapshotView.removeFromSuperview()
-                    sceneViewState.setConstraintsToFillView(view)
-                    sceneViewState.isForcedToPresentWithTransactionEveryFrame = false
-                }
-            )
+        // Happens during orientation change from LandscapeLeft to LandscapeRight, for example
+        val isSameSizeTransition = view.frame.useContents {
+            CGSizeEqualToSize(size, this.size.readValue())
         }
+        if (isSameSizeTransition) {
+            return
+        }
+
+        sceneStates.forEach { sceneViewState ->
+            sceneViewState.animateTransition(targetSize = size, coordinator = withTransitionCoordinator)
+        }
+        view.layoutIfNeeded()
     }
 
     override fun viewWillAppear(animated: Boolean) {
@@ -311,6 +277,7 @@ internal class RootUIViewController(
                 sceneViewState.setContentWithCompositionLocals(content)
             }
         )
+        sceneViewState.setLayout(SceneLayout.UseConstraintsToFillContainer)
     }
 
 }

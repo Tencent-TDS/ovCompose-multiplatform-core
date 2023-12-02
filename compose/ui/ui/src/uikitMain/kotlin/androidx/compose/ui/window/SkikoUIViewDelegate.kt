@@ -48,7 +48,7 @@ internal interface SkikoUIViewDelegate {
     fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase)
     fun retrieveInteropTransaction(): UIKitInteropTransaction
     fun render(canvas: Canvas, targetTimestamp: NSTimeInterval)
-    var bounds: IntRect?
+    var metalOffset: Offset
 }
 
 internal class SkikoUIViewDelegateImpl(
@@ -58,7 +58,7 @@ internal class SkikoUIViewDelegateImpl(
 ) : SkikoUIViewDelegate {
     val scene get() = sceneProvider()
     val density get() = densityProvider()
-    override var bounds: IntRect? = null
+    override var metalOffset: Offset = Offset.Zero
 
     @Suppress("DEPRECATION")
     override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
@@ -104,11 +104,11 @@ internal class SkikoUIViewDelegateImpl(
         val secondsToNanos = 1_000_000_000L
         val nanos = integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
         val composeCanvas = canvas.asComposeCanvas()
-        val dx = bounds?.left?.toFloat() ?: 0f
-        val dy = bounds?.top?.toFloat() ?: 0f
-        composeCanvas.translate(-dx, -dy)
-        scene.render(composeCanvas, nanos)
+        val dx = metalOffset.x
+        val dy = metalOffset.y
         composeCanvas.translate(dx, dy)
+        scene.render(composeCanvas, nanos)
+        composeCanvas.translate(-dx, -dy)
     }
 
 }

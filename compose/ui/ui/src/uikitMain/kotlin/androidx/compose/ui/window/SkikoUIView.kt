@@ -136,7 +136,10 @@ internal class SkikoUIView(
 
     override fun layoutSubviews() {
         super.layoutSubviews()
+        updateMetalLayerSize()
+    }
 
+    internal fun updateMetalLayerSize() {
         val scaledSize = bounds.useContents {
             CGSizeMake(size.width * contentScaleFactor, size.height * contentScaleFactor)
         }
