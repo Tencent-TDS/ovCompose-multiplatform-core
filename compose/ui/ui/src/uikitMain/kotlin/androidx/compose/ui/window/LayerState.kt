@@ -86,7 +86,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
 
         override fun close() {
             sceneState.dispose()
-            sceneState.sceneView.removeFromSuperview()
         }
 
         override fun setContent(content: @Composable () -> Unit) {
