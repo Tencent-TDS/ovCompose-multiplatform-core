@@ -68,23 +68,23 @@ import platform.UIKit.UIViewController
 
 internal interface SceneState<V> {
     val sceneView: V
-    fun needRedraw()
+    val scene: ComposeScene
+    fun display(focusable: Boolean, onDisplayed: () -> Unit)
     fun dispose()
+    fun needRedraw()
+
     var isForcedToPresentWithTransactionEveryFrame: Boolean
     val layers:MutableList<LayerState<V>>
     val windowInfo: WindowInfo
     fun updateLayout()
     val keyboardVisibilityListener: KeyboardVisibilityListener
     val densityProvider: DensityProvider
-
-    val scene: ComposeScene
     val interopContext: UIKitInteropContext
     val platformContext: PlatformContext
 
     fun setConstraintsToCenterInView(parentView: V, size: CValue<CGSize>)
     fun setConstraintsToFillView(parentView: V)
     fun setContentWithCompositionLocals(content: @Composable () -> Unit)
-    fun display(focusable: Boolean, onDisplayed: () -> Unit)
     fun updateSafeArea()
 
     val delegate: SkikoUIViewDelegate
@@ -158,7 +158,8 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     override fun updateLayout() {
         val density = densityProvider()
         val scale = density.density
-        //TODO Old code updates layout based on rootViewController size. Maybe we need to rewrite it for SingleLayerComposeScene
+        //TODO: Old code updates layout based on rootViewController size.
+        // Maybe we need to rewrite it for SingleLayerComposeScene.
         val size = rootViewController.view.frame.useContents {
             IntSize(
                 width = (size.width * scale).roundToInt(),
@@ -314,6 +315,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
         }
 
     override fun setConstraintsToCenterInView(parentView: UIView, size: CValue<CGSize>) {
+//        if (delegate.bounds != null) return
         size.useContents {
             constraints = listOf(
                 sceneView.centerXAnchor.constraintEqualToAnchor(parentView.centerXAnchor),
@@ -325,6 +327,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     }
 
     override fun setConstraintsToFillView(parentView: UIView) {
+//        if (delegate.bounds != null) return
         constraints = listOf(
             sceneView.leftAnchor.constraintEqualToAnchor(parentView.leftAnchor),
             sceneView.rightAnchor.constraintEqualToAnchor(parentView.rightAnchor),
