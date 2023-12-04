@@ -35,19 +35,6 @@ class AndroidXPlugin : Plugin<Project> {
                 "from" to "$supportRoot/buildSrc/apply/applyAndroidXImplPlugin.gradle"
             )
         )
-
-        project.configurations.all {
-            // TODO: remove these HACKS when possible
-            val conf = it
-            conf.resolutionStrategy.eachDependency {
-                val isWasm = conf.name.contains("wasm", true)
-                if (it.requested.module.group == "org.jetbrains.kotlinx" &&
-                    it.requested.module.name.contains("kotlinx-coroutines", true)
-                ) {
-                    if (!isWasm) it.useVersion("1.7.2")
-                }
-            }
-        }
     }
 
     companion object {

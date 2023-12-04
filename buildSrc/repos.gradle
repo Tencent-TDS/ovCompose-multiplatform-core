@@ -76,10 +76,6 @@ def addMavenRepositories(RepositoryHandler handler) {
                 includeModule("com.android.tools", "r8")
             }
         }
-        // TODO: remove wasm/experimental repo when we have all libs available in mavenCentral
-        handler.maven {
-            url("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
-        }
     }
     // Ordering appears to be important: b/229733266
     def androidPluginRepoOverride = System.getenv("GRADLE_PLUGIN_REPO")

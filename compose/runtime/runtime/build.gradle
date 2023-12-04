@@ -159,7 +159,12 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 }
             }
 
-            nativeMain.dependsOn(jsNativeMain)
+            nativeMain {
+                dependsOn(jsNativeMain)
+                dependencies {
+                    implementation(libs.atomicFu)
+                }
+            }
 
             linuxX64Main.dependsOn(nativeMain)
             linuxX64Test.dependsOn(nativeTest)
