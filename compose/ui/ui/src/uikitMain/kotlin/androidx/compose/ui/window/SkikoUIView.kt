@@ -22,6 +22,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.interop.UIKitInteropTransaction
 import kotlinx.cinterop.*
 import org.jetbrains.skia.Canvas
+import org.jetbrains.skiko.SkikoInputModifiers
+import org.jetbrains.skiko.SkikoKey
+import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.CoreGraphics.*
 import platform.Foundation.*
@@ -240,4 +243,36 @@ internal fun handleUIViewPressesEnded(
             }
         }
     }
+}
+
+private fun toSkikoKeyboardEvent(
+    event: UIPress,
+    kind: SkikoKeyboardEventKind
+): SkikoKeyboardEvent {
+    val timestamp = (event.timestamp * 1_000).toLong()
+    return SkikoKeyboardEvent(
+        SkikoKey.valueOf(event.key!!.keyCode),
+        toSkikoModifiers(event),
+        kind,
+        timestamp,
+        event
+    )
+}
+
+private fun toSkikoModifiers(event: UIPress): SkikoInputModifiers {
+    var result = 0
+    val modifiers = event.key!!.modifierFlags
+    if (modifiers and UIKeyModifierAlternate != 0L) {
+        result = result.or(SkikoInputModifiers.ALT.value)
+    }
+    if (modifiers and UIKeyModifierShift != 0L) {
+        result = result.or(SkikoInputModifiers.SHIFT.value)
+    }
+    if (modifiers and UIKeyModifierControl != 0L) {
+        result = result.or(SkikoInputModifiers.CONTROL.value)
+    }
+    if (modifiers and UIKeyModifierCommand != 0L) {
+        result = result.or(SkikoInputModifiers.META.value)
+    }
+    return SkikoInputModifiers(result)
 }

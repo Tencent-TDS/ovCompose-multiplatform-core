@@ -17,51 +17,33 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropContext
-import androidx.compose.ui.platform.DefaultInputModeManager
-import androidx.compose.ui.platform.EmptyViewConfiguration
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
-import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.UIKitTextInputService
-import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.scene.ComposeSceneContext
-import androidx.compose.ui.scene.ComposeSceneLayer
-import androidx.compose.ui.scene.MultiLayerComposeScene
-import androidx.compose.ui.scene.SingleLayerComposeScene
-import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toOffset
-import androidx.compose.ui.util.fastForEach
-import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
-import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skiko.SkikoKeyboardEvent
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
@@ -82,7 +64,7 @@ internal interface SceneState<V> {
     fun needRedraw()
 
     var isForcedToPresentWithTransactionEveryFrame: Boolean
-    val layers:MutableList<LayerState<V>>
+    val layers: MutableList<LayerState<V>>
     val windowInfo: WindowInfo
     fun updateLayout()
     val keyboardVisibilityListener: KeyboardVisibilityListener
@@ -99,10 +81,13 @@ internal interface SceneState<V> {
 
     fun setLayout(value: SceneLayout)
     fun getViewBounds(): IntRect
-    fun animateTransition(targetSize: CValue<CGSize>, coordinator: UIViewControllerTransitionCoordinatorProtocol)
+    fun animateTransition(
+        targetSize: CValue<CGSize>,
+        coordinator: UIViewControllerTransitionCoordinatorProtocol
+    )
 }
 
-sealed interface SceneLayout {
+internal sealed interface SceneLayout {
     object Undefined : SceneLayout
     object UseConstraintsToFillContainer : SceneLayout
     class UseConstraintsToCenter(val size: CValue<CGSize>) : SceneLayout
@@ -316,7 +301,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             NSLayoutConstraint.activateConstraints(value)
         }
 
-    private var _layout:SceneLayout = SceneLayout.Undefined
+    private var _layout: SceneLayout = SceneLayout.Undefined
     override fun setLayout(value: SceneLayout) {
         _layout = value
 
@@ -363,6 +348,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
                 )
                 constraints = emptyList()
             }
+
             is SceneLayout.Undefined -> error("setLayout, SceneLayout.Undefined")
         }
         sceneView.updateMetalLayerSize()

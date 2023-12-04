@@ -24,7 +24,6 @@ import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.text.input.PlatformTextInputService
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 
 internal class PlatformContextImpl(
@@ -35,8 +34,11 @@ internal class PlatformContextImpl(
 ) : PlatformContext by PlatformContext.Empty {
     override val textInputService: PlatformTextInputService = inputServices
     override val viewConfiguration = object : ViewConfiguration by EmptyViewConfiguration {
-        // this value is originating from iOS 16 drag behavior reverse engineering
-        override val touchSlop: Float get() = with(densityProvider()) { 10.dp.toPx() }
+        override val touchSlop: Float
+            get() = with(densityProvider()) {
+                // this value is originating from iOS 16 drag behavior reverse engineering
+                10.dp.toPx()
+            }
     }
     override val inputModeManager = DefaultInputModeManager(InputMode.Touch)
 }

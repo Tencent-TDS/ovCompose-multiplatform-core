@@ -26,7 +26,6 @@ import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeScenePointer
-import androidx.compose.ui.unit.IntRect
 import kotlin.math.floor
 import kotlin.math.roundToLong
 import kotlinx.cinterop.CValue

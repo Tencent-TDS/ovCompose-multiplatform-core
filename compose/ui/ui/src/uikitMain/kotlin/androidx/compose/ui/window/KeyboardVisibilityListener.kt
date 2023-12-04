@@ -17,7 +17,6 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.unit.DpRect
@@ -172,8 +171,12 @@ internal class KeyboardVisibilityListenerImpl(
         )
     }
 
-    private fun calcFocusedLiftingY(sceneState: SceneState<UIView>, focusedRect: DpRect, keyboardHeight: Double): Double {
-        val viewHeight = sceneState.sceneView.frame.useContents {// todo use layer bounds for Popup and Dialog
+    private fun calcFocusedLiftingY(
+        sceneState: SceneState<UIView>,
+        focusedRect: DpRect,
+        keyboardHeight: Double
+    ): Double {
+        val viewHeight = sceneState.sceneView.frame.useContents {
             size.height
         }
 

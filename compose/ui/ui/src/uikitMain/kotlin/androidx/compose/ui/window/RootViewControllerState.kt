@@ -26,16 +26,11 @@ import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.interop.LocalUIViewController
-import androidx.compose.ui.platform.LocalLayoutMargins
-import androidx.compose.ui.platform.LocalSafeArea
-import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
-import kotlinx.cinterop.useContents
 import platform.Foundation.NSNotification
 import platform.UIKit.UIApplication
 import platform.UIKit.UIUserInterfaceLayoutDirection
@@ -60,11 +55,12 @@ internal fun createRootUIViewControllerState(
 ) = object : RootViewControllerState<UIViewController, UIView> {
 
     override val configuration = configuration
-    override val layoutDirection get() =
-        when (UIApplication.sharedApplication().userInterfaceLayoutDirection) {
-            UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
-            else -> LayoutDirection.Ltr
-        }
+    override val layoutDirection
+        get() =
+            when (UIApplication.sharedApplication().userInterfaceLayoutDirection) {
+                UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
+                else -> LayoutDirection.Ltr
+            }
     override val sceneStates: MutableList<SceneState<UIView>> = mutableListOf()
 
     /*
