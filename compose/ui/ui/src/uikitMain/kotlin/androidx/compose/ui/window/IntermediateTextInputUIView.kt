@@ -19,21 +19,66 @@ package androidx.compose.ui.window
 import androidx.compose.ui.platform.IOSSkikoInput
 import androidx.compose.ui.platform.SkikoUITextInputTraits
 import androidx.compose.ui.platform.TextActions
-import kotlinx.cinterop.*
-import org.jetbrains.skia.Rect
+import kotlinx.cinterop.COpaquePointer
+import kotlinx.cinterop.CValue
+import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.SkikoInputModifiers
 import org.jetbrains.skiko.SkikoKey
 import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoKeyboardEventKind
-import platform.CoreGraphics.*
-import platform.Foundation.*
-import platform.QuartzCore.CAMetalLayer
-import platform.UIKit.*
+import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGRect
+import platform.CoreGraphics.CGRectIntersectsRect
+import platform.CoreGraphics.CGRectMake
+import platform.CoreGraphics.CGRectNull
+import platform.CoreGraphics.CGRectZero
+import platform.Foundation.NSComparisonResult
+import platform.Foundation.NSDictionary
+import platform.Foundation.NSOrderedAscending
+import platform.Foundation.NSOrderedDescending
+import platform.Foundation.NSOrderedSame
+import platform.Foundation.NSRange
+import platform.Foundation.NSSelectorFromString
+import platform.Foundation.dictionary
+import platform.UIKit.NSWritingDirection
+import platform.UIKit.NSWritingDirectionLeftToRight
+import platform.UIKit.UIKeyInputProtocol
+import platform.UIKit.UIKeyModifierAlternate
+import platform.UIKit.UIKeyModifierCommand
+import platform.UIKit.UIKeyModifierControl
+import platform.UIKit.UIKeyModifierShift
+import platform.UIKit.UIKeyboardAppearance
+import platform.UIKit.UIKeyboardType
+import platform.UIKit.UIMenuController
+import platform.UIKit.UIPress
+import platform.UIKit.UIPressesEvent
+import platform.UIKit.UIResponderStandardEditActionsProtocol
+import platform.UIKit.UIReturnKeyType
+import platform.UIKit.UITextAutocapitalizationType
+import platform.UIKit.UITextAutocorrectionType
+import platform.UIKit.UITextContentType
+import platform.UIKit.UITextDirection
+import platform.UIKit.UITextGranularity
+import platform.UIKit.UITextInputDelegateProtocol
+import platform.UIKit.UITextInputProtocol
+import platform.UIKit.UITextInputStringTokenizer
+import platform.UIKit.UITextInputTokenizerProtocol
+import platform.UIKit.UITextLayoutDirection
+import platform.UIKit.UITextLayoutDirectionDown
+import platform.UIKit.UITextLayoutDirectionLeft
+import platform.UIKit.UITextLayoutDirectionRight
+import platform.UIKit.UITextLayoutDirectionUp
+import platform.UIKit.UITextPosition
+import platform.UIKit.UITextRange
+import platform.UIKit.UITextSelectionRect
+import platform.UIKit.UITextStorageDirection
+import platform.UIKit.UIView
 import platform.darwin.NSInteger
 
 /**
  * Hidden UIView to interact with iOS Keyboard and TextInput system.
- * TODO maybe need to call to update UIKit text features reloadInputViews() ?
+ * TODO maybe need to call reloadInputViews() to update UIKit text features?
  */
 @Suppress("CONFLICTING_OVERLOADS")
 internal class IntermediateTextInputUIView(
@@ -47,31 +92,13 @@ internal class IntermediateTextInputUIView(
 
     override fun canBecomeFirstResponder() = true
 
-    override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {//todo duplicate
-        if (withEvent != null) {
-            for (press in withEvent.allPresses) {
-                val uiPress = press as? UIPress
-                if (uiPress != null) {
-                    keyboardEventHandler?.onKeyboardEvent(
-                        toSkikoKeyboardEvent(press, SkikoKeyboardEventKind.DOWN)
-                    )
-                }
-            }
-        }
+    override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {
+        handleUIViewPressesBegan(keyboardEventHandler, presses, withEvent)
         super.pressesBegan(presses, withEvent)
     }
 
-    override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {//todo duplicate
-        if (withEvent != null) {
-            for (press in withEvent.allPresses) {
-                val uiPress = press as? UIPress
-                if (uiPress != null) {
-                    keyboardEventHandler?.onKeyboardEvent(
-                        toSkikoKeyboardEvent(press, SkikoKeyboardEventKind.UP)
-                    )
-                }
-            }
-        }
+    override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {
+        handleUIViewPressesEnded(keyboardEventHandler, presses, withEvent)
         super.pressesEnded(presses, withEvent)
     }
 

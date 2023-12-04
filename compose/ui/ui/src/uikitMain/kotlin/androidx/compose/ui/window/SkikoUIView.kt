@@ -19,13 +19,10 @@ package androidx.compose.ui.window
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.interop.UIKitInteropAction
 import androidx.compose.ui.interop.UIKitInteropTransaction
-import androidx.compose.ui.platform.IOSSkikoInput
-import androidx.compose.ui.platform.SkikoUITextInputTraits
-import androidx.compose.ui.platform.TextActions
 import kotlinx.cinterop.*
-import org.jetbrains.skia.Rect
+import org.jetbrains.skia.Canvas
+import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.CoreGraphics.*
 import platform.Foundation.*
 import platform.Metal.MTLCreateSystemDefaultDevice
@@ -33,17 +30,6 @@ import platform.Metal.MTLDeviceProtocol
 import platform.Metal.MTLPixelFormatBGRA8Unorm
 import platform.QuartzCore.CAMetalLayer
 import platform.UIKit.*
-import platform.darwin.NSInteger
-import org.jetbrains.skia.Surface
-import org.jetbrains.skia.Canvas
-import org.jetbrains.skiko.SkikoInputModifiers
-import org.jetbrains.skiko.SkikoKey
-import org.jetbrains.skiko.SkikoKeyboardEvent
-import org.jetbrains.skiko.SkikoKeyboardEventKind
-import org.jetbrains.skiko.SkikoPointer
-import org.jetbrains.skiko.SkikoPointerDevice
-import org.jetbrains.skiko.SkikoPointerEvent
-import org.jetbrains.skiko.SkikoPointerEventKind
 
 internal class SkikoUIView(
     private val focusable: Boolean,
@@ -165,31 +151,13 @@ internal class SkikoUIView(
 
     override fun canBecomeFirstResponder() = true
 
-    override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {//todo duplicate
-        if (withEvent != null) {
-            for (press in withEvent.allPresses) {
-                val uiPress = press as? UIPress
-                if (uiPress != null) {
-                    keyboardEventHandler.onKeyboardEvent(
-                        toSkikoKeyboardEvent(press, SkikoKeyboardEventKind.DOWN)
-                    )
-                }
-            }
-        }
+    override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {
+        handleUIViewPressesBegan(keyboardEventHandler, presses, withEvent)
         super.pressesBegan(presses, withEvent)
     }
 
-    override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {//todo duplicate
-        if (withEvent != null) {
-            for (press in withEvent.allPresses) {
-                val uiPress = press as? UIPress
-                if (uiPress != null) {
-                    keyboardEventHandler.onKeyboardEvent(
-                        toSkikoKeyboardEvent(press, SkikoKeyboardEventKind.UP)
-                    )
-                }
-            }
-        }
+    override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {
+        handleUIViewPressesEnded(keyboardEventHandler, presses, withEvent)
         super.pressesEnded(presses, withEvent)
     }
 
@@ -238,4 +206,38 @@ internal class SkikoUIView(
         }
     }
 
+}
+
+internal fun handleUIViewPressesBegan(
+    keyboardEventHandler: KeyboardEventHandler,
+    presses: Set<*>,
+    withEvent: UIPressesEvent?
+) {
+    if (withEvent != null) {
+        for (press in withEvent.allPresses) {
+            val uiPress = press as? UIPress
+            if (uiPress != null) {
+                keyboardEventHandler.onKeyboardEvent(
+                    toSkikoKeyboardEvent(press, SkikoKeyboardEventKind.DOWN)
+                )
+            }
+        }
+    }
+}
+
+internal fun handleUIViewPressesEnded(
+    keyboardEventHandler: KeyboardEventHandler,
+    presses: Set<*>,
+    withEvent: UIPressesEvent?
+) {
+    if (withEvent != null) {
+        for (press in withEvent.allPresses) {
+            val uiPress = press as? UIPress
+            if (uiPress != null) {
+                keyboardEventHandler.onKeyboardEvent(
+                    toSkikoKeyboardEvent(press, SkikoKeyboardEventKind.UP)
+                )
+            }
+        }
+    }
 }
