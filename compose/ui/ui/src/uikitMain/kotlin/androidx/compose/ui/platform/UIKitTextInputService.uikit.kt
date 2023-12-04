@@ -44,7 +44,8 @@ internal class UIKitTextInputService(
     private var currentInput: CurrentInput? = null
     private var currentImeOptions: ImeOptions? = null
     private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
-    private var _textUIView: IntermediateTextInputUIView? = null
+    private var textUIView: IntermediateTextInputUIView? = null
+    private var constraints: List<NSLayoutConstraint>? = null
 
     /**
      * Workaround to prevent calling textWillChange, textDidChange, selectionWillChange, and
@@ -106,13 +107,24 @@ internal class UIKitTextInputService(
         currentImeOptions = imeOptions
         currentImeActionHandler = onImeActionPerformed
 
-        _textUIView = IntermediateTextInputUIView(
+        textUIView = IntermediateTextInputUIView(
             keyboardEventHandler = keyboardEventHandler,
         ).also {
             rootView.addSubview(it)
+            it.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activateConstraints(
+                listOf(
+                    it.leftAnchor.constraintEqualToAnchor(rootView.leftAnchor),
+                    it.rightAnchor.constraintEqualToAnchor(rootView.rightAnchor),
+                    it.topAnchor.constraintEqualToAnchor(rootView.topAnchor),
+                    it.bottomAnchor.constraintEqualToAnchor(rootView.bottomAnchor),
+                ).also { 
+                    constraints = it
+                }
+            )
         }
-        _textUIView?.input = createSkikoInput(value)
-        _textUIView?.inputTraits = getUITextInputTraits(imeOptions)
+        textUIView?.input = createSkikoInput(value)
+        textUIView?.inputTraits = getUITextInputTraits(imeOptions)
 
         showSoftwareKeyboard()
     }
@@ -124,18 +136,21 @@ internal class UIKitTextInputService(
         currentImeActionHandler = null
         hideSoftwareKeyboard()
 
-        _textUIView?.removeFromSuperview()
-        _textUIView = null
+        constraints?.let {
+            NSLayoutConstraint.deactivateConstraints(it)
+        }
+        textUIView?.removeFromSuperview()
+        textUIView = null
     }
 
     override fun showSoftwareKeyboard() {
-        _textUIView?.let {
+        textUIView?.let {
             focusStack.pushAndFocus(it)
         }
     }
 
     override fun hideSoftwareKeyboard() {
-        _textUIView?.let {
+        textUIView?.let {
             focusStack.popUntilNext(it)
         }
     }
@@ -146,10 +161,10 @@ internal class UIKitTextInputService(
         val selectionChanged =
             textChanged || internalOldValue == null || internalOldValue.selection != newValue.selection
         if (textChanged) {
-            _textUIView?.textWillChange()
+            textUIView?.textWillChange()
         }
         if (selectionChanged) {
-            _textUIView?.selectionWillChange()
+            textUIView?.selectionWillChange()
         }
         _tempCurrentInputSession?.reset(newValue, null)
         currentInput?.let { input ->
@@ -157,14 +172,14 @@ internal class UIKitTextInputService(
             _tempCursorPos = null
         }
         if (textChanged) {
-            _textUIView?.textDidChange()
+            textUIView?.textDidChange()
         }
         if (selectionChanged) {
-            _textUIView?.selectionDidChange()
+            textUIView?.selectionDidChange()
         }
         if (textChanged || selectionChanged) {
             updateView()
-            _textUIView?.reloadInputViews()
+            textUIView?.reloadInputViews()
         }
     }
 
@@ -266,7 +281,7 @@ internal class UIKitTextInputService(
                 b = rect.bottom / density,
             )
         }
-        _textUIView?.showTextMenu(
+        textUIView?.showTextMenu(
             targetRect = skiaRect,
             textActions = object : TextActions {
                 override val copy: (() -> Unit)? = onCopyRequested
@@ -281,11 +296,11 @@ internal class UIKitTextInputService(
      * TODO on UIKit native behaviour is hide text menu, when touch outside
      */
     override fun hide() {
-        _textUIView?.hideTextMenu()
+        textUIView?.hideTextMenu()
     }
 
     override val status: TextToolbarStatus
-        get() = if (_textUIView?.isTextMenuShown() == true)
+        get() = if (textUIView?.isTextMenuShown() == true)
             TextToolbarStatus.Shown
         else
             TextToolbarStatus.Hidden

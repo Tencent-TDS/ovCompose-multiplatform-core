@@ -38,10 +38,11 @@ import platform.darwin.NSInteger
 @Suppress("CONFLICTING_OVERLOADS")
 internal class IntermediateTextInputUIView(
     private val keyboardEventHandler: KeyboardEventHandler,
-) : UIView(frame = CGRectMake(0.0, 0.0, 1000.0, 2000.0)),//todo size with constraints
+) : UIView(frame = CGRectZero.readValue()),
     UIKeyInputProtocol, UITextInputProtocol {
     private var _inputDelegate: UITextInputDelegateProtocol? = null
     var input: IOSSkikoInput? = null
+    private var _currentTextMenuActions: TextActions? = null
     var inputTraits: SkikoUITextInputTraits = object : SkikoUITextInputTraits {}
 
     override fun canBecomeFirstResponder() = true
@@ -207,7 +208,10 @@ internal class IntermediateTextInputUIView(
     /**
      * Attention! fromPosition and toPosition may be null
      */
-    override fun textRangeFromPosition(fromPosition: UITextPosition, toPosition: UITextPosition): UITextRange? {
+    override fun textRangeFromPosition(
+        fromPosition: UITextPosition,
+        toPosition: UITextPosition
+    ): UITextRange? {
         val from = (fromPosition as? IntermediateTextPosition)?.position ?: 0
         val to = (toPosition as? IntermediateTextPosition)?.position ?: 0
         return IntermediateTextRange(
@@ -222,7 +226,10 @@ internal class IntermediateTextInputUIView(
      * @param offset a character offset from position. It can be a positive or negative value.
      * Offset should be considered as a number of Unicode characters. One Unicode character can contain several bytes.
      */
-    override fun positionFromPosition(position: UITextPosition, offset: NSInteger): UITextPosition? {
+    override fun positionFromPosition(
+        position: UITextPosition,
+        offset: NSInteger
+    ): UITextPosition? {
         val p = (position as? IntermediateTextPosition)?.position ?: return null
         val endOfDocument = input?.endOfDocument()
         return if (endOfDocument != null) {
@@ -250,7 +257,10 @@ internal class IntermediateTextInputUIView(
     /**
      * Attention! position and toPosition may be null
      */
-    override fun comparePosition(position: UITextPosition, toPosition: UITextPosition): NSComparisonResult {
+    override fun comparePosition(
+        position: UITextPosition,
+        toPosition: UITextPosition
+    ): NSComparisonResult {
         val from = (position as? IntermediateTextPosition)?.position ?: 0
         val to = (toPosition as? IntermediateTextPosition)?.position ?: 0
         val result = if (from < to) {
@@ -271,6 +281,221 @@ internal class IntermediateTextInputUIView(
             error("toPosition !is IntermediateTextPosition")
         }
         return toPosition.position - from.position
+    }
+
+    override fun positionWithinRange(
+        range: UITextRange,
+        atCharacterOffset: NSInteger
+    ): UITextPosition? =
+        TODO("positionWithinRange range: $range, atCharacterOffset: $atCharacterOffset")
+
+    override fun positionWithinRange(
+        range: UITextRange,
+        farthestInDirection: UITextLayoutDirection
+    ): UITextPosition? =
+        TODO("positionWithinRange, farthestInDirection: ${farthestInDirection.directionToStr()}")
+
+    override fun characterRangeByExtendingPosition(
+        position: UITextPosition,
+        inDirection: UITextLayoutDirection
+    ): UITextRange? {
+        if (position !is IntermediateTextPosition) {
+            error("position !is IntermediateTextPosition")
+        }
+        TODO("characterRangeByExtendingPosition, inDirection: ${inDirection.directionToStr()}")
+    }
+
+    override fun baseWritingDirectionForPosition(
+        position: UITextPosition,
+        inDirection: UITextStorageDirection
+    ): NSWritingDirection {
+        return NSWritingDirectionLeftToRight // TODO support RTL text direction
+        if (position !is IntermediateTextPosition) {
+            error("position !is IntermediateTextPosition")
+        }
+    }
+
+    override fun setBaseWritingDirection(
+        writingDirection: NSWritingDirection,
+        forRange: UITextRange
+    ) {
+        // TODO support RTL text direction
+    }
+
+    //Working with Geometry and Hit-Testing. All methods return stubs for now.
+    override fun firstRectForRange(range: UITextRange): CValue<CGRect> = CGRectNull.readValue()
+    override fun caretRectForPosition(position: UITextPosition): CValue<CGRect> {
+        /* TODO: https://youtrack.jetbrains.com/issue/COMPOSE-332/
+            CGRectNull here led to crash with Speech-to-text on iOS 16.0
+            Set all fields to 1.0 to avoid potential dividing by zero
+            Ideally, here should be correct rect for caret from Compose.
+         */
+        return CGRectMake(x = 1.0, y = 1.0, width = 1.0, height = 1.0)
+        if (position !is IntermediateTextPosition) {
+            error("position !is IntermediateTextPosition")
+        }
+    }
+
+    override fun selectionRectsForRange(range: UITextRange): List<*> = listOf<UITextSelectionRect>()
+    override fun closestPositionToPoint(point: CValue<CGPoint>): UITextPosition? = null
+    override fun closestPositionToPoint(
+        point: CValue<CGPoint>,
+        withinRange: UITextRange
+    ): UITextPosition? = null
+
+    override fun characterRangeAtPoint(point: CValue<CGPoint>): UITextRange? = null
+
+    override fun textStylingAtPosition(
+        position: UITextPosition,
+        inDirection: UITextStorageDirection
+    ): Map<Any?, *>? {
+        return NSDictionary.dictionary()
+        if (position !is IntermediateTextPosition) {
+            error("position !is IntermediateTextPosition")
+        }
+    }
+
+    override fun characterOffsetOfPosition(
+        position: UITextPosition,
+        withinRange: UITextRange
+    ): NSInteger {
+        if (position !is IntermediateTextPosition) {
+            error("position !is IntermediateTextPosition")
+        }
+        TODO("characterOffsetOfPosition")
+    }
+
+    override fun shouldChangeTextInRange(range: UITextRange, replacementText: String): Boolean {
+        // Here we should decide to replace text in range or not.
+        // By default, this method returns true.
+        return true
+    }
+
+    override fun textInputView(): UIView {
+        return this
+    }
+
+    override fun keyboardType(): UIKeyboardType = inputTraits.keyboardType()
+    override fun keyboardAppearance(): UIKeyboardAppearance = inputTraits.keyboardAppearance()
+    override fun returnKeyType(): UIReturnKeyType = inputTraits.returnKeyType()
+    override fun textContentType(): UITextContentType? = inputTraits.textContentType()
+    override fun isSecureTextEntry(): Boolean = inputTraits.isSecureTextEntry()
+    override fun enablesReturnKeyAutomatically(): Boolean =
+        inputTraits.enablesReturnKeyAutomatically()
+
+    override fun autocapitalizationType(): UITextAutocapitalizationType =
+        inputTraits.autocapitalizationType()
+
+    override fun autocorrectionType(): UITextAutocorrectionType = inputTraits.autocorrectionType()
+
+    override fun dictationRecognitionFailed() {
+        //todo may be useful
+    }
+
+    override fun dictationRecordingDidEnd() {
+        //todo may be useful
+    }
+
+    /**
+     * Call when something changes in text data
+     */
+    fun textWillChange() {
+        _inputDelegate?.textWillChange(this)
+    }
+
+    /**
+     * Call when something changes in text data
+     */
+    fun textDidChange() {
+        _inputDelegate?.textDidChange(this)
+    }
+
+    /**
+     * Call when something changes in text data
+     */
+    fun selectionWillChange() {
+        _inputDelegate?.selectionWillChange(this)
+    }
+
+    /**
+     * Call when something changes in text data
+     */
+    fun selectionDidChange() {
+        _inputDelegate?.selectionDidChange(this)
+    }
+
+    override fun isUserInteractionEnabled(): Boolean = false // disable clicks
+
+    override fun canPerformAction(action: COpaquePointer?, withSender: Any?): Boolean {
+        return when (action) {
+            NSSelectorFromString(UIResponderStandardEditActionsProtocol::copy.name + ":") ->
+                _currentTextMenuActions?.copy != null
+
+            NSSelectorFromString(UIResponderStandardEditActionsProtocol::cut.name + ":") ->
+                _currentTextMenuActions?.cut != null
+
+            NSSelectorFromString(UIResponderStandardEditActionsProtocol::paste.name + ":") ->
+                _currentTextMenuActions?.paste != null
+
+            NSSelectorFromString(UIResponderStandardEditActionsProtocol::selectAll.name + ":") ->
+                _currentTextMenuActions?.selectAll != null
+
+            else -> false
+        }
+    }
+
+    /**
+     * Show copy/paste text menu
+     * @param targetRect - rectangle of selected text area
+     * @param textActions - available (not null) actions in text menu
+     */
+    fun showTextMenu(targetRect: org.jetbrains.skia.Rect, textActions: TextActions) {
+        _currentTextMenuActions = textActions
+        val menu: UIMenuController = UIMenuController.sharedMenuController()
+        val cgRect = CGRectMake(
+            x = targetRect.left.toDouble(),
+            y = targetRect.top.toDouble(),
+            width = targetRect.width.toDouble(),
+            height = targetRect.height.toDouble()
+        )
+        val isTargetVisible = CGRectIntersectsRect(bounds, cgRect)
+        if (isTargetVisible) {
+            if (menu.isMenuVisible()) {
+                menu.setTargetRect(cgRect, this)
+            } else {
+                menu.showMenuFromView(this, cgRect)
+            }
+        } else {
+            if (menu.isMenuVisible()) {
+                menu.hideMenu()
+            }
+        }
+    }
+
+    fun hideTextMenu() {
+        _currentTextMenuActions = null
+        val menu: UIMenuController = UIMenuController.sharedMenuController()
+        menu.hideMenu()
+    }
+
+    fun isTextMenuShown(): Boolean {
+        return _currentTextMenuActions != null
+    }
+
+    override fun copy(sender: Any?) {
+        _currentTextMenuActions?.copy?.invoke()
+    }
+
+    override fun paste(sender: Any?) {
+        _currentTextMenuActions?.paste?.invoke()
+    }
+
+    override fun cut(sender: Any?) {
+        _currentTextMenuActions?.cut?.invoke()
+    }
+
+    override fun selectAll(sender: Any?) {
+        _currentTextMenuActions?.selectAll?.invoke()
     }
 
     override fun tokenizer(): UITextInputTokenizerProtocol = object : UITextInputStringTokenizer() {
@@ -382,207 +607,6 @@ internal class IntermediateTextInputUIView(
         }
 
     }
-
-    override fun positionWithinRange(range: UITextRange, atCharacterOffset: NSInteger): UITextPosition? =
-        TODO("positionWithinRange range: $range, atCharacterOffset: $atCharacterOffset")
-
-    override fun positionWithinRange(range: UITextRange, farthestInDirection: UITextLayoutDirection): UITextPosition? =
-        TODO("positionWithinRange, farthestInDirection: ${farthestInDirection.directionToStr()}")
-
-    override fun characterRangeByExtendingPosition(
-        position: UITextPosition,
-        inDirection: UITextLayoutDirection
-    ): UITextRange? {
-        if (position !is IntermediateTextPosition) {
-            error("position !is IntermediateTextPosition")
-        }
-        TODO("characterRangeByExtendingPosition, inDirection: ${inDirection.directionToStr()}")
-    }
-
-    override fun baseWritingDirectionForPosition(
-        position: UITextPosition,
-        inDirection: UITextStorageDirection
-    ): NSWritingDirection {
-        return NSWritingDirectionLeftToRight // TODO support RTL text direction
-        if (position !is IntermediateTextPosition) {
-            error("position !is IntermediateTextPosition")
-        }
-    }
-
-    override fun setBaseWritingDirection(writingDirection: NSWritingDirection, forRange: UITextRange) {
-        // TODO support RTL text direction
-    }
-
-    //Working with Geometry and Hit-Testing. All methods return stubs for now.
-    override fun firstRectForRange(range: UITextRange): CValue<CGRect> = CGRectNull.readValue()
-    override fun caretRectForPosition(position: UITextPosition): CValue<CGRect> {
-        /* TODO: https://youtrack.jetbrains.com/issue/COMPOSE-332/
-            CGRectNull here led to crash with Speech-to-text on iOS 16.0
-            Set all fields to 1.0 to avoid potential dividing by zero
-            Ideally, here should be correct rect for caret from Compose.
-         */
-        return CGRectMake(x = 1.0, y = 1.0, width = 1.0, height = 1.0)
-        if (position !is IntermediateTextPosition) {
-            error("position !is IntermediateTextPosition")
-        }
-    }
-
-    override fun selectionRectsForRange(range: UITextRange): List<*> = listOf<UITextSelectionRect>()
-    override fun closestPositionToPoint(point: CValue<CGPoint>): UITextPosition? = null
-    override fun closestPositionToPoint(point: CValue<CGPoint>, withinRange: UITextRange): UITextPosition? = null
-    override fun characterRangeAtPoint(point: CValue<CGPoint>): UITextRange? = null
-
-    override fun textStylingAtPosition(position: UITextPosition, inDirection: UITextStorageDirection): Map<Any?, *>? {
-        return NSDictionary.dictionary()
-        if (position !is IntermediateTextPosition) {
-            error("position !is IntermediateTextPosition")
-        }
-    }
-
-    override fun characterOffsetOfPosition(position: UITextPosition, withinRange: UITextRange): NSInteger {
-        if (position !is IntermediateTextPosition) {
-            error("position !is IntermediateTextPosition")
-        }
-        TODO("characterOffsetOfPosition")
-    }
-
-    override fun shouldChangeTextInRange(range: UITextRange, replacementText: String): Boolean {
-        // Here we should decide to replace text in range or not.
-        // By default, this method returns true.
-        return true
-    }
-
-    override fun textInputView(): UIView {
-        return this
-    }
-
-    override fun keyboardType(): UIKeyboardType = inputTraits.keyboardType()
-    override fun keyboardAppearance(): UIKeyboardAppearance = inputTraits.keyboardAppearance()
-    override fun returnKeyType(): UIReturnKeyType = inputTraits.returnKeyType()
-    override fun textContentType(): UITextContentType? = inputTraits.textContentType()
-    override fun isSecureTextEntry(): Boolean = inputTraits.isSecureTextEntry()
-    override fun enablesReturnKeyAutomatically(): Boolean = inputTraits.enablesReturnKeyAutomatically()
-    override fun autocapitalizationType(): UITextAutocapitalizationType =
-        inputTraits.autocapitalizationType()
-
-    override fun autocorrectionType(): UITextAutocorrectionType = inputTraits.autocorrectionType()
-
-    override fun dictationRecognitionFailed() {
-        //todo may be useful
-    }
-
-    override fun dictationRecordingDidEnd() {
-        //todo may be useful
-    }
-
-    /**
-     * Call when something changes in text data
-     */
-    fun textWillChange() {
-        _inputDelegate?.textWillChange(this)
-    }
-
-    /**
-     * Call when something changes in text data
-     */
-    fun textDidChange() {
-        _inputDelegate?.textDidChange(this)
-    }
-
-    /**
-     * Call when something changes in text data
-     */
-    fun selectionWillChange() {
-        _inputDelegate?.selectionWillChange(this)
-    }
-
-    /**
-     * Call when something changes in text data
-     */
-    fun selectionDidChange() {
-        _inputDelegate?.selectionDidChange(this)
-    }
-
-
-
-
-    //---------- TEXT TOOLBAR ----------------
-
-    override fun isUserInteractionEnabled(): Boolean = false // disable clicks
-
-    private var _currentTextMenuActions: TextActions? = null
-    override fun canPerformAction(action: COpaquePointer?, withSender: Any?): Boolean {
-        return when (action) {
-            NSSelectorFromString(UIResponderStandardEditActionsProtocol::copy.name + ":") ->
-                _currentTextMenuActions?.copy != null
-
-            NSSelectorFromString(UIResponderStandardEditActionsProtocol::cut.name + ":") ->
-                _currentTextMenuActions?.cut != null
-
-            NSSelectorFromString(UIResponderStandardEditActionsProtocol::paste.name + ":") ->
-                _currentTextMenuActions?.paste != null
-
-            NSSelectorFromString(UIResponderStandardEditActionsProtocol::selectAll.name + ":") ->
-                _currentTextMenuActions?.selectAll != null
-
-            else -> false
-        }
-    }
-
-    /**
-     * Show copy/paste text menu
-     * @param targetRect - rectangle of selected text area
-     * @param textActions - available (not null) actions in text menu
-     */
-    fun showTextMenu(targetRect: org.jetbrains.skia.Rect, textActions: TextActions) {
-        _currentTextMenuActions = textActions
-        val menu: UIMenuController = UIMenuController.sharedMenuController()
-        val cgRect = CGRectMake(
-            x = targetRect.left.toDouble(),
-            y = targetRect.top.toDouble(),
-            width = targetRect.width.toDouble(),
-            height = targetRect.height.toDouble()
-        )
-        val isTargetVisible = CGRectIntersectsRect(bounds, cgRect)
-        if (isTargetVisible) {
-            if (menu.isMenuVisible()) {
-                menu.setTargetRect(cgRect, this)
-            } else {
-                menu.showMenuFromView(this, cgRect)
-            }
-        } else {
-            if (menu.isMenuVisible()) {
-                menu.hideMenu()
-            }
-        }
-    }
-
-    fun hideTextMenu() {
-        _currentTextMenuActions = null
-        val menu: UIMenuController = UIMenuController.sharedMenuController()
-        menu.hideMenu()
-    }
-
-    fun isTextMenuShown(): Boolean {
-        return _currentTextMenuActions != null
-    }
-
-    override fun copy(sender: Any?) {
-        _currentTextMenuActions?.copy?.invoke()
-    }
-
-    override fun paste(sender: Any?) {
-        _currentTextMenuActions?.paste?.invoke()
-    }
-
-    override fun cut(sender: Any?) {
-        _currentTextMenuActions?.cut?.invoke()
-    }
-
-    override fun selectAll(sender: Any?) {
-        _currentTextMenuActions?.selectAll?.invoke()
-    }
-
 
 }
 

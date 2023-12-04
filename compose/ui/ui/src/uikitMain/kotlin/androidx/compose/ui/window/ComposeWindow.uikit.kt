@@ -17,26 +17,13 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
-import androidx.compose.ui.interop.LocalLayerContainer
-import androidx.compose.ui.interop.LocalUIKitInteropContext
-import androidx.compose.ui.interop.LocalUIViewController
-import androidx.compose.ui.interop.UIKitInteropContext
-import androidx.compose.ui.platform.*
-import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.uikit.*
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
+import androidx.compose.ui.uikit.InterfaceOrientation
+import androidx.compose.ui.uikit.PlistSanityCheck
 import androidx.compose.ui.util.fastForEachReversed
-import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
@@ -45,22 +32,24 @@ import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.available
-import platform.CoreGraphics.CGAffineTransformIdentity
-import platform.CoreGraphics.CGAffineTransformInvert
-import platform.CoreGraphics.CGFloat
-import platform.CoreGraphics.CGPointMake
-import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSize
 import platform.CoreGraphics.CGSizeEqualToSize
-import platform.Foundation.*
-import platform.QuartzCore.CADisplayLink
-import platform.QuartzCore.CATransaction
-import platform.QuartzCore.kCATransactionDisableActions
-import platform.UIKit.*
+import platform.Foundation.NSNotification
+import platform.Foundation.NSNotificationCenter
+import platform.Foundation.NSSelectorFromString
+import platform.Foundation.NSStringFromClass
+import platform.UIKit.UIApplication
+import platform.UIKit.UIColor
+import platform.UIKit.UIKeyboardWillHideNotification
+import platform.UIKit.UIKeyboardWillShowNotification
+import platform.UIKit.UITraitCollection
+import platform.UIKit.UIUserInterfaceStyle
+import platform.UIKit.UIView
+import platform.UIKit.UIViewController
+import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.darwin.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
-import platform.darwin.sel_registerName
 
 fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
     ComposeUIViewController(configure = {}, content = content)
@@ -190,7 +179,10 @@ internal class RootUIViewController(
         }
 
         sceneStates.forEach { sceneViewState ->
-            sceneViewState.animateTransition(targetSize = size, coordinator = withTransitionCoordinator)
+            sceneViewState.animateTransition(
+                targetSize = size,
+                coordinator = withTransitionCoordinator
+            )
         }
         view.layoutIfNeeded()
     }

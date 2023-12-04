@@ -40,21 +40,22 @@ internal interface DensityProvider {
 
 internal class DensityProviderImpl(
     val uiViewControllerProvider: () -> UIViewController,
-    val viewProvider: ()->UIView,
-): DensityProvider {
+    val viewProvider: () -> UIView,
+) : DensityProvider {
 
     val uiViewController get() = uiViewControllerProvider()
 
-    override val density: Density get() {
-        val contentSizeCategory =
-            uiViewController.traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
-        val fontScale: Float = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
+    override val density: Density
+        get() {
+            val contentSizeCategory =
+                uiViewController.traitCollection.preferredContentSizeCategory
+                    ?: UIContentSizeCategoryUnspecified
 
-        return Density(
-            viewProvider().contentScaleFactor.toFloat(),
-            fontScale
-        )
-    }
+            return Density(
+                density = viewProvider().contentScaleFactor.toFloat(),
+                fontScale = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
+            )
+        }
 }
 
 private val uiContentSizeCategoryToFontScaleMap = mapOf(

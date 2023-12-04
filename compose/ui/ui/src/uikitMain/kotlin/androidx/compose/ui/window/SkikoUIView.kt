@@ -98,7 +98,6 @@ internal class SkikoUIView(
 
     init {
         multipleTouchEnabled = true
-        translatesAutoresizingMaskIntoConstraints = false
         opaque = !transparentBackground
 
         _metalLayer.also {

@@ -324,6 +324,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             SceneLayout.UseConstraintsToFillContainer -> {
                 delegate.metalOffset = Offset.Zero
                 sceneView.setFrame(CGRectZero.readValue())
+                sceneView.translatesAutoresizingMaskIntoConstraints = false
                 constraints = listOf(
                     sceneView.leftAnchor.constraintEqualToAnchor(rootViewController.view.leftAnchor),
                     sceneView.rightAnchor.constraintEqualToAnchor(rootViewController.view.rightAnchor),
@@ -335,6 +336,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             is SceneLayout.UseConstraintsToCenter -> {
                 delegate.metalOffset = Offset.Zero
                 sceneView.setFrame(CGRectZero.readValue())
+                sceneView.translatesAutoresizingMaskIntoConstraints = false
                 constraints = value.size.useContents {
                     listOf(
                         sceneView.centerXAnchor.constraintEqualToAnchor(rootViewController.view.centerXAnchor),
@@ -348,6 +350,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             is SceneLayout.Bounds -> {
                 delegate.metalOffset = -value.rect.topLeft.toOffset()
                 val density = densityProvider().density
+                sceneView.translatesAutoresizingMaskIntoConstraints = true
                 sceneView.setFrame(
                     with(value.rect) {
                         CGRectMake(
