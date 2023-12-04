@@ -22,12 +22,11 @@ import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.LocalSystemTheme
-import androidx.compose.ui.createSkiaLayer
 import androidx.compose.ui.input.pointer.BrowserCursor
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.JSTextInputService
-import androidx.compose.ui.platform.Platform
+import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.unit.Density
@@ -39,13 +38,16 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import org.jetbrains.skiko.SkiaLayer
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLStyleElement
 import org.w3c.dom.HTMLTitleElement
 
-internal actual class ComposeWindow(val canvasId: String)  {
-
-    actual constructor(): this(defaultCanvasElementId)
+@OptIn(InternalComposeApi::class)
+private class ComposeWindow(
+    canvasId: String,
+    content: @Composable () -> Unit,
+)  {
 
     private val density: Density = Density(
         density = window.devicePixelRatio.toFloat(),
@@ -56,25 +58,25 @@ internal actual class ComposeWindow(val canvasId: String)  {
         isWindowFocused = true
     }
     private val jsTextInputService = JSTextInputService()
-    val platform = object : Platform by Platform.Empty {
-        override val windowInfo get() = _windowInfo
-        override val textInputService = jsTextInputService
-        override val viewConfiguration = object : ViewConfiguration {
-            override val longPressTimeoutMillis: Long = 500
-            override val doubleTapTimeoutMillis: Long = 300
-            override val doubleTapMinTimeMillis: Long = 40
-            override val touchSlop: Float get() = with(density) { 18.dp.toPx() }
-        }
+    private val platformContext: PlatformContext =
+        object : PlatformContext by PlatformContext.Empty {
+            override val windowInfo get() = _windowInfo
+            override val textInputService = jsTextInputService
+            override val viewConfiguration =
+                object : ViewConfiguration by PlatformContext.Empty.viewConfiguration {
+                    override val touchSlop: Float get() = with(density) { 18.dp.toPx() }
+                }
 
-        override fun setPointerIcon(pointerIcon: PointerIcon) {
-            if (pointerIcon is BrowserCursor) {
-                setCursor(canvasId, pointerIcon.id)
+            override fun setPointerIcon(pointerIcon: PointerIcon) {
+                if (pointerIcon is BrowserCursor) {
+                    setCursor(canvasId, pointerIcon.id)
+                }
             }
         }
-    }
+
     private val layer = ComposeLayer(
-        layer = createSkiaLayer(),
-        platform = platform,
+        layer = SkiaLayer(),
+        platformContext = platformContext,
         input = jsTextInputService.input
     )
     private val systemThemeObserver = SystemThemeObserver(window)
@@ -89,6 +91,14 @@ internal actual class ComposeWindow(val canvasId: String)  {
 
         _windowInfo.containerSize = IntSize(canvas.width, canvas.height)
         layer.setSize(canvas.width, canvas.height)
+
+        layer.setDensity(density)
+        layer.setContent {
+            CompositionLocalProvider(
+                LocalSystemTheme provides systemThemeObserver.currentSystemTheme.value,
+                content = content
+            )
+        }
     }
 
     fun resize(newSize: IntSize) {
@@ -106,26 +116,8 @@ internal actual class ComposeWindow(val canvasId: String)  {
         layer.layer.needRedraw()
     }
 
-    /**
-     * Sets Compose content of the ComposeWindow.
-     *
-     * @param content Composable content of the ComposeWindow.
-     */
-    @OptIn(InternalComposeApi::class)
-    actual fun setContent(
-        content: @Composable () -> Unit
-    ) {
-        layer.setDensity(density)
-        layer.setContent {
-            CompositionLocalProvider(
-                LocalSystemTheme provides systemThemeObserver.currentSystemTheme.value,
-                content = content
-            )
-        }
-    }
-
     // TODO: need to call .dispose() on window close.
-    actual fun dispose() {
+    fun dispose() {
         layer.dispose()
         systemThemeObserver.dispose()
     }
@@ -201,19 +193,20 @@ fun CanvasBasedWindow(
         }
     }
 
-    ComposeWindow(canvasId = canvasElementId).apply {
-        val composeWindow = this
-        setContent {
+    var composeWindow: ComposeWindow? = null
+    composeWindow = ComposeWindow(
+        canvasId = canvasElementId,
+        content = {
             content()
             LaunchedEffect(Unit) {
                 while (isActive) {
                     val newSize = actualRequestResize()
-                    composeWindow.resize(newSize)
+                    composeWindow?.resize(newSize)
                     delay(100) // throttle
                 }
             }
         }
-    }
+    )
 }
 
 private fun setCursor(elementId: String, value: String): Unit =
