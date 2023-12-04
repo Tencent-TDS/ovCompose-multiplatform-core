@@ -111,303 +111,7 @@ internal class UIKitTextInputService(
         ).also {
             rootView.addSubview(it)
         }
-        _textUIView?.input = object : IOSSkikoInput {
-
-            /**
-             * A Boolean value that indicates whether the text-entry object has any text.
-             * https://developer.apple.com/documentation/uikit/uikeyinput/1614457-hastext
-             */
-            override fun hasText(): Boolean = getState()?.text?.isNotEmpty() ?: false
-
-            /**
-             * Inserts a character into the displayed text.
-             * Add the character text to your class’s backing store at the index corresponding to the cursor and redisplay the text.
-             * https://developer.apple.com/documentation/uikit/uikeyinput/1614543-inserttext
-             * @param text A string object representing the character typed on the system keyboard.
-             */
-            override fun insertText(text: String) {
-                if (text == "\n") {
-                    if (runImeActionIfRequired()) {
-                        return
-                    }
-                }
-                getCursorPos()?.let {
-                    _tempCursorPos = it + text.length
-                }
-                sendEditCommand(CommitTextCommand(text, 1))
-            }
-
-            /**
-             * Deletes a character from the displayed text.
-             * Remove the character just before the cursor from your class’s backing store and redisplay the text.
-             * https://developer.apple.com/documentation/uikit/uikeyinput/1614572-deletebackward
-             */
-            override fun deleteBackward() {
-                // Before this function calls, iOS changes selection in setSelectedTextRange.
-                // All needed characters should be allready selected, and we can just remove them.
-                sendEditCommand(
-                    CommitTextCommand("", 0)
-                )
-            }
-
-            /**
-             * The text position for the end of a document.
-             * https://developer.apple.com/documentation/uikit/uitextinput/1614555-endofdocument
-             */
-            override fun endOfDocument(): Long = getState()?.text?.length?.toLong() ?: 0L
-
-            /**
-             * The range of selected text in a document.
-             * If the text range has a length, it indicates the currently selected text.
-             * If it has zero length, it indicates the caret (insertion point).
-             * If the text-range object is nil, it indicates that there is no current selection.
-             * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
-             */
-            override fun getSelectedTextRange(): IntRange? {
-                val cursorPos = getCursorPos()
-                if (cursorPos != null) {
-                    return cursorPos until cursorPos
-                }
-                val selection = getState()?.selection
-                return if (selection != null) {
-                    selection.start until selection.end
-                } else {
-                    null
-                }
-            }
-
-            override fun setSelectedTextRange(range: IntRange?) {
-                if (range != null) {
-                    sendEditCommand(
-                        SetSelectionCommand(range.start, range.endInclusive + 1)
-                    )
-                } else {
-                    sendEditCommand(
-                        SetSelectionCommand(endOfDocument().toInt(), endOfDocument().toInt())
-                    )
-                }
-            }
-
-            override fun selectAll() {
-                sendEditCommand(
-                    SetSelectionCommand(0, endOfDocument().toInt())
-                )
-            }
-
-            /**
-             * Returns the text in the specified range.
-             * https://developer.apple.com/documentation/uikit/uitextinput/1614527-text
-             * @param range A range of text in a document.
-             * @return A substring of a document that falls within the specified range.
-             */
-            override fun textInRange(range: IntRange): String {
-                val text = getState()?.text
-                return text?.substring(range.first, min(range.last + 1, text.length)) ?: ""
-            }
-
-            /**
-             * Replaces the text in a document that is in the specified range.
-             * https://developer.apple.com/documentation/uikit/uitextinput/1614558-replace
-             * @param range A range of text in a document.
-             * @param text A string to replace the text in range.
-             */
-            override fun replaceRange(range: IntRange, text: String) {
-                sendEditCommand(
-                    SetComposingRegionCommand(range.start, range.endInclusive + 1),
-                    SetComposingTextCommand(text, 1),
-                    FinishComposingTextCommand(),
-                )
-            }
-
-            /**
-             * Inserts the provided text and marks it to indicate that it is part of an active input session.
-             * Setting marked text either replaces the existing marked text or,
-             * if none is present, inserts it in place of the current selection.
-             * https://developer.apple.com/documentation/uikit/uitextinput/1614465-setmarkedtext
-             * @param markedText The text to be marked.
-             * @param selectedRange A range within markedText that indicates the current selection.
-             * This range is always relative to markedText.
-             */
-            override fun setMarkedText(markedText: String?, selectedRange: IntRange) {
-                if (markedText != null) {
-                    sendEditCommand(
-                        SetComposingTextCommand(markedText, 1)
-                    )
-                }
-            }
-
-            /**
-             * The range of currently marked text in a document.
-             * If there is no marked text, the value of the property is nil.
-             * Marked text is provisionally inserted text that requires user confirmation;
-             * it occurs in multistage text input.
-             * The current selection, which can be a caret or an extended range, always occurs within the marked text.
-             * https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange
-             */
-            override fun markedTextRange(): IntRange? {
-                val composition = getState()?.composition
-                return if (composition != null) {
-                    composition.start until composition.end
-                } else {
-                    null
-                }
-            }
-
-            /**
-             * Unmarks the currently marked text.
-             * After this method is called, the value of markedTextRange is nil.
-             * https://developer.apple.com/documentation/uikit/uitextinput/1614512-unmarktext
-             */
-            override fun unmarkText() {
-                sendEditCommand(FinishComposingTextCommand())
-            }
-
-            /**
-             * Returns the text position at a specified offset from another text position.
-             */
-            override fun positionFromPosition(position: Long, offset: Long): Long {
-                val text = getState()?.text ?: return 0
-
-                if (position + offset >= text.lastIndex + 1) {
-                    return (text.lastIndex + 1).toLong()
-                }
-                if (position + offset <= 0) {
-                    return 0
-                }
-                var resultPosition = position.toInt()
-                val iterator = BreakIterator.makeCharacterInstance()
-                iterator.setText(text)
-
-                repeat(offset.absoluteValue.toInt()) {
-                    resultPosition = if (offset > 0) {
-                        iterator.following(resultPosition)
-                    } else {
-                        iterator.preceding(resultPosition)
-                    }
-                }
-
-                return resultPosition.toLong()
-            }
-
-            /**
-             * Return the range for the text enclosing a text position in a text unit of a given granularity in a given direction.
-             * https://developer.apple.com/documentation/uikit/uitextinputtokenizer/1614464-rangeenclosingposition?language=objc
-             * @param position
-             * A text-position object that represents a location in a document.
-             * @param withGranularity
-             * A constant that indicates a certain granularity of text unit.
-             * @param inDirection
-             * A constant that indicates a direction relative to position. The constant can be of type UITextStorageDirection or UITextLayoutDirection.
-             * @return
-             * A text-range representing a text unit of the given granularity in the given direction, or nil if there is no such enclosing unit.
-             * Whether a boundary position is enclosed depends on the given direction, using the same rule as the isPosition:withinTextUnit:inDirection: method.
-             */
-            override fun rangeEnclosingPosition(
-                position: Int,
-                withGranularity: UITextGranularity,
-                inDirection: UITextDirection
-            ): IntRange? {
-                val text = getState()?.text ?: return null
-                assert(position >= 0) { "rangeEnclosingPosition position >= 0" }
-
-                fun String.isMeaningless(): Boolean {
-                    return when (withGranularity) {
-                        UITextGranularity.UITextGranularityWord -> {
-                            this.all { it in arrayOf(' ', ',') }
-                        }
-
-                        else -> false
-                    }
-                }
-
-                val iterator: BreakIterator = withGranularity.toTextIterator()
-                iterator.setText(text)
-
-                if (inDirection == UITextStorageDirectionForward) {
-                    return null
-                } else if (inDirection == UITextStorageDirectionBackward) {
-                    var current: Int = position
-
-                    fun currentRange() = IntRange(current, position)
-                    fun nextAddition() = IntRange(iterator.preceding(current).coerceAtLeast(0), current)
-                    fun IntRange.text() = text.substring(start, endInclusive)
-
-                    while (
-                        current == position
-                        || currentRange().text().isMeaningless()
-                        || nextAddition().text().isMeaningless()
-                    ) {
-                        current = iterator.preceding(current)
-                        if (current <= 0) {
-                            current = 0
-                            break
-                        }
-                    }
-
-                    return IntRange(current, position)
-                } else {
-                    error("Unknown inDirection: $inDirection")
-                }
-            }
-
-            /**
-             * Return whether a text position is at a boundary of a text unit of a specified granularity in a specified direction.
-             * https://developer.apple.com/documentation/uikit/uitextinputtokenizer/1614553-isposition?language=objc
-             * @param position
-             * A text-position object that represents a location in a document.
-             * @param atBoundary
-             * A constant that indicates a certain granularity of text unit.
-             * @param inDirection
-             * A constant that indicates a direction relative to position. The constant can be of type UITextStorageDirection or UITextLayoutDirection.
-             * @return
-             * TRUE if the text position is at the given text-unit boundary in the given direction; FALSE if it is not at the boundary.
-             */
-            override fun isPositionAtBoundary(
-                position: Int,
-                atBoundary: UITextGranularity,
-                inDirection: UITextDirection
-            ): Boolean {
-                val text = getState()?.text ?: return false
-                assert(position >= 0) { "isPositionAtBoundary position >= 0" }
-
-                val iterator = atBoundary.toTextIterator()
-                iterator.setText(text)
-                return iterator.isBoundary(position)
-            }
-
-            /**
-             * Return whether a text position is within a text unit of a specified granularity in a specified direction.
-             * https://developer.apple.com/documentation/uikit/uitextinputtokenizer/1614491-isposition?language=objc
-             * @param position
-             * A text-position object that represents a location in a document.
-             * @param withinTextUnit
-             * A constant that indicates a certain granularity of text unit.
-             * @param inDirection
-             * A constant that indicates a direction relative to position. The constant can be of type UITextStorageDirection or UITextLayoutDirection.
-             * @return
-             * TRUE if the text position is within a text unit of the specified granularity in the specified direction; otherwise, return FALSE.
-             * If the text position is at a boundary, return TRUE only if the boundary is part of the text unit in the given direction.
-             */
-            override fun isPositionWithingTextUnit(
-                position: Int,
-                withinTextUnit: UITextGranularity,
-                inDirection: UITextDirection
-            ): Boolean {
-                val text = getState()?.text ?: return false
-                assert(position >= 0) { "isPositionWithingTextUnit position >= 0" }
-
-                val iterator = withinTextUnit.toTextIterator()
-                iterator.setText(text)
-
-                if (inDirection == UITextStorageDirectionForward) {
-
-                } else if (inDirection == UITextStorageDirectionBackward) {
-
-                }
-                return false // TODO: Write implementation
-            }
-        }
-
+        _textUIView?.input = createSkikoInput(value)
         _textUIView?.inputTraits = getUITextInputTraits(imeOptions)
 
         showSoftwareKeyboard()
@@ -439,7 +143,8 @@ internal class UIKitTextInputService(
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
         val internalOldValue = _tempCurrentInputSession?.toTextFieldValue()
         val textChanged = internalOldValue == null || internalOldValue.text != newValue.text
-        val selectionChanged = textChanged || internalOldValue == null || internalOldValue.selection != newValue.selection
+        val selectionChanged =
+            textChanged || internalOldValue == null || internalOldValue.selection != newValue.selection
         if (textChanged) {
             _textUIView?.textWillChange()
         }
@@ -544,10 +249,6 @@ internal class UIKitTextInputService(
 
     private fun getState(): TextFieldValue? = currentInput?.value
 
-
-
-
-    //---------- TEXT TOOLBAR -----------
     private val density get() = densityProvider()
 
     override fun showMenu(
@@ -589,6 +290,304 @@ internal class UIKitTextInputService(
         else
             TextToolbarStatus.Hidden
 
+
+    private fun createSkikoInput(value: TextFieldValue) = object : IOSSkikoInput {
+        /**
+         * A Boolean value that indicates whether the text-entry object has any text.
+         * https://developer.apple.com/documentation/uikit/uikeyinput/1614457-hastext
+         */
+        override fun hasText(): Boolean = getState()?.text?.isNotEmpty() ?: false
+
+        /**
+         * Inserts a character into the displayed text.
+         * Add the character text to your class’s backing store at the index corresponding to the cursor and redisplay the text.
+         * https://developer.apple.com/documentation/uikit/uikeyinput/1614543-inserttext
+         * @param text A string object representing the character typed on the system keyboard.
+         */
+        override fun insertText(text: String) {
+            if (text == "\n") {
+                if (runImeActionIfRequired()) {
+                    return
+                }
+            }
+            getCursorPos()?.let {
+                _tempCursorPos = it + text.length
+            }
+            sendEditCommand(CommitTextCommand(text, 1))
+        }
+
+        /**
+         * Deletes a character from the displayed text.
+         * Remove the character just before the cursor from your class’s backing store and redisplay the text.
+         * https://developer.apple.com/documentation/uikit/uikeyinput/1614572-deletebackward
+         */
+        override fun deleteBackward() {
+            // Before this function calls, iOS changes selection in setSelectedTextRange.
+            // All needed characters should be allready selected, and we can just remove them.
+            sendEditCommand(
+                CommitTextCommand("", 0)
+            )
+        }
+
+        /**
+         * The text position for the end of a document.
+         * https://developer.apple.com/documentation/uikit/uitextinput/1614555-endofdocument
+         */
+        override fun endOfDocument(): Long = getState()?.text?.length?.toLong() ?: 0L
+
+        /**
+         * The range of selected text in a document.
+         * If the text range has a length, it indicates the currently selected text.
+         * If it has zero length, it indicates the caret (insertion point).
+         * If the text-range object is nil, it indicates that there is no current selection.
+         * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
+         */
+        override fun getSelectedTextRange(): IntRange? {
+            val cursorPos = getCursorPos()
+            if (cursorPos != null) {
+                return cursorPos until cursorPos
+            }
+            val selection = getState()?.selection
+            return if (selection != null) {
+                selection.start until selection.end
+            } else {
+                null
+            }
+        }
+
+        override fun setSelectedTextRange(range: IntRange?) {
+            if (range != null) {
+                sendEditCommand(
+                    SetSelectionCommand(range.start, range.endInclusive + 1)
+                )
+            } else {
+                sendEditCommand(
+                    SetSelectionCommand(endOfDocument().toInt(), endOfDocument().toInt())
+                )
+            }
+        }
+
+        override fun selectAll() {
+            sendEditCommand(
+                SetSelectionCommand(0, endOfDocument().toInt())
+            )
+        }
+
+        /**
+         * Returns the text in the specified range.
+         * https://developer.apple.com/documentation/uikit/uitextinput/1614527-text
+         * @param range A range of text in a document.
+         * @return A substring of a document that falls within the specified range.
+         */
+        override fun textInRange(range: IntRange): String {
+            val text = getState()?.text
+            return text?.substring(range.first, min(range.last + 1, text.length)) ?: ""
+        }
+
+        /**
+         * Replaces the text in a document that is in the specified range.
+         * https://developer.apple.com/documentation/uikit/uitextinput/1614558-replace
+         * @param range A range of text in a document.
+         * @param text A string to replace the text in range.
+         */
+        override fun replaceRange(range: IntRange, text: String) {
+            sendEditCommand(
+                SetComposingRegionCommand(range.start, range.endInclusive + 1),
+                SetComposingTextCommand(text, 1),
+                FinishComposingTextCommand(),
+            )
+        }
+
+        /**
+         * Inserts the provided text and marks it to indicate that it is part of an active input session.
+         * Setting marked text either replaces the existing marked text or,
+         * if none is present, inserts it in place of the current selection.
+         * https://developer.apple.com/documentation/uikit/uitextinput/1614465-setmarkedtext
+         * @param markedText The text to be marked.
+         * @param selectedRange A range within markedText that indicates the current selection.
+         * This range is always relative to markedText.
+         */
+        override fun setMarkedText(markedText: String?, selectedRange: IntRange) {
+            if (markedText != null) {
+                sendEditCommand(
+                    SetComposingTextCommand(markedText, 1)
+                )
+            }
+        }
+
+        /**
+         * The range of currently marked text in a document.
+         * If there is no marked text, the value of the property is nil.
+         * Marked text is provisionally inserted text that requires user confirmation;
+         * it occurs in multistage text input.
+         * The current selection, which can be a caret or an extended range, always occurs within the marked text.
+         * https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange
+         */
+        override fun markedTextRange(): IntRange? {
+            val composition = getState()?.composition
+            return if (composition != null) {
+                composition.start until composition.end
+            } else {
+                null
+            }
+        }
+
+        /**
+         * Unmarks the currently marked text.
+         * After this method is called, the value of markedTextRange is nil.
+         * https://developer.apple.com/documentation/uikit/uitextinput/1614512-unmarktext
+         */
+        override fun unmarkText() {
+            sendEditCommand(FinishComposingTextCommand())
+        }
+
+        /**
+         * Returns the text position at a specified offset from another text position.
+         */
+        override fun positionFromPosition(position: Long, offset: Long): Long {
+            val text = getState()?.text ?: return 0
+
+            if (position + offset >= text.lastIndex + 1) {
+                return (text.lastIndex + 1).toLong()
+            }
+            if (position + offset <= 0) {
+                return 0
+            }
+            var resultPosition = position.toInt()
+            val iterator = BreakIterator.makeCharacterInstance()
+            iterator.setText(text)
+
+            repeat(offset.absoluteValue.toInt()) {
+                resultPosition = if (offset > 0) {
+                    iterator.following(resultPosition)
+                } else {
+                    iterator.preceding(resultPosition)
+                }
+            }
+
+            return resultPosition.toLong()
+        }
+
+        /**
+         * Return the range for the text enclosing a text position in a text unit of a given granularity in a given direction.
+         * https://developer.apple.com/documentation/uikit/uitextinputtokenizer/1614464-rangeenclosingposition?language=objc
+         * @param position
+         * A text-position object that represents a location in a document.
+         * @param withGranularity
+         * A constant that indicates a certain granularity of text unit.
+         * @param inDirection
+         * A constant that indicates a direction relative to position. The constant can be of type UITextStorageDirection or UITextLayoutDirection.
+         * @return
+         * A text-range representing a text unit of the given granularity in the given direction, or nil if there is no such enclosing unit.
+         * Whether a boundary position is enclosed depends on the given direction, using the same rule as the isPosition:withinTextUnit:inDirection: method.
+         */
+        override fun rangeEnclosingPosition(
+            position: Int,
+            withGranularity: UITextGranularity,
+            inDirection: UITextDirection
+        ): IntRange? {
+            val text = getState()?.text ?: return null
+            assert(position >= 0) { "rangeEnclosingPosition position >= 0" }
+
+            fun String.isMeaningless(): Boolean {
+                return when (withGranularity) {
+                    UITextGranularity.UITextGranularityWord -> {
+                        this.all { it in arrayOf(' ', ',') }
+                    }
+
+                    else -> false
+                }
+            }
+
+            val iterator: BreakIterator = withGranularity.toTextIterator()
+            iterator.setText(text)
+
+            if (inDirection == UITextStorageDirectionForward) {
+                return null
+            } else if (inDirection == UITextStorageDirectionBackward) {
+                var current: Int = position
+
+                fun currentRange() = IntRange(current, position)
+                fun nextAddition() =
+                    IntRange(iterator.preceding(current).coerceAtLeast(0), current)
+
+                fun IntRange.text() = text.substring(start, endInclusive)
+
+                while (
+                    current == position
+                    || currentRange().text().isMeaningless()
+                    || nextAddition().text().isMeaningless()
+                ) {
+                    current = iterator.preceding(current)
+                    if (current <= 0) {
+                        current = 0
+                        break
+                    }
+                }
+
+                return IntRange(current, position)
+            } else {
+                error("Unknown inDirection: $inDirection")
+            }
+        }
+
+        /**
+         * Return whether a text position is at a boundary of a text unit of a specified granularity in a specified direction.
+         * https://developer.apple.com/documentation/uikit/uitextinputtokenizer/1614553-isposition?language=objc
+         * @param position
+         * A text-position object that represents a location in a document.
+         * @param atBoundary
+         * A constant that indicates a certain granularity of text unit.
+         * @param inDirection
+         * A constant that indicates a direction relative to position. The constant can be of type UITextStorageDirection or UITextLayoutDirection.
+         * @return
+         * TRUE if the text position is at the given text-unit boundary in the given direction; FALSE if it is not at the boundary.
+         */
+        override fun isPositionAtBoundary(
+            position: Int,
+            atBoundary: UITextGranularity,
+            inDirection: UITextDirection
+        ): Boolean {
+            val text = getState()?.text ?: return false
+            assert(position >= 0) { "isPositionAtBoundary position >= 0" }
+
+            val iterator = atBoundary.toTextIterator()
+            iterator.setText(text)
+            return iterator.isBoundary(position)
+        }
+
+        /**
+         * Return whether a text position is within a text unit of a specified granularity in a specified direction.
+         * https://developer.apple.com/documentation/uikit/uitextinputtokenizer/1614491-isposition?language=objc
+         * @param position
+         * A text-position object that represents a location in a document.
+         * @param withinTextUnit
+         * A constant that indicates a certain granularity of text unit.
+         * @param inDirection
+         * A constant that indicates a direction relative to position. The constant can be of type UITextStorageDirection or UITextLayoutDirection.
+         * @return
+         * TRUE if the text position is within a text unit of the specified granularity in the specified direction; otherwise, return FALSE.
+         * If the text position is at a boundary, return TRUE only if the boundary is part of the text unit in the given direction.
+         */
+        override fun isPositionWithingTextUnit(
+            position: Int,
+            withinTextUnit: UITextGranularity,
+            inDirection: UITextDirection
+        ): Boolean {
+            val text = getState()?.text ?: return false
+            assert(position >= 0) { "isPositionWithingTextUnit position >= 0" }
+
+            val iterator = withinTextUnit.toTextIterator()
+            iterator.setText(text)
+
+            if (inDirection == UITextStorageDirectionForward) {
+
+            } else if (inDirection == UITextStorageDirectionBackward) {
+
+            }
+            return false // TODO: Write implementation
+        }
+    }
 
 }
 
