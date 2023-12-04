@@ -187,7 +187,11 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(skikoTest)
             }
 
-            jsTest{
+            jsTest {
+                dependsOn(jsWasmTest)
+            }
+
+            wasmJsTest {
                 dependsOn(jsWasmTest)
             }
 
