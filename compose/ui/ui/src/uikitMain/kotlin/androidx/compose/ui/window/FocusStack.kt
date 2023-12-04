@@ -22,7 +22,7 @@ import platform.UIKit.UIView
 /**
  * Stack to remember previously focused UIView.
  */
-interface FocusStack<V> {
+internal interface FocusStack<V> {
 
     /**
      * Add new view to stack and focus on it.
