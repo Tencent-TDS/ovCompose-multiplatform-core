@@ -43,7 +43,7 @@ internal class SkikoUIView(
     frame = CGRectMake(
         x = 0.0,
         y = 0.0,
-        width = 1.0, // TODO: Non zero size need to first render with ComposeSceneLayer
+        width = 1.0, // TODO: Non-zero size need to first render with ComposeSceneLayer
         height = 1.0
     )
 ) {
