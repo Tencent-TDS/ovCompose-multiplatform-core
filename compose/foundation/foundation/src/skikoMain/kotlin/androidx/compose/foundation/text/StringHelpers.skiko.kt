@@ -30,22 +30,28 @@ internal actual fun String.findFollowingBreak(index: Int): Int {
     return it.following(index)
 }
 
+// Copied from CharHelpers.skiko.kt
 // TODO Remove once it's available in common stdlib https://youtrack.jetbrains.com/issue/KT-23251
 internal typealias CodePoint = Int
 
+
+// Copied from CharHelpers.skiko.kt
 /**
  * Converts a surrogate pair to a unicode code point.
  */
 private fun Char.Companion.toCodePoint(high: Char, low: Char): CodePoint =
     (((high - MIN_HIGH_SURROGATE) shl 10) or (low - MIN_LOW_SURROGATE)) + 0x10000
 
+// Copied from CharHelpers.skiko.kt
 /**
  * The minimum value of a supplementary code point, `\u0x10000`.
  */
 private const val MIN_SUPPLEMENTARY_CODE_POINT: Int = 0x10000
 
+// Copied from CharHelpers.skiko.kt
 internal fun CodePoint.charCount(): Int = if (this >= MIN_SUPPLEMENTARY_CODE_POINT) 2 else 1
 
+// Copied from CharHelpers.skiko.kt
 internal val String.codePoints
     get() = sequence {
         var index = 0
@@ -56,6 +62,7 @@ internal val String.codePoints
         }
     }
 
+// Copied from CharHelpers.skiko.kt
 /**
  * Returns the character (Unicode code point) at the specified index.
  */
@@ -113,26 +120,25 @@ internal fun findNextNonWhitespaceSymbolsSubsequenceStartOffset(
 }
 
 /**
- * Determines whether the character at the specified offset in the string is a whitespace Unicode character.
+ * Checks if the character at the specified offset in the given string is either a whitespace or punctuation character.
  *
- * @param offset The index of the character to check.
- * @return `true` if the character at the specified offset is a whitespace character, `false` otherwise.
+ * @param offset The offset of the character to check.
+ * @return `true` if the character is a whitespace or punctuation character, `false` otherwise.
  */
-internal fun String.isWhitespace(offset: Int): Boolean {
-    return this.codePointAt(offset).isWhitespace()
+internal fun String.isWhitespaceOrPunctuation(offset: Int): Boolean {
+    val codePoint = this.codePointAt(offset)
+    return codePoint.isPunctuation() || codePoint.isWhitespace()
 }
 
 /**
- * Checks if the character at the specified offset in the string is a punctuation Unicode character.
+ * Returns the midpoint position in the string considering Unicode symbols.
  *
- * @param offset The offset of the character to check.
- * @return true if the character at the specified offset is a punctuation character, false otherwise.
+ * This function calculates the midpoint position in the given string, taking into account Unicode symbols.
+ * It counts the number of symbols in the string to determine the midpoint position.
+ *
+ * @return The midpoint position in the string.
  */
-internal fun String.isPunctuation(offset: Int): Boolean {
-    return this.codePointAt(offset).isPunctuation()
-}
-
-internal fun String.halfSymbolsOffset(): Int {
+internal fun String.midpointPositionWithUnicodeSymbols(): Int {
     val symbolsCount = this.codePoints.count()
     val charIterator = BreakIterator.makeCharacterInstance()
     charIterator.setText(this)
@@ -175,10 +181,5 @@ private fun CodePoint.isPunctuation(): Boolean {
         CharCategory.INITIAL_QUOTE_PUNCTUATION,
         CharCategory.FINAL_QUOTE_PUNCTUATION
     )
-    punctuationSet.forEach {
-        if (it.contains(this.toChar())) {
-            return true
-        }
-    }
-    return false
+    return punctuationSet.any { it.contains(this.toChar()) }
 }

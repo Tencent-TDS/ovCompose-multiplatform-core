@@ -86,39 +86,32 @@ internal fun determineCursorDesiredOffset(
     textLayoutResult: TextLayoutResultProxy,
     currentText: String
 ): Int {
-    val caretOffsetPosition: Int
     val previousCaretPosition = currentValue.selection.start
-    if (offset == previousCaretPosition) {
-        caretOffsetPosition = offset
-    } else if (textLayoutResult.isLeftEdgeTapped(offset)) {
-        val lineNumber = textLayoutResult.value.getLineForOffset(offset)
-        caretOffsetPosition = textLayoutResult.value.getLineStart(lineNumber)
-    } else if (textLayoutResult.isRightEdgeTapped(offset)) {
-        val lineNumber = textLayoutResult.value.getLineForOffset(offset)
-        caretOffsetPosition = textLayoutResult.value.getLineEnd(lineNumber)
-    } else if (isPunctuationOrSpaceTapped(offset, currentText)) {
-        val nextWordStartOffset =
-            findNextNonWhitespaceSymbolsSubsequenceStartOffset(offset, currentText)
-        caretOffsetPosition = nextWordStartOffset
-    } else if (textLayoutResult.isFirstHalfOfWordTapped(offset, currentText)) {
-        val wordBoundary = textLayoutResult.value.getWordBoundary(offset)
-        caretOffsetPosition = wordBoundary.start
-    } else {
-        val wordBoundary = textLayoutResult.value.getWordBoundary(offset)
-        caretOffsetPosition = wordBoundary.end
+    val caretOffsetPosition = when {
+        offset == previousCaretPosition -> offset
+        textLayoutResult.isLeftEdgeTapped(offset) -> {
+            val lineNumber = textLayoutResult.value.getLineForOffset(offset)
+            textLayoutResult.value.getLineStart(lineNumber)
+        }
+
+        textLayoutResult.isRightEdgeTapped(offset) -> {
+            val lineNumber = textLayoutResult.value.getLineForOffset(offset)
+            textLayoutResult.value.getLineEnd(lineNumber)
+        }
+
+        currentText.isWhitespaceOrPunctuation(offset) -> findNextNonWhitespaceSymbolsSubsequenceStartOffset(
+            offset,
+            currentText
+        )
+
+        textLayoutResult.isFirstHalfOfWordTapped(
+            offset,
+            currentText
+        ) -> textLayoutResult.value.getWordBoundary(offset).start
+
+        else -> textLayoutResult.value.getWordBoundary(offset).end
     }
     return caretOffsetPosition
-}
-
-private fun isPunctuationOrSpaceTapped(
-    caretOffset: Int,
-    currentText: String
-): Boolean {
-    /* From TextLayoutResultProxy.value.getWordBoundary(caretOffset) it is clear
-    * that for whitespace or punctuation mark method will return empty range.
-    * caretOffset can be between 0...currentText.length, so it should be somewhere between words.
-    * */
-    return currentText.isPunctuation(caretOffset) || currentText.isWhitespace(caretOffset)
 }
 
 private fun TextLayoutResultProxy.isFirstHalfOfWordTapped(
@@ -127,7 +120,7 @@ private fun TextLayoutResultProxy.isFirstHalfOfWordTapped(
 ): Boolean {
     val wordBoundary = value.getWordBoundary(caretOffset)
     val word = currentText.substring(wordBoundary.start, wordBoundary.end)
-    val middleIndex = wordBoundary.start + word.halfSymbolsOffset()
+    val middleIndex = wordBoundary.start + word.midpointPositionWithUnicodeSymbols()
     return caretOffset < middleIndex
 }
 
