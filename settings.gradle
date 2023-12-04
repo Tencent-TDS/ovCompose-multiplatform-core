@@ -115,6 +115,7 @@ includeProject(":benchmark:benchmark-junit4")
 includeProject(":benchmark:benchmark-macro")
 includeProject(":benchmark:benchmark-macro-junit4")
 includeProject(":benchmark:integration-tests:macrobenchmark-target")
+
 includeProject(":compose:animation")
 includeProject(":compose:animation:animation")
 includeProject(":compose:animation:animation-lint")

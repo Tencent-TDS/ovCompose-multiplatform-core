@@ -28,11 +28,6 @@ plugins {
 
 AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
 
-// TODO: Remove
-repositories {
-    mavenLocal()
-}
-
 dependencies {
 
     constraints {
