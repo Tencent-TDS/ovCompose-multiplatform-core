@@ -218,8 +218,7 @@ internal fun handleUIViewPressesBegan(
 ) {
     if (withEvent != null) {
         for (press in withEvent.allPresses) {
-            val uiPress = press as? UIPress
-            if (uiPress != null) {
+            if (press is UIPress) {
                 keyboardEventHandler.onKeyboardEvent(
                     toSkikoKeyboardEvent(press, SkikoKeyboardEventKind.DOWN)
                 )
