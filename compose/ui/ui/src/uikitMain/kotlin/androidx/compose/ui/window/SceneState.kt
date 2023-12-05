@@ -55,6 +55,9 @@ import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 
+/**
+ * SceneState represents scene: ComposeScene with view: V and state manipulation functions.
+ */
 internal interface SceneState<V> {
     val layers: MutableList<LayerState<V>>
     val scene: ComposeScene
@@ -76,6 +79,9 @@ internal interface SceneState<V> {
     )
 }
 
+/**
+ * Layout of sceneView on the screen
+ */
 internal sealed interface SceneLayout {
     object Undefined : SceneLayout
     object UseConstraintsToFillContainer : SceneLayout
@@ -83,6 +89,9 @@ internal sealed interface SceneLayout {
     class Bounds(val rect: IntRect) : SceneLayout
 }
 
+/**
+ * Builder of SceneState with UIView inside.
+ */
 @OptIn(InternalComposeApi::class)
 internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     focusable: Boolean,
