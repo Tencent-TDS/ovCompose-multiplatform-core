@@ -59,9 +59,21 @@ import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
  * SceneState represents scene: ComposeScene with view: V and state manipulation functions.
  */
 internal interface SceneState<V> {
+    /**
+     * Inner layers. Maybe empty.
+     */
     val layers: MutableList<LayerState<V>>
+
+    /**
+     * ComposeScene with @Composable content
+     */
     val scene: ComposeScene
+
+    /**
+     * iOS view to display
+     */
     val sceneView: V
+    fun setContentWithCompositionLocals(content: @Composable () -> Unit)
     fun display(focusable: Boolean, onDisplayed: () -> Unit)
     fun dispose()
     fun needRedraw()
@@ -70,7 +82,6 @@ internal interface SceneState<V> {
     val keyboardVisibilityListener: KeyboardVisibilityListener
     val densityProvider: DensityProvider
     val platformContext: PlatformContext
-    fun setContentWithCompositionLocals(content: @Composable () -> Unit)
     fun updateSafeArea()
     fun getViewBounds(): IntRect
     fun animateTransition(
@@ -118,6 +129,116 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     override val sceneView: SkikoUIView by lazy {
         SkikoUIView(focusable, keyboardEventHandler, delegate, transparentBackground)
     }
+
+    override val densityProvider by lazy {
+        DensityProviderImpl(
+            uiViewControllerProvider = { rootViewController },
+            viewProvider = { sceneView },
+        )
+    }
+
+    private val interopContext: UIKitInteropContext by lazy {
+        UIKitInteropContext(
+            requestRedraw = { needRedraw() }
+        )
+    }
+
+    override val platformContext: PlatformContext by lazy {
+        PlatformContextImpl(
+            inputServices = uiKitTextInputService,
+            textToolbar = uiKitTextInputService,
+            windowInfo = windowInfo,
+            densityProvider = densityProvider,
+        )
+    }
+
+    override val keyboardVisibilityListener by lazy {
+        KeyboardVisibilityListenerImpl(
+            configuration = configuration,
+            keyboardOverlapHeightState = keyboardOverlapHeightState,
+            viewProvider = { rootViewController.view },
+            sceneStates = sceneStates,
+            densityProvider = densityProvider,
+            sceneStateProvider = { this },
+        )
+    }
+
+    private val keyboardEventHandler: KeyboardEventHandler by lazy {
+        object : KeyboardEventHandler {
+            override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
+                val composeEvent = KeyEvent(event)
+                if (!uiKitTextInputService.onPreviewKeyEvent(composeEvent)) {
+                    scene.sendKeyEvent(composeEvent)
+                }
+            }
+        }
+    }
+
+    private val uiKitTextInputService: UIKitTextInputService by lazy {
+        UIKitTextInputService(
+            updateView = {
+                sceneView.setNeedsDisplay() // redraw on next frame
+                CATransaction.flush() // clear all animations
+            },
+            rootViewProvider = { rootViewController.view },
+            densityProvider = densityProvider,
+            focusStack = focusStack,
+            keyboardEventHandler = keyboardEventHandler
+        )
+    }
+
+    private val delegate: SkikoUIViewDelegate by lazy {
+        SkikoUIViewDelegateImpl(
+            { scene },
+            interopContext,
+            densityProvider,
+        )
+    }
+
+    override fun setContentWithCompositionLocals(content: @Composable () -> Unit) {
+        scene.setContent {
+            /**
+             * TODO isReadyToShowContent it is workaround we need to fix.
+             *  https://github.com/JetBrains/compose-multiplatform-core/pull/861
+             *  Density problem already was fixed.
+             *  But there are still problem with safeArea.
+             *  Elijah founded possible solution:
+             *   https://developer.apple.com/documentation/uikit/uiviewcontroller/4195485-viewisappearing
+             *   It is public for iOS 17 and hope back ported for iOS 13 as well (but we need to check)
+             */
+            if (sceneView.isReadyToShowContent.value) {
+                EntrypointCompositionLocals {
+                    SceneCompositionLocal {
+                        content()
+                    }
+                }
+            }
+        }
+    }
+
+    private val safeAreaState: MutableState<PlatformInsets> by lazy {
+        //TODO It calc 0,0,0,0 on initialization
+        mutableStateOf(calcSafeArea())
+    }
+    private val layoutMarginsState: MutableState<PlatformInsets> by lazy {
+        //TODO It calc 0,0,0,0 on initialization
+        mutableStateOf(calcLayoutMargin())
+    }
+
+    override fun updateSafeArea() {
+        safeAreaState.value = calcSafeArea()
+        layoutMarginsState.value = calcLayoutMargin()
+    }
+
+    @Composable
+    private fun SceneCompositionLocal(content: @Composable () -> Unit) =
+        CompositionLocalProvider(
+            LocalUIKitInteropContext provides interopContext,
+            LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
+            LocalSafeArea provides safeAreaState.value,
+            LocalLayoutMargins provides layoutMarginsState.value,
+            content = content
+        )
 
     override fun display(focusable: Boolean, onDisplayed: () -> Unit) {
         sceneView.onAttachedToWindow = {
@@ -231,118 +352,6 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
                 bottom = bottom.dp,
             )
         }
-
-    /**
-     * TODO This is workaround we need to fix.
-     *  https://github.com/JetBrains/compose-multiplatform-core/pull/861
-     *  Density problem already was fixed.
-     *  But there are still problem with safeArea.
-     *  Elijah founded possible solution:
-     *   https://developer.apple.com/documentation/uikit/uiviewcontroller/4195485-viewisappearing
-     *   It is public for iOS 17 and hope back ported for iOS 13 as well (but we need to check)
-     */
-    private val isReadyToShowContent: State<Boolean> get() = sceneView.isReadyToShowContent
-
-    private val safeAreaState: MutableState<PlatformInsets> by lazy {
-        //TODO It calc 0,0,0,0 on initialization
-        mutableStateOf(calcSafeArea())
-    }
-    private val layoutMarginsState: MutableState<PlatformInsets> by lazy {
-        //TODO It calc 0,0,0,0 on initialization
-        mutableStateOf(calcLayoutMargin())
-    }
-
-    override fun updateSafeArea() {
-        safeAreaState.value = calcSafeArea()
-        layoutMarginsState.value = calcLayoutMargin()
-    }
-
-    override val densityProvider by lazy {
-        DensityProviderImpl(
-            uiViewControllerProvider = { rootViewController },
-            viewProvider = { sceneView },
-        )
-    }
-
-    private val interopContext: UIKitInteropContext by lazy {
-        UIKitInteropContext(
-            requestRedraw = { needRedraw() }
-        )
-    }
-
-    override val platformContext: PlatformContext by lazy {
-        PlatformContextImpl(
-            inputServices = uiKitTextInputService,
-            textToolbar = uiKitTextInputService,
-            windowInfo = windowInfo,
-            densityProvider = densityProvider,
-        )
-    }
-
-    override val keyboardVisibilityListener by lazy {
-        KeyboardVisibilityListenerImpl(
-            configuration = configuration,
-            keyboardOverlapHeightState = keyboardOverlapHeightState,
-            viewProvider = { rootViewController.view },
-            sceneStates = sceneStates,
-            densityProvider = densityProvider,
-            sceneStateProvider = { this },
-        )
-    }
-
-    @Composable
-    private fun SceneCompositionLocal(content: @Composable () -> Unit) =
-        CompositionLocalProvider(
-            LocalUIKitInteropContext provides interopContext,
-            LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
-            LocalSafeArea provides safeAreaState.value,
-            LocalLayoutMargins provides layoutMarginsState.value,
-            content = content
-        )
-
-    override fun setContentWithCompositionLocals(content: @Composable () -> Unit) {
-        scene.setContent {
-            if (isReadyToShowContent.value) {
-                EntrypointCompositionLocals {
-                    SceneCompositionLocal {
-                        content()
-                    }
-                }
-            }
-        }
-    }
-
-    private val keyboardEventHandler: KeyboardEventHandler by lazy {
-        object : KeyboardEventHandler {
-            override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
-                val composeEvent = KeyEvent(event)
-                if (!uiKitTextInputService.onPreviewKeyEvent(composeEvent)) {
-                    scene.sendKeyEvent(composeEvent)
-                }
-            }
-        }
-    }
-
-    private val uiKitTextInputService: UIKitTextInputService by lazy {
-        UIKitTextInputService(
-            updateView = {
-                sceneView.setNeedsDisplay() // redraw on next frame
-                CATransaction.flush() // clear all animations
-            },
-            rootViewProvider = { rootViewController.view },
-            densityProvider = densityProvider,
-            focusStack = focusStack,
-            keyboardEventHandler = keyboardEventHandler
-        )
-    }
-
-    private val delegate: SkikoUIViewDelegate by lazy {
-        SkikoUIViewDelegateImpl(
-            { scene },
-            interopContext,
-            densityProvider,
-        )
-    }
 
     override fun getViewBounds(): IntRect = sceneView.frame.useContents {
         val density = densityProvider().density

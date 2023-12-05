@@ -33,6 +33,9 @@ import platform.UIKit.UIContentSizeCategoryUnspecified
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
+/**
+ * We need DensityProvider as a separate interface for lazy initialization.
+ */
 internal interface DensityProvider {
     val density: Density
     operator fun invoke() = density
