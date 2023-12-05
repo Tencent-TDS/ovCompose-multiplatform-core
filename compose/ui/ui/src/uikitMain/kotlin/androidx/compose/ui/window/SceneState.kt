@@ -31,7 +31,6 @@ import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.UIKitTextInputService
-import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
@@ -57,29 +56,19 @@ import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 
 internal interface SceneState<V> {
-    val sceneView: V
+    val layers: MutableList<LayerState<V>>
     val scene: ComposeScene
+    val sceneView: V
     fun display(focusable: Boolean, onDisplayed: () -> Unit)
     fun dispose()
     fun needRedraw()
-
-    var isForcedToPresentWithTransactionEveryFrame: Boolean
-    val layers: MutableList<LayerState<V>>
-    val windowInfo: WindowInfo
+    fun setLayout(value: SceneLayout)
     fun updateLayout()
     val keyboardVisibilityListener: KeyboardVisibilityListener
     val densityProvider: DensityProvider
-    val interopContext: UIKitInteropContext
     val platformContext: PlatformContext
-
     fun setContentWithCompositionLocals(content: @Composable () -> Unit)
     fun updateSafeArea()
-
-    val delegate: SkikoUIViewDelegate
-    val keyboardEventHandler: KeyboardEventHandler
-    val uiKitTextInputService: UIKitTextInputService
-
-    fun setLayout(value: SceneLayout)
     fun getViewBounds(): IntRect
     fun animateTransition(
         targetSize: CValue<CGSize>,
@@ -101,151 +90,24 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     buildScene: (SceneState<UIView>) -> ComposeScene,
 ): SceneState<UIView> = object : SceneState<UIView> {
     override val layers: MutableList<LayerState<UIView>> = mutableListOf()
-    override val windowInfo = WindowInfoImpl().apply {
+    private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
+    private var _layout: SceneLayout = SceneLayout.Undefined
+    private var constraints: List<NSLayoutConstraint> = emptyList()
+        set(value) {
+            if (field.isNotEmpty()) {
+                NSLayoutConstraint.deactivateConstraints(field)
+            }
+            field = value
+            NSLayoutConstraint.activateConstraints(value)
+        }
+    private val windowInfo = WindowInfoImpl().apply {
         isWindowFocused = focusable
     }
 
-    fun calcSafeArea(): PlatformInsets =
-        rootViewController.view.safeAreaInsets.useContents {
-            PlatformInsets(
-                left = left.dp,
-                top = top.dp,
-                right = right.dp,
-                bottom = bottom.dp,
-            )
-        }
-
-    fun calcLayoutMargin(): PlatformInsets =
-        rootViewController.view.directionalLayoutMargins.useContents {
-            PlatformInsets(
-                left = leading.dp, // TODO: Check RTL support
-                top = top.dp,
-                right = trailing.dp, // TODO: Check RTL support
-                bottom = bottom.dp,
-            )
-        }
-
-    /**
-     * TODO This is workaround we need to fix.
-     *  https://github.com/JetBrains/compose-multiplatform-core/pull/861
-     *  Density problem already was fixed.
-     *  But there are still problem with safeArea.
-     *  Elijah founded possible solution:
-     *   https://developer.apple.com/documentation/uikit/uiviewcontroller/4195485-viewisappearing
-     *   It is public for iOS 17 and hope back ported for iOS 13 as well (but we need to check)
-     */
-    val isReadyToShowContent: State<Boolean> get() = sceneView.isReadyToShowContent
-
-    val safeAreaState: MutableState<PlatformInsets> by lazy {
-        //TODO It calc 0,0,0,0 on initialization
-        mutableStateOf(calcSafeArea())
-    }
-    val layoutMarginsState: MutableState<PlatformInsets> by lazy {
-        //TODO It calc 0,0,0,0 on initialization
-        mutableStateOf(calcLayoutMargin())
-    }
-
-    val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
-
-    override fun updateSafeArea() {
-        safeAreaState.value = calcSafeArea()
-        layoutMarginsState.value = calcLayoutMargin()
-    }
-
-    override val densityProvider by lazy {
-        DensityProviderImpl(
-            uiViewControllerProvider = { rootViewController },
-            viewProvider = { sceneView },
-        )
-    }
-
-    override fun updateLayout() {
-        val density = densityProvider()
-        val scale = density.density
-        //TODO: Current code updates layout based on rootViewController size.
-        // Maybe we need to rewrite it for SingleLayerComposeScene.
-        val size = rootViewController.view.frame.useContents {
-            IntSize(
-                width = (size.width * scale).roundToInt(),
-                height = (size.height * scale).roundToInt()
-            )
-        }
-        windowInfo.containerSize = size
-        scene.density = density
-        scene.size = size
-        needRedraw()
-    }
+    override val scene: ComposeScene by lazy { buildScene(this) }
 
     override val sceneView: SkikoUIView by lazy {
         SkikoUIView(focusable, keyboardEventHandler, delegate, transparentBackground)
-    }
-
-    override fun needRedraw() = sceneView.needRedraw()
-
-    override fun dispose() {
-        if (focusable) {
-            focusStack.popUntilNext(sceneView)
-        }
-        sceneView.dispose()
-        scene.close()
-        // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
-        // Thus they need to be executed now.
-        interopContext.retrieve().actions.forEach { it.invoke() }
-    }
-
-    override var isForcedToPresentWithTransactionEveryFrame: Boolean
-        get() = sceneView.isForcedToPresentWithTransactionEveryFrame
-        set(value) {
-            sceneView.isForcedToPresentWithTransactionEveryFrame = value
-        }
-
-    override val scene: ComposeScene by lazy { buildScene(this) }
-
-    override val interopContext: UIKitInteropContext by lazy {
-        UIKitInteropContext(
-            requestRedraw = { needRedraw() })
-    }
-
-    override val platformContext: PlatformContext by lazy {
-        PlatformContextImpl(
-            inputServices = uiKitTextInputService,
-            textToolbar = uiKitTextInputService,
-            windowInfo = windowInfo,
-            densityProvider = densityProvider,
-        )
-    }
-
-    override val keyboardVisibilityListener by lazy {
-        KeyboardVisibilityListenerImpl(
-            configuration = configuration,
-            keyboardOverlapHeightState = keyboardOverlapHeightState,
-            viewProvider = { rootViewController.view },
-            sceneStates = sceneStates,
-            densityProvider = densityProvider,
-            sceneStateProvider = { this },
-        )
-    }
-
-    @Composable
-    fun SceneCompositionLocal(content: @Composable () -> Unit) =
-        CompositionLocalProvider(
-            LocalUIKitInteropContext provides interopContext,
-            LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
-            LocalSafeArea provides safeAreaState.value,
-            LocalLayoutMargins provides layoutMarginsState.value,
-            content = content
-        )
-
-    override fun setContentWithCompositionLocals(content: @Composable () -> Unit) {
-        scene.setContent {
-            if (isReadyToShowContent.value) {
-                EntrypointCompositionLocals {
-                    SceneCompositionLocal {
-                        content()
-                    }
-                }
-            }
-        }
     }
 
     override fun display(focusable: Boolean, onDisplayed: () -> Unit) {
@@ -260,51 +122,21 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
         rootViewController.view.addSubview(sceneView)
     }
 
-    override val uiKitTextInputService: UIKitTextInputService by lazy {
-        UIKitTextInputService(
-            updateView = {
-                sceneView.setNeedsDisplay() // redraw on next frame
-                CATransaction.flush() // clear all animations
-            },
-            rootViewProvider = { rootViewController.view },
-            densityProvider = densityProvider,
-            focusStack = focusStack,
-            keyboardEventHandler = keyboardEventHandler
-        )
-    }
-
-    override val keyboardEventHandler: KeyboardEventHandler by lazy {
-        object : KeyboardEventHandler {
-            override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
-                val composeEvent = KeyEvent(event)
-                if (!uiKitTextInputService.onPreviewKeyEvent(composeEvent)) {
-                    scene.sendKeyEvent(composeEvent)
-                }
-            }
+    override fun dispose() {
+        if (focusable) {
+            focusStack.popUntilNext(sceneView)
         }
+        sceneView.dispose()
+        scene.close()
+        // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
+        // Thus they need to be executed now.
+        interopContext.retrieve().actions.forEach { it.invoke() }
     }
 
-    override val delegate: SkikoUIViewDelegate by lazy {
-        SkikoUIViewDelegateImpl(
-            { scene },
-            interopContext,
-            densityProvider,
-        )
-    }
+    override fun needRedraw() = sceneView.needRedraw()
 
-    private var constraints: List<NSLayoutConstraint> = emptyList()
-        set(value) {
-            if (field.isNotEmpty()) {
-                NSLayoutConstraint.deactivateConstraints(field)
-            }
-            field = value
-            NSLayoutConstraint.activateConstraints(value)
-        }
-
-    private var _layout: SceneLayout = SceneLayout.Undefined
     override fun setLayout(value: SceneLayout) {
         _layout = value
-
         when (value) {
             SceneLayout.UseConstraintsToFillContainer -> {
                 delegate.metalOffset = Offset.Zero
@@ -354,6 +186,155 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
         sceneView.updateMetalLayerSize()
     }
 
+    override fun updateLayout() {
+        val density = densityProvider()
+        val scale = density.density
+        //TODO: Current code updates layout based on rootViewController size.
+        // Maybe we need to rewrite it for SingleLayerComposeScene.
+        val size = rootViewController.view.frame.useContents {
+            IntSize(
+                width = (size.width * scale).roundToInt(),
+                height = (size.height * scale).roundToInt()
+            )
+        }
+        windowInfo.containerSize = size
+        scene.density = density
+        scene.size = size
+        needRedraw()
+    }
+
+    private fun calcSafeArea(): PlatformInsets =
+        rootViewController.view.safeAreaInsets.useContents {
+            PlatformInsets(
+                left = left.dp,
+                top = top.dp,
+                right = right.dp,
+                bottom = bottom.dp,
+            )
+        }
+
+    private fun calcLayoutMargin(): PlatformInsets =
+        rootViewController.view.directionalLayoutMargins.useContents {
+            PlatformInsets(
+                left = leading.dp, // TODO: Check RTL support
+                top = top.dp,
+                right = trailing.dp, // TODO: Check RTL support
+                bottom = bottom.dp,
+            )
+        }
+
+    /**
+     * TODO This is workaround we need to fix.
+     *  https://github.com/JetBrains/compose-multiplatform-core/pull/861
+     *  Density problem already was fixed.
+     *  But there are still problem with safeArea.
+     *  Elijah founded possible solution:
+     *   https://developer.apple.com/documentation/uikit/uiviewcontroller/4195485-viewisappearing
+     *   It is public for iOS 17 and hope back ported for iOS 13 as well (but we need to check)
+     */
+    private val isReadyToShowContent: State<Boolean> get() = sceneView.isReadyToShowContent
+
+    private val safeAreaState: MutableState<PlatformInsets> by lazy {
+        //TODO It calc 0,0,0,0 on initialization
+        mutableStateOf(calcSafeArea())
+    }
+    private val layoutMarginsState: MutableState<PlatformInsets> by lazy {
+        //TODO It calc 0,0,0,0 on initialization
+        mutableStateOf(calcLayoutMargin())
+    }
+
+    override fun updateSafeArea() {
+        safeAreaState.value = calcSafeArea()
+        layoutMarginsState.value = calcLayoutMargin()
+    }
+
+    override val densityProvider by lazy {
+        DensityProviderImpl(
+            uiViewControllerProvider = { rootViewController },
+            viewProvider = { sceneView },
+        )
+    }
+
+    private val interopContext: UIKitInteropContext by lazy {
+        UIKitInteropContext(
+            requestRedraw = { needRedraw() }
+        )
+    }
+
+    override val platformContext: PlatformContext by lazy {
+        PlatformContextImpl(
+            inputServices = uiKitTextInputService,
+            textToolbar = uiKitTextInputService,
+            windowInfo = windowInfo,
+            densityProvider = densityProvider,
+        )
+    }
+
+    override val keyboardVisibilityListener by lazy {
+        KeyboardVisibilityListenerImpl(
+            configuration = configuration,
+            keyboardOverlapHeightState = keyboardOverlapHeightState,
+            viewProvider = { rootViewController.view },
+            sceneStates = sceneStates,
+            densityProvider = densityProvider,
+            sceneStateProvider = { this },
+        )
+    }
+
+    @Composable
+    private fun SceneCompositionLocal(content: @Composable () -> Unit) =
+        CompositionLocalProvider(
+            LocalUIKitInteropContext provides interopContext,
+            LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
+            LocalSafeArea provides safeAreaState.value,
+            LocalLayoutMargins provides layoutMarginsState.value,
+            content = content
+        )
+
+    override fun setContentWithCompositionLocals(content: @Composable () -> Unit) {
+        scene.setContent {
+            if (isReadyToShowContent.value) {
+                EntrypointCompositionLocals {
+                    SceneCompositionLocal {
+                        content()
+                    }
+                }
+            }
+        }
+    }
+
+    private val keyboardEventHandler: KeyboardEventHandler by lazy {
+        object : KeyboardEventHandler {
+            override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
+                val composeEvent = KeyEvent(event)
+                if (!uiKitTextInputService.onPreviewKeyEvent(composeEvent)) {
+                    scene.sendKeyEvent(composeEvent)
+                }
+            }
+        }
+    }
+
+    private val uiKitTextInputService: UIKitTextInputService by lazy {
+        UIKitTextInputService(
+            updateView = {
+                sceneView.setNeedsDisplay() // redraw on next frame
+                CATransaction.flush() // clear all animations
+            },
+            rootViewProvider = { rootViewController.view },
+            densityProvider = densityProvider,
+            focusStack = focusStack,
+            keyboardEventHandler = keyboardEventHandler
+        )
+    }
+
+    private val delegate: SkikoUIViewDelegate by lazy {
+        SkikoUIViewDelegateImpl(
+            { scene },
+            interopContext,
+            densityProvider,
+        )
+    }
+
     override fun getViewBounds(): IntRect = sceneView.frame.useContents {
         val density = densityProvider().density
         IntRect(
@@ -391,7 +372,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             )
         }
 
-        isForcedToPresentWithTransactionEveryFrame = true
+        sceneView.isForcedToPresentWithTransactionEveryFrame = true
 
         setLayout(SceneLayout.UseConstraintsToCenter(size = targetSize))
         sceneView.transform = coordinator.targetTransform
@@ -405,7 +386,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             completion = {
                 startSnapshotView.removeFromSuperview()
                 setLayout(SceneLayout.UseConstraintsToFillContainer)
-                isForcedToPresentWithTransactionEveryFrame = false
+                sceneView.isForcedToPresentWithTransactionEveryFrame = false
             }
         )
     }
