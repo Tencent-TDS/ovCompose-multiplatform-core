@@ -667,5 +667,5 @@ private fun NSWritingDirection.directionToStr() =
         UITextLayoutDirectionRight -> "Right"
         UITextLayoutDirectionUp -> "Up"
         UITextLayoutDirectionDown -> "Down"
-        else -> "unknown direction"
+        else -> "Unknown"
     }
