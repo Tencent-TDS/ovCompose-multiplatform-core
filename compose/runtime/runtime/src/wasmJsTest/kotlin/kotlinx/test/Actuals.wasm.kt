@@ -19,6 +19,7 @@ package kotlinx.test
 import kotlinx.coroutines.*
 
 @OptIn(DelicateCoroutinesApi::class)
+// TODO: make a proper implementation with timeoutMs - COMPOSE-662
 actual suspend fun testWithTimeout(timeoutMs: Long, block: suspend CoroutineScope.() -> Unit) {
     GlobalScope.launch {
         block()
