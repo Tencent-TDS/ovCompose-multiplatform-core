@@ -17,12 +17,21 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
+import androidx.compose.ui.interop.LocalLayerContainer
+import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
+import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.PlistSanityCheck
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachReversed
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
@@ -43,6 +52,7 @@ import platform.UIKit.UIColor
 import platform.UIKit.UIKeyboardWillHideNotification
 import platform.UIKit.UIKeyboardWillShowNotification
 import platform.UIKit.UITraitCollection
+import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
@@ -57,28 +67,69 @@ fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController = createComposeBridge(
+): UIViewController = ComposeUIViewController(
     configuration = ComposeUIViewControllerConfiguration().apply(configure),
     content = content,
-).rootViewController
+)
 
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
-internal class RootUIViewController(
+internal class ComposeUIViewController(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
-    private val createRootComposeBridge: () -> ComposeSceneBridge,
-    private val keyboardVisibilityListener: KeyboardVisibilityListener,
-    private val composeSceneBridges: MutableList<ComposeSceneBridge>,
-    private val interfaceOrientationState: MutableState<InterfaceOrientation>,
-    private val systemThemeState: MutableState<SystemTheme>,
-    private val onViewSafeAreaInsetsDidChange: () -> Unit,
 ) : UIViewController(nibName = null, bundle = null) {
 
+    inner class BridgeImpl : ComposeBridge {
+        override val rootViewController = this@ComposeUIViewController
+        override val configuration = this@ComposeUIViewController.configuration
+        override val layers: MutableList<ComposeSceneLayerBridge> = mutableListOf()
+        override val layoutDirection get() = getLayoutDirection()
+        val composeSceneBridges: MutableList<ComposeSceneBridge> = mutableListOf()
+
+        /*
+         * Initial value is arbitrarily chosen to avoid propagating invalid value logic
+         * It's never the case in real usage scenario to reflect that in type system
+         */
+        val interfaceOrientationState: MutableState<InterfaceOrientation> = mutableStateOf(
+            InterfaceOrientation.Portrait
+        )
+        val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
+        override val focusStack: FocusStack<UIView> = FocusStackImpl()
+
+        @Composable
+        override fun ProvideRootCompositionLocals(content: @Composable () -> Unit) =
+            CompositionLocalProvider(
+                LocalUIViewController provides rootViewController,
+                LocalLayerContainer provides rootViewController.view,
+                LocalInterfaceOrientation provides interfaceOrientationState.value,
+                LocalSystemTheme provides systemThemeState.value,
+                content = content
+            )
+
+        @OptIn(ExperimentalComposeApi::class)
+        fun createRootComposeSceneBridge(): ComposeSceneBridge =
+            if (configuration.platformLayers) {
+                createSingleLayerComposeSceneBridge()
+            } else {
+                createMultiLayerComposeSceneBridge()
+            }
+
+        val keyboardVisibilityListener = object : KeyboardVisibilityListener {
+            override fun keyboardWillShow(arg: NSNotification) = composeSceneBridges.forEach {
+                it.keyboardVisibilityListener.keyboardWillShow(arg)
+            }
+
+            override fun keyboardWillHide(arg: NSNotification) = composeSceneBridges.forEach {
+                it.keyboardVisibilityListener.keyboardWillHide(arg)
+            }
+        }
+    }
+
+    private val bridge = BridgeImpl()
     private var isInsideSwiftUI = false
 
     init {
-        systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
+        bridge.systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
     }
 
     /*
@@ -104,13 +155,13 @@ internal class RootUIViewController(
         @Suppress("unused")
         @ObjCAction
         fun keyboardWillShow(arg: NSNotification) {
-            keyboardVisibilityListener.keyboardWillShow(arg)
+            bridge.keyboardVisibilityListener.keyboardWillShow(arg)
         }
 
         @Suppress("unused")
         @ObjCAction
         fun keyboardWillHide(arg: NSNotification) {
-            keyboardVisibilityListener.keyboardWillHide(arg)
+            bridge.keyboardVisibilityListener.keyboardWillHide(arg)
         }
     }
 
@@ -118,7 +169,9 @@ internal class RootUIViewController(
     @ObjCAction
     fun viewSafeAreaInsetsDidChange() {
         // super.viewSafeAreaInsetsDidChange() // TODO: call super after Kotlin 1.8.20
-        onViewSafeAreaInsetsDidChange()
+        bridge.composeSceneBridges.fastForEach {
+            it.updateSafeArea()
+        }
     }
 
     override fun loadView() {
@@ -138,8 +191,7 @@ internal class RootUIViewController(
 
     override fun traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-
-        systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
+        bridge.systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
     }
 
     override fun viewWillLayoutSubviews() {
@@ -147,10 +199,10 @@ internal class RootUIViewController(
 
         // UIKit possesses all required info for layout at this point
         currentInterfaceOrientation?.let {
-            interfaceOrientationState.value = it
+            bridge.interfaceOrientationState.value = it
         }
 
-        composeSceneBridges.forEach {
+        bridge.composeSceneBridges.forEach {
             it.updateLayout()
         }
     }
@@ -178,7 +230,7 @@ internal class RootUIViewController(
             return
         }
 
-        composeSceneBridges.forEach { sceneViewState ->
+        bridge.composeSceneBridges.forEach { sceneViewState ->
             sceneViewState.animateTransition(
                 targetSize = size,
                 coordinator = withTransitionCoordinator
@@ -251,18 +303,18 @@ internal class RootUIViewController(
     }
 
     private fun dispose() {
-        composeSceneBridges.fastForEachReversed {
+        bridge.composeSceneBridges.fastForEachReversed {
             it.dispose()
         }
-        composeSceneBridges.clear()
+        bridge.composeSceneBridges.clear()
     }
 
     private fun attachComposeIfNeeded() {
-        if (composeSceneBridges.isNotEmpty()) {
+        if (bridge.composeSceneBridges.isNotEmpty()) {
             return // already attached
         }
-        val sceneViewState = createRootComposeBridge()
-        composeSceneBridges.add(sceneViewState)
+        val sceneViewState = bridge.createRootComposeSceneBridge()
+        bridge.composeSceneBridges.add(sceneViewState)
         sceneViewState.display(
             focusable = true,
             onDisplayed = {
@@ -302,3 +354,9 @@ private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
         else -> SystemTheme.Unknown
     }
 }
+
+private fun getLayoutDirection() =
+    when (UIApplication.sharedApplication().userInterfaceLayoutDirection) {
+        UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
+        else -> LayoutDirection.Ltr
+    }
