@@ -50,9 +50,9 @@ internal class KeyboardVisibilityListenerImpl(
     val configuration: ComposeUIViewControllerConfiguration,
     val keyboardOverlapHeightState: MutableState<Float>,
     val viewProvider: () -> UIView,
-    val composeSceneBridges: List<ComposeSceneBridge<UIView>>,
+    val composeSceneBridges: List<ComposeSceneBridge>,
     val densityProvider: DensityProvider,
-    val composeSceneBridgeProvider: () -> ComposeSceneBridge<UIView>,
+    val composeSceneBridgeProvider: () -> ComposeSceneBridge,
 ) : KeyboardVisibilityListener {
 
     val view get() = viewProvider()
@@ -172,7 +172,7 @@ internal class KeyboardVisibilityListenerImpl(
     }
 
     private fun calcFocusedLiftingY(
-        composeSceneBridge: ComposeSceneBridge<UIView>,
+        composeSceneBridge: ComposeSceneBridge,
         focusedRect: DpRect,
         keyboardHeight: Double
     ): Double {

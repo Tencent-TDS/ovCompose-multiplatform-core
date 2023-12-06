@@ -60,16 +60,16 @@ fun ComposeUIViewController(
 ): UIViewController = createComposeBridge(
     configuration = ComposeUIViewControllerConfiguration().apply(configure),
     content = content,
-).rootViewController //todo не очивидно что rootViewController захватывает
+).rootViewController
 
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
 internal class RootUIViewController(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
-    private val createRootSceneViewState: () -> ComposeSceneBridge<UIView>,
+    private val createRootComposeBridge: () -> ComposeSceneBridge,
     private val keyboardVisibilityListener: KeyboardVisibilityListener,
-    private val composeSceneBridges: MutableList<ComposeSceneBridge<UIView>>,
+    private val composeSceneBridges: MutableList<ComposeSceneBridge>,
     private val interfaceOrientationState: MutableState<InterfaceOrientation>,
     private val systemThemeState: MutableState<SystemTheme>,
     private val onViewSafeAreaInsetsDidChange: () -> Unit,
@@ -261,7 +261,7 @@ internal class RootUIViewController(
         if (composeSceneBridges.isNotEmpty()) {
             return // already attached
         }
-        val sceneViewState = createRootSceneViewState()
+        val sceneViewState = createRootComposeBridge()
         composeSceneBridges.add(sceneViewState)
         sceneViewState.display(
             focusable = true,

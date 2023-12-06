@@ -30,7 +30,7 @@ import platform.UIKit.UIViewController
 
 private val coroutineDispatcher = Dispatchers.Main
 
-internal fun ComposeBridge<UIViewController, UIView>.createSingleLayerComposeSceneBridge(): ComposeSceneBridge<UIView> =
+internal fun ComposeBridge.createSingleLayerComposeSceneBridge(): ComposeSceneBridge =
     createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneBridge ->
         val context = object : ComposeSceneContext {
             val currentComposeSceneContext = this
@@ -63,7 +63,7 @@ internal fun ComposeBridge<UIViewController, UIView>.createSingleLayerComposeSce
         )
     }
 
-internal fun ComposeBridge<UIViewController, UIView>.createMultiLayerComposeSceneBridge(): ComposeSceneBridge<UIView> =
+internal fun ComposeBridge.createMultiLayerComposeSceneBridge(): ComposeSceneBridge =
     createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneBridge ->
         MultiLayerComposeScene(
             coroutineContext = coroutineDispatcher,

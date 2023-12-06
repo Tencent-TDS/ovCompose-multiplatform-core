@@ -52,13 +52,12 @@ import platform.CoreGraphics.CGSize
 import platform.QuartzCore.CATransaction
 import platform.UIKit.NSLayoutConstraint
 import platform.UIKit.UIView
-import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 
 /**
- * ComposeSceneBridge represents scene: ComposeScene with view: V and state manipulation functions.
+ * ComposeSceneBridge represents scene: ComposeScene with sceneView: UIView and state manipulation functions.
  */
-internal interface ComposeSceneBridge<V> {
+internal interface ComposeSceneBridge {
     /**
      * ComposeScene with @Composable content
      */
@@ -67,7 +66,7 @@ internal interface ComposeSceneBridge<V> {
     /**
      * iOS view to display
      */
-    val sceneView: V
+    val sceneView: UIView
     fun setContent(content: @Composable () -> Unit)
     fun display(focusable: Boolean, onDisplayed: () -> Unit)
     fun dispose()
@@ -99,11 +98,11 @@ internal sealed interface SceneLayout {
  * Builder of ComposeSceneBridge with UIView inside.
  */
 @OptIn(InternalComposeApi::class)
-internal fun ComposeBridge<UIViewController, UIView>.createComposeSceneBridge(
+internal fun ComposeBridge.createComposeSceneBridge(
     focusable: Boolean,
     transparentBackground: Boolean,
-    buildScene: (ComposeSceneBridge<UIView>) -> ComposeScene,
-): ComposeSceneBridge<UIView> = object : ComposeSceneBridge<UIView> {
+    buildScene: (ComposeSceneBridge) -> ComposeScene,
+): ComposeSceneBridge = object : ComposeSceneBridge {
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
     private var _layout: SceneLayout = SceneLayout.Undefined
     private var constraints: List<NSLayoutConstraint> = emptyList()

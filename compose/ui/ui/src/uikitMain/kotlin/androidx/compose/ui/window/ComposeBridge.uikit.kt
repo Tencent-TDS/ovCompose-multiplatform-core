@@ -37,12 +37,12 @@ import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
-internal interface ComposeBridge<RootView, SceneView> {
-    val rootViewController: RootView
-    val layers: MutableList<ComposeSceneLayerBridge<SceneView>>
+internal interface ComposeBridge {
+    val rootViewController: UIViewController
+    val layers: MutableList<ComposeSceneLayerBridge>
     val layoutDirection: LayoutDirection
     val focusStack: FocusStack<UIView>
-    val composeSceneBridges: List<ComposeSceneBridge<SceneView>>
+    val composeSceneBridges: List<ComposeSceneBridge>
     val configuration: ComposeUIViewControllerConfiguration
 
     @Composable
@@ -53,11 +53,11 @@ internal interface ComposeBridge<RootView, SceneView> {
 internal fun createComposeBridge(
     configuration: ComposeUIViewControllerConfiguration,
     content: @Composable () -> Unit,
-) = object : ComposeBridge<UIViewController, UIView> {
-    override val layers: MutableList<ComposeSceneLayerBridge<UIView>> = mutableListOf()
+) = object : ComposeBridge {
+    override val layers: MutableList<ComposeSceneLayerBridge> = mutableListOf()
     override val configuration = configuration
     override val layoutDirection get() = getLayoutDirection()
-    override val composeSceneBridges: MutableList<ComposeSceneBridge<UIView>> = mutableListOf()
+    override val composeSceneBridges: MutableList<ComposeSceneBridge> = mutableListOf()
 
     /*
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
@@ -81,7 +81,7 @@ internal fun createComposeBridge(
         )
 
     @OptIn(ExperimentalComposeApi::class)
-    fun createRootComposeSceneBridge(): ComposeSceneBridge<UIView> =
+    fun createRootComposeSceneBridge(): ComposeSceneBridge =
         if (configuration.platformLayers) {
             createSingleLayerComposeSceneBridge()
         } else {
@@ -102,7 +102,7 @@ internal fun createComposeBridge(
         RootUIViewController(
             configuration = configuration,
             content = content,
-            createRootSceneViewState = ::createRootComposeSceneBridge,
+            createRootComposeBridge = ::createRootComposeSceneBridge,
             keyboardVisibilityListener = keyboardVisibilityListener,
             composeSceneBridges = composeSceneBridges,
             interfaceOrientationState = interfaceOrientationState,

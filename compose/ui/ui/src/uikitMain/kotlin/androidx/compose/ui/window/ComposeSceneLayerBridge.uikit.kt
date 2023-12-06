@@ -29,23 +29,23 @@ import kotlin.coroutines.CoroutineContext
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
-internal interface ComposeSceneLayerBridge<V> {
+internal interface ComposeSceneLayerBridge {
     val layer: ComposeSceneLayer
     fun display()
 }
 
-internal fun ComposeBridge<UIViewController, UIView>.createComposeSceneLayerBridge(
+internal fun ComposeBridge.createComposeSceneLayerBridge(
     coroutineContext: CoroutineContext,
     composeSceneContext: ComposeSceneContext,
     focusable: Boolean,
     densityProvider: DensityProvider,
     needRedraw: () -> Unit
-): ComposeSceneLayerBridge<UIView> = object : ComposeSceneLayerBridge<UIView> {
+): ComposeSceneLayerBridge = object : ComposeSceneLayerBridge {
 
     /**
      * Internal Compose scene for rendering
      */
-    private val composeSceneBridge: ComposeSceneBridge<UIView> =
+    private val composeSceneBridge: ComposeSceneBridge =
         createComposeSceneBridge(focusable = focusable, transparentBackground = true) {
             SingleLayerComposeScene(
                 coroutineContext = coroutineContext,
