@@ -20,10 +20,9 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.text.input.*
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.window.DensityProvider
-import androidx.compose.ui.window.IntermediateTextInputUIView
 import androidx.compose.ui.window.FocusStack
+import androidx.compose.ui.window.IntermediateTextInputUIView
 import androidx.compose.ui.window.KeyboardEventHandler
 import kotlin.math.absoluteValue
 import kotlin.math.min
@@ -45,7 +44,6 @@ internal class UIKitTextInputService(
     private var currentImeOptions: ImeOptions? = null
     private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
     private var textUIView: IntermediateTextInputUIView? = null
-    private var constraints: List<NSLayoutConstraint>? = null
 
     /**
      * Workaround to prevent calling textWillChange, textDidChange, selectionWillChange, and
@@ -118,9 +116,7 @@ internal class UIKitTextInputService(
                     it.rightAnchor.constraintEqualToAnchor(rootView.rightAnchor),
                     it.topAnchor.constraintEqualToAnchor(rootView.topAnchor),
                     it.bottomAnchor.constraintEqualToAnchor(rootView.bottomAnchor),
-                ).also { 
-                    constraints = it
-                }
+                )
             )
         }
         textUIView?.input = createSkikoInput(value)
@@ -135,10 +131,6 @@ internal class UIKitTextInputService(
         currentImeOptions = null
         currentImeActionHandler = null
         hideSoftwareKeyboard()
-
-        constraints?.let {
-            NSLayoutConstraint.deactivateConstraints(it)
-        }
         textUIView?.removeFromSuperview()
         textUIView = null
     }

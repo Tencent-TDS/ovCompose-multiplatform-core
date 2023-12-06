@@ -37,31 +37,27 @@ import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
-internal interface RootViewControllerState<RootView, SceneView> {
+internal interface ComposeBridge<RootView, SceneView> {
     val rootViewController: RootView
+    val layers: MutableList<LayerState<SceneView>>
     val layoutDirection: LayoutDirection
     val focusStack: FocusStack<UIView>
-    val sceneStates: List<SceneState<SceneView>>
+    val composeSceneBridges: List<ComposeSceneBridge<SceneView>>
     val configuration: ComposeUIViewControllerConfiguration
 
     @Composable
-    fun EntrypointCompositionLocals(content: @Composable () -> Unit)
+    fun ProvideRootCompositionLocals(content: @Composable () -> Unit)
 }
 
 @OptIn(InternalComposeApi::class)
-internal fun createRootUIViewControllerState(
+internal fun createComposeBridge(
     configuration: ComposeUIViewControllerConfiguration,
     content: @Composable () -> Unit,
-) = object : RootViewControllerState<UIViewController, UIView> {
-
+) = object : ComposeBridge<UIViewController, UIView> {
+    override val layers: MutableList<LayerState<UIView>> = mutableListOf()
     override val configuration = configuration
-    override val layoutDirection
-        get() =
-            when (UIApplication.sharedApplication().userInterfaceLayoutDirection) {
-                UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
-                else -> LayoutDirection.Ltr
-            }
-    override val sceneStates: MutableList<SceneState<UIView>> = mutableListOf()
+    override val layoutDirection get() = getLayoutDirection()
+    override val composeSceneBridges: MutableList<ComposeSceneBridge<UIView>> = mutableListOf()
 
     /*
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
@@ -75,7 +71,7 @@ internal fun createRootUIViewControllerState(
     override val focusStack: FocusStack<UIView> = FocusStackImpl()
 
     @Composable
-    override fun EntrypointCompositionLocals(content: @Composable () -> Unit) =
+    override fun ProvideRootCompositionLocals(content: @Composable () -> Unit) =
         CompositionLocalProvider(
             LocalUIViewController provides rootViewController,
             LocalLayerContainer provides rootViewController.view,
@@ -85,19 +81,19 @@ internal fun createRootUIViewControllerState(
         )
 
     @OptIn(ExperimentalComposeApi::class)
-    fun createRootSceneViewState(): SceneState<UIView> =
+    fun createRootSceneViewState(): ComposeSceneBridge<UIView> =
         if (configuration.platformLayers) {
-            createSingleLayerSceneUIViewState()
+            createSingleLayerComposeSceneBridge()
         } else {
-            createMultiLayerSceneUIViewState()
+            createMultiLayerComposeSceneBridge()
         }
 
     val keyboardVisibilityListener = object : KeyboardVisibilityListener {
-        override fun keyboardWillShow(arg: NSNotification) = sceneStates.forEach {
+        override fun keyboardWillShow(arg: NSNotification) = composeSceneBridges.forEach {
             it.keyboardVisibilityListener.keyboardWillShow(arg)
         }
 
-        override fun keyboardWillHide(arg: NSNotification) = sceneStates.forEach {
+        override fun keyboardWillHide(arg: NSNotification) = composeSceneBridges.forEach {
             it.keyboardVisibilityListener.keyboardWillHide(arg)
         }
     }
@@ -108,11 +104,11 @@ internal fun createRootUIViewControllerState(
             content = content,
             createRootSceneViewState = ::createRootSceneViewState,
             keyboardVisibilityListener = keyboardVisibilityListener,
-            sceneStates = sceneStates,
+            composeSceneBridges = composeSceneBridges,
             interfaceOrientationState = interfaceOrientationState,
             systemThemeState = systemThemeState,
             onViewSafeAreaInsetsDidChange = {
-                sceneStates.fastForEach {
+                composeSceneBridges.fastForEach {
                     it.updateSafeArea()
                 }
             }
@@ -120,3 +116,9 @@ internal fun createRootUIViewControllerState(
     }
 
 }
+
+private fun getLayoutDirection() =
+    when (UIApplication.sharedApplication().userInterfaceLayoutDirection) {
+        UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
+        else -> LayoutDirection.Ltr
+    }

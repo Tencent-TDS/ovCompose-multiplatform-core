@@ -59,7 +59,6 @@ internal class SkikoUIViewDelegateImpl(
     val density get() = densityProvider()
     override var metalOffset: Offset = Offset.Zero
 
-    @Suppress("DEPRECATION")
     override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
         point.useContents {
             val position = Offset(
@@ -130,7 +129,7 @@ private fun UIEvent.historicalChangesForTouch(
     return if (touches.size > 1) {
         // subList last index is exclusive, so the last touch in the list is not included
         // because it's the actual touch for which coalesced touches were requested
-        touches.subList(0, touches.size - 1).map {
+        touches.dropLast(1).map {
             val historicalTouch = it as UITouch
             HistoricalChange(
                 uptimeMillis = (historicalTouch.timestamp * 1e3).toLong(),

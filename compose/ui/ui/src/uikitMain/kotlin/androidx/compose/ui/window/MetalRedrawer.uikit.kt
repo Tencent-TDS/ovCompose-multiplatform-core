@@ -33,7 +33,6 @@ import platform.QuartzCore.*
 import platform.UIKit.UIApplicationDidEnterBackgroundNotification
 import platform.UIKit.UIApplicationWillEnterForegroundNotification
 import platform.darwin.*
-import kotlin.math.roundToInt
 import org.jetbrains.skia.Rect
 import platform.Foundation.NSLock
 import platform.Foundation.NSTimeInterval

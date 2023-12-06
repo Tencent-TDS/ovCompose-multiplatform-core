@@ -20,12 +20,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropContext
+import androidx.compose.ui.platform.IOSPlatformContextImpl
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
@@ -58,12 +58,7 @@ import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 /**
  * SceneState represents scene: ComposeScene with view: V and state manipulation functions.
  */
-internal interface SceneState<V> {
-    /**
-     * Inner layers. Maybe empty.
-     */
-    val layers: MutableList<LayerState<V>>
-
+internal interface ComposeSceneBridge<V> {
     /**
      * ComposeScene with @Composable content
      */
@@ -73,7 +68,7 @@ internal interface SceneState<V> {
      * iOS view to display
      */
     val sceneView: V
-    fun setContentWithCompositionLocals(content: @Composable () -> Unit)
+    fun setContent(content: @Composable () -> Unit)
     fun display(focusable: Boolean, onDisplayed: () -> Unit)
     fun dispose()
     fun needRedraw()
@@ -104,12 +99,11 @@ internal sealed interface SceneLayout {
  * Builder of SceneState with UIView inside.
  */
 @OptIn(InternalComposeApi::class)
-internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
+internal fun ComposeBridge<UIViewController, UIView>.createComposeSceneBridge(
     focusable: Boolean,
     transparentBackground: Boolean,
-    buildScene: (SceneState<UIView>) -> ComposeScene,
-): SceneState<UIView> = object : SceneState<UIView> {
-    override val layers: MutableList<LayerState<UIView>> = mutableListOf()
+    buildScene: (ComposeSceneBridge<UIView>) -> ComposeScene,
+): ComposeSceneBridge<UIView> = object : ComposeSceneBridge<UIView> {
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
     private var _layout: SceneLayout = SceneLayout.Undefined
     private var constraints: List<NSLayoutConstraint> = emptyList()
@@ -144,7 +138,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     }
 
     override val platformContext: PlatformContext by lazy {
-        PlatformContextImpl(
+        IOSPlatformContextImpl(
             inputServices = uiKitTextInputService,
             textToolbar = uiKitTextInputService,
             windowInfo = windowInfo,
@@ -157,9 +151,9 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
             configuration = configuration,
             keyboardOverlapHeightState = keyboardOverlapHeightState,
             viewProvider = { rootViewController.view },
-            sceneStates = sceneStates,
+            composeSceneBridges = composeSceneBridges,
             densityProvider = densityProvider,
-            sceneStateProvider = { this },
+            composeSceneBridgeProvider = { this },
         )
     }
 
@@ -195,7 +189,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
         )
     }
 
-    override fun setContentWithCompositionLocals(content: @Composable () -> Unit) {
+    override fun setContent(content: @Composable () -> Unit) {
         scene.setContent {
             /**
              * TODO isReadyToShowContent it is workaround we need to fix.
@@ -207,8 +201,8 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
              *   It is public for iOS 17 and hope back ported for iOS 13 as well (but we need to check)
              */
             if (sceneView.isReadyToShowContent.value) {
-                EntrypointCompositionLocals {
-                    SceneCompositionLocal {
+                ProvideRootCompositionLocals {
+                    ProvideComposeSceneBridgeCompositionLocals {
                         content()
                     }
                 }
@@ -231,7 +225,7 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSceneState(
     }
 
     @Composable
-    private fun SceneCompositionLocal(content: @Composable () -> Unit) =
+    private fun ProvideComposeSceneBridgeCompositionLocals(content: @Composable () -> Unit) =
         CompositionLocalProvider(
             LocalUIKitInteropContext provides interopContext,
             LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,

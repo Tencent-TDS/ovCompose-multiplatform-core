@@ -30,8 +30,8 @@ import platform.UIKit.UIViewController
 
 private val coroutineDispatcher = Dispatchers.Main
 
-internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayerSceneUIViewState(): SceneState<UIView> =
-    createSceneState(focusable = true, transparentBackground = false) { sceneState ->
+internal fun ComposeBridge<UIViewController, UIView>.createSingleLayerComposeSceneBridge(): ComposeSceneBridge<UIView> =
+    createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneState ->
         val context = object : ComposeSceneContext {
             val currentComposeSceneContext = this
             override val platformContext: PlatformContext get() = sceneState.platformContext
@@ -41,14 +41,15 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayer
                 focusable: Boolean,
                 compositionContext: CompositionContext
             ): ComposeSceneLayer {
-                val layerState = createLayerState(
-                    parentSceneState = sceneState,
+                val layerState = createComposeSceneLayerBridge(
                     coroutineContext = coroutineDispatcher,
                     composeSceneContext = currentComposeSceneContext,
-                    focusable = focusable
+                    focusable = focusable,
+                    densityProvider = sceneState.densityProvider,
+                    needRedraw = sceneState::needRedraw,
                 )
                 layerState.display()
-                sceneState.layers.add(layerState)
+                layers.add(layerState)
                 return layerState.layer
             }
         }
@@ -62,8 +63,8 @@ internal fun RootViewControllerState<UIViewController, UIView>.createSingleLayer
         )
     }
 
-internal fun RootViewControllerState<UIViewController, UIView>.createMultiLayerSceneUIViewState(): SceneState<UIView> =
-    createSceneState(focusable = true, transparentBackground = false) { sceneState ->
+internal fun ComposeBridge<UIViewController, UIView>.createMultiLayerComposeSceneBridge(): ComposeSceneBridge<UIView> =
+    createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneState ->
         MultiLayerComposeScene(
             coroutineContext = coroutineDispatcher,
             composeSceneContext = object : ComposeSceneContext {

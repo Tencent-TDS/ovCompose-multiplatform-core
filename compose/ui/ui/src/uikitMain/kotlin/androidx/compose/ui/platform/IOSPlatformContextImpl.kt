@@ -14,19 +14,14 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.window
+package androidx.compose.ui.platform
 
 import androidx.compose.ui.input.InputMode
-import androidx.compose.ui.platform.DefaultInputModeManager
-import androidx.compose.ui.platform.EmptyViewConfiguration
-import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.TextToolbar
-import androidx.compose.ui.platform.ViewConfiguration
-import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DensityProvider
 
-internal class PlatformContextImpl(
+internal class IOSPlatformContextImpl(
     inputServices: PlatformTextInputService,
     override val textToolbar: TextToolbar,
     override val windowInfo: WindowInfo,

@@ -23,10 +23,6 @@ import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
-import org.jetbrains.skiko.SkikoInputModifiers
-import org.jetbrains.skiko.SkikoKey
-import org.jetbrains.skiko.SkikoKeyboardEvent
-import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectIntersectsRect
@@ -44,10 +40,6 @@ import platform.Foundation.dictionary
 import platform.UIKit.NSWritingDirection
 import platform.UIKit.NSWritingDirectionLeftToRight
 import platform.UIKit.UIKeyInputProtocol
-import platform.UIKit.UIKeyModifierAlternate
-import platform.UIKit.UIKeyModifierCommand
-import platform.UIKit.UIKeyModifierControl
-import platform.UIKit.UIKeyModifierShift
 import platform.UIKit.UIKeyboardAppearance
 import platform.UIKit.UIKeyboardType
 import platform.UIKit.UIMenuController
@@ -375,6 +367,7 @@ internal class IntermediateTextInputUIView(
         inDirection: UITextStorageDirection
     ): Map<Any?, *>? {
         return NSDictionary.dictionary()
+        //TODO: Need to implement
         if (position !is IntermediateTextPosition) {
             error("position !is IntermediateTextPosition")
         }
@@ -488,10 +481,14 @@ internal class IntermediateTextInputUIView(
             if (menu.isMenuVisible()) {
                 menu.setTargetRect(cgRect, this)
             } else {
+                //TODO: UIMenuController.showMenuFromView is Deprecated since iOS 17
+                // and not available on iOS 12
                 menu.showMenuFromView(this, cgRect)
             }
         } else {
             if (menu.isMenuVisible()) {
+                //TODO: UIMenuController.hideMenu is Deprecated since iOS 17
+                // and not available on iOS 12
                 menu.hideMenu()
             }
         }
@@ -597,6 +594,7 @@ internal class IntermediateTextInputUIView(
             toBoundary: UITextGranularity,
             inDirection: UITextDirection
         ): UITextPosition? {
+            //TODO: Need to implement
             return null
             if (position !is IntermediateTextPosition) {
                 error("position !is IntermediateTextPosition")

@@ -57,19 +57,19 @@ fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController = createRootUIViewControllerState(
+): UIViewController = createComposeBridge(
     configuration = ComposeUIViewControllerConfiguration().apply(configure),
     content = content,
-).rootViewController
+).rootViewController //todo не очивидно что rootViewController захватывает
 
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
 internal class RootUIViewController(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
-    private val createRootSceneViewState: () -> SceneState<UIView>,
+    private val createRootSceneViewState: () -> ComposeSceneBridge<UIView>,
     private val keyboardVisibilityListener: KeyboardVisibilityListener,
-    private val sceneStates: MutableList<SceneState<UIView>>,
+    private val composeSceneBridges: MutableList<ComposeSceneBridge<UIView>>,
     private val interfaceOrientationState: MutableState<InterfaceOrientation>,
     private val systemThemeState: MutableState<SystemTheme>,
     private val onViewSafeAreaInsetsDidChange: () -> Unit,
@@ -150,7 +150,7 @@ internal class RootUIViewController(
             interfaceOrientationState.value = it
         }
 
-        sceneStates.forEach {
+        composeSceneBridges.forEach {
             it.updateLayout()
         }
     }
@@ -178,7 +178,7 @@ internal class RootUIViewController(
             return
         }
 
-        sceneStates.forEach { sceneViewState ->
+        composeSceneBridges.forEach { sceneViewState ->
             sceneViewState.animateTransition(
                 targetSize = size,
                 coordinator = withTransitionCoordinator
@@ -251,22 +251,22 @@ internal class RootUIViewController(
     }
 
     private fun dispose() {
-        sceneStates.fastForEachReversed {
+        composeSceneBridges.fastForEachReversed {
             it.dispose()
         }
-        sceneStates.clear()
+        composeSceneBridges.clear()
     }
 
     private fun attachComposeIfNeeded() {
-        if (sceneStates.isNotEmpty()) {
+        if (composeSceneBridges.isNotEmpty()) {
             return // already attached
         }
         val sceneViewState = createRootSceneViewState()
-        sceneStates.add(sceneViewState)
+        composeSceneBridges.add(sceneViewState)
         sceneViewState.display(
             focusable = true,
             onDisplayed = {
-                sceneViewState.setContentWithCompositionLocals(content)
+                sceneViewState.setContent(content)
             }
         )
         sceneViewState.setLayout(SceneLayout.UseConstraintsToFillContainer)

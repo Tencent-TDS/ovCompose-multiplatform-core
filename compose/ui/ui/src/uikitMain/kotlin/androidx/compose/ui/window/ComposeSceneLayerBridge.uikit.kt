@@ -34,38 +34,39 @@ internal interface LayerState<V> {
     fun display()
 }
 
-internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
-    parentSceneState: SceneState<UIView>,
+internal fun ComposeBridge<UIViewController, UIView>.createComposeSceneLayerBridge(
     coroutineContext: CoroutineContext,
     composeSceneContext: ComposeSceneContext,
     focusable: Boolean,
+    densityProvider: DensityProvider,
+    needRedraw: () -> Unit
 ): LayerState<UIView> = object : LayerState<UIView> {
 
     /**
      * Internal Compose scene for rendering
      */
-    val sceneState: SceneState<UIView> =
-        createSceneState(focusable = focusable, transparentBackground = true) {
+    private val composeSceneBridge: ComposeSceneBridge<UIView> =
+        createComposeSceneBridge(focusable = focusable, transparentBackground = true) {
             SingleLayerComposeScene(
                 coroutineContext = coroutineContext,
                 composeSceneContext = composeSceneContext,
-                density = parentSceneState.densityProvider(),
-                invalidate = parentSceneState::needRedraw,
+                density = densityProvider(),
+                invalidate = needRedraw,
                 layoutDirection = layoutDirection,
             )
         }
 
     override fun display() {
-        sceneState.display(focusable = focusable, onDisplayed = {})
+        composeSceneBridge.display(focusable = focusable, onDisplayed = {})
     }
 
     override val layer = object : ComposeSceneLayer {
-        override var density: Density = parentSceneState.densityProvider()
-        override var layoutDirection: LayoutDirection = this@createLayerState.layoutDirection
+        override var density: Density = densityProvider()
+        override var layoutDirection: LayoutDirection = this@createComposeSceneLayerBridge.layoutDirection
         override var bounds: IntRect
-            get() = sceneState.getViewBounds()
+            get() = composeSceneBridge.getViewBounds()
             set(value) {
-                sceneState.setLayout(
+                composeSceneBridge.setLayout(
                     SceneLayout.Bounds(rect = value)
                 )
             }
@@ -73,11 +74,11 @@ internal fun RootViewControllerState<UIViewController, UIView>.createLayerState(
         override var focusable: Boolean = focusable
 
         override fun close() {
-            sceneState.dispose()
+            composeSceneBridge.dispose()
         }
 
         override fun setContent(content: @Composable () -> Unit) {
-            sceneState.setContentWithCompositionLocals(content)
+            composeSceneBridge.setContent(content)
         }
 
         override fun setKeyEventListener(
