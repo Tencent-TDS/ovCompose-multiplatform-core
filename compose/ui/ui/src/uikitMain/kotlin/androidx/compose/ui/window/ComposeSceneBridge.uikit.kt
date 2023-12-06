@@ -150,7 +150,6 @@ internal fun ComposeBridge.createComposeSceneBridge(
             configuration = configuration,
             keyboardOverlapHeightState = keyboardOverlapHeightState,
             viewProvider = { rootViewController.view },
-            composeSceneBridges = composeSceneBridges,
             densityProvider = densityProvider,
             composeSceneBridgeProvider = { this },
         )
