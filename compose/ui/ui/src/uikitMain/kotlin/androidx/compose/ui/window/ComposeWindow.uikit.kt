@@ -67,21 +67,21 @@ fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController = RootUIViewController(
+): UIViewController = ComposeUIViewController(
     configuration = ComposeUIViewControllerConfiguration().apply(configure),
     content = content,
 )
 
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
-internal class RootUIViewController(
+internal class ComposeUIViewController(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
 ) : UIViewController(nibName = null, bundle = null) {
 
     inner class BridgeImpl : ComposeBridge {
-        override val rootViewController = this@RootUIViewController
-        override val configuration = this@RootUIViewController.configuration
+        override val rootViewController = this@ComposeUIViewController
+        override val configuration = this@ComposeUIViewController.configuration
         override val layers: MutableList<ComposeSceneLayerBridge> = mutableListOf()
         override val layoutDirection get() = getLayoutDirection()
         val composeSceneBridges: MutableList<ComposeSceneBridge> = mutableListOf()
