@@ -42,7 +42,6 @@ internal interface ComposeBridge {
     val layers: MutableList<ComposeSceneLayerBridge>
     val layoutDirection: LayoutDirection
     val focusStack: FocusStack<UIView>
-    val composeSceneBridges: List<ComposeSceneBridge>
     val configuration: ComposeUIViewControllerConfiguration
 
     @Composable
@@ -57,7 +56,7 @@ internal fun createComposeBridge(
     override val layers: MutableList<ComposeSceneLayerBridge> = mutableListOf()
     override val configuration = configuration
     override val layoutDirection get() = getLayoutDirection()
-    override val composeSceneBridges: MutableList<ComposeSceneBridge> = mutableListOf()
+    private val composeSceneBridges: MutableList<ComposeSceneBridge> = mutableListOf()
 
     /*
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
