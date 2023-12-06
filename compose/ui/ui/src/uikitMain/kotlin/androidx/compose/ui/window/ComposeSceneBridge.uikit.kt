@@ -56,7 +56,7 @@ import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 
 /**
- * SceneState represents scene: ComposeScene with view: V and state manipulation functions.
+ * ComposeSceneBridge represents scene: ComposeScene with view: V and state manipulation functions.
  */
 internal interface ComposeSceneBridge<V> {
     /**
@@ -96,7 +96,7 @@ internal sealed interface SceneLayout {
 }
 
 /**
- * Builder of SceneState with UIView inside.
+ * Builder of ComposeSceneBridge with UIView inside.
  */
 @OptIn(InternalComposeApi::class)
 internal fun ComposeBridge<UIViewController, UIView>.createComposeSceneBridge(

@@ -31,47 +31,47 @@ import platform.UIKit.UIViewController
 private val coroutineDispatcher = Dispatchers.Main
 
 internal fun ComposeBridge<UIViewController, UIView>.createSingleLayerComposeSceneBridge(): ComposeSceneBridge<UIView> =
-    createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneState ->
+    createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneBridge ->
         val context = object : ComposeSceneContext {
             val currentComposeSceneContext = this
-            override val platformContext: PlatformContext get() = sceneState.platformContext
+            override val platformContext: PlatformContext get() = sceneBridge.platformContext
             override fun createPlatformLayer(
                 density: Density,
                 layoutDirection: LayoutDirection,
                 focusable: Boolean,
                 compositionContext: CompositionContext
             ): ComposeSceneLayer {
-                val layerState = createComposeSceneLayerBridge(
+                val layerBridge = createComposeSceneLayerBridge(
                     coroutineContext = coroutineDispatcher,
                     composeSceneContext = currentComposeSceneContext,
                     focusable = focusable,
-                    densityProvider = sceneState.densityProvider,
-                    needRedraw = sceneState::needRedraw,
+                    densityProvider = sceneBridge.densityProvider,
+                    needRedraw = sceneBridge::needRedraw,
                 )
-                layerState.display()
-                layers.add(layerState)
-                return layerState.layer
+                layerBridge.display()
+                layers.add(layerBridge)
+                return layerBridge.layer
             }
         }
 
         SingleLayerComposeScene(
             coroutineContext = coroutineDispatcher,
-            density = sceneState.densityProvider(),
-            invalidate = sceneState::needRedraw,
+            density = sceneBridge.densityProvider(),
+            invalidate = sceneBridge::needRedraw,
             layoutDirection = layoutDirection,
             composeSceneContext = context,
         )
     }
 
 internal fun ComposeBridge<UIViewController, UIView>.createMultiLayerComposeSceneBridge(): ComposeSceneBridge<UIView> =
-    createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneState ->
+    createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneBridge ->
         MultiLayerComposeScene(
             coroutineContext = coroutineDispatcher,
             composeSceneContext = object : ComposeSceneContext {
-                override val platformContext: PlatformContext get() = sceneState.platformContext
+                override val platformContext: PlatformContext get() = sceneBridge.platformContext
             },
-            density = sceneState.densityProvider(),
-            invalidate = sceneState::needRedraw,
+            density = sceneBridge.densityProvider(),
+            invalidate = sceneBridge::needRedraw,
             layoutDirection = layoutDirection,
         )
     }

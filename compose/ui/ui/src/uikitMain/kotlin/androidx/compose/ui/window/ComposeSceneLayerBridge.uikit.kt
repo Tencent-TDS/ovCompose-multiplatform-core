@@ -29,7 +29,7 @@ import kotlin.coroutines.CoroutineContext
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
-internal interface LayerState<V> {
+internal interface ComposeSceneLayerBridge<V> {
     val layer: ComposeSceneLayer
     fun display()
 }
@@ -40,7 +40,7 @@ internal fun ComposeBridge<UIViewController, UIView>.createComposeSceneLayerBrid
     focusable: Boolean,
     densityProvider: DensityProvider,
     needRedraw: () -> Unit
-): LayerState<UIView> = object : LayerState<UIView> {
+): ComposeSceneLayerBridge<UIView> = object : ComposeSceneLayerBridge<UIView> {
 
     /**
      * Internal Compose scene for rendering

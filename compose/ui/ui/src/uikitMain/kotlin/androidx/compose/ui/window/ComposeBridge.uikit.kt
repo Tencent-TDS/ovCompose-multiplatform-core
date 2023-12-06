@@ -39,7 +39,7 @@ import platform.UIKit.UIViewController
 
 internal interface ComposeBridge<RootView, SceneView> {
     val rootViewController: RootView
-    val layers: MutableList<LayerState<SceneView>>
+    val layers: MutableList<ComposeSceneLayerBridge<SceneView>>
     val layoutDirection: LayoutDirection
     val focusStack: FocusStack<UIView>
     val composeSceneBridges: List<ComposeSceneBridge<SceneView>>
@@ -54,7 +54,7 @@ internal fun createComposeBridge(
     configuration: ComposeUIViewControllerConfiguration,
     content: @Composable () -> Unit,
 ) = object : ComposeBridge<UIViewController, UIView> {
-    override val layers: MutableList<LayerState<UIView>> = mutableListOf()
+    override val layers: MutableList<ComposeSceneLayerBridge<UIView>> = mutableListOf()
     override val configuration = configuration
     override val layoutDirection get() = getLayoutDirection()
     override val composeSceneBridges: MutableList<ComposeSceneBridge<UIView>> = mutableListOf()
@@ -81,7 +81,7 @@ internal fun createComposeBridge(
         )
 
     @OptIn(ExperimentalComposeApi::class)
-    fun createRootSceneViewState(): ComposeSceneBridge<UIView> =
+    fun createRootComposeSceneBridge(): ComposeSceneBridge<UIView> =
         if (configuration.platformLayers) {
             createSingleLayerComposeSceneBridge()
         } else {
@@ -102,7 +102,7 @@ internal fun createComposeBridge(
         RootUIViewController(
             configuration = configuration,
             content = content,
-            createRootSceneViewState = ::createRootSceneViewState,
+            createRootSceneViewState = ::createRootComposeSceneBridge,
             keyboardVisibilityListener = keyboardVisibilityListener,
             composeSceneBridges = composeSceneBridges,
             interfaceOrientationState = interfaceOrientationState,
