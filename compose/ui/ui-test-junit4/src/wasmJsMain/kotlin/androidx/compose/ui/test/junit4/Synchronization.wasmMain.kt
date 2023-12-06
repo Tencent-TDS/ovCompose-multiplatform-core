@@ -29,7 +29,7 @@ internal actual fun <T> runOnUiThread(action: () -> T): T {
  * Returns if the call is made on the main thread.
  */
 
-// TODO: in a browser we have only 1 thread and it's actually a UI thread.
+// TODO: in a browser we have only 1 thread and it's actually a UI thread. (see COMPOSE-661 in YT)
 // But returning `true` here breaks `setContent` - `waitForIdle` is not called, but seems to be necessary.
 internal actual fun isOnUiThread(): Boolean = false
 
