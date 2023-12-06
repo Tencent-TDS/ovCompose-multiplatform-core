@@ -43,7 +43,6 @@ import platform.UIKit.UIKeyInputProtocol
 import platform.UIKit.UIKeyboardAppearance
 import platform.UIKit.UIKeyboardType
 import platform.UIKit.UIMenuController
-import platform.UIKit.UIPress
 import platform.UIKit.UIPressesEvent
 import platform.UIKit.UIResponderStandardEditActionsProtocol
 import platform.UIKit.UIReturnKeyType

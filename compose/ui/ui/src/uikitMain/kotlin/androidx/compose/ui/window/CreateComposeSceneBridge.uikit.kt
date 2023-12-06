@@ -25,8 +25,6 @@ import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import kotlinx.coroutines.Dispatchers
-import platform.UIKit.UIView
-import platform.UIKit.UIViewController
 
 private val coroutineDispatcher = Dispatchers.Main
 

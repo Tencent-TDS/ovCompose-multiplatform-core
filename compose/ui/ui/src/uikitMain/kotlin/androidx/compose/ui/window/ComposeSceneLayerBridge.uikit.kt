@@ -26,8 +26,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.coroutines.CoroutineContext
-import platform.UIKit.UIView
-import platform.UIKit.UIViewController
 
 internal interface ComposeSceneLayerBridge {
     val layer: ComposeSceneLayer
