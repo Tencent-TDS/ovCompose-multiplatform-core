@@ -22,7 +22,9 @@ jobs:
         with:
           java-version: '17'
           distribution: 'zulu'
-      - id: run_tests
+      - name: install Android SDK
+        run: ./jbdeps/android-sdk/downloadAndroidSdk
+      - name: run_tests
         run: ./gradlew :mpp:testUIKit
 
   unit-tests-2:
@@ -35,5 +37,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'zulu'
-      - id: run_tests
+      - name: install Android SDK
+        run: ./jbdeps/android-sdk/downloadAndroidSdk
+      - name: run_tests
         run: ./gradlew :mpp:testUIKit
