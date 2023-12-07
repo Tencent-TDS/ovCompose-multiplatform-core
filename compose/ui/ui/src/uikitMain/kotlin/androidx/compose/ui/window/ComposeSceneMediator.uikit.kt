@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
+import androidx.compose.ui.scene.ComposeSceneFocusManager
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.IntOffset
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toOffset
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
+import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.SkikoKeyboardEvent
@@ -51,11 +53,16 @@ import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
 import platform.Foundation.NSNotification
+import platform.Foundation.NSNotificationCenter
+import platform.Foundation.NSSelectorFromString
 import platform.QuartzCore.CATransaction
 import platform.UIKit.NSLayoutConstraint
+import platform.UIKit.UIKeyboardWillHideNotification
+import platform.UIKit.UIKeyboardWillShowNotification
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
+import platform.darwin.NSObject
 
 /**
  * Layout of sceneView on the screen
@@ -87,7 +94,13 @@ internal class ComposeSceneMediator(
             NSLayoutConstraint.activateConstraints(value)
         }
 
-    val scene: ComposeScene by lazy { buildScene(this) }
+    private val scene: ComposeScene by lazy { buildScene(this) }
+    var compositionLocalContext
+        get() = scene.compositionLocalContext
+        set(value) {
+            scene.compositionLocalContext = value
+        }
+    val focusManager get() = scene.focusManager
 
     val view: SkikoUIView by lazy {
         SkikoUIView(keyboardEventHandler, delegate, transparency)
@@ -157,20 +170,35 @@ internal class ComposeSceneMediator(
         )
     }
 
+    private var onAttachedToWindow: (() -> Unit)? = null
+
+    init {
+        view.onAttachedToWindow = {
+            view.onAttachedToWindow = null
+            viewWillLayoutSubviews()
+            this.onAttachedToWindow?.invoke()
+            focusStack?.pushAndFocus(view)
+        }
+        viewController.view.addSubview(view)
+    }
+
     fun setContent(content: @Composable () -> Unit) {
-        scene.setContent {
-            /**
-             * TODO isReadyToShowContent it is workaround we need to fix.
-             *  https://github.com/JetBrains/compose-multiplatform-core/pull/861
-             *  Density problem already was fixed.
-             *  But there are still problem with safeArea.
-             *  Elijah founded possible solution:
-             *   https://developer.apple.com/documentation/uikit/uiviewcontroller/4195485-viewisappearing
-             *   It is public for iOS 17 and hope back ported for iOS 13 as well (but we need to check)
-             */
-            if (view.isReadyToShowContent.value) {
-                ProvideComposeSceneMediatorCompositionLocals {
-                    content()
+        onAttachedToWindow = {
+            onAttachedToWindow = null
+            scene.setContent {
+                /**
+                 * TODO isReadyToShowContent it is workaround we need to fix.
+                 *  https://github.com/JetBrains/compose-multiplatform-core/pull/861
+                 *  Density problem already was fixed.
+                 *  But there are still problem with safeArea.
+                 *  Elijah founded possible solution:
+                 *   https://developer.apple.com/documentation/uikit/uiviewcontroller/4195485-viewisappearing
+                 *   It is public for iOS 17 and hope back ported for iOS 13 as well (but we need to check)
+                 */
+                if (view.isReadyToShowContent.value) {
+                    ProvideComposeSceneMediatorCompositionLocals {
+                        content()
+                    }
                 }
             }
         }
@@ -185,7 +213,7 @@ internal class ComposeSceneMediator(
         mutableStateOf(calcLayoutMargin())
     }
 
-    fun updateSafeArea() {
+    fun viewSafeAreaInsetsDidChange() {
         safeAreaState.value = calcSafeArea()
         layoutMarginsState.value = calcLayoutMargin()
     }
@@ -200,16 +228,6 @@ internal class ComposeSceneMediator(
             LocalLayoutMargins provides layoutMarginsState.value,
             content = content
         )
-
-    fun display(focusable: Boolean, onDisplayed: () -> Unit) {
-        view.onAttachedToWindow = {
-            view.onAttachedToWindow = null
-            updateLayout()
-            onDisplayed()
-            focusStack?.pushAndFocus(view)
-        }
-        viewController.view.addSubview(view)
-    }
 
     fun dispose() {
         focusStack?.popUntilNext(view)
@@ -274,7 +292,7 @@ internal class ComposeSceneMediator(
         view.updateMetalLayerSize()
     }
 
-    fun updateLayout() {
+    fun viewWillLayoutSubviews() {
         val density = densityProvider()
         val scale = density.density
         //TODO: Current code updates layout based on rootViewController size.
@@ -324,7 +342,7 @@ internal class ComposeSceneMediator(
         )
     }
 
-    fun animateTransition(
+    fun viewWillTransitionToSize(
         targetSize: CValue<CGSize>,
         coordinator: UIViewControllerTransitionCoordinatorProtocol
     ) {
@@ -366,12 +384,47 @@ internal class ComposeSceneMediator(
         )
     }
 
-    fun keyboardWillShow(arg: NSNotification) {
-        keyboardVisibilityListener.keyboardWillShow(arg)
+    private val nativeKeyboardVisibilityListener = object : NSObject() {
+        @Suppress("unused")
+        @ObjCAction
+        fun keyboardWillShow(arg: NSNotification) {
+            keyboardVisibilityListener.keyboardWillShow(arg)
+        }
+
+        @Suppress("unused")
+        @ObjCAction
+        fun keyboardWillHide(arg: NSNotification) {
+            keyboardVisibilityListener.keyboardWillHide(arg)
+        }
     }
 
-    fun keyboardWillHide(arg: NSNotification) {
-        keyboardVisibilityListener.keyboardWillHide(arg)
+    fun viewDidAppear(animated: Boolean) {
+        NSNotificationCenter.defaultCenter.addObserver(
+            observer = nativeKeyboardVisibilityListener,
+            selector = NSSelectorFromString(nativeKeyboardVisibilityListener::keyboardWillShow.name + ":"),
+            name = UIKeyboardWillShowNotification,
+            `object` = null
+        )
+        NSNotificationCenter.defaultCenter.addObserver(
+            observer = nativeKeyboardVisibilityListener,
+            selector = NSSelectorFromString(nativeKeyboardVisibilityListener::keyboardWillHide.name + ":"),
+            name = UIKeyboardWillHideNotification,
+            `object` = null
+        )
+    }
+
+    // viewDidUnload() is deprecated and not called.
+    fun viewWillDisappear(animated: Boolean) {
+        NSNotificationCenter.defaultCenter.removeObserver(
+            observer = nativeKeyboardVisibilityListener,
+            name = UIKeyboardWillShowNotification,
+            `object` = null
+        )
+        NSNotificationCenter.defaultCenter.removeObserver(
+            observer = nativeKeyboardVisibilityListener,
+            name = UIKeyboardWillHideNotification,
+            `object` = null
+        )
     }
 
 }

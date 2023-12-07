@@ -68,12 +68,12 @@ internal class KeyboardVisibilityListenerImpl(
         animateKeyboard(arg, true)
 
         val mediator = composeSceneMediatorProvider()
-        val scene = mediator.scene
+        val focusManager = mediator.focusManager//todo move to constructor arg
         val userInfo = arg.userInfo ?: return
         val keyboardInfo = userInfo[UIKeyboardFrameEndUserInfoKey] as NSValue
         val keyboardHeight = keyboardInfo.CGRectValue().useContents { size.height }
         if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
-            val focusedRect = scene.focusManager.getFocusRect()?.toDpRect(densityProvider())
+            val focusedRect = focusManager.getFocusRect()?.toDpRect(densityProvider())
 
             if (focusedRect != null) {
                 updateViewBounds(
