@@ -1,12 +1,16 @@
-name: Run Integration Tests
+name: iOS Unit tests
 on:
   pull_request:
-  push: #todo remove
+  #push: #todo remove when tests will be completed
+
+concurrency: 
+  group: ${{ github.head_ref }}
+  cancel-in-progress: true
 
 jobs:
   unit-tests:
-    runs-on: macos-latest
-    name: Run Compose for iOS unit tests
+    runs-on: macos-13
+    name: iOS Unit tests
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK 17
