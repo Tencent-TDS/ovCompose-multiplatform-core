@@ -43,6 +43,8 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
             val kotlinCommonPublicationName =
                 "${ComposePlatforms.KotlinMultiplatform.name}Decorated"
             dependsOnComposeTask("${component.path}:publish${kotlinCommonPublicationName}PublicationTo$repository")
+        } else {
+            dependsOnComposeTask("${component.path}:publish${ComposePlatforms.KotlinMultiplatform.name}PublicationTo$repository")
         }
 
         for (platform in targetPlatforms) {
