@@ -29,10 +29,10 @@ import kotlinx.coroutines.Dispatchers
 private val coroutineDispatcher = Dispatchers.Main
 
 internal fun ComposeContainer.createSingleLayerComposeSceneBridge(): ComposeSceneMediator =
-    createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneBridge ->
+    createComposeSceneMediator(focusable = true, transparentBackground = false) { mediator ->
         val context = object : ComposeSceneContext {
             val currentComposeSceneContext = this
-            override val platformContext: PlatformContext get() = sceneBridge.platformContext
+            override val platformContext: PlatformContext get() = mediator.platformContext
             override fun createPlatformLayer(
                 density: Density,
                 layoutDirection: LayoutDirection,
@@ -42,7 +42,7 @@ internal fun ComposeContainer.createSingleLayerComposeSceneBridge(): ComposeScen
                 return createLayer(
                     currentComposeSceneContext,
                     focusable,
-                    sceneBridge,
+                    mediator,
                     compositionContext.effectCoroutineContext
                 )
             }
@@ -50,22 +50,22 @@ internal fun ComposeContainer.createSingleLayerComposeSceneBridge(): ComposeScen
 
         SingleLayerComposeScene(
             coroutineContext = coroutineDispatcher,
-            density = sceneBridge.densityProvider(),
-            invalidate = sceneBridge::needRedraw,
+            density = mediator.densityProvider(),
+            invalidate = mediator::needRedraw,
             layoutDirection = layoutDirection,
             composeSceneContext = context,
         )
     }
 
 internal fun ComposeContainer.createMultiLayerComposeSceneBridge(): ComposeSceneMediator =
-    createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneBridge ->
+    createComposeSceneMediator(focusable = true, transparentBackground = false) { mediator ->
         MultiLayerComposeScene(
             coroutineContext = coroutineDispatcher,
             composeSceneContext = object : ComposeSceneContext {
-                override val platformContext: PlatformContext get() = sceneBridge.platformContext
+                override val platformContext: PlatformContext get() = mediator.platformContext
             },
-            density = sceneBridge.densityProvider(),
-            invalidate = sceneBridge::needRedraw,
+            density = mediator.densityProvider(),
+            invalidate = mediator::needRedraw,
             layoutDirection = layoutDirection,
         )
     }

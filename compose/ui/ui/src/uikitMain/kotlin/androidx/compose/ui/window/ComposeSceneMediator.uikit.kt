@@ -98,7 +98,7 @@ internal sealed interface SceneLayout {
  * Builder of ComposeSceneBridge with UIView inside.
  */
 @OptIn(InternalComposeApi::class)
-internal fun ComposeContainer.createComposeSceneBridge(
+internal fun ComposeContainer.createComposeSceneMediator(
     focusable: Boolean,
     transparentBackground: Boolean,
     buildScene: (ComposeSceneMediator) -> ComposeScene,
