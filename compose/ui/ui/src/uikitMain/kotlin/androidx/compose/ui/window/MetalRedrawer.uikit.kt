@@ -190,7 +190,7 @@ internal class InflightCommandBuffers(
 internal class MetalRedrawer(
     private val metalLayer: CAMetalLayer,
     private val callbacks: MetalRedrawerCallbacks,
-    private val transparentBackground: Boolean,
+    private val transparency: Boolean,
 ) {
     // Workaround for KN compiler bug
     // Type mismatch: inferred type is objcnames.protocols.MTLDeviceProtocol but platform.Metal.MTLDeviceProtocol was expected
@@ -236,7 +236,7 @@ internal class MetalRedrawer(
 
             // If active, make metalLayer transparent, opaque otherwise.
             // Rendering into opaque CAMetalLayer allows direct-to-screen optimization.
-            metalLayer.setOpaque(!value && !transparentBackground)
+            metalLayer.setOpaque(!value && !transparency)
             metalLayer.drawsAsynchronously = !value
         }
 
@@ -334,7 +334,7 @@ internal class MetalRedrawer(
                 width.toFloat(),
                 height.toFloat()
             )).also { canvas ->
-                canvas.clear(if (transparentBackground) Color.TRANSPARENT else Color.WHITE)
+                canvas.clear(if (transparency) Color.TRANSPARENT else Color.WHITE)
                 callbacks.render(canvas, lastRenderTimestamp)
             }
 

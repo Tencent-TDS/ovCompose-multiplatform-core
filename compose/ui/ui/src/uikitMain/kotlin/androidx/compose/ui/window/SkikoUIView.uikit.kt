@@ -35,10 +35,9 @@ import platform.QuartzCore.CAMetalLayer
 import platform.UIKit.*
 
 internal class SkikoUIView(
-    private val focusable: Boolean,
     private val keyboardEventHandler: KeyboardEventHandler,
     private val delegate: SkikoUIViewDelegate,
-    private val transparentBackground: Boolean,
+    private val transparency: Boolean,
 ) : UIView(
     frame = CGRectMake(
         x = 0.0,
@@ -69,7 +68,7 @@ internal class SkikoUIView(
             override fun retrieveInteropTransaction(): UIKitInteropTransaction =
                 delegate.retrieveInteropTransaction()
         },
-        transparentBackground = transparentBackground,
+        transparency = transparency,
     )
 
     /*
@@ -87,7 +86,8 @@ internal class SkikoUIView(
 
     init {
         multipleTouchEnabled = true
-        opaque = !transparentBackground
+        userInteractionEnabled = true
+        opaque = !transparency
 
         _metalLayer.also {
             // Workaround for KN compiler bug
@@ -99,12 +99,10 @@ internal class SkikoUIView(
             doubleArrayOf(0.0, 0.0, 0.0, 0.0).usePinned { pinned ->
                 it.backgroundColor = CGColorCreate(CGColorSpaceCreateDeviceRGB(), pinned.addressOf(0))
             }
-            it.setOpaque(!transparentBackground)
+            it.setOpaque(!transparency)//todo check if remove
             it.framebufferOnly = false
         }
     }
-
-    override fun isUserInteractionEnabled(): Boolean = focusable
 
     fun needRedraw() = _redrawer.needRedraw()
 

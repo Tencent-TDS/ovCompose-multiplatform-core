@@ -31,8 +31,10 @@ import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.UIKitTextInputService
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.ComposeScene
+import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
@@ -49,8 +51,11 @@ import platform.CoreGraphics.CGAffineTransformInvert
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
+import platform.Foundation.NSNotification
 import platform.QuartzCore.CATransaction
 import platform.UIKit.NSLayoutConstraint
+import platform.UIKit.UIView
+import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 
 /**
@@ -64,11 +69,15 @@ internal sealed interface SceneLayout {
 }
 
 internal class ComposeSceneMediator(
-    private val container: ComposeContainer,
-    private val focusable: Boolean,
-    transparentBackground: Boolean,
+    private val viewControllerProvider: () -> UIViewController,//todo check to simple link without provider
+    configuration: ComposeUIViewControllerConfiguration,
+    private val focusStack: FocusStack<UIView>?,
+    private val windowInfo: WindowInfo,
+    transparency: Boolean,
     buildScene: (ComposeSceneMediator) -> ComposeScene,
 ) {
+    private val focusable: Boolean get() = focusStack != null
+    private val containerViewController: UIViewController get() = viewControllerProvider()
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
     private var _layout: SceneLayout = SceneLayout.Undefined
     private var constraints: List<NSLayoutConstraint> = emptyList()
@@ -79,26 +88,23 @@ internal class ComposeSceneMediator(
             field = value
             NSLayoutConstraint.activateConstraints(value)
         }
-    private val windowInfo = WindowInfoImpl().apply {
-        isWindowFocused = focusable
-    }
 
     val scene: ComposeScene by lazy { buildScene(this) }
 
-    val sceneView: SkikoUIView by lazy {
-        SkikoUIView(focusable, keyboardEventHandler, delegate, transparentBackground)
+    val view: SkikoUIView by lazy {
+        SkikoUIView(keyboardEventHandler, delegate, transparency)
     }
 
     val densityProvider by lazy {
         DensityProviderImpl(
-            uiViewControllerProvider = { container.containerViewController },
-            viewProvider = { sceneView },
+            uiViewControllerProvider = { containerViewController },
+            viewProvider = { view },
         )
     }
 
     private val interopContext: UIKitInteropContext by lazy {
         UIKitInteropContext(
-            requestRedraw = { needRedraw() }
+            requestRedraw = { onComposeSceneInvalidate() }
         )
     }
 
@@ -111,11 +117,11 @@ internal class ComposeSceneMediator(
         )
     }
 
-    val keyboardVisibilityListener by lazy {
+    private val keyboardVisibilityListener by lazy {
         KeyboardVisibilityListenerImpl(
-            configuration = container.configuration,
+            configuration = configuration,
             keyboardOverlapHeightState = keyboardOverlapHeightState,
-            viewProvider = { container.containerViewController.view },
+            viewProvider = { containerViewController.view },
             densityProvider = densityProvider,
             composeSceneMediatorProvider = { this },
         )
@@ -135,12 +141,12 @@ internal class ComposeSceneMediator(
     private val uiKitTextInputService: UIKitTextInputService by lazy {
         UIKitTextInputService(
             updateView = {
-                sceneView.setNeedsDisplay() // redraw on next frame
+                view.setNeedsDisplay() // redraw on next frame
                 CATransaction.flush() // clear all animations
             },
-            rootViewProvider = { container.containerViewController.view },
+            rootViewProvider = { containerViewController.view },
             densityProvider = densityProvider,
-            focusStack = container.focusStack,
+            focusStack = focusStack,
             keyboardEventHandler = keyboardEventHandler
         )
     }
@@ -164,11 +170,9 @@ internal class ComposeSceneMediator(
              *   https://developer.apple.com/documentation/uikit/uiviewcontroller/4195485-viewisappearing
              *   It is public for iOS 17 and hope back ported for iOS 13 as well (but we need to check)
              */
-            if (sceneView.isReadyToShowContent.value) {
-                container.ProvideRootCompositionLocals {
-                    ProvideComposeSceneMediatorCompositionLocals {
-                        content()
-                    }
+            if (view.isReadyToShowContent.value) {
+                ProvideComposeSceneMediatorCompositionLocals {
+                    content()
                 }
             }
         }
@@ -200,56 +204,52 @@ internal class ComposeSceneMediator(
         )
 
     fun display(focusable: Boolean, onDisplayed: () -> Unit) {
-        sceneView.onAttachedToWindow = {
-            sceneView.onAttachedToWindow = null
+        view.onAttachedToWindow = {
+            view.onAttachedToWindow = null
             updateLayout()
             onDisplayed()
-            if (focusable) {
-                container.focusStack.pushAndFocus(sceneView)
-            }
+            focusStack?.pushAndFocus(view)
         }
-        container.containerViewController.view.addSubview(sceneView)
+        containerViewController.view.addSubview(view)
     }
 
     fun dispose() {
-        if (focusable) {
-            container.focusStack.popUntilNext(sceneView)
-        }
-        sceneView.dispose()
-        sceneView.removeFromSuperview()
+        focusStack?.popUntilNext(view)
+        view.dispose()
+        view.removeFromSuperview()
         scene.close()
         // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
         // Thus they need to be executed now.
         interopContext.retrieve().actions.forEach { it.invoke() }
     }
 
-    fun needRedraw() = sceneView.needRedraw()
+    fun onComposeSceneInvalidate() = view.needRedraw()
 
     fun setLayout(value: SceneLayout) {
         _layout = value
         when (value) {
             SceneLayout.UseConstraintsToFillContainer -> {
                 delegate.metalOffset = Offset.Zero
-                sceneView.setFrame(CGRectZero.readValue())
-                sceneView.translatesAutoresizingMaskIntoConstraints = false
+                view.setFrame(CGRectZero.readValue())
+                view.translatesAutoresizingMaskIntoConstraints = false
                 constraints = listOf(
-                    sceneView.leftAnchor.constraintEqualToAnchor(container.containerViewController.view.leftAnchor),
-                    sceneView.rightAnchor.constraintEqualToAnchor(container.containerViewController.view.rightAnchor),
-                    sceneView.topAnchor.constraintEqualToAnchor(container.containerViewController.view.topAnchor),
-                    sceneView.bottomAnchor.constraintEqualToAnchor(container.containerViewController.view.bottomAnchor)
+                    view.leftAnchor.constraintEqualToAnchor(containerViewController.view.leftAnchor),
+                    view.rightAnchor.constraintEqualToAnchor(containerViewController.view.rightAnchor),
+                    view.topAnchor.constraintEqualToAnchor(containerViewController.view.topAnchor),
+                    view.bottomAnchor.constraintEqualToAnchor(containerViewController.view.bottomAnchor)
                 )
             }
 
             is SceneLayout.UseConstraintsToCenter -> {
                 delegate.metalOffset = Offset.Zero
-                sceneView.setFrame(CGRectZero.readValue())
-                sceneView.translatesAutoresizingMaskIntoConstraints = false
+                view.setFrame(CGRectZero.readValue())
+                view.translatesAutoresizingMaskIntoConstraints = false
                 constraints = value.size.useContents {
                     listOf(
-                        sceneView.centerXAnchor.constraintEqualToAnchor(container.containerViewController.view.centerXAnchor),
-                        sceneView.centerYAnchor.constraintEqualToAnchor(container.containerViewController.view.centerYAnchor),
-                        sceneView.widthAnchor.constraintEqualToConstant(width),
-                        sceneView.heightAnchor.constraintEqualToConstant(height)
+                        view.centerXAnchor.constraintEqualToAnchor(containerViewController.view.centerXAnchor),
+                        view.centerYAnchor.constraintEqualToAnchor(containerViewController.view.centerYAnchor),
+                        view.widthAnchor.constraintEqualToConstant(width),
+                        view.heightAnchor.constraintEqualToConstant(height)
                     )
                 }
             }
@@ -257,8 +257,8 @@ internal class ComposeSceneMediator(
             is SceneLayout.Bounds -> {
                 delegate.metalOffset = -value.rect.topLeft.toOffset()
                 val density = densityProvider().density
-                sceneView.translatesAutoresizingMaskIntoConstraints = true
-                sceneView.setFrame(
+                view.translatesAutoresizingMaskIntoConstraints = true
+                view.setFrame(
                     with(value.rect) {
                         CGRectMake(
                             x = left.toDouble() / density,
@@ -273,7 +273,7 @@ internal class ComposeSceneMediator(
 
             is SceneLayout.Undefined -> error("setLayout, SceneLayout.Undefined")
         }
-        sceneView.updateMetalLayerSize()
+        view.updateMetalLayerSize()
     }
 
     fun updateLayout() {
@@ -281,20 +281,19 @@ internal class ComposeSceneMediator(
         val scale = density.density
         //TODO: Current code updates layout based on rootViewController size.
         // Maybe we need to rewrite it for SingleLayerComposeScene.
-        val size = container.containerViewController.view.frame.useContents {
+        val size = containerViewController.view.frame.useContents {
             IntSize(
                 width = (size.width * scale).roundToInt(),
                 height = (size.height * scale).roundToInt()
             )
         }
-        windowInfo.containerSize = size
         scene.density = density
         scene.size = size
-        needRedraw()
+        onComposeSceneInvalidate()
     }
 
     private fun calcSafeArea(): PlatformInsets =
-        container.containerViewController.view.safeAreaInsets.useContents {
+        containerViewController.view.safeAreaInsets.useContents {
             PlatformInsets(
                 left = left.dp,
                 top = top.dp,
@@ -304,7 +303,7 @@ internal class ComposeSceneMediator(
         }
 
     private fun calcLayoutMargin(): PlatformInsets =
-        container.containerViewController.view.directionalLayoutMargins.useContents {
+        containerViewController.view.directionalLayoutMargins.useContents {
             PlatformInsets(
                 left = leading.dp, // TODO: Check RTL support
                 top = top.dp,
@@ -313,7 +312,7 @@ internal class ComposeSceneMediator(
             )
         }
 
-    fun getViewBounds(): IntRect = sceneView.frame.useContents {
+    fun getViewBounds(): IntRect = view.frame.useContents {
         val density = densityProvider().density
         IntRect(
             offset = IntOffset(
@@ -336,37 +335,45 @@ internal class ComposeSceneMediator(
             return
         }
 
-        val startSnapshotView = sceneView.snapshotViewAfterScreenUpdates(false) ?: return
+        val startSnapshotView = view.snapshotViewAfterScreenUpdates(false) ?: return
         startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
-        container.containerViewController.view.addSubview(startSnapshotView)
+        containerViewController.view.addSubview(startSnapshotView)
         targetSize.useContents {
             NSLayoutConstraint.activateConstraints(
                 listOf(
                     startSnapshotView.widthAnchor.constraintEqualToConstant(height),
                     startSnapshotView.heightAnchor.constraintEqualToConstant(width),
-                    startSnapshotView.centerXAnchor.constraintEqualToAnchor(container.containerViewController.view.centerXAnchor),
-                    startSnapshotView.centerYAnchor.constraintEqualToAnchor(container.containerViewController.view.centerYAnchor)
+                    startSnapshotView.centerXAnchor.constraintEqualToAnchor(containerViewController.view.centerXAnchor),
+                    startSnapshotView.centerYAnchor.constraintEqualToAnchor(containerViewController.view.centerYAnchor)
                 )
             )
         }
 
-        sceneView.isForcedToPresentWithTransactionEveryFrame = true
+        view.isForcedToPresentWithTransactionEveryFrame = true
 
         setLayout(SceneLayout.UseConstraintsToCenter(size = targetSize))
-        sceneView.transform = coordinator.targetTransform
+        view.transform = coordinator.targetTransform
 
         coordinator.animateAlongsideTransition(
             animation = {
                 startSnapshotView.alpha = 0.0
                 startSnapshotView.transform = CGAffineTransformInvert(coordinator.targetTransform)
-                sceneView.transform = CGAffineTransformIdentity.readValue()
+                view.transform = CGAffineTransformIdentity.readValue()
             },
             completion = {
                 startSnapshotView.removeFromSuperview()
                 setLayout(SceneLayout.UseConstraintsToFillContainer)
-                sceneView.isForcedToPresentWithTransactionEveryFrame = false
+                view.isForcedToPresentWithTransactionEveryFrame = false
             }
         )
+    }
+
+    fun keyboardWillShow(arg: NSNotification) {
+        keyboardVisibilityListener.keyboardWillShow(arg)
+    }
+
+    fun keyboardWillHide(arg: NSNotification) {
+        keyboardVisibilityListener.keyboardWillHide(arg)
     }
 
 }

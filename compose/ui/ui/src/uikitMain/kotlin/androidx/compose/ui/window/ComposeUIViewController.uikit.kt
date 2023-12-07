@@ -17,30 +17,17 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.InternalComposeApi
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.interop.LocalLayerContainer
-import androidx.compose.ui.interop.LocalUIViewController
-import androidx.compose.ui.scene.ComposeSceneContext
-import androidx.compose.ui.scene.ComposeSceneLayer
-import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
-import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.PlistSanityCheck
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachReversed
-import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
@@ -167,9 +154,7 @@ internal class ComposeUIViewController(
             container.interfaceOrientationState.value = it
         }
 
-        container.composeSceneMediators.fastForEach {
-            it.updateLayout()
-        }
+        container.updateLayout()
     }
 
     override fun viewWillTransitionToSize(
@@ -268,25 +253,11 @@ internal class ComposeUIViewController(
     }
 
     private fun dispose() {
-        container.composeSceneMediators.fastForEachReversed {
-            it.dispose()
-        }
-        container.composeSceneMediators.clear()
+        container.dispose()
     }
 
     private fun attachComposeIfNeeded() {
-        if (container.composeSceneMediators.isNotEmpty()) {
-            return // already attached
-        }
-        val mediator = container.createRootComposeSceneMediator()
-        container.composeSceneMediators.add(mediator)
-        mediator.display(
-            focusable = true,
-            onDisplayed = {
-                mediator.setContent(content)
-            }
-        )
-        mediator.setLayout(SceneLayout.UseConstraintsToFillContainer)
+        container.setContent(content)
     }
 
 }
@@ -319,3 +290,9 @@ private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
         else -> SystemTheme.Unknown
     }
 }
+
+private fun getLayoutDirection() =
+    when (UIApplication.sharedApplication().userInterfaceLayoutDirection) {
+        UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
+        else -> LayoutDirection.Ltr
+    }
