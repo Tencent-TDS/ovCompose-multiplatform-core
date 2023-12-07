@@ -31,21 +31,19 @@ private val coroutineDispatcher = Dispatchers.Main
 internal fun ComposeContainer.createSingleLayerComposeSceneBridge(): ComposeSceneMediator =
     createComposeSceneMediator(focusable = true, transparentBackground = false) { mediator ->
         val context = object : ComposeSceneContext {
-            val currentComposeSceneContext = this
             override val platformContext: PlatformContext get() = mediator.platformContext
             override fun createPlatformLayer(
                 density: Density,
                 layoutDirection: LayoutDirection,
                 focusable: Boolean,
                 compositionContext: CompositionContext
-            ): ComposeSceneLayer {
-                return createLayer(
-                    currentComposeSceneContext,
-                    focusable,
-                    mediator,
-                    compositionContext.effectCoroutineContext
+            ): ComposeSceneLayer =
+                createLayer(
+                    currentComposeSceneContext = this,
+                    focusable = focusable,
+                    sceneBridge = mediator,
+                    coroutineDispatcher = compositionContext.effectCoroutineContext
                 )
-            }
         }
 
         SingleLayerComposeScene(
