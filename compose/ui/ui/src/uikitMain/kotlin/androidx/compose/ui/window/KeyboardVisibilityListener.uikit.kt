@@ -51,7 +51,7 @@ internal class KeyboardVisibilityListenerImpl(
     val keyboardOverlapHeightState: MutableState<Float>,
     val viewProvider: () -> UIView,
     val densityProvider: DensityProvider,
-    val composeSceneBridgeProvider: () -> ComposeSceneBridge,
+    val composeSceneMediatorProvider: () -> ComposeSceneMediator,
 ) : KeyboardVisibilityListener {
 
     val view get() = viewProvider()
@@ -67,7 +67,7 @@ internal class KeyboardVisibilityListenerImpl(
     override fun keyboardWillShow(arg: NSNotification) {
         animateKeyboard(arg, true)
 
-        val sceneBridge = composeSceneBridgeProvider()
+        val sceneBridge = composeSceneMediatorProvider()
         val scene = sceneBridge.scene
         val userInfo = arg.userInfo ?: return
         val keyboardInfo = userInfo[UIKeyboardFrameEndUserInfoKey] as NSValue
@@ -171,11 +171,11 @@ internal class KeyboardVisibilityListenerImpl(
     }
 
     private fun calcFocusedLiftingY(
-        composeSceneBridge: ComposeSceneBridge,
+        composeSceneMediator: ComposeSceneMediator,
         focusedRect: DpRect,
         keyboardHeight: Double
     ): Double {
-        val viewHeight = composeSceneBridge.sceneView.frame.useContents {
+        val viewHeight = composeSceneMediator.sceneView.frame.useContents {
             size.height
         }
 

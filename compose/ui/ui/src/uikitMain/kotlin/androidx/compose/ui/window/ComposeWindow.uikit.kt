@@ -24,15 +24,23 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.scene.ComposeSceneContext
+import androidx.compose.ui.scene.ComposeSceneLayer
+import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.PlistSanityCheck
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachReversed
+import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
@@ -79,12 +87,66 @@ internal class ComposeUIViewController(
     private val content: @Composable () -> Unit,
 ) : UIViewController(nibName = null, bundle = null) {
 
-    inner class BridgeImpl : ComposeBridge {
+    inner class BridgeImpl : ComposeContainer {
         override val rootViewController = this@ComposeUIViewController
         override val configuration = this@ComposeUIViewController.configuration
-        override val layers: MutableList<ComposeSceneLayerBridge> = mutableListOf()
+
+        override fun createLayer(
+            currentComposeSceneContext: ComposeSceneContext,
+            focusable: Boolean,
+            sceneBridge: ComposeSceneMediator,
+            coroutineDispatcher: CoroutineContext,
+        ): ComposeSceneLayer {
+            val layerMediator: ComposeSceneMediator =
+                createComposeSceneBridge(focusable = focusable, transparentBackground = true) {
+                    SingleLayerComposeScene(
+                        coroutineContext = coroutineDispatcher,
+                        composeSceneContext = currentComposeSceneContext,
+                        density = sceneBridge.densityProvider(),
+                        invalidate = sceneBridge::needRedraw,
+                        layoutDirection = layoutDirection,
+                    )
+                }
+            val layer = object : ComposeSceneLayer {
+                override var density: Density = sceneBridge.densityProvider()
+                override var layoutDirection: LayoutDirection = this@BridgeImpl.layoutDirection
+                override var bounds: IntRect
+                    get() = layerMediator.getViewBounds()
+                    set(value) {
+                        layerMediator.setLayout(
+                            SceneLayout.Bounds(rect = value)
+                        )
+                    }
+                override var scrimColor: Color? = null
+                override var focusable: Boolean = focusable
+
+                override fun close() {
+                    layerMediator.dispose()
+                }
+
+                override fun setContent(content: @Composable () -> Unit) {
+                    layerMediator.setContent(content)
+                }
+
+                override fun setKeyEventListener(
+                    onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
+                    onKeyEvent: ((KeyEvent) -> Boolean)?
+                ) {
+                    //todo
+                }
+
+                override fun setOutsidePointerEventListener(onOutsidePointerEvent: ((mainEvent: Boolean) -> Unit)?) {
+                    //todo
+                }
+            }
+            layerMediator.display(focusable = focusable, onDisplayed = {})
+            layers.add(layer)
+            return layer
+        }
+
+        private val layers: MutableList<ComposeSceneLayer> = mutableListOf()
         override val layoutDirection get() = getLayoutDirection()
-        val composeSceneBridges: MutableList<ComposeSceneBridge> = mutableListOf()
+        val composeSceneMediators: MutableList<ComposeSceneMediator> = mutableListOf()
 
         /*
          * Initial value is arbitrarily chosen to avoid propagating invalid value logic
@@ -107,7 +169,7 @@ internal class ComposeUIViewController(
             )
 
         @OptIn(ExperimentalComposeApi::class)
-        fun createRootComposeSceneBridge(): ComposeSceneBridge =
+        fun createRootComposeSceneBridge(): ComposeSceneMediator =
             if (configuration.platformLayers) {
                 createSingleLayerComposeSceneBridge()
             } else {
@@ -115,11 +177,11 @@ internal class ComposeUIViewController(
             }
 
         val keyboardVisibilityListener = object : KeyboardVisibilityListener {
-            override fun keyboardWillShow(arg: NSNotification) = composeSceneBridges.forEach {
+            override fun keyboardWillShow(arg: NSNotification) = composeSceneMediators.forEach {
                 it.keyboardVisibilityListener.keyboardWillShow(arg)
             }
 
-            override fun keyboardWillHide(arg: NSNotification) = composeSceneBridges.forEach {
+            override fun keyboardWillHide(arg: NSNotification) = composeSceneMediators.forEach {
                 it.keyboardVisibilityListener.keyboardWillHide(arg)
             }
         }
@@ -169,7 +231,7 @@ internal class ComposeUIViewController(
     @ObjCAction
     fun viewSafeAreaInsetsDidChange() {
         // super.viewSafeAreaInsetsDidChange() // TODO: call super after Kotlin 1.8.20
-        bridge.composeSceneBridges.fastForEach {
+        bridge.composeSceneMediators.fastForEach {
             it.updateSafeArea()
         }
     }
@@ -202,7 +264,7 @@ internal class ComposeUIViewController(
             bridge.interfaceOrientationState.value = it
         }
 
-        bridge.composeSceneBridges.forEach {
+        bridge.composeSceneMediators.forEach {
             it.updateLayout()
         }
     }
@@ -230,7 +292,7 @@ internal class ComposeUIViewController(
             return
         }
 
-        bridge.composeSceneBridges.forEach { sceneViewState ->
+        bridge.composeSceneMediators.forEach { sceneViewState ->
             sceneViewState.animateTransition(
                 targetSize = size,
                 coordinator = withTransitionCoordinator
@@ -303,18 +365,18 @@ internal class ComposeUIViewController(
     }
 
     private fun dispose() {
-        bridge.composeSceneBridges.fastForEachReversed {
+        bridge.composeSceneMediators.fastForEachReversed {
             it.dispose()
         }
-        bridge.composeSceneBridges.clear()
+        bridge.composeSceneMediators.clear()
     }
 
     private fun attachComposeIfNeeded() {
-        if (bridge.composeSceneBridges.isNotEmpty()) {
+        if (bridge.composeSceneMediators.isNotEmpty()) {
             return // already attached
         }
         val sceneViewState = bridge.createRootComposeSceneBridge()
-        bridge.composeSceneBridges.add(sceneViewState)
+        bridge.composeSceneMediators.add(sceneViewState)
         sceneViewState.display(
             focusable = true,
             onDisplayed = {

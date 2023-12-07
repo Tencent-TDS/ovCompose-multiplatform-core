@@ -57,7 +57,7 @@ import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 /**
  * ComposeSceneBridge represents scene: ComposeScene with sceneView: UIView and state manipulation functions.
  */
-internal interface ComposeSceneBridge {
+internal interface ComposeSceneMediator {
     /**
      * ComposeScene with @Composable content
      */
@@ -98,11 +98,11 @@ internal sealed interface SceneLayout {
  * Builder of ComposeSceneBridge with UIView inside.
  */
 @OptIn(InternalComposeApi::class)
-internal fun ComposeBridge.createComposeSceneBridge(
+internal fun ComposeContainer.createComposeSceneBridge(
     focusable: Boolean,
     transparentBackground: Boolean,
-    buildScene: (ComposeSceneBridge) -> ComposeScene,
-): ComposeSceneBridge = object : ComposeSceneBridge {
+    buildScene: (ComposeSceneMediator) -> ComposeScene,
+): ComposeSceneMediator = object : ComposeSceneMediator {
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
     private var _layout: SceneLayout = SceneLayout.Undefined
     private var constraints: List<NSLayoutConstraint> = emptyList()
@@ -151,7 +151,7 @@ internal fun ComposeBridge.createComposeSceneBridge(
             keyboardOverlapHeightState = keyboardOverlapHeightState,
             viewProvider = { rootViewController.view },
             densityProvider = densityProvider,
-            composeSceneBridgeProvider = { this },
+            composeSceneMediatorProvider = { this },
         )
     }
 

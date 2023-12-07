@@ -28,7 +28,7 @@ import kotlinx.coroutines.Dispatchers
 
 private val coroutineDispatcher = Dispatchers.Main
 
-internal fun ComposeBridge.createSingleLayerComposeSceneBridge(): ComposeSceneBridge =
+internal fun ComposeContainer.createSingleLayerComposeSceneBridge(): ComposeSceneMediator =
     createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneBridge ->
         val context = object : ComposeSceneContext {
             val currentComposeSceneContext = this
@@ -39,16 +39,12 @@ internal fun ComposeBridge.createSingleLayerComposeSceneBridge(): ComposeSceneBr
                 focusable: Boolean,
                 compositionContext: CompositionContext
             ): ComposeSceneLayer {
-                val layerBridge = createComposeSceneLayerBridge(
-                    coroutineContext = coroutineDispatcher,
-                    composeSceneContext = currentComposeSceneContext,
-                    focusable = focusable,
-                    densityProvider = sceneBridge.densityProvider,
-                    needRedraw = sceneBridge::needRedraw,
+                return createLayer(
+                    currentComposeSceneContext,
+                    focusable,
+                    sceneBridge,
+                    compositionContext.effectCoroutineContext
                 )
-                layerBridge.display()
-                layers.add(layerBridge)
-                return layerBridge.layer
             }
         }
 
@@ -61,7 +57,7 @@ internal fun ComposeBridge.createSingleLayerComposeSceneBridge(): ComposeSceneBr
         )
     }
 
-internal fun ComposeBridge.createMultiLayerComposeSceneBridge(): ComposeSceneBridge =
+internal fun ComposeContainer.createMultiLayerComposeSceneBridge(): ComposeSceneMediator =
     createComposeSceneBridge(focusable = true, transparentBackground = false) { sceneBridge ->
         MultiLayerComposeScene(
             coroutineContext = coroutineDispatcher,

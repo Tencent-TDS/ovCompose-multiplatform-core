@@ -17,32 +17,25 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.InternalComposeApi
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.LocalSystemTheme
-import androidx.compose.ui.SystemTheme
-import androidx.compose.ui.interop.LocalLayerContainer
-import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.scene.ComposeSceneContext
+import androidx.compose.ui.scene.ComposeSceneLayer
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
-import androidx.compose.ui.uikit.InterfaceOrientation
-import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.util.fastForEach
-import platform.Foundation.NSNotification
-import platform.UIKit.UIApplication
-import platform.UIKit.UIUserInterfaceLayoutDirection
+import kotlin.coroutines.CoroutineContext
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
-internal interface ComposeBridge {
+internal interface ComposeContainer {
     val rootViewController: UIViewController
-    val layers: MutableList<ComposeSceneLayerBridge>
     val layoutDirection: LayoutDirection
     val focusStack: FocusStack<UIView>
     val configuration: ComposeUIViewControllerConfiguration
+    fun createLayer(
+        currentComposeSceneContext: ComposeSceneContext,
+        focusable: Boolean,
+        sceneBridge: ComposeSceneMediator,
+        coroutineDispatcher: CoroutineContext,
+    ): ComposeSceneLayer
 
     @Composable
     fun ProvideRootCompositionLocals(content: @Composable () -> Unit)
