@@ -1,7 +1,11 @@
 name: iOS Unit tests
 on:
   pull_request:
-  #push: #todo remove when tests will be completed
+  push:
+    branches: 
+      - "jb-main"
+      - "dima-andrei/ios-tests-on-pr-2"
+
 
 concurrency: 
   group: ${{ github.head_ref }}
