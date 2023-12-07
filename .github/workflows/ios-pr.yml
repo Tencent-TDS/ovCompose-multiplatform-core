@@ -4,7 +4,7 @@ on:
   push:
     branches: 
       - "jb-main"
-      - "dima-andrei/ios-tests-on-pr-2"
+      - "dima-andrei/ios-tests-on-pr-3"
 
 
 concurrency: 
