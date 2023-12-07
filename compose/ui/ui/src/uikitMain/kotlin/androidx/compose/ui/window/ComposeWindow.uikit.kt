@@ -87,7 +87,7 @@ internal class ComposeUIViewController(
     private val content: @Composable () -> Unit,
 ) : UIViewController(nibName = null, bundle = null) {
 
-    inner class BridgeImpl : ComposeContainer {
+    inner class ContainerImpl : ComposeContainer {
         override val rootViewController = this@ComposeUIViewController
         override val configuration = this@ComposeUIViewController.configuration
 
@@ -109,7 +109,7 @@ internal class ComposeUIViewController(
                 }
             val layer = object : ComposeSceneLayer {
                 override var density: Density = sceneBridge.densityProvider()
-                override var layoutDirection: LayoutDirection = this@BridgeImpl.layoutDirection
+                override var layoutDirection: LayoutDirection = this@ContainerImpl.layoutDirection
                 override var bounds: IntRect
                     get() = layerMediator.getViewBounds()
                     set(value) {
@@ -187,11 +187,11 @@ internal class ComposeUIViewController(
         }
     }
 
-    private val bridge = BridgeImpl()
+    private val container = ContainerImpl()
     private var isInsideSwiftUI = false
 
     init {
-        bridge.systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
+        container.systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
     }
 
     /*
@@ -217,13 +217,13 @@ internal class ComposeUIViewController(
         @Suppress("unused")
         @ObjCAction
         fun keyboardWillShow(arg: NSNotification) {
-            bridge.keyboardVisibilityListener.keyboardWillShow(arg)
+            container.keyboardVisibilityListener.keyboardWillShow(arg)
         }
 
         @Suppress("unused")
         @ObjCAction
         fun keyboardWillHide(arg: NSNotification) {
-            bridge.keyboardVisibilityListener.keyboardWillHide(arg)
+            container.keyboardVisibilityListener.keyboardWillHide(arg)
         }
     }
 
@@ -231,7 +231,7 @@ internal class ComposeUIViewController(
     @ObjCAction
     fun viewSafeAreaInsetsDidChange() {
         // super.viewSafeAreaInsetsDidChange() // TODO: call super after Kotlin 1.8.20
-        bridge.composeSceneMediators.fastForEach {
+        container.composeSceneMediators.fastForEach {
             it.updateSafeArea()
         }
     }
@@ -253,7 +253,7 @@ internal class ComposeUIViewController(
 
     override fun traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        bridge.systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
+        container.systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
     }
 
     override fun viewWillLayoutSubviews() {
@@ -261,10 +261,10 @@ internal class ComposeUIViewController(
 
         // UIKit possesses all required info for layout at this point
         currentInterfaceOrientation?.let {
-            bridge.interfaceOrientationState.value = it
+            container.interfaceOrientationState.value = it
         }
 
-        bridge.composeSceneMediators.forEach {
+        container.composeSceneMediators.forEach {
             it.updateLayout()
         }
     }
@@ -292,7 +292,7 @@ internal class ComposeUIViewController(
             return
         }
 
-        bridge.composeSceneMediators.forEach { sceneViewState ->
+        container.composeSceneMediators.forEach { sceneViewState ->
             sceneViewState.animateTransition(
                 targetSize = size,
                 coordinator = withTransitionCoordinator
@@ -365,18 +365,18 @@ internal class ComposeUIViewController(
     }
 
     private fun dispose() {
-        bridge.composeSceneMediators.fastForEachReversed {
+        container.composeSceneMediators.fastForEachReversed {
             it.dispose()
         }
-        bridge.composeSceneMediators.clear()
+        container.composeSceneMediators.clear()
     }
 
     private fun attachComposeIfNeeded() {
-        if (bridge.composeSceneMediators.isNotEmpty()) {
+        if (container.composeSceneMediators.isNotEmpty()) {
             return // already attached
         }
-        val sceneViewState = bridge.createRootComposeSceneBridge()
-        bridge.composeSceneMediators.add(sceneViewState)
+        val sceneViewState = container.createRootComposeSceneBridge()
+        container.composeSceneMediators.add(sceneViewState)
         sceneViewState.display(
             focusable = true,
             onDisplayed = {
