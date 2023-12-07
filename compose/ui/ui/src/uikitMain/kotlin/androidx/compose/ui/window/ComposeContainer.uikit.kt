@@ -128,6 +128,7 @@ internal class ComposeContainer(
             override fun close() {
                 mediator.dispose()
                 composeSceneMediators.remove(mediator)
+                layers.remove(this)
             }
 
             override fun setContent(content: @Composable () -> Unit) {
