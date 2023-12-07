@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - "jb-main"
-      - "dima-andrei/ios-tests-on-pr"
+      - "dima-andrei/ios-tests-on-pr" #TODO remove
 
 concurrency: 
   group: ${{ github.head_ref || github.run_id }}
@@ -25,7 +25,7 @@ jobs:
       - name: install Android SDK
         run: ./jbdeps/android-sdk/downloadAndroidSdk
       - name: run_tests
-        run: ./gradlew :mpp:testUIKit
+        run: ./gradlew :mpp:testUIKit --info
 
   unit-tests-2:
     runs-on: macos-latest
