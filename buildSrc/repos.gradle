@@ -59,8 +59,8 @@ def addMavenRepositories(RepositoryHandler handler) {
     }
     def isJBFork = true
     if (isJBFork) {
-        handler.mavenLocal()
         handler.mavenCentral()
+        handler.mavenLocal()
         handler.google()
         handler.gradlePluginPortal()
         handler.maven {
