@@ -17,25 +17,46 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.interop.LocalLayerContainer
+import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.WindowInfoImpl
+import androidx.compose.ui.scene.ComposeSceneContext
+import androidx.compose.ui.scene.ComposeSceneLayer
+import androidx.compose.ui.scene.MultiLayerComposeScene
+import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
+import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.PlistSanityCheck
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachReversed
+import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
+import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.available
+import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGSize
 import platform.CoreGraphics.CGSizeEqualToSize
 import platform.Foundation.NSNotification
@@ -56,33 +77,41 @@ import platform.darwin.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 
+private val coroutineDispatcher = Dispatchers.Main
+
 fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
     ComposeUIViewController(configure = {}, content = content)
 
 fun ComposeUIViewController(
     configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
     content: @Composable () -> Unit
-): UIViewController = ComposeUIViewController(
+): UIViewController = ComposeContainer(
     configuration = ComposeUIViewControllerConfiguration().apply(configure),
     content = content,
 )
 
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
-internal class ComposeUIViewController(
+private class ComposeContainer(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
 ) : UIViewController(nibName = null, bundle = null) {
 
-    private val container = ComposeContainer(
-        configuration = configuration,
-        containerViewController = this,
-    )
     private var isInsideSwiftUI = false
+    private val composeSceneMediators: MutableList<ComposeSceneMediator> = mutableListOf()
+    private val layers: MutableList<ComposeSceneLayer> = mutableListOf()
+    private val layoutDirection get() = getLayoutDirection()
 
-    init {
-        container.systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
-    }
+    /*
+     * Initial value is arbitrarily chosen to avoid propagating invalid value logic
+     * It's never the case in real usage scenario to reflect that in type system
+     */
+    val interfaceOrientationState: MutableState<InterfaceOrientation> = mutableStateOf(
+        InterfaceOrientation.Portrait
+    )
+    val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
+    val focusStack: FocusStack<UIView> = FocusStackImpl()
+    private val windowInfo = WindowInfoImpl()
 
     /*
      * On iOS >= 13.0 interfaceOrientation will be deduced from [UIWindowScene] of [UIWindow]
@@ -107,13 +136,13 @@ internal class ComposeUIViewController(
         @Suppress("unused")
         @ObjCAction
         fun keyboardWillShow(arg: NSNotification) {
-            container.keyboardVisibilityListener.keyboardWillShow(arg)
+            keyboardVisibilityListener.keyboardWillShow(arg)
         }
 
         @Suppress("unused")
         @ObjCAction
         fun keyboardWillHide(arg: NSNotification) {
-            container.keyboardVisibilityListener.keyboardWillHide(arg)
+            keyboardVisibilityListener.keyboardWillHide(arg)
         }
     }
 
@@ -121,7 +150,7 @@ internal class ComposeUIViewController(
     @ObjCAction
     fun viewSafeAreaInsetsDidChange() {
         // super.viewSafeAreaInsetsDidChange() // TODO: call super after Kotlin 1.8.20
-        container.composeSceneMediators.fastForEach {
+        composeSceneMediators.fastForEach {
             it.updateSafeArea()
         }
     }
@@ -135,15 +164,14 @@ internal class ComposeUIViewController(
 
     override fun viewDidLoad() {
         super.viewDidLoad()
-
         PlistSanityCheck.performIfNeeded()
-
         configuration.delegate.viewDidLoad()
+        systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
     }
 
     override fun traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        container.systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
+        systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
     }
 
     override fun viewWillLayoutSubviews() {
@@ -151,10 +179,23 @@ internal class ComposeUIViewController(
 
         // UIKit possesses all required info for layout at this point
         currentInterfaceOrientation?.let {
-            container.interfaceOrientationState.value = it
+            interfaceOrientationState.value = it
         }
 
-        container.updateLayout()
+        val window = checkNotNull(view.window) {
+            "ComposeUIViewController.view should be attached to window"
+        }
+        val scale = window.screen.scale
+        val size = window.frame.useContents<CGRect, IntSize> {
+            IntSize(
+                width = (size.width * scale).roundToInt(),
+                height = (size.height * scale).roundToInt()
+            )
+        }
+        windowInfo.containerSize = size
+        composeSceneMediators.fastForEach {
+            it.updateLayout()
+        }
     }
 
     override fun viewWillTransitionToSize(
@@ -180,7 +221,7 @@ internal class ComposeUIViewController(
             return
         }
 
-        container.composeSceneMediators.fastForEach { sceneViewState ->
+        composeSceneMediators.fastForEach { sceneViewState ->
             sceneViewState.animateTransition(
                 targetSize = size,
                 coordinator = withTransitionCoordinator
@@ -252,13 +293,181 @@ internal class ComposeUIViewController(
         super.didReceiveMemoryWarning()
     }
 
-    private fun dispose() {
-        container.dispose()
+    private fun attachComposeIfNeeded() {
+        setContent(content)
     }
 
-    private fun attachComposeIfNeeded() {
-        container.setContent(content)
+    @Composable
+    fun ProvideContainerCompositionLocals(content: @Composable () -> Unit) =
+        CompositionLocalProvider(
+            LocalUIViewController provides this,
+            LocalLayerContainer provides view,
+            LocalInterfaceOrientation provides interfaceOrientationState.value,
+            LocalSystemTheme provides systemThemeState.value,
+            content = content
+        )
+
+    @OptIn(ExperimentalComposeApi::class)
+    fun setContent(content: @Composable () -> Unit) {
+        if (composeSceneMediators.isNotEmpty()) {
+            return // already attached
+        }
+
+        val mediator = if (configuration.platformLayers) {
+            createSingleLayerComposeSceneMediator()
+        } else {
+            createMultiLayerComposeSceneMediator()
+        }
+        composeSceneMediators.add(mediator)
+        mediator.display(
+            focusable = true,
+            onDisplayed = {
+                mediator.setContent {
+                    ProvideContainerCompositionLocals {
+                        content()
+                    }
+                }
+            }
+        )
+        mediator.setLayout(SceneLayout.UseConstraintsToFillContainer)
     }
+
+    val keyboardVisibilityListener = object : KeyboardVisibilityListener {
+        override fun keyboardWillShow(arg: NSNotification) = composeSceneMediators.fastForEach {
+            it.keyboardWillShow(arg)
+        }
+
+        override fun keyboardWillHide(arg: NSNotification) = composeSceneMediators.fastForEach {
+            it.keyboardWillHide(arg)
+        }
+    }
+
+    fun createLayer(
+        currentComposeSceneContext: ComposeSceneContext,
+        focusable: Boolean,
+        sceneMediator: ComposeSceneMediator,
+        coroutineDispatcher: CoroutineContext,
+    ): ComposeSceneLayer {
+        val mediator = ComposeSceneMediator(
+            viewController = this,
+            configuration = configuration,
+            focusStack = focusStack,
+            windowInfo = windowInfo,
+            transparency = true,
+        ) {
+            SingleLayerComposeScene(
+                coroutineContext = coroutineDispatcher,
+                composeSceneContext = currentComposeSceneContext,
+                density = sceneMediator.densityProvider(),
+                invalidate = sceneMediator::onComposeSceneInvalidate,
+                layoutDirection = layoutDirection,
+            )
+        }
+        val layer = object : ComposeSceneLayer {
+            override var density: Density = sceneMediator.densityProvider()
+            override var layoutDirection: LayoutDirection = this@ComposeContainer.layoutDirection
+            override var bounds: IntRect
+                get() = mediator.getViewBounds()
+                set(value) {
+                    mediator.setLayout(
+                        SceneLayout.Bounds(rect = value)
+                    )
+                }
+            override var scrimColor: Color? = null
+            override var focusable: Boolean = focusable
+
+            override fun close() {
+                mediator.dispose()
+                composeSceneMediators.remove(mediator)
+                layers.remove(this)
+            }
+
+            override fun setContent(content: @Composable () -> Unit) {
+                mediator.setContent {
+                    ProvideContainerCompositionLocals {
+                        content()
+                    }
+                }
+            }
+
+            override fun setKeyEventListener(
+                onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
+                onKeyEvent: ((KeyEvent) -> Boolean)?
+            ) {
+                //todo
+            }
+
+            override fun setOutsidePointerEventListener(
+                onOutsidePointerEvent: ((mainEvent: Boolean) -> Unit)?
+            ) {
+                //todo
+            }
+        }
+
+        mediator.display(focusable = focusable, onDisplayed = {})
+        composeSceneMediators.add(mediator)
+        layers.add(layer)
+        return layer
+    }
+
+    private fun dispose() {
+        composeSceneMediators.fastForEachReversed {
+            it.dispose()
+        }
+        composeSceneMediators.clear()
+    }
+
+    private fun createSingleLayerComposeSceneMediator(): ComposeSceneMediator =
+        ComposeSceneMediator(
+            viewController = this,
+            configuration = configuration,
+            focusStack = focusStack,
+            windowInfo = windowInfo,
+            transparency = false
+        ) { mediator: ComposeSceneMediator ->
+            val context = object : ComposeSceneContext {
+                override val platformContext: PlatformContext get() = mediator.platformContext
+                override fun createPlatformLayer(
+                    density: Density,
+                    layoutDirection: LayoutDirection,
+                    focusable: Boolean,
+                    compositionContext: CompositionContext
+                ): ComposeSceneLayer =
+                    createLayer(
+                        currentComposeSceneContext = this,
+                        focusable = focusable,
+                        sceneMediator = mediator,
+                        coroutineDispatcher = compositionContext.effectCoroutineContext
+                    )
+            }
+
+            SingleLayerComposeScene(
+                coroutineContext = coroutineDispatcher,
+                density = mediator.densityProvider(),
+                invalidate = mediator::onComposeSceneInvalidate,
+                layoutDirection = layoutDirection,
+                composeSceneContext = context,
+            )
+        }
+
+    private fun createMultiLayerComposeSceneMediator(): ComposeSceneMediator =
+        ComposeSceneMediator(
+            viewController = this,
+            configuration = configuration,
+            focusStack = focusStack,
+            windowInfo = windowInfo,
+            transparency = false,
+        ) { mediator ->
+            MultiLayerComposeScene(
+                coroutineContext = coroutineDispatcher,
+                composeSceneContext = object : ComposeSceneContext {
+                    override val platformContext: PlatformContext get() = mediator.platformContext
+                },
+                density = mediator.densityProvider(),
+                invalidate = mediator::onComposeSceneInvalidate,
+                layoutDirection = layoutDirection,
+            )
+        }
 
 }
 

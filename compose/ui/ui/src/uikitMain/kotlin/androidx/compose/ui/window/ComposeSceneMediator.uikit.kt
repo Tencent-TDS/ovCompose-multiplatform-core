@@ -32,7 +32,6 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.WindowInfo
-import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
@@ -69,7 +68,7 @@ internal sealed interface SceneLayout {
 }
 
 internal class ComposeSceneMediator(
-    private val viewControllerProvider: () -> UIViewController,//todo check to simple link without provider
+    private val viewController: UIViewController,
     configuration: ComposeUIViewControllerConfiguration,
     private val focusStack: FocusStack<UIView>?,
     private val windowInfo: WindowInfo,
@@ -77,7 +76,6 @@ internal class ComposeSceneMediator(
     buildScene: (ComposeSceneMediator) -> ComposeScene,
 ) {
     private val focusable: Boolean get() = focusStack != null
-    private val containerViewController: UIViewController get() = viewControllerProvider()
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
     private var _layout: SceneLayout = SceneLayout.Undefined
     private var constraints: List<NSLayoutConstraint> = emptyList()
@@ -97,7 +95,7 @@ internal class ComposeSceneMediator(
 
     val densityProvider by lazy {
         DensityProviderImpl(
-            uiViewControllerProvider = { containerViewController },
+            uiViewControllerProvider = { viewController },
             viewProvider = { view },
         )
     }
@@ -121,7 +119,7 @@ internal class ComposeSceneMediator(
         KeyboardVisibilityListenerImpl(
             configuration = configuration,
             keyboardOverlapHeightState = keyboardOverlapHeightState,
-            viewProvider = { containerViewController.view },
+            viewProvider = { viewController.view },
             densityProvider = densityProvider,
             composeSceneMediatorProvider = { this },
         )
@@ -144,7 +142,7 @@ internal class ComposeSceneMediator(
                 view.setNeedsDisplay() // redraw on next frame
                 CATransaction.flush() // clear all animations
             },
-            rootViewProvider = { containerViewController.view },
+            rootViewProvider = { viewController.view },
             densityProvider = densityProvider,
             focusStack = focusStack,
             keyboardEventHandler = keyboardEventHandler
@@ -210,7 +208,7 @@ internal class ComposeSceneMediator(
             onDisplayed()
             focusStack?.pushAndFocus(view)
         }
-        containerViewController.view.addSubview(view)
+        viewController.view.addSubview(view)
     }
 
     fun dispose() {
@@ -233,10 +231,10 @@ internal class ComposeSceneMediator(
                 view.setFrame(CGRectZero.readValue())
                 view.translatesAutoresizingMaskIntoConstraints = false
                 constraints = listOf(
-                    view.leftAnchor.constraintEqualToAnchor(containerViewController.view.leftAnchor),
-                    view.rightAnchor.constraintEqualToAnchor(containerViewController.view.rightAnchor),
-                    view.topAnchor.constraintEqualToAnchor(containerViewController.view.topAnchor),
-                    view.bottomAnchor.constraintEqualToAnchor(containerViewController.view.bottomAnchor)
+                    view.leftAnchor.constraintEqualToAnchor(viewController.view.leftAnchor),
+                    view.rightAnchor.constraintEqualToAnchor(viewController.view.rightAnchor),
+                    view.topAnchor.constraintEqualToAnchor(viewController.view.topAnchor),
+                    view.bottomAnchor.constraintEqualToAnchor(viewController.view.bottomAnchor)
                 )
             }
 
@@ -246,8 +244,8 @@ internal class ComposeSceneMediator(
                 view.translatesAutoresizingMaskIntoConstraints = false
                 constraints = value.size.useContents {
                     listOf(
-                        view.centerXAnchor.constraintEqualToAnchor(containerViewController.view.centerXAnchor),
-                        view.centerYAnchor.constraintEqualToAnchor(containerViewController.view.centerYAnchor),
+                        view.centerXAnchor.constraintEqualToAnchor(viewController.view.centerXAnchor),
+                        view.centerYAnchor.constraintEqualToAnchor(viewController.view.centerYAnchor),
                         view.widthAnchor.constraintEqualToConstant(width),
                         view.heightAnchor.constraintEqualToConstant(height)
                     )
@@ -281,7 +279,7 @@ internal class ComposeSceneMediator(
         val scale = density.density
         //TODO: Current code updates layout based on rootViewController size.
         // Maybe we need to rewrite it for SingleLayerComposeScene.
-        val size = containerViewController.view.frame.useContents {
+        val size = viewController.view.frame.useContents {
             IntSize(
                 width = (size.width * scale).roundToInt(),
                 height = (size.height * scale).roundToInt()
@@ -293,7 +291,7 @@ internal class ComposeSceneMediator(
     }
 
     private fun calcSafeArea(): PlatformInsets =
-        containerViewController.view.safeAreaInsets.useContents {
+        viewController.view.safeAreaInsets.useContents {
             PlatformInsets(
                 left = left.dp,
                 top = top.dp,
@@ -303,7 +301,7 @@ internal class ComposeSceneMediator(
         }
 
     private fun calcLayoutMargin(): PlatformInsets =
-        containerViewController.view.directionalLayoutMargins.useContents {
+        viewController.view.directionalLayoutMargins.useContents {
             PlatformInsets(
                 left = leading.dp, // TODO: Check RTL support
                 top = top.dp,
@@ -337,14 +335,14 @@ internal class ComposeSceneMediator(
 
         val startSnapshotView = view.snapshotViewAfterScreenUpdates(false) ?: return
         startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
-        containerViewController.view.addSubview(startSnapshotView)
+        viewController.view.addSubview(startSnapshotView)
         targetSize.useContents {
             NSLayoutConstraint.activateConstraints(
                 listOf(
                     startSnapshotView.widthAnchor.constraintEqualToConstant(height),
                     startSnapshotView.heightAnchor.constraintEqualToConstant(width),
-                    startSnapshotView.centerXAnchor.constraintEqualToAnchor(containerViewController.view.centerXAnchor),
-                    startSnapshotView.centerYAnchor.constraintEqualToAnchor(containerViewController.view.centerYAnchor)
+                    startSnapshotView.centerXAnchor.constraintEqualToAnchor(viewController.view.centerXAnchor),
+                    startSnapshotView.centerYAnchor.constraintEqualToAnchor(viewController.view.centerYAnchor)
                 )
             )
         }

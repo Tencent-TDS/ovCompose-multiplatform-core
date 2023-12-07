@@ -137,13 +137,13 @@ internal class UIKitTextInputService(
 
     override fun showSoftwareKeyboard() {
         textUIView?.let {
-            focusStack.pushAndFocus(it)
+            focusStack?.pushAndFocus(it)
         }
     }
 
     override fun hideSoftwareKeyboard() {
         textUIView?.let {
-            focusStack.popUntilNext(it)
+            focusStack?.popUntilNext(it)
         }
     }
 
