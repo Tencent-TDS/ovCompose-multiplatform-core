@@ -1,0 +1,30 @@
+name: Run Integration Tests
+on:
+
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.repository.fork && github.event.workflow_run.conclusion == 'success' }}
+    name: Run integration tests on FTL
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+      - name: "set output directory"
+        run: echo "::set-output name=output-dir::$(readlink -f .)/outputs"
+        id: dirs
+      - id: run_tests
+        uses: androidX/androidx-ci-action@dist-latest
+        with:
+          target-run-id: ${{ github.event.workflow_run.id }}
+          gcp-token: ${{ secrets.GCP_SA_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          output-folder: ${{ steps.dirs.outputs.output-dir }}
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: outputs
+          path: ${{ steps.dirs.outputs.output-dir }}
