@@ -51,38 +51,7 @@ import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
 import platform.QuartzCore.CATransaction
 import platform.UIKit.NSLayoutConstraint
-import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
-
-/**
- * ComposeSceneBridge represents scene: ComposeScene with sceneView: UIView and state manipulation functions.
- */
-internal interface ComposeSceneMediator {
-    /**
-     * ComposeScene with @Composable content
-     */
-    val scene: ComposeScene
-
-    /**
-     * iOS view to display
-     */
-    val sceneView: UIView
-    fun setContent(content: @Composable () -> Unit)
-    fun display(focusable: Boolean, onDisplayed: () -> Unit)
-    fun dispose()
-    fun needRedraw()
-    fun setLayout(value: SceneLayout)
-    fun updateLayout()
-    val keyboardVisibilityListener: KeyboardVisibilityListener
-    val densityProvider: DensityProvider
-    val platformContext: PlatformContext
-    fun updateSafeArea()
-    fun getViewBounds(): IntRect
-    fun animateTransition(
-        targetSize: CValue<CGSize>,
-        coordinator: UIViewControllerTransitionCoordinatorProtocol
-    )
-}
 
 /**
  * Layout of sceneView on the screen
@@ -94,15 +63,12 @@ internal sealed interface SceneLayout {
     class Bounds(val rect: IntRect) : SceneLayout
 }
 
-/**
- * Builder of ComposeSceneBridge with UIView inside.
- */
-@OptIn(InternalComposeApi::class)
-internal fun ComposeContainer.createComposeSceneMediator(
-    focusable: Boolean,
+internal class ComposeSceneMediator(
+    private val container: ComposeContainer,
+    private val focusable: Boolean,
     transparentBackground: Boolean,
     buildScene: (ComposeSceneMediator) -> ComposeScene,
-): ComposeSceneMediator = object : ComposeSceneMediator {
+) {
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
     private var _layout: SceneLayout = SceneLayout.Undefined
     private var constraints: List<NSLayoutConstraint> = emptyList()
@@ -117,15 +83,15 @@ internal fun ComposeContainer.createComposeSceneMediator(
         isWindowFocused = focusable
     }
 
-    override val scene: ComposeScene by lazy { buildScene(this) }
+    val scene: ComposeScene by lazy { buildScene(this) }
 
-    override val sceneView: SkikoUIView by lazy {
+    val sceneView: SkikoUIView by lazy {
         SkikoUIView(focusable, keyboardEventHandler, delegate, transparentBackground)
     }
 
-    override val densityProvider by lazy {
+    val densityProvider by lazy {
         DensityProviderImpl(
-            uiViewControllerProvider = { rootViewController },
+            uiViewControllerProvider = { container.containerViewController },
             viewProvider = { sceneView },
         )
     }
@@ -136,7 +102,7 @@ internal fun ComposeContainer.createComposeSceneMediator(
         )
     }
 
-    override val platformContext: PlatformContext by lazy {
+    val platformContext: PlatformContext by lazy {
         IOSPlatformContextImpl(
             inputServices = uiKitTextInputService,
             textToolbar = uiKitTextInputService,
@@ -145,11 +111,11 @@ internal fun ComposeContainer.createComposeSceneMediator(
         )
     }
 
-    override val keyboardVisibilityListener by lazy {
+    val keyboardVisibilityListener by lazy {
         KeyboardVisibilityListenerImpl(
-            configuration = configuration,
+            configuration = container.configuration,
             keyboardOverlapHeightState = keyboardOverlapHeightState,
-            viewProvider = { rootViewController.view },
+            viewProvider = { container.containerViewController.view },
             densityProvider = densityProvider,
             composeSceneMediatorProvider = { this },
         )
@@ -172,9 +138,9 @@ internal fun ComposeContainer.createComposeSceneMediator(
                 sceneView.setNeedsDisplay() // redraw on next frame
                 CATransaction.flush() // clear all animations
             },
-            rootViewProvider = { rootViewController.view },
+            rootViewProvider = { container.containerViewController.view },
             densityProvider = densityProvider,
-            focusStack = focusStack,
+            focusStack = container.focusStack,
             keyboardEventHandler = keyboardEventHandler
         )
     }
@@ -187,7 +153,7 @@ internal fun ComposeContainer.createComposeSceneMediator(
         )
     }
 
-    override fun setContent(content: @Composable () -> Unit) {
+    fun setContent(content: @Composable () -> Unit) {
         scene.setContent {
             /**
              * TODO isReadyToShowContent it is workaround we need to fix.
@@ -199,8 +165,8 @@ internal fun ComposeContainer.createComposeSceneMediator(
              *   It is public for iOS 17 and hope back ported for iOS 13 as well (but we need to check)
              */
             if (sceneView.isReadyToShowContent.value) {
-                ProvideRootCompositionLocals {
-                    ProvideComposeSceneBridgeCompositionLocals {
+                container.ProvideRootCompositionLocals {
+                    ProvideComposeSceneMediatorCompositionLocals {
                         content()
                     }
                 }
@@ -217,13 +183,14 @@ internal fun ComposeContainer.createComposeSceneMediator(
         mutableStateOf(calcLayoutMargin())
     }
 
-    override fun updateSafeArea() {
+    fun updateSafeArea() {
         safeAreaState.value = calcSafeArea()
         layoutMarginsState.value = calcLayoutMargin()
     }
 
+    @OptIn(InternalComposeApi::class)
     @Composable
-    private fun ProvideComposeSceneBridgeCompositionLocals(content: @Composable () -> Unit) =
+    private fun ProvideComposeSceneMediatorCompositionLocals(content: @Composable () -> Unit) =
         CompositionLocalProvider(
             LocalUIKitInteropContext provides interopContext,
             LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
@@ -232,21 +199,21 @@ internal fun ComposeContainer.createComposeSceneMediator(
             content = content
         )
 
-    override fun display(focusable: Boolean, onDisplayed: () -> Unit) {
+    fun display(focusable: Boolean, onDisplayed: () -> Unit) {
         sceneView.onAttachedToWindow = {
             sceneView.onAttachedToWindow = null
             updateLayout()
             onDisplayed()
             if (focusable) {
-                focusStack.pushAndFocus(sceneView)
+                container.focusStack.pushAndFocus(sceneView)
             }
         }
-        rootViewController.view.addSubview(sceneView)
+        container.containerViewController.view.addSubview(sceneView)
     }
 
-    override fun dispose() {
+    fun dispose() {
         if (focusable) {
-            focusStack.popUntilNext(sceneView)
+            container.focusStack.popUntilNext(sceneView)
         }
         sceneView.dispose()
         scene.close()
@@ -255,9 +222,9 @@ internal fun ComposeContainer.createComposeSceneMediator(
         interopContext.retrieve().actions.forEach { it.invoke() }
     }
 
-    override fun needRedraw() = sceneView.needRedraw()
+    fun needRedraw() = sceneView.needRedraw()
 
-    override fun setLayout(value: SceneLayout) {
+    fun setLayout(value: SceneLayout) {
         _layout = value
         when (value) {
             SceneLayout.UseConstraintsToFillContainer -> {
@@ -265,10 +232,10 @@ internal fun ComposeContainer.createComposeSceneMediator(
                 sceneView.setFrame(CGRectZero.readValue())
                 sceneView.translatesAutoresizingMaskIntoConstraints = false
                 constraints = listOf(
-                    sceneView.leftAnchor.constraintEqualToAnchor(rootViewController.view.leftAnchor),
-                    sceneView.rightAnchor.constraintEqualToAnchor(rootViewController.view.rightAnchor),
-                    sceneView.topAnchor.constraintEqualToAnchor(rootViewController.view.topAnchor),
-                    sceneView.bottomAnchor.constraintEqualToAnchor(rootViewController.view.bottomAnchor)
+                    sceneView.leftAnchor.constraintEqualToAnchor(container.containerViewController.view.leftAnchor),
+                    sceneView.rightAnchor.constraintEqualToAnchor(container.containerViewController.view.rightAnchor),
+                    sceneView.topAnchor.constraintEqualToAnchor(container.containerViewController.view.topAnchor),
+                    sceneView.bottomAnchor.constraintEqualToAnchor(container.containerViewController.view.bottomAnchor)
                 )
             }
 
@@ -278,8 +245,8 @@ internal fun ComposeContainer.createComposeSceneMediator(
                 sceneView.translatesAutoresizingMaskIntoConstraints = false
                 constraints = value.size.useContents {
                     listOf(
-                        sceneView.centerXAnchor.constraintEqualToAnchor(rootViewController.view.centerXAnchor),
-                        sceneView.centerYAnchor.constraintEqualToAnchor(rootViewController.view.centerYAnchor),
+                        sceneView.centerXAnchor.constraintEqualToAnchor(container.containerViewController.view.centerXAnchor),
+                        sceneView.centerYAnchor.constraintEqualToAnchor(container.containerViewController.view.centerYAnchor),
                         sceneView.widthAnchor.constraintEqualToConstant(width),
                         sceneView.heightAnchor.constraintEqualToConstant(height)
                     )
@@ -308,12 +275,12 @@ internal fun ComposeContainer.createComposeSceneMediator(
         sceneView.updateMetalLayerSize()
     }
 
-    override fun updateLayout() {
+    fun updateLayout() {
         val density = densityProvider()
         val scale = density.density
         //TODO: Current code updates layout based on rootViewController size.
         // Maybe we need to rewrite it for SingleLayerComposeScene.
-        val size = rootViewController.view.frame.useContents {
+        val size = container.containerViewController.view.frame.useContents {
             IntSize(
                 width = (size.width * scale).roundToInt(),
                 height = (size.height * scale).roundToInt()
@@ -326,7 +293,7 @@ internal fun ComposeContainer.createComposeSceneMediator(
     }
 
     private fun calcSafeArea(): PlatformInsets =
-        rootViewController.view.safeAreaInsets.useContents {
+        container.containerViewController.view.safeAreaInsets.useContents {
             PlatformInsets(
                 left = left.dp,
                 top = top.dp,
@@ -336,7 +303,7 @@ internal fun ComposeContainer.createComposeSceneMediator(
         }
 
     private fun calcLayoutMargin(): PlatformInsets =
-        rootViewController.view.directionalLayoutMargins.useContents {
+        container.containerViewController.view.directionalLayoutMargins.useContents {
             PlatformInsets(
                 left = leading.dp, // TODO: Check RTL support
                 top = top.dp,
@@ -345,7 +312,7 @@ internal fun ComposeContainer.createComposeSceneMediator(
             )
         }
 
-    override fun getViewBounds(): IntRect = sceneView.frame.useContents {
+    fun getViewBounds(): IntRect = sceneView.frame.useContents {
         val density = densityProvider().density
         IntRect(
             offset = IntOffset(
@@ -359,7 +326,7 @@ internal fun ComposeContainer.createComposeSceneMediator(
         )
     }
 
-    override fun animateTransition(
+    fun animateTransition(
         targetSize: CValue<CGSize>,
         coordinator: UIViewControllerTransitionCoordinatorProtocol
     ) {
@@ -370,14 +337,14 @@ internal fun ComposeContainer.createComposeSceneMediator(
 
         val startSnapshotView = sceneView.snapshotViewAfterScreenUpdates(false) ?: return
         startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
-        rootViewController.view.addSubview(startSnapshotView)
+        container.containerViewController.view.addSubview(startSnapshotView)
         targetSize.useContents {
             NSLayoutConstraint.activateConstraints(
                 listOf(
                     startSnapshotView.widthAnchor.constraintEqualToConstant(height),
                     startSnapshotView.heightAnchor.constraintEqualToConstant(width),
-                    startSnapshotView.centerXAnchor.constraintEqualToAnchor(rootViewController.view.centerXAnchor),
-                    startSnapshotView.centerYAnchor.constraintEqualToAnchor(rootViewController.view.centerYAnchor)
+                    startSnapshotView.centerXAnchor.constraintEqualToAnchor(container.containerViewController.view.centerXAnchor),
+                    startSnapshotView.centerYAnchor.constraintEqualToAnchor(container.containerViewController.view.centerYAnchor)
                 )
             )
         }
@@ -400,4 +367,5 @@ internal fun ComposeContainer.createComposeSceneMediator(
             }
         )
     }
+
 }

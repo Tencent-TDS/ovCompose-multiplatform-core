@@ -87,112 +87,10 @@ internal class ComposeUIViewController(
     private val content: @Composable () -> Unit,
 ) : UIViewController(nibName = null, bundle = null) {
 
-    inner class ContainerImpl : ComposeContainer {
-        override val rootViewController = this@ComposeUIViewController
-        override val configuration = this@ComposeUIViewController.configuration
-        val composeSceneMediators: MutableList<ComposeSceneMediator> = mutableListOf()
-
-        override fun createLayer(
-            currentComposeSceneContext: ComposeSceneContext,
-            focusable: Boolean,
-            sceneBridge: ComposeSceneMediator,
-            coroutineDispatcher: CoroutineContext,
-        ): ComposeSceneLayer {
-            val mediator: ComposeSceneMediator =
-                createComposeSceneMediator(focusable = focusable, transparentBackground = true) {
-                    SingleLayerComposeScene(
-                        coroutineContext = coroutineDispatcher,
-                        composeSceneContext = currentComposeSceneContext,
-                        density = sceneBridge.densityProvider(),
-                        invalidate = sceneBridge::needRedraw,
-                        layoutDirection = layoutDirection,
-                    )
-                }
-            val layer = object : ComposeSceneLayer {
-                override var density: Density = sceneBridge.densityProvider()
-                override var layoutDirection: LayoutDirection = this@ContainerImpl.layoutDirection
-                override var bounds: IntRect
-                    get() = mediator.getViewBounds()
-                    set(value) {
-                        mediator.setLayout(
-                            SceneLayout.Bounds(rect = value)
-                        )
-                    }
-                override var scrimColor: Color? = null
-                override var focusable: Boolean = focusable
-
-                override fun close() {
-                    mediator.dispose()
-                    composeSceneMediators.remove(mediator)
-                }
-
-                override fun setContent(content: @Composable () -> Unit) {
-                    mediator.setContent(content)
-                }
-
-                override fun setKeyEventListener(
-                    onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
-                    onKeyEvent: ((KeyEvent) -> Boolean)?
-                ) {
-                    //todo
-                }
-
-                override fun setOutsidePointerEventListener(
-                    onOutsidePointerEvent: ((mainEvent: Boolean) -> Unit)?
-                ) {
-                    //todo
-                }
-            }
-
-            mediator.display(focusable = focusable, onDisplayed = {})
-            composeSceneMediators.add(mediator)
-            layers.add(layer)
-            return layer
-        }
-
-        private val layers: MutableList<ComposeSceneLayer> = mutableListOf()
-        override val layoutDirection get() = getLayoutDirection()
-
-        /*
-         * Initial value is arbitrarily chosen to avoid propagating invalid value logic
-         * It's never the case in real usage scenario to reflect that in type system
-         */
-        val interfaceOrientationState: MutableState<InterfaceOrientation> = mutableStateOf(
-            InterfaceOrientation.Portrait
-        )
-        val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
-        override val focusStack: FocusStack<UIView> = FocusStackImpl()
-
-        @Composable
-        override fun ProvideRootCompositionLocals(content: @Composable () -> Unit) =
-            CompositionLocalProvider(
-                LocalUIViewController provides rootViewController,
-                LocalLayerContainer provides rootViewController.view,
-                LocalInterfaceOrientation provides interfaceOrientationState.value,
-                LocalSystemTheme provides systemThemeState.value,
-                content = content
-            )
-
-        @OptIn(ExperimentalComposeApi::class)
-        fun createRootComposeSceneMediator(): ComposeSceneMediator =
-            if (configuration.platformLayers) {
-                createSingleLayerComposeSceneBridge()
-            } else {
-                createMultiLayerComposeSceneBridge()
-            }
-
-        val keyboardVisibilityListener = object : KeyboardVisibilityListener {
-            override fun keyboardWillShow(arg: NSNotification) = composeSceneMediators.fastForEach {
-                it.keyboardVisibilityListener.keyboardWillShow(arg)
-            }
-
-            override fun keyboardWillHide(arg: NSNotification) = composeSceneMediators.fastForEach {
-                it.keyboardVisibilityListener.keyboardWillHide(arg)
-            }
-        }
-    }
-
-    private val container = ContainerImpl()
+    private val container = ComposeContainer(
+        configuration = configuration,
+        containerViewController = this,
+    )
     private var isInsideSwiftUI = false
 
     init {
@@ -421,9 +319,3 @@ private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
         else -> SystemTheme.Unknown
     }
 }
-
-private fun getLayoutDirection() =
-    when (UIApplication.sharedApplication().userInterfaceLayoutDirection) {
-        UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
-        else -> LayoutDirection.Ltr
-    }

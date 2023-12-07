@@ -28,8 +28,12 @@ import kotlinx.coroutines.Dispatchers
 
 private val coroutineDispatcher = Dispatchers.Main
 
-internal fun ComposeContainer.createSingleLayerComposeSceneBridge(): ComposeSceneMediator =
-    createComposeSceneMediator(focusable = true, transparentBackground = false) { mediator ->
+internal fun ComposeContainer.createSingleLayerComposeSceneMediator(): ComposeSceneMediator =
+    ComposeSceneMediator(
+        container = this,
+        focusable = true,
+        transparentBackground = false
+    ) { mediator ->
         val context = object : ComposeSceneContext {
             override val platformContext: PlatformContext get() = mediator.platformContext
             override fun createPlatformLayer(
@@ -41,7 +45,7 @@ internal fun ComposeContainer.createSingleLayerComposeSceneBridge(): ComposeScen
                 createLayer(
                     currentComposeSceneContext = this,
                     focusable = focusable,
-                    sceneBridge = mediator,
+                    sceneMediator = mediator,
                     coroutineDispatcher = compositionContext.effectCoroutineContext
                 )
         }
@@ -55,8 +59,12 @@ internal fun ComposeContainer.createSingleLayerComposeSceneBridge(): ComposeScen
         )
     }
 
-internal fun ComposeContainer.createMultiLayerComposeSceneBridge(): ComposeSceneMediator =
-    createComposeSceneMediator(focusable = true, transparentBackground = false) { mediator ->
+internal fun ComposeContainer.createMultiLayerComposeSceneMediator(): ComposeSceneMediator =
+    ComposeSceneMediator(
+        container = this,
+        focusable = true,
+        transparentBackground = false
+    ) { mediator ->
         MultiLayerComposeScene(
             coroutineContext = coroutineDispatcher,
             composeSceneContext = object : ComposeSceneContext {

@@ -67,8 +67,8 @@ internal class KeyboardVisibilityListenerImpl(
     override fun keyboardWillShow(arg: NSNotification) {
         animateKeyboard(arg, true)
 
-        val sceneBridge = composeSceneMediatorProvider()
-        val scene = sceneBridge.scene
+        val mediator = composeSceneMediatorProvider()
+        val scene = mediator.scene
         val userInfo = arg.userInfo ?: return
         val keyboardInfo = userInfo[UIKeyboardFrameEndUserInfoKey] as NSValue
         val keyboardHeight = keyboardInfo.CGRectValue().useContents { size.height }
@@ -77,7 +77,7 @@ internal class KeyboardVisibilityListenerImpl(
 
             if (focusedRect != null) {
                 updateViewBounds(
-                    offsetY = calcFocusedLiftingY(sceneBridge, focusedRect, keyboardHeight)
+                    offsetY = calcFocusedLiftingY(mediator, focusedRect, keyboardHeight)
                 )
             }
         }
