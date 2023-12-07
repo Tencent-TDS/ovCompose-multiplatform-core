@@ -2,13 +2,12 @@ name: iOS Unit tests
 on:
   pull_request:
   push:
-    branches: 
+    branches:
       - "jb-main"
-      - "dima-andrei/ios-tests-on-pr"
-
+      - "dima-andrei/ios-tests-on-pr-2"
 
 concurrency: 
-  group: ${{ github.head_ref }}
+  group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
