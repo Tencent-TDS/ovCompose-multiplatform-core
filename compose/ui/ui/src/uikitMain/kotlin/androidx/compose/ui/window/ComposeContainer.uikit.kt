@@ -84,10 +84,10 @@ internal class ComposeContainer(
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
      * It's never the case in real usage scenario to reflect that in type system
      */
-    val interfaceOrientationState: MutableState<InterfaceOrientation> = mutableStateOf(
+    private val interfaceOrientationState: MutableState<InterfaceOrientation> = mutableStateOf(
         InterfaceOrientation.Portrait
     )
-    val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
+    private val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
     private val focusStack: FocusStack<UIView> = FocusStackImpl()
     private val windowInfo = WindowInfoImpl().also {
         it.isWindowFocused = true
@@ -260,12 +260,24 @@ internal class ComposeContainer(
         }
         composeSceneMediator = mediator
         mediator.setContent {
-            ProvideContainerCompositionLocals(this) {
+            ProvideContainerCompositionLocals {
                 content()
             }
         }
         mediator.setLayout(SceneLayout.UseConstraintsToFillContainer)
     }
+
+    @OptIn(InternalComposeApi::class)
+    @Composable
+    internal fun ProvideContainerCompositionLocals(content: @Composable () -> Unit) =
+        CompositionLocalProvider(
+            LocalUIViewController provides this,
+            LocalLayerContainer provides view,
+            LocalInterfaceOrientation provides interfaceOrientationState.value,
+            LocalSystemTheme provides systemThemeState.value,
+            content = content
+        )
+
 
     private fun dispose() {
         composeSceneMediator?.dispose()
@@ -380,18 +392,3 @@ private fun getLayoutDirection() =
         UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
         else -> LayoutDirection.Ltr
     }
-
-@OptIn(InternalComposeApi::class)
-@Composable
-internal fun ProvideContainerCompositionLocals(
-    composeContainer: ComposeContainer,
-    content: @Composable () -> Unit,
-) = with(composeContainer) {
-    CompositionLocalProvider(
-        LocalUIViewController provides this,
-        LocalLayerContainer provides view,
-        LocalInterfaceOrientation provides interfaceOrientationState.value,
-        LocalSystemTheme provides systemThemeState.value,
-        content = content
-    )
-}
