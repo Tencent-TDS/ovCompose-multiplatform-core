@@ -48,7 +48,7 @@ internal fun Modifier.cupertinoTextFieldPointer(
     offsetMapping: OffsetMapping
 ): Modifier = if (enabled) {
     if (isInTouchMode) {
-        val selectionModifier = getSelectionModifier(manager)
+        val longPressHandlerModifier = getLongPressHandlerModifier(state, offsetMapping)
         val tapHandlerModifier = getTapHandlerModifier(
             interactionSource,
             state,
@@ -59,7 +59,7 @@ internal fun Modifier.cupertinoTextFieldPointer(
         )
         this
             .then(tapHandlerModifier)
-            .then(selectionModifier)
+            .then(longPressHandlerModifier)
             .pointerHoverIcon(textPointerIcon)
     } else {
         this
@@ -97,29 +97,39 @@ private fun getTapHandlerModifier(
     return Modifier.pointerInput(interactionSource) {
         detectRepeatingTapGestures(
             onTap = { touchPointOffset ->
-                tapTextFieldToFocus(
-                    currentState,
-                    currentFocusRequester,
-                    !currentReadOnly
-                )
                 if (currentState.hasFocus) {
                     if (currentState.handleState != HandleState.Selection) {
                         currentState.layoutResult?.let { layoutResult ->
-                            TextFieldDelegate.setCursorOffset(
-                                touchPointOffset,
-                                layoutResult,
-                                currentState.processor,
-                                currentOffsetMapping,
-                                currentState.onValueChange
+                            TextFieldDelegate.cupertinoSetCursorOffsetFocused(
+                                position = touchPointOffset,
+                                textLayoutResult = layoutResult,
+                                editProcessor = currentState.processor,
+                                offsetMapping = currentOffsetMapping,
+                                showContextMenu = {},
+                                onValueChange = currentState.onValueChange
                             )
-                            // Won't enter cursor state when text is empty.
-                            if (currentState.textDelegate.text.isNotEmpty()) {
-                                currentState.handleState = HandleState.Cursor
-                            }
                         }
                     } else {
                         currentManager.deselect(touchPointOffset)
                     }
+                } else {
+                    tapTextFieldToFocus(
+                        currentState,
+                        currentFocusRequester,
+                        !currentReadOnly
+                    )
+                    currentState.layoutResult?.let { layoutResult ->
+                        TextFieldDelegate.setCursorOffset(
+                            touchPointOffset,
+                            layoutResult,
+                            currentState.processor,
+                            currentOffsetMapping,
+                            currentState.onValueChange
+                        )
+                    }
+                }
+                if (currentState.textDelegate.text.isNotEmpty()) {
+                    currentState.handleState = HandleState.Cursor
                 }
             },
             onDoubleTap = {
@@ -132,24 +142,78 @@ private fun getTapHandlerModifier(
     }
 }
 
+/**
+ * Returns a modifier which allows to precisely move the caret in the text by drag gesture after long press
+ *
+ * @param state The state of the text field.
+ * @param offsetMapping The offset mapping of the text field.
+ * @return A modifier that handles long press and drag gestures.
+ */
 @Composable
-private fun getSelectionModifier(manager: TextFieldSelectionManager): Modifier {
-    val currentManager by rememberUpdatedState(manager)
+private fun getLongPressHandlerModifier(
+    state: TextFieldState,
+    offsetMapping: OffsetMapping
+): Modifier {
+    val currentState by rememberUpdatedState(state)
+    val currentOffsetMapping by rememberUpdatedState(offsetMapping)
+
     return Modifier.pointerInput(Unit) {
+        val longTapActionsObserver =
+            object : TextDragObserver {
+                var dragTotalDistance = Offset.Zero
+                var dragBeginOffset = Offset.Zero
+
+                override fun onStart(startPoint: Offset) {
+                    currentState.layoutResult?.let { layoutResult ->
+                        TextFieldDelegate.setCursorOffset(
+                            startPoint,
+                            layoutResult,
+                            currentState.processor,
+                            currentOffsetMapping,
+                            currentState.onValueChange
+                        )
+                        dragBeginOffset = startPoint
+                    }
+                    dragTotalDistance = Offset.Zero
+                }
+
+                override fun onDrag(delta: Offset) {
+                    dragTotalDistance += delta
+                    currentState.layoutResult?.let { layoutResult ->
+                        val currentDragPosition = dragBeginOffset + dragTotalDistance
+                        TextFieldDelegate.setCursorOffset(
+                            currentDragPosition,
+                            layoutResult,
+                            currentState.processor,
+                            currentOffsetMapping,
+                            currentState.onValueChange
+                        )
+                    }
+                }
+
+                // Unnecessary here
+                override fun onDown(point: Offset) {}
+
+                override fun onUp() {}
+
+                override fun onStop() {}
+
+                override fun onCancel() {}
+            }
+
         detectDragGesturesAfterLongPress(
-            onDragStart = {
-                currentManager.touchSelectionObserver.onStart(
-                    startPoint = it
-                )
-            },
-            onDrag = { _, delta -> currentManager.touchSelectionObserver.onDrag(delta = delta) },
-            onDragCancel = { currentManager.touchSelectionObserver.onCancel() },
-            onDragEnd = { currentManager.touchSelectionObserver.onStop() }
+            onDragStart = { longTapActionsObserver.onStart(it) },
+            onDrag = { _, delta -> longTapActionsObserver.onDrag(delta = delta) },
+            onDragCancel = { longTapActionsObserver.onCancel() },
+            onDragEnd = { longTapActionsObserver.onStop() }
         )
     }
 }
 
-private fun TextFieldSelectionManager.doRepeatingTapSelection(touchPointOffset: Offset, selectionAdjustment: SelectionAdjustment) {
+private fun TextFieldSelectionManager.doRepeatingTapSelection(
+    touchPointOffset: Offset,
+    selectionAdjustment: SelectionAdjustment
+) {
     if (value.text.isEmpty()) return
     enterSelectionMode()
     state?.layoutResult?.let { layoutResult ->

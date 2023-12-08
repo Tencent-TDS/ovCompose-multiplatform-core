@@ -31,6 +31,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.round
@@ -80,9 +81,8 @@ public fun <T : Component> SwingPanel(
     val focusSwitcher = remember { FocusSwitcher(componentInfo, focusManager) }
 
     Box(
-        modifier = modifier.onGloballyPositioned { childCoordinates ->
-            val coordinates = childCoordinates.parentCoordinates!!
-            val location = coordinates.localToWindow(Offset.Zero).round()
+        modifier = modifier.onGloballyPositioned { coordinates ->
+            val location = coordinates.positionInWindow().round()
             val size = coordinates.size
             componentInfo.container.setBounds(
                 (location.x / density).toInt(),

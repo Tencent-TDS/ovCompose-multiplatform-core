@@ -36,6 +36,7 @@ import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
@@ -95,9 +96,8 @@ fun <T : UIView> UIKitView(
     val interopContext = LocalUIKitInteropContext.current
 
     Place(
-        modifier.onGloballyPositioned { childCoordinates ->
-            val coordinates = childCoordinates.parentCoordinates!!
-            localToWindowOffset = coordinates.localToWindow(Offset.Zero).round()
+        modifier.onGloballyPositioned { coordinates ->
+            localToWindowOffset = coordinates.positionInWindow().round()
             val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
             if (rectInPixels != newRectInPixels) {
                 val rect = newRectInPixels / density
@@ -195,9 +195,8 @@ fun <T : UIViewController> UIKitViewController(
     val interopContext = LocalUIKitInteropContext.current
 
     Place(
-        modifier.onGloballyPositioned { childCoordinates ->
-            val coordinates = childCoordinates.parentCoordinates!!
-            localToWindowOffset = coordinates.localToWindow(Offset.Zero).round()
+        modifier.onGloballyPositioned { coordinates ->
+            localToWindowOffset = coordinates.positionInWindow().round()
             val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
             if (rectInPixels != newRectInPixels) {
                 val rect = newRectInPixels / density

@@ -43,6 +43,7 @@ internal actual object PlatformDateFormat {
         val nsDate = NSDate.dateWithTimeIntervalSince1970(utcTimeMillis / 1000.0)
 
         return NSDateFormatter().apply {
+            setTimeZone(TimeZone.UTC.toNSTimeZone())
             setLocale(locale)
             setDateFormat(pattern)
         }.stringFromDate(nsDate)
@@ -108,6 +109,7 @@ internal actual object PlatformDateFormat {
     //
     // 'j' template requests the preferred hour format for the locale.
     // 'a' is a pattern for AM\PM symbol. Presence of this symbol means that locale has 12h format.
+    @Suppress("SIGNED_CONSTANT_CONVERTED_TO_UNSIGNED")
     actual fun is24HourFormat(locale: CalendarLocale): Boolean {
         return NSDateFormatter
             .dateFormatFromTemplate("j", 0, locale)

@@ -85,6 +85,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api(project(":compose:ui:ui-unit"))
                 implementation(project(":compose:runtime:runtime"))
                 implementation(project(":compose:ui:ui-util"))
+                implementation(project(":compose:ui:ui-geometry"))
             }
 
             androidMain.dependencies {
@@ -98,23 +99,23 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 }
             }
 
+            skikoExcludingWebMain {
+                dependsOn(skikoMain)
+            }
+
             jsNativeMain.dependsOn(skikoMain)
 
             jsWasmMain.dependsOn(jsNativeMain)
 
             jsMain {
                 dependsOn(jsWasmMain)
-                dependencies {
-                    implementation(kotlin("stdlib-js"))
-                    api(libs.skikoCommon)
-                }
             }
 
             if (project.kotlinWasmEnabled.toBoolean()) {
-                wasmMain {
+                wasmJsMain {
                     dependsOn(jsWasmMain)
                     dependencies {
-                        implementation(kotlin("stdlib-wasm"))
+                        implementation(libs.kotlinStdlib)
                         implementation(libs.create("skikoWasm"))
                         implementation(libs.create("skikoWasmWasm"))
                     }
@@ -122,7 +123,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             }
 
             desktopMain {
-                dependsOn skikoMain
+                dependsOn skikoExcludingWebMain
                 dependencies {
                     implementation(libs.kotlinStdlib)
                     implementation(libs.kotlinStdlibJdk8)
@@ -136,6 +137,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             }
 
             nativeMain.dependsOn(jsNativeMain)
+            nativeMain.dependsOn(skikoExcludingWebMain)
 
             // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you
             //  need to add Robolectric (which must be kept out of androidAndroidTest), use a top
@@ -193,5 +195,11 @@ android {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     tasks.findByName("desktopTest").configure {
         systemProperties["GOLDEN_PATH"] = project.rootDir.absolutePath + "/golden"
+    }
+}
+
+project.tasks.configureEach {
+    if (name == "compileJsWasmMainKotlinMetadata") {
+        enabled = false
     }
 }
