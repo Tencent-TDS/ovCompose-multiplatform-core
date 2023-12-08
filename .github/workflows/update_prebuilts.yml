@@ -3,7 +3,9 @@
 # and click "Run workflow"
 name: Update Prebuilts
 on:
-  workflow_dispatch:jobs:
+  workflow_dispatch:
+
+jobs:
   update-prebuilts:
     runs-on: ubuntu-latest
     steps:
