@@ -17,6 +17,7 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.MutableState
+import androidx.compose.ui.scene.ComposeSceneFocusManager
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.unit.DpRect
@@ -47,11 +48,12 @@ internal interface KeyboardVisibilityListener {
 }
 
 internal class KeyboardVisibilityListenerImpl(
-    val configuration: ComposeUIViewControllerConfiguration,
+    private val configuration: ComposeUIViewControllerConfiguration,
     val keyboardOverlapHeightState: MutableState<Float>,
-    val viewProvider: () -> UIView,
-    val densityProvider: DensityProvider,
-    val composeSceneMediatorProvider: () -> ComposeSceneMediator,
+    private val viewProvider: () -> UIView,
+    private val densityProvider: DensityProvider,
+    private val composeSceneMediatorProvider: () -> ComposeSceneMediator,
+    private val focusManager: ComposeSceneFocusManager,
 ) : KeyboardVisibilityListener {
 
     val view get() = viewProvider()
@@ -68,7 +70,6 @@ internal class KeyboardVisibilityListenerImpl(
         animateKeyboard(arg, true)
 
         val mediator = composeSceneMediatorProvider()
-        val focusManager = mediator.focusManager//todo move to constructor arg
         val userInfo = arg.userInfo ?: return
         val keyboardInfo = userInfo[UIKeyboardFrameEndUserInfoKey] as NSValue
         val keyboardHeight = keyboardInfo.CGRectValue().useContents { size.height }

@@ -99,7 +99,7 @@ internal class ComposeSceneMediator(
         set(value) {
             scene.compositionLocalContext = value
         }
-    val focusManager get() = scene.focusManager
+    private val focusManager get() = scene.focusManager
 
     val view: SkikoUIView by lazy {
         SkikoUIView(keyboardEventHandler, delegate, transparency)
@@ -134,6 +134,7 @@ internal class ComposeSceneMediator(
             viewProvider = { viewController.view },
             densityProvider = densityProvider,
             composeSceneMediatorProvider = { this },
+            focusManager = focusManager,
         )
     }
 
