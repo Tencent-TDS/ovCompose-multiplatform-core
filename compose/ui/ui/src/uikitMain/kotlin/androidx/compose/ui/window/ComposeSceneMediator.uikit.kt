@@ -33,7 +33,6 @@ import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.scene.ComposeSceneFocusManager
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.IntOffset
@@ -171,14 +170,14 @@ internal class ComposeSceneMediator(
     }
 
     private var onAttachedToWindow: (() -> Unit)? = null
-    private fun whenViewShown(action: () -> Unit) {
+    private fun runOnceViewAttached(block: () -> Unit) {
         if (view.window == null) {
             onAttachedToWindow = {
                 onAttachedToWindow = null
-                action()
+                block()
             }
         } else {
-            action()
+            block()
         }
     }
 
@@ -193,7 +192,7 @@ internal class ComposeSceneMediator(
     }
 
     fun setContent(content: @Composable () -> Unit) {
-        whenViewShown {
+        runOnceViewAttached {
             scene.setContent {
                 /**
                  * TODO isReadyToShowContent it is workaround we need to fix.
