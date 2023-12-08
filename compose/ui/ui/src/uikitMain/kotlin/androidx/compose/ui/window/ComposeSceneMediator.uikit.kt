@@ -232,7 +232,7 @@ internal class ComposeSceneMediator(
     private fun ProvideComposeSceneMediatorCompositionLocals(content: @Composable () -> Unit) =
         CompositionLocalProvider(
             LocalUIKitInteropContext provides interopContext,
-            LocalKeyboardOverlapHeight provides keyboardVisibilityListener.keyboardOverlapHeightState.value,
+            LocalKeyboardOverlapHeight provides keyboardOverlapHeightState.value,
             LocalSafeArea provides safeAreaState.value,
             LocalLayoutMargins provides layoutMarginsState.value,
             content = content

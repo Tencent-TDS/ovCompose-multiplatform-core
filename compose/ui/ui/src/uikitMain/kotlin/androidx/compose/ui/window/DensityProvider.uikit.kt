@@ -42,8 +42,8 @@ internal interface DensityProvider {
 }
 
 internal class DensityProviderImpl(
-    val uiViewControllerProvider: () -> UIViewController,
-    val viewProvider: () -> UIView,
+    private val uiViewControllerProvider: () -> UIViewController,
+    private val viewProvider: () -> UIView,
 ) : DensityProvider {
 
     val uiViewController get() = uiViewControllerProvider()

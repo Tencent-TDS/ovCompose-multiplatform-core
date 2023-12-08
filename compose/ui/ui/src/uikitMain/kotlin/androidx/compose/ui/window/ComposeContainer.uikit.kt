@@ -88,7 +88,7 @@ internal class ComposeContainer(
         InterfaceOrientation.Portrait
     )
     val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
-    val focusStack: FocusStack<UIView> = FocusStackImpl()
+    private val focusStack: FocusStack<UIView> = FocusStackImpl()
     private val windowInfo = WindowInfoImpl().also {
         it.isWindowFocused = true
     }
@@ -248,7 +248,7 @@ internal class ComposeContainer(
     }
 
     @OptIn(ExperimentalComposeApi::class)
-    fun setContent(content: @Composable () -> Unit) {
+    private fun setContent(content: @Composable () -> Unit) {
         if (composeSceneMediator != null) {
             return // already attached
         }

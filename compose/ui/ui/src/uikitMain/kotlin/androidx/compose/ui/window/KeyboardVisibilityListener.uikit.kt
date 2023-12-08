@@ -49,7 +49,7 @@ internal interface KeyboardVisibilityListener {
 
 internal class KeyboardVisibilityListenerImpl(
     private val configuration: ComposeUIViewControllerConfiguration,
-    val keyboardOverlapHeightState: MutableState<Float>,
+    private val keyboardOverlapHeightState: MutableState<Float>,
     private val viewProvider: () -> UIView,
     private val densityProvider: DensityProvider,
     private val composeSceneMediatorProvider: () -> ComposeSceneMediator,

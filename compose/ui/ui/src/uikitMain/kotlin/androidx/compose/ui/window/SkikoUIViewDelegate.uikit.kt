@@ -51,9 +51,9 @@ internal interface SkikoUIViewDelegate {
 }
 
 internal class SkikoUIViewDelegateImpl(
-    val sceneProvider: () -> ComposeScene,
-    val interopContext: UIKitInteropContext,
-    val densityProvider: DensityProvider,
+    private val sceneProvider: () -> ComposeScene,
+    private val interopContext: UIKitInteropContext,
+    private val densityProvider: DensityProvider,
 ) : SkikoUIViewDelegate {
     val scene get() = sceneProvider()
     val density get() = densityProvider()
