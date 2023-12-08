@@ -171,6 +171,16 @@ internal class ComposeSceneMediator(
     }
 
     private var onAttachedToWindow: (() -> Unit)? = null
+    private fun whenViewShown(action: () -> Unit) {
+        if (view.window == null) {
+            onAttachedToWindow = {
+                onAttachedToWindow = null
+                action()
+            }
+        } else {
+            action()
+        }
+    }
 
     init {
         view.onAttachedToWindow = {
@@ -183,8 +193,7 @@ internal class ComposeSceneMediator(
     }
 
     fun setContent(content: @Composable () -> Unit) {
-        onAttachedToWindow = {
-            onAttachedToWindow = null
+        whenViewShown {
             scene.setContent {
                 /**
                  * TODO isReadyToShowContent it is workaround we need to fix.
