@@ -89,7 +89,9 @@ internal class ComposeContainer(
     )
     val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
     val focusStack: FocusStack<UIView> = FocusStackImpl()
-    private val windowInfo = WindowInfoImpl()
+    private val windowInfo = WindowInfoImpl().also {
+        it.isWindowFocused = true
+    }
 
     /*
      * On iOS >= 13.0 interfaceOrientation will be deduced from [UIWindowScene] of [UIWindow]
