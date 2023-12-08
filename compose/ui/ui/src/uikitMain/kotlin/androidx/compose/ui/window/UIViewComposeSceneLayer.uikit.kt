@@ -89,7 +89,7 @@ internal class UIViewComposeSceneLayer(
 
     override fun close() {
         mediator.dispose()
-        composeContainer.detatchLayer(this)
+        composeContainer.detachLayer(this)
     }
 
     override fun setContent(content: @Composable () -> Unit) {

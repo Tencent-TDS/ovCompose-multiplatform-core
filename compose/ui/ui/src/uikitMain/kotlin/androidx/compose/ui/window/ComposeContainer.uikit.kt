@@ -316,7 +316,7 @@ internal class ComposeContainer(
         layers.add(layer)
     }
 
-    fun detatchLayer(layer: UIViewComposeSceneLayer) {
+    fun detachLayer(layer: UIViewComposeSceneLayer) {
         layers.remove(layer)
     }
 
