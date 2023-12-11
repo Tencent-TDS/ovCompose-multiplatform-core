@@ -176,10 +176,7 @@ internal class KeyboardVisibilityListenerImpl(
         focusedRect: DpRect,
         keyboardHeight: Double
     ): Double {
-        val viewHeight = composeSceneMediator.view.frame.useContents {
-            size.height
-        }
-
+        val viewHeight = composeSceneMediator.getViewHeight()
         val hiddenPartOfFocusedElement: Double =
             keyboardHeight - viewHeight + focusedRect.bottom.value
         return if (hiddenPartOfFocusedElement > 0) {
