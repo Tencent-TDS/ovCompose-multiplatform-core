@@ -165,8 +165,13 @@ internal class SkikoUIView(
     /**
      * https://developer.apple.com/documentation/uikit/uiview/1622533-point
      */
-    override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean =
-        delegate.pointInside(point, withEvent)
+    override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
+        val (frameWidth, frameHeight) = frame.useContents { size.width to size.height }
+        val (x, y) = point.useContents { x to y }
+        return x in 0.0..frameWidth &&
+            y in 0.0..frameHeight &&
+            delegate.pointInside(point, withEvent)
+    }
 
 
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {

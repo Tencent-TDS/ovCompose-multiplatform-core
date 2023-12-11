@@ -75,7 +75,7 @@ internal class SkikoUIViewDelegateImpl(
             pointers = event.touchesForView(view)?.map {
                 val touch = it as UITouch
                 val id = touch.hashCode().toLong()
-                val position = touch.offsetInView(view, density.density)
+                val position = touch.offsetInView(view, density.density) - metalOffset
                 ComposeScenePointer(
                     id = PointerId(id),
                     position = position,
