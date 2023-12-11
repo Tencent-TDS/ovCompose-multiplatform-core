@@ -53,7 +53,7 @@ internal class SkikoUIViewDelegateImpl(
     private val sceneProvider: () -> ComposeScene,
     private val interopContext: UIKitInteropContext,
     private val densityProvider: DensityProvider,
-    private var convertCoordinatesFromViewToScene: (Offset) -> Offset,
+    private var convertCoordinatesFromUIViewToComposeScene: (Offset) -> Offset,
 ) : SkikoUIViewDelegate {
     val scene get() = sceneProvider()
     val density get() = densityProvider()
@@ -75,7 +75,7 @@ internal class SkikoUIViewDelegateImpl(
                 val touch = it as UITouch
                 val id = touch.hashCode().toLong()
                 val position =
-                    convertCoordinatesFromViewToScene(touch.offsetInView(view, density.density))
+                    convertCoordinatesFromUIViewToComposeScene(touch.offsetInView(view, density.density))
                 ComposeScenePointer(
                     id = PointerId(id),
                     position = position,
@@ -102,7 +102,7 @@ internal class SkikoUIViewDelegateImpl(
         val secondsToNanos = 1_000_000_000L
         val nanos = integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
         val composeCanvas = canvas.asComposeCanvas()
-        val (dx, dy) = -convertCoordinatesFromViewToScene(Offset.Zero)
+        val (dx, dy) = -convertCoordinatesFromUIViewToComposeScene(Offset.Zero)
         composeCanvas.translate(dx, dy)
         scene.render(composeCanvas, nanos)
         composeCanvas.translate(-dx, -dy)

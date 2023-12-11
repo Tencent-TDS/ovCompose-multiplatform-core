@@ -166,7 +166,7 @@ internal class ComposeSceneMediator(
             { scene },
             interopContext,
             densityProvider,
-            convertCoordinatesFromViewToScene = {
+            convertCoordinatesFromUIViewToComposeScene = {
                 when (val layout = _layout) {
                     is SceneLayout.Bounds -> {
                         it + layout.rect.topLeft.toOffset()
