@@ -21,7 +21,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropContext
@@ -167,6 +166,15 @@ internal class ComposeSceneMediator(
             { scene },
             interopContext,
             densityProvider,
+            convertCoordinatesFromViewToScene = {
+                when (val layout = _layout) {
+                    is SceneLayout.Bounds -> {
+                        it + layout.rect.topLeft.toOffset()
+                    }
+
+                    else -> it
+                }
+            }
         )
     }
 
@@ -254,7 +262,6 @@ internal class ComposeSceneMediator(
         _layout = value
         when (value) {
             SceneLayout.UseConstraintsToFillContainer -> {
-                delegate.metalOffset = Offset.Zero
                 view.setFrame(CGRectZero.readValue())
                 view.translatesAutoresizingMaskIntoConstraints = false
                 constraints = listOf(
@@ -266,7 +273,6 @@ internal class ComposeSceneMediator(
             }
 
             is SceneLayout.UseConstraintsToCenter -> {
-                delegate.metalOffset = Offset.Zero
                 view.setFrame(CGRectZero.readValue())
                 view.translatesAutoresizingMaskIntoConstraints = false
                 constraints = value.size.useContents {
@@ -280,7 +286,6 @@ internal class ComposeSceneMediator(
             }
 
             is SceneLayout.Bounds -> {
-                delegate.metalOffset = -value.rect.topLeft.toOffset()
                 val density = densityProvider().density
                 view.translatesAutoresizingMaskIntoConstraints = true
                 view.setFrame(
