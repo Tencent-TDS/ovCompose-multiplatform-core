@@ -36,7 +36,7 @@ internal class SnapshotInvalidationTracker(
     private var needDraw = true
 
     /**
-     * The id of the thread currently inside [rendering].
+     * The id of the thread currently inside [performSnapshotChangesSynchronously].
      *
      * Note that it's not valid to have more than one thread calling it at the same time.
      */
@@ -84,13 +84,12 @@ internal class SnapshotInvalidationTracker(
     }
 
     /**
-     * [ComposeScene.render] should wrap itself in this; makes sure that inside `render`, the calls
-     * to [OwnerSnapshotObserver] are performed synchronously.
+     * Runs [block], performing any snapshot changes it generates synchronously.
      *
      * See [OwnerSnapshotObserverTest.observeReadsChangedBeforeDisposeEffect] for more details.
      */
-    inline fun rendering(crossinline block: () -> Unit) {
-        try {
+    inline fun <T> performSnapshotChangesSynchronously(block: () -> T): T {
+        return try {
             renderingThreadId.value = getCurrentThreadId()
             block()
         } finally {
