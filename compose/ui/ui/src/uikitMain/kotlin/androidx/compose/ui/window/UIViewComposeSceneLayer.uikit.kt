@@ -22,6 +22,7 @@ import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
 import androidx.compose.ui.scene.SingleLayerComposeScene
@@ -29,6 +30,7 @@ import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
+import kotlin.coroutines.coroutineContext
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGSize
 import platform.UIKit.UIView
@@ -43,7 +45,6 @@ internal class UIViewComposeSceneLayer(
     windowInfo: WindowInfo,
     compositionContext: CompositionContext,
     compositionLocalContext: CompositionLocalContext?,
-    composeSceneContext: ComposeSceneContext,
 ) : ComposeSceneLayer {
 
     private val mediator = ComposeSceneMediator(
@@ -51,23 +52,29 @@ internal class UIViewComposeSceneLayer(
         configuration = configuration,
         focusStack = focusStack,
         windowInfo = windowInfo,
-        transparency = true,
-    ) { mediator: ComposeSceneMediator ->
-        SingleLayerComposeScene(
-            coroutineContext = compositionContext.effectCoroutineContext,
-            composeSceneContext = object : ComposeSceneContext by composeSceneContext {
-                override val platformContext get() = mediator.platformContext
-            },
-            density = density,
-            invalidate = mediator::onComposeSceneInvalidate,
-            layoutDirection = layoutDirection,
-        )
-    }
+        coroutineContext = compositionContext.effectCoroutineContext,
+        skikoUIViewFactory = ::createSkikoUIView,
+        composeSceneFactory = ::createComposeScene,
+    )
 
     init {
         mediator.compositionLocalContext = compositionLocalContext
         composeContainer.attachLayer(this)
     }
+
+    private fun createSkikoUIView(mediator: ComposeSceneMediator):SkikoUIView = SkikoUIView(
+        renderDelegate = mediator.renderDelegate,
+        transparency = true,
+    )
+
+    private fun createComposeScene(mediator: ComposeSceneMediator): ComposeScene =
+        SingleLayerComposeScene(
+            coroutineContext = mediator.coroutineContext,
+            composeSceneContext = composeContainer.createComposeSceneContext(mediator.platformContext),
+            density = density,
+            invalidate = mediator::onComposeSceneInvalidate,
+            layoutDirection = layoutDirection,
+        )
 
     override var density: Density = density
         set(value) {

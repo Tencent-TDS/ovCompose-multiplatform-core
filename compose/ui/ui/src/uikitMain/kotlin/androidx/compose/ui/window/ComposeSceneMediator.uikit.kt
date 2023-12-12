@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toOffset
+import kotlin.coroutines.CoroutineContext
 import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -98,8 +99,9 @@ internal class ComposeSceneMediator(
     configuration: ComposeUIViewControllerConfiguration,
     private val focusStack: FocusStack<UIView>?,
     private val windowInfo: WindowInfo,
-    transparency: Boolean,
-    buildScene: (ComposeSceneMediator) -> ComposeScene,
+    val coroutineContext: CoroutineContext,
+    private val skikoUIViewFactory: (ComposeSceneMediator) -> SkikoUIView,
+    composeSceneFactory: (ComposeSceneMediator) -> ComposeScene,
 ) {
     private val focusable: Boolean get() = focusStack != null
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
@@ -113,7 +115,7 @@ internal class ComposeSceneMediator(
             NSLayoutConstraint.activateConstraints(value)
         }
 
-    private val scene: ComposeScene by lazy { buildScene(this) }
+    private val scene: ComposeScene by lazy { composeSceneFactory(this) }
     var compositionLocalContext
         get() = scene.compositionLocalContext
         set(value) {
@@ -121,11 +123,8 @@ internal class ComposeSceneMediator(
         }
     private val focusManager get() = scene.focusManager
 
-    val view by lazy {
-        SkikoUIView(
-            renderDelegate = renderDelegate,
-            transparency = transparency,
-        )
+    val view by lazy {//todo make private
+        skikoUIViewFactory(this)
     }
 
     private val interactionView by lazy {
@@ -232,7 +231,7 @@ internal class ComposeSceneMediator(
         }
     }
 
-    private val renderDelegate by lazy {
+    val renderDelegate by lazy {
         object : RenderDelegate {
             override fun retrieveInteropTransaction(): UIKitInteropTransaction =
                 interopContext.retrieve()
