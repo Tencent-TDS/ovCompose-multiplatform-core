@@ -78,7 +78,7 @@ internal class UIViewComposeSceneLayer(
             //todo set to scene
         }
     override var bounds: IntRect
-        get() = mediator.getViewBounds()
+        get() = mediator.getPixelBounds()
         set(value) {
             mediator.setLayout(
                 SceneLayout.Bounds(rect = value)

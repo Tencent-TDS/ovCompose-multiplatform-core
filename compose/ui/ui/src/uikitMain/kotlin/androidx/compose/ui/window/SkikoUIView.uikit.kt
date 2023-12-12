@@ -22,10 +22,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.interop.UIKitInteropTransaction
 import kotlinx.cinterop.*
 import org.jetbrains.skia.Canvas
-import org.jetbrains.skiko.SkikoInputModifiers
-import org.jetbrains.skiko.SkikoKey
-import org.jetbrains.skiko.SkikoKeyboardEvent
-import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.CoreGraphics.*
 import platform.Foundation.*
 import platform.Metal.MTLCreateSystemDefaultDevice
@@ -34,9 +30,13 @@ import platform.Metal.MTLPixelFormatBGRA8Unorm
 import platform.QuartzCore.CAMetalLayer
 import platform.UIKit.*
 
+internal interface RenderDelegate {
+    fun retrieveInteropTransaction(): UIKitInteropTransaction
+    fun render(canvas: Canvas, targetTimestamp: NSTimeInterval)
+}
+
 internal class SkikoUIView(
-    private val keyboardEventHandler: KeyboardEventHandler,
-    private val delegate: SkikoUIViewDelegate,
+    private val renderDelegate: RenderDelegate,
     private val transparency: Boolean,
 ) : UIView(
     frame = CGRectMake(
@@ -58,35 +58,21 @@ internal class SkikoUIView(
     private val _device: MTLDeviceProtocol =
         MTLCreateSystemDefaultDevice() ?: throw IllegalStateException("Metal is not supported on this system")
     private val _metalLayer: CAMetalLayer get() = layer as CAMetalLayer
-    private val _redrawer: MetalRedrawer = MetalRedrawer(
+    internal val redrawer: MetalRedrawer = MetalRedrawer(
         _metalLayer,
         callbacks = object : MetalRedrawerCallbacks {
             override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
-                delegate.render(canvas, targetTimestamp)
+                renderDelegate.render(canvas, targetTimestamp)
             }
 
             override fun retrieveInteropTransaction(): UIKitInteropTransaction =
-                delegate.retrieveInteropTransaction()
+                renderDelegate.retrieveInteropTransaction()
         },
         transparency = transparency,
     )
 
-    /*
-     * When there at least one tracked touch, we need notify redrawer about it. It should schedule CADisplayLink which
-     * affects frequency of polling UITouch events on high frequency display and forces it to match display refresh rate.
-     */
-    private var _touchesCount = 0
-        set(value) {
-            field = value
-
-            val needHighFrequencyPolling = value > 0
-
-            _redrawer.needsProactiveDisplayLink = needHighFrequencyPolling
-        }
-
     init {
-        multipleTouchEnabled = true
-        userInteractionEnabled = true
+        userInteractionEnabled = false
         opaque = !transparency
 
         _metalLayer.also {
@@ -104,13 +90,12 @@ internal class SkikoUIView(
         }
     }
 
-    fun needRedraw() = _redrawer.needRedraw()
+    fun needRedraw() = redrawer.needRedraw()
 
-    var isForcedToPresentWithTransactionEveryFrame by _redrawer::isForcedToPresentWithTransactionEveryFrame
+    var isForcedToPresentWithTransactionEveryFrame by redrawer::isForcedToPresentWithTransactionEveryFrame
 
     fun dispose() {
-        _redrawer.dispose()
-        removeFromSuperview()
+        redrawer.dispose()
     }
 
     override fun didMoveToWindow() {
@@ -118,7 +103,7 @@ internal class SkikoUIView(
 
         window?.screen?.let {
             contentScaleFactor = it.scale
-            _redrawer.maximumFramesPerSecond = it.maximumFramesPerSecond
+            redrawer.maximumFramesPerSecond = it.maximumFramesPerSecond
         }
         if (window != null) {
             onAttachedToWindow?.invoke()
@@ -146,134 +131,10 @@ internal class SkikoUIView(
         _metalLayer.drawableSize = scaledSize
 
         if (needsSynchronousDraw) {
-            _redrawer.drawSynchronously()
+            redrawer.drawSynchronously()
         }
     }
 
-    override fun canBecomeFirstResponder() = true
+    override fun canBecomeFirstResponder() = false
 
-    override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {
-        handleUIViewPressesBegan(keyboardEventHandler, presses, withEvent)
-        super.pressesBegan(presses, withEvent)
-    }
-
-    override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {
-        handleUIViewPressesEnded(keyboardEventHandler, presses, withEvent)
-        super.pressesEnded(presses, withEvent)
-    }
-
-    /**
-     * https://developer.apple.com/documentation/uikit/uiview/1622533-point
-     */
-    override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
-        val (frameWidth, frameHeight) = frame.useContents { size.width to size.height }
-        val (x, y) = point.useContents { x to y }
-        return x in 0.0..frameWidth &&
-            y in 0.0..frameHeight &&
-            delegate.pointInside(point, withEvent)
-    }
-
-
-    override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesBegan(touches, withEvent)
-
-        _touchesCount += touches.size
-
-        withEvent?.let { event ->
-            delegate.onTouchesEvent(this, event, UITouchesEventPhase.BEGAN)
-        }
-    }
-
-    override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesEnded(touches, withEvent)
-
-        _touchesCount -= touches.size
-
-        withEvent?.let { event ->
-            delegate.onTouchesEvent(this, event, UITouchesEventPhase.ENDED)
-        }
-    }
-
-    override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesMoved(touches, withEvent)
-
-        withEvent?.let { event ->
-            delegate.onTouchesEvent(this, event, UITouchesEventPhase.MOVED)
-        }
-    }
-
-    override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesCancelled(touches, withEvent)
-
-        _touchesCount -= touches.size
-
-        withEvent?.let { event ->
-            delegate.onTouchesEvent(this, event, UITouchesEventPhase.CANCELLED)
-        }
-    }
-
-}
-
-internal fun handleUIViewPressesBegan(
-    keyboardEventHandler: KeyboardEventHandler,
-    presses: Set<*>,
-    withEvent: UIPressesEvent?
-) {
-    if (withEvent != null) {
-        for (press in withEvent.allPresses) {
-            if (press is UIPress) {
-                keyboardEventHandler.onKeyboardEvent(
-                    toSkikoKeyboardEvent(press, SkikoKeyboardEventKind.DOWN)
-                )
-            }
-        }
-    }
-}
-
-internal fun handleUIViewPressesEnded(
-    keyboardEventHandler: KeyboardEventHandler,
-    presses: Set<*>,
-    withEvent: UIPressesEvent?
-) {
-    if (withEvent != null) {
-        for (press in withEvent.allPresses) {
-            if (press is UIPress) {
-                keyboardEventHandler.onKeyboardEvent(
-                    toSkikoKeyboardEvent(press, SkikoKeyboardEventKind.UP)
-                )
-            }
-        }
-    }
-}
-
-private fun toSkikoKeyboardEvent(
-    event: UIPress,
-    kind: SkikoKeyboardEventKind
-): SkikoKeyboardEvent {
-    val timestamp = (event.timestamp * 1_000).toLong()
-    return SkikoKeyboardEvent(
-        SkikoKey.valueOf(event.key!!.keyCode),
-        toSkikoModifiers(event),
-        kind,
-        timestamp,
-        event
-    )
-}
-
-private fun toSkikoModifiers(event: UIPress): SkikoInputModifiers {
-    var result = 0
-    val modifiers = event.key!!.modifierFlags
-    if (modifiers and UIKeyModifierAlternate != 0L) {
-        result = result.or(SkikoInputModifiers.ALT.value)
-    }
-    if (modifiers and UIKeyModifierShift != 0L) {
-        result = result.or(SkikoInputModifiers.SHIFT.value)
-    }
-    if (modifiers and UIKeyModifierControl != 0L) {
-        result = result.or(SkikoInputModifiers.CONTROL.value)
-    }
-    if (modifiers and UIKeyModifierCommand != 0L) {
-        result = result.or(SkikoInputModifiers.META.value)
-    }
-    return SkikoInputModifiers(result)
 }

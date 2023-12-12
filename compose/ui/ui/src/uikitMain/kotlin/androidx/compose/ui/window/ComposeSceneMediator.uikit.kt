@@ -21,9 +21,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.pointer.HistoricalChange
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropContext
+import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.platform.IOSPlatformContextImpl
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
@@ -32,31 +39,45 @@ import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
+import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toOffset
+import kotlin.math.floor
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
+import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.SkikoKeyboardEvent
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
+import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
 import platform.Foundation.NSNotification
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSSelectorFromString
+import platform.Foundation.NSTimeInterval
 import platform.QuartzCore.CATransaction
 import platform.UIKit.NSLayoutConstraint
+import platform.UIKit.UIEvent
 import platform.UIKit.UIKeyboardWillHideNotification
 import platform.UIKit.UIKeyboardWillShowNotification
+import platform.UIKit.UITouch
+import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
@@ -100,8 +121,23 @@ internal class ComposeSceneMediator(
         }
     private val focusManager get() = scene.focusManager
 
-    val view: SkikoUIView by lazy {
-        SkikoUIView(keyboardEventHandler, delegate, transparency)
+    val view by lazy {
+        SkikoUIView(
+            renderDelegate = renderDelegate,
+            transparency = transparency,
+        )
+    }
+
+    private val interactionView by lazy {
+        InteractionUIView(
+            keyboardEventHandler = keyboardEventHandler,
+            touchesDelegate = touchesDelegate,
+            redrawer = view.redrawer,
+            checkBounds = { dpPoint: DpOffset ->
+                val point = dpPoint.toOffset(densityProvider())
+                getPixelBounds().contains(point.round())
+            }
+        )
     }
 
     val densityProvider by lazy {
@@ -161,21 +197,61 @@ internal class ComposeSceneMediator(
         )
     }
 
-    private val delegate: SkikoUIViewDelegate by lazy {
-        SkikoUIViewDelegateImpl(
-            { scene },
-            interopContext,
-            densityProvider,
-            convertCoordinatesFromUIViewToComposeScene = {
-                when (val layout = _layout) {
-                    is SceneLayout.Bounds -> {
-                        it + layout.rect.topLeft.toOffset()
-                    }
-
-                    else -> it
+    private val touchesDelegate: TouchesDelegate by lazy {
+        object : TouchesDelegate {
+            override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
+                point.useContents {
+                    val position = this.toDpOffset().toOffset(densityProvider())
+                    !scene.hitTestInteropView(position)
                 }
+
+            override fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase) {
+                scene.sendPointerEvent(
+                    eventType = phase.toPointerEventType(),
+                    pointers = event.touchesForView(view)?.map {
+                        val touch = it as UITouch
+                        val id = touch.hashCode().toLong()
+                        val position = touch.offsetInView(view, densityProvider().density)
+                        ComposeScenePointer(
+                            id = PointerId(id),
+                            position = position,
+                            pressed = touch.isPressed,
+                            type = PointerType.Touch,
+                            pressure = touch.force.toFloat(),
+                            historical = event.historicalChangesForTouch(
+                                touch,
+                                view,
+                                densityProvider().density
+                            )
+                        )
+                    } ?: emptyList(),
+                    timeMillis = (event.timestamp * 1e3).toLong(),
+                    nativeEvent = event
+                )
             }
-        )
+        }
+    }
+
+    private val renderDelegate by lazy {
+        object : RenderDelegate {
+            override fun retrieveInteropTransaction(): UIKitInteropTransaction =
+                interopContext.retrieve()
+
+            override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
+                // The calculation is split in two instead of
+                // `(targetTimestamp * 1e9).toLong()`
+                // to avoid losing precision for fractional part
+                val integral = floor(targetTimestamp)
+                val fractional = targetTimestamp - integral
+                val secondsToNanos = 1_000_000_000L
+                val nanos = integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
+                val composeCanvas = canvas.asComposeCanvas()
+                val topLeft = getPixelBounds().topLeft.toOffset()
+                composeCanvas.translate(-topLeft.x, -topLeft.y)
+                scene.render(composeCanvas, nanos)
+                composeCanvas.translate(topLeft.x, topLeft.y)
+            }
+        }
     }
 
     private var onAttachedToWindow: (() -> Unit)? = null
@@ -197,6 +273,11 @@ internal class ComposeSceneMediator(
             this.onAttachedToWindow?.invoke()
             focusStack?.pushAndFocus(view)
         }
+        viewController.view.addSubview(interactionView)
+        interactionView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activateConstraints(
+            getConstraintsToFillParent(interactionView, viewController.view)
+        )
         viewController.view.addSubview(view)
     }
 
@@ -250,6 +331,7 @@ internal class ComposeSceneMediator(
         focusStack?.popUntilNext(view)
         view.dispose()
         view.removeFromSuperview()
+        interactionView.removeFromSuperview()
         scene.close()
         // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
         // Thus they need to be executed now.
@@ -264,12 +346,7 @@ internal class ComposeSceneMediator(
             SceneLayout.UseConstraintsToFillContainer -> {
                 view.setFrame(CGRectZero.readValue())
                 view.translatesAutoresizingMaskIntoConstraints = false
-                constraints = listOf(
-                    view.leftAnchor.constraintEqualToAnchor(viewController.view.leftAnchor),
-                    view.rightAnchor.constraintEqualToAnchor(viewController.view.rightAnchor),
-                    view.topAnchor.constraintEqualToAnchor(viewController.view.topAnchor),
-                    view.bottomAnchor.constraintEqualToAnchor(viewController.view.bottomAnchor)
-                )
+                constraints = getConstraintsToFillParent(view, viewController.view)
             }
 
             is SceneLayout.UseConstraintsToCenter -> {
@@ -277,8 +354,8 @@ internal class ComposeSceneMediator(
                 view.translatesAutoresizingMaskIntoConstraints = false
                 constraints = value.size.useContents {
                     listOf(
-                        view.centerXAnchor.constraintEqualToAnchor(viewController.view.centerXAnchor),
-                        view.centerYAnchor.constraintEqualToAnchor(viewController.view.centerYAnchor),
+                        view.centerXAnchor.constraintEqualToAnchor(interactionView.centerXAnchor),
+                        view.centerYAnchor.constraintEqualToAnchor(interactionView.centerYAnchor),
                         view.widthAnchor.constraintEqualToConstant(width),
                         view.heightAnchor.constraintEqualToConstant(height)
                     )
@@ -342,18 +419,10 @@ internal class ComposeSceneMediator(
             )
         }
 
-    fun getViewBounds(): IntRect = view.frame.useContents {
-        val density = densityProvider().density
-        IntRect(
-            offset = IntOffset(
-                x = (origin.x * density).roundToInt(),
-                y = (origin.y * density).roundToInt(),
-            ),
-            size = IntSize(
-                width = (size.width * density).roundToInt(),
-                height = (size.height * density).roundToInt(),
-            )
-        )
+    fun getBoundsInDp(): DpRect = view.frame.useContents { this.toDpRect() }
+
+    fun getPixelBounds(): IntRect = with(densityProvider()) {
+        getBoundsInDp().toRect().roundToIntRect()
     }
 
     fun viewWillTransitionToSize(
@@ -442,3 +511,56 @@ internal class ComposeSceneMediator(
     }
 
 }
+
+internal fun CGSize.toDpSize(): DpSize = DpSize(width.dp, height.dp)
+internal fun CGPoint.toDpOffset(): DpOffset = DpOffset(x.dp, y.dp)
+internal fun CGRect.toDpRect(): DpRect = DpRect(origin.toDpOffset(), size.toDpSize())
+
+internal fun getConstraintsToFillParent(view: UIView, parent: UIView) =
+    listOf(
+        view.leftAnchor.constraintEqualToAnchor(parent.leftAnchor),
+        view.rightAnchor.constraintEqualToAnchor(parent.rightAnchor),
+        view.topAnchor.constraintEqualToAnchor(parent.topAnchor),
+        view.bottomAnchor.constraintEqualToAnchor(parent.bottomAnchor)
+    )
+
+private fun UITouchesEventPhase.toPointerEventType(): PointerEventType =
+    when (this) {
+        UITouchesEventPhase.BEGAN -> PointerEventType.Press
+        UITouchesEventPhase.MOVED -> PointerEventType.Move
+        UITouchesEventPhase.ENDED -> PointerEventType.Release
+        UITouchesEventPhase.CANCELLED -> PointerEventType.Release
+    }
+
+private fun UIEvent.historicalChangesForTouch(
+    touch: UITouch,
+    view: UIView,
+    density: Float
+): List<HistoricalChange> {
+    val touches = coalescedTouchesForTouch(touch) ?: return emptyList()
+
+    return if (touches.size > 1) {
+        // subList last index is exclusive, so the last touch in the list is not included
+        // because it's the actual touch for which coalesced touches were requested
+        touches.dropLast(1).map {
+            val historicalTouch = it as UITouch
+            HistoricalChange(
+                uptimeMillis = (historicalTouch.timestamp * 1e3).toLong(),
+                position = historicalTouch.offsetInView(view, density)
+            )
+        }
+    } else {
+        emptyList()
+    }
+}
+
+private val UITouch.isPressed
+    get() = when (phase) {
+        UITouchPhase.UITouchPhaseEnded, UITouchPhase.UITouchPhaseCancelled -> false
+        else -> true
+    }
+
+private fun UITouch.offsetInView(view: UIView, density: Float): Offset =
+    locationInView(view).useContents {
+        Offset(x.toFloat() * density, y.toFloat() * density)
+    }
