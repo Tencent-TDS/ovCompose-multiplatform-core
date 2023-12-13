@@ -348,7 +348,9 @@ private class AccessibilityElement(
         val parent = parent ?: return
 
         val removed = parent.children.remove(this)
-        assert(removed)
+        check(removed) {
+            "Corrupted tree. Can't remove child from parent, because it's not present in the parent's children list"
+        }
 
         this.parent = null
     }
