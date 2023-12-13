@@ -365,8 +365,9 @@ private class AccessibilityElement(
 
     fun addChild(element: AccessibilityElement) {
         // If child was moved from another parent, remove it from there first
-        // I can't prove, that situation where an [AccessibilityElement] is contained in multiple
-        // parents is impossible, and that it won't lead to issues
+        // Perhaps this is excessive, but I can't prove, that situation where an
+        // [AccessibilityElement] is contained in multiple parents is impossible, and that it won't
+        // lead to issues
         element.removeFromParent()
 
         children.add(element)
