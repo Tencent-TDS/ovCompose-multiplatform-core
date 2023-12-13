@@ -40,8 +40,8 @@ import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.Density
@@ -56,7 +56,6 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toOffset
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.floor
-import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlinx.cinterop.CValue
@@ -178,7 +177,11 @@ internal class ComposeSceneMediator(
 
             override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
                 if (current == null) {
-                    current = semanticsOwner to AccessibilityMediator(viewController.view, semanticsOwner, coroutineContext)
+                    current = semanticsOwner to AccessibilityMediator(
+                        viewController.view,
+                        semanticsOwner,
+                        coroutineContext
+                    )
                 } else {
                     // Multiple SemanticsOwner`s per ComposeSceneMediator is a legacy behavior and will not be supported
                 }

@@ -101,7 +101,6 @@ internal class ComposeContainer(
         coroutineContext = coroutineDispatcher,
         renderingUIViewFactory = ::createSkikoUIView,
         composeSceneFactory = ::createComposeScene,
-        coroutineContext = coroutineDispatcher,
     )
 
     /*
