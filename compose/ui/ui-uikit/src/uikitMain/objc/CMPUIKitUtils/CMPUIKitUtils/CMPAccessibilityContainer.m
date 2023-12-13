@@ -20,8 +20,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation CMPAccessibilityContainer
 
-// MARK: overrided UIAccessibilityContainer methods
-
 - (NSInteger)accessibilityElementCount {
     CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
