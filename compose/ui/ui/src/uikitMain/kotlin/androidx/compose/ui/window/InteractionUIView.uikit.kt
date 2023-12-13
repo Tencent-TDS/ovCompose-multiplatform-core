@@ -59,7 +59,6 @@ internal class InteractionUIView(
     init {
         multipleTouchEnabled = true
         userInteractionEnabled = true
-        backgroundColor = UIColor(red = 0.0, green = 0.0, blue = 0.0, alpha = 0.2)//TODO for debug
     }
 
     override fun canBecomeFirstResponder() = true

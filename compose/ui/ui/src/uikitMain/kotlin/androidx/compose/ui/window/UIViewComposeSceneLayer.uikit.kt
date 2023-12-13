@@ -47,18 +47,21 @@ internal class UIViewComposeSceneLayer(
     compositionLocalContext: CompositionLocalContext?,
 ) : ComposeSceneLayer {
 
-    private val mediator = ComposeSceneMediator(
-        viewController = composeContainer,
-        configuration = configuration,
-        focusStack = focusStack,
-        windowInfo = windowInfo,
-        coroutineContext = compositionContext.effectCoroutineContext,
-        skikoUIViewFactory = ::createSkikoUIView,
-        composeSceneFactory = ::createComposeScene,
-    )
+    private val mediator by lazy {
+        ComposeSceneMediator(
+            viewController = composeContainer,
+            configuration = configuration,
+            focusStack = focusStack,
+            windowInfo = windowInfo,
+            coroutineContext = compositionContext.effectCoroutineContext,
+            skikoUIViewFactory = ::createSkikoUIView,
+            composeSceneFactory = ::createComposeScene,
+        ).also {
+            it.compositionLocalContext = compositionLocalContext
+        }
+    }
 
     init {
-        mediator.compositionLocalContext = compositionLocalContext
         composeContainer.attachLayer(this)
     }
 
