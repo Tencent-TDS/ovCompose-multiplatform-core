@@ -87,7 +87,6 @@ interface PlatformContext {
         fun onRootForTestDisposed(root: PlatformRootForTest)
     }
 
-    // TODO: discuss whether this interface should be nested in PlatformContext
     interface SemanticsOwnerListener {
         /**
          * Callback method that is called when a [SemanticsOwner] is appended to tracking.

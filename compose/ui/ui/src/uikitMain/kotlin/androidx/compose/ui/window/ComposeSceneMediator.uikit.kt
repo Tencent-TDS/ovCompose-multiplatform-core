@@ -133,7 +133,6 @@ internal class ComposeSceneMediator(
                     current = semanticsOwner to AccessibilityMediator(viewController.view, semanticsOwner, coroutineContext)
                 } else {
                     // Multiple SemanticsOwner`s per ComposeSceneMediator is a legacy behavior and will not be supported
-                    // TODO: refactor PlatformContext when legacy behavior is removed altogether
                 }
             }
 
