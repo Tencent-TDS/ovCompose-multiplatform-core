@@ -23,14 +23,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
 import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
-import kotlin.coroutines.coroutineContext
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGSize
 import platform.UIKit.UIView
@@ -88,7 +86,7 @@ internal class UIViewComposeSceneLayer(
             //todo set to scene
         }
     override var bounds: IntRect
-        get() = mediator.getPixelBounds()
+        get() = mediator.getBoundsInPx()
         set(value) {
             mediator.setLayout(
                 SceneLayout.Bounds(rect = value)

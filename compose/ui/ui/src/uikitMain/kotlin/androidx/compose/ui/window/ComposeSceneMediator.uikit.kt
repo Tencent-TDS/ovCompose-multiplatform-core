@@ -123,7 +123,7 @@ internal class ComposeSceneMediator(
         }
     private val focusManager get() = scene.focusManager
 
-    val view by lazy {//todo make private
+    private val view by lazy {
         skikoUIViewFactory(this)
     }
 
@@ -137,7 +137,7 @@ internal class ComposeSceneMediator(
             },
             checkBounds = { dpPoint: DpOffset ->
                 val point = dpPoint.toOffset(densityProvider())
-                getPixelBounds().contains(point.round())
+                getBoundsInPx().contains(point.round())
             }
         )
     }
@@ -248,7 +248,7 @@ internal class ComposeSceneMediator(
                 val secondsToNanos = 1_000_000_000L
                 val nanos = integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
                 val composeCanvas = canvas.asComposeCanvas()
-                val topLeft = getPixelBounds().topLeft.toOffset()
+                val topLeft = getBoundsInPx().topLeft.toOffset()
                 composeCanvas.translate(-topLeft.x, -topLeft.y)
                 scene.render(composeCanvas, nanos)
                 composeCanvas.translate(topLeft.x, topLeft.y)
@@ -423,7 +423,7 @@ internal class ComposeSceneMediator(
 
     fun getBoundsInDp(): DpRect = view.frame.useContents { this.toDpRect() }
 
-    fun getPixelBounds(): IntRect = with(densityProvider()) {
+    fun getBoundsInPx(): IntRect = with(densityProvider()) {
         getBoundsInDp().toRect().roundToIntRect()
     }
 
@@ -510,6 +510,10 @@ internal class ComposeSceneMediator(
             name = UIKeyboardWillHideNotification,
             `object` = null
         )
+    }
+
+    fun getViewHeight(): Double = view.frame.useContents {
+        size.height
     }
 
 }
