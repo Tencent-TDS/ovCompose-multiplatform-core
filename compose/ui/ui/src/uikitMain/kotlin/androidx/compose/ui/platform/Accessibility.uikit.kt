@@ -107,7 +107,7 @@ private class AccessibilityElement(
     private val synthesizedAccessibilityContainer by lazy {
         AccessibilityContainer(
             wrappedElement = this,
-            controller = mediator
+            mediator = mediator
         )
     }
 
@@ -437,7 +437,7 @@ private class AccessibilityContainer(
      * The element wrapped by this container
      */
     private val wrappedElement: AccessibilityElement,
-    private val controller: AccessibilityMediator,
+    private val mediator: AccessibilityMediator,
 
     // The super call below is needed because this constructor is designated in the Obj-C class,
     // the real parent container will be resolved dynamically by [accessibilityContainer]
@@ -498,12 +498,12 @@ private class AccessibilityContainer(
     }
 
     override fun accessibilityContainer(): Any? {
-        if (!controller.isAlive) {
+        if (!mediator.isAlive) {
             return null
         }
 
-        return if (semanticsNodeId == controller.rootSemanticsNodeId) {
-            controller.view
+        return if (semanticsNodeId == mediator.rootSemanticsNodeId) {
+            mediator.view
         } else {
             wrappedElement.parent?.accessibilityContainer
         }

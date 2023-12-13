@@ -76,6 +76,8 @@ internal sealed interface SceneLayout {
     class Bounds(val rect: IntRect) : SceneLayout
 }
 
+private const val FEATURE_FLAG_ACCESSIBILITY_ENABLED = false
+
 internal class ComposeSceneMediator(
     private val viewController: UIViewController,
     configuration: ComposeUIViewControllerConfiguration,
@@ -155,6 +157,12 @@ internal class ComposeSceneMediator(
     }
 
     val platformContext: PlatformContext by lazy {
+        val semanticsOwnerListener = if (FEATURE_FLAG_ACCESSIBILITY_ENABLED) {
+            semanticsOwnerListener
+        } else {
+            null
+        }
+
         IOSPlatformContextImpl(
             inputServices = uiKitTextInputService,
             textToolbar = uiKitTextInputService,

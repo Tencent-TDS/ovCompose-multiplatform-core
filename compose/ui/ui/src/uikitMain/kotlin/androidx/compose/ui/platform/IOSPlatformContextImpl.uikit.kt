@@ -28,7 +28,7 @@ internal class IOSPlatformContextImpl(
     override val textToolbar: TextToolbar,
     override val windowInfo: WindowInfo,
     densityProvider: DensityProvider,
-    override val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener
+    override val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener?
 ) : PlatformContext by PlatformContext.Empty {
     override val textInputService: PlatformTextInputService = inputServices
     override val viewConfiguration = object : ViewConfiguration by EmptyViewConfiguration {
