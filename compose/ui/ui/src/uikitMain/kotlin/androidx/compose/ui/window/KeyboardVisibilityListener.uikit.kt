@@ -18,6 +18,7 @@ package androidx.compose.ui.window
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.scene.ComposeSceneFocusManager
+import androidx.compose.ui.scene.ComposeSceneMediator
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.unit.DpRect

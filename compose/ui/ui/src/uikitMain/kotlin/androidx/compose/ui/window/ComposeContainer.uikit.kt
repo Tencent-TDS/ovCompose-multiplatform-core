@@ -32,8 +32,11 @@ import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
+import androidx.compose.ui.scene.ComposeSceneMediator
 import androidx.compose.ui.scene.MultiLayerComposeScene
+import androidx.compose.ui.scene.SceneLayout
 import androidx.compose.ui.scene.SingleLayerComposeScene
+import androidx.compose.ui.scene.UIViewComposeSceneLayer
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation

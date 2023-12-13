@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.window
+package androidx.compose.ui.scene
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
@@ -23,13 +23,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfo
-import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.scene.ComposeSceneLayer
-import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.ComposeContainer
+import androidx.compose.ui.window.FocusStack
+import androidx.compose.ui.window.ProvideContainerCompositionLocals
+import androidx.compose.ui.window.RenderingUIView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGSize

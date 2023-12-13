@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.ui.scene.toDpOffset
 import androidx.compose.ui.unit.DpOffset
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
@@ -26,7 +27,6 @@ import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRectZero
-import platform.UIKit.UIColor
 import platform.UIKit.UIEvent
 import platform.UIKit.UIKeyModifierAlternate
 import platform.UIKit.UIKeyModifierCommand

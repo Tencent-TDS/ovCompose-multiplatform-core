@@ -24,7 +24,7 @@ import androidx.compose.ui.window.DensityProvider
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import androidx.compose.ui.window.KeyboardEventHandler
-import androidx.compose.ui.window.getConstraintsToFillParent
+import androidx.compose.ui.scene.getConstraintsToFillParent
 import kotlin.math.absoluteValue
 import kotlin.math.min
 import org.jetbrains.skia.BreakIterator

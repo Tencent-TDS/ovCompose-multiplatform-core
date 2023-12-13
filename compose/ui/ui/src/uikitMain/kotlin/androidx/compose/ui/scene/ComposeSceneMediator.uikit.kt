@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.window
+package androidx.compose.ui.scene
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -39,8 +39,6 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.WindowInfo
-import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
@@ -54,6 +52,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.window.DensityProviderImpl
+import androidx.compose.ui.window.FocusStack
+import androidx.compose.ui.window.InteractionUIView
+import androidx.compose.ui.window.KeyboardEventHandler
+import androidx.compose.ui.window.KeyboardVisibilityListenerImpl
+import androidx.compose.ui.window.RenderingUIView
+import androidx.compose.ui.window.UITouchesEventPhase
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.floor
 import kotlin.math.roundToInt
