@@ -39,7 +39,7 @@ import platform.UIKit.UIView
 internal class InteractionUIView(
     private val keyboardEventHandler: KeyboardEventHandler,
     private val touchesDelegate: TouchesDelegate,
-    private val redrawer: MetalRedrawer,
+    private val updateTouchesCount: (count: Int) -> Unit,
     private val checkBounds: (point: DpOffset) -> Boolean,
 ) : UIView(CGRectZero.readValue()) {
 
@@ -50,10 +50,7 @@ internal class InteractionUIView(
     private var _touchesCount = 0
         set(value) {
             field = value
-
-            val needHighFrequencyPolling = value > 0
-
-            redrawer.needsProactiveDisplayLink = needHighFrequencyPolling
+            updateTouchesCount(value)
         }
 
     init {

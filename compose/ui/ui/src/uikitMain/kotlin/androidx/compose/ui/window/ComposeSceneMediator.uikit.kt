@@ -131,7 +131,10 @@ internal class ComposeSceneMediator(
         InteractionUIView(
             keyboardEventHandler = keyboardEventHandler,
             touchesDelegate = touchesDelegate,
-            redrawer = view.redrawer,
+            updateTouchesCount = { count ->
+                val needHighFrequencyPolling = count > 0
+                view.redrawer.needsProactiveDisplayLink = needHighFrequencyPolling
+            },
             checkBounds = { dpPoint: DpOffset ->
                 val point = dpPoint.toOffset(densityProvider())
                 getPixelBounds().contains(point.round())
