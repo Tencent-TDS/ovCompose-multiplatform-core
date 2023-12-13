@@ -71,7 +71,8 @@ private val DUMMY_UI_ACCESSIBILITY_CONTAINER = NSObject()
  *
  * @param semanticsNode The semantics node with initial data that this element should represent
  *  (can be changed later via [updateWithNewSemanticsNode])
- * @param mediator The mediator that is associated with iOS and Compose tree that this element.
+ * @param mediator The mediator that is associated with iOS accessibility tree where this element
+ * resides.
  */
 private class AccessibilityElement(
     private var semanticsNode: SemanticsNode,
