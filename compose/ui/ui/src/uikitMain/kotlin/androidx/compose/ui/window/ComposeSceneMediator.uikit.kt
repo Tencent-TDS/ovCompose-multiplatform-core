@@ -240,17 +240,10 @@ internal class ComposeSceneMediator(
                 interopContext.retrieve()
 
             override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
-                // The calculation is split in two instead of
-                // `(targetTimestamp * 1e9).toLong()`
-                // to avoid losing precision for fractional part
-                val integral = floor(targetTimestamp)
-                val fractional = targetTimestamp - integral
-                val secondsToNanos = 1_000_000_000L
-                val nanos = integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
                 val composeCanvas = canvas.asComposeCanvas()
                 val topLeft = getBoundsInPx().topLeft.toOffset()
                 composeCanvas.translate(-topLeft.x, -topLeft.y)
-                scene.render(composeCanvas, nanos)
+                scene.render(composeCanvas, targetTimestamp.toNanoSeconds())
                 composeCanvas.translate(topLeft.x, topLeft.y)
             }
         }
@@ -514,6 +507,18 @@ internal class ComposeSceneMediator(
 internal fun CGSize.toDpSize(): DpSize = DpSize(width.dp, height.dp)
 internal fun CGPoint.toDpOffset(): DpOffset = DpOffset(x.dp, y.dp)
 internal fun CGRect.toDpRect(): DpRect = DpRect(origin.toDpOffset(), size.toDpSize())
+
+private fun NSTimeInterval.toNanoSeconds(): Long {
+    // The calculation is split in two instead of
+    // `(targetTimestamp * 1e9).toLong()`
+    // to avoid losing precision for fractional part
+    val integral = floor(this)
+    val fractional = this - integral
+    val secondsToNanos = 1_000_000_000L
+    val nanos = integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
+    return nanos
+}
+
 
 internal fun getConstraintsToFillParent(view: UIView, parent: UIView) =
     listOf(
