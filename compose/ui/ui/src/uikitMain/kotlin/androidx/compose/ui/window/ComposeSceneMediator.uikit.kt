@@ -280,7 +280,7 @@ internal class ComposeSceneMediator(
         NSLayoutConstraint.activateConstraints(
             getConstraintsToFillParent(interactionView, viewController.view)
         )
-        viewController.view.addSubview(view)
+        interactionView.addSubview(view)
     }
 
     fun setContent(content: @Composable () -> Unit) {
@@ -354,14 +354,7 @@ internal class ComposeSceneMediator(
             is SceneLayout.UseConstraintsToCenter -> {
                 view.setFrame(CGRectZero.readValue())
                 view.translatesAutoresizingMaskIntoConstraints = false
-                constraints = value.size.useContents {
-                    listOf(
-                        view.centerXAnchor.constraintEqualToAnchor(interactionView.centerXAnchor),
-                        view.centerYAnchor.constraintEqualToAnchor(interactionView.centerYAnchor),
-                        view.widthAnchor.constraintEqualToConstant(width),
-                        view.heightAnchor.constraintEqualToConstant(height)
-                    )
-                }
+                constraints = getConstraintsToCenterInParent(view, interactionView, value.size)
             }
 
             is SceneLayout.Bounds -> {
@@ -529,6 +522,19 @@ internal fun getConstraintsToFillParent(view: UIView, parent: UIView) =
         view.topAnchor.constraintEqualToAnchor(parent.topAnchor),
         view.bottomAnchor.constraintEqualToAnchor(parent.bottomAnchor)
     )
+
+private fun getConstraintsToCenterInParent(
+    view: SkikoUIView,
+    parentView: InteractionUIView,
+    size: CValue<CGSize>,
+) = size.useContents {
+    listOf(
+        view.centerXAnchor.constraintEqualToAnchor(parentView.centerXAnchor),
+        view.centerYAnchor.constraintEqualToAnchor(parentView.centerYAnchor),
+        view.widthAnchor.constraintEqualToConstant(width),
+        view.heightAnchor.constraintEqualToConstant(height)
+    )
+}
 
 private fun UITouchesEventPhase.toPointerEventType(): PointerEventType =
     when (this) {
