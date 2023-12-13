@@ -43,10 +43,10 @@ internal class InteractionUIView(
     private val checkBounds: (point: DpOffset) -> Boolean,
 ) : UIView(CGRectZero.readValue()) {
 
-    /*
-         * When there at least one tracked touch, we need notify redrawer about it. It should schedule CADisplayLink which
-         * affects frequency of polling UITouch events on high frequency display and forces it to match display refresh rate.
-         */
+    /**
+     * When there at least one tracked touch, we need notify redrawer about it. It should schedule CADisplayLink which
+     * affects frequency of polling UITouch events on high frequency display and forces it to match display refresh rate.
+     */
     private var _touchesCount = 0
         set(value) {
             field = value
