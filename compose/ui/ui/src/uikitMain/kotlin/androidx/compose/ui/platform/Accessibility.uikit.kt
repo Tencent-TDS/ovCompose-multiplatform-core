@@ -533,8 +533,8 @@ internal class AccessibilityMediator(
         get() = owner.rootSemanticsNode.id
 
     /**
-     * A value of true indicates that the Compose accessible tree is dirty, meaning that compose semantics tree was modified since last sync,
-     * false otherwise.
+     * A value of true indicates that the Compose accessible tree is dirty, meaning that compose
+     * semantics tree was modified since last sync, false otherwise.
      */
     private var isCurrentComposeAccessibleTreeDirty = false
 
@@ -549,7 +549,8 @@ internal class AccessibilityMediator(
     private val coroutineScope = CoroutineScope(coroutineContext + job)
 
     /**
-     * A map of all [SemanticsNode.id] currently present in the tree to corresponding [AccessibilityElement].
+     * A map of all [SemanticsNode.id] currently present in the tree to corresponding
+     * [AccessibilityElement].
      */
     private val accessibilityElementsMap = mutableMapOf<Int, AccessibilityElement>()
 
