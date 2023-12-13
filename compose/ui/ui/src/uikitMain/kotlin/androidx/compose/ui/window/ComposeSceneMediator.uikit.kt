@@ -31,6 +31,7 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropTransaction
+import androidx.compose.ui.platform.AccessibilityMediator
 import androidx.compose.ui.platform.IOSPlatformContextImpl
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
@@ -39,6 +40,7 @@ import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
+import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
@@ -54,6 +56,7 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toOffset
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.floor
+import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlinx.cinterop.CValue
@@ -94,6 +97,8 @@ internal sealed interface SceneLayout {
     class UseConstraintsToCenter(val size: CValue<CGSize>) : SceneLayout
     class Bounds(val rect: IntRect) : SceneLayout
 }
+
+private const val FEATURE_FLAG_ACCESSIBILITY_ENABLED = false
 
 internal class ComposeSceneMediator(
     private val viewController: UIViewController,
@@ -167,12 +172,50 @@ internal class ComposeSceneMediator(
         )
     }
 
+    private val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener by lazy {
+        object : PlatformContext.SemanticsOwnerListener {
+            var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
+
+            override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
+                if (current == null) {
+                    current = semanticsOwner to AccessibilityMediator(viewController.view, semanticsOwner, coroutineContext)
+                } else {
+                    // Multiple SemanticsOwner`s per ComposeSceneMediator is a legacy behavior and will not be supported
+                }
+            }
+
+            override fun onSemanticsOwnerRemoved(semanticsOwner: SemanticsOwner) {
+                val current = checkNotNull(current)
+
+                if (current.first == semanticsOwner) {
+                    current.second.dispose()
+                    this.current = null
+                }
+            }
+
+            override fun onSemanticsChange(semanticsOwner: SemanticsOwner) {
+                val current = current ?: return
+
+                if (current.first == semanticsOwner) {
+                    current.second.onSemanticsChange()
+                }
+            }
+        }
+    }
+
     val platformContext: PlatformContext by lazy {
+        val semanticsOwnerListener = if (FEATURE_FLAG_ACCESSIBILITY_ENABLED) {
+            semanticsOwnerListener
+        } else {
+            null
+        }
+
         IOSPlatformContextImpl(
             inputServices = uiKitTextInputService,
             textToolbar = uiKitTextInputService,
             windowInfo = windowInfo,
             densityProvider = densityProvider,
+            semanticsOwnerListener = semanticsOwnerListener
         )
     }
 
