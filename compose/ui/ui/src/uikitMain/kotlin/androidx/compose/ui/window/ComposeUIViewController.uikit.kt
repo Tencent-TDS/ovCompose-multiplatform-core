@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui
+package androidx.compose.ui.window
 
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.unit.IntRect
-import platform.CoreGraphics.CGRectMake
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
+import platform.UIKit.UIViewController
 
-internal fun Rect.toCGRect() =
-    CGRectMake(left.toDouble(), top.toDouble(), size.width.toDouble(), size.height.toDouble())
+fun ComposeUIViewController(content: @Composable () -> Unit): UIViewController =
+    ComposeUIViewController(configure = {}, content = content)
 
-internal fun Rect.toCGRect(density: Double) =
-    CGRectMake(
-        left / density,
-        top / density,
-        size.width / density,
-        size.height / density
-    )
-
-internal operator fun IntRect.div(divider: Float) =
-    Rect(left / divider, top / divider, right / divider, bottom / divider)
+fun ComposeUIViewController(
+    configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
+    content: @Composable () -> Unit
+): UIViewController = ComposeContainer(
+    configuration = ComposeUIViewControllerConfiguration().apply(configure),
+    content = content,
+)

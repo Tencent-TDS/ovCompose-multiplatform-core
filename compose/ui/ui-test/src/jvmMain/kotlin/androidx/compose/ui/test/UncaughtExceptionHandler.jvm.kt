@@ -14,15 +14,6 @@
  * limitations under the License.
  */
 
-#import <Foundation/Foundation.h>
+package androidx.compose.ui.test
 
-//! Project version number for CMPUIKitUtils.
-FOUNDATION_EXPORT double CMPUIKitUtilsVersionNumber;
-
-//! Project version string for CMPUIKitUtils.
-FOUNDATION_EXPORT const unsigned char CMPUIKitUtilsVersionString[];
-
-#import "CMPView.h"
-#import "CMPViewController.h"
-#import "CMPAccessibilityElement.h"
-#import "CMPAccessibilityContainer.h"
+internal actual inline fun <T> synchronized(lock: Any, block: () -> T): T = kotlin.synchronized(lock, block)

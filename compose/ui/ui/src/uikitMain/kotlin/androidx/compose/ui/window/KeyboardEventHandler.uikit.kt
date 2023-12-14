@@ -14,22 +14,10 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui
+package androidx.compose.ui.window
 
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.unit.IntRect
-import platform.CoreGraphics.CGRectMake
+import org.jetbrains.skiko.SkikoKeyboardEvent
 
-internal fun Rect.toCGRect() =
-    CGRectMake(left.toDouble(), top.toDouble(), size.width.toDouble(), size.height.toDouble())
-
-internal fun Rect.toCGRect(density: Double) =
-    CGRectMake(
-        left / density,
-        top / density,
-        size.width / density,
-        size.height / density
-    )
-
-internal operator fun IntRect.div(divider: Float) =
-    Rect(left / divider, top / divider, right / divider, bottom / divider)
+internal interface KeyboardEventHandler {
+    fun onKeyboardEvent(event: SkikoKeyboardEvent)
+}

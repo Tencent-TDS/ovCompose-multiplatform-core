@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,23 @@
  * limitations under the License.
  */
 
-#import <Foundation/Foundation.h>
+package androidx.compose.ui.test
 
-//! Project version number for CMPUIKitUtils.
-FOUNDATION_EXPORT double CMPUIKitUtilsVersionNumber;
+/**
+ * Runs the given action on the UI thread.
+ *
+ * This method is blocking until the action is complete.
+ */
+internal expect fun <T> runOnUiThread(action: () -> T): T
 
-//! Project version string for CMPUIKitUtils.
-FOUNDATION_EXPORT const unsigned char CMPUIKitUtilsVersionString[];
+/**
+ * Returns if the call is made on the main thread.
+ */
+internal expect fun isOnUiThread(): Boolean
 
-#import "CMPView.h"
-#import "CMPViewController.h"
-#import "CMPAccessibilityElement.h"
-#import "CMPAccessibilityContainer.h"
+/**
+ * Blocks the calling thread for the given number of milliseconds.
+ *
+ * On targets that don't support this, should throw an [UnsupportedOperationException].
+ */
+internal expect fun sleep(timeMillis: Long)
