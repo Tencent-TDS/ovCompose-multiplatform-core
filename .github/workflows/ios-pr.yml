@@ -28,8 +28,8 @@ jobs:
         run: ./gradlew :mpp:testUIKit --info
       - name: Generate report
         uses: dorny/test-reporter@v1
-        if: success() || failure()
+        if: always()
         with:
-          name: JUNIT Tests
-          path: test-results/**/TEST*.xml
+          name: UIKit tests
+          path: out/androidx/compose/ui/ui/build/test-results/**/TEST*.xml
           reporter: java-junit
