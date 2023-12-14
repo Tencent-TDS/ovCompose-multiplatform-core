@@ -229,6 +229,10 @@ private class AccessibilityElement(
 
     private var impl: AccessibilityElementImpl = AccessibilityElementBaseImpl(this)
         set(value) {
+            if (!isAlive) {
+                return
+            }
+
             if (impl == value) {
                 return
             }
@@ -302,6 +306,8 @@ private class AccessibilityElement(
         }
 
         isAlive = false
+
+        impl.dispose()
     }
 
     override fun accessibilityActivate(): Boolean {
