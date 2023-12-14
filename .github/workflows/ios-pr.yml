@@ -36,5 +36,5 @@ jobs:
         if: always()
         with:
           name: UIKit Tests Results
-          path: out/androidx/compose/ui/ui/build/test-results/**/TEST*.xml
+          path: out/androidx/compose/**/**/build/test-results/**/TEST*.xml
           reporter: java-junit
