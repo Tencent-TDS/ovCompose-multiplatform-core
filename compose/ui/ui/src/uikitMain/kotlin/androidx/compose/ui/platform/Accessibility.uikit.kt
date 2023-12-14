@@ -42,6 +42,11 @@ import platform.CoreGraphics.CGRectMake
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityCustomAction
 import platform.UIKit.UIAccessibilityScrollDirection
+import platform.UIKit.UIAccessibilityScrollDirectionDown
+import platform.UIKit.UIAccessibilityScrollDirectionLeft
+import platform.UIKit.UIAccessibilityScrollDirectionPrevious
+import platform.UIKit.UIAccessibilityScrollDirectionRight
+import platform.UIKit.UIAccessibilityScrollDirectionUp
 import platform.UIKit.UIAccessibilityTraitAdjustable
 import platform.UIKit.UIAccessibilityTraitButton
 import platform.UIKit.UIAccessibilityTraitHeader
@@ -52,7 +57,6 @@ import platform.UIKit.UIAccessibilityTraitSelected
 import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
 import platform.UIKit.UIEvent
-import platform.UIKit.UIScrollView
 import platform.UIKit.UIView
 import platform.UIKit.accessibilityCustomActions
 import platform.darwin.NSInteger
@@ -126,6 +130,8 @@ private class AccessibilityElementScrollImpl(
     }
 }
 
+// TODO: Impl for UIKit interop views
+
 private class AccessibilityScrollView(
     private val accessibilityElement: AccessibilityElement,
     private val checkIfAlive: () -> Boolean
@@ -152,15 +158,15 @@ private class AccessibilityScrollView(
     override fun accessibilityActivate() =
         accessibilityElement.accessibilityActivate()
 
+    override fun accessibilityScroll(direction: UIAccessibilityScrollDirection) =
+        accessibilityElement.accessibilityScroll(direction)
+
     // TODO: redeclare missing references
 //    override fun accessibilityIncrement() =
 //        accessibilityElement.accessibilityIncrement()
 
 //    override fun accessibilityDecrement() =
 //        accessibilityElement.accessibilityDecrement()
-
-//    override fun accessibilityScroll(direction: UIAccessibilityScrollDirection) =
-//        accessibilityElement.accessibilityScroll(direction)
 
 //    override fun accessibilityPerformEscape() =
 //        accessibilityElement.accessibilityPerformEscape()
@@ -338,6 +344,54 @@ private class AccessibilityElement(
         }
     }
 
+    override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
+        println("accessibilityScroll $direction")
+
+        if (!isAlive) {
+            return false
+        }
+
+        when (direction) {
+            UIAccessibilityScrollDirectionUp -> {
+                val result = semanticsNode.config.getOrNull(SemanticsActions.PageUp)?.action?.invoke()
+
+                if (result != null) {
+                    return result
+                }
+            }
+
+            UIAccessibilityScrollDirectionDown -> {
+                val result = semanticsNode.config.getOrNull(SemanticsActions.PageDown)?.action?.invoke()
+
+                if (result != null) {
+                    return result
+                }
+            }
+
+            UIAccessibilityScrollDirectionLeft -> {
+                val result = semanticsNode.config.getOrNull(SemanticsActions.PageLeft)?.action?.invoke()
+
+                if (result != null) {
+                    return result
+                }
+            }
+
+            UIAccessibilityScrollDirectionRight -> {
+                val result = semanticsNode.config.getOrNull(SemanticsActions.PageRight)?.action?.invoke()
+
+                if (result != null) {
+                    return result
+                }
+            }
+
+            else -> {
+                // TODO: UIAccessibilityScrollDirectionPrevious, UIAccessibilityScrollDirectionNext
+            }
+        }
+
+        return false
+    }
+
     /**
      * Compose doesn't communicate fine-grain changes in semantics tree, thus all changes in the particular
      * persistent object to match the latest resolved SemanticsNode should be done via full-scan of all properties
@@ -361,9 +415,14 @@ private class AccessibilityElement(
         isAccessibilityElement = false
 
         var hasAnyMeaningfulSemantics = false
+        var hasScrollSemantics = false
 
         fun onMeaningfulSemanticAdded() {
             hasAnyMeaningfulSemantics = true
+        }
+
+        fun onScrollSemanticsAdded() {
+            hasScrollSemantics = true
         }
 
         val accessibilityLabelStrings = mutableListOf<String>()
@@ -374,7 +433,7 @@ private class AccessibilityElement(
             accessibilityTraits = accessibilityTraits or trait
         }
 
-        fun <T> getValue(key: SemanticsPropertyKey<T>): T = semanticsNode.config[key]
+        fun <T> getNewValue(key: SemanticsPropertyKey<T>): T = semanticsNode.config[key]
 
         // Iterate through all semantic properties and map them to values that are expected by iOS Accessibility services for the node with given semantics
         semanticsNode.config.forEach { pair ->
@@ -386,21 +445,30 @@ private class AccessibilityElement(
                     return
                 }
 
+                SemanticsProperties.VerticalScrollAxisRange -> {
+                    onScrollSemanticsAdded()
+                }
+
+                SemanticsProperties.HorizontalScrollAxisRange -> {
+                    onScrollSemanticsAdded()
+                }
+
                 SemanticsProperties.LiveRegion -> {
+                    // TODO: proper implementation
                     onMeaningfulSemanticAdded()
                     addTrait(UIAccessibilityTraitUpdatesFrequently)
                 }
 
                 SemanticsProperties.ContentDescription -> {
-                    accessibilityLabelStrings.addAll(getValue(key))
+                    accessibilityLabelStrings.addAll(getNewValue(key))
                 }
 
                 SemanticsProperties.Text -> {
-                    accessibilityLabelStrings.addAll(getValue(key).map { it.text })
+                    accessibilityLabelStrings.addAll(getNewValue(key).map { it.text })
                 }
 
                 SemanticsProperties.PaneTitle -> {
-                    accessibilityLabelStrings.add(getValue(key))
+                    accessibilityLabelStrings.add(getNewValue(key))
                 }
 
                 SemanticsProperties.Disabled -> {
@@ -413,12 +481,12 @@ private class AccessibilityElement(
                 }
 
                 SemanticsProperties.StateDescription -> {
-                    val state = getValue(key)
+                    val state = getNewValue(key)
                     accessibilityValueStrings.add(state)
                 }
 
                 SemanticsProperties.ToggleableState -> {
-                    val state = getValue(key)
+                    val state = getNewValue(key)
 
                     when (state) {
                         ToggleableState.On -> {
@@ -437,7 +505,7 @@ private class AccessibilityElement(
                 }
 
                 SemanticsProperties.Role -> {
-                    val role = getValue(key)
+                    val role = getNewValue(key)
 
                     when (role) {
                         Role.Button, Role.RadioButton, Role.Checkbox, Role.Switch -> {
@@ -463,10 +531,34 @@ private class AccessibilityElement(
                     onMeaningfulSemanticAdded()
                 }
 
+                SemanticsActions.PageUp -> {
+                    onScrollSemanticsAdded()
+                }
+
+                SemanticsActions.PageDown -> {
+                    onScrollSemanticsAdded()
+                }
+
+                SemanticsActions.PageLeft -> {
+                    onScrollSemanticsAdded()
+                }
+
+                SemanticsActions.PageRight -> {
+                    onScrollSemanticsAdded()
+                }
+
+                SemanticsActions.ScrollBy -> {
+                    onScrollSemanticsAdded()
+                }
+
+                SemanticsActions.ScrollToIndex -> {
+                    onScrollSemanticsAdded()
+                }
+
                 SemanticsActions.CustomActions -> {
                     onMeaningfulSemanticAdded()
 
-                    val actions = getValue(key)
+                    val actions = getNewValue(key)
                     accessibilityCustomActions = actions.map {
                         UIAccessibilityCustomAction(
                             name = it.label,
@@ -487,6 +579,28 @@ private class AccessibilityElement(
         if (accessibilityValueStrings.isNotEmpty()) {
             onMeaningfulSemanticAdded()
             accessibilityValue = accessibilityLabelStrings.joinToString("\n") { it }
+        }
+
+        // TODO: review [impl] recreation logic when new semantics are supported
+        if (hasScrollSemantics) {
+            when (impl) {
+                !is AccessibilityElementScrollImpl -> {
+                    impl = AccessibilityElementScrollImpl(
+                        accessibilityElement = this,
+                        view = mediator.view
+                    )
+                }
+
+                else -> { /* Do nothing */}
+            }
+        } else {
+            when (impl) {
+                is AccessibilityElementScrollImpl -> {
+                    impl = AccessibilityElementBaseImpl(this)
+                }
+
+                else -> { /* Do nothing */}
+            }
         }
 
         this.accessibilityTraits = accessibilityTraits

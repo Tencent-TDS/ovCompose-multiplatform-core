@@ -31,6 +31,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)accessibilityActivate CMP_MUST_BE_OVERRIDED;
 
+- (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction CMP_MUST_BE_OVERRIDED;
+
 @end
 
 NS_ASSUME_NONNULL_END
