@@ -432,6 +432,7 @@ internal class ComposeSceneMediator(
             is SceneLayout.Undefined -> error("setLayout, SceneLayout.Undefined")
         }
         renderingView.layoutIfNeeded()
+        renderingView.updateMetalLayerSize()
     }
 
     fun viewWillLayoutSubviews() {
@@ -580,8 +581,8 @@ internal fun getConstraintsToFillParent(view: UIView, parent: UIView) =
     )
 
 private fun getConstraintsToCenterInParent(
-    view: RenderingUIView,
-    parentView: InteractionUIView,
+    view: UIView,
+    parentView: UIView,
     size: CValue<CGSize>,
 ) = size.useContents {
     listOf(
