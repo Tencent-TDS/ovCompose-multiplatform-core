@@ -24,6 +24,12 @@ jobs:
           distribution: 'zulu'
       - name: install Android SDK
         run: ./jbdeps/android-sdk/downloadAndroidSdk
-      - name: run_tests
+      - name: Run UIKit tests
         run: ./gradlew :mpp:testUIKit --info
-
+      - name: Generate report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: JUNIT Tests
+          path: test-results/uikitSimArm64Test/TEST-*.xml
+          reporter: java-junit
