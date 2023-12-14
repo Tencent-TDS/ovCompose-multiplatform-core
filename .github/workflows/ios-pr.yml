@@ -18,8 +18,8 @@ permissions:
 
 jobs:
   unit-tests:
-    runs-on: macos-13
-    name: iOS Unit tests on MacOS-13
+    runs-on: macos-latest
+    name: iOS Unit tests
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK 17
@@ -35,6 +35,7 @@ jobs:
         uses: dorny/test-reporter@v1
         if: always()
         with:
-          name: UIKit Tests Results
+          name: iOS Unit tests results
+          only-summary: true
           path: out/androidx/compose/**/**/build/test-results/**/TEST*.xml
           reporter: java-junit
