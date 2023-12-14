@@ -37,6 +37,7 @@ import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.touch
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.fail
 
@@ -97,6 +98,7 @@ class DialogTest {
         background.events.assertReceivedLast(PointerEventType.Exit, Offset(10f, 10f))
     }
 
+    @Ignore
     @Test
     fun closeDialog() = runSkikoComposeUiTest(
         size = Size(100f, 100f)

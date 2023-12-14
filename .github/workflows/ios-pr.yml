@@ -11,6 +11,11 @@ concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 jobs:
   unit-tests:
     runs-on: macos-13
