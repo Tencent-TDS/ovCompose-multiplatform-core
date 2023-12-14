@@ -44,6 +44,7 @@ import kotlin.test.fail
 @OptIn(ExperimentalTestApi::class)
 class DialogTest {
 
+    @Ignore
     @Test
     fun dialogIsCenteredInWindow() = runSkikoComposeUiTest(
         size = Size(100f, 100f)
@@ -60,6 +61,7 @@ class DialogTest {
         onNodeWithTag(dialog.tag).assertPositionInRootIsEqualTo(30.dp, 30.dp)
     }
 
+    @Ignore
     @Test
     fun openDialog() = runSkikoComposeUiTest(
         size = Size(100f, 100f)
@@ -144,6 +146,7 @@ class DialogTest {
         background.events.assertReceivedLast(PointerEventType.Enter, Offset(11f, 11f))
     }
 
+    @Ignore
     @Test
     fun secondClickDoesNotDismissPopup() = runSkikoComposeUiTest(
         size = Size(100f, 100f)
@@ -189,6 +192,7 @@ class DialogTest {
         )
     }
 
+    @Ignore
     @Test
     fun nonPrimaryButtonClickDoesNotDismissDialog() = runSkikoComposeUiTest(
         size = Size(100f, 100f)

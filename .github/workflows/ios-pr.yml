@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - "jb-main"
-      - "dima-andrei/ios-tests-on-pr" #TODO remove
 
 concurrency: 
   group: ${{ github.head_ref || github.run_id }}
@@ -36,15 +35,6 @@ jobs:
         uses: dorny/test-reporter@v1
         if: always()
         with:
-          name: UIKit tests
+          name: UIKit Tests Results
           path: out/androidx/compose/ui/ui/build/test-results/**/TEST*.xml
           reporter: java-junit
-      - name: Generate report (Publish Test Results)
-        uses: EnricoMi/publish-unit-test-result-action/composite@v2
-        if: always()
-        with:
-          files: |
-            out/androidx/compose/ui/ui/build/test-results/**/*.xml
-            out/androidx/compose/ui/ui/build/test-results/**/*.trx
-            out/androidx/compose/ui/ui/build/test-results/**/*.json
-          
