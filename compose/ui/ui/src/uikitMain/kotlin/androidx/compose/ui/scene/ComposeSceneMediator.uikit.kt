@@ -404,7 +404,7 @@ internal class ComposeSceneMediator(
             SceneLayout.UseConstraintsToFillContainer -> {
                 view.setFrame(CGRectZero.readValue())
                 view.translatesAutoresizingMaskIntoConstraints = false
-                constraints = getConstraintsToFillParent(view, viewController.view)
+                constraints = getConstraintsToFillParent(view, interactionView)
             }
 
             is SceneLayout.UseConstraintsToCenter -> {
