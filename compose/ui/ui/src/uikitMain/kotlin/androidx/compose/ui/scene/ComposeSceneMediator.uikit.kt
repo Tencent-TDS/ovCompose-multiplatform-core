@@ -581,8 +581,8 @@ internal fun getConstraintsToFillParent(view: UIView, parent: UIView) =
     )
 
 private fun getConstraintsToCenterInParent(
-    view: UIView,
-    parentView: UIView,
+    view: RenderingUIView,
+    parentView: InteractionUIView,
     size: CValue<CGSize>,
 ) = size.useContents {
     listOf(
