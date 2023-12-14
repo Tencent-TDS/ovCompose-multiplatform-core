@@ -25,10 +25,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (__nullable id)accessibilityContainerOfObject:(id)object;
 
-- (BOOL)isAlive CMP_MUST_BE_OVERRIDED;
-- (BOOL)areAnyAccessibilityServicesEnabled CMP_MUST_BE_OVERRIDED;
-- (NSInteger)childrenCount CMP_MUST_BE_OVERRIDED;
-
 // MARK: Unexported methods redeclaration block
 // Redeclared to make it visible to Kotlin for override purposes, workaround for the following issue:
 // https://youtrack.jetbrains.com/issue/KT-56001/Kotlin-Native-import-Objective-C-category-members-as-class-members-if-the-category-is-located-in-the-same-file

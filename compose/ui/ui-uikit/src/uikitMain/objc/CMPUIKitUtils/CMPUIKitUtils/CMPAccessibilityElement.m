@@ -60,19 +60,7 @@ NS_ASSUME_NONNULL_BEGIN
     return [object accessibilityContainer];
 }
 
-- (BOOL)isAlive {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
-}
-
-- (BOOL)areAnyAccessibilityServicesEnabled {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
-}
-
 - (BOOL)accessibilityActivate {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
-}
-
-- (NSInteger)childrenCount {
     CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 

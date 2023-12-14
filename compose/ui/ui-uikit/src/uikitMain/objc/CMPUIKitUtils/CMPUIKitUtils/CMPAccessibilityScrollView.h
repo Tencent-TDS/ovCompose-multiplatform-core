@@ -15,20 +15,43 @@
  */
 
 #import <UIKit/UIKit.h>
-
-@class CMPAccessibilityElement;
+#import "CMPMacros.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface CMPAccessibilityScrollView : UIScrollView
 
-- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)init;
 
 - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
 
 - (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
 
-- (instancetype)initWithAccessibilityElement:(CMPAccessibilityElement *)element;
+// MARK: Unexported methods redeclaration block
+
+- (BOOL)isAccessibilityElement CMP_MUST_BE_OVERRIDED;
+
+- (NSString *__nullable)accessibilityLabel CMP_MUST_BE_OVERRIDED;
+
+- (NSString *__nullable)accessibilityHint CMP_MUST_BE_OVERRIDED;
+
+- (BOOL)accessibilityActivate CMP_MUST_BE_OVERRIDED;
+
+- (void)accessibilityIncrement CMP_MUST_BE_OVERRIDED;
+
+- (void)accessibilityDecrement CMP_MUST_BE_OVERRIDED;
+
+- (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction CMP_MUST_BE_OVERRIDED;
+
+- (BOOL)accessibilityPerformEscape CMP_MUST_BE_OVERRIDED;
+
+- (void)accessibilityElementDidBecomeFocused CMP_MUST_BE_OVERRIDED;
+
+- (void)accessibilityElementDidLoseFocus CMP_MUST_BE_OVERRIDED;
+
+- (__nullable id)accessibilityContainer CMP_MUST_BE_OVERRIDED;
+
+- (NSInteger)accessibilityElementCount CMP_MUST_BE_OVERRIDED;
 
 @end
 

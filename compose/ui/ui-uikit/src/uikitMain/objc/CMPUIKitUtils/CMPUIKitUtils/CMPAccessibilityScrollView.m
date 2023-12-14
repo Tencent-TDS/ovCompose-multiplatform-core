@@ -18,84 +18,60 @@
 #import "CMPAccessibilityScrollView.h"
 #import "CMPAccessibilityElement.h"
 
-@implementation CMPAccessibilityScrollView {
-    CMPAccessibilityElement *_element;
-}
+@implementation CMPAccessibilityScrollView
 
-- (instancetype)initWithAccessibilityElement:(CMPAccessibilityElement *)element {
+- (instancetype)init {
     self = [super initWithFrame:CGRectZero];
-    
-    if (self) {
-        _element = element;
-    }
     
     return self;
 }
 
-- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
-    return nil;
-}
-
 - (BOOL)isAccessibilityElement {
-    if (!_element.isAlive) {
-        return NO;
-    }
-
-    if (_element.isAccessibilityElement) {
-        return YES;
-    }
-    
-    
-    if (self.contentSize.width > self.frame.size.width ||
-        self.contentSize.height > self.frame.size.height) {
-        return !_element.areAnyAccessibilityServicesEnabled;
-    } else {
-        return NO;
-    }
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (NSString *)accessibilityLabel {
-    return _element.accessibilityLabel;
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (NSString *)accessibilityHint {
-    return _element.accessibilityHint;
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (BOOL)accessibilityActivate {
-    return [_element accessibilityActivate];
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (void)accessibilityIncrement {
-    [_element accessibilityIncrement];
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (void)accessibilityDecrement {
-    [_element accessibilityDecrement];
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction {
-    return [_element accessibilityScroll:direction];
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (BOOL)accessibilityPerformEscape {
-    return [_element accessibilityPerformEscape];
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (void)accessibilityElementDidBecomeFocused {
-    [_element accessibilityElementDidBecomeFocused];
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (void)accessibilityElementDidLoseFocus {
-    [_element accessibilityElementDidLoseFocus];
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (id)accessibilityContainer {
-    return _element.accessibilityContainer;
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (NSInteger)accessibilityElementCount {
-    return _element.childrenCount;
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 @end

@@ -37,9 +37,11 @@ import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRectMake
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityCustomAction
+import platform.UIKit.UIAccessibilityScrollDirection
 import platform.UIKit.UIAccessibilityTraitAdjustable
 import platform.UIKit.UIAccessibilityTraitButton
 import platform.UIKit.UIAccessibilityTraitHeader
@@ -49,12 +51,132 @@ import platform.UIKit.UIAccessibilityTraitNotEnabled
 import platform.UIKit.UIAccessibilityTraitSelected
 import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
+import platform.UIKit.UIEvent
+import platform.UIKit.UIScrollView
 import platform.UIKit.UIView
 import platform.UIKit.accessibilityCustomActions
 import platform.darwin.NSInteger
 import platform.darwin.NSObject
 
 private val DUMMY_UI_ACCESSIBILITY_CONTAINER = NSObject()
+
+/**
+ * Non-final Kotlin subclasses of Objective-C classes are not yet supported.
+ *
+ * This is a workaround that allows making behavior of AccessibilityElement dynamic.
+ */
+private sealed class AccessibilityElementImpl(
+    protected val accessibilityElement: AccessibilityElement
+) {
+    abstract val actualAccessibilityElement: Any
+
+    protected var wasDisposed = false
+
+    /**
+     * The situation where the owning element is alive but the implementation was disposed is possible
+     * when implementation changes, but the owning element is still alive.
+     * For example, when the element gets scrollable semantics, the implementation changes from
+     * [AccessibilityElementBaseImpl] to [AccessibilityElementScrollImpl].
+     */
+    protected val isAlive: Boolean
+        get() = accessibilityElement.isAlive && !wasDisposed
+
+    open fun dispose() {
+        check(!wasDisposed)
+
+        wasDisposed = true
+    }
+}
+
+/**
+ * Basic implementation that returns the owning accessibility element as the actual accessibility element
+ * communicated to iOS accessibility services.
+ */
+private class AccessibilityElementBaseImpl(
+    accessibilityElement: AccessibilityElement
+) : AccessibilityElementImpl(accessibilityElement) {
+    override val actualAccessibilityElement: Any
+        get() = accessibilityElement
+}
+
+/**
+ * Implementation that returns a dummy UIScrollView as the actual accessibility element, allowing
+ * usage of native scrolling capabilities of iOS accessibility services, which are then propagated
+ * towards compose.
+ */
+private class AccessibilityElementScrollImpl(
+    accessibilityElement: AccessibilityElement,
+    view: UIView,
+): AccessibilityElementImpl(accessibilityElement) {
+    private val scrollView = AccessibilityScrollView(accessibilityElement, checkIfAlive = {
+        isAlive
+    })
+
+    override val actualAccessibilityElement: Any
+        get() = scrollView
+
+    init {
+        view.addSubview(scrollView)
+    }
+
+    override fun dispose() {
+        super.dispose()
+
+        scrollView.removeFromSuperview()
+    }
+}
+
+private class AccessibilityScrollView(
+    private val accessibilityElement: AccessibilityElement,
+    private val checkIfAlive: () -> Boolean
+): CMPAccessibilityScrollView() {
+    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+        return null
+    }
+
+    // TODO: implement a proper one
+    override fun isAccessibilityElement(): Boolean {
+        return if (!checkIfAlive()) {
+            false
+        } else {
+            accessibilityElement.isAccessibilityElement
+        }
+    }
+
+    override fun accessibilityLabel() =
+        accessibilityElement.accessibilityLabel
+
+    override fun accessibilityHint() =
+        accessibilityElement.accessibilityHint
+
+    override fun accessibilityActivate() =
+        accessibilityElement.accessibilityActivate()
+
+    // TODO: redeclare missing references
+//    override fun accessibilityIncrement() =
+//        accessibilityElement.accessibilityIncrement()
+
+//    override fun accessibilityDecrement() =
+//        accessibilityElement.accessibilityDecrement()
+
+//    override fun accessibilityScroll(direction: UIAccessibilityScrollDirection) =
+//        accessibilityElement.accessibilityScroll(direction)
+
+//    override fun accessibilityPerformEscape() =
+//        accessibilityElement.accessibilityPerformEscape()
+
+//    override fun accessibilityElementDidBecomeFocused() =
+//        accessibilityElement.accessibilityElementDidBecomeFocused
+
+//    override fun accessibilityElementDidLoseFocus() =
+//        accessibilityElement.accessibilityElementDidLoseFocus
+
+    override fun accessibilityContainer() =
+        accessibilityElement.accessibilityContainer
+
+    override fun accessibilityElementCount() =
+        accessibilityElement.childrenCount
+}
 
 /**
  * Represents a projection of the Compose semantics node to the iOS world. The actual accessibility
@@ -91,13 +213,29 @@ private class AccessibilityElement(
     val childrenCount: NSInteger
         get() = children.size.toLong()
 
+    /**
+     * The actual accessibility object communicated to iOS accessibility services.
+     */
     val actualAccessibilityElement: Any
-        get() = this
+        get() = impl.actualAccessibilityElement
 
     var parent: AccessibilityElement? = null
         private set
 
+    var isAlive = true
+        private set
+
     private var children = mutableListOf<AccessibilityElement>()
+
+    private var impl: AccessibilityElementImpl = AccessibilityElementBaseImpl(this)
+        set(value) {
+            if (impl == value) {
+                return
+            }
+
+            field.dispose()
+            field = value
+        }
 
     /**
      * Constructed lazily if :
@@ -158,15 +296,16 @@ private class AccessibilityElement(
         return null
     }
 
-    override fun isAlive(): Boolean = mediator.isAlive
+    fun dispose() {
+        check(isAlive) {
+            "AccessibilityElement is already disposed"
+        }
 
-    override fun areAnyAccessibilityServicesEnabled(): Boolean = true
-
-    override fun childrenCount(): NSInteger =
-        childrenCount
+        isAlive = false
+    }
 
     override fun accessibilityActivate(): Boolean {
-        if (!mediator.isAlive) {
+        if (!isAlive) {
             return false
         }
 
@@ -182,7 +321,7 @@ private class AccessibilityElement(
      * synthesized container, otherwise we look up the parent and return its container.
      */
     override fun resolveAccessibilityContainer(): Any? {
-        if (!mediator.isAlive) {
+        if (!isAlive) {
             return null
         }
 
@@ -509,7 +648,7 @@ private class AccessibilityContainer(
     }
 
     override fun accessibilityContainer(): Any? {
-        if (!mediator.isAlive) {
+        if (!wrappedElement.isAlive) {
             return null
         }
 
@@ -534,7 +673,7 @@ internal class AccessibilityMediator(
     private val owner: SemanticsOwner,
     coroutineContext: CoroutineContext
 ) {
-    var isAlive = true
+    private var isAlive = true
 
     val rootSemanticsNodeId: Int
         get() = owner.rootSemanticsNode.id
@@ -590,6 +729,10 @@ internal class AccessibilityMediator(
         job.cancel()
         isAlive = false
         view.accessibilityElements = null
+
+        for (element in accessibilityElementsMap.values) {
+            element.dispose()
+        }
     }
 
     private fun createOrUpdateAccessibilityElementForSemanticsNode(node: SemanticsNode): AccessibilityElement {
@@ -642,7 +785,13 @@ internal class AccessibilityMediator(
 
         // Filter out [AccessibilityElement] in [accessibilityElementsMap] that are not present in the tree anymore
         accessibilityElementsMap.keys.retainAll {
-            it in presentIds
+            val isPresent = it in presentIds
+
+            if (!isPresent) {
+                checkNotNull(accessibilityElementsMap[it]).dispose()
+            }
+
+            isPresent
         }
 
         return checkNotNull(rootAccessibilityElement.resolveAccessibilityContainer()) {
