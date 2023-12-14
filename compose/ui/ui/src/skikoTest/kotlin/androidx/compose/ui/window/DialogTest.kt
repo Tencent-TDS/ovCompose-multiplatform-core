@@ -56,7 +56,7 @@ class DialogTest {
                 dialog.Content()
             }
         }
-        onNodeWithTag(dialog.tag).assertPositionInRootIsEqualTo(30.dp, 30.dp)
+        onNodeWithTag(dialog.tag).assertPositionInRootIsEqualTo(31.dp, 30.dp)
     }
 
     @Test

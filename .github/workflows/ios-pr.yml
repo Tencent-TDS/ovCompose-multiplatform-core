@@ -36,6 +36,5 @@ jobs:
         if: always()
         with:
           name: iOS Unit tests results
-          only-summary: true
           path: out/androidx/compose/**/**/build/test-results/**/TEST*.xml
           reporter: java-junit
