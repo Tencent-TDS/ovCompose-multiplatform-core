@@ -18,8 +18,8 @@ permissions:
 
 jobs:
   unit-tests:
-    runs-on: macos-latest
-    name: iOS Unit tests
+    runs-on: macos-13
+    name: iOS Unit tests on MacOS-13
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK 17
