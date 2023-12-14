@@ -31,5 +31,5 @@ jobs:
         if: success() || failure()
         with:
           name: JUNIT Tests
-          path: test-results/uikitSimArm64Test/TEST-*.xml
+          path: test-results/**/TEST*.xml
           reporter: java-junit
