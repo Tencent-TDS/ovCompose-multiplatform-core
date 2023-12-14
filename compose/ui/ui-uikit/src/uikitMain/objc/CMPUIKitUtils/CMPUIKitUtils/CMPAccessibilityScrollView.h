@@ -14,24 +14,22 @@
  * limitations under the License.
  */
 
-import UIKit
+#import <UIKit/UIKit.h>
 
-class MockAppDelegate: NSObject, UIApplicationDelegate {
-    var window: UIWindow?
+@class CMPAccessibilityElement;
 
-    func setUpClearWindow() {
-        window = UIWindow(frame: UIScreen.main.bounds)
-        window?.backgroundColor = .systemBackground
+NS_ASSUME_NONNULL_BEGIN
 
-        UIView.setAnimationsEnabled(false)
-        window?.layer.speed = 10000
+@interface CMPAccessibilityScrollView : UIScrollView
 
-        window?.rootViewController = UIViewController()
-        window?.makeKeyAndVisible()
-    }
+- (instancetype)init NS_UNAVAILABLE;
 
-    func cleanUp() {
-        window = nil
-        UIWindow(frame: UIScreen.main.bounds).makeKeyAndVisible()
-    }
-}
+- (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
+
+- (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
+
+- (instancetype)initWithAccessibilityElement:(CMPAccessibilityElement *)element;
+
+@end
+
+NS_ASSUME_NONNULL_END

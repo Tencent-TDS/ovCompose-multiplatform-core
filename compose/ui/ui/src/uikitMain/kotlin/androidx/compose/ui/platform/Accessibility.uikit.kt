@@ -158,6 +158,13 @@ private class AccessibilityElement(
         return null
     }
 
+    override fun isAlive(): Boolean = mediator.isAlive
+
+    override fun areAnyAccessibilityServicesEnabled(): Boolean = true
+
+    override fun childrenCount(): NSInteger =
+        childrenCount
+
     override fun accessibilityActivate(): Boolean {
         if (!mediator.isAlive) {
             return false
