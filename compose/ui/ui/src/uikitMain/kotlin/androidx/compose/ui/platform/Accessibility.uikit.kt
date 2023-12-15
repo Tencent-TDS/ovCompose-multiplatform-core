@@ -85,7 +85,7 @@ private sealed class AccessibilityElementImpl(
     /**
      * The situation where the owning element is alive but the implementation was disposed is possible
      * when implementation changes, but the owning element is still alive.
-     * For example, when the element gets scrollable semantics, the implementation changes from
+     * For example, when the element gets scrollable semantics, the [AccessibilityElement.impl] changes from
      * [AccessibilityElementBaseImpl] to [AccessibilityElementScrollImpl].
      */
     protected val isAlive: Boolean
@@ -148,13 +148,8 @@ private class AccessibilityScrollView(
     }
 
     // TODO: implement a proper one
-    override fun isAccessibilityElement(): Boolean {
-        return if (!checkIfAlive()) {
-            false
-        } else {
-            accessibilityElement.isAccessibilityElement
-        }
-    }
+    override fun isAccessibilityElement(): Boolean =
+        checkIfAlive() && accessibilityElement.isAccessibilityElement
 
     override fun accessibilityLabel() =
         accessibilityElement.accessibilityLabel
@@ -168,6 +163,16 @@ private class AccessibilityScrollView(
     override fun accessibilityScroll(direction: UIAccessibilityScrollDirection) =
         accessibilityElement.accessibilityScroll(direction)
 
+    override fun accessibilityElementDidBecomeFocused() {
+        accessibilityElement.accessibilityElementDidBecomeFocused()
+    }
+
+    override fun accessibilityContainer() =
+        accessibilityElement.accessibilityContainer
+
+    override fun accessibilityElementCount() =
+        accessibilityElement.childrenCount
+
     // TODO: redeclare missing methods
 //    override fun accessibilityIncrement() =
 //        accessibilityElement.accessibilityIncrement()
@@ -178,18 +183,8 @@ private class AccessibilityScrollView(
 //    override fun accessibilityPerformEscape() =
 //        accessibilityElement.accessibilityPerformEscape()
 
-    override fun accessibilityElementDidBecomeFocused() {
-        accessibilityElement.accessibilityElementDidBecomeFocused()
-    }
-
 //    override fun accessibilityElementDidLoseFocus() =
 //        accessibilityElement.accessibilityElementDidLoseFocus
-
-    override fun accessibilityContainer() =
-        accessibilityElement.accessibilityContainer
-
-    override fun accessibilityElementCount() =
-        accessibilityElement.childrenCount
 }
 
 /**
@@ -368,9 +363,20 @@ private class AccessibilityElement(
             return false
         }
 
+        val (width, height) = semanticsNode.size
+
         when (direction) {
             UIAccessibilityScrollDirectionUp -> {
-                val result = semanticsNode.config.getOrNull(SemanticsActions.PageUp)?.action?.invoke()
+                var result = semanticsNode.config.getOrNull(SemanticsActions.PageUp)?.action?.invoke()
+
+                if (result != null) {
+                    return result
+                }
+
+                result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
+                    0F,
+                    -height.toFloat()
+                )
 
                 if (result != null) {
                     return result
@@ -378,7 +384,16 @@ private class AccessibilityElement(
             }
 
             UIAccessibilityScrollDirectionDown -> {
-                val result = semanticsNode.config.getOrNull(SemanticsActions.PageDown)?.action?.invoke()
+                var result = semanticsNode.config.getOrNull(SemanticsActions.PageDown)?.action?.invoke()
+
+                if (result != null) {
+                    return result
+                }
+
+                result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
+                    0f,
+                    height.toFloat()
+                )
 
                 if (result != null) {
                     return result
@@ -386,7 +401,17 @@ private class AccessibilityElement(
             }
 
             UIAccessibilityScrollDirectionLeft -> {
-                val result = semanticsNode.config.getOrNull(SemanticsActions.PageLeft)?.action?.invoke()
+                var result = semanticsNode.config.getOrNull(SemanticsActions.PageLeft)?.action?.invoke()
+
+                if (result != null) {
+                    return result
+                }
+
+                // TODO: check RTL support
+                result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
+                    -width.toFloat(),
+                    0f,
+                )
 
                 if (result != null) {
                     return result
@@ -394,7 +419,17 @@ private class AccessibilityElement(
             }
 
             UIAccessibilityScrollDirectionRight -> {
-                val result = semanticsNode.config.getOrNull(SemanticsActions.PageRight)?.action?.invoke()
+                var result = semanticsNode.config.getOrNull(SemanticsActions.PageRight)?.action?.invoke()
+
+                if (result != null) {
+                    return result
+                }
+
+                // TODO: check RTL support
+                result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
+                    width.toFloat(),
+                    0f,
+                )
 
                 if (result != null) {
                     return result
@@ -601,6 +636,7 @@ private class AccessibilityElement(
         // TODO: review [impl] recreation logic when new semantics are supported
         if (hasScrollSemantics) {
             println("hasScrollSemantics")
+            println(semanticsNode.config)
             when (impl) {
                 !is AccessibilityElementScrollImpl -> {
                     println("Creating scroll semantics")
@@ -982,7 +1018,7 @@ internal class AccessibilityMediator(
 
 /**
  * Traverse the accessibility tree starting from [accessibilityObject] using the same(assumed) logic
- * as iOS Accessibility services, and prints it debug data.
+ * as iOS Accessibility services, and prints its debug data.
  */
 private fun debugTraverse(accessibilityObject: Any, depth: Int = 0) {
     val indent = " ".repeat(depth * 2)

@@ -68,6 +68,10 @@ NS_ASSUME_NONNULL_BEGIN
     CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
+- (void)accessibilityElementDidBecomeFocused {
+    [super accessibilityElementDidBecomeFocused];
+}
+
 @end
 
 NS_ASSUME_NONNULL_END
