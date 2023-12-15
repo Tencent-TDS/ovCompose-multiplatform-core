@@ -356,7 +356,7 @@ private class AccessibilityElement(
     override fun accessibilityElementDidBecomeFocused() {
         super.accessibilityElementDidBecomeFocused()
 
-        print(semanticsNode.config)
+        println(semanticsNode.config)
     }
 
     override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
