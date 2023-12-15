@@ -50,7 +50,8 @@ internal class UIViewComposeSceneLayer(
 
     private val mediator by lazy {
         ComposeSceneMediator(
-            viewController = composeContainer,
+            container = composeContainer.view.window ?: composeContainer.view,
+            getContentSizeCategory = composeContainer::getContentSizeCategory,
             configuration = configuration,
             focusStack = focusStack,
             windowInfo = windowInfo,
@@ -81,18 +82,20 @@ internal class UIViewComposeSceneLayer(
         SingleLayerComposeScene(
             coroutineContext = coroutineContext,
             composeSceneContext = composeContainer.createComposeSceneContext(platformContext),
-            density = density,
+            density = this.density, // We should use the local density already set for the current layer.
             invalidate = invalidate,
             layoutDirection = layoutDirection,
         )
 
     override var density: Density = density
         set(value) {
-            //todo set to scene
+            field = value
+            //todo set density to mediator and scene
         }
     override var layoutDirection: LayoutDirection = layoutDirection
         set(value) {
-            //todo set to scene
+            field = value
+            //todo set layoutDirection to mediator and scene
         }
     override var bounds: IntRect
         get() = mediator.getBoundsInPx()
@@ -125,7 +128,7 @@ internal class UIViewComposeSceneLayer(
     }
 
     override fun setOutsidePointerEventListener(
-        onOutsidePointerEvent: ((mainEvent: Boolean) -> Unit)?
+        onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)?
     ) {
         //todo
     }

@@ -17,6 +17,7 @@
 package androidx.compose.ui.window
 
 import androidx.compose.ui.unit.Density
+import platform.UIKit.UIContentSizeCategory
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraExtraLarge
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraLarge
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraLarge
@@ -42,17 +43,13 @@ internal interface DensityProvider {
 }
 
 internal class DensityProviderImpl(
-    private val uiViewControllerProvider: () -> UIViewController,
+    private val getContentSizeCategory: () -> UIContentSizeCategory,
     private val viewProvider: () -> UIView,
 ) : DensityProvider {
 
-    val uiViewController get() = uiViewControllerProvider()
-
     override val density: Density
         get() {
-            val contentSizeCategory =
-                uiViewController.traitCollection.preferredContentSizeCategory
-                    ?: UIContentSizeCategoryUnspecified
+            val contentSizeCategory = getContentSizeCategory()
 
             return Density(
                 density = viewProvider().contentScaleFactor.toFloat(),

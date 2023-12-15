@@ -62,6 +62,8 @@ import platform.CoreGraphics.CGSizeEqualToSize
 import platform.Foundation.NSStringFromClass
 import platform.UIKit.UIApplication
 import platform.UIKit.UIColor
+import platform.UIKit.UIContentSizeCategory
+import platform.UIKit.UIContentSizeCategoryUnspecified
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
@@ -255,6 +257,9 @@ internal class ComposeContainer(
     fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext =
         ComposeSceneContextImpl(platformContext)
 
+    fun getContentSizeCategory(): UIContentSizeCategory =
+        traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
+
     private fun createSkikoUIView(renderRelegate: RenderingUIView.Delegate): RenderingUIView =
         RenderingUIView(
             renderDelegate = renderRelegate,
@@ -291,7 +296,8 @@ internal class ComposeContainer(
 
     private fun setContent(content: @Composable () -> Unit) {
         val mediator = mediator ?: ComposeSceneMediator(
-            viewController = this,
+            container = view,
+            getContentSizeCategory = ::getContentSizeCategory,
             configuration = configuration,
             focusStack = focusStack,
             windowInfo = windowInfo,
