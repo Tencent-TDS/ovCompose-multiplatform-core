@@ -34,6 +34,7 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.toCGRect
 import androidx.compose.ui.uikit.utils.*
 import kotlin.coroutines.CoroutineContext
+import kotlinx.cinterop.ExportObjCClass
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -132,6 +133,7 @@ private class AccessibilityElementScrollImpl(
 
 // TODO: Impl for UIKit interop views
 
+@ExportObjCClass
 private class AccessibilityScrollView(
     private val accessibilityElement: AccessibilityElement,
     private val checkIfAlive: () -> Boolean
@@ -161,7 +163,7 @@ private class AccessibilityScrollView(
     override fun accessibilityScroll(direction: UIAccessibilityScrollDirection) =
         accessibilityElement.accessibilityScroll(direction)
 
-    // TODO: redeclare missing references
+    // TODO: redeclare missing methods
 //    override fun accessibilityIncrement() =
 //        accessibilityElement.accessibilityIncrement()
 
@@ -202,6 +204,7 @@ private class AccessibilityScrollView(
  * @param mediator The mediator that is associated with iOS accessibility tree where this element
  * resides.
  */
+@ExportObjCClass
 private class AccessibilityElement(
     private var semanticsNode: SemanticsNode,
     private val mediator: AccessibilityMediator,
@@ -583,8 +586,10 @@ private class AccessibilityElement(
 
         // TODO: review [impl] recreation logic when new semantics are supported
         if (hasScrollSemantics) {
+            println("hasScrollSemantics")
             when (impl) {
                 !is AccessibilityElementScrollImpl -> {
+                    println("Creating scroll semantics")
                     impl = AccessibilityElementScrollImpl(
                         accessibilityElement = this,
                         view = mediator.view
@@ -649,7 +654,7 @@ private class AccessibilityElement(
         check(indexOfSelf != NSNotFound)
         check(container.accessibilityElementAtIndex(indexOfSelf) == this.actualAccessibilityElement)
 
-        println("${indent}AccessibilityElement_$semanticsNodeId")
+        println("${indent}AccessibilityElement_$semanticsNodeId ${semanticsNode.config}")
         println("$indent  containmentChain: ${debugContainmentChain(this)}")
         println("$indent  isAccessibilityElement: $isAccessibilityElement")
         println("$indent  accessibilityLabel: $accessibilityLabel")
@@ -702,6 +707,7 @@ private class AccessibilityElement(
  * https://github.com/flutter/engine/blob/main/shell/platform/darwin/ios/framework/Source/SemanticsObject.h
  *
  */
+@ExportObjCClass
 private class AccessibilityContainer(
     /**
      * The element wrapped by this container

@@ -102,7 +102,7 @@ internal sealed interface SceneLayout {
     class Bounds(val rect: IntRect) : SceneLayout
 }
 
-private const val FEATURE_FLAG_ACCESSIBILITY_ENABLED = false
+private const val FEATURE_FLAG_ACCESSIBILITY_ENABLED = true
 
 internal class ComposeSceneMediator(
     private val container: UIView,
