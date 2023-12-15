@@ -16,11 +16,34 @@
 
 package androidx.compose.ui
 
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.Popup
+
 /**
  * The helper singleton object that provides the access to feature flags that
  * configure Compose behaviour.
  */
 internal object ComposeFeatureFlags {
+
+    /**
+     * Indicates whether the platform layers feature is enabled.
+     * The default value is `false`, implying that new layers (such as for [Popup] and [Dialog])
+     * are created within the initial canvas.
+     *
+     * TODO: Provide configuration options via system properties when it is fully developed.
+     */
+    val usePlatformLayers: Boolean
+        get() = false
+
+    /**
+     * Indicates whether the platform layers should use separate windows.
+     *
+     * TODO: Provide configuration options via system properties when it is fully developed.
+     * TODO: Consider to combine it with `usePlatformLayers`
+     */
+    val useWindowLayers: Boolean
+        get() = false
+
     /**
      * Indicates whether the Compose should use Swing graphics for rendering.
      * This prevents transitional rendering issues when panels are being shown, hidden, or resized.
