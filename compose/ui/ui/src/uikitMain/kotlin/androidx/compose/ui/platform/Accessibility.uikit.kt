@@ -39,7 +39,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
+import platform.CoreGraphics.CGSizeMake
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityCustomAction
 import platform.UIKit.UIAccessibilityScrollDirection
@@ -144,6 +146,10 @@ private class AccessibilityScrollView(
     private val accessibilityElement: AccessibilityElement,
     private val checkIfAlive: () -> Boolean
 ): CMPAccessibilityScrollView() {
+    init {
+        setContentSize(CGSizeMake(1000.0, 9000.0))
+        setContentOffset(CGPointMake(0.0, 4500.0))
+    }
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
         return null
     }
@@ -161,8 +167,11 @@ private class AccessibilityScrollView(
     override fun accessibilityActivate() =
         accessibilityElement.accessibilityActivate()
 
-    override fun accessibilityScroll(direction: UIAccessibilityScrollDirection) =
-        accessibilityElement.accessibilityScroll(direction)
+    override fun accessibilityScroll(direction: UIAccessibilityScrollDirection) {
+        // TODO: doesn't reach here, why?
+        println("accessibilityScroll reached AccessibilityScrollView")
+        return accessibilityElement.accessibilityScroll(direction)
+    }
 
     override fun accessibilityElementDidBecomeFocused() {
         accessibilityElement.accessibilityElementDidBecomeFocused()
@@ -357,11 +366,11 @@ private class AccessibilityElement(
     }
 
     override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
-        if (impl is AccessibilityElementScrollImpl) {
-            println("accessibilityScroll $direction")
+        if (!isAlive) {
+            return false
         }
 
-        if (!isAlive) {
+        if (impl !is AccessibilityElementScrollImpl) {
             return false
         }
 
