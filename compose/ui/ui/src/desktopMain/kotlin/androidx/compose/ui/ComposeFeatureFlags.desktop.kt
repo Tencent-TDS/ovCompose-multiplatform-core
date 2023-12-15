@@ -16,9 +16,6 @@
 
 package androidx.compose.ui
 
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.Popup
-
 /**
  * The helper singleton object that provides the access to feature flags that
  * configure Compose behaviour.
