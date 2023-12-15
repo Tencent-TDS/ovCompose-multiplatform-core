@@ -66,11 +66,6 @@ import platform.darwin.NSInteger
 import platform.darwin.NSObject
 
 private val DUMMY_UI_ACCESSIBILITY_CONTAINER = NSObject()
-private const val DEBUG_ACCESSIBILITY = true
-
-interface AccessibilityDebugLogger {
-    fun log(message: Any?)
-}
 
 /**
  * Non-final Kotlin subclasses of Objective-C classes are not yet supported.
@@ -147,6 +142,8 @@ private class AccessibilityScrollView(
     private val checkIfAlive: () -> Boolean
 ): CMPAccessibilityScrollView() {
     init {
+        // TODO: update dynamically using [SemanticProperties.HorizontalScrollAxisRange] and
+        //  [SemanticProperties.VerticalScrollAxisRange]
         setContentSize(CGSizeMake(1000.0, 9000.0))
         setContentOffset(CGPointMake(0.0, 4500.0))
     }
