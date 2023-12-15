@@ -64,6 +64,11 @@ import platform.darwin.NSInteger
 import platform.darwin.NSObject
 
 private val DUMMY_UI_ACCESSIBILITY_CONTAINER = NSObject()
+private const val DEBUG_ACCESSIBILITY = true
+
+interface AccessibilityDebugLogger {
+    fun log(message: Any?)
+}
 
 /**
  * Non-final Kotlin subclasses of Objective-C classes are not yet supported.
@@ -173,8 +178,9 @@ private class AccessibilityScrollView(
 //    override fun accessibilityPerformEscape() =
 //        accessibilityElement.accessibilityPerformEscape()
 
-//    override fun accessibilityElementDidBecomeFocused() =
-//        accessibilityElement.accessibilityElementDidBecomeFocused
+    override fun accessibilityElementDidBecomeFocused() {
+        accessibilityElement.accessibilityElementDidBecomeFocused()
+    }
 
 //    override fun accessibilityElementDidLoseFocus() =
 //        accessibilityElement.accessibilityElementDidLoseFocus
@@ -347,8 +353,16 @@ private class AccessibilityElement(
         }
     }
 
+    override fun accessibilityElementDidBecomeFocused() {
+        super.accessibilityElementDidBecomeFocused()
+
+        print(semanticsNode.config)
+    }
+
     override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
-        println("accessibilityScroll $direction")
+        if (impl is AccessibilityElementScrollImpl) {
+            println("accessibilityScroll $direction")
+        }
 
         if (!isAlive) {
             return false
@@ -654,7 +668,7 @@ private class AccessibilityElement(
         check(indexOfSelf != NSNotFound)
         check(container.accessibilityElementAtIndex(indexOfSelf) == this.actualAccessibilityElement)
 
-        println("${indent}AccessibilityElement_$semanticsNodeId ${semanticsNode.config}")
+        println("${indent}AccessibilityElement_$semanticsNodeId")
         println("$indent  containmentChain: ${debugContainmentChain(this)}")
         println("$indent  isAccessibilityElement: $isAccessibilityElement")
         println("$indent  accessibilityLabel: $accessibilityLabel")
