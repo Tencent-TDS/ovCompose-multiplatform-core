@@ -137,6 +137,7 @@ private class AccessibilityElementScrollImpl(
 }
 
 // TODO: Impl for UIKit interop views
+// TODO: Impl for text input
 
 @ExportObjCClass
 private class AccessibilityScrollView(
@@ -165,6 +166,7 @@ private class AccessibilityScrollView(
 
     override fun accessibilityElementDidBecomeFocused() {
         accessibilityElement.accessibilityElementDidBecomeFocused()
+        // TODO: scroll to the focused element
     }
 
     override fun accessibilityContainer() =
