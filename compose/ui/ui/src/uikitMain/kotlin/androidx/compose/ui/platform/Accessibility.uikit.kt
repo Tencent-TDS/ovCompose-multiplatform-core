@@ -167,7 +167,7 @@ private class AccessibilityScrollView(
     override fun accessibilityActivate() =
         accessibilityElement.accessibilityActivate()
 
-    override fun accessibilityScroll(direction: UIAccessibilityScrollDirection) {
+    override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
         // TODO: doesn't reach here, why?
         println("accessibilityScroll reached AccessibilityScrollView")
         return accessibilityElement.accessibilityScroll(direction)
@@ -362,6 +362,8 @@ private class AccessibilityElement(
     override fun accessibilityElementDidBecomeFocused() {
         super.accessibilityElementDidBecomeFocused()
 
+        println()
+        println("Focused on:")
         println(semanticsNode.config)
     }
 
