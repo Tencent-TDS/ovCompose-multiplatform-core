@@ -63,7 +63,20 @@ import platform.Foundation.NSStringFromClass
 import platform.UIKit.UIApplication
 import platform.UIKit.UIColor
 import platform.UIKit.UIContentSizeCategory
+import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraExtraLarge
+import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraLarge
+import platform.UIKit.UIContentSizeCategoryAccessibilityExtraLarge
+import platform.UIKit.UIContentSizeCategoryAccessibilityLarge
+import platform.UIKit.UIContentSizeCategoryAccessibilityMedium
+import platform.UIKit.UIContentSizeCategoryExtraExtraExtraLarge
+import platform.UIKit.UIContentSizeCategoryExtraExtraLarge
+import platform.UIKit.UIContentSizeCategoryExtraLarge
+import platform.UIKit.UIContentSizeCategoryExtraSmall
+import platform.UIKit.UIContentSizeCategoryLarge
+import platform.UIKit.UIContentSizeCategoryMedium
+import platform.UIKit.UIContentSizeCategorySmall
 import platform.UIKit.UIContentSizeCategoryUnspecified
+import platform.UIKit.UIScreen
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
@@ -257,8 +270,16 @@ internal class ComposeContainer(
     fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext =
         ComposeSceneContextImpl(platformContext)
 
-    fun getContentSizeCategory(): UIContentSizeCategory =
+    private fun getContentSizeCategory(): UIContentSizeCategory =
         traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
+
+    private fun getSystemDensity(): Density {
+        val contentSizeCategory = getContentSizeCategory()
+        return Density(
+            density = UIScreen.mainScreen.scale.toFloat(),
+            fontScale = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
+        )
+    }
 
     private fun createSkikoUIView(renderRelegate: RenderingUIView.Delegate): RenderingUIView =
         RenderingUIView(
@@ -268,14 +289,13 @@ internal class ComposeContainer(
 
     @OptIn(ExperimentalComposeApi::class)
     private fun createComposeScene(
-        density: Density,
         invalidate: () -> Unit,
         platformContext: PlatformContext,
         coroutineContext: CoroutineContext,
     ): ComposeScene = if (configuration.platformLayers) {
         SingleLayerComposeScene(
             coroutineContext = coroutineContext,
-            density = density,
+            density = getSystemDensity(),
             invalidate = invalidate,
             layoutDirection = layoutDirection,
             composeSceneContext = ComposeSceneContextImpl(
@@ -288,7 +308,7 @@ internal class ComposeContainer(
             composeSceneContext = ComposeSceneContextImpl(
                 platformContext = platformContext
             ),
-            density = density,
+            density = getSystemDensity(),
             invalidate = invalidate,
             layoutDirection = layoutDirection,
         )
@@ -297,7 +317,6 @@ internal class ComposeContainer(
     private fun setContent(content: @Composable () -> Unit) {
         val mediator = mediator ?: ComposeSceneMediator(
             container = view,
-            getContentSizeCategory = ::getContentSizeCategory,
             configuration = configuration,
             focusStack = focusStack,
             windowInfo = windowInfo,
@@ -343,8 +362,8 @@ internal class ComposeContainer(
         ): ComposeSceneLayer =
             UIViewComposeSceneLayer(
                 composeContainer = this@ComposeContainer,
-                density = density,
-                layoutDirection = layoutDirection,
+                initDensity = density,
+                initLayoutDirection = layoutDirection,
                 configuration = configuration,
                 focusStack = if (focusable) focusStack else null,
                 windowInfo = windowInfo,
@@ -404,3 +423,24 @@ internal fun ProvideContainerCompositionLocals(
         content = content
     )
 }
+
+internal val uiContentSizeCategoryToFontScaleMap = mapOf(
+    UIContentSizeCategoryExtraSmall to 0.8f,
+    UIContentSizeCategorySmall to 0.85f,
+    UIContentSizeCategoryMedium to 0.9f,
+    UIContentSizeCategoryLarge to 1f, // default preference
+    UIContentSizeCategoryExtraLarge to 1.1f,
+    UIContentSizeCategoryExtraExtraLarge to 1.2f,
+    UIContentSizeCategoryExtraExtraExtraLarge to 1.3f,
+
+    // These values don't work well if they match scale shown by
+    // Text Size control hint, because iOS uses non-linear scaling
+    // calculated by UIFontMetrics, while Compose uses linear.
+    UIContentSizeCategoryAccessibilityMedium to 1.4f, // 160% native
+    UIContentSizeCategoryAccessibilityLarge to 1.5f, // 190% native
+    UIContentSizeCategoryAccessibilityExtraLarge to 1.6f, // 235% native
+    UIContentSizeCategoryAccessibilityExtraExtraLarge to 1.7f, // 275% native
+    UIContentSizeCategoryAccessibilityExtraExtraExtraLarge to 1.8f, // 310% native
+
+    // UIContentSizeCategoryUnspecified
+)

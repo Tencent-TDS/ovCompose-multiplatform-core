@@ -39,8 +39,8 @@ import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 
 internal class UIViewComposeSceneLayer(
     private val composeContainer: ComposeContainer,
-    density: Density,
-    layoutDirection: LayoutDirection,
+    private val initDensity: Density,
+    private val initLayoutDirection: LayoutDirection,
     configuration: ComposeUIViewControllerConfiguration,
     focusStack: FocusStack<UIView>?,
     windowInfo: WindowInfo,
@@ -51,7 +51,6 @@ internal class UIViewComposeSceneLayer(
     private val mediator by lazy {
         ComposeSceneMediator(
             container = composeContainer.view.window ?: composeContainer.view,
-            getContentSizeCategory = composeContainer::getContentSizeCategory,
             configuration = configuration,
             focusStack = focusStack,
             windowInfo = windowInfo,
@@ -74,7 +73,6 @@ internal class UIViewComposeSceneLayer(
         )
 
     private fun createComposeScene(
-        density: Density,
         invalidate: () -> Unit,
         platformContext: PlatformContext,
         coroutineContext: CoroutineContext,
@@ -82,21 +80,14 @@ internal class UIViewComposeSceneLayer(
         SingleLayerComposeScene(
             coroutineContext = coroutineContext,
             composeSceneContext = composeContainer.createComposeSceneContext(platformContext),
-            density = this.density, // We should use the local density already set for the current layer.
+            density = initDensity, // We should use the local density already set for the current layer.
             invalidate = invalidate,
-            layoutDirection = layoutDirection,
+            layoutDirection = initLayoutDirection,
         )
 
-    override var density: Density = density
-        set(value) {
-            field = value
-            //todo set density to mediator and scene
-        }
-    override var layoutDirection: LayoutDirection = layoutDirection
-        set(value) {
-            field = value
-            //todo set layoutDirection to mediator and scene
-        }
+    override var density by mediator::density
+    override var layoutDirection by mediator::layoutDirection
+
     override var bounds: IntRect
         get() = mediator.getBoundsInPx()
         set(value) {
