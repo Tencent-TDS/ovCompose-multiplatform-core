@@ -40,12 +40,13 @@ import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.toDpOffset
+import androidx.compose.ui.toDpRect
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpRect
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -72,7 +73,6 @@ import org.jetbrains.skiko.SkikoKeyboardEvent
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
 import platform.CoreGraphics.CGPoint
-import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
@@ -573,10 +573,6 @@ internal class ComposeSceneMediator(
     var layoutDirection by scene::layoutDirection
 
 }
-
-internal fun CGSize.toDpSize(): DpSize = DpSize(width.dp, height.dp)
-internal fun CGPoint.toDpOffset(): DpOffset = DpOffset(x.dp, y.dp)
-internal fun CGRect.toDpRect(): DpRect = DpRect(origin.toDpOffset(), size.toDpSize())
 
 internal fun getConstraintsToFillParent(view: UIView, parent: UIView) =
     listOf(

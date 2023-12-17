@@ -33,7 +33,13 @@ import androidx.compose.ui.window.ProvideContainerCompositionLocals
 import androidx.compose.ui.window.RenderingUIView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
+import kotlinx.cinterop.readValue
+import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
+import platform.UIKit.NSLayoutConstraint
+import platform.UIKit.UIColor
+import platform.UIKit.UIEvent
 import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 
@@ -47,6 +53,17 @@ internal class UIViewComposeSceneLayer(
     compositionContext: CompositionContext,
     compositionLocalContext: CompositionLocalContext?,
 ) : ComposeSceneLayer {
+
+    override var focusable: Boolean = focusStack != null
+    private var onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)? = null
+    private val backgroundView: UIView = object : UIView(
+        frame = CGRectZero.readValue()
+    ) {
+        override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
+            onOutsidePointerEvent?.invoke(true)
+            return focusable
+        }
+    }
 
     private val mediator by lazy {
         ComposeSceneMediator(
@@ -64,6 +81,12 @@ internal class UIViewComposeSceneLayer(
 
     init {
         composeContainer.attachLayer(this)
+        val root = composeContainer.view.window ?: composeContainer.view
+        backgroundView.translatesAutoresizingMaskIntoConstraints = false
+        root.addSubview(backgroundView)
+        NSLayoutConstraint.activateConstraints(
+            getConstraintsToFillParent(backgroundView, root)
+        )
     }
 
     private fun createSkikoUIView(renderDelegate: RenderingUIView.Delegate): RenderingUIView =
@@ -96,11 +119,16 @@ internal class UIViewComposeSceneLayer(
             )
         }
     override var scrimColor: Color? = null
-    override var focusable: Boolean = focusStack != null
+        get() = field
+        set(value) {
+            field = value
+            backgroundView.setBackgroundColor(value?.toUIColor())
+        }
 
     override fun close() {
         mediator.dispose()
         composeContainer.detachLayer(this)
+        backgroundView.removeFromSuperview()
     }
 
     override fun setContent(content: @Composable () -> Unit) {
@@ -121,7 +149,7 @@ internal class UIViewComposeSceneLayer(
     override fun setOutsidePointerEventListener(
         onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)?
     ) {
-        //todo
+        this.onOutsidePointerEvent = onOutsidePointerEvent
     }
 
     fun viewDidAppear(animated: Boolean) {
@@ -148,3 +176,10 @@ internal class UIViewComposeSceneLayer(
     }
 
 }
+
+private fun Color.toUIColor() = UIColor(
+    red = red.toDouble(),
+    green = green.toDouble(),
+    blue = blue.toDouble(),
+    alpha = alpha.toDouble(),
+)
