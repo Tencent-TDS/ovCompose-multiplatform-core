@@ -56,9 +56,18 @@ internal class UIViewComposeSceneLayer(
 
     override var focusable: Boolean = focusStack != null
     private var onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)? = null
+    private val rootView = composeContainer.view.window ?: composeContainer.view
     private val backgroundView: UIView = object : UIView(
         frame = CGRectZero.readValue()
     ) {
+        init {
+            translatesAutoresizingMaskIntoConstraints = false
+            rootView.addSubview(this)
+            NSLayoutConstraint.activateConstraints(
+                getConstraintsToFillParent(this, rootView)
+            )
+        }
+
         override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
             //TODO pass invoke(true) on touch up event only when this touch event begins outside of layer bounds.
             // Also it should be only one touch event (not multitouch with 2 and more touches).
@@ -70,7 +79,7 @@ internal class UIViewComposeSceneLayer(
 
     private val mediator by lazy {
         ComposeSceneMediator(
-            container = composeContainer.view.window ?: composeContainer.view,
+            container = rootView,
             configuration = configuration,
             focusStack = focusStack,
             windowInfo = windowInfo,
@@ -84,12 +93,6 @@ internal class UIViewComposeSceneLayer(
 
     init {
         composeContainer.attachLayer(this)
-        val root = composeContainer.view.window ?: composeContainer.view
-        backgroundView.translatesAutoresizingMaskIntoConstraints = false
-        root.addSubview(backgroundView)
-        NSLayoutConstraint.activateConstraints(
-            getConstraintsToFillParent(backgroundView, root)
-        )
     }
 
     private fun createSkikoUIView(renderDelegate: RenderingUIView.Delegate): RenderingUIView =
