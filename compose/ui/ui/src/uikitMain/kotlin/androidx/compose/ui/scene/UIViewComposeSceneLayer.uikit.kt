@@ -60,6 +60,9 @@ internal class UIViewComposeSceneLayer(
         frame = CGRectZero.readValue()
     ) {
         override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
+            //TODO pass invoke(true) on touch up event only when this touch event begins outside of layer bounds.
+            // Also it should be only one touch event (not multitouch with 2 and more touches).
+            // In other cases pass invoke(false)
             onOutsidePointerEvent?.invoke(true)
             return focusable
         }
