@@ -47,7 +47,9 @@ internal class PlatformWindowContext {
         _windowInfo.isWindowFocused = focused
     }
 
-    fun setContainerSize(size: IntSize) {
+    fun setContainerSize(containerSize: Size) {
+        // TODO: support float size for containerSize
+        val size = IntSize(containerSize.width.toInt(), containerSize.height.toInt())
         if (_windowInfo.containerSize != size) {
             _windowInfo.containerSize = size
         }
