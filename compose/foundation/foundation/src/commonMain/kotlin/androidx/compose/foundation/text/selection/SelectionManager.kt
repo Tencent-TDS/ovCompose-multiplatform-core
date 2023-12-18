@@ -19,6 +19,7 @@ package androidx.compose.foundation.text.selection
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.text.Handle
 import androidx.compose.foundation.text.TextDragObserver
@@ -125,12 +126,39 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
      */
     var hasFocus: Boolean by mutableStateOf(false)
 
+    private fun Modifier.multipleTapHandler(
+        onDoubleTap: ((Offset) -> Unit),
+        onTripleTap: (() -> Unit)
+    ): Modifier {
+        return if (true) {
+            pointerInput(Unit) {
+                detectTapGestures(onDoubleTap = { offset ->
+                    onDoubleTap(offset)
+                })
+            }
+        } else {
+            this
+        }
+    }
+
     /**
      * Modifier for selection container.
      */
     val modifier
         get() = Modifier
             .onClearSelectionRequested { onRelease() }
+            .multipleTapHandler(onDoubleTap = {
+                val newPosition = it
+                println("newPosition = $newPosition")
+                val dragBeginPosition = requireContainerCoordinates().localPositionOf(containerLayoutCoordinates!!, newPosition)
+                startSelection(
+                    position = dragBeginPosition,
+                    isStartHandle = false,
+                    adjustment = SelectionAdjustment.Word
+                )
+                focusRequester.requestFocus()
+
+            }, onTripleTap = {})
             .onGloballyPositioned { containerLayoutCoordinates = it }
             .focusRequester(focusRequester)
             .onFocusChanged { focusState ->
