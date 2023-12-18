@@ -47,6 +47,7 @@ internal class SwingSkiaLayerComponent(
             override fun addNotify() {
                 super.addNotify()
                 bridge.resetSceneDensity()
+                bridge.initContent()
                 bridge.updateSceneSize()
             }
 

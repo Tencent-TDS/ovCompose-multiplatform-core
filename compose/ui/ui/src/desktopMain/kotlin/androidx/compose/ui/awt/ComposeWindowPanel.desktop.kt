@@ -196,7 +196,6 @@ internal class ComposeWindowPanel(
 
     override fun addNotify() {
         super.addNotify()
-        bridge.initContent()
         bridge.component.requestFocus()
     }
 

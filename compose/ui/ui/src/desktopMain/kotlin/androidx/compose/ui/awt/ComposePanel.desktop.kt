@@ -220,7 +220,6 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
             initContent()
 
             bridge.setParentWindow(SwingUtilities.getWindowAncestor(this))
-            bridge.initContent()
 
             addToLayer(bridge.invisibleComponent, bridgeLayer)
             addToLayer(bridge.component, bridgeLayer)
