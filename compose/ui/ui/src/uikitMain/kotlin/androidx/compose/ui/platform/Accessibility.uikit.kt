@@ -365,15 +365,7 @@ private class AccessibilityElement(
         println(semanticsNode.config)
     }
 
-    override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
-        if (!isAlive) {
-            return false
-        }
-
-        if (impl !is AccessibilityElementScrollImpl) {
-            return false
-        }
-
+    private fun scrollIfPossible(direction: UIAccessibilityScrollDirection): Boolean {
         val (width, height) = semanticsNode.size
 
         when (direction) {
@@ -452,7 +444,15 @@ private class AccessibilityElement(
             }
         }
 
-        return parent?.accessibilityScroll(direction) ?: false
+        return parent?.scrollIfPossible(direction) ?: false
+    }
+
+    override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
+        if (!isAlive) {
+            return false
+        }
+
+        return scrollIfPossible(direction)
     }
 
     /**
