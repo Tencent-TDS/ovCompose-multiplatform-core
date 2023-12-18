@@ -139,12 +139,12 @@ internal class ComposeBridge(
     internal var isWindowTransparent by windowContext::isWindowTransparent
 
     private val semanticsOwnerListener = DesktopSemanticsOwnerListener()
-    val sceneAccessible = ComposeSceneAccessible {
+    val accessible = ComposeSceneAccessible {
         semanticsOwnerListener.accessibilityControllers
     }
 
     private val sceneCoroutineContext = MainUIDispatcher + coroutineExceptionHandler
-    internal val scene = MultiLayerComposeScene(
+    private val scene = MultiLayerComposeScene(
         coroutineContext = sceneCoroutineContext,
         composeSceneContext = object : ComposeSceneContext {
             override val platformContext get() = this@ComposeBridge.platformContext
@@ -155,6 +155,8 @@ internal class ComposeBridge(
             skiaLayerComponent.onComposeInvalidation()
         },
     )
+    val focusManager by scene::focusManager
+    var layoutDirection by scene::layoutDirection
 
     var compositionLocalContext: CompositionLocalContext? by scene::compositionLocalContext
 
@@ -182,7 +184,7 @@ internal class ComposeBridge(
      *
      * See [androidx.compose.ui.awt.ComposePanelTest] test `initial panel size of LazyColumn with border layout`
      */
-    val scenePreferredSize: Dimension
+    val preferredSize: Dimension
         get() {
             val contentSize = scene.calculateContentSize()
             return Dimension(
