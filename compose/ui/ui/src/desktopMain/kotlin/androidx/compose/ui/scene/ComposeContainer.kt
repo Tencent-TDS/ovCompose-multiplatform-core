@@ -56,6 +56,8 @@ internal class ComposeContainer(
     val container: JLayeredPane,
     private val skiaLayerAnalytics: SkiaLayerAnalytics,
     window: Window? = null,
+
+    private val useSwingGraphics: Boolean = ComposeFeatureFlags.useSwingGraphics,
 ) : ComponentListener, WindowFocusListener {
     val windowContext = PlatformWindowContext()
     var window: Window? = null
@@ -183,7 +185,7 @@ internal class ComposeContainer(
     }
 
     private fun createSkiaLayerComponent(bridge: ComposeBridge): SkiaLayerComponent {
-        return if (ComposeFeatureFlags.useSwingGraphics) {
+        return if (useSwingGraphics) {
             SwingSkiaLayerComponent(skiaLayerAnalytics, bridge)
         } else {
             WindowSkiaLayerComponent(skiaLayerAnalytics, windowContext, bridge)

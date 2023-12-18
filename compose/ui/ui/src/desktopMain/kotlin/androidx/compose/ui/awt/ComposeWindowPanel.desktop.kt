@@ -51,8 +51,12 @@ internal class ComposeWindowPanel(
     // (see https://github.com/JetBrains/compose-jb/issues/1688),
     // so we nullify bridge on dispose, to prevent keeping
     // big objects in memory (like the whole LayoutNode tree of the window)
-    private var _composeContainer: ComposeContainer? =
-        ComposeContainer(this, skiaLayerAnalytics, window)
+    private var _composeContainer: ComposeContainer? = ComposeContainer(
+        container = this,
+        skiaLayerAnalytics = skiaLayerAnalytics,
+        window = window,
+        useSwingGraphics = false
+    )
     private val composeContainer
         get() = requireNotNull(_composeContainer) {
             "ComposeContainer is disposed"
