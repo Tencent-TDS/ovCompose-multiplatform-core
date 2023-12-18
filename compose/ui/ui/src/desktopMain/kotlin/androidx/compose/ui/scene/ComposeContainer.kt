@@ -30,12 +30,8 @@ import androidx.compose.ui.scene.skia.WindowSkiaLayerComponent
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.layoutDirectionFor
-import androidx.compose.ui.window.scaledSize
 import java.awt.Component
-import java.awt.Rectangle
 import java.awt.Window
-import java.awt.event.ComponentEvent
-import java.awt.event.ComponentListener
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
 import javax.swing.JLayeredPane
@@ -137,7 +133,6 @@ internal class ComposeContainer(
 
     fun setBounds(x: Int, y: Int, width: Int, height: Int) {
         bridge.contentComponent.setSize(width, height)
-        windowContext.setContainerSize(container.scaledSize)
     }
 
     private fun setWindow(window: Window?) {

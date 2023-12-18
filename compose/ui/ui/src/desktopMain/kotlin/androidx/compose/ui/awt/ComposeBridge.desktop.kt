@@ -28,7 +28,6 @@ import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
-import androidx.compose.ui.scene.skia.SwingSkiaLayerComponent
 import androidx.compose.ui.scene.toPointerKeyboardModifiers
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.PlatformTextInputService
@@ -389,6 +388,7 @@ internal class ComposeBridge(
             width = (contentComponent.width * scale).toInt(),
             height = (contentComponent.height * scale).toInt()
         )
+        windowContext.setContainerSize(size)
 
         // Zero size will literally limit scene's content size to zero,
         // so it case of late initialization skip this to avoid extra layout run.
