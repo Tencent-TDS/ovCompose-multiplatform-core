@@ -98,6 +98,12 @@ private fun getTapHandlerModifier(
         detectRepeatingTapGestures(
             onTap = { touchPointOffset ->
                 if (currentState.hasFocus) {
+                    // To show keyboard if it was hidden. Even in selection mode (like native)
+                    tapTextFieldToFocus(
+                        currentState,
+                        currentFocusRequester,
+                        !currentReadOnly
+                    )
                     if (currentState.handleState != HandleState.Selection) {
                         currentState.layoutResult?.let { layoutResult ->
                             TextFieldDelegate.cupertinoSetCursorOffsetFocused(
