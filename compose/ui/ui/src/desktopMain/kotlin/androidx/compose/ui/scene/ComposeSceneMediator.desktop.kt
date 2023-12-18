@@ -248,9 +248,43 @@ internal class ComposeSceneMediator(
         }
     }
 
+    // Decides which AWT events should be delivered, and which should be filtered out
+    private val awtEventFilter = object {
+
+        var isPrimaryButtonPressed = false
+
+        fun shouldSendMouseEvent(event: MouseEvent): Boolean {
+            // AWT can send events after the window is disposed
+            if (isDisposed)
+                return false
+
+            // Filter out mouse events that report a change in the pressed state of the primary
+            // button, but aren't themselves mouse press/release events.
+            // See https://github.com/JetBrains/compose-multiplatform/issues/2850 for details
+            val eventReportsPrimaryButtonPressed =
+                (event.modifiersEx and MouseEvent.BUTTON1_DOWN_MASK) != 0
+            if (eventReportsPrimaryButtonPressed != isPrimaryButtonPressed) {
+                isPrimaryButtonPressed = when (event.id) {
+                    MouseEvent.MOUSE_PRESSED -> true
+                    MouseEvent.MOUSE_RELEASED -> false
+                    else -> return false  // Note the return
+                }
+            }
+
+            return true
+        }
+
+        @Suppress("UNUSED_PARAMETER")
+        fun shouldSendKeyEvent(event: KeyEvent): Boolean {
+            // AWT can send events after the window is disposed
+            return !isDisposed
+        }
+    }
+
     private fun onMouseEvent(event: MouseEvent): Unit = catchExceptions {
-        // AWT can send events after the window is disposed
-        if (isDisposed) return@catchExceptions
+        if (!awtEventFilter.shouldSendMouseEvent(event))
+            return@catchExceptions
+
         if (keyboardModifiersRequireUpdate) {
             keyboardModifiersRequireUpdate = false
             windowContext.setKeyboardModifiers(event.keyboardModifiers)
@@ -259,12 +293,16 @@ internal class ComposeSceneMediator(
     }
 
     private fun onMouseWheelEvent(event: MouseWheelEvent): Unit = catchExceptions {
-        if (isDisposed) return@catchExceptions
+        if (!awtEventFilter.shouldSendMouseEvent(event))
+            return@catchExceptions
+
         scene.onMouseWheelEvent(density, event)
     }
 
     private fun onKeyEvent(event: KeyEvent) = catchExceptions {
-        if (isDisposed) return@catchExceptions
+        if (!awtEventFilter.shouldSendKeyEvent(event))
+            return@catchExceptions
+
         textInputService.onKeyEvent(event)
         windowContext.setKeyboardModifiers(event.toPointerKeyboardModifiers())
 
