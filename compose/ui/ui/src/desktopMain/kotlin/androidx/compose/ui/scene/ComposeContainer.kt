@@ -58,7 +58,7 @@ internal class ComposeContainer(
     window: Window? = null,
 
     private val useSwingGraphics: Boolean = ComposeFeatureFlags.useSwingGraphics,
-) : ComponentListener, WindowFocusListener {
+) : WindowFocusListener {
     val windowContext = PlatformWindowContext()
     var window: Window? = null
         private set
@@ -99,22 +99,12 @@ internal class ComposeContainer(
         bridge.dispose()
     }
 
-    override fun componentResized(e: ComponentEvent?) = onChangeWindowBounds()
-    override fun componentMoved(e: ComponentEvent?) = onChangeWindowBounds()
-    override fun componentShown(e: ComponentEvent?) = Unit
-    override fun componentHidden(e: ComponentEvent?) = Unit
-
     override fun windowGainedFocus(event: WindowEvent) = onChangeWindowFocus()
     override fun windowLostFocus(event: WindowEvent) = onChangeWindowFocus()
 
     private fun onChangeWindowFocus() {
         windowContext.setWindowFocused(window?.isFocused ?: false)
         bridge.onChangeWindowFocus()
-    }
-
-    private fun onChangeWindowBounds() {
-        val component = window ?: container
-        windowContext.setContainerSize(component.scaledSize)
     }
 
     fun onChangeWindowTransparency(value: Boolean) {
@@ -147,10 +137,7 @@ internal class ComposeContainer(
 
     fun setBounds(x: Int, y: Int, width: Int, height: Int) {
         bridge.contentComponent.setSize(width, height)
-
-        // In case of preferred size there is no separate event for changing window size,
-        // so re-checking the actual size on container resize too.
-        onChangeWindowBounds()
+        windowContext.setContainerSize(container.scaledSize)
     }
 
     private fun setWindow(window: Window?) {
@@ -159,14 +146,11 @@ internal class ComposeContainer(
         }
 
         this.window?.removeWindowFocusListener(this)
-        this.window?.removeComponentListener(this)
-
-        window?.addComponentListener(this)
         window?.addWindowFocusListener(this)
+
         this.window = window
 
         onChangeWindowFocus()
-        onChangeWindowBounds()
     }
 
     fun setKeyEventListeners(
