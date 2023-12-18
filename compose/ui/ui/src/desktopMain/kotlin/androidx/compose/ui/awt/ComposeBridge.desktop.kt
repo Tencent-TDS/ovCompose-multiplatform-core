@@ -132,11 +132,11 @@ internal class ComposeBridge(
         }
     }
 
-    private val windowInfo = WindowInfoImpl()
+    val windowContext = PlatformWindowContext()
     private val desktopTextInputService = DesktopTextInputService(platformComponent)
     private val platformContext = DesktopPlatformContext()
     internal var rootForTestListener: PlatformContext.RootForTestListener? by DelegateRootForTestListener()
-    internal var isWindowTransparent by platformContext::isWindowTransparent
+    internal var isWindowTransparent by windowContext::isWindowTransparent
 
     private val semanticsOwnerListener = DesktopSemanticsOwnerListener()
     val sceneAccessible = ComposeSceneAccessible {
@@ -347,7 +347,7 @@ internal class ComposeBridge(
     }
 
     private fun setCurrentKeyboardModifiers(modifiers: PointerKeyboardModifiers) {
-        windowInfo.keyboardModifiers = modifiers
+        windowContext.setKeyboardModifiers(modifiers)
     }
 
     fun updateSceneSize() {
@@ -356,7 +356,7 @@ internal class ComposeBridge(
             width = (component.width * scale).toInt(),
             height = (component.height * scale).toInt()
         )
-        windowInfo.containerSize = size
+        windowContext.setContainerSize(size)
 
         // Zero size will literally limit scene's content size to zero,
         // so it case of late initialization skip this to avoid extra layout run.
@@ -378,7 +378,7 @@ internal class ComposeBridge(
     }
 
     private fun refreshWindowFocus() {
-        windowInfo.isWindowFocused = window?.isFocused ?: false
+        windowContext.setWindowFocused(window?.isFocused ?: false)
         keyboardModifiersRequireUpdate = true
     }
 
@@ -450,8 +450,8 @@ internal class ComposeBridge(
     }
 
     protected inner class DesktopPlatformContext : PlatformContext by PlatformContext.Empty {
-        override val windowInfo: WindowInfo get() = this@ComposeBridge.windowInfo
-        override var isWindowTransparent: Boolean = false
+        override val windowInfo: WindowInfo get() = windowContext.windowInfo
+        override val isWindowTransparent: Boolean get() = windowContext.isWindowTransparent
         override val viewConfiguration: ViewConfiguration = DesktopViewConfiguration()
         override val textInputService: PlatformTextInputService = desktopTextInputService
 
