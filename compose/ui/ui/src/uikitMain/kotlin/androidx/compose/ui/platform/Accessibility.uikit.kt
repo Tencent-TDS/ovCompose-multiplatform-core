@@ -68,142 +68,11 @@ import platform.darwin.NSObject
 
 private val DUMMY_UI_ACCESSIBILITY_CONTAINER = NSObject()
 
-/**
- * Non-final Kotlin subclasses of Objective-C classes are not yet supported.
- *
- * This is a workaround that allows making behavior of AccessibilityElement dynamic.
- */
-private sealed class AccessibilityElementImpl(
-    protected val accessibilityElement: AccessibilityElement
-) {
-    abstract val actualAccessibilityElement: Any
-
-    protected var wasDisposed = false
-
-    /**
-     * The situation where the owning element is alive but the implementation was disposed is possible
-     * when implementation changes, but the owning element is still alive.
-     * For example, when the element gets scrollable semantics, the [AccessibilityElement.impl] changes from
-     * [AccessibilityElementBaseImpl] to [AccessibilityElementScrollImpl].
-     */
-    protected val isAlive: Boolean
-        get() = accessibilityElement.isAlive && !wasDisposed
-
-    open fun dispose() {
-        check(!wasDisposed)
-
-        wasDisposed = true
-    }
-}
-
-/**
- * Basic implementation that returns the owning accessibility element as the actual accessibility element
- * communicated to iOS accessibility services.
- */
-private class AccessibilityElementBaseImpl(
-    accessibilityElement: AccessibilityElement
-) : AccessibilityElementImpl(accessibilityElement) {
-    override val actualAccessibilityElement: Any
-        get() = accessibilityElement
-}
-
-/**
- * Implementation that returns a dummy UIScrollView as the actual accessibility element, allowing
- * usage of native scrolling capabilities of iOS accessibility services, which are then propagated
- * towards compose.
- */
-private class AccessibilityElementScrollImpl(
-    accessibilityElement: AccessibilityElement,
-    view: UIView,
-): AccessibilityElementImpl(accessibilityElement) {
-    private val scrollView = AccessibilityScrollView(accessibilityElement, checkIfAlive = {
-        isAlive
-    })
-
-    override val actualAccessibilityElement: Any
-        get() = scrollView
-
-    init {
-        view.addSubview(scrollView)
-    }
-
-    override fun dispose() {
-        super.dispose()
-
-        scrollView.removeFromSuperview()
-    }
-}
-
 // TODO: Impl for UIKit interop views
 // TODO: Impl for text input
 
-@ExportObjCClass
-private class AccessibilityScrollView(
-    private val accessibilityElement: AccessibilityElement,
-    private val checkIfAlive: () -> Boolean
-): CMPAccessibilityScrollView() {
-    init {
-        // TODO: update dynamically using [SemanticProperties.HorizontalScrollAxisRange] and
-        //  [SemanticProperties.VerticalScrollAxisRange]
-        setContentSize(CGSizeMake(1000.0, 9000.0))
-        setContentOffset(CGPointMake(0.0, 4500.0))
-    }
-    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
-        return null
-    }
-
-    // TODO: implement a proper one
-    override fun isAccessibilityElement(): Boolean =
-        checkIfAlive() && accessibilityElement.isAccessibilityElement
-
-    override fun accessibilityLabel() =
-        accessibilityElement.accessibilityLabel
-
-    override fun accessibilityHint() =
-        accessibilityElement.accessibilityHint
-
-    override fun accessibilityActivate() =
-        accessibilityElement.accessibilityActivate()
-
-    override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
-        // TODO: doesn't reach here, why?
-        println("accessibilityScroll reached AccessibilityScrollView")
-        return accessibilityElement.accessibilityScroll(direction)
-    }
-
-    override fun accessibilityElementDidBecomeFocused() {
-        accessibilityElement.accessibilityElementDidBecomeFocused()
-        // TODO: scroll to the focused element
-    }
-
-    override fun accessibilityContainer() =
-        accessibilityElement.accessibilityContainer
-
-    override fun accessibilityElementCount() =
-        accessibilityElement.childrenCount
-
-    // TODO: redeclare missing methods
-//    override fun accessibilityIncrement() =
-//        accessibilityElement.accessibilityIncrement()
-
-//    override fun accessibilityDecrement() =
-//        accessibilityElement.accessibilityDecrement()
-
-//    override fun accessibilityPerformEscape() =
-//        accessibilityElement.accessibilityPerformEscape()
-
-//    override fun accessibilityElementDidLoseFocus() =
-//        accessibilityElement.accessibilityElementDidLoseFocus
-}
-
 /**
- * Represents a projection of the Compose semantics node to the iOS world. The actual accessibility
- * object communicated to iOS accessibility services is returned by [actualAccessibilityElement]
- * property.
- *
- * For default implementation, it's the same object as the [AccessibilityElement] itself, but it can
- * be overriden by subclasses to return a different object (like a dummy UIScrollView, UITextInput,
- * etc.)
+ * Represents a projection of the Compose semantics node to the iOS world.
  *
  * The object itself is a node in a generated tree that matches 1-to-1 with the [SemanticsNode]
  * tree. The actual tree that is communicated to iOS accessibility services is synthesized from it
@@ -232,12 +101,6 @@ private class AccessibilityElement(
     val childrenCount: NSInteger
         get() = children.size.toLong()
 
-    /**
-     * The actual accessibility object communicated to iOS accessibility services.
-     */
-    val actualAccessibilityElement: Any
-        get() = impl.actualAccessibilityElement
-
     var parent: AccessibilityElement? = null
         private set
 
@@ -245,20 +108,6 @@ private class AccessibilityElement(
         private set
 
     private var children = mutableListOf<AccessibilityElement>()
-
-    private var impl: AccessibilityElementImpl = AccessibilityElementBaseImpl(this)
-        set(value) {
-            if (!isAlive) {
-                return
-            }
-
-            if (impl == value) {
-                return
-            }
-
-            field.dispose()
-            field = value
-        }
 
     /**
      * Constructed lazily if :
@@ -298,19 +147,17 @@ private class AccessibilityElement(
             // 1. The element is a container, and it's the same as the container of the child.
             // 2. The element is an actual accessibility element, and it's the same as one of the child.
             // The first case is true if the child has children itself, and hence [AccessibilityContainer] was communicated to iOS.
-            // The second case is true if the child doesn't have children, and hence its [actualAccessibilityElement] was communicated to iOS.
+            // The second case is true if the child doesn't have children, and hence itself was communicated to iOS.
 
             if (child.hasChildren) {
                 // accessibilityContainerOfObject retrieves the container of the given element in
                 // ObjC via dispatching `accessibilityContainer` to type erased `id` object.
                 // In [AccessibilityElement] it will resolve to the synthesized container.
-                // Inherited classes with custom [actualAccessibilityElement] can have their own resolution
-                // path.
-                if (element == accessibilityContainerOfObject(child.actualAccessibilityElement)) {
+                if (element == accessibilityContainerOfObject(child)) {
                     return index.toLong()
                 }
             } else {
-                if (element == child.actualAccessibilityElement) {
+                if (element == child) {
                     return index.toLong()
                 }
             }
@@ -325,8 +172,6 @@ private class AccessibilityElement(
         }
 
         isAlive = false
-
-        impl.dispose()
     }
 
     override fun accessibilityActivate(): Boolean {
@@ -478,14 +323,9 @@ private class AccessibilityElement(
         isAccessibilityElement = false
 
         var hasAnyMeaningfulSemantics = false
-        var hasScrollSemantics = false
 
         fun onMeaningfulSemanticAdded() {
             hasAnyMeaningfulSemantics = true
-        }
-
-        fun onScrollSemanticsAdded() {
-            hasScrollSemantics = true
         }
 
         var testTag: String? = null
@@ -510,13 +350,14 @@ private class AccessibilityElement(
                     return
                 }
 
+                // Used lazily in [accessibilityScroll]
+                /*
                 SemanticsProperties.VerticalScrollAxisRange -> {
-                    onScrollSemanticsAdded()
                 }
 
                 SemanticsProperties.HorizontalScrollAxisRange -> {
-                    onScrollSemanticsAdded()
                 }
+                */
 
                 SemanticsProperties.LiveRegion -> {
                     // TODO: proper implementation
@@ -600,29 +441,26 @@ private class AccessibilityElement(
                     onMeaningfulSemanticAdded()
                 }
 
+                // Used lazily in [accessibilityScroll]
+                /*
                 SemanticsActions.PageUp -> {
-                    onScrollSemanticsAdded()
                 }
 
                 SemanticsActions.PageDown -> {
-                    onScrollSemanticsAdded()
                 }
 
                 SemanticsActions.PageLeft -> {
-                    onScrollSemanticsAdded()
                 }
 
                 SemanticsActions.PageRight -> {
-                    onScrollSemanticsAdded()
                 }
 
                 SemanticsActions.ScrollBy -> {
-                    onScrollSemanticsAdded()
                 }
 
                 SemanticsActions.ScrollToIndex -> {
-                    onScrollSemanticsAdded()
                 }
+                */
 
                 SemanticsActions.CustomActions -> {
                     onMeaningfulSemanticAdded()
@@ -648,33 +486,6 @@ private class AccessibilityElement(
         if (accessibilityValueStrings.isNotEmpty()) {
             onMeaningfulSemanticAdded()
             accessibilityValue = accessibilityLabelStrings.joinToString("\n") { it }
-        }
-
-        // TODO: review [impl] recreation logic when new semantics are supported
-        if (hasScrollSemantics) {
-            println("hasScrollSemantics")
-            println(semanticsNode.config)
-            when (impl) {
-                !is AccessibilityElementScrollImpl -> {
-                    println("Creating scroll semantics")
-                    impl = AccessibilityElementScrollImpl(
-                        accessibilityElement = this,
-                        view = mediator.view
-                    )
-                    // TODO: make it correctly
-                    (impl.actualAccessibilityElement as UIScrollView).setFrame(mediator.convertRectToWindowSpaceCGRect(semanticsNode.boundsInWindow))
-                }
-
-                else -> { /* Do nothing */}
-            }
-        } else {
-            when (impl) {
-                is AccessibilityElementScrollImpl -> {
-                    impl = AccessibilityElementBaseImpl(this)
-                }
-
-                else -> { /* Do nothing */}
-            }
         }
 
         this.accessibilityTraits = accessibilityTraits
@@ -721,7 +532,7 @@ private class AccessibilityElement(
         val indexOfSelf = container.indexOfAccessibilityElement(this)
 
         check(indexOfSelf != NSNotFound)
-        check(container.accessibilityElementAtIndex(indexOfSelf) == this.actualAccessibilityElement)
+        check(container.accessibilityElementAtIndex(indexOfSelf) == this)
 
         println("${indent}AccessibilityElement_$semanticsNodeId")
         println("$indent  containmentChain: ${debugContainmentChain(this)}")
@@ -748,16 +559,11 @@ private class AccessibilityElement(
  * Is expected by iOS Accessibility services to be represented as:
  * ```
  * AccessibilityContainer_A
- *     AccessibilityElement_A -> AccessibilityElement
+ *     AccessibilityElement_A
  *     AccessibilityContainer_B
- *         AccessibilityElement_B -> AccessibilityElement
- *         AccessibilityElement_C -> AccessibilityElement
+ *         AccessibilityElement_B
+ *         AccessibilityElement_C
  * ```
- *
- * ` -> ` above designates [AccessibilityElement.actualAccessibilityElement] property,
- * [AccessibilityElement] default implementation returns itself. However, it can be overriden
- * in subclasses to return a different object (like a dummy UIScrollView, UITextInput, etc.)
- *
  * The actual internal representation of the tree is:
  * ```
  * AccessibilityElement_A
@@ -796,14 +602,10 @@ private class AccessibilityContainer(
      *
      * The zero element is always the element wrapped by this container due to the restriction of
      * an object not being able to be a container and an element at the same time.
-     *
-     * Consequent elements correspond to the children of the [wrappedElement]:
-     * - The [actualAccessibilityElement] if the child is a leaf node.
-     * - The synthesized [CMPAccessibilityContainer] otherwise
      */
     override fun accessibilityElementAtIndex(index: NSInteger): Any? {
         if (index == 0L) {
-            return wrappedElement.actualAccessibilityElement
+            return wrappedElement
         }
 
         val child = wrappedElement.childAtIndex(index - 1) ?: return null
@@ -812,7 +614,7 @@ private class AccessibilityContainer(
             return child.accessibilityContainer
         }
 
-        return child.actualAccessibilityElement
+        return child
     }
 
     override fun accessibilityFrame(): CValue<CGRect> {
@@ -833,7 +635,7 @@ private class AccessibilityContainer(
      * Reverse lookup of [accessibilityElementAtIndex]
      */
     override fun indexOfAccessibilityElement(element: Any): NSInteger {
-        if (element == wrappedElement.actualAccessibilityElement) {
+        if (element == wrappedElement) {
             return 0
         }
 

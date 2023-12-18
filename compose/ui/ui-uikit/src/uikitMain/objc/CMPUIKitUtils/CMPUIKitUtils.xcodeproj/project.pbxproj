@@ -16,7 +16,6 @@
 		997DFCFD2B18E5D3000B56B5 /* CMPUIKitUtilsTestApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 997DFCFC2B18E5D3000B56B5 /* CMPUIKitUtilsTestApp.swift */; };
 		EA70A7EB2B27106100300068 /* CMPAccessibilityElement.m in Sources */ = {isa = PBXBuildFile; fileRef = EA70A7E82B27106100300068 /* CMPAccessibilityElement.m */; };
 		EA70A7EC2B27106100300068 /* CMPAccessibilityContainer.m in Sources */ = {isa = PBXBuildFile; fileRef = EA70A7E92B27106100300068 /* CMPAccessibilityContainer.m */; };
-		EA70A7EF2B2AFB1200300068 /* CMPAccessibilityScrollView.m in Sources */ = {isa = PBXBuildFile; fileRef = EA70A7EE2B2AFB1200300068 /* CMPAccessibilityScrollView.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,8 +64,6 @@
 		EA70A7E82B27106100300068 /* CMPAccessibilityElement.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CMPAccessibilityElement.m; sourceTree = "<group>"; };
 		EA70A7E92B27106100300068 /* CMPAccessibilityContainer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CMPAccessibilityContainer.m; sourceTree = "<group>"; };
 		EA70A7EA2B27106100300068 /* CMPAccessibilityContainer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMPAccessibilityContainer.h; sourceTree = "<group>"; };
-		EA70A7ED2B2AFB1200300068 /* CMPAccessibilityScrollView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPAccessibilityScrollView.h; sourceTree = "<group>"; };
-		EA70A7EE2B2AFB1200300068 /* CMPAccessibilityScrollView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CMPAccessibilityScrollView.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,8 +103,6 @@
 				996EFEF52B02CE8A0000FE0F /* CMPUIKitUtils.h */,
 				997DFCDC2B18D135000B56B5 /* CMPViewController.h */,
 				997DFCDD2B18D135000B56B5 /* CMPViewController.m */,
-				EA70A7ED2B2AFB1200300068 /* CMPAccessibilityScrollView.h */,
-				EA70A7EE2B2AFB1200300068 /* CMPAccessibilityScrollView.m */,
 			);
 			path = CMPUIKitUtils;
 			sourceTree = "<group>";
@@ -281,7 +276,6 @@
 			files = (
 				997DFCDE2B18D135000B56B5 /* CMPViewController.m in Sources */,
 				EA70A7EC2B27106100300068 /* CMPAccessibilityContainer.m in Sources */,
-				EA70A7EF2B2AFB1200300068 /* CMPAccessibilityScrollView.m in Sources */,
 				EA70A7EB2B27106100300068 /* CMPAccessibilityElement.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
