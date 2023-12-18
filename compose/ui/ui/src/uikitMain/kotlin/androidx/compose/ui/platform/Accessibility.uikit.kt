@@ -60,6 +60,7 @@ import platform.UIKit.UIAccessibilityTraitSelected
 import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
 import platform.UIKit.UIEvent
+import platform.UIKit.UIScrollView
 import platform.UIKit.UIView
 import platform.UIKit.accessibilityCustomActions
 import platform.darwin.NSInteger
@@ -451,7 +452,7 @@ private class AccessibilityElement(
             }
         }
 
-        return false
+        return parent?.accessibilityScroll(direction) ?: false
     }
 
     /**
@@ -487,6 +488,8 @@ private class AccessibilityElement(
             hasScrollSemantics = true
         }
 
+        var testTag: String? = null
+
         val accessibilityLabelStrings = mutableListOf<String>()
         val accessibilityValueStrings = mutableListOf<String>()
         var accessibilityTraits = UIAccessibilityTraitNone
@@ -519,6 +522,10 @@ private class AccessibilityElement(
                     // TODO: proper implementation
                     onMeaningfulSemanticAdded()
                     addTrait(UIAccessibilityTraitUpdatesFrequently)
+                }
+
+                SemanticsProperties.TestTag -> {
+                    testTag = getNewValue(key)
                 }
 
                 SemanticsProperties.ContentDescription -> {
@@ -654,6 +661,8 @@ private class AccessibilityElement(
                         accessibilityElement = this,
                         view = mediator.view
                     )
+                    // TODO: make it correctly
+                    (impl.actualAccessibilityElement as UIScrollView).setFrame(mediator.convertRectToWindowSpaceCGRect(semanticsNode.boundsInWindow))
                 }
 
                 else -> { /* Do nothing */}
@@ -671,7 +680,7 @@ private class AccessibilityElement(
         this.accessibilityTraits = accessibilityTraits
         isAccessibilityElement = hasAnyMeaningfulSemantics
 
-        accessibilityIdentifier = "${semanticsNode.id}"
+        accessibilityIdentifier = testTag ?: "$semanticsNodeId"
         accessibilityFrame = mediator.convertRectToWindowSpaceCGRect(semanticsNode.boundsInWindow)
     }
 
