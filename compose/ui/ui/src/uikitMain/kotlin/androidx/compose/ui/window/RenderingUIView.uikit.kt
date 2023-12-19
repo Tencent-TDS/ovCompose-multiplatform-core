@@ -102,14 +102,13 @@ internal class RenderingUIView(
 
     override fun didMoveToWindow() {
         super.didMoveToWindow()
-        window?.screen?.let {
-            contentScaleFactor = it.scale
-            redrawer.maximumFramesPerSecond = it.maximumFramesPerSecond
-        }
-        if (window != null) {
-            onAttachedToWindow?.invoke()
-            _isReadyToShowContent.value = true
-        }
+        val window = window ?: return
+
+        val screen = window.screen
+        contentScaleFactor = screen.scale
+        redrawer.maximumFramesPerSecond = screen.maximumFramesPerSecond
+        onAttachedToWindow?.invoke()
+        _isReadyToShowContent.value = true
         updateMetalLayerSize()
     }
 
