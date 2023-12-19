@@ -35,56 +35,58 @@ internal actual fun SelectionRegistrar.touchSelectionModifier(
     textLayoutResult: () -> TextLayoutResult?,
     selectableId: Long
 ): Modifier {
-    val mouseSelectionObserver = object : CupertinoTouchSelectionObserver {
-        var lastPosition = Offset.Zero
+    return Modifier.pointerInput(Unit) {
+        val mouseSelectionObserver = object : CupertinoTouchSelectionObserver {
 
-        override fun onStart(
-            downPosition: Offset,
-            adjustment: SelectionAdjustment
-        ): Boolean {
-            layoutCoordinates()?.let {
-                if (!it.isAttached) return false
-
-                notifySelectionUpdateStart(
-                    layoutCoordinates = it,
-                    startPosition = downPosition,
-                    adjustment = adjustment
-                )
-
-                lastPosition = downPosition
-                return hasSelection(selectableId)
+            init {
+                println("init CupertinoTouchSelectionObserver")
             }
 
-            return false
-        }
+            var lastPosition = Offset.Zero
 
-        override fun onDrag(
-            dragPosition: Offset,
-            adjustment: SelectionAdjustment
-        ): Boolean {
-            layoutCoordinates()?.let {
-                if (!it.isAttached) return false
-                if (!hasSelection(selectableId)) return false
+            override fun onStart(
+                downPosition: Offset,
+                adjustment: SelectionAdjustment
+            ): Boolean {
+                layoutCoordinates()?.let {
+                    if (!it.isAttached) return false
 
-                val consumed = notifySelectionUpdate(
-                    layoutCoordinates = it,
-                    previousPosition = lastPosition,
-                    newPosition = dragPosition,
-                    isStartHandle = false,
-                    adjustment = adjustment
-                )
-                if (consumed) {
-                    lastPosition = dragPosition
+                    notifySelectionUpdateStart(
+                        layoutCoordinates = it,
+                        startPosition = downPosition,
+                        adjustment = adjustment
+                    )
+
+                    lastPosition = downPosition
+                    return hasSelection(selectableId)
                 }
+
+                return false
             }
-            return true
+
+            override fun onDrag(
+                dragPosition: Offset,
+                adjustment: SelectionAdjustment
+            ): Boolean {
+                layoutCoordinates()?.let {
+                    if (!it.isAttached) return false
+                    if (!hasSelection(selectableId)) return false
+
+                    val consumed = notifySelectionUpdate(
+                        layoutCoordinates = it,
+                        previousPosition = lastPosition,
+                        newPosition = dragPosition,
+                        isStartHandle = false,
+                        adjustment = adjustment
+                    )
+                    if (consumed) {
+                        lastPosition = dragPosition
+                    }
+                }
+                return true
+            }
         }
-    }
-    return Modifier.composed {
-        // TODO(https://youtrack.jetbrains.com/issue/COMPOSE-79) how we can rewrite this without `composed`?
-        val currentIOSTouchSelectionObserver by rememberUpdatedState(mouseSelectionObserver)
-        pointerInput(Unit) {
-            cupertinoTouchSelectionDetector(currentIOSTouchSelectionObserver)
-        }
+
+        cupertinoTouchSelectionDetector(mouseSelectionObserver)
     }
 }
