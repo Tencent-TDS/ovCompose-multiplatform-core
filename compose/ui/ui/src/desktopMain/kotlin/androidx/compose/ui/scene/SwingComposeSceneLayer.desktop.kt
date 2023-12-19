@@ -47,8 +47,7 @@ internal class SwingComposeSceneLayer(
     focusable: Boolean,
     compositionContext: CompositionContext
 ) : DesktopComposeSceneLayer(), MouseListener {
-    private val layersContainer get() = requireNotNull(composeContainer.layersContainer)
-
+    private val layersContainer get() = composeContainer.layersContainer ?: composeContainer.container
     private val container = object : JLayeredPane() {
         override fun addNotify() {
             super.addNotify()

@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ComposeFeatureFlags
+import androidx.compose.ui.LayerType
 import androidx.compose.ui.awt.LocalLayerContainer
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.PlatformContext
@@ -66,6 +67,7 @@ internal class ComposeContainer(
     window: Window? = null,
 
     private val useSwingGraphics: Boolean = ComposeFeatureFlags.useSwingGraphics,
+    private val layerType: LayerType = ComposeFeatureFlags.layerType,
 ) : ComponentListener, WindowFocusListener {
     val windowContext = PlatformWindowContext()
     var window: Window? = null
@@ -84,7 +86,6 @@ internal class ComposeContainer(
      * A container used for additional layers.
      */
     var layersContainer: JLayeredPane? = null
-        get() = field ?: container
 
     private val coroutineExceptionHandler = DesktopCoroutineExceptionHandler()
     private val coroutineContext = MainUIDispatcher + coroutineExceptionHandler
@@ -115,6 +116,10 @@ internal class ComposeContainer(
 
     init {
         setWindow(window)
+
+        if (layerType == LayerType.OnComponent && !useSwingGraphics) {
+            error("Unsupported LayerType.OnComponent might be used only with rendering to Swing graphics")
+        }
     }
 
     fun dispose() {
@@ -219,8 +224,18 @@ internal class ComposeContainer(
 
     private fun createComposeScene(mediator: ComposeSceneMediator): ComposeScene {
         val density = container.density
-        return if (ComposeFeatureFlags.usePlatformLayers) {
-            SingleLayerComposeScene(
+        return when (layerType) {
+            LayerType.OnSameCanvas ->
+                MultiLayerComposeScene(
+                    coroutineContext = mediator.coroutineContext,
+                    composeSceneContext = createComposeSceneContext(
+                        platformContext = mediator.platformContext
+                    ),
+                    density = density,
+                    invalidate = mediator::onComposeInvalidation,
+                    layoutDirection = layoutDirection,
+                )
+            else -> SingleLayerComposeScene(
                 coroutineContext = mediator.coroutineContext,
                 density = density,
                 invalidate = mediator::onComposeInvalidation,
@@ -228,16 +243,6 @@ internal class ComposeContainer(
                 composeSceneContext = createComposeSceneContext(
                     platformContext = mediator.platformContext
                 ),
-            )
-        } else {
-            MultiLayerComposeScene(
-                coroutineContext = mediator.coroutineContext,
-                composeSceneContext = createComposeSceneContext(
-                    platformContext = mediator.platformContext
-                ),
-                density = density,
-                invalidate = mediator::onComposeInvalidation,
-                layoutDirection = layoutDirection,
             )
         }
     }
@@ -248,8 +253,8 @@ internal class ComposeContainer(
         focusable: Boolean,
         compositionContext: CompositionContext
     ): ComposeSceneLayer {
-        return if (ComposeFeatureFlags.useWindowLayers) {
-            WindowComposeSceneLayer(
+        return when (layerType) {
+            LayerType.OnWindow -> WindowComposeSceneLayer(
                 composeContainer = this,
                 skiaLayerAnalytics = skiaLayerAnalytics,
                 density = density,
@@ -257,8 +262,7 @@ internal class ComposeContainer(
                 focusable = focusable,
                 compositionContext = compositionContext
             )
-        } else {
-            SwingComposeSceneLayer(
+            LayerType.OnComponent -> SwingComposeSceneLayer(
                 composeContainer = this,
                 skiaLayerAnalytics = skiaLayerAnalytics,
                 density = density,
@@ -266,6 +270,7 @@ internal class ComposeContainer(
                 focusable = focusable,
                 compositionContext = compositionContext
             )
+            else -> error("Unexpected LayerType")
         }
     }
 

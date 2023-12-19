@@ -19,6 +19,22 @@ package androidx.compose.ui
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 
+internal enum class LayerType {
+    OnSameCanvas,
+    OnComponent,
+    OnWindow;
+
+    companion object {
+        fun parse(property: String?): LayerType {
+            return when (property) {
+                "COMPONENT" -> OnComponent
+                "WINDOW" -> OnWindow
+                else -> OnSameCanvas
+            }
+        }
+    }
+}
+
 /**
  * The helper singleton object that provides the access to feature flags that
  * configure Compose behaviour.
@@ -26,23 +42,12 @@ import androidx.compose.ui.window.Popup
 internal object ComposeFeatureFlags {
 
     /**
-     * Indicates whether the platform layers feature is enabled.
-     * The default value is `false`, implying that new layers (such as for [Popup] and [Dialog])
-     * are created within the initial canvas.
-     *
-     * TODO: Provide configuration options via system properties when it is fully developed.
+     * Indicates how the layers will be created.
+     * The default value is `OnSameCanvas`, implying that new layers
+     * (such as for [Popup] and [Dialog]) are created within the initial canvas.
      */
-    val usePlatformLayers: Boolean
-        get() = false
-
-    /**
-     * Indicates whether the platform layers should use separate windows.
-     *
-     * TODO: Provide configuration options via system properties when it is fully developed.
-     * TODO: Consider to combine it with `usePlatformLayers`
-     */
-    val useWindowLayers: Boolean
-        get() = false
+    val layerType: LayerType
+        get() = LayerType.parse(System.getProperty("compose.layers.type"))
 
     /**
      * Indicates whether the Compose should use Swing graphics for rendering.
