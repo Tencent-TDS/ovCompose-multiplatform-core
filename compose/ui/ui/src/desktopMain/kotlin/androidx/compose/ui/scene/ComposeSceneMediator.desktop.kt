@@ -258,17 +258,20 @@ internal class ComposeSceneMediator(
             if (isDisposed)
                 return false
 
-            // Filter out mouse events that report a change in the pressed state of the primary
-            // button, but aren't themselves mouse press/release events.
-            // See https://github.com/JetBrains/compose-multiplatform/issues/2850 for details
+            // Filter out mouse events that report the primary button has changed state to pressed,
+            // but aren't themselves a mouse press event. This is needed because on macOS, AWT sends
+            // us spurious enter/exit events that report the primary button as pressed when resizing
+            // the window by its corner/edge. This causes false-positives in detectTapGestures.
+            // See https://github.com/JetBrains/compose-multiplatform/issues/2850 for more details.
             val eventReportsPrimaryButtonPressed =
                 (event.modifiersEx and MouseEvent.BUTTON1_DOWN_MASK) != 0
-            if (eventReportsPrimaryButtonPressed != isPrimaryButtonPressed) {
-                isPrimaryButtonPressed = when (event.id) {
-                    MouseEvent.MOUSE_PRESSED -> true
-                    MouseEvent.MOUSE_RELEASED -> false
-                    else -> return false  // Note the return
-                }
+            if ((event.button == MouseEvent.BUTTON1) &&
+                ((event.id == MouseEvent.MOUSE_PRESSED) ||
+                    (event.id == MouseEvent.MOUSE_RELEASED))) {
+                isPrimaryButtonPressed = eventReportsPrimaryButtonPressed  // Update state
+            }
+            if (eventReportsPrimaryButtonPressed && !isPrimaryButtonPressed) {
+                return false  // Ignore such events
             }
 
             return true
