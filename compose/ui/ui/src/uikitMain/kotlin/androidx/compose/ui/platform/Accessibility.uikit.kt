@@ -34,6 +34,7 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.toCGRect
 import androidx.compose.ui.uikit.utils.*
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.measureTime
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -42,8 +43,12 @@ import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSizeMake
+import platform.Foundation.NSNotificationCenter
+import platform.Foundation.NSNotificationName
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityCustomAction
+import platform.UIKit.UIAccessibilityLayoutChangedNotification
+import platform.UIKit.UIAccessibilityPostNotification
 import platform.UIKit.UIAccessibilityScrollDirection
 import platform.UIKit.UIAccessibilityScrollDirectionDown
 import platform.UIKit.UIAccessibilityScrollDirectionLeft
@@ -71,10 +76,12 @@ private val DUMMY_UI_ACCESSIBILITY_CONTAINER = NSObject()
 // TODO: Impl for UIKit interop views
 // TODO: Impl for text input
 
-private fun debugLog(message: Any? = null) {
-    message?.let {
-        println("[Accessibility] $message")
-    } ?: println()
+private object DebugLogger {
+    fun log(message: Any? = null) {
+        message?.let {
+            println("[a11y] $message")
+        } ?: println()
+    }
 }
 
 /**
@@ -198,7 +205,7 @@ private class AccessibilityElement(
      */
     override fun resolveAccessibilityContainer(): Any? {
         if (!isAlive) {
-            debugLog("resolveAccessibilityContainer failed because removed from the tree")
+            DebugLogger.log("resolveAccessibilityContainer failed because removed from the tree")
             return null
         }
 
@@ -212,9 +219,9 @@ private class AccessibilityElement(
     override fun accessibilityElementDidBecomeFocused() {
         super.accessibilityElementDidBecomeFocused()
 
-        debugLog()
-        debugLog("Focused on:")
-        debugLog(semanticsNode.config)
+        DebugLogger.log()
+        DebugLogger.log("Focused on:")
+        DebugLogger.log(semanticsNode.config)
     }
 
     private fun scrollIfPossible(direction: UIAccessibilityScrollDirection): Boolean {
@@ -546,15 +553,15 @@ private class AccessibilityElement(
         check(indexOfSelf != NSNotFound)
         check(container.accessibilityElementAtIndex(indexOfSelf) == this)
 
-        debugLog("${indent}AccessibilityElement_$semanticsNodeId")
-        debugLog("$indent  containmentChain: ${debugContainmentChain(this)}")
-        debugLog("$indent  isAccessibilityElement: $isAccessibilityElement")
-        debugLog("$indent  accessibilityLabel: $accessibilityLabel")
-        debugLog("$indent  accessibilityValue: $accessibilityValue")
-        debugLog("$indent  accessibilityTraits: $accessibilityTraits")
-        debugLog("$indent  accessibilityFrame: ${NSStringFromCGRect(accessibilityFrame)}")
-        debugLog("$indent  accessibilityIdentifier: $accessibilityIdentifier")
-        debugLog("$indent  accessibilityCustomActions: $accessibilityCustomActions")
+        DebugLogger.log("${indent}AccessibilityElement_$semanticsNodeId")
+        DebugLogger.log("$indent  containmentChain: ${debugContainmentChain(this)}")
+        DebugLogger.log("$indent  isAccessibilityElement: $isAccessibilityElement")
+        DebugLogger.log("$indent  accessibilityLabel: $accessibilityLabel")
+        DebugLogger.log("$indent  accessibilityValue: $accessibilityValue")
+        DebugLogger.log("$indent  accessibilityTraits: $accessibilityTraits")
+        DebugLogger.log("$indent  accessibilityFrame: ${NSStringFromCGRect(accessibilityFrame)}")
+        DebugLogger.log("$indent  accessibilityIdentifier: $accessibilityIdentifier")
+        DebugLogger.log("$indent  accessibilityCustomActions: $accessibilityCustomActions")
     }
 }
 
@@ -617,7 +624,7 @@ private class AccessibilityContainer(
      */
     override fun accessibilityElementAtIndex(index: NSInteger): Any? {
         if (!isAlive) {
-            debugLog("accessibilityElementAtIndex(NSInteger) called after removed from the tree")
+            DebugLogger.log("accessibilityElementAtIndex(NSInteger) called after removed from the tree")
             return null
         }
 
@@ -652,7 +659,7 @@ private class AccessibilityContainer(
      */
     override fun accessibilityElementCount(): NSInteger {
         if (!isAlive) {
-            debugLog("accessibilityElementCount() called after removed from the tree")
+            DebugLogger.log("accessibilityElementCount() called after removed from the tree")
             return 0
         }
 
@@ -664,7 +671,7 @@ private class AccessibilityContainer(
      */
     override fun indexOfAccessibilityElement(element: Any): NSInteger {
         if (!isAlive) {
-            debugLog("indexOfAccessibilityElement(Any) called after removed from the tree")
+            DebugLogger.log("indexOfAccessibilityElement(Any) called after removed from the tree")
             return NSNotFound
         }
 
@@ -679,7 +686,7 @@ private class AccessibilityContainer(
 
     override fun accessibilityContainer(): Any? {
         if (!isAlive) {
-            debugLog("accessibilityContainer() called after removed from the tree")
+            DebugLogger.log("accessibilityContainer() called after removed from the tree")
             return null
         }
 
@@ -692,7 +699,7 @@ private class AccessibilityContainer(
 
     fun debugPrint(depth: Int) {
         val indent = " ".repeat(depth * 2)
-        debugLog("${indent}AccessibilityContainer_${semanticsNodeId}")
+        DebugLogger.log("${indent}AccessibilityContainer_${semanticsNodeId}")
     }
 }
 
@@ -732,19 +739,31 @@ internal class AccessibilityMediator(
     private val accessibilityElementsMap = mutableMapOf<Int, AccessibilityElement>()
 
     init {
-        // TODO: this approach was copied from desktop implementation, obviously it has a 100ms lag
+        val updateIntervalMillis = 50L
+        // TODO: this approach was copied from desktop implementation, obviously it has a [updateIntervalMillis] lag
         //  between the actual change in the semantics tree and the change in the accessibility tree.
         //  should we use some other approach?
         coroutineScope.launch {
             while (isAlive) {
-                syncNodes()
-                delay(100)
+                UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, null)
+
+                var syncedSomething = false
+
+                val time = measureTime {
+                    syncedSomething = syncNodes()
+                }
+
+                if (syncedSomething) {
+                    DebugLogger.log("syncNodes took $time")
+                }
+
+                delay(updateIntervalMillis)
             }
         }
     }
 
     fun onSemanticsChange() {
-        debugLog("onSemanticsChange")
+        DebugLogger.log("onSemanticsChange")
         isCurrentComposeAccessibleTreeDirty = true
     }
 
@@ -820,7 +839,7 @@ internal class AccessibilityMediator(
             val isPresent = it in presentIds
 
             if (!isPresent) {
-                debugLog("$it removed")
+                DebugLogger.log("$it removed")
                 checkNotNull(accessibilityElementsMap[it]).dispose()
             }
 
@@ -837,7 +856,7 @@ internal class AccessibilityMediator(
      * TODO: Does a full tree traversal on every sync. Explore new Google solution in 1.6, that should
      *   perform affected subtree traversal instead.
      */
-    private fun syncNodes() {
+    private fun syncNodes(): Boolean {
         // TODO: investigate what happens if the user has an accessibility focus on the element that
         //  is removed from the tree:
         //  - Does it use the index path of containers traversal to restore the focus?
@@ -851,14 +870,14 @@ internal class AccessibilityMediator(
         val rooSemanticstNode = owner.rootSemanticsNode
 
         if (!rooSemanticstNode.layoutNode.isPlaced) {
-            return
+            return false
         }
 
         if (!isCurrentComposeAccessibleTreeDirty) {
-            return
+            return false
         }
 
-        debugLog("syncNodes")
+        DebugLogger.log("syncNodes")
         isCurrentComposeAccessibleTreeDirty = false
 
         check(!view.isAccessibilityElement) {
@@ -870,6 +889,7 @@ internal class AccessibilityMediator(
         )
 
         debugTraverse(view)
+        return true
     }
 }
 
@@ -882,7 +902,7 @@ private fun debugTraverse(accessibilityObject: Any, depth: Int = 0) {
 
     when (accessibilityObject) {
         is UIView -> {
-            debugLog("${indent}View")
+            DebugLogger.log("${indent}View")
 
             accessibilityObject.accessibilityElements?.let { elements ->
                 for (element in elements) {
