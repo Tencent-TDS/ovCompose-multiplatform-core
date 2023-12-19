@@ -71,6 +71,12 @@ private val DUMMY_UI_ACCESSIBILITY_CONTAINER = NSObject()
 // TODO: Impl for UIKit interop views
 // TODO: Impl for text input
 
+private fun debugLog(message: Any? = null) {
+    message?.let {
+        println("[Accessibility] $message")
+    } ?: println()
+}
+
 /**
  * Represents a projection of the Compose semantics node to the iOS world.
  *
@@ -192,7 +198,7 @@ private class AccessibilityElement(
      */
     override fun resolveAccessibilityContainer(): Any? {
         if (!isAlive) {
-            println("resolveAccessibilityContainer failed because removed from the tree")
+            debugLog("resolveAccessibilityContainer failed because removed from the tree")
             return null
         }
 
@@ -206,9 +212,9 @@ private class AccessibilityElement(
     override fun accessibilityElementDidBecomeFocused() {
         super.accessibilityElementDidBecomeFocused()
 
-        println()
-        println("Focused on:")
-        println(semanticsNode.config)
+        debugLog()
+        debugLog("Focused on:")
+        debugLog(semanticsNode.config)
     }
 
     private fun scrollIfPossible(direction: UIAccessibilityScrollDirection): Boolean {
@@ -540,15 +546,15 @@ private class AccessibilityElement(
         check(indexOfSelf != NSNotFound)
         check(container.accessibilityElementAtIndex(indexOfSelf) == this)
 
-        println("${indent}AccessibilityElement_$semanticsNodeId")
-        println("$indent  containmentChain: ${debugContainmentChain(this)}")
-        println("$indent  isAccessibilityElement: $isAccessibilityElement")
-        println("$indent  accessibilityLabel: $accessibilityLabel")
-        println("$indent  accessibilityValue: $accessibilityValue")
-        println("$indent  accessibilityTraits: $accessibilityTraits")
-        println("$indent  accessibilityFrame: ${NSStringFromCGRect(accessibilityFrame)}")
-        println("$indent  accessibilityIdentifier: $accessibilityIdentifier")
-        println("$indent  accessibilityCustomActions: $accessibilityCustomActions")
+        debugLog("${indent}AccessibilityElement_$semanticsNodeId")
+        debugLog("$indent  containmentChain: ${debugContainmentChain(this)}")
+        debugLog("$indent  isAccessibilityElement: $isAccessibilityElement")
+        debugLog("$indent  accessibilityLabel: $accessibilityLabel")
+        debugLog("$indent  accessibilityValue: $accessibilityValue")
+        debugLog("$indent  accessibilityTraits: $accessibilityTraits")
+        debugLog("$indent  accessibilityFrame: ${NSStringFromCGRect(accessibilityFrame)}")
+        debugLog("$indent  accessibilityIdentifier: $accessibilityIdentifier")
+        debugLog("$indent  accessibilityCustomActions: $accessibilityCustomActions")
     }
 }
 
@@ -600,7 +606,7 @@ private class AccessibilityContainer(
     // the real parent container will be resolved dynamically by [accessibilityContainer]
 ) : CMPAccessibilityContainer(DUMMY_UI_ACCESSIBILITY_CONTAINER) {
     val semanticsNodeId by wrappedElement::semanticsNodeId
-    val isAlive by wrappedElement::isAlive
+    private val isAlive by wrappedElement::isAlive
 
     /**
      * This function will be called by iOS Accessibility services to traverse the hierarchy of all
@@ -611,6 +617,7 @@ private class AccessibilityContainer(
      */
     override fun accessibilityElementAtIndex(index: NSInteger): Any? {
         if (!isAlive) {
+            debugLog("accessibilityElementAtIndex(NSInteger) called after removed from the tree")
             return null
         }
 
@@ -645,10 +652,11 @@ private class AccessibilityContainer(
      */
     override fun accessibilityElementCount(): NSInteger {
         if (!isAlive) {
+            debugLog("accessibilityElementCount() called after removed from the tree")
             return 0
         }
 
-        wrappedElement.childrenCount + 1
+        return wrappedElement.childrenCount + 1
     }
 
     /**
@@ -656,6 +664,7 @@ private class AccessibilityContainer(
      */
     override fun indexOfAccessibilityElement(element: Any): NSInteger {
         if (!isAlive) {
+            debugLog("indexOfAccessibilityElement(Any) called after removed from the tree")
             return NSNotFound
         }
 
@@ -670,6 +679,7 @@ private class AccessibilityContainer(
 
     override fun accessibilityContainer(): Any? {
         if (!isAlive) {
+            debugLog("accessibilityContainer() called after removed from the tree")
             return null
         }
 
@@ -682,7 +692,7 @@ private class AccessibilityContainer(
 
     fun debugPrint(depth: Int) {
         val indent = " ".repeat(depth * 2)
-        println("${indent}AccessibilityContainer_${semanticsNodeId}")
+        debugLog("${indent}AccessibilityContainer_${semanticsNodeId}")
     }
 }
 
@@ -734,6 +744,7 @@ internal class AccessibilityMediator(
     }
 
     fun onSemanticsChange() {
+        debugLog("onSemanticsChange")
         isCurrentComposeAccessibleTreeDirty = true
     }
 
@@ -809,6 +820,7 @@ internal class AccessibilityMediator(
             val isPresent = it in presentIds
 
             if (!isPresent) {
+                debugLog("$it removed")
                 checkNotNull(accessibilityElementsMap[it]).dispose()
             }
 
@@ -846,7 +858,7 @@ internal class AccessibilityMediator(
             return
         }
 
-        println("syncNodes")
+        debugLog("syncNodes")
         isCurrentComposeAccessibleTreeDirty = false
 
         check(!view.isAccessibilityElement) {
@@ -870,7 +882,7 @@ private fun debugTraverse(accessibilityObject: Any, depth: Int = 0) {
 
     when (accessibilityObject) {
         is UIView -> {
-            println("${indent}View")
+            debugLog("${indent}View")
 
             accessibilityObject.accessibilityElements?.let { elements ->
                 for (element in elements) {
