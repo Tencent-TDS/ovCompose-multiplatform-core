@@ -28,15 +28,14 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.layoutDirectionFor
 import androidx.compose.ui.window.sizeInPx
-import java.awt.Component
 import java.awt.Point
 import java.awt.Rectangle
 import javax.swing.JDialog
 import javax.swing.JLayeredPane
-import javax.swing.RootPaneContainer
 import kotlin.math.ceil
 import kotlin.math.floor
 import org.jetbrains.skiko.SkiaLayerAnalytics
@@ -102,8 +101,8 @@ internal class WindowComposeSceneLayer(
             val scaledRectangle = value.toAwtRectangle(density)
             dialog.location = getDialogLocation(scaledRectangle.x, scaledRectangle.y)
             dialog.setSize(scaledRectangle.width, scaledRectangle.height)
-            _mediator?.overrideContentOffset(boundsInWindow.topLeft)
-            _mediator?.contentBounds = Rectangle(0, 0, scaledRectangle.width, scaledRectangle.height)
+            _mediator?.contentComponent?.setSize(scaledRectangle.width, scaledRectangle.height)
+            _mediator?.sceneBoundsInPx = IntRect(-value.topLeft, windowContainer.sizeInPx)
         }
 
     override var scrimColor: Color? = null
@@ -124,7 +123,8 @@ internal class WindowComposeSceneLayer(
             composeSceneFactory = ::createComposeScene,
         ).also {
             it.onChangeWindowTransparency(true)
-            it.overrideContainerSize(windowContainer.sizeInPx)
+            it.sceneBoundsInPx = windowContainer.sizeInPx.toIntRect()
+            it.contentComponent.size = windowContainer.size
         }
         dialog.location = getDialogLocation(0, 0)
         dialog.size = windowContainer.size
@@ -166,7 +166,7 @@ internal class WindowComposeSceneLayer(
         windowContext.setContainerSize(windowContainer.sizeInPx)
 
         // Update compose constrains based on main window size
-        _mediator?.overrideContainerSize(windowContainer.sizeInPx)
+        _mediator?.sceneBoundsInPx = IntRect(-boundsInWindow.topLeft, windowContainer.sizeInPx)
     }
 
     private fun createSkiaLayerComponent(mediator: ComposeSceneMediator): SkiaLayerComponent {

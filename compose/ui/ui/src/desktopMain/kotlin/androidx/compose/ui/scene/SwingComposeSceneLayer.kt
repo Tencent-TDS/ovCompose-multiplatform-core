@@ -53,7 +53,7 @@ internal class SwingComposeSceneLayer(
         override fun addNotify() {
             super.addNotify()
             _mediator?.onComponentAttached()
-            _mediator?.contentBounds = this@SwingComposeSceneLayer.boundsInWindow.toAwtRectangle(density)
+            _mediator?.contentComponent?.bounds = this@SwingComposeSceneLayer.boundsInWindow.toAwtRectangle(density)
         }
 
         override fun paint(g: Graphics) {
@@ -107,7 +107,7 @@ internal class SwingComposeSceneLayer(
     override var boundsInWindow: IntRect = IntRect.Zero
         set(value) {
             field = value
-            _mediator?.contentBounds = value.toAwtRectangle(container.density)
+            _mediator?.contentComponent?.bounds = value.toAwtRectangle(container.density)
         }
 
     override var scrimColor: Color? = null
@@ -130,7 +130,7 @@ internal class SwingComposeSceneLayer(
             composeSceneFactory = ::createComposeScene,
         ).also {
             it.onChangeWindowTransparency(true)
-            it.contentBounds = boundsInWindow.toAwtRectangle(density)
+            it.contentComponent.bounds = boundsInWindow.toAwtRectangle(density)
         }
         composeContainer.attachLayer(this)
     }
