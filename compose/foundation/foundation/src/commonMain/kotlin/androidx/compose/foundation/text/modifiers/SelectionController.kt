@@ -245,6 +245,9 @@ private fun SelectionRegistrar.makeSelectionModifier(
             }
         }
 
+    return if (isInTouchMode) {
+        touchSelectionModifier(layoutCoordinates, textLayoutResult, selectableId)
+    } else {
         val mouseSelectionObserver = object : MouseSelectionObserver {
             var lastPosition = Offset.Zero
 
