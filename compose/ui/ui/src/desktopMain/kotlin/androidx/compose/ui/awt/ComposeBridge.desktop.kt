@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowExceptionHandler
@@ -383,12 +384,6 @@ internal class ComposeBridge(
     }
 
     fun updateSceneSize() {
-        // Zero size will literally limit scene's content size to zero,
-        // so it case of late initialization skip this to avoid extra layout run.
-        if (contentComponent.width == 0 && contentComponent.height == 0) {
-            return
-        }
-
         // Convert AWT scaled size to real pixels.
         val scale = contentComponent.density.density
 
@@ -403,7 +398,9 @@ internal class ComposeBridge(
         // TODO: It should be window content area size
         windowContext.setContainerSize(boundsInWindow.size)
 
-        scene.boundsInWindow = boundsInWindow
+        // Zero size will literally limit scene's content size to zero,
+        // so it case of late initialization skip this to avoid extra layout run.
+        scene.boundsInWindow = boundsInWindow.takeIf { boundsInWindow.size != IntSize.Zero }
     }
 
     fun resetSceneDensity() {
