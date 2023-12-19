@@ -745,8 +745,6 @@ internal class AccessibilityMediator(
         //  should we use some other approach?
         coroutineScope.launch {
             while (isAlive) {
-                UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, null)
-
                 var syncedSomething = false
 
                 val time = measureTime {
@@ -755,6 +753,7 @@ internal class AccessibilityMediator(
 
                 if (syncedSomething) {
                     DebugLogger.log("syncNodes took $time")
+                    UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, null)
                 }
 
                 delay(updateIntervalMillis)
