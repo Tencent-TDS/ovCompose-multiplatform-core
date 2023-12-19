@@ -117,7 +117,7 @@ internal class UIViewComposeSceneLayer(
     override var density by mediator::density
     override var layoutDirection by mediator::layoutDirection
 
-    override var bounds: IntRect
+    override var boundsInWindow: IntRect
         get() = mediator.getBoundsInPx()
         set(value) {
             mediator.setLayout(

@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import java.awt.*
@@ -383,16 +384,21 @@ internal class ComposeBridge(
     }
 
     fun updateSceneSize() {
+        // Convert AWT scaled size to real pixels.
         val scale = contentComponent.density.density
-        val size = IntSize(
+        val sizeInPx = IntSize(
             width = (contentComponent.width * scale).toInt(),
             height = (contentComponent.height * scale).toInt()
         )
-        windowContext.setContainerSize(size)
+        windowContext.setContainerSize(sizeInPx)
 
         // Zero size will literally limit scene's content size to zero,
         // so it case of late initialization skip this to avoid extra layout run.
-        scene.size = size.takeIf { size != IntSize.Zero }
+        scene.boundsInWindow = if (sizeInPx != IntSize.Zero) {
+            sizeInPx.toIntRect()
+        } else {
+            null
+        }
     }
 
     fun resetSceneDensity() {

@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntRect
+import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.InteractionUIView
@@ -448,7 +449,7 @@ internal class ComposeSceneMediator(
             )
         }
         scene.density = density // TODO: Maybe it is wrong to set density to scene here?
-        scene.size = size
+        scene.boundsInWindow = size.toIntRect() // TODO: Pass offset if it's not full-screen
         onComposeSceneInvalidate()
     }
 
