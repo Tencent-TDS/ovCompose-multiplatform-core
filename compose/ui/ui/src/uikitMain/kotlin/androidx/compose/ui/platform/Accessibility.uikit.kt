@@ -192,6 +192,7 @@ private class AccessibilityElement(
      */
     override fun resolveAccessibilityContainer(): Any? {
         if (!isAlive) {
+            println("resolveAccessibilityContainer failed because removed from the tree")
             return null
         }
 
@@ -375,6 +376,11 @@ private class AccessibilityElement(
 
                 SemanticsProperties.Text -> {
                     accessibilityLabelStrings.addAll(getNewValue(key).map { it.text })
+                }
+
+                SemanticsProperties.EditableText -> {
+                    val value = getNewValue(key)
+                    accessibilityLabelStrings.add(value.text)
                 }
 
                 SemanticsProperties.PaneTitle -> {
@@ -593,8 +599,8 @@ private class AccessibilityContainer(
     // The super call below is needed because this constructor is designated in the Obj-C class,
     // the real parent container will be resolved dynamically by [accessibilityContainer]
 ) : CMPAccessibilityContainer(DUMMY_UI_ACCESSIBILITY_CONTAINER) {
-    val semanticsNodeId: Int
-        get() = wrappedElement.semanticsNodeId
+    val semanticsNodeId by wrappedElement::semanticsNodeId
+    val isAlive by wrappedElement::isAlive
 
     /**
      * This function will be called by iOS Accessibility services to traverse the hierarchy of all
@@ -604,6 +610,10 @@ private class AccessibilityContainer(
      * an object not being able to be a container and an element at the same time.
      */
     override fun accessibilityElementAtIndex(index: NSInteger): Any? {
+        if (!isAlive) {
+            return null
+        }
+
         if (index == 0L) {
             return wrappedElement
         }
@@ -618,6 +628,10 @@ private class AccessibilityContainer(
     }
 
     override fun accessibilityFrame(): CValue<CGRect> {
+        if (!isAlive) {
+            return CGRectMake(0.0, 0.0, 0.0, 0.0)
+        }
+
         // Same as wrapped element
         //
         // Accessibility container clips reacheability of its children, if their frame doesn't interesect
@@ -629,12 +643,22 @@ private class AccessibilityContainer(
      * The number of elements in the container:
      * The wrapped element itself + the number of children
      */
-    override fun accessibilityElementCount(): NSInteger = (wrappedElement.childrenCount + 1)
+    override fun accessibilityElementCount(): NSInteger {
+        if (!isAlive) {
+            return 0
+        }
+
+        wrappedElement.childrenCount + 1
+    }
 
     /**
      * Reverse lookup of [accessibilityElementAtIndex]
      */
     override fun indexOfAccessibilityElement(element: Any): NSInteger {
+        if (!isAlive) {
+            return NSNotFound
+        }
+
         if (element == wrappedElement) {
             return 0
         }
@@ -645,7 +669,7 @@ private class AccessibilityContainer(
     }
 
     override fun accessibilityContainer(): Any? {
-        if (!wrappedElement.isAlive) {
+        if (!isAlive) {
             return null
         }
 
