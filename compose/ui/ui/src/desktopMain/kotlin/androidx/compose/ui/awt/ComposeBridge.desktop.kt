@@ -32,10 +32,9 @@ import androidx.compose.ui.scene.toPointerKeyboardModifiers
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import java.awt.*
@@ -384,21 +383,27 @@ internal class ComposeBridge(
     }
 
     fun updateSceneSize() {
-        // Convert AWT scaled size to real pixels.
-        val scale = contentComponent.density.density
-        val sizeInPx = IntSize(
-            width = (contentComponent.width * scale).toInt(),
-            height = (contentComponent.height * scale).toInt()
-        )
-        windowContext.setContainerSize(sizeInPx)
-
         // Zero size will literally limit scene's content size to zero,
         // so it case of late initialization skip this to avoid extra layout run.
-        scene.boundsInWindow = if (sizeInPx != IntSize.Zero) {
-            sizeInPx.toIntRect()
-        } else {
-            null
+        if (contentComponent.width == 0 && contentComponent.height == 0) {
+            return
         }
+
+        // Convert AWT scaled size to real pixels.
+        val scale = contentComponent.density.density
+
+        // TODO: Recalculate it to window related coordinates
+        val boundsInWindow = IntRect(
+            top = 0,
+            left = 0,
+            right = (contentComponent.width * scale).toInt(),
+            bottom = (contentComponent.height * scale).toInt()
+        )
+
+        // TODO: It should be window content area size
+        windowContext.setContainerSize(boundsInWindow.size)
+
+        scene.boundsInWindow = boundsInWindow
     }
 
     fun resetSceneDensity() {
