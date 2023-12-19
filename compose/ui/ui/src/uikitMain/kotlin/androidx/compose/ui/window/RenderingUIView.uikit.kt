@@ -102,7 +102,6 @@ internal class RenderingUIView(
 
     override fun didMoveToWindow() {
         super.didMoveToWindow()
-
         window?.screen?.let {
             contentScaleFactor = it.scale
             redrawer.maximumFramesPerSecond = it.maximumFramesPerSecond
@@ -111,6 +110,7 @@ internal class RenderingUIView(
             onAttachedToWindow?.invoke()
             _isReadyToShowContent.value = true
         }
+        updateMetalLayerSize()
     }
 
     override fun layoutSubviews() {
@@ -118,7 +118,7 @@ internal class RenderingUIView(
         updateMetalLayerSize()
     }
 
-    internal fun updateMetalLayerSize() {
+    private fun updateMetalLayerSize() {
         val scaledSize = bounds.useContents {
             CGSizeMake(size.width * contentScaleFactor, size.height * contentScaleFactor)
         }
