@@ -289,7 +289,7 @@ private class MultiLayerComposeSceneImpl(
 
             // If the position of in bounds of the owner - send event to it and stop processing
             if (layer.isInBounds(position)) {
-                // Layer don't have any offset from [mainOwner], so we don't need to
+                // The layer doesn't have any offset from [mainOwner], so we don't need to
                 // convert event coordinates here.
                 layer.owner.onPointerInput(event)
                 gestureOwner = layer.owner
