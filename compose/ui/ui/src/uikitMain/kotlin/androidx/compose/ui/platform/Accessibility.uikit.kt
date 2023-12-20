@@ -298,8 +298,11 @@ private class AccessibilityElement(
     }
 
     private fun scrollIfPossible(direction: UIAccessibilityScrollDirection): Boolean {
-        // TODO: choose proper offset
         val (width, height) = semanticsNode.size
+
+        val dimensionScale = 0.5f
+
+        // TODO: post notification about the scroll
 
         when (direction) {
             UIAccessibilityScrollDirectionUp -> {
@@ -311,7 +314,7 @@ private class AccessibilityElement(
 
                 result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
                     0F,
-                    -height.toFloat()
+                    -height.toFloat() * dimensionScale
                 )
 
                 if (result != null) {
@@ -328,7 +331,7 @@ private class AccessibilityElement(
 
                 result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
                     0f,
-                    height.toFloat()
+                    height.toFloat() * dimensionScale
                 )
 
                 if (result != null) {
@@ -345,7 +348,7 @@ private class AccessibilityElement(
 
                 // TODO: check RTL support
                 result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
-                    -width.toFloat(),
+                    -width.toFloat() * dimensionScale,
                     0f,
                 )
 
@@ -363,7 +366,7 @@ private class AccessibilityElement(
 
                 // TODO: check RTL support
                 result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
-                    width.toFloat(),
+                    width.toFloat() * dimensionScale,
                     0f,
                 )
 
