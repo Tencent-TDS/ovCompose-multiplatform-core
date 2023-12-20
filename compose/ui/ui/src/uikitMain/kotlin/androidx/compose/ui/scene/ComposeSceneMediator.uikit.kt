@@ -195,6 +195,7 @@ internal class ComposeSceneMediator(
                     )
                 } else {
                     // Multiple SemanticsOwner`s per ComposeSceneMediator is a legacy behavior and will not be supported
+                    error("Unsupported multiple SemanticsOwner`s per ComposeSceneMediator")
                 }
             }
 
@@ -204,6 +205,8 @@ internal class ComposeSceneMediator(
                 if (current.first == semanticsOwner) {
                     current.second.dispose()
                     this.current = null
+                } else {
+                    error("Corrupted semantics owner <-> accessibility mediator mapping")
                 }
             }
 

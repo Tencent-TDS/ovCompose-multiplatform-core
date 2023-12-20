@@ -39,12 +39,7 @@ import kotlinx.cinterop.ExportObjCClass
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import platform.CoreGraphics.CGPoint
-import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
-import platform.CoreGraphics.CGSizeMake
-import platform.Foundation.NSNotificationCenter
-import platform.Foundation.NSNotificationName
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityCustomAction
 import platform.UIKit.UIAccessibilityLayoutChangedNotification
@@ -52,7 +47,6 @@ import platform.UIKit.UIAccessibilityPostNotification
 import platform.UIKit.UIAccessibilityScrollDirection
 import platform.UIKit.UIAccessibilityScrollDirectionDown
 import platform.UIKit.UIAccessibilityScrollDirectionLeft
-import platform.UIKit.UIAccessibilityScrollDirectionPrevious
 import platform.UIKit.UIAccessibilityScrollDirectionRight
 import platform.UIKit.UIAccessibilityScrollDirectionUp
 import platform.UIKit.UIAccessibilityTraitAdjustable
@@ -64,8 +58,6 @@ import platform.UIKit.UIAccessibilityTraitNotEnabled
 import platform.UIKit.UIAccessibilityTraitSelected
 import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
-import platform.UIKit.UIEvent
-import platform.UIKit.UIScrollView
 import platform.UIKit.UIView
 import platform.UIKit.accessibilityCustomActions
 import platform.darwin.NSInteger
@@ -140,11 +132,13 @@ private class AccessibilityElement(
     }
 
     fun childAtIndex(index: NSInteger): AccessibilityElement? {
-        if (index < 0L || index >= childrenCount) {
-            return null
-        }
+        val i = index.toInt()
 
-        return children[index.toInt()]
+        return if (i in children.indices) {
+            children[i]
+        } else {
+            null
+        }
     }
 
     /**
@@ -179,6 +173,7 @@ private class AccessibilityElement(
         return null
     }
 
+    // TODO: remove if unneeded
     fun dispose() {
         check(isAlive) {
             "AccessibilityElement is already disposed"
@@ -224,12 +219,14 @@ private class AccessibilityElement(
     override fun accessibilityElementDidBecomeFocused() {
         super.accessibilityElementDidBecomeFocused()
 
+        // TODO: scroll the screen if the element is at the bottom of the screen
         DebugLogger.log()
         DebugLogger.log("Focused on:")
         DebugLogger.log(semanticsNode.config)
     }
 
     private fun scrollIfPossible(direction: UIAccessibilityScrollDirection): Boolean {
+        // TODO: choose proper offset
         val (width, height) = semanticsNode.size
 
         when (direction) {
@@ -639,6 +636,7 @@ private class AccessibilityContainer(
 
         val child = wrappedElement.childAtIndex(index - 1) ?: return null
 
+        // TODO: move it to child itself
         if (child.hasChildren) {
             return child.accessibilityContainer
         }
@@ -871,9 +869,10 @@ internal class AccessibilityMediator(
         // TODO: investigate what needs to be done to reflect that this hiearchy is probably covered
         //   by overlay/popup/dialogue
 
-        val rooSemanticstNode = owner.rootSemanticsNode
+        val rootSemanticsNode = owner.rootSemanticsNode
 
-        if (!rooSemanticstNode.layoutNode.isPlaced) {
+        // Copied from desktop implementation, why is it there? 🤔
+        if (!rootSemanticsNode.layoutNode.isPlaced) {
             return false
         }
 
@@ -889,7 +888,7 @@ internal class AccessibilityMediator(
         }
 
         view.accessibilityElements = listOf(
-            traverseSemanticsTree(rooSemanticstNode)
+            traverseSemanticsTree(rootSemanticsNode)
         )
 
         debugTraverse(view)
