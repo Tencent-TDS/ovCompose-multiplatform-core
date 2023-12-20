@@ -16,9 +16,7 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -39,7 +37,6 @@ import androidx.compose.ui.unit.toSize
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.measureTime
 import kotlinx.cinterop.ExportObjCClass
-import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -248,37 +245,36 @@ private class AccessibilityElement(
     }
 
     /**
-     * Try to perform a scroll on any ascendant of this element if the element is not fully visible.
+     * Try to perform a scroll on any ancestor of this element if the element is not fully visible.
      */
     // TODO: scroll if the element is last in the scrollable container.
     private fun scrollToIfPossible() {
-        val windowRect = mediator.view.window?.windowRect ?: return
+        val scrollableAncestor = semanticsNode.scrollableByAncestor ?: return
+        val scrollableAncestorRect = scrollableAncestor.boundsInWindow
 
         val unclippedRect = semanticsNode.unclippedBoundsInWindow
-        val clippedRect = semanticsNode.boundsInWindow
 
-        if (unclippedRect == clippedRect) {
-            // The element is fully visible, no need to scroll
-        } else {
-            // TODO: consider safe areas?
-            // TODO: is RTL working properly?
-            if (clippedRect.top < 0.0f) {
-                // The element is above the screen, scroll up
-                parent?.scrollByIfPossible(0f, -clippedRect.top)
-                return
-            } else if (clippedRect.bottom > windowRect.height) {
-                // The element is below the screen, scroll down
-                parent?.scrollByIfPossible(0f, windowRect.height - clippedRect.bottom)
-                return
-            } else if (clippedRect.left < 0.0f) {
-                // The element is to the left of the screen, scroll left
-                parent?.scrollByIfPossible(-clippedRect.left, 0f)
-                return
-            } else if (clippedRect.right > windowRect.width) {
-                // The element is to the right of the screen, scroll right
-                parent?.scrollByIfPossible(windowRect.width - clippedRect.right, 0f)
-                return
-            }
+        DebugLogger.log("scrollableAncestorRect: $scrollableAncestorRect")
+        DebugLogger.log("unclippedRect: $unclippedRect")
+
+        // TODO: consider safe areas?
+        // TODO: is RTL working properly?
+        if (unclippedRect.top < 0.0f) {
+            // The element is above the screen, scroll up
+            parent?.scrollByIfPossible(0f, -unclippedRect.top)
+            return
+        } else if (unclippedRect.bottom > scrollableAncestorRect.height) {
+            // The element is below the screen, scroll down
+            parent?.scrollByIfPossible(0f, scrollableAncestorRect.height - unclippedRect.bottom)
+            return
+        } else if (unclippedRect.left < 0.0f) {
+            // The element is to the left of the screen, scroll left
+            parent?.scrollByIfPossible(-unclippedRect.left, 0f)
+            return
+        } else if (unclippedRect.right > scrollableAncestorRect.width) {
+            // The element is to the right of the screen, scroll right
+            parent?.scrollByIfPossible(scrollableAncestorRect.width - unclippedRect.right, 0f)
+            return
         }
     }
 
@@ -1060,25 +1056,20 @@ private fun List<SemanticsNode>.sortedByAccesibilityOrder(): List<SemanticsNode>
 private val SemanticsNode.unclippedBoundsInWindow: Rect
     get() = Rect(positionInWindow, size.toSize())
 
-private fun CValue<CGRect>.toRect(scale: Float): Rect =
-    useContents {
-        return@useContents Rect(
-            offset = Offset(
-                x = origin.x.toFloat() * scale,
-                y = origin.y.toFloat() * scale
-            ),
-            size = Size(
-                width = size.width.toFloat() * scale,
-                height = size.height.toFloat() * scale
-            )
-        )
-    }
-
-
-private val UIView.windowRect: Rect
+/**
+ * Closest ancestor that has [SemanticsActions.ScrollBy] action
+ */
+private val SemanticsNode.scrollableByAncestor: SemanticsNode?
     get() {
-        val window = window ?: return Rect.Zero
-        val scale = window.screen.scale
+        var current = parent
 
-        return window.frame.toRect(scale.toFloat())
+        while (current != null) {
+            if (current.config.getOrNull(SemanticsActions.ScrollBy) != null) {
+                return current
+            }
+
+            current = current.parent
+        }
+
+        return null
     }
