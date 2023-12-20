@@ -259,21 +259,21 @@ private class AccessibilityElement(
 
         // TODO: consider safe areas?
         // TODO: is RTL working properly?
-        if (unclippedRect.top < 0.0f) {
+        if (unclippedRect.top < scrollableAncestorRect.top) {
             // The element is above the screen, scroll up
-            parent?.scrollByIfPossible(0f, -unclippedRect.top)
+            parent?.scrollByIfPossible(0f, unclippedRect.top - scrollableAncestorRect.top)
             return
-        } else if (unclippedRect.bottom > scrollableAncestorRect.height) {
+        } else if (unclippedRect.bottom > scrollableAncestorRect.bottom) {
             // The element is below the screen, scroll down
-            parent?.scrollByIfPossible(0f, scrollableAncestorRect.height - unclippedRect.bottom)
+            parent?.scrollByIfPossible(0f, unclippedRect.bottom - scrollableAncestorRect.bottom)
             return
-        } else if (unclippedRect.left < 0.0f) {
+        } else if (unclippedRect.left < scrollableAncestorRect.left) {
             // The element is to the left of the screen, scroll left
-            parent?.scrollByIfPossible(-unclippedRect.left, 0f)
+            parent?.scrollByIfPossible(unclippedRect.left - scrollableAncestorRect.left, 0f)
             return
-        } else if (unclippedRect.right > scrollableAncestorRect.width) {
+        } else if (unclippedRect.right > scrollableAncestorRect.right) {
             // The element is to the right of the screen, scroll right
-            parent?.scrollByIfPossible(scrollableAncestorRect.width - unclippedRect.right, 0f)
+            parent?.scrollByIfPossible(unclippedRect.right - scrollableAncestorRect.right, 0f)
             return
         }
     }
