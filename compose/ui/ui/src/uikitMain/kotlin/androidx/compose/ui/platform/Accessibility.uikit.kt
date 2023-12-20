@@ -247,6 +247,7 @@ private class AccessibilityElement(
     /**
      * Try to perform a scroll on any ancestor of this element if the element is not fully visible.
      */
+    // TODO: still clunky
     // TODO: scroll if the element is last in the scrollable container.
     private fun scrollToIfPossible() {
         val scrollableAncestor = semanticsNode.scrollableByAncestor ?: return
