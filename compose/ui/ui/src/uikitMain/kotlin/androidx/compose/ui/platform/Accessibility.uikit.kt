@@ -131,17 +131,30 @@ private class AccessibilityElement(
         update(null, semanticsNode)
     }
 
-    fun childAtIndex(index: NSInteger): AccessibilityElement? {
+    /**
+     * Returns accessibility element communicated to iOS Accessibility services for the given [index].
+     * Takes a child at [index].
+     * If the child has its own children, then the element at the given index is the synthesized container
+     * for the child. Otherwise, the element at the given index is the child itself.
+     */
+    fun childAccessibilityElementAtIndex(index: NSInteger): Any? {
         val i = index.toInt()
 
         return if (i in children.indices) {
-            children[i]
+            val child = children[i]
+
+            if (child.hasChildren) {
+                return child.accessibilityContainer
+            } else {
+                child
+            }
         } else {
             null
         }
     }
 
     /**
+     * Reverse of [childAccessibilityElementAtIndex]
      * Tries to match the given [element] with the actual hierarchy resolution callback from
      * iOS Accessibility services. If the element is found, returns its index in the children list.
      * Otherwise, returns null.
@@ -160,7 +173,7 @@ private class AccessibilityElement(
                 // accessibilityContainerOfObject retrieves the container of the given element in
                 // ObjC via dispatching `accessibilityContainer` to type erased `id` object.
                 // In [AccessibilityElement] it will resolve to the synthesized container.
-                if (element == accessibilityContainerOfObject(child)) {
+                if (element == child.accessibilityContainer) {
                     return index.toLong()
                 }
             } else {
@@ -205,7 +218,7 @@ private class AccessibilityElement(
      */
     override fun resolveAccessibilityContainer(): Any? {
         if (!isAlive) {
-            DebugLogger.log("resolveAccessibilityContainer failed because removed from the tree")
+            DebugLogger.log("resolveAccessibilityContainer failed because $semanticsNodeId was removed from the tree")
             return null
         }
 
@@ -626,7 +639,7 @@ private class AccessibilityContainer(
      */
     override fun accessibilityElementAtIndex(index: NSInteger): Any? {
         if (!isAlive) {
-            DebugLogger.log("accessibilityElementAtIndex(NSInteger) called after removed from the tree")
+            DebugLogger.log("accessibilityElementAtIndex(NSInteger) called after $semanticsNodeId was removed from the tree")
             return null
         }
 
@@ -634,14 +647,7 @@ private class AccessibilityContainer(
             return wrappedElement
         }
 
-        val child = wrappedElement.childAtIndex(index - 1) ?: return null
-
-        // TODO: move it to child itself
-        if (child.hasChildren) {
-            return child.accessibilityContainer
-        }
-
-        return child
+        return wrappedElement.childAccessibilityElementAtIndex(index - 1)
     }
 
     override fun accessibilityFrame(): CValue<CGRect> {
@@ -650,9 +656,8 @@ private class AccessibilityContainer(
         }
 
         // Same as wrapped element
-        //
-        // Accessibility container clips reacheability of its children, if their frame doesn't interesect
-        // with their container's frame
+        // iOS makes children of a container unreachable, if their frame is outside of
+        // the container's frame
         return wrappedElement.accessibilityFrame
     }
 
@@ -662,7 +667,7 @@ private class AccessibilityContainer(
      */
     override fun accessibilityElementCount(): NSInteger {
         if (!isAlive) {
-            DebugLogger.log("accessibilityElementCount() called after removed from the tree")
+            DebugLogger.log("accessibilityElementCount() called after $semanticsNodeId was removed from the tree")
             return 0
         }
 
@@ -674,7 +679,7 @@ private class AccessibilityContainer(
      */
     override fun indexOfAccessibilityElement(element: Any): NSInteger {
         if (!isAlive) {
-            DebugLogger.log("indexOfAccessibilityElement(Any) called after removed from the tree")
+            DebugLogger.log("indexOfAccessibilityElement(Any) called after $semanticsNodeId was removed from the tree")
             return NSNotFound
         }
 
@@ -689,7 +694,7 @@ private class AccessibilityContainer(
 
     override fun accessibilityContainer(): Any? {
         if (!isAlive) {
-            DebugLogger.log("accessibilityContainer() called after removed from the tree")
+            DebugLogger.log("accessibilityContainer() called after $semanticsNodeId was removed from the tree")
             return null
         }
 
