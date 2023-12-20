@@ -16,7 +16,9 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -33,9 +35,11 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.toCGRect
 import androidx.compose.ui.uikit.utils.*
+import androidx.compose.ui.unit.toSize
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.measureTime
 import kotlinx.cinterop.ExportObjCClass
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -232,10 +236,65 @@ private class AccessibilityElement(
     override fun accessibilityElementDidBecomeFocused() {
         super.accessibilityElementDidBecomeFocused()
 
-        // TODO: scroll the screen if the element is at the bottom of the screen
         DebugLogger.log()
         DebugLogger.log("Focused on:")
         DebugLogger.log(semanticsNode.config)
+
+        if (!isAlive) {
+            return
+        }
+
+        scrollToIfPossible()
+    }
+
+    /**
+     * Try to perform a scroll on any ascendant of this element if the element is not fully visible.
+     */
+    // TODO: scroll if the element is last in the scrollable container.
+    private fun scrollToIfPossible() {
+        val windowRect = mediator.view.window?.windowRect ?: return
+
+        val unclippedRect = semanticsNode.unclippedBoundsInWindow
+        val clippedRect = semanticsNode.boundsInWindow
+
+        if (unclippedRect == clippedRect) {
+            // The element is fully visible, no need to scroll
+        } else {
+            // TODO: consider safe areas?
+            // TODO: is RTL working properly?
+            if (clippedRect.top < 0.0f) {
+                // The element is above the screen, scroll up
+                parent?.scrollByIfPossible(0f, -clippedRect.top)
+                return
+            } else if (clippedRect.bottom > windowRect.height) {
+                // The element is below the screen, scroll down
+                parent?.scrollByIfPossible(0f, windowRect.height - clippedRect.bottom)
+                return
+            } else if (clippedRect.left < 0.0f) {
+                // The element is to the left of the screen, scroll left
+                parent?.scrollByIfPossible(-clippedRect.left, 0f)
+                return
+            } else if (clippedRect.right > windowRect.width) {
+                // The element is to the right of the screen, scroll right
+                parent?.scrollByIfPossible(windowRect.width - clippedRect.right, 0f)
+                return
+            }
+        }
+    }
+
+    private fun scrollByIfPossible(dx: Float, dy: Float) {
+        if (!isAlive) {
+            return
+        }
+
+        // if has scrollBy action, invoke it, otherwise try to scroll the parent
+        val action = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action
+
+        if (action != null) {
+            action(dx, dy)
+        } else {
+            parent?.scrollByIfPossible(dx, dy)
+        }
     }
 
     private fun scrollIfPossible(direction: UIAccessibilityScrollDirection): Boolean {
@@ -994,3 +1053,29 @@ private fun List<SemanticsNode>.sortedByAccesibilityOrder(): List<SemanticsNode>
         }
     }
 }
+
+private val SemanticsNode.unclippedBoundsInWindow: Rect
+    get() = Rect(positionInWindow, size.toSize())
+
+private fun CValue<CGRect>.toRect(scale: Float): Rect =
+    useContents {
+        return@useContents Rect(
+            offset = Offset(
+                x = origin.x.toFloat() * scale,
+                y = origin.y.toFloat() * scale
+            ),
+            size = Size(
+                width = size.width.toFloat() * scale,
+                height = size.height.toFloat() * scale
+            )
+        )
+    }
+
+
+private val UIView.windowRect: Rect
+    get() {
+        val window = window ?: return Rect.Zero
+        val scale = window.screen.scale
+
+        return window.frame.toRect(scale.toFloat())
+    }
