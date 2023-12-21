@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,10 @@
 
 package androidx.compose.ui.platform
 
-internal actual fun simpleIdentityToString(obj: Any, name: String?): String {
-    val className = name ?: if (obj::class.java.isAnonymousClass) {
-        obj::class.java.name
-    } else {
-        obj::class.java.simpleName
-    }
+import kotlinx.atomicfu.atomic
 
-    return className + "@" + String.format("%07x", System.identityHashCode(obj))
+internal actual class AtomicInt actual constructor(value: Int) {
+    private val delegate = atomic(value)
+    actual fun addAndGet(delta: Int): Int = delegate.addAndGet(delta)
+    actual fun compareAndSet(expected: Int, new: Int) = delegate.compareAndSet(expected, new)
 }
-
-internal actual fun Any.nativeClass(): Any = this.javaClass
-
