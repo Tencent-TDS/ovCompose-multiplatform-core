@@ -31,6 +31,8 @@ import org.jetbrains.skia.BreakIterator
 import org.jetbrains.skiko.SkikoKey
 import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.UIKit.*
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
@@ -106,6 +108,7 @@ internal class UIKitTextInputService(
         currentImeOptions = imeOptions
         currentImeActionHandler = onImeActionPerformed
 
+        textUIView?.removeFromSuperview()
         textUIView = IntermediateTextInputUIView(
             keyboardEventHandler = keyboardEventHandler,
         ).also {
@@ -127,7 +130,14 @@ internal class UIKitTextInputService(
         currentImeOptions = null
         currentImeActionHandler = null
         hideSoftwareKeyboard()
-        textUIView?.removeFromSuperview()
+
+        textUIView?.input = null
+        textUIView?.let { view ->
+
+            dispatch_async(dispatch_get_main_queue()) {
+                view.removeFromSuperview()
+            }
+        }
         textUIView = null
     }
 
