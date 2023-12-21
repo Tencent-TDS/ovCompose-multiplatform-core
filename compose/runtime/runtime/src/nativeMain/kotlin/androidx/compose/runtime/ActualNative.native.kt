@@ -36,38 +36,6 @@ private var threadId: Long = threadCounter.addAndGet(1)
 
 internal actual fun getCurrentThreadId(): Long = threadId
 
-/**
- * AtomicReference implementation suitable for both single and multi-threaded context.
- */
-actual class AtomicReference<V> actual constructor(value: V) {
-    private val delegate = kotlin.concurrent.AtomicReference(value)
-
-    actual fun get(): V = delegate.value
-
-    actual fun set(value: V) {
-        delegate.value = value
-    }
-
-    actual fun getAndSet(value: V): V {
-        var old = delegate.value
-        while (!delegate.compareAndSet(old, value)) { old = delegate.value }
-        return old
-    }
-
-    actual fun compareAndSet(expect: V, newValue: V): Boolean {
-        return delegate.compareAndSet(expect, newValue)
-    }
-}
-
-internal actual class AtomicInt actual constructor(value: Int) {
-    private val delegate = kotlin.concurrent.AtomicInt(value)
-    actual fun get(): Int = delegate.value
-    actual fun set(value: Int) {
-        delegate.value = value
-    }
-    actual fun add(amount: Int): Int = delegate.addAndGet(amount)
-}
-
 @OptIn(ExperimentalNativeApi::class)
 internal actual class WeakReference<T : Any> actual constructor(reference: T) {
     val kotlinNativeReference = kotlin.native.ref.WeakReference<T>(reference)
