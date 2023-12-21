@@ -21,9 +21,9 @@ buildscript {
     SdkHelperKt.setSupportRootFolder(project, project.projectDir)
     SdkHelperKt.writeSdkPathToLocalPropertiesFile(project)
 
-    repositories {
-        mavenCentral()  // Needed for atomicfu plugin, below
-    }
+    // Needed for atomicfu plugin
+    apply(from: "buildSrc/repos.gradle")
+    repos.addMavenRepositories(repositories)
     dependencies {
         classpath(libs.atomicFuPluginz)
     }
