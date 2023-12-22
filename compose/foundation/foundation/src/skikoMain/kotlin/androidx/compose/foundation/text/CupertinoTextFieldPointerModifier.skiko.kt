@@ -99,7 +99,7 @@ private fun getTapHandlerModifier(
             onTap = { touchPointOffset ->
                 if (currentState.hasFocus) {
                     // To show keyboard if it was hidden. Even in selection mode (like native)
-                    tapTextFieldToFocus(
+                    requestFocusAndShowKeyboardIfNeeded(
                         currentState,
                         currentFocusRequester,
                         !currentReadOnly
@@ -119,7 +119,7 @@ private fun getTapHandlerModifier(
                         currentManager.deselect(touchPointOffset)
                     }
                 } else {
-                    tapTextFieldToFocus(
+                    requestFocusAndShowKeyboardIfNeeded(
                         currentState,
                         currentFocusRequester,
                         !currentReadOnly
