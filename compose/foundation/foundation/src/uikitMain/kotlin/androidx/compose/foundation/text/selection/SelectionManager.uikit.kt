@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package androidx.compose.foundation.text.selection
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.SpringSpec
 import androidx.compose.foundation.MagnifierStyle
 import androidx.compose.foundation.magnifier
-import androidx.compose.foundation.text.Handle
-import androidx.compose.foundation.text.InternalFoundationTextApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,9 +28,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
+
+internal actual val PlatformMagnifierSpringSpec: SpringSpec<Offset> =
+//    DefaultMagnifierSpringSpec
+    SpringSpec(
+        visibilityThreshold = Offset(
+            Spring.DefaultDisplacementThreshold,
+            Spring.DefaultDisplacementThreshold
+        ),
+        stiffness = Spring.StiffnessHigh,
+    )
 
 internal actual fun isCopyKeyEvent(keyEvent: KeyEvent): Boolean =
     false //TODO implement copy key event for iPad

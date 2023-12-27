@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isSpecified
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 private val UnspecifiedAnimationVector2D = AnimationVector2D(Float.NaN, Float.NaN)
@@ -54,7 +53,9 @@ private val OffsetDisplacementThreshold = Offset(
     Spring.DefaultDisplacementThreshold
 )
 
-private val MagnifierSpringSpec = SpringSpec(visibilityThreshold = OffsetDisplacementThreshold)
+internal val DefaultMagnifierSpringSpec = SpringSpec(visibilityThreshold = OffsetDisplacementThreshold)
+
+internal expect val PlatformMagnifierSpringSpec : SpringSpec<Offset>
 
 /**
  * The text magnifier follows horizontal dragging exactly, but is vertically clamped to the current
@@ -98,7 +99,7 @@ private fun rememberAnimatedMagnifierPosition(
                     // the new one will use the correct velocity, e.g. in order to propagate spring
                     // inertia.
                     animationScope.launch {
-                        animatable.animateTo(targetValue, MagnifierSpringSpec)
+                        animatable.animateTo(targetValue, PlatformMagnifierSpringSpec)
                     }
                 } else {
                     animatable.snapTo(targetValue)

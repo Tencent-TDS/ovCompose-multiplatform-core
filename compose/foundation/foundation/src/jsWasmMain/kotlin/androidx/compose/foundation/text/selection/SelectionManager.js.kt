@@ -16,8 +16,13 @@
 
 package androidx.compose.foundation.text.selection
 
+import androidx.compose.animation.core.SpringSpec
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent
+
+internal actual val PlatformMagnifierSpringSpec: SpringSpec<Offset>
+    get() = DefaultMagnifierSpringSpec
 
 // this doesn't sounds very sustainable
 // it would end up being a function for any conceptual keyevent (selectall, cut, copy, paste)

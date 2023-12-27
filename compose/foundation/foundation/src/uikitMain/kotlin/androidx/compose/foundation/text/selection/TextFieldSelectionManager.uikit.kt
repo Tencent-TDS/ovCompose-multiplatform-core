@@ -100,11 +100,12 @@ internal fun calculateSelectionMagnifierCenterIOS(
     val centerX = dragX.coerceIn(0f, containerRect.right)
 
     // hide magnifier when drag goes below text field (native behavior)
-    // TODO: works bad when text field is scrollable vertically. fix
+    // TODO: magnifier doesn't hide if text field was scrolled vertically. fix
     if (containerCoordinates.localPositionOf(fieldCoordinates, localDragPosition).y >
         layoutResult.lastBaseline + magnifierSize.height/2) {
         return Offset.Unspecified
     }
+
 
     return containerCoordinates.localPositionOf(
         fieldCoordinates,

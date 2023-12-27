@@ -18,11 +18,13 @@ package androidx.compose.foundation
 
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import kotlin.math.roundToInt
+import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.update
+import kotlinx.atomicfu.updateAndGet
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UITextLoupeSession
@@ -98,7 +100,7 @@ internal object PlatformMagnifierFactoryIos17Impl : PlatformMagnifierFactory {
     ): PlatformMagnifier {
         return PlatformMagnifierImpl(
             density = density.density,
-            sessionFactory = {
+            loupeSessionFactory = {
                 requireNotNull(
                     UITextLoupeSession.beginLoupeSessionAtPoint(
                         point = CGPointMake(it.x.toDouble(), it.y.toDouble()),
@@ -112,7 +114,7 @@ internal object PlatformMagnifierFactoryIos17Impl : PlatformMagnifierFactory {
 
     class PlatformMagnifierImpl(
         val density: Float,
-        val sessionFactory: (Offset) -> UITextLoupeSession
+        val loupeSessionFactory: (Offset) -> UITextLoupeSession
     ) : PlatformMagnifier {
 
         // TODO: find exact size of iOS 17 loupe
@@ -121,40 +123,58 @@ internal object PlatformMagnifierFactoryIos17Impl : PlatformMagnifierFactory {
             (80 * density).roundToInt()
         )
 
+        private var loupeSession = atomic<UITextLoupeSession?>(null)
+        private var lastSourceCenter : Offset? by atomic(null)
+
         override fun updateContent() {
+            if (loupeSession.value != null) {
+                update(
+                    sourceCenter = lastSourceCenter ?: return,
+                    magnifierCenter = Offset.Unspecified, // unused
+                    zoom = 1f // unused
+                )
+            }
         }
 
-        private var loupeSession : UITextLoupeSession? = null
 
         override fun update(sourceCenter: Offset, magnifierCenter: Offset, zoom: Float) {
 
             if (sourceCenter.isUnspecified)
                 return
-            val pos = (sourceCenter + if (magnifierCenter.isSpecified) magnifierCenter else Offset.Zero) / density
-            val session = loupeSession ?: sessionFactory(pos).also {
-                loupeSession = it
-            }
 
-            val magnifierCenterPoint = CGPointMake(pos.x.toDouble(), pos.y.toDouble())
+            val sourceCenterDp = sourceCenter / density
 
-            session.moveToPoint(
+            val session = loupeSession
+                .updateAndGet { it ?: loupeSessionFactory(sourceCenterDp) }
+
+            val magnifierCenterPoint = CGPointMake(
+                sourceCenterDp.x.toDouble(),
+                sourceCenterDp.y.toDouble()
+            )
+
+            lastSourceCenter = sourceCenter
+
+            session?.moveToPoint(
                 point = magnifierCenterPoint,
                 withCaretRect = CGRectMake(
-                    x = pos.x.toDouble() - CarretWidth/2,
-                    y = pos.y.toDouble()- CarretHeight/2,
-                    width = CarretWidth,
-                    height = CarretHeight
+                    x = sourceCenterDp.x.toDouble() - CaretWidth / 2,
+                    y = sourceCenterDp.y.toDouble() - CaretHeight / 2,
+                    width = CaretWidth,
+                    height = CaretHeight
                 ),
                 trackingCaret = true
             )
         }
 
         override fun dismiss() {
-            loupeSession?.invalidate()
-            loupeSession = null
+            loupeSession.update {
+                it?.invalidate()
+                null
+            }
+            lastSourceCenter = null
         }
     }
 }
 
-private val CarretWidth = 1.0
-private val CarretHeight = 5.0
+private const val CaretWidth = 1.0
+private const val CaretHeight = 5.0
