@@ -38,6 +38,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
@@ -145,10 +146,10 @@ internal class TextFieldSelectionManager(
      * when the dragging is stopped.
      */
     var draggingHandle: Handle? by mutableStateOf(null)
-        private set
+        internal set
 
     var currentDragPosition: Offset? by mutableStateOf(null)
-        private set
+        internal set
 
     /**
      * The old [TextFieldValue] before entering the selection mode on long press. Used to exit

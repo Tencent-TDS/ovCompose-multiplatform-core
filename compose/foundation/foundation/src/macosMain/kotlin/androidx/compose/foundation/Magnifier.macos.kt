@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.interop
+package androidx.compose.foundation
 
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.InternalComposeUiApi
-import platform.UIKit.UIView
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpSize
 
-@InternalComposeUiApi
-val LocalLayerContainer = staticCompositionLocalOf<UIView> {
-    error("CompositionLocal LayerContainer not provided")
-}
+@ExperimentalFoundationApi
+actual fun Modifier.magnifier(
+    sourceCenter: Density.() -> Offset,
+    magnifierCenter: Density.() -> Offset,
+    zoom: Float,
+    style: MagnifierStyle,
+    onSizeChanged: ((DpSize) -> Unit)?
+) = this
+
+internal actual fun isPlatformMagnifierSupported() : Boolean = false

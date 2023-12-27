@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.interop
+package androidx.compose.foundation.text.selection
 
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.InternalComposeUiApi
-import platform.UIKit.UIView
+import androidx.compose.ui.Modifier
 
-@InternalComposeUiApi
-val LocalLayerContainer = staticCompositionLocalOf<UIView> {
-    error("CompositionLocal LayerContainer not provided")
-}
+/**
+ * Magnification is not supported on desktop.
+ */
+internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier = this

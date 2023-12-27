@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2021 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,7 @@
 
 package androidx.compose.foundation
 
-import android.os.Build
-import android.widget.Magnifier
-import androidx.annotation.ChecksSdkIntAtLeast
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,22 +24,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.platform.inspectable
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.channels.BufferOverflow
@@ -52,6 +46,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import org.jetbrains.skiko.OS
+import org.jetbrains.skiko.OSVersion
+import org.jetbrains.skiko.available
 
 /**
  * A function on elements that are magnified with a [magnifier] modifier that returns the position
@@ -60,173 +57,13 @@ import kotlinx.coroutines.flow.onEach
 internal val MagnifierPositionInRoot =
     SemanticsPropertyKey<() -> Offset>("MagnifierPositionInRoot")
 
-/**
- * Specifies how a [magnifier] should create the underlying [Magnifier] widget. These properties
- * should not be changed while a magnifier is showing, since the magnifier will be dismissed and
- * recreated with the new properties which will cause it to disappear for at least a frame.
- *
- * Not all magnifier features are supported on all platforms. The [isSupported] property will return
- * false for styles that cannot be fully supported on the given platform.
- *
- * @param size See [Magnifier.Builder.setSize]. Only supported on API 29+.
- * @param cornerRadius See [Magnifier.Builder.setCornerRadius]. Only supported on API 29+.
- * @param elevation See [Magnifier.Builder.setElevation]. Only supported on API 29+.
- * @param clippingEnabled See [Magnifier.Builder.setClippingEnabled]. Only supported on API 29+.
- * @param fishEyeEnabled Configures the magnifier to distort the magnification at the edges to
- * look like a fisheye lens. Not currently supported.
- */
 @ExperimentalFoundationApi
-@Stable
-actual class MagnifierStyle internal actual constructor(
-    internal actual val useTextDefault: Boolean,
-    internal actual val size: DpSize,
-    internal actual val cornerRadius: Dp,
-    internal actual val elevation: Dp,
-    internal actual val clippingEnabled: Boolean,
-    internal actual val fishEyeEnabled: Boolean
-) {
-    @ExperimentalFoundationApi
-    actual constructor(
-        size: DpSize,
-        cornerRadius: Dp,
-        elevation: Dp,
-        clippingEnabled: Boolean,
-        fishEyeEnabled: Boolean
-    ) : this(
-        useTextDefault = false,
-        size = size,
-        cornerRadius = cornerRadius,
-        elevation = elevation,
-        clippingEnabled = clippingEnabled,
-        fishEyeEnabled = fishEyeEnabled,
-    )
-
-    /**
-     * Returns true if this style is supported by this version of the platform.
-     * When false is returned, it may be either because the [Magnifier] widget is not supported at
-     * all because the platform is too old, or because a particular style flag (e.g.
-     * [fishEyeEnabled]) is not supported on the current platform.
-     * [Default] and [TextDefault] styles are supported on all platforms with SDK version 28 and
-     * higher.
-     */
-    actual val isSupported: Boolean
-        get() = isStyleSupported(this)
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is MagnifierStyle) return false
-
-        if (useTextDefault != other.useTextDefault) return false
-        if (size != other.size) return false
-        if (cornerRadius != other.cornerRadius) return false
-        if (elevation != other.elevation) return false
-        if (clippingEnabled != other.clippingEnabled) return false
-        if (fishEyeEnabled != other.fishEyeEnabled) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = useTextDefault.hashCode()
-        result = 31 * result + size.hashCode()
-        result = 31 * result + cornerRadius.hashCode()
-        result = 31 * result + elevation.hashCode()
-        result = 31 * result + clippingEnabled.hashCode()
-        result = 31 * result + fishEyeEnabled.hashCode()
-        return result
-    }
-
-    override fun toString(): String {
-        return if (useTextDefault) {
-            "MagnifierStyle.TextDefault"
-        } else {
-            "MagnifierStyle(" +
-                "size=$size, " +
-                "cornerRadius=$cornerRadius, " +
-                "elevation=$elevation, " +
-                "clippingEnabled=$clippingEnabled, " +
-                "fishEyeEnabled=$fishEyeEnabled" +
-                ")"
-        }
-    }
-
-    actual companion object {
-        /** A [MagnifierStyle] with all default values. */
-        @ExperimentalFoundationApi
-        actual val Default : MagnifierStyle = MagnifierStyle()
-
-        /**
-         * A [MagnifierStyle] that uses the system defaults for text magnification.
-         *
-         * Different versions of Android may use different magnifier styles for magnifying text, so
-         * using this configuration ensures that the correct style is used to match the system.
-         */
-        @ExperimentalFoundationApi
-        actual val TextDefault = MagnifierStyle(
-            useTextDefault = true,
-            size = Default.size,
-            cornerRadius = Default.cornerRadius,
-            elevation = Default.elevation,
-            clippingEnabled = Default.clippingEnabled,
-            fishEyeEnabled = Default.fishEyeEnabled,
-        )
-
-        internal fun isStyleSupported(
-            style: MagnifierStyle,
-            sdkVersion: Int = Build.VERSION.SDK_INT
-        ): Boolean {
-            return if (!isPlatformMagnifierSupported(sdkVersion)) {
-                // Older platform versions don't support magnifier at all.
-                false
-            } else if (style.fishEyeEnabled) {
-                // TODO(b/202451044) Add fisheye support once platform APIs are exposed.
-                false
-            } else if (style.useTextDefault || style == Default) {
-                // Default styles are always available on all platforms that support magnifier.
-                true
-            } else {
-                // Custom styles aren't supported on API 28.
-                sdkVersion >= 29
-            }
-        }
-    }
-}
-
-/**
- * Shows a [Magnifier] widget that shows an enlarged version of the content at [sourceCenter]
- * relative to the current layout node.
- *
- * This function returns a no-op modifier on API levels below P (28), since the framework does not
- * support the [Magnifier] widget on those levels. However, even on higher API levels, not all
- * magnifier features are supported on all platforms. To check whether a given [MagnifierStyle] is
- * supported by the current platform, check the [MagnifierStyle.isSupported] property.
- *
- * This function does not allow configuration of [source bounds][Magnifier.Builder.setSourceBounds]
- * since the magnifier widget does not support constraining to the bounds of composables.
- *
- * @sample androidx.compose.foundation.samples.MagnifierSample
- *
- * @param sourceCenter The offset of the center of the magnified content. Measured in pixels from
- * the top-left of the layout node this modifier is applied to. This offset is passed to
- * [Magnifier.show].
- * @param magnifierCenter The offset of the magnifier widget itself, where the magnified content is
- * rendered over the original content. Measured in density-independent pixels from the top-left of
- * the layout node this modifier is applied to. If [unspecified][DpOffset.Unspecified], the
- * magnifier widget will be placed at a default offset relative to [sourceCenter]. The value of that
- * offset is specified by the system.
- * @param zoom See [Magnifier.setZoom]. Not supported on SDK levels < Q.
- * @param style The [MagnifierStyle] to use to configure the magnifier widget.
- * @param onSizeChanged An optional callback that will be invoked when the magnifier widget is
- * initialized to report on its actual size. This can be useful if one of the default
- * [MagnifierStyle]s is used to find out what size the system decided to use for the widget.
- */
-@ExperimentalFoundationApi
-fun Modifier.magnifier(
+actual fun Modifier.magnifier(
     sourceCenter: Density.() -> Offset,
-    magnifierCenter: Density.() -> Offset = { Offset.Unspecified },
-    zoom: Float = Float.NaN,
-    style: MagnifierStyle = MagnifierStyle.Default,
-    onSizeChanged: ((DpSize) -> Unit)? = null
+    magnifierCenter: Density.() -> Offset,
+    zoom: Float,
+    style: MagnifierStyle,
+    onSizeChanged: ((DpSize) -> Unit)?
 ): Modifier = inspectable(
     // Publish inspector info even if magnification isn't supported.
     inspectorInfo = debugInspectorInfo {
@@ -257,10 +94,9 @@ fun Modifier.magnifier(
 /**
  * @param platformMagnifierFactory Creates a [PlatformMagnifier] whenever the configuration changes.
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, InternalComposeUiApi::class)
 // The InspectorInfo this modifier reports is for the above public overload, and intentionally
 // doesn't include the platformMagnifierFactory parameter.
-@RequiresApi(28)
 internal fun Modifier.magnifier(
     sourceCenter: Density.() -> Offset,
     magnifierCenter: Density.() -> Offset,
@@ -269,7 +105,7 @@ internal fun Modifier.magnifier(
     onSizeChanged: ((DpSize) -> Unit)?,
     platformMagnifierFactory: PlatformMagnifierFactory
 ): Modifier = composed {
-    val view = LocalView.current
+    val view = LocalLayerContainer.current
     val density = LocalDensity.current
     var anchorPositionInRoot: Offset by remember { mutableStateOf(Offset.Unspecified) }
     val updatedSourceCenter by rememberUpdatedState(sourceCenter)
@@ -279,6 +115,7 @@ internal fun Modifier.magnifier(
     val sourceCenterInRoot by remember {
         derivedStateOf {
             val sourceCenterOffset = updatedSourceCenter(density)
+
             if (anchorPositionInRoot.isSpecified && sourceCenterOffset.isSpecified) {
                 anchorPositionInRoot + sourceCenterOffset
             } else {
@@ -386,6 +223,6 @@ internal fun Modifier.magnifier(
         }
 }
 
-@ChecksSdkIntAtLeast(api = 28)
-internal fun isPlatformMagnifierSupported(sdkVersion: Int = Build.VERSION.SDK_INT) =
-    sdkVersion >= 28
+internal actual fun isPlatformMagnifierSupported() : Boolean =
+    available(OS.Ios to OSVersion(major = 17))
+

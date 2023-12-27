@@ -16,11 +16,48 @@
 
 package androidx.compose.foundation.text.selection
 
+import androidx.compose.foundation.MagnifierStyle
+import androidx.compose.foundation.magnifier
+import androidx.compose.foundation.text.Handle
+import androidx.compose.foundation.text.InternalFoundationTextApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 
 internal actual fun isCopyKeyEvent(keyEvent: KeyEvent): Boolean =
     false //TODO implement copy key event for iPad
 
-internal actual fun Modifier.selectionMagnifier(manager: SelectionManager): Modifier =
-    this //TODO support magnifier for uikit
+internal actual fun Modifier.selectionMagnifier(manager: SelectionManager): Modifier {
+    if (!MagnifierStyle.TextDefault.isSupported) {
+        return this
+    }
+
+    return composed {
+        val density = LocalDensity.current
+        var magnifierSize by remember { mutableStateOf(IntSize.Zero) }
+        animatedSelectionMagnifier(
+            magnifierCenter = {
+                calculateSelectionMagnifierCenterAndroid(manager, magnifierSize)
+            },
+            platformMagnifier = { center ->
+                Modifier.magnifier(
+                    sourceCenter = { center() },
+                    onSizeChanged = { size ->
+                        magnifierSize = with(density) {
+                            IntSize(size.width.roundToPx(), size.height.roundToPx())
+                        }
+                    },
+                    style = MagnifierStyle.TextDefault
+                )
+            }
+        )
+    }
+}
