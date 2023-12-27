@@ -117,7 +117,6 @@ internal object PlatformMagnifierFactoryIos17Impl : PlatformMagnifierFactory {
         val loupeSessionFactory: (Offset) -> UITextLoupeSession
     ) : PlatformMagnifier {
 
-        // TODO: find exact size of iOS 17 loupe
         override val size: IntSize = IntSize(
             (115 * density).roundToInt(),
             (80 * density).roundToInt()

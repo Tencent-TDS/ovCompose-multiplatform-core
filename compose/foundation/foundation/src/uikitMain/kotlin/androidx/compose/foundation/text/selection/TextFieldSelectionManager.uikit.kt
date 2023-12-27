@@ -96,19 +96,23 @@ internal fun calculateSelectionMagnifierCenterIOS(
     val textFieldOffsetInDecorationBox = manager.state?.layoutResult?.decorationBoxCoordinates
         ?.localPositionOf(fieldCoordinates, Offset.Zero)?.x ?: 0f
 
-    val containerRect = containerCoordinates.boundsInWindow()
-    val centerX = dragX.coerceIn(0f, containerRect.right)
+    val textFieldRect = fieldCoordinates.localBoundingBoxOf(containerCoordinates)
+
+    val centerX = dragX.coerceIn(
+        textFieldOffsetInDecorationBox - magnifierSize.width/4,
+        textFieldRect.right + magnifierSize.width/4
+    ) - textFieldOffsetInDecorationBox
 
     // hide magnifier when drag goes below text field (native behavior)
     // TODO: magnifier doesn't hide if text field was scrolled vertically. fix
     if (containerCoordinates.localPositionOf(fieldCoordinates, localDragPosition).y >
-        layoutResult.lastBaseline + magnifierSize.height/2) {
+        layoutResult.lastBaseline + magnifierSize.height) {
         return Offset.Unspecified
     }
 
 
     return containerCoordinates.localPositionOf(
         fieldCoordinates,
-        Offset(centerX - textFieldOffsetInDecorationBox, offsetCenter.y)
+        Offset(centerX, offsetCenter.y)
     )
 }
