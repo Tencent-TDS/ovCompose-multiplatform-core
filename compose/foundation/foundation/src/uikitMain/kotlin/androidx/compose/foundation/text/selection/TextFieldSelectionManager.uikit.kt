@@ -100,7 +100,7 @@ internal fun calculateSelectionMagnifierCenterIOS(
 
     val centerX = dragX.coerceIn(
         textFieldOffsetInDecorationBox - magnifierSize.width/4,
-        textFieldRect.right + magnifierSize.width/4
+        textFieldOffsetInDecorationBox + textFieldRect.right + magnifierSize.width/4
     ) - textFieldOffsetInDecorationBox
 
     // hide magnifier when drag goes below text field (native behavior)
