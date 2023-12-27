@@ -27,9 +27,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 
 internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier {
     if (!MagnifierStyle.TextDefault.isSupported) {
@@ -41,7 +41,7 @@ internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManag
         var magnifierSize by remember { mutableStateOf(IntSize.Zero) }
         animatedSelectionMagnifier(
             magnifierCenter = {
-                calculateSelectionMagnifierCenterIOS(manager, magnifierSize)
+                calculateSelectionMagnifierCenterIOS(manager, magnifierSize, density.density)
             },
             platformMagnifier = { center ->
                 Modifier.magnifier(
@@ -62,7 +62,8 @@ internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManag
 @OptIn(InternalFoundationTextApi::class)
 internal fun calculateSelectionMagnifierCenterIOS(
     manager: TextFieldSelectionManager,
-    magnifierSize: IntSize
+    magnifierSize: IntSize,
+    density : Float,
 ): Offset {
 
     val rawTextOffset = when (manager.draggingHandle) {
@@ -106,13 +107,14 @@ internal fun calculateSelectionMagnifierCenterIOS(
     // hide magnifier when drag goes below text field (native behavior)
     // TODO: magnifier doesn't hide if text field was scrolled vertically. fix
     if (containerCoordinates.localPositionOf(fieldCoordinates, localDragPosition).y >
-        layoutResult.lastBaseline + magnifierSize.height) {
+        layoutResult.lastBaseline + HideThresholdDp * density) {
         return Offset.Unspecified
     }
-
 
     return containerCoordinates.localPositionOf(
         fieldCoordinates,
         Offset(centerX, offsetCenter.y)
     )
 }
+
+private const val HideThresholdDp = 54
