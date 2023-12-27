@@ -40,7 +40,7 @@ internal class SnapshotInvalidationTracker(
      *
      * Note that it's not valid to have more than one thread calling it at the same time.
      */
-    private val renderingThreadId = atomic<Long?>(null)
+    private var renderingThreadId: Long? by atomic(null)
 
     val hasInvalidations: Boolean
         get() = needLayout || needDraw || snapshotChanges.hasCommands
@@ -69,7 +69,7 @@ internal class SnapshotInvalidationTracker(
      * @return the observer for monitoring snapshot changes
      */
     fun snapshotObserver() = OwnerSnapshotObserver { command ->
-        if (renderingThreadId.value == getCurrentThreadId())
+        if (renderingThreadId == getCurrentThreadId())
             command()
         else
             snapshotChanges.add(command)
@@ -90,10 +90,10 @@ internal class SnapshotInvalidationTracker(
      */
     inline fun <T> performSnapshotChangesSynchronously(block: () -> T): T {
         return try {
-            renderingThreadId.value = getCurrentThreadId()
+            renderingThreadId = getCurrentThreadId()
             block()
         } finally {
-            renderingThreadId.value = null
+            renderingThreadId = null
         }
     }
 }
