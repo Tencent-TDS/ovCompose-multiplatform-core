@@ -18,18 +18,15 @@ package androidx.compose.runtime
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotContextElement
-import androidx.compose.runtime.snapshots.SnapshotMutableState
 import kotlin.coroutines.CoroutineContext
 import kotlin.experimental.ExperimentalNativeApi
-import kotlinx.coroutines.yield
 import kotlin.native.identityHashCode
 import kotlin.system.getTimeNanos
 import kotlin.time.ExperimentalTime
-import kotlin.native.concurrent.isFrozen
-import kotlin.native.concurrent.freeze
-import kotlin.native.concurrent.ensureNeverFrozen
+import kotlinx.atomicfu.atomic
+import kotlinx.coroutines.yield
 
-private val threadCounter = kotlin.concurrent.AtomicLong(0)
+private val threadCounter = atomic(0L)
 
 @kotlin.native.concurrent.ThreadLocal
 private var threadId: Long = threadCounter.addAndGet(1)
