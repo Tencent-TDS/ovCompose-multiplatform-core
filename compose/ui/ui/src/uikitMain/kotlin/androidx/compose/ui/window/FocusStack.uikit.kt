@@ -17,9 +17,9 @@
 package androidx.compose.ui.window
 
 import androidx.compose.ui.util.fastForEachReversed
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import platform.UIKit.UIView
-import platform.darwin.dispatch_async
-import platform.darwin.dispatch_get_main_queue
 
 /**
  * Stack to remember previously focused UIView.
@@ -47,6 +47,7 @@ internal class FocusStackImpl : FocusStack<UIView> {
 
     private var activeViews = emptyList<UIView>()
     private var resignedViews = emptyList<UIView>()
+    private val mainScope = MainScope()
 
     override fun pushAndFocus(view: UIView) {
         activeViews += view
@@ -60,7 +61,7 @@ internal class FocusStackImpl : FocusStack<UIView> {
             resignedViews += activeViews.subList(index, activeViews.lastIndex)
             activeViews = activeViews.subList(0, index)
 
-            dispatch_async(dispatch_get_main_queue()) {
+            mainScope.launch {
                 resignedViews.fastForEachReversed {
                     it.resignFirstResponder()
                 }

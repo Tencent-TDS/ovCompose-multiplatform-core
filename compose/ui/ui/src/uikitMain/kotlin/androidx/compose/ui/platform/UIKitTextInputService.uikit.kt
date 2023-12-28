@@ -27,12 +27,12 @@ import androidx.compose.ui.scene.getConstraintsToFillParent
 import androidx.compose.ui.unit.Density
 import kotlin.math.absoluteValue
 import kotlin.math.min
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
 import org.jetbrains.skiko.SkikoKey
 import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.UIKit.*
-import platform.darwin.dispatch_async
-import platform.darwin.dispatch_get_main_queue
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
@@ -94,6 +94,7 @@ internal class UIKitTextInputService(
      * And after clear in updateState function.
      */
     private var _tempCursorPos: Int? = null
+    private val mainScope = MainScope()
 
     override fun startInput(
         value: TextFieldValue,
@@ -133,8 +134,7 @@ internal class UIKitTextInputService(
 
         textUIView?.input = null
         textUIView?.let { view ->
-
-            dispatch_async(dispatch_get_main_queue()) {
+            mainScope.launch {
                 view.removeFromSuperview()
             }
         }
