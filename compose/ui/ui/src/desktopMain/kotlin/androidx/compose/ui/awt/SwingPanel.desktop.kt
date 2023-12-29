@@ -38,9 +38,9 @@ import androidx.compose.ui.input.pointer.PointerInputModifier
 import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.Density
@@ -99,7 +99,7 @@ public fun <T : Component> SwingPanel(
 
     Box(
         modifier = modifier.onGloballyPositioned { coordinates ->
-            val bounds = coordinates.boundsInWindow().round(density)
+            val bounds = coordinates.boundsInRoot().round(density)
             componentInfo.container.setBounds(bounds.left, bounds.top, bounds.width, bounds.height)
             componentInfo.container.validate()
             componentInfo.container.repaint()
@@ -159,7 +159,7 @@ public fun <T : Component> SwingPanel(
     }
 
     SideEffect {
-        componentInfo.container.background = parseColor(background)
+        componentInfo.container.background = background.toAwtColor()
         componentInfo.updater.update = update
     }
 }
@@ -247,15 +247,6 @@ private fun Box(modifier: Modifier, content: @Composable () -> Unit = {}) {
                 }
             }
         }
-    )
-}
-
-private fun parseColor(color: Color): java.awt.Color {
-    return java.awt.Color(
-        color.component1(),
-        color.component2(),
-        color.component3(),
-        color.component4()
     )
 }
 
