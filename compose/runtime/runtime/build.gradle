@@ -172,10 +172,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                     implementation(libs.atomicFu)
                 }
             }
-            jvmMain.dependsOn(jbMain)
-            jsMain.dependsOn(jbMain)
+            desktopMain.dependsOn(jbMain)
             jsNativeMain.dependsOn(jbMain)
-            nativeMain.dependsOn(jbMain)
 
             linuxX64Main.dependsOn(nativeMain)
             linuxX64Test.dependsOn(nativeTest)
