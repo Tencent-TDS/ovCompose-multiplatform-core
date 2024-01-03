@@ -51,15 +51,15 @@ interface PointerMatcher {
 
     @ExperimentalFoundationApi
     operator fun plus(pointerMatcher: PointerMatcher): PointerMatcher {
-        return if (this is CombinedPointerMatcher) {
-            this.sources.add(pointerMatcher)
-            this
-        } else if (pointerMatcher is CombinedPointerMatcher) {
-            pointerMatcher.sources.add(this)
-            pointerMatcher
-        } else {
-            CombinedPointerMatcher(mutableListOf(this, pointerMatcher))
+        val sources = buildList {
+            for (matcher in listOf(this@PointerMatcher, pointerMatcher)) {
+                if (matcher is CombinedPointerMatcher)
+                    addAll(matcher.sources)
+                else
+                    add(matcher)
+            }
         }
+        return CombinedPointerMatcher(sources)
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
@@ -128,8 +128,7 @@ interface PointerMatcher {
             override val pointerType = PointerType.Eraser
         }
 
-        private class CombinedPointerMatcher(val sources: MutableList<PointerMatcher>) : PointerMatcher {
-
+        private class CombinedPointerMatcher(val sources: List<PointerMatcher>) : PointerMatcher {
             override fun matches(event: PointerEvent): Boolean {
                 return sources.any { it.matches(event) }
             }
