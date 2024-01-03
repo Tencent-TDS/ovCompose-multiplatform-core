@@ -143,6 +143,13 @@ interface PointerMatcher {
          * - [PointerType] is [PointerType.Eraser]
          */
         @ExperimentalFoundationApi
-        val Primary = mouse(PointerButton.Primary) + touch + stylus + eraser
+        val Primary: PointerMatcher = CombinedPointerMatcher(
+            listOf(
+                mouse(PointerButton.Primary),
+                touch,
+                stylus,
+                eraser
+            )
+        )
     }
 }
