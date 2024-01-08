@@ -21,10 +21,7 @@ import androidx.compose.foundation.text.cupertinoTouchSelectionDetector
 import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.foundation.text.selection.SelectionRegistrar
 import androidx.compose.foundation.text.selection.hasSelection
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -36,11 +33,7 @@ internal actual fun SelectionRegistrar.touchSelectionModifier(
     selectableId: Long
 ): Modifier {
     return Modifier.pointerInput(Unit) {
-        val mouseSelectionObserver = object : CupertinoTouchSelectionObserver {
-
-            init {
-                println("init CupertinoTouchSelectionObserver")
-            }
+        val touchSelectionObserver = object : CupertinoTouchSelectionObserver {
 
             var lastPosition = Offset.Zero
 
@@ -85,8 +78,21 @@ internal actual fun SelectionRegistrar.touchSelectionModifier(
                 }
                 return true
             }
+
+            override fun onStop() {
+                if (hasSelection(selectableId)) {
+                    notifySelectionUpdateEnd()
+                }
+            }
+
+            override fun onCancel() {
+                if (hasSelection(selectableId)) {
+                    notifySelectionUpdateEnd()
+                }
+            }
+
         }
 
-        cupertinoTouchSelectionDetector(mouseSelectionObserver)
+        cupertinoTouchSelectionDetector(touchSelectionObserver)
     }
 }

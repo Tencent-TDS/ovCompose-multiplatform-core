@@ -17,61 +17,69 @@
 package androidx.compose.foundation.text
 
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.text.selection.ClicksCounter
 import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.AwaitPointerEventScope
-import androidx.compose.ui.input.pointer.PointerEvent
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputScope
-import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastAll
+import androidx.compose.ui.util.fastForEach
+import kotlinx.coroutines.CancellationException
 
 internal interface CupertinoTouchSelectionObserver {
     // if returns true event will be consumed
     fun onStart(downPosition: Offset, adjustment: SelectionAdjustment): Boolean
     fun onDrag(dragPosition: Offset, adjustment: SelectionAdjustment): Boolean
+    fun onStop()
+    fun onCancel()
 }
 
 internal suspend fun PointerInputScope.cupertinoTouchSelectionDetector(
     observer: CupertinoTouchSelectionObserver
 ) {
     awaitEachGesture {
-        val clicksCounter = ClicksCounter(viewConfiguration, clicksSlop = 50.dp.toPx())
-        while (true) {
-            val down = awaitTouchEventDown()
-            val downChange = down.changes[0]
-            clicksCounter.update(downChange)
-            val selectionMode = when (clicksCounter.clicks) {
-                1 -> SelectionAdjustment.None
-                2 -> SelectionAdjustment.Word
-                else -> SelectionAdjustment.Paragraph
-            }
-            val started = observer.onStart(downChange.position, selectionMode)
-            if (started) {
-                downChange.consume()
-                drag(downChange.id) {
-                    if (observer.onDrag(it.position, selectionMode)) {
-                        it.consume()
+        try {
+            val clicksCounter = ClicksCounter(viewConfiguration, clicksSlop = 50.dp.toPx())
+            while (true) {
+                val down = awaitFirstDown(requireUnconsumed = false)
+                val drag = awaitLongPressOrCancellation(down.id)
+                clicksCounter.update(down)
+                when (clicksCounter.clicks) {
+                    1 -> { /* Should be ignored without drag */ }
+                    2 -> {
+                        observer.onStart(down.position, SelectionAdjustment.Word)
+                        observer.onStop()
+                    }
+                    else -> {
+                        observer.onStart(down.position, SelectionAdjustment.Paragraph)
+                        observer.onStop()
+                    }
+                }
+
+                if (drag != null) {
+                    observer.onStart(down.position, SelectionAdjustment.Word)
+                    if (
+                        drag(drag.id) {
+                            if (observer.onDrag(it.position, SelectionAdjustment.CharacterWithWordAccelerate)) {
+                                it.consume()
+                            }
+                        }
+                    ) {
+                        currentEvent.changes.fastForEach {
+                            if (it.changedToUp()) { it.consume() }
+                        }
+                        observer.onStop()
+                    } else {
+                        observer.onCancel()
                     }
                 }
             }
+        } catch (c: CancellationException) {
+            observer.onCancel()
+            throw c
         }
     }
-}
-
-private suspend fun AwaitPointerEventScope.awaitTouchEventDown(): PointerEvent {
-    var event: PointerEvent
-    do {
-        event = awaitPointerEvent(PointerEventPass.Main)
-    } while (
-        !(
-            /*event.buttons.isPrimaryPressed &&*/ event.changes.fastAll {
-                it.type == PointerType.Touch /*&& it.changedToDown()*/
-            }
-            )
-    )
-    return event
 }
