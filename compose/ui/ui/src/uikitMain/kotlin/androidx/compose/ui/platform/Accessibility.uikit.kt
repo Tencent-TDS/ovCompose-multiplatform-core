@@ -770,6 +770,11 @@ private class AccessibilityContainer(
     }
 }
 
+private sealed interface NodesSyncResult {
+    object NoChanges : NodesSyncResult
+    data class Success(val newElementToFocus: Any?) : NodesSyncResult
+}
+
 /**
  * A class responsible for mediating between the tree of specific SemanticsOwner and the iOS accessibility tree.
  */
@@ -811,15 +816,23 @@ internal class AccessibilityMediator(
         //  should we use some other approach?
         coroutineScope.launch {
             while (isAlive) {
-                var syncedSomething = false
+                var result: NodesSyncResult
+
+                // TODO: track if voiceover/test env are active to avoid unnecessary syncs
 
                 val time = measureTime {
-                    syncedSomething = syncNodes()
+                    result = syncNodes()
                 }
 
-                if (syncedSomething) {
-                    DebugLogger.log("syncNodes took $time")
-                    UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, null)
+                when (val immutableResult = result) {
+                    is NodesSyncResult.NoChanges -> {
+                        // Do nothing
+                    }
+
+                    is NodesSyncResult.Success -> {
+                        DebugLogger.log("syncNodes took $time")
+                        UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, immutableResult.newElementToFocus)
+                    }
                 }
 
                 delay(updateIntervalMillis)
@@ -921,7 +934,7 @@ internal class AccessibilityMediator(
      * TODO: Does a full tree traversal on every sync. Explore new Google solution in 1.6, that should
      *   perform affected subtree traversal instead.
      */
-    private fun syncNodes(): Boolean {
+    private fun syncNodes(): NodesSyncResult {
         // TODO: investigate what happens if the user has an accessibility focus on the element that
         //  is removed from the tree:
         //  - Does it use the index path of containers traversal to restore the focus?
@@ -935,13 +948,13 @@ internal class AccessibilityMediator(
         val rootSemanticsNode = owner.rootSemanticsNode
         rootSemanticsNodeId = rootSemanticsNode.id
 
-        // Copied from desktop implementation, why is it there? 🤔
-        if (!rootSemanticsNode.layoutNode.isPlaced) {
-            return false
+        if (!isCurrentComposeAccessibleTreeDirty) {
+            return NodesSyncResult.NoChanges
         }
 
-        if (!isCurrentComposeAccessibleTreeDirty) {
-            return false
+        // Copied from desktop implementation, why is it there? 🤔
+        if (!rootSemanticsNode.layoutNode.isPlaced) {
+            return NodesSyncResult.NoChanges
         }
 
         DebugLogger.log("syncNodes")
@@ -956,7 +969,8 @@ internal class AccessibilityMediator(
         )
 
         debugTraverse(view)
-        return true
+        // TODO: return refocused element if the old focus is not present in the new tree
+        return NodesSyncResult.Success(null)
     }
 }
 
