@@ -780,8 +780,7 @@ internal class AccessibilityMediator(
 ) {
     private var isAlive = true
 
-    val rootSemanticsNodeId: Int
-        get() = owner.rootSemanticsNode.id
+    var rootSemanticsNodeId: Int = -1
 
     /**
      * A value of true indicates that the Compose accessible tree is dirty, meaning that compose
@@ -934,6 +933,7 @@ internal class AccessibilityMediator(
         //   by overlay/popup/dialogue
 
         val rootSemanticsNode = owner.rootSemanticsNode
+        rootSemanticsNodeId = rootSemanticsNode.id
 
         // Copied from desktop implementation, why is it there? 🤔
         if (!rootSemanticsNode.layoutNode.isPlaced) {
