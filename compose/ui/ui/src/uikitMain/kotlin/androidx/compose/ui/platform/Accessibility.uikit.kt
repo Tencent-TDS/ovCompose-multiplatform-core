@@ -1059,6 +1059,7 @@ private val SemanticsNode.unclippedBoundsInWindow: Rect
 
 /**
  * Closest ancestor that has [SemanticsActions.ScrollBy] action
+ * TODO: if scroll in a given direction on it fails, it should be dispatched further in the hierarchy?
  */
 private val SemanticsNode.scrollableByAncestor: SemanticsNode?
     get() {
