@@ -442,6 +442,7 @@ internal class ComposeSceneMediator(
         val boundsInWindow = IntRect(
             offset = offsetInWindow,
             size = IntSize(
+                // container.sizeInPx can be negative
                 width = size.width.coerceAtLeast(0),
                 height = size.height.coerceAtLeast(0)
             )
