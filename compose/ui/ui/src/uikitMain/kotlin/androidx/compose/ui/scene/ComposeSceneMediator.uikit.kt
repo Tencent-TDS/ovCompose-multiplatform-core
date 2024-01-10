@@ -104,85 +104,6 @@ internal sealed interface SceneLayout {
 
 private const val FEATURE_FLAG_ACCESSIBILITY_ENABLED = true
 
-private class SemanticsOwnerListenerImpl(
-    private val container: UIView,
-    private val coroutineContext: CoroutineContext
-): PlatformContext.SemanticsOwnerListener {
-    var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
-
-    override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
-        if (current == null) {
-            current = semanticsOwner to AccessibilityMediator(
-                container,
-                semanticsOwner,
-                coroutineContext
-            )
-        } else {
-            // Multiple SemanticsOwner`s per ComposeSceneMediator is a legacy behavior and will not be supported
-            error("Unsupported multiple SemanticsOwner`s per ComposeSceneMediator")
-        }
-    }
-
-    override fun onSemanticsOwnerRemoved(semanticsOwner: SemanticsOwner) {
-        val current = checkNotNull(current)
-
-        if (current.first == semanticsOwner) {
-            current.second.dispose()
-            this.current = null
-        } else {
-            error("Corrupted semantics owner <-> accessibility mediator mapping")
-        }
-    }
-
-    override fun onSemanticsChange(semanticsOwner: SemanticsOwner) {
-        val current = current ?: return
-
-        if (current.first == semanticsOwner) {
-            current.second.onSemanticsChange()
-        }
-    }
-
-    fun onRendered() {
-        current?.second?.onRendered()
-    }
-}
-
-private class RenderingUIViewDelegateImpl(
-    private val interopContext: UIKitInteropContext,
-    private val getBoundsInPx: () -> IntRect,
-    private val scene: ComposeScene,
-    private val onRendered: () -> Unit
-): RenderingUIView.Delegate {
-    override fun retrieveInteropTransaction(): UIKitInteropTransaction =
-        interopContext.retrieve()
-
-    override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
-        val composeCanvas = canvas.asComposeCanvas()
-        val topLeft = getBoundsInPx().topLeft.toOffset()
-        composeCanvas.translate(-topLeft.x, -topLeft.y)
-        scene.render(composeCanvas, targetTimestamp.toNanoSeconds())
-        composeCanvas.translate(topLeft.x, topLeft.y)
-
-        onRendered()
-    }
-}
-
-private class NativeKeyboardVisibilityListener(
-    private val keyboardVisibilityListener: KeyboardVisibilityListenerImpl
-): NSObject() {
-    @Suppress("unused")
-    @ObjCAction
-    fun keyboardWillShow(arg: NSNotification) {
-        keyboardVisibilityListener.keyboardWillShow(arg)
-    }
-
-    @Suppress("unused")
-    @ObjCAction
-    fun keyboardWillHide(arg: NSNotification) {
-        keyboardVisibilityListener.keyboardWillHide(arg)
-    }
-}
-
 internal class ComposeSceneMediator(
     private val container: UIView,
     configuration: ComposeUIViewControllerConfiguration,
@@ -261,11 +182,45 @@ internal class ComposeSceneMediator(
         )
     }
 
-    private val semanticsOwnerListener by lazy {
-        SemanticsOwnerListenerImpl(container, coroutineContext)
+    private val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener by lazy {
+        object : PlatformContext.SemanticsOwnerListener {
+            var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
+
+            override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
+                if (current == null) {
+                    current = semanticsOwner to AccessibilityMediator(
+                        container,
+                        semanticsOwner,
+                        coroutineContext
+                    )
+                } else {
+                    // Multiple SemanticsOwner`s per ComposeSceneMediator is a legacy behavior and will not be supported
+                    error("Unsupported multiple SemanticsOwner`s per ComposeSceneMediator")
+                }
+            }
+
+            override fun onSemanticsOwnerRemoved(semanticsOwner: SemanticsOwner) {
+                val current = checkNotNull(current)
+
+                if (current.first == semanticsOwner) {
+                    current.second.dispose()
+                    this.current = null
+                } else {
+                    error("Corrupted semantics owner <-> accessibility mediator mapping")
+                }
+            }
+
+            override fun onSemanticsChange(semanticsOwner: SemanticsOwner) {
+                val current = current ?: return
+
+                if (current.first == semanticsOwner) {
+                    current.second.onSemanticsChange()
+                }
+            }
+        }
     }
 
-    private val platformContext: PlatformContext by lazy {
+    val platformContext: PlatformContext by lazy {
         val semanticsOwnerListener = if (FEATURE_FLAG_ACCESSIBILITY_ENABLED) {
             semanticsOwnerListener
         } else {
@@ -352,12 +307,18 @@ internal class ComposeSceneMediator(
     }
 
     private val renderDelegate by lazy {
-        RenderingUIViewDelegateImpl(
-            interopContext = interopContext,
-            getBoundsInPx = ::getBoundsInPx,
-            scene = scene,
-            onRendered = semanticsOwnerListener::onRendered
-        )
+        object : RenderingUIView.Delegate {
+            override fun retrieveInteropTransaction(): UIKitInteropTransaction =
+                interopContext.retrieve()
+
+            override fun render(canvas: Canvas, targetTimestamp: NSTimeInterval) {
+                val composeCanvas = canvas.asComposeCanvas()
+                val topLeft = getBoundsInPx().topLeft.toOffset()
+                composeCanvas.translate(-topLeft.x, -topLeft.y)
+                scene.render(composeCanvas, targetTimestamp.toNanoSeconds())
+                composeCanvas.translate(topLeft.x, topLeft.y)
+            }
+        }
     }
 
     private var onAttachedToWindow: (() -> Unit)? = null
@@ -571,9 +532,19 @@ internal class ComposeSceneMediator(
         )
     }
 
-    private val nativeKeyboardVisibilityListener = NativeKeyboardVisibilityListener(
-        keyboardVisibilityListener
-    )
+    private val nativeKeyboardVisibilityListener = object : NSObject() {
+        @Suppress("unused")
+        @ObjCAction
+        fun keyboardWillShow(arg: NSNotification) {
+            keyboardVisibilityListener.keyboardWillShow(arg)
+        }
+
+        @Suppress("unused")
+        @ObjCAction
+        fun keyboardWillHide(arg: NSNotification) {
+            keyboardVisibilityListener.keyboardWillHide(arg)
+        }
+    }
 
     fun viewDidAppear(animated: Boolean) {
         NSNotificationCenter.defaultCenter.addObserver(

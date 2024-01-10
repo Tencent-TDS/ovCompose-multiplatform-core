@@ -816,24 +816,24 @@ internal class AccessibilityMediator(
         //  should we use some other approach?
         coroutineScope.launch {
             while (isAlive) {
-//                var result: NodesSyncResult
-//
-//                // TODO: track if voiceover/test env are active to avoid unnecessary syncs
-//
-//                val time = measureTime {
-//                    result = syncNodes()
-//                }
-//
-//                when (val immutableResult = result) {
-//                    is NodesSyncResult.NoChanges -> {
-//                        // Do nothing
-//                    }
-//
-//                    is NodesSyncResult.Success -> {
-//                        DebugLogger.log("syncNodes took $time")
-//                        UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, immutableResult.newElementToFocus)
-//                    }
-//                }
+                var result: NodesSyncResult
+
+                // TODO: track if voiceover/test env are active to avoid unnecessary syncs
+
+                val time = measureTime {
+                    result = syncNodes()
+                }
+
+                when (val immutableResult = result) {
+                    is NodesSyncResult.NoChanges -> {
+                        // Do nothing
+                    }
+
+                    is NodesSyncResult.Success -> {
+                        DebugLogger.log("syncNodes took $time")
+                        UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, immutableResult.newElementToFocus)
+                    }
+                }
 
                 delay(updateIntervalMillis)
             }
@@ -850,27 +850,6 @@ internal class AccessibilityMediator(
 
         val localSpaceCGRect = rect.toCGRect(window.screen.scale)
         return window.convertRect(localSpaceCGRect, fromView = view)
-    }
-
-    fun onRendered() {
-        var result: NodesSyncResult
-
-        // TODO: track if voiceover/test env are active to avoid unnecessary syncs
-
-        val time = measureTime {
-            result = syncNodes()
-        }
-
-        when (val immutableResult = result) {
-            is NodesSyncResult.NoChanges -> {
-                // Do nothing
-            }
-
-            is NodesSyncResult.Success -> {
-                DebugLogger.log("syncNodes took $time")
-                UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, immutableResult.newElementToFocus)
-            }
-        }
     }
 
     fun dispose() {
