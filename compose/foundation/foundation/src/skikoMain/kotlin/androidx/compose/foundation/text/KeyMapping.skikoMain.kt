@@ -34,7 +34,7 @@ internal expect val MappedKeys.D: Key
 internal expect val MappedKeys.K: Key
 internal expect val MappedKeys.O: Key
 
-internal object defaultDesktopKeyMapping : KeyMapping {
+internal object defaultSkikoKeyMapping : KeyMapping {
     override fun map(event: KeyEvent): KeyCommand? {
         return when {
             event.isCtrlPressed && event.isShiftPressed -> {
