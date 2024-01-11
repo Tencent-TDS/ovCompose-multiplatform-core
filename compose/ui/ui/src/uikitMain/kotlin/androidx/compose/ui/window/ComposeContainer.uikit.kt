@@ -40,7 +40,6 @@ import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.PlistSanityCheck
-import androidx.compose.ui.uikit.utils.CMPViewController
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
