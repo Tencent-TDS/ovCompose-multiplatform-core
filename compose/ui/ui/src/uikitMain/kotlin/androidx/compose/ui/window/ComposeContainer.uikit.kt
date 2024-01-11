@@ -27,6 +27,7 @@ import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.platform.AtomicInt
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.ComposeScene
@@ -41,6 +42,7 @@ import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.PlistSanityCheck
+import androidx.compose.ui.uikit.utils.CMPViewController
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
@@ -88,17 +90,20 @@ import platform.darwin.dispatch_get_main_queue
 
 private val coroutineDispatcher = Dispatchers.Main
 
+private val dbgCounter = AtomicInt(0)
+
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
 internal class ComposeContainer(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
-) : UIViewController(nibName = null, bundle = null) {
-
+) : CMPViewController(nibName = null, bundle = null) {
     private var isInsideSwiftUI = false
     private var mediator: ComposeSceneMediator? = null
     private val layers: MutableList<UIViewComposeSceneLayer> = mutableListOf()
     private val layoutDirection get() = getLayoutDirection()
+
+    private val dbgUniqueId = dbgCounter.addAndGet(1)
 
     /*
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
@@ -226,7 +231,6 @@ internal class ComposeContainer(
         super.viewWillAppear(animated)
 
         isInsideSwiftUI = checkIfInsideSwiftUI()
-        setContent(content)
         configuration.delegate.viewWillAppear(animated)
     }
 
@@ -239,7 +243,6 @@ internal class ComposeContainer(
         configuration.delegate.viewDidAppear(animated)
     }
 
-    // viewDidUnload() is deprecated and not called.
     override fun viewWillDisappear(animated: Boolean) {
         super.viewWillDisappear(animated)
         mediator?.viewWillDisappear(animated)
@@ -252,13 +255,23 @@ internal class ComposeContainer(
     override fun viewDidDisappear(animated: Boolean) {
         super.viewDidDisappear(animated)
 
-        dispose()
-
         dispatch_async(dispatch_get_main_queue()) {
             kotlin.native.internal.GC.collect()
         }
 
         configuration.delegate.viewDidDisappear(animated)
+    }
+
+    override fun viewControllerDidEnterWindowHierarchy() {
+        super.viewControllerDidEnterWindowHierarchy()
+        println("viewControllerDidEnterWindowHierarchy $dbgUniqueId")
+        setContent(content)
+    }
+
+    override fun viewControllerDidLeaveWindowHierarchy() {
+        super.viewControllerDidLeaveWindowHierarchy()
+        println("viewControllerDidLeaveWindowHierarchy $dbgUniqueId")
+        dispose()
     }
 
     override fun didReceiveMemoryWarning() {
