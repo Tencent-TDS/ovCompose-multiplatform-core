@@ -18,6 +18,7 @@ package androidx.compose.ui.scene
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -106,7 +107,8 @@ private const val FEATURE_FLAG_ACCESSIBILITY_ENABLED = true
 
 private class SemanticsOwnerListenerImpl(
     private val container: UIView,
-    private val coroutineContext: CoroutineContext
+    private val coroutineContext: CoroutineContext,
+    private val checkIfForcedToSyncAccessibility: () -> Boolean
 ): PlatformContext.SemanticsOwnerListener {
     var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
 
@@ -115,7 +117,8 @@ private class SemanticsOwnerListenerImpl(
             current = semanticsOwner to AccessibilityMediator(
                 container,
                 semanticsOwner,
-                coroutineContext
+                coroutineContext,
+                checkIfForcedToSyncAccessibility
             )
         } else {
             // Multiple SemanticsOwner`s per ComposeSceneMediator is a legacy behavior and will not be supported
@@ -178,7 +181,7 @@ private class NativeKeyboardVisibilityListener(
 
 internal class ComposeSceneMediator(
     private val container: UIView,
-    configuration: ComposeUIViewControllerConfiguration,
+    private val configuration: ComposeUIViewControllerConfiguration,
     private val focusStack: FocusStack<UIView>?,
     private val windowInfo: WindowInfo,
     val coroutineContext: CoroutineContext,
@@ -254,8 +257,11 @@ internal class ComposeSceneMediator(
         )
     }
 
+    @OptIn(ExperimentalComposeApi::class)
     private val semanticsOwnerListener by lazy {
-        SemanticsOwnerListenerImpl(container, coroutineContext)
+        SemanticsOwnerListenerImpl(container, coroutineContext, checkIfForcedToSyncAccessibility = {
+            configuration.forceAccessibilitySync
+        })
     }
 
     private val platformContext: PlatformContext by lazy {

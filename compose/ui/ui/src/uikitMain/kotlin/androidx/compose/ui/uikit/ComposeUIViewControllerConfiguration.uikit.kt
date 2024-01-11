@@ -35,6 +35,14 @@ class ComposeUIViewControllerConfiguration {
 
     @ExperimentalComposeApi
     var platformLayers: Boolean = false
+
+    /**
+     * Controls whether accessibility tree is synced even if VoiceOver is disabled.
+     * `false` by default to avoid computational overhead associated with mapping Compose semantics
+     * tree to UIKit accessibility tree.
+     */
+    @ExperimentalComposeApi
+    var forceAccessibilitySync: Boolean = false
 }
 
 /**

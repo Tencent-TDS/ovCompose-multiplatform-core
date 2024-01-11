@@ -43,6 +43,7 @@ import kotlinx.coroutines.launch
 import platform.CoreGraphics.CGRectMake
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityCustomAction
+import platform.UIKit.UIAccessibilityIsVoiceOverRunning
 import platform.UIKit.UIAccessibilityLayoutChangedNotification
 import platform.UIKit.UIAccessibilityPostNotification
 import platform.UIKit.UIAccessibilityScrollDirection
@@ -781,7 +782,8 @@ private sealed interface NodesSyncResult {
 internal class AccessibilityMediator(
     val view: UIView,
     private val owner: SemanticsOwner,
-    coroutineContext: CoroutineContext
+    coroutineContext: CoroutineContext,
+    private val checkIfForcedToSyncAccessibility: () -> Boolean,
 ) {
     private var isAlive = true
 
@@ -818,20 +820,20 @@ internal class AccessibilityMediator(
             while (isAlive) {
                 var result: NodesSyncResult
 
-                // TODO: track if voiceover/test env are active to avoid unnecessary syncs
-
-                val time = measureTime {
-                    result = syncNodes()
-                }
-
-                when (val immutableResult = result) {
-                    is NodesSyncResult.NoChanges -> {
-                        // Do nothing
+                if (UIAccessibilityIsVoiceOverRunning() || checkIfForcedToSyncAccessibility()) {
+                    val time = measureTime {
+                        result = syncNodes()
                     }
 
-                    is NodesSyncResult.Success -> {
-                        DebugLogger.log("syncNodes took $time")
-                        UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, immutableResult.newElementToFocus)
+                    when (val immutableResult = result) {
+                        is NodesSyncResult.NoChanges -> {
+                            // Do nothing
+                        }
+
+                        is NodesSyncResult.Success -> {
+                            DebugLogger.log("syncNodes took $time")
+                            UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, immutableResult.newElementToFocus)
+                        }
                     }
                 }
 
@@ -945,12 +947,12 @@ internal class AccessibilityMediator(
         // TODO: investigate what needs to be done to reflect that this hiearchy is probably covered
         //   by overlay/popup/dialogue
 
-        val rootSemanticsNode = owner.rootSemanticsNode
-        rootSemanticsNodeId = rootSemanticsNode.id
-
         if (!isCurrentComposeAccessibleTreeDirty) {
             return NodesSyncResult.NoChanges
         }
+
+        val rootSemanticsNode = owner.rootSemanticsNode
+        rootSemanticsNodeId = rootSemanticsNode.id
 
         // Copied from desktop implementation, why is it there? 🤔
         if (!rootSemanticsNode.layoutNode.isPlaced) {
