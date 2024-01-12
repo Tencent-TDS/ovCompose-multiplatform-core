@@ -95,7 +95,7 @@ typedef NS_ENUM(NSInteger, CMPViewControllerLifecycleState) {
 - (void)scheduleHierarchyContainmentCheck {
     double delayInSeconds = 0.5;
     
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{        
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         switch (self->_lifecycleState) {
             case CMPViewControllerLifecycleStateInitalized:
             case CMPViewControllerLifecycleStateDestroyed:
