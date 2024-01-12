@@ -231,6 +231,7 @@ internal class ComposeContainer(
         super.viewWillAppear(animated)
 
         isInsideSwiftUI = checkIfInsideSwiftUI()
+        setContent(content)
         configuration.delegate.viewWillAppear(animated)
     }
 
@@ -265,7 +266,6 @@ internal class ComposeContainer(
     override fun viewControllerDidEnterWindowHierarchy() {
         super.viewControllerDidEnterWindowHierarchy()
         println("viewControllerDidEnterWindowHierarchy $dbgUniqueId")
-        setContent(content)
     }
 
     override fun viewControllerDidLeaveWindowHierarchy() {
