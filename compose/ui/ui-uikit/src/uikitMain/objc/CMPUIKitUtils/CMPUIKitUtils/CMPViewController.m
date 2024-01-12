@@ -25,8 +25,6 @@
 
 @implementation UIViewController(CMPUIKitUtilsPrivate)
 
-static const void *const kCMPUIKitUtilsContainmentTrackerKey = @"cmp_ContainmentTracker_key";
-
 - (BOOL)cmp_isInWindowHierarchy {
     if (self.view.window != nil) {
         return YES;
