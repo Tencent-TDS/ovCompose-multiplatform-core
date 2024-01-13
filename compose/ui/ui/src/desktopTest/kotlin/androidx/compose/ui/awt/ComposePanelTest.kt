@@ -367,8 +367,9 @@ class ComposePanelTest {
         }
     }
 
+    // Issue: https://github.com/JetBrains/compose-multiplatform/issues/4123
     @Test
-    fun `hover events in panel`() = runApplicationTest {
+    fun `hover events in panel with offset`() = runApplicationTest {
         var enterEvents = 0
         var exitEvents = 0
 
