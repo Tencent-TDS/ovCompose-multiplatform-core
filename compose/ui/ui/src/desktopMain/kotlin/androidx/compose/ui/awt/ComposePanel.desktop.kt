@@ -161,9 +161,9 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
      * A container used for additional layers. It's used with [LayerType.OnComponent]
      *
      * See [ComposeFeatureFlags.layerType]
-     * TODO: Make it public with @ExperimentalComposeUiApi
      */
-    internal var layersContainer: JLayeredPane? = null
+    @ExperimentalComposeUiApi
+    var layersContainer: JLayeredPane? = null
         set(value) {
             field = value
             _composeContainer?.layersContainer = value
