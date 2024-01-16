@@ -90,8 +90,6 @@ import platform.darwin.dispatch_get_main_queue
 
 private val coroutineDispatcher = Dispatchers.Main
 
-private val dbgCounter = AtomicInt(0)
-
 @OptIn(InternalComposeApi::class)
 @ExportObjCClass
 internal class ComposeContainer(
@@ -102,8 +100,6 @@ internal class ComposeContainer(
     private var mediator: ComposeSceneMediator? = null
     private val layers: MutableList<UIViewComposeSceneLayer> = mutableListOf()
     private val layoutDirection get() = getLayoutDirection()
-
-    private val dbgUniqueId = dbgCounter.addAndGet(1)
 
     /*
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
@@ -263,14 +259,8 @@ internal class ComposeContainer(
         configuration.delegate.viewDidDisappear(animated)
     }
 
-    override fun viewControllerDidEnterWindowHierarchy() {
-        super.viewControllerDidEnterWindowHierarchy()
-        println("viewControllerDidEnterWindowHierarchy $dbgUniqueId")
-    }
-
     override fun viewControllerDidLeaveWindowHierarchy() {
         super.viewControllerDidLeaveWindowHierarchy()
-        println("viewControllerDidLeaveWindowHierarchy $dbgUniqueId")
         dispose()
     }
 
