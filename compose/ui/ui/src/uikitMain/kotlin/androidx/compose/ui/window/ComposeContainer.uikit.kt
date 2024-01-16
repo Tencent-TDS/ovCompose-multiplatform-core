@@ -27,7 +27,6 @@ import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.interop.LocalUIViewController
-import androidx.compose.ui.platform.AtomicInt
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.ComposeScene
