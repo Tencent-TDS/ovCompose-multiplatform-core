@@ -38,16 +38,12 @@ import androidx.compose.ui.window.density
 import androidx.compose.ui.window.layoutDirectionFor
 import androidx.compose.ui.window.sizeInPx
 import java.awt.Component
-import java.awt.Container
-import java.awt.Rectangle
 import java.awt.Window
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
-import javax.swing.JFrame
 import javax.swing.JLayeredPane
-import javax.swing.RootPaneContainer
 import javax.swing.SwingUtilities
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
@@ -72,8 +68,6 @@ internal class ComposeContainer(
     val windowContext = PlatformWindowContext()
     var window: Window? = null
         private set
-    val windowContainer: Container?
-        get() = (window as? RootPaneContainer)?.contentPane ?: window
 
     private var layoutDirection = layoutDirectionFor(window ?: container)
 
@@ -85,7 +79,23 @@ internal class ComposeContainer(
     /**
      * A container used for additional layers.
      */
-    var layersContainer: JLayeredPane? = null
+    var windowContainer: JLayeredPane? = null
+        set(value) {
+            if (field == value) {
+                return
+            }
+            if (layerType == LayerType.OnSameCanvas && value != null) {
+                error("Customizing windowContainer cannot be used with LayerType.OnSameCanvas")
+            }
+
+            field?.removeComponentListener(this)
+            value?.addComponentListener(this)
+
+            field = value
+            windowContext.windowContainer = value
+
+            onChangeWindowBounds()
+        }
 
     private val coroutineExceptionHandler = DesktopCoroutineExceptionHandler()
     private val coroutineContext = MainUIDispatcher + coroutineExceptionHandler
@@ -116,6 +126,7 @@ internal class ComposeContainer(
 
     init {
         setWindow(window)
+        onChangeWindowBounds()
 
         if (layerType == LayerType.OnComponent && !useSwingGraphics) {
             error("Unsupported LayerType.OnComponent might be used only with rendering to Swing graphics")
@@ -142,7 +153,7 @@ internal class ComposeContainer(
     }
 
     private fun onChangeWindowBounds() {
-        val container = windowContainer ?: return
+        val container = windowContainer ?: container
         windowContext.setContainerSize(container.sizeInPx)
         layers.fastForEach(DesktopComposeSceneLayer::onChangeWindowBounds)
     }
@@ -189,14 +200,10 @@ internal class ComposeContainer(
         }
 
         this.window?.removeWindowFocusListener(this)
-        this.window?.removeComponentListener(this)
-
         window?.addComponentListener(this)
-        window?.addWindowFocusListener(this)
         this.window = window
 
         onChangeWindowFocus()
-        onChangeWindowBounds()
     }
 
     fun setKeyEventListeners(

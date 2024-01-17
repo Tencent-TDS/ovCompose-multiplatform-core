@@ -436,9 +436,12 @@ internal class ComposeSceneMediator(
         if (!container.isDisplayable) return
 
         val scale = container.density.density
-        val window = SwingUtilities.getWindowAncestor(container)
-        val windowContainer = (window as? RootPaneContainer)?.contentPane ?: window
-        val pointInWindow = SwingUtilities.convertPoint(container, Point(0, 0), windowContainer)
+        val windowContainer = windowContext.windowContainer
+        val pointInWindow = if (windowContainer != null) {
+            SwingUtilities.convertPoint(container, Point(0, 0), windowContainer)
+        } else {
+            Point(0, 0)
+        }
         val offsetInWindow = IntOffset(
             x = (pointInWindow.x * scale).toInt(),
             y = (pointInWindow.y * scale).toInt()

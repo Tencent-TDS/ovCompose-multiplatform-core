@@ -163,10 +163,10 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
      * See [ComposeFeatureFlags.layerType]
      */
     @ExperimentalComposeUiApi
-    var layersContainer: JLayeredPane? = null
+    var windowContainer: JLayeredPane? = null
         set(value) {
             field = value
-            _composeContainer?.layersContainer = value
+            _composeContainer?.windowContainer = value
         }
 
     override fun add(component: Component): Component {
@@ -200,7 +200,7 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
             contentComponent.isFocusable = _isFocusable
             contentComponent.isRequestFocusEnabled = _isRequestFocusEnabled
             exceptionHandler = this@ComposePanel.exceptionHandler
-            layersContainer = this@ComposePanel.layersContainer
+            windowContainer = this@ComposePanel.windowContainer
 
             _focusListeners.forEach(contentComponent::addFocusListener)
             contentComponent.addFocusListener(object : FocusListener {

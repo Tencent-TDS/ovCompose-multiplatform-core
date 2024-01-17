@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.Dialog
+import java.awt.Container
 
 /**
  * Tracking a state of window.
@@ -31,6 +32,8 @@ import androidx.compose.ui.window.Dialog
 internal class PlatformWindowContext {
     private val _windowInfo = WindowInfoImpl()
     val windowInfo: WindowInfo get() = _windowInfo
+
+    var windowContainer: Container? = null
 
     /**
      * Indicates whether the window is transparent or not.
