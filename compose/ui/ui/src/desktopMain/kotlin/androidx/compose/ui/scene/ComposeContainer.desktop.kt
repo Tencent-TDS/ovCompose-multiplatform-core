@@ -60,7 +60,9 @@ import org.jetbrains.skiko.SkiaLayerAnalytics
 internal class ComposeContainer(
     val container: JLayeredPane,
     private val skiaLayerAnalytics: SkiaLayerAnalytics,
+
     window: Window? = null,
+    windowContainer: JLayeredPane = container,
 
     private val useSwingGraphics: Boolean = ComposeFeatureFlags.useSwingGraphics,
     private val layerType: LayerType = ComposeFeatureFlags.layerType,
@@ -79,21 +81,23 @@ internal class ComposeContainer(
     /**
      * A container used for additional layers.
      */
-    var windowContainer: JLayeredPane? = null
+    private var _windowContainer: JLayeredPane? = null
+    var windowContainer: JLayeredPane
+        get() = requireNotNull(_windowContainer)
         set(value) {
-            if (field == value) {
+            if (_windowContainer == value) {
                 return
             }
-            if (layerType == LayerType.OnSameCanvas && value != null) {
+            if (layerType == LayerType.OnSameCanvas && value != container) {
                 error("Customizing windowContainer cannot be used with LayerType.OnSameCanvas")
             }
 
-            field?.removeComponentListener(this)
-            value?.addComponentListener(this)
+            _windowContainer?.removeComponentListener(this)
+            value.addComponentListener(this)
 
-            field = value
-            windowContext.windowContainer = value
+            _windowContainer = value
 
+            windowContext.setWindowContainer(value)
             onChangeWindowBounds()
         }
 
@@ -126,7 +130,7 @@ internal class ComposeContainer(
 
     init {
         setWindow(window)
-        onChangeWindowBounds()
+        this.windowContainer = windowContainer
 
         if (layerType == LayerType.OnComponent && !useSwingGraphics) {
             error("Unsupported LayerType.OnComponent might be used only with rendering to Swing graphics")
@@ -153,8 +157,7 @@ internal class ComposeContainer(
     }
 
     private fun onChangeWindowBounds() {
-        val container = windowContainer ?: container
-        windowContext.setContainerSize(container.sizeInPx)
+        windowContext.setContainerSize(windowContainer.sizeInPx)
         layers.fastForEach(DesktopComposeSceneLayer::onChangeWindowBounds)
     }
 

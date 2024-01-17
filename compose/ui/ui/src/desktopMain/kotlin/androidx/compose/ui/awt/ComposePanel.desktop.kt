@@ -163,7 +163,7 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
      * See [ComposeFeatureFlags.layerType]
      */
     @ExperimentalComposeUiApi
-    var windowContainer: JLayeredPane? = null
+    var windowContainer: JLayeredPane = this
         set(value) {
             field = value
             _composeContainer?.windowContainer = value
@@ -194,13 +194,16 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     }
 
     private fun createComposeContainer(): ComposeContainer {
-        return ComposeContainer(this, skiaLayerAnalytics).apply {
+        return ComposeContainer(
+            container = this,
+            skiaLayerAnalytics = skiaLayerAnalytics,
+            windowContainer = windowContainer
+        ).apply {
             focusManager.releaseFocus()
             setBounds(0, 0, width, height)
             contentComponent.isFocusable = _isFocusable
             contentComponent.isRequestFocusEnabled = _isRequestFocusEnabled
             exceptionHandler = this@ComposePanel.exceptionHandler
-            windowContainer = this@ComposePanel.windowContainer
 
             _focusListeners.forEach(contentComponent::addFocusListener)
             contentComponent.addFocusListener(object : FocusListener {

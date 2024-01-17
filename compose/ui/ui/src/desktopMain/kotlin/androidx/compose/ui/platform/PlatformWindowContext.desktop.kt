@@ -20,9 +20,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.density
+import java.awt.Component
 import java.awt.Container
+import java.awt.Point
+import javax.swing.SwingUtilities
 
 /**
  * Tracking a state of window.
@@ -33,7 +38,7 @@ internal class PlatformWindowContext {
     private val _windowInfo = WindowInfoImpl()
     val windowInfo: WindowInfo get() = _windowInfo
 
-    var windowContainer: Container? = null
+    private var _windowContainer: Container? = null
 
     /**
      * Indicates whether the window is transparent or not.
@@ -49,9 +54,26 @@ internal class PlatformWindowContext {
         _windowInfo.isWindowFocused = focused
     }
 
+    fun setWindowContainer(windowContainer: Container) {
+        _windowContainer = windowContainer
+    }
+
     fun setContainerSize(size: IntSize) {
         if (_windowInfo.containerSize != size) {
             _windowInfo.containerSize = size
         }
+    }
+
+    fun offsetInWindow(container: Component): IntOffset {
+        val scale = container.density.density
+        val pointInWindow = if (_windowContainer != null) {
+            SwingUtilities.convertPoint(container, Point(0, 0), _windowContainer)
+        } else {
+            Point(0, 0)
+        }
+        return IntOffset(
+            x = (pointInWindow.x * scale).toInt(),
+            y = (pointInWindow.y * scale).toInt()
+        )
     }
 }
