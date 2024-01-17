@@ -158,7 +158,8 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
         }
 
     /**
-     * A container used for additional layers. It's used with [LayerType.OnComponent]
+     * A container used for additional layers and as reference for window coordinate space.
+     * It might be customized only with [LayerType.OnComponent].
      *
      * See [ComposeFeatureFlags.layerType]
      */

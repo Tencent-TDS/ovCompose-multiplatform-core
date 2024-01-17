@@ -55,7 +55,14 @@ import org.jetbrains.skiko.SkiaLayerAnalytics
  * Internal entry point to Compose.
  *
  * It binds Skia canvas and [ComposeScene] to [container].
- * It also configures compose based on [ComposeFeatureFlags].
+ *
+ * @property container A container for the [ComposeScene].
+ * @property skiaLayerAnalytics The analytics for the Skia layer.
+ * @property window The window ancestor of the [container].
+ * @property windowContainer A container used for additional layers and as reference
+ *  for window coordinate space.
+ * @property useSwingGraphics Flag indicating if offscreen rendering to Swing graphics is used.
+ * @property layerType The type of layer used for Popup/Dialog.
  */
 internal class ComposeContainer(
     val container: JLayeredPane,
@@ -78,9 +85,6 @@ internal class ComposeContainer(
      */
     private val layers = mutableListOf<DesktopComposeSceneLayer>()
 
-    /**
-     * A container used for additional layers.
-     */
     private var _windowContainer: JLayeredPane? = null
     var windowContainer: JLayeredPane
         get() = requireNotNull(_windowContainer)

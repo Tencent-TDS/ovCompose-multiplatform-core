@@ -64,6 +64,13 @@ internal class PlatformWindowContext {
         }
     }
 
+    /**
+     * Calculates the offset of the given [container] within the window.
+     * It uses [_windowContainer] as a reference for window coordinate space.
+     *
+     * @param container The container component whose offset needs to be calculated.
+     * @return The offset of the container within the window as an [IntOffset] object.
+     */
     fun offsetInWindow(container: Component): IntOffset {
         val scale = container.density.density
         val pointInWindow = if (_windowContainer != null) {
