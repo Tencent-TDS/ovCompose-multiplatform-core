@@ -161,6 +161,8 @@ internal class ComposeContainer(
     }
 
     private fun onChangeWindowBounds() {
+        if (!container.isDisplayable) return
+
         windowContext.setContainerSize(windowContainer.sizeInPx)
         layers.fastForEach(DesktopComposeSceneLayer::onChangeWindowBounds)
     }
@@ -183,6 +185,9 @@ internal class ComposeContainer(
     fun addNotify() {
         mediator.onComponentAttached()
         setWindow(SwingUtilities.getWindowAncestor(container))
+
+        // Re-checking the actual size if it wasn't available during init.
+        onChangeWindowBounds()
     }
 
     fun removeNotify() {
@@ -207,7 +212,7 @@ internal class ComposeContainer(
         }
 
         this.window?.removeWindowFocusListener(this)
-        window?.addComponentListener(this)
+        window?.addWindowFocusListener(this)
         this.window = window
 
         onChangeWindowFocus()

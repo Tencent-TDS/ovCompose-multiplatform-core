@@ -121,8 +121,8 @@ class ComposePanel @ExperimentalComposeUiApi constructor(
     }
 
     override fun setBounds(x: Int, y: Int, width: Int, height: Int) {
-        _composeContainer?.setBounds(0, 0, width, height)
         super.setBounds(x, y, width, height)
+        _composeContainer?.setBounds(0, 0, width, height)
     }
 
     override fun getPreferredSize(): Dimension? = if (isPreferredSizeSet) {
