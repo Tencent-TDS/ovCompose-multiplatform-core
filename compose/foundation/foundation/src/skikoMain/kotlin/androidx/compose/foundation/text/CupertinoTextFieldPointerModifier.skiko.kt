@@ -173,8 +173,8 @@ private fun getLongPressHandlerModifier(
                 var dragBeginOffset = Offset.Zero
 
                 override fun onStart(startPoint: Offset) {
-                    manager.draggingHandle = Handle.SelectionEnd
-                    manager.currentDragPosition = startPoint
+                    manager.draggingHandle = Handle.SelectionEnd // required for magnifier
+                    manager.currentDragPosition = startPoint // required for magnifier
 
                     currentState.layoutResult?.let { layoutResult ->
                         TextFieldDelegate.setCursorOffset(
@@ -193,7 +193,7 @@ private fun getLongPressHandlerModifier(
                     dragTotalDistance += delta
                     currentState.layoutResult?.let { layoutResult ->
                         val currentDragPosition = dragBeginOffset + dragTotalDistance
-                        manager.currentDragPosition = currentDragPosition
+                        manager.currentDragPosition = currentDragPosition // required for magnifier
                         TextFieldDelegate.setCursorOffset(
                             currentDragPosition,
                             layoutResult,
@@ -210,8 +210,8 @@ private fun getLongPressHandlerModifier(
                 override fun onUp() {}
 
                 override fun onStop() {
-                    manager.draggingHandle = null
-                    manager.currentDragPosition = null
+                    manager.draggingHandle = null // required for magnifier
+                    manager.currentDragPosition = null // required for magnifier
                 }
 
                 override fun onCancel() {}
