@@ -153,13 +153,13 @@ internal class TextFieldSelectionManager(
      * when the dragging is stopped.
      */
     var draggingHandle: Handle? by mutableStateOf(null)
-        private set
+        internal set
 
     /**
      * The current position of a drag, in decoration box coordinates.
      */
     var currentDragPosition: Offset? by mutableStateOf(null)
-        private set
+        internal set
 
     /**
      * The previous offset of a drag, before selection adjustments.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package androidx.compose.foundation.text.selection
 
-import androidx.compose.ui.Modifier
+import androidx.compose.animation.core.SpringSpec
+import androidx.compose.ui.geometry.Offset
 
-/**
- * Magnification is not supported on desktop.
- */
-internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier = this
+internal actual val MagnifierSpringSpec : SpringSpec<Offset> =
+    SpringSpec(visibilityThreshold = OffsetDisplacementThreshold)
+

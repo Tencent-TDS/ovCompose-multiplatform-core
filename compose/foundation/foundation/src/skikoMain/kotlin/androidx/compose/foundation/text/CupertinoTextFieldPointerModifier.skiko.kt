@@ -50,7 +50,7 @@ internal fun Modifier.cupertinoTextFieldPointer(
 ): Modifier = if (enabled) {
     // TODO switch to ".updateSelectionTouchMode { state.isInTouchMode = it }" as in defaultTextFieldPointer
     if (isInTouchMode) {
-        val longPressHandlerModifier = getLongPressHandlerModifier(state, offsetMapping)
+        val longPressHandlerModifier = getLongPressHandlerModifier(state, offsetMapping, manager)
         val tapHandlerModifier = getTapHandlerModifier(
             interactionSource,
             state,
@@ -160,7 +160,8 @@ private fun getTapHandlerModifier(
 @Composable
 private fun getLongPressHandlerModifier(
     state: TextFieldState,
-    offsetMapping: OffsetMapping
+    offsetMapping: OffsetMapping,
+    manager: TextFieldSelectionManager,
 ): Modifier {
     val currentState by rememberUpdatedState(state)
     val currentOffsetMapping by rememberUpdatedState(offsetMapping)
@@ -172,6 +173,9 @@ private fun getLongPressHandlerModifier(
                 var dragBeginOffset = Offset.Zero
 
                 override fun onStart(startPoint: Offset) {
+                    manager.draggingHandle = Handle.SelectionEnd
+                    manager.currentDragPosition = startPoint
+
                     currentState.layoutResult?.let { layoutResult ->
                         TextFieldDelegate.setCursorOffset(
                             startPoint,
@@ -189,6 +193,7 @@ private fun getLongPressHandlerModifier(
                     dragTotalDistance += delta
                     currentState.layoutResult?.let { layoutResult ->
                         val currentDragPosition = dragBeginOffset + dragTotalDistance
+                        manager.currentDragPosition = currentDragPosition
                         TextFieldDelegate.setCursorOffset(
                             currentDragPosition,
                             layoutResult,
@@ -204,7 +209,10 @@ private fun getLongPressHandlerModifier(
 
                 override fun onUp() {}
 
-                override fun onStop() {}
+                override fun onStop() {
+                    manager.draggingHandle = null
+                    manager.currentDragPosition = null
+                }
 
                 override fun onCancel() {}
             }

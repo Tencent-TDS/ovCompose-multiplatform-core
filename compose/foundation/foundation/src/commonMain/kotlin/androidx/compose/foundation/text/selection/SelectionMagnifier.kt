@@ -53,7 +53,7 @@ internal val OffsetDisplacementThreshold = Offset(
     Spring.DefaultDisplacementThreshold
 )
 
-internal val MagnifierSpringSpec = SpringSpec(visibilityThreshold = OffsetDisplacementThreshold)
+internal expect val MagnifierSpringSpec : SpringSpec<Offset>
 
 /**
  * The text magnifier follows horizontal dragging exactly, but is vertically clamped to the current
