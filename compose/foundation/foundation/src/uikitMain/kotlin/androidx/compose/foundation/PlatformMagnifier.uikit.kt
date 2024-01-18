@@ -93,6 +93,7 @@ internal interface PlatformMagnifier {
     fun dismiss()
 }
 
+@Stable
 internal object PlatformMagnifierFactoryIos17Impl : PlatformMagnifierFactory {
 
     override fun create(
