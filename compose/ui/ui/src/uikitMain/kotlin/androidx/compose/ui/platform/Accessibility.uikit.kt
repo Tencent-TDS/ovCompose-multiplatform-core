@@ -902,6 +902,9 @@ internal class AccessibilityMediator(
             element.removeAllChildren()
             val childSemanticsNodesInAccessibilityOrder = node
                 .replacedChildren
+                .filter {
+                    it.layoutNode.isPlaced && it.layoutNode.isAttached
+                }
                 .sortedByAccesibilityOrder()
 
             for (childNode in childSemanticsNodesInAccessibilityOrder) {
