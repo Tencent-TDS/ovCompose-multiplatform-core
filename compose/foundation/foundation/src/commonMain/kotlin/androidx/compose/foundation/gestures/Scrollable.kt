@@ -531,6 +531,7 @@ object ScrollableDefaults {
     /**
      * Creates platform default [FlingBehavior] that will represent natural fling curve.
      */
+    @Composable
     fun flingBehavior(): FlingBehavior = platformDefaultFlingBehavior()
 
     /**
