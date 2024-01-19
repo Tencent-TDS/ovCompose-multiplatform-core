@@ -37,9 +37,7 @@ class RequestFocusSkikoTest {
 
     @Test
     fun clickable_should_request_focus_on_click() {
-        if (kotlinBackend == KotlinBackend.Native) {
-            return
-        }
+        if (kotlinBackend == KotlinBackend.Native) return
 
         ImageComposeScene(
             width = 100,
@@ -72,9 +70,7 @@ class RequestFocusSkikoTest {
 
     @Test
     fun toggleable_should_request_focus_on_click() {
-        if (kotlinBackend == KotlinBackend.Native) {
-            return
-        }
+        if (kotlinBackend == KotlinBackend.Native) return
 
         ImageComposeScene(
             width = 100,

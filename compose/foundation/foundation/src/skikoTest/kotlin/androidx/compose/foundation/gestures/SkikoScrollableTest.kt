@@ -73,9 +73,7 @@ class SkikoScrollableTest {
     // bug https://github.com/JetBrains/compose-multiplatform/issues/3551 (touch always worked)
     @Test
     fun recreating_list_state_shouldn_t_break_touch_scrolling() = runComposeUiTest {
-        if (kotlinBackend == KotlinBackend.Native) {
-            return@runComposeUiTest
-        }
+        if (kotlinBackend == KotlinBackend.Native) return@runComposeUiTest
 
         var state by mutableStateOf(LazyListState())
         setContent {
