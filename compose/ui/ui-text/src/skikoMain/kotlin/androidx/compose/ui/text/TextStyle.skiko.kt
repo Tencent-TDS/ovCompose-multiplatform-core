@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-@file:JvmName("DesktopTextStyleKt")
+@file:JvmName("DesktopTextStyle_skikoKt")
 
 package androidx.compose.ui.text
 
