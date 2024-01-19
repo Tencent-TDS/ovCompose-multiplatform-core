@@ -435,8 +435,8 @@ internal class ParagraphBuilder(
         cuts.sortBy { it.position }
         val activeStyles = mutableListOf(initialStyle)
         for (cut in cuts) {
-            when {
-                cut is Cut.StyleAdd -> {
+            when (cut) {
+                is Cut.StyleAdd -> {
                     activeStyles.add(cut.style)
                     val prev = previousStyleAddAtTheSamePosition(cut.position, ops)
                     if (prev == null) {
@@ -450,11 +450,11 @@ internal class ParagraphBuilder(
                         prev.style.merge(density, cut.style)
                     }
                 }
-                cut is Cut.StyleRemove -> {
+                is Cut.StyleRemove -> {
                     activeStyles.remove(cut.style)
                     ops.add(Op.StyleAdd(cut.position, mergeStyles(activeStyles)))
                 }
-                cut is Cut.PutPlaceholder -> {
+                is Cut.PutPlaceholder -> {
                     val currentStyle = mergeStyles(activeStyles)
                     val op = Op.PutPlaceholder(
                         cut = cut,
@@ -469,8 +469,7 @@ internal class ParagraphBuilder(
                     )
                     ops.add(op)
                 }
-                cut is Cut.EndPlaceholder ->
-                    ops.add(Op.EndPlaceholder(cut))
+                is Cut.EndPlaceholder -> ops.add(Op.EndPlaceholder(cut))
             }
         }
         return ops
@@ -629,8 +628,16 @@ fun FontStyle.toSkFontStyle(): SkFontStyle {
     }
 }
 
-// TODO: Remove from public
-fun TextDecoration.toSkDecorationStyle(
+@Suppress("unused")
+@Deprecated(
+    message = "This method was not intended to be public",
+    level = DeprecationLevel.HIDDEN
+)
+fun TextDecoration.toSkDecorationStyle(color: Color): SkDecorationStyle {
+    return toSkDecorationStyle(color, null)
+}
+
+private fun TextDecoration.toSkDecorationStyle(
     color: Color,
     textDecorationLineStyle: TextDecorationLineStyle?
 ): SkDecorationStyle {
