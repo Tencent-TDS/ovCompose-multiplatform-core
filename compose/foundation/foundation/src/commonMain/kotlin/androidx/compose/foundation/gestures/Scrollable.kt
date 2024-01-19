@@ -898,6 +898,8 @@ private class ScrollableNestedScrollConnection(
     }
 }
 
+internal expect fun platformDefaultFlingBehavior(): FlingBehavior
+
 internal class DefaultFlingBehavior(
     var flingDecay: DecayAnimationSpec<Float>,
     private val motionDurationScale: MotionDurationScale = DefaultScrollMotionDurationScale

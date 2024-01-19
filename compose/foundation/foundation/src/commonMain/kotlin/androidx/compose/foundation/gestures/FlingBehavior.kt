@@ -52,4 +52,3 @@ interface FlingBehavior {
     fun updateDensity(density: Density) = Unit
 }
 
-internal expect fun platformDefaultFlingBehavior(): FlingBehavior
