@@ -274,7 +274,7 @@ private class ScrollableNode(
     val nestedScrollDispatcher = NestedScrollDispatcher()
 
     // Place holder fling behavior, we'll initialize it when the density is available.
-    val defaultFlingBehavior = DefaultFlingBehavior(splineBasedDecay(UnityDensity))
+    val defaultFlingBehavior = ScrollableDefaults.flingBehavior()
 
     val scrollingLogic = ScrollingLogic(
         scrollableState = state,
@@ -390,7 +390,7 @@ private class ScrollableNode(
 
     private fun updateDefaultFlingBehavior() {
         val density = currentValueOf(LocalDensity)
-        defaultFlingBehavior.flingDecay = splineBasedDecay(density)
+        defaultFlingBehavior.updateDensity(density)
     }
 
     override fun applyFocusProperties(focusProperties: FocusProperties) {
@@ -935,6 +935,10 @@ internal class DefaultFlingBehavior(
                 initialVelocity
             }
         }
+    }
+
+    override fun updateDensity(density: Density) {
+        flingDecay = splineBasedDecay(density)
     }
 }
 

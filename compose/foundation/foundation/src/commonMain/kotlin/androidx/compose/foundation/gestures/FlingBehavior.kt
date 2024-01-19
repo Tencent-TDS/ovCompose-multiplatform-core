@@ -17,6 +17,7 @@
 package androidx.compose.foundation.gestures
 
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.unit.Density
 
 /**
  * Interface to specify fling behavior.
@@ -42,6 +43,13 @@ interface FlingBehavior {
      * @return remaining velocity after fling operation has ended
      */
     suspend fun ScrollScope.performFling(initialVelocity: Float): Float
+
+    /**
+     * Update the internal parameters of FlingBehavior in accordance with the new [androidx.compose.ui.unit.Density] value.
+     *
+     * @param density new density value.
+     */
+    fun updateDensity(density: Density) = Unit
 }
 
 internal expect fun platformDefaultFlingBehavior(): FlingBehavior
