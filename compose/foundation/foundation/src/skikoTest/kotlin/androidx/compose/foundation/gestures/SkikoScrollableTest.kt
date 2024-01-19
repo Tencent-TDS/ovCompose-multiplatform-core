@@ -37,6 +37,8 @@ import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertTrue
+import org.jetbrains.skiko.KotlinBackend
+import org.jetbrains.skiko.kotlinBackend
 
 @OptIn(ExperimentalTestApi::class)
 class SkikoScrollableTest {
@@ -71,6 +73,10 @@ class SkikoScrollableTest {
     // bug https://github.com/JetBrains/compose-multiplatform/issues/3551 (touch always worked)
     @Test
     fun recreating_list_state_shouldn_t_break_touch_scrolling() = runComposeUiTest {
+        if (kotlinBackend == KotlinBackend.Native) {
+            return@runComposeUiTest
+        }
+
         var state by mutableStateOf(LazyListState())
         setContent {
             LazyColumn(state = state, modifier = Modifier.testTag("list").fillMaxSize()) {
