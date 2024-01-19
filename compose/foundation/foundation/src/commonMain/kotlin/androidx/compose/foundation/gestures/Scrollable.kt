@@ -528,10 +528,9 @@ interface BringIntoViewSpec {
 object ScrollableDefaults {
 
     /**
-     * Create and remember default [FlingBehavior] that will represent natural fling curve.
+     * Creates platform default [FlingBehavior] that will represent natural fling curve.
      */
-    @Composable
-    fun flingBehavior(): FlingBehavior = rememberFlingBehavior()
+    fun flingBehavior(): FlingBehavior = platformDefaultFlingBehavior()
 
     /**
      * Create and remember default [OverscrollEffect] that will be used for showing over scroll
