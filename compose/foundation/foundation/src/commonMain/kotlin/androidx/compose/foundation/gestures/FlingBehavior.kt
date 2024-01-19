@@ -43,7 +43,12 @@ interface FlingBehavior {
      * @return remaining velocity after fling operation has ended
      */
     suspend fun ScrollScope.performFling(initialVelocity: Float): Float
+}
 
+/**
+ * Compatibility interface for default fling behaviors that depends on [Density].
+ */
+internal interface DensityDependentFlingBehavior : FlingBehavior {
     /**
      * Update the internal parameters of FlingBehavior in accordance with the new [androidx.compose.ui.unit.Density] value.
      *

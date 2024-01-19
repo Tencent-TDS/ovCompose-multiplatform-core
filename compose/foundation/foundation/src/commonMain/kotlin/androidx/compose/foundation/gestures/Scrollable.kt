@@ -274,7 +274,7 @@ private class ScrollableNode(
     val nestedScrollDispatcher = NestedScrollDispatcher()
 
     // Place holder fling behavior, we'll initialize it when the density is available.
-    val defaultFlingBehavior = ScrollableDefaults.flingBehavior()
+    val defaultFlingBehavior = platformDefaultFlingBehavior()
 
     val scrollingLogic = ScrollingLogic(
         scrollableState = state,
@@ -390,6 +390,7 @@ private class ScrollableNode(
 
     private fun updateDefaultFlingBehavior() {
         val density = currentValueOf(LocalDensity)
+
         defaultFlingBehavior.updateDensity(density)
     }
 
@@ -898,12 +899,12 @@ private class ScrollableNestedScrollConnection(
     }
 }
 
-internal expect fun platformDefaultFlingBehavior(): FlingBehavior
+internal expect fun platformDefaultFlingBehavior(): DensityDependentFlingBehavior
 
 internal class DefaultFlingBehavior(
     var flingDecay: DecayAnimationSpec<Float>,
     private val motionDurationScale: MotionDurationScale = DefaultScrollMotionDurationScale
-) : FlingBehavior {
+) : DensityDependentFlingBehavior {
 
     // For Testing
     var lastAnimationCycleCount = 0
