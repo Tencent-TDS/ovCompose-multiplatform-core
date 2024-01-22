@@ -28,7 +28,8 @@ internal actual fun platformDefaultFlingBehavior(): ScrollableDefaultFlingBehavi
 
 @Composable
 internal actual fun rememberFlingBehavior(): FlingBehavior =
-    // Unlike other platforms, we don't need to remember the fling spec since it's density-independent
+    // Unlike other platforms, we don't need to remember it based on density,
+    // because it's density independent
     remember {
         platformDefaultFlingBehavior()
     }
