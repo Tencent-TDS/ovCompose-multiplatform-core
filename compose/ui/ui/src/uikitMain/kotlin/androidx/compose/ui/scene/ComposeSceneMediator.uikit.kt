@@ -122,7 +122,7 @@ private class SemanticsOwnerListenerImpl(
             )
         } else {
             // Multiple SemanticsOwner`s per ComposeSceneMediator is a legacy behavior and will not be supported
-            error("Unsupported multiple SemanticsOwner`s per ComposeSceneMediator")
+            //error("Unsupported multiple SemanticsOwner`s per ComposeSceneMediator")
         }
     }
 
@@ -133,7 +133,7 @@ private class SemanticsOwnerListenerImpl(
             current.second.dispose()
             this.current = null
         } else {
-            error("Corrupted semantics owner <-> accessibility mediator mapping")
+            // error("Corrupted semantics owner <-> accessibility mediator mapping")
         }
     }
 
