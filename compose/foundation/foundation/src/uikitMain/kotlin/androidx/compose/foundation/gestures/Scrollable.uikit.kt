@@ -23,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 
 internal actual fun platformDefaultFlingBehavior(): ScrollableDefaultFlingBehavior =
-    // Cupertino fling behavior is density independent
     CupertinoFlingBehavior(CupertinoScrollDecayAnimationSpec().generateDecayAnimationSpec())
 
 @Composable
