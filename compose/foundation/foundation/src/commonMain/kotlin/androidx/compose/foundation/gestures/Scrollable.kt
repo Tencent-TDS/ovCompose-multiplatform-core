@@ -523,6 +523,9 @@ interface BringIntoViewSpec {
     }
 }
 
+@Composable
+internal expect fun rememberFlingBehavior(): FlingBehavior
+
 /**
  * Contains the default values used by [scrollable]
  */
@@ -532,7 +535,7 @@ object ScrollableDefaults {
      * Creates platform default [FlingBehavior] that will represent natural fling curve.
      */
     @Composable
-    fun flingBehavior(): FlingBehavior = platformDefaultFlingBehavior()
+    fun flingBehavior(): FlingBehavior = rememberFlingBehavior()
 
     /**
      * Create and remember default [OverscrollEffect] that will be used for showing over scroll
@@ -912,6 +915,12 @@ internal interface ScrollableDefaultFlingBehavior : FlingBehavior {
     fun updateDensity(density: Density) = Unit
 }
 
+/**
+ * This method returns [ScrollableDefaultFlingBehavior] whose density will be managed by the
+ * [ScrollableElement] because it's not created inside [Composable] context.
+ * This is different from [rememberFlingBehavior] which creates [FlingBehavior] whose density
+ * depends on [LocalDensity] and is automatically resolved.
+ */
 internal expect fun platformDefaultFlingBehavior(): ScrollableDefaultFlingBehavior
 
 internal class DefaultFlingBehavior(

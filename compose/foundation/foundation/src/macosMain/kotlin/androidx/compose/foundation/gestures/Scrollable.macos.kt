@@ -18,8 +18,19 @@ package androidx.compose.foundation.gestures
 
 import androidx.compose.animation.SplineBasedFloatDecayAnimationSpec
 import androidx.compose.animation.core.generateDecayAnimationSpec
+import androidx.compose.animation.rememberSplineBasedDecay
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 
 internal actual fun platformDefaultFlingBehavior(): ScrollableDefaultFlingBehavior =
     DefaultFlingBehavior(
         SplineBasedFloatDecayAnimationSpec(UnityDensity).generateDecayAnimationSpec()
     )
+
+@Composable
+internal actual fun rememberFlingBehavior(): FlingBehavior {
+    val flingSpec = rememberSplineBasedDecay<Float>()
+    return remember(flingSpec) {
+        DefaultFlingBehavior(flingSpec)
+    }
+}
