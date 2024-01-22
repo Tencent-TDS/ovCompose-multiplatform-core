@@ -1425,7 +1425,7 @@ public final class androidx/compose/ui/text/platform/ResourceFont : androidx/com
 }
 
 public final class androidx/compose/ui/text/platform/SkiaParagraph_skikoKt {
-	public static final fun toSkDecorationStyle-zoh9Kos (Landroidx/compose/ui/text/style/TextDecoration;JLandroidx/compose/ui/text/TextDecorationLineStyle;)Lorg/jetbrains/skia/paragraph/DecorationStyle;
+	public static final synthetic fun toSkDecorationStyle-4WTKRHQ (Landroidx/compose/ui/text/style/TextDecoration;J)Lorg/jetbrains/skia/paragraph/DecorationStyle;
 	public static final fun toSkFontStyle-nzbMABs (I)Lorg/jetbrains/skia/FontStyle;
 	public static final fun toSkPlaceholderAlignment-do9X-Gg (I)Lorg/jetbrains/skia/paragraph/PlaceholderAlignment;
 }
