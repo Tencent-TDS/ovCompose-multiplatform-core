@@ -900,12 +900,24 @@ private class ScrollableNestedScrollConnection(
     }
 }
 
-internal expect fun platformDefaultFlingBehavior(): DensityDependentFlingBehavior
+/**
+ * Compatibility interface for default fling behaviors that depends on [Density].
+ */
+internal interface ScrollableDefaultFlingBehavior : FlingBehavior {
+    /**
+     * Update the internal parameters of FlingBehavior in accordance with the new [androidx.compose.ui.unit.Density] value.
+     *
+     * @param density new density value.
+     */
+    fun updateDensity(density: Density) = Unit
+}
+
+internal expect fun platformDefaultFlingBehavior(): ScrollableDefaultFlingBehavior
 
 internal class DefaultFlingBehavior(
     var flingDecay: DecayAnimationSpec<Float>,
     private val motionDurationScale: MotionDurationScale = DefaultScrollMotionDurationScale
-) : DensityDependentFlingBehavior {
+) : ScrollableDefaultFlingBehavior {
 
     // For Testing
     var lastAnimationCycleCount = 0

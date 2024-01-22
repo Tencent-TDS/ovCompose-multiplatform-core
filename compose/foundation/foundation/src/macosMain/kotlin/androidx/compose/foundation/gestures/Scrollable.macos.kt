@@ -19,7 +19,7 @@ package androidx.compose.foundation.gestures
 import androidx.compose.animation.SplineBasedFloatDecayAnimationSpec
 import androidx.compose.animation.core.generateDecayAnimationSpec
 
-internal actual fun platformDefaultFlingBehavior(): DensityDependentFlingBehavior =
+internal actual fun platformDefaultFlingBehavior(): ScrollableDefaultFlingBehavior =
     DefaultFlingBehavior(
         SplineBasedFloatDecayAnimationSpec(UnityDensity).generateDecayAnimationSpec()
     )

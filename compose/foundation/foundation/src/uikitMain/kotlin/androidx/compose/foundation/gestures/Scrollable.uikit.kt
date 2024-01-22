@@ -20,6 +20,6 @@ import androidx.compose.animation.core.cupertino.CupertinoScrollDecayAnimationSp
 import androidx.compose.animation.core.generateDecayAnimationSpec
 import androidx.compose.foundation.gestures.cupertino.CupertinoFlingBehavior
 
-internal actual fun platformDefaultFlingBehavior(): DensityDependentFlingBehavior =
+internal actual fun platformDefaultFlingBehavior(): ScrollableDefaultFlingBehavior =
     // Cupertino fling behavior is density independent
     CupertinoFlingBehavior(CupertinoScrollDecayAnimationSpec().generateDecayAnimationSpec())
