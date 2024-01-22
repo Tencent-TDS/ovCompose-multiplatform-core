@@ -532,7 +532,7 @@ internal expect fun rememberFlingBehavior(): FlingBehavior
 object ScrollableDefaults {
 
     /**
-     * Creates platform default [FlingBehavior] that will represent natural fling curve.
+     * Create and remember default [FlingBehavior] that will represent natural fling curve.
      */
     @Composable
     fun flingBehavior(): FlingBehavior = rememberFlingBehavior()
