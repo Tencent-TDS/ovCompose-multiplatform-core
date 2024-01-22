@@ -28,7 +28,7 @@ import androidx.compose.animation.splineBasedDecay
 internal actual fun CompositionLocalConsumerModifierNode.platformScrollConfig(): ScrollConfig =
     AndroidConfig
 
-internal expect fun platformDefaultFlingBehavior(): FlingBehavior =
+internal expect fun platformDefaultFlingBehavior(): ScrollableDefaultFlingBehavior =
     DefaultFlingBehavior(splineBasedDecay(UnityDensity))
 
 private object AndroidConfig : ScrollConfig {
