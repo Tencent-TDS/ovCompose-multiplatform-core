@@ -198,12 +198,7 @@ private class AccessibilityElement(
     }
 
     override fun accessibilityActivate(): Boolean {
-        // TODO: crash happens here because object is still not marked as disposed, but the tree has
-        //  changed and the element is not present in the tree anymore. Since there is update interval
-        //  between the actual change in the tree and the change in the accessibility tree, this can lead
-        //  to a situation where the element is still present in the accessibility tree, but the
-        //  corresponding semantics node is already removed from the tree.
-        if (!isAlive) {
+        if (!isAlive || !semanticsNode.isValid) {
             return false
         }
 
@@ -812,6 +807,7 @@ internal class AccessibilityMediator(
     private val accessibilityElementsMap = mutableMapOf<Int, AccessibilityElement>()
 
     init {
+        println("AccessibilityMediator created")
         val updateIntervalMillis = 50L
         // TODO: this approach was copied from desktop implementation, obviously it has a [updateIntervalMillis] lag
         //  between the actual change in the semantics tree and the change in the accessibility tree.
@@ -903,7 +899,7 @@ internal class AccessibilityMediator(
             val childSemanticsNodesInAccessibilityOrder = node
                 .replacedChildren
                 .filter {
-                    it.layoutNode.isPlaced && it.layoutNode.isAttached
+                    it.isValid
                 }
                 .sortedByAccesibilityOrder()
 
@@ -1076,6 +1072,8 @@ private fun List<SemanticsNode>.sortedByAccesibilityOrder(): List<SemanticsNode>
 private val SemanticsNode.unclippedBoundsInWindow: Rect
     get() = Rect(positionInWindow, size.toSize())
 
+private val SemanticsNode.isValid: Boolean
+    get() = layoutNode.isPlaced && layoutNode.isAttached
 /**
  * Closest ancestor that has [SemanticsActions.ScrollBy] action
  */
