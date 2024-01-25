@@ -37,6 +37,9 @@ actual class PlatformTextStyle {
 
     /**
      * Allows specifying the style of the decoration line for the text.
+     *
+     * This parameter is relevant only if `textDecoration` is specified, for example in
+     * `TextStyle(textDecoration = )` or in `SpanStyle(textDecoration = )`
      */
     @ExperimentalTextApi
     constructor(
@@ -94,9 +97,11 @@ actual class PlatformParagraphStyle {
 /**
  * Provides configuration options for behavior compatibility for SpanStyle.
  *
- * @param textDecorationLineStyle The style of the text decoration line.
+ * @param textDecorationLineStyle The style of the text decoration line. Note that this parameter is
+ * relevant only if `textDecoration` is specified, for example in `TextStyle(textDecoration = )` or
+ * in `SpanStyle(textDecoration = )`.
  */
-actual class PlatformSpanStyle(
+actual class PlatformSpanStyle @ExperimentalTextApi constructor(
     val textDecorationLineStyle: TextDecorationLineStyle?
 ) {
 
