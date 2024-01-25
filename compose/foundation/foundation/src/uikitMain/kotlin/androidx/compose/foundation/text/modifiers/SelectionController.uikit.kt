@@ -55,7 +55,6 @@ internal actual fun SelectionRegistrar.makeSelectionModifier(
     selectableId: Long,
     layoutCoordinates: () -> LayoutCoordinates?
 ): Modifier {
-    println("1")
     val longPressDragObserver = object : CupertinoTextDragObserver {
         /**
          * The beginning position of the drag gesture. Every time a new drag gesture starts, it wil be
@@ -232,15 +231,12 @@ private fun Modifier.selectionGestureInput(
     textDragObserver: CupertinoTextDragObserver,
 ): Modifier = composed {
     // TODO(https://youtrack.jetbrains.com/issue/COMPOSE-79) how we can rewrite this without `composed`?
-    println("2")
     val currentMouseSelectionObserver by rememberUpdatedState(mouseSelectionObserver)
     val currentTextDragObserver by rememberUpdatedState(textDragObserver)
     this.pointerInput(Unit) {
-        println("3")
         val clicksCounter = ClicksCounter(viewConfiguration, clicksSlop = 50.dp.toPx())
         awaitEachGesture {
             val down = awaitDown()
-            println("4")
             if (
                 down.isPrecisePointer &&
                 down.buttons.isPrimaryPressed &&
@@ -260,7 +256,6 @@ private suspend fun AwaitPointerEventScope.touchSelection(
     down: PointerEvent
 ) {
     try {
-        println("5")
         val firstDown = down.changes.first()
         val drag = awaitLongPressOrCancellation(firstDown.id)
         clicksCounter.update(firstDown)
