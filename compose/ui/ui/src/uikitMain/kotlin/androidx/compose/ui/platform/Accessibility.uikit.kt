@@ -130,10 +130,6 @@ private class AccessibilityElement(
         )
     }
 
-    init {
-        update(null, semanticsNode)
-    }
-
     /**
      * Returns accessibility element communicated to iOS Accessibility services for the given [index].
      * Takes a child at [index].
@@ -201,7 +197,6 @@ private class AccessibilityElement(
     override fun accessibilityLabel(): String? {
         val config = semanticsNode.config
 
-        // See [SemanticsPropertyReceiver.contentDescription]
         val contentDescription = config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString("\n")
         if (contentDescription != null) {
             return contentDescription
@@ -495,97 +490,19 @@ private class AccessibilityElement(
         return result
     }
 
-    /**
-     * Compose doesn't communicate fine-grain changes in semantics tree, thus all changes in the particular
-     * persistent object to match the latest resolved SemanticsNode should be done via full-scan of all properties
-     * of previous and current SemanticsNode.
-     *
-     * TODO: is it possible to optimize this? Can we calculate the actual `UIAccessibility` properties
-     *   lazily? How should we notify iOS about the changes in the properties without direct changes
-     *   in `UIAccessibility` properties (are they KVO-observed by iOS? how can we trigger it?)
-     */
-    fun updateWithNewSemanticsNode(newSemanticsNode: SemanticsNode) {
-        check(semanticsNode.id == newSemanticsNode.id)
-        update(semanticsNode, newSemanticsNode)
-        semanticsNode = newSemanticsNode
+
+    override fun accessibilityValue(): String? {
+        return semanticsNode.config.getOrNull(SemanticsProperties.StateDescription)
     }
 
-    private fun update(oldNode: SemanticsNode? = null, newNode: SemanticsNode) {
-        // TODO: check that the field for the properties that were present in the old node but not in
-        //  the new one are cleared
+    override fun accessibilityFrame(): CValue<CGRect> {
+        return mediator.convertRectToWindowSpaceCGRect(semanticsNode.boundsInWindow)
+    }
 
-        val accessibilityValueStrings = mutableListOf<String>()
-        var accessibilityTraits = UIAccessibilityTraitNone
-
-        fun addTrait(trait: UIAccessibilityTraits) {
-            accessibilityTraits = accessibilityTraits or trait
-        }
-
-        val config = newNode.config
-
-        fun <T> getNewValue(key: SemanticsPropertyKey<T>): T = config[key]
-
-        // Iterate through all semantic properties and map them to values that are expected by iOS Accessibility services for the node with given semantics
-        config.forEach { pair ->
-            when (val key = pair.key) {
-                // == Properties ==
-
-//                SemanticsProperties.InvisibleToUser -> {
-//
-//                }
-
-                // Used lazily in [accessibilityScroll]
-                /*
-                SemanticsProperties.VerticalScrollAxisRange -> {
-                }
-
-                SemanticsProperties.HorizontalScrollAxisRange -> {
-                }
-                */
-
-                SemanticsProperties.StateDescription -> {
-                    val state = getNewValue(key)
-                    accessibilityValueStrings.add(state)
-                }
-
-                // == Actions ==
-
-                // Used lazily in [accessibilityScroll]
-                /*
-                SemanticsActions.PageUp -> {
-                }
-
-                SemanticsActions.PageDown -> {
-                }
-
-                SemanticsActions.PageLeft -> {
-                }
-
-                SemanticsActions.PageRight -> {
-                }
-
-                SemanticsActions.ScrollBy -> {
-                }
-
-                SemanticsActions.ScrollToIndex -> {
-                }
-                */
-
-//                SemanticsActions.CustomActions -> {
-//                    val actions = getNewValue(key)
-//                    accessibilityCustomActions = actions.map {
-//                        UIAccessibilityCustomAction(
-//                            name = it.label,
-//                            actionHandler = { _ ->
-//                                it.action.invoke()
-//                            }
-//                        )
-//                    }
-//                }
-            }
-        }
-
-        accessibilityFrame = mediator.convertRectToWindowSpaceCGRect(semanticsNode.boundsInWindow)
+    // TODO: check the reference/value semantics for SemanticsNode, perhaps it doesn't need recreation at all
+    fun updateWithNewSemanticsNode(newSemanticsNode: SemanticsNode) {
+        check(semanticsNode.id == newSemanticsNode.id)
+        semanticsNode = newSemanticsNode
     }
 
     private fun removeFromParent() {

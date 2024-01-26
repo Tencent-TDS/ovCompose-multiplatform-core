@@ -39,6 +39,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *__nullable)accessibilityLabel CMP_MUST_BE_OVERRIDED;
 
+- (NSString *__nullable)accessibilityValue CMP_MUST_BE_OVERRIDED;
+
+- (CGRect)accessibilityFrame CMP_MUST_BE_OVERRIDED;
+
 - (BOOL)isAccessibilityElement CMP_MUST_BE_OVERRIDED;
 
 - (BOOL)accessibilityActivate CMP_MUST_BE_OVERRIDED;
