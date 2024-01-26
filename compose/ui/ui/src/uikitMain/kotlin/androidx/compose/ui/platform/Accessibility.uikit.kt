@@ -500,6 +500,7 @@ private class AccessibilityElement(
     }
 
     // TODO: check the reference/value semantics for SemanticsNode, perhaps it doesn't need recreation at all
+    //  cache config to avoid traversing subtree for merging semantics and excessive copy on [semanticsNode.config] call
     fun updateWithNewSemanticsNode(newSemanticsNode: SemanticsNode) {
         check(semanticsNode.id == newSemanticsNode.id)
         semanticsNode = newSemanticsNode
