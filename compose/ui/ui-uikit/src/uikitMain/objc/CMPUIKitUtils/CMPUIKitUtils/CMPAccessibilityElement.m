@@ -60,6 +60,10 @@ NS_ASSUME_NONNULL_BEGIN
     return [object accessibilityContainer];
 }
 
+- (NSString *__nullable)accessibilityLabel {
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+}
+
 - (BOOL)accessibilityActivate {
     CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }

@@ -197,6 +197,19 @@ private class AccessibilityElement(
         isAlive = false
     }
 
+    override fun accessibilityLabel(): String? {
+        val editableText = semanticsNode.config.getOrNull(SemanticsProperties.EditableText)?.text
+
+        if (editableText != null) {
+            return editableText
+        }
+
+        val text =
+            semanticsNode.config.getOrNull(SemanticsProperties.Text)?.joinToString("\n") { it.text }
+
+        return text
+    }
+
     override fun accessibilityActivate(): Boolean {
         if (!isAlive || !semanticsNode.isValid) {
             return false
@@ -414,7 +427,6 @@ private class AccessibilityElement(
 
         var testTag: String? = null
 
-        val accessibilityLabelStrings = mutableListOf<String>()
         val accessibilityValueStrings = mutableListOf<String>()
         var accessibilityTraits = UIAccessibilityTraitNone
 
@@ -451,23 +463,6 @@ private class AccessibilityElement(
 
                 SemanticsProperties.TestTag -> {
                     testTag = getNewValue(key)
-                }
-
-                SemanticsProperties.ContentDescription -> {
-                    accessibilityLabelStrings.addAll(getNewValue(key))
-                }
-
-                SemanticsProperties.Text -> {
-                    accessibilityLabelStrings.addAll(getNewValue(key).map { it.text })
-                }
-
-                SemanticsProperties.EditableText -> {
-                    val value = getNewValue(key)
-                    accessibilityLabelStrings.add(value.text)
-                }
-
-                SemanticsProperties.PaneTitle -> {
-                    accessibilityLabelStrings.add(getNewValue(key))
                 }
 
                 SemanticsProperties.Disabled -> {
@@ -565,16 +560,6 @@ private class AccessibilityElement(
                     }
                 }
             }
-        }
-
-        if (accessibilityLabelStrings.isNotEmpty()) {
-            onMeaningfulSemanticAdded()
-            accessibilityLabel = accessibilityLabelStrings.joinToString("\n") { it }
-        }
-
-        if (accessibilityValueStrings.isNotEmpty()) {
-            onMeaningfulSemanticAdded()
-            accessibilityValue = accessibilityLabelStrings.joinToString("\n") { it }
         }
 
         this.accessibilityTraits = accessibilityTraits
