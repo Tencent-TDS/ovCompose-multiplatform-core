@@ -198,6 +198,11 @@ private class AccessibilityElement(
     }
 
     override fun accessibilityLabel(): String? {
+        val contentDescription = semanticsNode.config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString("\n")
+        if (contentDescription != null) {
+            return contentDescription
+        }
+
         val editableText = semanticsNode.config.getOrNull(SemanticsProperties.EditableText)?.text
 
         if (editableText != null) {
