@@ -398,7 +398,7 @@ private class AccessibilityElement(
     }
 
     override fun isAccessibilityElement(): Boolean {
-        if (semanticsNode.config.getOrNull(SemanticsProperties.InvisibleToUser) != null) {
+        if (semanticsNode.config.contains(SemanticsProperties.InvisibleToUser)) {
             return false
         }
 
@@ -413,6 +413,52 @@ private class AccessibilityElement(
     override fun accessibilityIdentifier(): String {
         return semanticsNode.config.getOrNull(SemanticsProperties.TestTag)
             ?: "AccessibilityElement reflecting SemanticsNode with id=$semanticsNodeId"
+    }
+
+    override fun accessibilityTraits(): UIAccessibilityTraits {
+        var result = UIAccessibilityTraitNone
+
+        if (semanticsNode.config.contains(SemanticsProperties.LiveRegion)) {
+            result = result or UIAccessibilityTraitUpdatesFrequently
+        }
+
+        if (semanticsNode.config.contains(SemanticsProperties.Disabled)) {
+            result = result or UIAccessibilityTraitNotEnabled
+        }
+
+        if (semanticsNode.config.contains(SemanticsProperties.Heading)) {
+            result = result or UIAccessibilityTraitHeader
+        }
+
+        semanticsNode.config.getOrNull(SemanticsProperties.ToggleableState)?.let { state ->
+            when (state) {
+                ToggleableState.On -> {
+                    result = result or UIAccessibilityTraitSelected
+                }
+
+                ToggleableState.Off, ToggleableState.Indeterminate -> {
+                    // Do nothing
+                }
+            }
+        }
+
+        semanticsNode.config.getOrNull(SemanticsProperties.Role)?.let { role ->
+            when (role) {
+                Role.Button, Role.RadioButton, Role.Checkbox, Role.Switch -> {
+                    result = result or UIAccessibilityTraitButton
+                }
+
+                Role.DropdownList -> {
+                    result = result or UIAccessibilityTraitAdjustable
+                }
+
+                Role.Image -> {
+                    result = result or UIAccessibilityTraitImage
+                }
+            }
+        }
+
+        return result
     }
 
     /**
@@ -433,8 +479,6 @@ private class AccessibilityElement(
     private fun update(oldNode: SemanticsNode? = null, newNode: SemanticsNode) {
         // TODO: check that the field for the properties that were present in the old node but not in
         //  the new one are cleared
-
-        var testTag: String? = null
 
         val accessibilityValueStrings = mutableListOf<String>()
         var accessibilityTraits = UIAccessibilityTraitNone
@@ -463,63 +507,9 @@ private class AccessibilityElement(
                 }
                 */
 
-                SemanticsProperties.LiveRegion -> {
-                    // TODO: proper implementation
-                    addTrait(UIAccessibilityTraitUpdatesFrequently)
-                }
-
-                SemanticsProperties.TestTag -> {
-                    testTag = getNewValue(key)
-                }
-
-                SemanticsProperties.Disabled -> {
-                    addTrait(UIAccessibilityTraitNotEnabled)
-                }
-
-                SemanticsProperties.Heading -> {
-                    addTrait(UIAccessibilityTraitHeader)
-                }
-
                 SemanticsProperties.StateDescription -> {
                     val state = getNewValue(key)
                     accessibilityValueStrings.add(state)
-                }
-
-                SemanticsProperties.ToggleableState -> {
-                    val state = getNewValue(key)
-
-                    when (state) {
-                        ToggleableState.On -> {
-                            addTrait(UIAccessibilityTraitSelected)
-                            accessibilityValueStrings.add("On")
-                        }
-
-                        ToggleableState.Off -> {
-                            accessibilityValueStrings.add("Off")
-                        }
-
-                        ToggleableState.Indeterminate -> {
-                            accessibilityValueStrings.add("Indeterminate")
-                        }
-                    }
-                }
-
-                SemanticsProperties.Role -> {
-                    val role = getNewValue(key)
-
-                    when (role) {
-                        Role.Button, Role.RadioButton, Role.Checkbox, Role.Switch -> {
-                            addTrait(UIAccessibilityTraitButton)
-                        }
-
-                        Role.DropdownList -> {
-                            addTrait(UIAccessibilityTraitAdjustable)
-                        }
-
-                        Role.Image -> {
-                            addTrait(UIAccessibilityTraitImage)
-                        }
-                    }
                 }
 
                 // == Actions ==
@@ -559,9 +549,6 @@ private class AccessibilityElement(
             }
         }
 
-        this.accessibilityTraits = accessibilityTraits
-
-        accessibilityIdentifier = testTag ?: "$semanticsNodeId"
         accessibilityFrame = mediator.convertRectToWindowSpaceCGRect(semanticsNode.boundsInWindow)
     }
 

@@ -60,7 +60,11 @@ NS_ASSUME_NONNULL_BEGIN
     return [object accessibilityContainer];
 }
 
-- (NSString *__nullable)accessibilityIdentifier CMP_MUST_BE_OVERRIDED {
+- (UIAccessibilityTraits)accessibilityTraits {
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+}
+
+- (NSString *__nullable)accessibilityIdentifier {
     CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
