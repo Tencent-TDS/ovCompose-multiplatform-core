@@ -398,12 +398,11 @@ private class AccessibilityElement(
     }
 
     override fun isAccessibilityElement(): Boolean {
-        val isInvisibleToUser =
-            semanticsNode.config.getOrNull(SemanticsProperties.InvisibleToUser) != null
-        val isTraversalGroup =
-            semanticsNode.config.getOrNull(SemanticsProperties.IsTraversalGroup) ?: false
+        if (semanticsNode.config.getOrNull(SemanticsProperties.InvisibleToUser) != null) {
+            return false
+        }
 
-        return !(isInvisibleToUser || isTraversalGroup)
+        return semanticsNode.config.containsImportantForAccessibility()
     }
 
     /**
