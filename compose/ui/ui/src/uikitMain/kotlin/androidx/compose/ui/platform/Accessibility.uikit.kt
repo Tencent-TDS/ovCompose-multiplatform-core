@@ -402,6 +402,10 @@ private class AccessibilityElement(
             return false
         }
 
+        if (semanticsNode.config.getOrNull(SemanticsProperties.IsTraversalGroup) == true) {
+            return false
+        }
+
         return semanticsNode.config.containsImportantForAccessibility()
     }
 
