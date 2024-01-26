@@ -397,6 +397,15 @@ private class AccessibilityElement(
         return scrollIfPossible(direction)
     }
 
+    override fun isAccessibilityElement(): Boolean {
+        val isInvisibleToUser =
+            semanticsNode.config.getOrNull(SemanticsProperties.InvisibleToUser) != null
+        val isTraversalGroup =
+            semanticsNode.config.getOrNull(SemanticsProperties.IsTraversalGroup) ?: false
+
+        return !(isInvisibleToUser || isTraversalGroup)
+    }
+
     /**
      * Compose doesn't communicate fine-grain changes in semantics tree, thus all changes in the particular
      * persistent object to match the latest resolved SemanticsNode should be done via full-scan of all properties
@@ -416,15 +425,6 @@ private class AccessibilityElement(
         // TODO: check that the field for the properties that were present in the old node but not in
         //  the new one are cleared
 
-        // If the node doesn't have any semantics that can be projected to iOS UIAccessibility entities, it will be invisible to accessibility services
-        isAccessibilityElement = false
-
-        var hasAnyMeaningfulSemantics = false
-
-        fun onMeaningfulSemanticAdded() {
-            hasAnyMeaningfulSemantics = true
-        }
-
         var testTag: String? = null
 
         val accessibilityValueStrings = mutableListOf<String>()
@@ -441,10 +441,9 @@ private class AccessibilityElement(
             when (val key = pair.key) {
                 // == Properties ==
 
-                SemanticsProperties.InvisibleToUser -> {
-                    // Return immediately. Function won't reach a point where [isAccessibilityElement] is set to true
-                    return
-                }
+//                SemanticsProperties.InvisibleToUser -> {
+//
+//                }
 
                 // Used lazily in [accessibilityScroll]
                 /*
@@ -457,7 +456,6 @@ private class AccessibilityElement(
 
                 SemanticsProperties.LiveRegion -> {
                     // TODO: proper implementation
-                    onMeaningfulSemanticAdded()
                     addTrait(UIAccessibilityTraitUpdatesFrequently)
                 }
 
@@ -470,7 +468,6 @@ private class AccessibilityElement(
                 }
 
                 SemanticsProperties.Heading -> {
-                    onMeaningfulSemanticAdded()
                     addTrait(UIAccessibilityTraitHeader)
                 }
 
@@ -503,27 +500,20 @@ private class AccessibilityElement(
 
                     when (role) {
                         Role.Button, Role.RadioButton, Role.Checkbox, Role.Switch -> {
-                            onMeaningfulSemanticAdded()
                             addTrait(UIAccessibilityTraitButton)
                         }
 
                         Role.DropdownList -> {
-                            onMeaningfulSemanticAdded()
                             addTrait(UIAccessibilityTraitAdjustable)
                         }
 
                         Role.Image -> {
-                            onMeaningfulSemanticAdded()
                             addTrait(UIAccessibilityTraitImage)
                         }
                     }
                 }
 
                 // == Actions ==
-
-                SemanticsActions.OnClick -> {
-                    onMeaningfulSemanticAdded()
-                }
 
                 // Used lazily in [accessibilityScroll]
                 /*
@@ -547,8 +537,6 @@ private class AccessibilityElement(
                 */
 
                 SemanticsActions.CustomActions -> {
-                    onMeaningfulSemanticAdded()
-
                     val actions = getNewValue(key)
                     accessibilityCustomActions = actions.map {
                         UIAccessibilityCustomAction(
@@ -563,7 +551,6 @@ private class AccessibilityElement(
         }
 
         this.accessibilityTraits = accessibilityTraits
-        isAccessibilityElement = hasAnyMeaningfulSemantics
 
         accessibilityIdentifier = testTag ?: "$semanticsNodeId"
         accessibilityFrame = mediator.convertRectToWindowSpaceCGRect(semanticsNode.boundsInWindow)
