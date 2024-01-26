@@ -402,11 +402,17 @@ private class AccessibilityElement(
             return false
         }
 
+        // TODO: can it be traversal group _and_ contain properties that should be communicated to iOS?
         if (semanticsNode.config.getOrNull(SemanticsProperties.IsTraversalGroup) == true) {
             return false
         }
 
         return semanticsNode.config.containsImportantForAccessibility()
+    }
+
+    override fun accessibilityIdentifier(): String {
+        return semanticsNode.config.getOrNull(SemanticsProperties.TestTag)
+            ?: "AccessibilityElement reflecting SemanticsNode with id=$semanticsNodeId"
     }
 
     /**
