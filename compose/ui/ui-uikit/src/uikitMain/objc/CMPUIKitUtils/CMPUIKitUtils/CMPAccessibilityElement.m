@@ -60,11 +60,19 @@ NS_ASSUME_NONNULL_BEGIN
     return [object accessibilityContainer];
 }
 
+- (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions {
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+}
+
 - (UIAccessibilityTraits)accessibilityTraits {
     CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 
 - (NSString *__nullable)accessibilityIdentifier {
+    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+}
+
+- (NSString *__nullable)accessibilityHint {
     CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
 }
 

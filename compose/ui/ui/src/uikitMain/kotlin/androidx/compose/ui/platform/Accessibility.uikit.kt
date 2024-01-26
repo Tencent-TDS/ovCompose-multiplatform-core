@@ -28,6 +28,7 @@ import platform.UIKit.accessibilityElements
 import platform.UIKit.isAccessibilityElement
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
@@ -198,19 +199,22 @@ private class AccessibilityElement(
     }
 
     override fun accessibilityLabel(): String? {
-        val contentDescription = semanticsNode.config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString("\n")
+        val config = semanticsNode.config
+
+        // See [SemanticsPropertyReceiver.contentDescription]
+        val contentDescription = config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString("\n")
         if (contentDescription != null) {
             return contentDescription
         }
 
-        val editableText = semanticsNode.config.getOrNull(SemanticsProperties.EditableText)?.text
+        val editableText = config.getOrNull(SemanticsProperties.EditableText)?.text
 
         if (editableText != null) {
             return editableText
         }
 
         val text =
-            semanticsNode.config.getOrNull(SemanticsProperties.Text)?.joinToString("\n") { it.text }
+            config.getOrNull(SemanticsProperties.Text)?.joinToString("\n") { it.text }
 
         return text
     }
@@ -308,7 +312,7 @@ private class AccessibilityElement(
         }
     }
 
-    private fun scrollIfPossible(direction: UIAccessibilityScrollDirection): Boolean {
+    private fun scrollIfPossible(direction: UIAccessibilityScrollDirection, config: SemanticsConfiguration): Boolean {
         val (width, height) = semanticsNode.size
 
         val dimensionScale = 0.5f
@@ -317,13 +321,13 @@ private class AccessibilityElement(
 
         when (direction) {
             UIAccessibilityScrollDirectionUp -> {
-                var result = semanticsNode.config.getOrNull(SemanticsActions.PageUp)?.action?.invoke()
+                var result = config.getOrNull(SemanticsActions.PageUp)?.action?.invoke()
 
                 if (result != null) {
                     return result
                 }
 
-                result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
+                result = config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
                     0F,
                     -height.toFloat() * dimensionScale
                 )
@@ -334,13 +338,13 @@ private class AccessibilityElement(
             }
 
             UIAccessibilityScrollDirectionDown -> {
-                var result = semanticsNode.config.getOrNull(SemanticsActions.PageDown)?.action?.invoke()
+                var result = config.getOrNull(SemanticsActions.PageDown)?.action?.invoke()
 
                 if (result != null) {
                     return result
                 }
 
-                result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
+                result = config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
                     0f,
                     height.toFloat() * dimensionScale
                 )
@@ -351,14 +355,14 @@ private class AccessibilityElement(
             }
 
             UIAccessibilityScrollDirectionLeft -> {
-                var result = semanticsNode.config.getOrNull(SemanticsActions.PageLeft)?.action?.invoke()
+                var result = config.getOrNull(SemanticsActions.PageLeft)?.action?.invoke()
 
                 if (result != null) {
                     return result
                 }
 
                 // TODO: check RTL support
-                result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
+                result = config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
                     -width.toFloat() * dimensionScale,
                     0f,
                 )
@@ -369,14 +373,14 @@ private class AccessibilityElement(
             }
 
             UIAccessibilityScrollDirectionRight -> {
-                var result = semanticsNode.config.getOrNull(SemanticsActions.PageRight)?.action?.invoke()
+                var result = config.getOrNull(SemanticsActions.PageRight)?.action?.invoke()
 
                 if (result != null) {
                     return result
                 }
 
                 // TODO: check RTL support
-                result = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
+                result = config.getOrNull(SemanticsActions.ScrollBy)?.action?.invoke(
                     width.toFloat() * dimensionScale,
                     0f,
                 )
@@ -391,7 +395,7 @@ private class AccessibilityElement(
             }
         }
 
-        return parent?.scrollIfPossible(direction) ?: false
+        return parent?.scrollIfPossible(direction, config) ?: false
     }
 
     override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
@@ -399,20 +403,22 @@ private class AccessibilityElement(
             return false
         }
 
-        return scrollIfPossible(direction)
+        return scrollIfPossible(direction, semanticsNode.config)
     }
 
     override fun isAccessibilityElement(): Boolean {
-        if (semanticsNode.config.contains(SemanticsProperties.InvisibleToUser)) {
+        val config = semanticsNode.config
+
+        if (config.contains(SemanticsProperties.InvisibleToUser)) {
             return false
         }
 
         // TODO: can it be traversal group _and_ contain properties that should be communicated to iOS?
-        if (semanticsNode.config.getOrNull(SemanticsProperties.IsTraversalGroup) == true) {
+        if (config.getOrNull(SemanticsProperties.IsTraversalGroup) == true) {
             return false
         }
 
-        return semanticsNode.config.containsImportantForAccessibility()
+        return config.containsImportantForAccessibility()
     }
 
     override fun accessibilityIdentifier(): String {
@@ -420,22 +426,41 @@ private class AccessibilityElement(
             ?: "AccessibilityElement reflecting SemanticsNode with id=$semanticsNodeId"
     }
 
+    override fun accessibilityHint(): String? {
+        return semanticsNode.config.getOrNull(SemanticsActions.OnClick)?.label
+    }
+
+    override fun accessibilityCustomActions(): List<UIAccessibilityCustomAction> {
+        return semanticsNode.config.getOrNull(SemanticsActions.CustomActions)?.let { actions ->
+            actions.map {
+                UIAccessibilityCustomAction(
+                    name = it.label,
+                    actionHandler = { _ ->
+                        it.action.invoke()
+                    }
+                )
+            }
+        } ?: emptyList()
+    }
+
     override fun accessibilityTraits(): UIAccessibilityTraits {
         var result = UIAccessibilityTraitNone
 
-        if (semanticsNode.config.contains(SemanticsProperties.LiveRegion)) {
+        val config = semanticsNode.config
+
+        if (config.contains(SemanticsProperties.LiveRegion)) {
             result = result or UIAccessibilityTraitUpdatesFrequently
         }
 
-        if (semanticsNode.config.contains(SemanticsProperties.Disabled)) {
+        if (config.contains(SemanticsProperties.Disabled)) {
             result = result or UIAccessibilityTraitNotEnabled
         }
 
-        if (semanticsNode.config.contains(SemanticsProperties.Heading)) {
+        if (config.contains(SemanticsProperties.Heading)) {
             result = result or UIAccessibilityTraitHeader
         }
 
-        semanticsNode.config.getOrNull(SemanticsProperties.ToggleableState)?.let { state ->
+        config.getOrNull(SemanticsProperties.ToggleableState)?.let { state ->
             when (state) {
                 ToggleableState.On -> {
                     result = result or UIAccessibilityTraitSelected
@@ -447,7 +472,11 @@ private class AccessibilityElement(
             }
         }
 
-        semanticsNode.config.getOrNull(SemanticsProperties.Role)?.let { role ->
+        config.getOrNull(SemanticsActions.OnClick)?.let {
+            result = result or UIAccessibilityTraitButton
+        }
+
+        config.getOrNull(SemanticsProperties.Role)?.let { role ->
             when (role) {
                 Role.Button, Role.RadioButton, Role.Checkbox, Role.Switch -> {
                     result = result or UIAccessibilityTraitButton
@@ -492,10 +521,12 @@ private class AccessibilityElement(
             accessibilityTraits = accessibilityTraits or trait
         }
 
-        fun <T> getNewValue(key: SemanticsPropertyKey<T>): T = semanticsNode.config[key]
+        val config = newNode.config
+
+        fun <T> getNewValue(key: SemanticsPropertyKey<T>): T = config[key]
 
         // Iterate through all semantic properties and map them to values that are expected by iOS Accessibility services for the node with given semantics
-        semanticsNode.config.forEach { pair ->
+        config.forEach { pair ->
             when (val key = pair.key) {
                 // == Properties ==
 
@@ -540,17 +571,17 @@ private class AccessibilityElement(
                 }
                 */
 
-                SemanticsActions.CustomActions -> {
-                    val actions = getNewValue(key)
-                    accessibilityCustomActions = actions.map {
-                        UIAccessibilityCustomAction(
-                            name = it.label,
-                            actionHandler = { _ ->
-                                it.action.invoke()
-                            }
-                        )
-                    }
-                }
+//                SemanticsActions.CustomActions -> {
+//                    val actions = getNewValue(key)
+//                    accessibilityCustomActions = actions.map {
+//                        UIAccessibilityCustomAction(
+//                            name = it.label,
+//                            actionHandler = { _ ->
+//                                it.action.invoke()
+//                            }
+//                        )
+//                    }
+//                }
             }
         }
 
