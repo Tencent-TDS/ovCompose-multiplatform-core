@@ -191,6 +191,31 @@ final class CMPViewControllerTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 2_000_000_000)
         expect(viewController: viewController, toBeInHierarchy: false)
     }
+    
+    @MainActor
+    public func testFullScreenPresentationSandwich() async {
+        let viewController0 = UIViewController()
+        
+        appDelegate.window?.rootViewController = viewController0
+        
+        let viewController1 = TestViewController()
+        viewController1.modalPresentationStyle = .fullScreen
+        
+        let viewController2 = TestViewController()
+        viewController2.modalPresentationStyle = .fullScreen
+        
+        expect(viewControllers: [viewController1, viewController2], toBeInHierarchy: false)
+        
+        viewController0.present(viewController1, animated: false)
+        viewController1.present(viewController2, animated: false)
+        
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        expect(viewControllers: [viewController1, viewController2], toBeInHierarchy: true)
+        
+        viewController0.dismiss(animated: false)
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        expect(viewControllers: [viewController1, viewController2], toBeInHierarchy: false)
+    }
 }
 
 private class TestViewController: CMPViewController {

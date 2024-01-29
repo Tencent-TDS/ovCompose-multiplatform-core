@@ -56,6 +56,8 @@
         return YES;
     } else if (self.parentViewController != nil) {
         return [self.parentViewController cmp_isInWindowHierarchy];
+    } else if (self.presentingViewController != nil) {
+        return [self.presentingViewController cmp_isInWindowHierarchy];
     } else {
         return [self cmp_isRootViewController];
     }
