@@ -104,7 +104,7 @@ internal actual fun SelectionRegistrar.makeSelectionModifier(
                 val consumed = notifySelectionUpdate(
                     layoutCoordinates = it,
                     previousPosition = lastPosition,
-                    newPosition = newPosition,
+                    newPosition = delta,
                     isStartHandle = false,
                     adjustment = selectionAdjustment,
                     isInTouchMode = true
@@ -129,7 +129,7 @@ internal actual fun SelectionRegistrar.makeSelectionModifier(
         }
     }
 
-    // The rest of that method copied from SelectionGestures.kt
+    // The rest of that method copied from SelectionController.kt
     val mouseSelectionObserver = object : MouseSelectionObserver {
         var lastPosition = Offset.Zero
 
@@ -225,7 +225,7 @@ internal actual fun SelectionRegistrar.makeSelectionModifier(
     return Modifier.selectionGestureInput(mouseSelectionObserver, longPressDragObserver)
 }
 
-// Copied from SelectionGestures.kt, except CupertinoTextDragObserver parameter
+// Copied from SelectionController.kt, except CupertinoTextDragObserver parameter
 private fun Modifier.selectionGestureInput(
     mouseSelectionObserver: MouseSelectionObserver,
     textDragObserver: CupertinoTextDragObserver,
