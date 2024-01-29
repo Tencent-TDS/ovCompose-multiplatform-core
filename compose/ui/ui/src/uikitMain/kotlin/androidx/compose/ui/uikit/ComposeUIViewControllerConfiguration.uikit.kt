@@ -35,6 +35,11 @@ class ComposeUIViewControllerConfiguration {
 
     @ExperimentalComposeApi
     var platformLayers: Boolean = false
+
+    /**
+     * Determines whether the Compose view should have an opaque background.
+     */
+    var opaque: Boolean = true
 }
 
 /**

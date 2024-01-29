@@ -143,8 +143,9 @@ internal class ComposeContainer(
 
     override fun loadView() {
         view = UIView().apply {
-            backgroundColor = UIColor.whiteColor
             setClipsToBounds(true)
+            opaque = configuration.opaque
+            backgroundColor = if (configuration.opaque) UIColor.whiteColor else UIColor.clearColor
         } // rootView needs to interop with UIKit
     }
 
@@ -283,10 +284,9 @@ internal class ComposeContainer(
     }
 
     private fun createSkikoUIView(renderRelegate: RenderingUIView.Delegate): RenderingUIView =
-        RenderingUIView(
-            renderDelegate = renderRelegate,
-            transparency = false,
-        )
+        RenderingUIView(renderDelegate = renderRelegate).apply {
+            opaque = configuration.opaque
+        }
 
     @OptIn(ExperimentalComposeApi::class)
     private fun createComposeScene(
