@@ -21,6 +21,7 @@ extension XCTestCase {
     @MainActor
     func expect(        
         timeout: TimeInterval,
+        line: Int,
         expectation: @escaping () -> Bool
     ) async {
         let start = Date()
@@ -32,7 +33,7 @@ extension XCTestCase {
         }
         
         if !isExpectationMet {
-            XCTFail("Timeout")
+            XCTFail("Timeout at line \(line)")
         }
     }
 }
