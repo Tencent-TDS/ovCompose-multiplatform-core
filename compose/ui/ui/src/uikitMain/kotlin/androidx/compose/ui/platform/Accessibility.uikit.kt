@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
@@ -721,6 +722,7 @@ private sealed interface NodesSyncResult {
 /**
  * A sealed class that represents the options for syncing the Compose SemanticsNode tree with the iOS UIAccessibility tree.
  */
+@ExperimentalComposeApi
 sealed class AccessibilitySyncOptions(
     val isDebugLoggingEnabled: Boolean
 ) {
@@ -750,7 +752,8 @@ sealed class AccessibilitySyncOptions(
 /**
  * A class responsible for mediating between the tree of specific SemanticsOwner and the iOS accessibility tree.
  */
-internal class AccessibilityMediator(
+@OptIn(ExperimentalComposeApi::class)
+internal class AccessibilityMediator constructor(
     val view: UIView,
     private val owner: SemanticsOwner,
     coroutineContext: CoroutineContext,
