@@ -36,6 +36,7 @@ import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SceneLayout
 import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.scene.UIViewComposeSceneLayer
+import androidx.compose.ui.systemDensity
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
@@ -62,7 +63,6 @@ import platform.CoreGraphics.CGSizeEqualToSize
 import platform.Foundation.NSStringFromClass
 import platform.UIKit.UIApplication
 import platform.UIKit.UIColor
-import platform.UIKit.UIContentSizeCategory
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraExtraLarge
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraLarge
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraLarge
@@ -75,8 +75,6 @@ import platform.UIKit.UIContentSizeCategoryExtraSmall
 import platform.UIKit.UIContentSizeCategoryLarge
 import platform.UIKit.UIContentSizeCategoryMedium
 import platform.UIKit.UIContentSizeCategorySmall
-import platform.UIKit.UIContentSizeCategoryUnspecified
-import platform.UIKit.UIScreen
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
@@ -275,17 +273,6 @@ internal class ComposeContainer(
     fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext =
         ComposeSceneContextImpl(platformContext)
 
-    private fun getContentSizeCategory(): UIContentSizeCategory =
-        traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
-
-    private fun getSystemDensity(): Density {
-        val contentSizeCategory = getContentSizeCategory()
-        return Density(
-            density = UIScreen.mainScreen.scale.toFloat(),
-            fontScale = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
-        )
-    }
-
     private fun createSkikoUIView(renderRelegate: RenderingUIView.Delegate): RenderingUIView =
         RenderingUIView(
             renderDelegate = renderRelegate,
@@ -300,7 +287,7 @@ internal class ComposeContainer(
     ): ComposeScene = if (configuration.platformLayers) {
         SingleLayerComposeScene(
             coroutineContext = coroutineContext,
-            density = getSystemDensity(),
+            density = systemDensity,
             invalidate = invalidate,
             layoutDirection = layoutDirection,
             composeSceneContext = ComposeSceneContextImpl(
@@ -313,7 +300,7 @@ internal class ComposeContainer(
             composeSceneContext = ComposeSceneContextImpl(
                 platformContext = platformContext
             ),
-            density = getSystemDensity(),
+            density = systemDensity,
             invalidate = invalidate,
             layoutDirection = layoutDirection,
         )

@@ -16,21 +16,14 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.systemDensity
 import androidx.compose.ui.toDpRect
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.roundToIntRect
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.uiContentSizeCategoryToFontScaleMap
 import kotlinx.cinterop.useContents
-import platform.UIKit.UIContentSizeCategoryUnspecified
-import platform.UIKit.UIScreen
 import platform.UIKit.UIView
 
 /**
@@ -72,16 +65,7 @@ internal class PlatformWindowContext {
      * @return The bounds of the container within the window as an [IntRect] object.
      */
     fun boundsInWindow(container: UIView): IntRect {
-        fun getSystemDensity(): Density {
-            val contentSizeCategory = container.traitCollection.preferredContentSizeCategory
-                ?: UIContentSizeCategoryUnspecified
-            return Density(
-                density = UIScreen.mainScreen.scale.toFloat(),
-                fontScale = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
-            )
-        }
-
-        val density = getSystemDensity()
+        val density = container.systemDensity
         return if (_windowContainer != null && _windowContainer != container) {
             container.convertRect(
                 rect = container.bounds,
