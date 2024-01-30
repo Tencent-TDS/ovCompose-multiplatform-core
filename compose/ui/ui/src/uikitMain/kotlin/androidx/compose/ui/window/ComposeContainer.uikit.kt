@@ -27,7 +27,7 @@ import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.WindowInfoImpl
+import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
@@ -98,6 +98,8 @@ internal class ComposeContainer(
     private var mediator: ComposeSceneMediator? = null
     private val layers: MutableList<UIViewComposeSceneLayer> = mutableListOf()
     private val layoutDirection get() = getLayoutDirection()
+    @OptIn(ExperimentalComposeApi::class)
+    private val windowContainer: UIView get() = if (configuration.platformLayers) view.window!! else view
 
     /*
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
@@ -108,8 +110,8 @@ internal class ComposeContainer(
     )
     val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
     private val focusStack: FocusStack<UIView> = FocusStackImpl()
-    private val windowInfo = WindowInfoImpl().also {
-        it.isWindowFocused = true
+    private val windowContext = PlatformWindowContext().apply {
+        setWindowFocused(true)
     }
 
     /*
@@ -172,13 +174,14 @@ internal class ComposeContainer(
             "ComposeUIViewController.view should be attached to window"
         }
         val scale = window.screen.scale
-        val size = window.frame.useContents<CGRect, IntSize> {
+        val size = windowContainer.frame.useContents<CGRect, IntSize> {
             IntSize(
                 width = (size.width * scale).roundToInt(),
                 height = (size.height * scale).roundToInt()
             )
         }
-        windowInfo.containerSize = size
+        windowContext.setContainerSize(size)
+        windowContext.setWindowContainer(windowContainer)
         mediator?.viewWillLayoutSubviews()
         layers.fastForEach {
             it.viewWillLayoutSubviews()
@@ -320,7 +323,7 @@ internal class ComposeContainer(
             container = view,
             configuration = configuration,
             focusStack = focusStack,
-            windowInfo = windowInfo,
+            windowContext = windowContext,
             coroutineContext = coroutineDispatcher,
             renderingUIViewFactory = ::createSkikoUIView,
             composeSceneFactory = ::createComposeScene,
@@ -367,7 +370,7 @@ internal class ComposeContainer(
                 initLayoutDirection = layoutDirection,
                 configuration = configuration,
                 focusStack = if (focusable) focusStack else null,
-                windowInfo = windowInfo,
+                windowContext = windowContext,
                 compositionContext = compositionContext,
                 compositionLocalContext = mediator?.compositionLocalContext,
             )

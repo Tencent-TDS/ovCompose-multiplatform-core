@@ -38,8 +38,8 @@ import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
+import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.UIKitTextInputService
-import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.toDpOffset
 import androidx.compose.ui.toDpRect
@@ -108,7 +108,7 @@ internal class ComposeSceneMediator(
     private val container: UIView,
     configuration: ComposeUIViewControllerConfiguration,
     private val focusStack: FocusStack<UIView>?,
-    private val windowInfo: WindowInfo,
+    private val windowContext: PlatformWindowContext,
     val coroutineContext: CoroutineContext,
     private val renderingUIViewFactory: (RenderingUIView.Delegate) -> RenderingUIView,
     composeSceneFactory: (
@@ -227,7 +227,7 @@ internal class ComposeSceneMediator(
         IOSPlatformContextImpl(
             inputServices = uiKitTextInputService,
             textToolbar = uiKitTextInputService,
-            windowInfo = windowInfo,
+            windowInfo = windowContext.windowInfo,
             density = getSystemDensity(),
             semanticsOwnerListener = semanticsOwnerListener
         )
@@ -448,14 +448,7 @@ internal class ComposeSceneMediator(
         //TODO: Current code updates layout based on rootViewController size.
         // Maybe we need to rewrite it for SingleLayerComposeScene.
 
-        val boundsInWindow = container.convertRect(
-            rect = container.bounds,
-            toView = null
-        ).useContents {
-            with(density) {
-                toDpRect().toRect().roundToIntRect()
-            }
-        }
+        val boundsInWindow = windowContext.boundsInWindow(container)
         scene.density = density // TODO: Maybe it is wrong to set density to scene here?
         scene.boundsInWindow = boundsInWindow
         onComposeSceneInvalidate()
