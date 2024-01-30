@@ -75,6 +75,7 @@ import platform.UIKit.UIContentSizeCategoryExtraSmall
 import platform.UIKit.UIContentSizeCategoryLarge
 import platform.UIKit.UIContentSizeCategoryMedium
 import platform.UIKit.UIContentSizeCategorySmall
+import platform.UIKit.UIScreen
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
@@ -171,11 +172,7 @@ internal class ComposeContainer(
         currentInterfaceOrientation?.let {
             interfaceOrientationState.value = it
         }
-
-        val window = checkNotNull(view.window) {
-            "ComposeUIViewController.view should be attached to window"
-        }
-        val scale = window.screen.scale
+        val scale = windowContainer.systemDensity.density
         val size = windowContainer.frame.useContents<CGRect, IntSize> {
             IntSize(
                 width = (size.width * scale).roundToInt(),
