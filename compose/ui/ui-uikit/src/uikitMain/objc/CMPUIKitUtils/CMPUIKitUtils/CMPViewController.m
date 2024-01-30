@@ -91,19 +91,10 @@ typedef NS_ENUM(NSInteger, CMPViewControllerLifecycleState) {
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
-    
-    [self transitLifecycleToStarted];
+        
+    [self viewControllerDidEnterWindowHierarchy];
 }
 
-- (void)didMoveToParentViewController:(UIViewController *)parent {
-    [super didMoveToParentViewController:parent];
-    
-    if (parent) {
-        [self transitLifecycleToStarted];
-    }
-}
-
-/// This method can be triggered by both `viewWillAppear` and `didMoveToParentViewController`. Mind that in second case the `view` could still not be constructed (adding `UIViewController`  to inactive tab of `UITabBarController`, for example), so the `ComposeScene` is not neccessarily created at this point.
 - (void)transitLifecycleToStarted {
     switch (_lifecycleState) {
         case CMPViewControllerLifecycleStateDestroyed:
@@ -145,6 +136,7 @@ typedef NS_ENUM(NSInteger, CMPViewControllerLifecycleState) {
 }
 
 - (void)viewControllerDidEnterWindowHierarchy {
+    [self transitLifecycleToStarted];
 }
 
 - (void)viewControllerDidLeaveWindowHierarchy {
