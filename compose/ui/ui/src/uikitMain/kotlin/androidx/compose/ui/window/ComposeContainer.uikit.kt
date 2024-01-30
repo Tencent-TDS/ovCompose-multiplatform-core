@@ -98,6 +98,7 @@ internal class ComposeContainer(
     private var mediator: ComposeSceneMediator? = null
     private val layers: MutableList<UIViewComposeSceneLayer> = mutableListOf()
     private val layoutDirection get() = getLayoutDirection()
+
     @OptIn(ExperimentalComposeApi::class)
     private val windowContainer: UIView get() = if (configuration.platformLayers) view.window!! else view
 
