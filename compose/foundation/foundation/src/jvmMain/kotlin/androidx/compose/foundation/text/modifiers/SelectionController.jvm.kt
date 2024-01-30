@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-#import <UIKit/UIKit.h>
+package androidx.compose.foundation.text.modifiers
 
-NS_ASSUME_NONNULL_BEGIN
+import androidx.compose.foundation.text.selection.SelectionRegistrar
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.LayoutCoordinates
 
-@interface CMPViewController : UIViewController
-
-/// Indicates that view controller is considered alive in terms of structural containment.
-/// Overriding classes should call super.
-- (void)viewControllerDidEnterWindowHierarchy;
-
-/// Indicates that view controller is considered alive in terms of structural containment
-/// Overriding classes should call super.
-- (void)viewControllerDidLeaveWindowHierarchy;
-
-@end
-
-NS_ASSUME_NONNULL_END
+internal actual fun SelectionRegistrar.makeSelectionModifier(
+    selectableId: Long,
+    layoutCoordinates: () -> LayoutCoordinates?
+): Modifier = makeDefaultSelectionModifier(selectableId, layoutCoordinates)
