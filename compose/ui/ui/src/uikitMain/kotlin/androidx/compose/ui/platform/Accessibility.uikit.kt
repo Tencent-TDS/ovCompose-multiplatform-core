@@ -830,7 +830,10 @@ internal class AccessibilityMediator(
     }
 
     fun onSemanticsChange() {
-        DebugLogger.log("onSemanticsChange")
+        if (isDebugLoggingCurrentlyEnabled) {
+            DebugLogger.log("onSemanticsChange")
+        }
+
         isCurrentComposeAccessibleTreeDirty = true
     }
 
