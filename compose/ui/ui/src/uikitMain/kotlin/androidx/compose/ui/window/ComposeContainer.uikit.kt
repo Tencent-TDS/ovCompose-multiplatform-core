@@ -98,7 +98,10 @@ internal class ComposeContainer(
     private val layoutDirection get() = getLayoutDirection()
 
     @OptIn(ExperimentalComposeApi::class)
-    private val windowContainer: UIView get() = if (configuration.platformLayers) view.window!! else view
+    private val windowContainer: UIView
+        get() = if (configuration.platformLayers) checkNotNull(view.window) {
+            "ComposeUIViewController.view should be attached to window"
+        } else view
 
     /*
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
