@@ -36,7 +36,7 @@ import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SceneLayout
 import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.scene.UIViewComposeSceneLayer
-import androidx.compose.ui.systemDensity
+import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation

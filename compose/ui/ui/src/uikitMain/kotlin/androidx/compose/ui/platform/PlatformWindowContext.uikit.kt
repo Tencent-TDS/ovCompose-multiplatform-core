@@ -17,7 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
-import androidx.compose.ui.systemDensity
+import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.toDpRect
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize

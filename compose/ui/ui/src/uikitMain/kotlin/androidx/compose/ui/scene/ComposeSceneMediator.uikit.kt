@@ -41,7 +41,7 @@ import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.semantics.SemanticsOwner
-import androidx.compose.ui.systemDensity
+import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.toDpOffset
 import androidx.compose.ui.toDpRect
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration

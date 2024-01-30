@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui
+package androidx.compose.ui.uikit
 
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.window.uiContentSizeCategoryToFontScaleMap
