@@ -46,12 +46,6 @@ internal class PlatformWindowContext {
 
     private var _windowContainer: UIView? = null
 
-    /**
-     * Indicates whether the window is transparent or not.
-     * Used for determining the right blending mode for [Dialog]'s scrim.
-     */
-    var isWindowTransparent: Boolean by mutableStateOf(false)
-
     fun setKeyboardModifiers(modifiers: PointerKeyboardModifiers) {
         _windowInfo.keyboardModifiers = modifiers
     }
