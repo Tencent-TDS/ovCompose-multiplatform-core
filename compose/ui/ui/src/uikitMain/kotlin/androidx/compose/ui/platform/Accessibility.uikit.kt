@@ -29,7 +29,6 @@ import platform.UIKit.isAccessibilityElement
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsConfiguration
-import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.toCGRect
@@ -69,13 +68,18 @@ import platform.darwin.NSObject
 private val DUMMY_UI_ACCESSIBILITY_CONTAINER = NSObject()
 
 // TODO: Impl for UIKit interop views
-// TODO: Impl for text input
 
 private object DebugLogger {
-    fun log(message: Any? = null) {
+    inline fun log(message: Any? = null) {
         message?.let {
             println("[a11y] $message")
         } ?: println()
+    }
+
+    inline fun log(messages: List<Any>) {
+        for (message in messages) {
+            log(message)
+        }
     }
 }
 
@@ -90,6 +94,7 @@ private object DebugLogger {
  *  (can be changed later via [updateWithNewSemanticsNode])
  * @param mediator The mediator that is associated with iOS accessibility tree where this element
  * resides.
+ *
  */
 @ExportObjCClass
 private class AccessibilityElement(
@@ -112,6 +117,9 @@ private class AccessibilityElement(
     var parent: AccessibilityElement? = null
         private set
 
+    /**
+     * Indicates whether this element is still present in the tree.
+     */
     var isAlive = true
         private set
 
@@ -162,16 +170,7 @@ private class AccessibilityElement(
         for (index in 0 until children.size) {
             val child = children[index]
 
-            // There are two exclusive cases here.
-            // 1. The element is a container, and it's the same as the container of the child.
-            // 2. The element is an actual accessibility element, and it's the same as one of the child.
-            // The first case is true if the child has children itself, and hence [AccessibilityContainer] was communicated to iOS.
-            // The second case is true if the child doesn't have children, and hence itself was communicated to iOS.
-
             if (child.hasChildren) {
-                // accessibilityContainerOfObject retrieves the container of the given element in
-                // ObjC via dispatching `accessibilityContainer` to type erased `id` object.
-                // In [AccessibilityElement] it will resolve to the synthesized container.
                 if (element == child.accessibilityContainer) {
                     return index.toLong()
                 }
@@ -232,7 +231,9 @@ private class AccessibilityElement(
      */
     override fun resolveAccessibilityContainer(): Any? {
         if (!isAlive) {
-            DebugLogger.log("resolveAccessibilityContainer failed because $semanticsNodeId was removed from the tree")
+            if (mediator.isDebugLoggingCurrentlyEnabled) {
+                DebugLogger.log("resolveAccessibilityContainer failed because $semanticsNodeId was removed from the tree")
+            }
             return null
         }
 
@@ -246,9 +247,15 @@ private class AccessibilityElement(
     override fun accessibilityElementDidBecomeFocused() {
         super.accessibilityElementDidBecomeFocused()
 
-        DebugLogger.log()
-        DebugLogger.log("Focused on:")
-        DebugLogger.log(semanticsNode.config)
+        if (mediator.isDebugLoggingCurrentlyEnabled) {
+            DebugLogger.log(
+                listOf(
+                    null,
+                    "Focused on:",
+                    semanticsNode.config
+                )
+            )
+        }
 
         if (!isAlive) {
             return
@@ -260,16 +267,21 @@ private class AccessibilityElement(
     /**
      * Try to perform a scroll on any ancestor of this element if the element is not fully visible.
      */
-    // TODO: still clunky
-    // TODO: scroll if the element is last in the scrollable container.
     private fun scrollToIfPossible() {
+        // TODO: extremely clunky and unreliable, temporarily disabled
+        return
+
         val scrollableAncestor = semanticsNode.scrollableByAncestor ?: return
         val scrollableAncestorRect = scrollableAncestor.boundsInWindow
 
         val unclippedRect = semanticsNode.unclippedBoundsInWindow
 
-        DebugLogger.log("scrollableAncestorRect: $scrollableAncestorRect")
-        DebugLogger.log("unclippedRect: $unclippedRect")
+        if (mediator.isDebugLoggingCurrentlyEnabled) {
+            DebugLogger.log(listOf(
+                "scrollableAncestorRect: $scrollableAncestorRect",
+                "unclippedRect: $unclippedRect"
+            ))
+        }
 
         // TODO: consider safe areas?
         // TODO: is RTL working properly?
@@ -310,10 +322,10 @@ private class AccessibilityElement(
     private fun scrollIfPossible(direction: UIAccessibilityScrollDirection, config: SemanticsConfiguration): Boolean {
         val (width, height) = semanticsNode.size
 
+        // TODO: reverse engineer proper dimension scale
         val dimensionScale = 0.5f
 
         // TODO: post notification about the scroll
-
         when (direction) {
             UIAccessibilityScrollDirectionUp -> {
                 var result = config.getOrNull(SemanticsActions.PageUp)?.action?.invoke()
@@ -408,7 +420,8 @@ private class AccessibilityElement(
             return false
         }
 
-        // TODO: can it be traversal group _and_ contain properties that should be communicated to iOS?
+        // TODO: investigate if it can it be a traversal group _and_ contain properties that should
+        //  be communicated to iOS?
         if (config.getOrNull(SemanticsProperties.IsTraversalGroup) == true) {
             return false
         }
@@ -418,7 +431,7 @@ private class AccessibilityElement(
 
     override fun accessibilityIdentifier(): String {
         return semanticsNode.config.getOrNull(SemanticsProperties.TestTag)
-            ?: "AccessibilityElement reflecting SemanticsNode with id=$semanticsNodeId"
+            ?: "AccessibilityElement for SemanticsNode(id=$semanticsNodeId)"
     }
 
     override fun accessibilityHint(): String? {
@@ -499,10 +512,14 @@ private class AccessibilityElement(
         return mediator.convertRectToWindowSpaceCGRect(semanticsNode.boundsInWindow)
     }
 
-    // TODO: check the reference/value semantics for SemanticsNode, perhaps it doesn't need recreation at all
-    //  cache config to avoid traversing subtree for merging semantics and excessive copy on [semanticsNode.config] call
+    // TODO: check the reference/value semantics for SemanticsNode, perhaps it doesn't need
+    //  recreation at all cache config to avoid traversing subtree for merging semantics and
+    //  excessive copy on [semanticsNode.config] call
     fun updateWithNewSemanticsNode(newSemanticsNode: SemanticsNode) {
         check(semanticsNode.id == newSemanticsNode.id)
+        // TODO: track that SemanticsProperties.LiveRegion is present and conditionally start
+        //  proactively comparing the the accessibilityLabel and accessibilityValue properties
+        //  to post notifications about the changes.
         semanticsNode = newSemanticsNode
     }
 
@@ -511,7 +528,7 @@ private class AccessibilityElement(
 
         val removed = parent.children.remove(this)
         check(removed) {
-            "Corrupted tree. Can't remove child from parent, because it's not present in the parent's children list"
+            "Corrupted tree. Can't remove the child from the parent, because it's not present in the parent's children list"
         }
 
         this.parent = null
@@ -616,7 +633,9 @@ private class AccessibilityContainer(
      */
     override fun accessibilityElementAtIndex(index: NSInteger): Any? {
         if (!isAlive) {
-            DebugLogger.log("accessibilityElementAtIndex(NSInteger) called after $semanticsNodeId was removed from the tree")
+            if (mediator.isDebugLoggingCurrentlyEnabled) {
+                DebugLogger.log("accessibilityElementAtIndex(NSInteger) called after $semanticsNodeId was removed from the tree")
+            }
             return null
         }
 
@@ -644,7 +663,9 @@ private class AccessibilityContainer(
      */
     override fun accessibilityElementCount(): NSInteger {
         if (!isAlive) {
-            DebugLogger.log("accessibilityElementCount() called after $semanticsNodeId was removed from the tree")
+            if (mediator.isDebugLoggingCurrentlyEnabled) {
+                DebugLogger.log("accessibilityElementCount() called after $semanticsNodeId was removed from the tree")
+            }
             return 0
         }
 
@@ -656,7 +677,9 @@ private class AccessibilityContainer(
      */
     override fun indexOfAccessibilityElement(element: Any): NSInteger {
         if (!isAlive) {
-            DebugLogger.log("indexOfAccessibilityElement(Any) called after $semanticsNodeId was removed from the tree")
+            if (mediator.isDebugLoggingCurrentlyEnabled) {
+                DebugLogger.log("indexOfAccessibilityElement(Any) called after $semanticsNodeId was removed from the tree")
+            }
             return NSNotFound
         }
 
@@ -671,7 +694,9 @@ private class AccessibilityContainer(
 
     override fun accessibilityContainer(): Any? {
         if (!isAlive) {
-            DebugLogger.log("accessibilityContainer() called after $semanticsNodeId was removed from the tree")
+            if (mediator.isDebugLoggingCurrentlyEnabled) {
+                DebugLogger.log("accessibilityContainer() called after $semanticsNodeId was removed from the tree")
+            }
             return null
         }
 
@@ -694,15 +719,47 @@ private sealed interface NodesSyncResult {
 }
 
 /**
+ * A sealed class that represents the options for syncing the Compose SemanticsNode tree with the iOS UIAccessibility tree.
+ */
+sealed class AccessibilitySyncOptions(
+    val isDebugLoggingEnabled: Boolean
+) {
+    /**
+     * Never sync the tree.
+     */
+    data object Never: AccessibilitySyncOptions(isDebugLoggingEnabled = false)
+
+    /**
+     * Sync the tree only when the accessibility services are running.
+     *
+     * @param isDebugLoggingEnabled Indicates whether debug logging for the accessibility tree
+     * syncing and interaction is enabled.
+     */
+    class WhenRequiredByAccessibilityServices(isDebugLoggingEnabled: Boolean): AccessibilitySyncOptions(isDebugLoggingEnabled)
+
+    /**
+     * Always sync the tree, can be quite handy for debugging and testing.
+     * Be aware that there is a significant overhead associated with doing it that can degrade
+     * the visual performance of the app.
+     *
+     * @param isDebugLoggingEnabled Indicates whether debug logging for the accessibility tree
+     */
+    class Always(isDebugLoggingEnabled: Boolean): AccessibilitySyncOptions(isDebugLoggingEnabled)
+}
+
+/**
  * A class responsible for mediating between the tree of specific SemanticsOwner and the iOS accessibility tree.
  */
 internal class AccessibilityMediator(
     val view: UIView,
     private val owner: SemanticsOwner,
     coroutineContext: CoroutineContext,
-    private val checkIfForcedToSyncAccessibility: () -> Boolean,
+    private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
 ) {
     private var isAlive = true
+
+    var isDebugLoggingCurrentlyEnabled = false
+        private set
 
     var rootSemanticsNodeId: Int = -1
 
@@ -738,9 +795,19 @@ internal class AccessibilityMediator(
             while (isAlive) {
                 var result: NodesSyncResult
 
-                if (UIAccessibilityIsVoiceOverRunning() || checkIfForcedToSyncAccessibility()) {
+                val syncOptions = getAccessibilitySyncOptions()
+                isDebugLoggingCurrentlyEnabled = syncOptions.isDebugLoggingEnabled
+                val shouldPerformSync = when (syncOptions) {
+                    is AccessibilitySyncOptions.Never -> false
+                    is AccessibilitySyncOptions.WhenRequiredByAccessibilityServices -> {
+                        UIAccessibilityIsVoiceOverRunning()
+                    }
+                    is AccessibilitySyncOptions.Always -> true
+                }
+
+                if (shouldPerformSync) {
                     val time = measureTime {
-                        result = syncNodes()
+                        result = sync()
                     }
 
                     when (val immutableResult = result) {
@@ -749,7 +816,9 @@ internal class AccessibilityMediator(
                         }
 
                         is NodesSyncResult.Success -> {
-                            DebugLogger.log("syncNodes took $time")
+                            if (isDebugLoggingCurrentlyEnabled) {
+                                DebugLogger.log("AccessibilityMediator.sync took $time")
+                            }
                             UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, immutableResult.newElementToFocus)
                         }
                     }
@@ -854,19 +923,12 @@ internal class AccessibilityMediator(
 
     /**
      * Syncs the accessibility tree with the current semantics tree.
-     * TODO: Does a full tree traversal on every sync. Explore new Google solution in 1.6, that should
-     *   perform affected subtree traversal instead.
+     * TODO: Does a full tree traversal on every sync, expect changes from Google, they are also aware
+     *  of the issue and associated performance overhead.
      */
-    private fun syncNodes(): NodesSyncResult {
-        // TODO: investigate what happens if the user has an accessibility focus on the element that
-        //  is removed from the tree:
-        //  - Does it use the index path of containers traversal to restore the focus?
-        //  - Does it use the accessibility identifier of the element to restore the focus?
-        //  - Does it hold the reference to the focused element? Should we
-        //      take some action to reset focus on the element, that got deleted in such case?
-
+    private fun sync(): NodesSyncResult {
         // TODO: investigate what needs to be done to reflect that this hiearchy is probably covered
-        //   by overlay/popup/dialogue
+        //   by sibling overlay
 
         if (!isCurrentComposeAccessibleTreeDirty) {
             return NodesSyncResult.NoChanges
@@ -875,12 +937,6 @@ internal class AccessibilityMediator(
         val rootSemanticsNode = owner.rootSemanticsNode
         rootSemanticsNodeId = rootSemanticsNode.id
 
-        // Copied from desktop implementation, why is it there? 🤔
-        if (!rootSemanticsNode.layoutNode.isPlaced) {
-            return NodesSyncResult.NoChanges
-        }
-
-        DebugLogger.log("syncNodes")
         isCurrentComposeAccessibleTreeDirty = false
 
         check(!view.isAccessibilityElement) {
@@ -891,8 +947,13 @@ internal class AccessibilityMediator(
             traverseSemanticsTree(rootSemanticsNode)
         )
 
-        debugTraverse(view)
+        if (isDebugLoggingCurrentlyEnabled) {
+            debugTraverse(view)
+        }
+
         // TODO: return refocused element if the old focus is not present in the new tree
+        //  reverse engineer the logic of iOS Accessibility services that is performed when the
+        //  focused object is deallocated
         return NodesSyncResult.Success(null)
     }
 }
@@ -994,8 +1055,12 @@ private fun List<SemanticsNode>.sortedByAccesibilityOrder(): List<SemanticsNode>
 private val SemanticsNode.unclippedBoundsInWindow: Rect
     get() = Rect(positionInWindow, size.toSize())
 
+/**
+ * Returns true if corresponding [LayoutNode] is placed and attached, false otherwise.
+ */
 private val SemanticsNode.isValid: Boolean
     get() = layoutNode.isPlaced && layoutNode.isAttached
+
 /**
  * Closest ancestor that has [SemanticsActions.ScrollBy] action
  */

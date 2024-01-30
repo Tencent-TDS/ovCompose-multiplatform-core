@@ -34,6 +34,7 @@ import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.platform.AccessibilityMediator
+import androidx.compose.ui.platform.AccessibilitySyncOptions
 import androidx.compose.ui.platform.IOSPlatformContextImpl
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
@@ -108,7 +109,7 @@ private const val FEATURE_FLAG_ACCESSIBILITY_ENABLED = true
 private class SemanticsOwnerListenerImpl(
     private val container: UIView,
     private val coroutineContext: CoroutineContext,
-    private val checkIfForcedToSyncAccessibility: () -> Boolean
+    private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions
 ): PlatformContext.SemanticsOwnerListener {
     var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
 
@@ -118,7 +119,7 @@ private class SemanticsOwnerListenerImpl(
                 container,
                 semanticsOwner,
                 coroutineContext,
-                checkIfForcedToSyncAccessibility
+                getAccessibilitySyncOptions
             )
         } else {
             // Multiple SemanticsOwner`s per ComposeSceneMediator is a legacy behavior and will not be supported
@@ -259,8 +260,8 @@ internal class ComposeSceneMediator(
 
     @OptIn(ExperimentalComposeApi::class)
     private val semanticsOwnerListener by lazy {
-        SemanticsOwnerListenerImpl(container, coroutineContext, checkIfForcedToSyncAccessibility = {
-            configuration.forceAccessibilitySync
+        SemanticsOwnerListenerImpl(container, coroutineContext, getAccessibilitySyncOptions = {
+            configuration.accessibilitySyncOptions
         })
     }
 

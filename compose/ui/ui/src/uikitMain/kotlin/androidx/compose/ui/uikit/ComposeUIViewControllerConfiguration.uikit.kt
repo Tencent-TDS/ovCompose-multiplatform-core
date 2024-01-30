@@ -17,6 +17,7 @@
 package androidx.compose.ui.uikit
 
 import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.ui.platform.AccessibilitySyncOptions
 
 /**
  * Configuration of ComposeUIViewController behavior.
@@ -37,12 +38,14 @@ class ComposeUIViewControllerConfiguration {
     var platformLayers: Boolean = false
 
     /**
-     * Controls whether accessibility tree is synced even if VoiceOver is disabled.
-     * `false` by default to avoid computational overhead associated with mapping Compose semantics
-     * tree to UIKit accessibility tree.
+     * @see [AccessibilitySyncOptions]
+     *
+     * By default, accessibility sync is enabled when required by accessibility services and debug
+     * logging is disabled.
      */
     @ExperimentalComposeApi
-    var forceAccessibilitySync: Boolean = false
+    var accessibilitySyncOptions: AccessibilitySyncOptions =
+        AccessibilitySyncOptions.WhenRequiredByAccessibilityServices(isDebugLoggingEnabled = false)
 }
 
 /**
