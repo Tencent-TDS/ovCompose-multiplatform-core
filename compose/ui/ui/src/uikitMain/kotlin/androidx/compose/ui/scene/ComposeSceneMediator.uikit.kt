@@ -104,8 +104,7 @@ internal sealed interface SceneLayout {
     class Bounds(val rect: IntRect) : SceneLayout
 }
 
-private const val FEATURE_FLAG_ACCESSIBILITY_ENABLED = true
-
+@OptIn(ExperimentalComposeApi::class)
 private class SemanticsOwnerListenerImpl(
     private val container: UIView,
     private val coroutineContext: CoroutineContext,
@@ -266,12 +265,6 @@ internal class ComposeSceneMediator(
     }
 
     private val platformContext: PlatformContext by lazy {
-        val semanticsOwnerListener = if (FEATURE_FLAG_ACCESSIBILITY_ENABLED) {
-            semanticsOwnerListener
-        } else {
-            null
-        }
-
         IOSPlatformContextImpl(
             inputServices = uiKitTextInputService,
             textToolbar = uiKitTextInputService,
