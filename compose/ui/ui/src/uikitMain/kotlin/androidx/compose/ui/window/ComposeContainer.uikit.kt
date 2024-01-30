@@ -275,17 +275,6 @@ internal class ComposeContainer(
     fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext =
         ComposeSceneContextImpl(platformContext)
 
-    private fun getContentSizeCategory(): UIContentSizeCategory =
-        traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
-
-    private fun getSystemDensity(): Density {
-        val contentSizeCategory = getContentSizeCategory()
-        return Density(
-            density = UIScreen.mainScreen.scale.toFloat(),
-            fontScale = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
-        )
-    }
-
     @OptIn(ExperimentalComposeApi::class)
     private fun createSkikoUIView(renderRelegate: RenderingUIView.Delegate): RenderingUIView =
         RenderingUIView(renderDelegate = renderRelegate).apply {
