@@ -32,7 +32,7 @@ class ComposeUIViewControllerConfiguration {
      * Reassign this property with an object implementing [ComposeUIViewControllerDelegate] to receive
      * UIViewController lifetime events.
      */
-    var delegate = object : ComposeUIViewControllerDelegate {}
+    var delegate: ComposeUIViewControllerDelegate = object : ComposeUIViewControllerDelegate {}
 
     @ExperimentalComposeApi
     var platformLayers: Boolean = false
