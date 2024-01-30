@@ -71,11 +71,11 @@ internal class PlatformWindowContext {
     }
 
     /**
-     * Calculates the offset of the given [container] within the window.
+     * Calculates the bounds of the given [container] within the window.
      * It uses [_windowContainer] as a reference for window coordinate space.
      *
-     * @param container The container component whose offset needs to be calculated.
-     * @return The offset of the container within the window as an [IntOffset] object.
+     * @param container The container component whose bounds need to be calculated.
+     * @return The bounds of the container within the window as an [IntRect] object.
      */
     fun boundsInWindow(container: UIView): IntRect {
         fun getSystemDensity(): Density {
