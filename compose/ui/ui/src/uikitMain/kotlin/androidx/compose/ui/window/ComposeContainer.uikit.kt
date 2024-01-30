@@ -141,6 +141,7 @@ internal class ComposeContainer(
         }
     }
 
+    @OptIn(ExperimentalComposeApi::class)
     override fun loadView() {
         view = UIView().apply {
             setClipsToBounds(true)
@@ -283,6 +284,7 @@ internal class ComposeContainer(
         )
     }
 
+    @OptIn(ExperimentalComposeApi::class)
     private fun createSkikoUIView(renderRelegate: RenderingUIView.Delegate): RenderingUIView =
         RenderingUIView(renderDelegate = renderRelegate).apply {
             opaque = configuration.opaque

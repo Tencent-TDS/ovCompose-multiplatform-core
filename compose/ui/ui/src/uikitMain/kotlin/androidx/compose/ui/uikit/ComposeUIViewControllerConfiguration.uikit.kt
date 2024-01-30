@@ -39,6 +39,7 @@ class ComposeUIViewControllerConfiguration {
     /**
      * Determines whether the Compose view should have an opaque background.
      */
+    @ExperimentalComposeApi
     var opaque: Boolean = true
 }
 
