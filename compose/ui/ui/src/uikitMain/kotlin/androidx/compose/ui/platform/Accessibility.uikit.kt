@@ -185,7 +185,6 @@ private class AccessibilityElement(
         return null
     }
 
-    // TODO: remove if unneeded
     fun dispose() {
         check(isAlive) {
             "AccessibilityElement is already disposed"
