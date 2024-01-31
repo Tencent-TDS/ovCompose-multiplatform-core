@@ -163,7 +163,7 @@ internal abstract class BaseComposeScene(
         frameClock.sendFrame(nanoTime)           // Recomposition
         doLayout()                               // Layout
         recomposer.performScheduledEffects()     // Composition effects (e.g. LaunchedEffect)
-        inputHandler.sendSyntheticInputEvents()  // Synthetic events
+        inputHandler.updatePointerPosition()     // Synthetic move event
         snapshotInvalidationTracker.onDraw()
         draw(canvas)                             // Draw
     }
