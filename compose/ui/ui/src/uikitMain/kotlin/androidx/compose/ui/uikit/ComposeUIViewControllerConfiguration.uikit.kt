@@ -38,6 +38,7 @@ class ComposeUIViewControllerConfiguration {
 
     /**
      * Determines whether the Compose view should have an opaque background.
+     * Warning: disabling opaque layer may affect performance.
      */
     @ExperimentalComposeApi
     var opaque: Boolean = true
