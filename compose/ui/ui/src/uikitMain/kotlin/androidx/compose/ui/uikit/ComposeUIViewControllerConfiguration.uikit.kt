@@ -35,7 +35,7 @@ class ComposeUIViewControllerConfiguration {
     var delegate: ComposeUIViewControllerDelegate = object : ComposeUIViewControllerDelegate {}
 
     @ExperimentalComposeApi
-    var platformLayers: Boolean = false
+    var platformLayers: Boolean = true
 
     /**
      * @see [AccessibilitySyncOptions]
