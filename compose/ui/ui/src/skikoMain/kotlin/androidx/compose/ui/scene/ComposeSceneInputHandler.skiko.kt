@@ -123,7 +123,7 @@ internal class ComposeSceneInputHandler(
         return processKeyEvent(keyEvent)
     }
 
-    fun onLayout() {
+    fun sendSyntheticInputEvents() {
         syntheticEventSender.updatePointerPosition()
     }
 
