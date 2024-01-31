@@ -9,6 +9,7 @@ import androidx.compose.ui.main.defaultUIKitMain
 import androidx.compose.ui.window.ComposeUIViewController
 import bugs.IosBugs
 import bugs.ProperContainmentDisposal
+import bugs.ComposeAndNativeScroll
 import bugs.StartRecompositionCheck
 import platform.UIKit.UIViewController
 
@@ -29,6 +30,7 @@ fun IosDemo(arg: String, makeHostingController: ((Int) -> UIViewController)? = n
                 NativeModalWithNaviationExample,
                 UIKitViewOrder,
                 ProperContainmentDisposal,
+                ComposeAndNativeScroll
             ) + listOf(makeHostingController).mapNotNull {
                 it?.let {
                     SwiftUIInteropExample(it)

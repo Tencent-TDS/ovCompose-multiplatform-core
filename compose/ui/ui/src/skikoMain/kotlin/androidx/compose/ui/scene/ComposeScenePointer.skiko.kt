@@ -127,7 +127,8 @@ internal fun PointerInputEvent(
             it.type,
             issuesEnterExit = it.type == PointerType.Mouse,
             historical = it.historical,
-            scrollDelta = scrollDelta
+            scrollDelta = scrollDelta,
+            it.position
         )
     },
     buttons,
