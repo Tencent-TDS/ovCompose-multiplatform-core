@@ -73,7 +73,7 @@ private fun NativeModalWithNavigation() {
 private fun NativeNavigationPage() {
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    val states = remember { mutableStateListOf("0 - ${lifecycleOwner.lifecycle.currentState}") }
+    val states = remember { mutableStateListOf<String>() }
 
     val observer = remember {
         LifecycleEventObserver { _, event ->
