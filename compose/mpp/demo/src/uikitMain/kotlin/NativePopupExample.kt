@@ -77,6 +77,7 @@ private fun NativeNavigationPage() {
 
     val observer = remember {
         LifecycleEventObserver { _, event ->
+            println(event)
             states.add("${states.size} ${event.name}")
         }
     }
