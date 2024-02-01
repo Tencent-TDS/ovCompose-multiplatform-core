@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-package androidx.compose.mpp.demo.components.layers
+package androidx.compose.mpp.demo.components.dialog
 
 import androidx.compose.mpp.demo.Screen
 
-/**
- * Test cases for platform layers
- */
-val PlatformLayers = Screen.Selection(
-    "PlatformLayers",
+val Dialogs = Screen.Selection(
+    "Dialogs",
+    DialogExample,
     DialogWithTextField,
     FocusAndKeyInput,
 )

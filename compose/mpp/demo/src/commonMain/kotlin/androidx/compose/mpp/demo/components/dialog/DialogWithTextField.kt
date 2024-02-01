@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.mpp.demo.components.layers
+package androidx.compose.mpp.demo.components.dialog
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -34,8 +34,10 @@ import androidx.compose.ui.window.Dialog
 
 val DialogWithTextField = Screen.Example("DialogWithTextField") {
     var dialogOpened: Boolean by remember { mutableStateOf(true) }
-    Button(onClick = { dialogOpened = true }) {
-        Text("OpenDialog")
+    if (!dialogOpened) {
+        Button(onClick = { dialogOpened = true }) {
+            Text("OpenDialog")
+        }
     }
     if (dialogOpened) {
         Dialog(

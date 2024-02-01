@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.mpp.demo.components.layers
+package androidx.compose.mpp.demo.components.dialog
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

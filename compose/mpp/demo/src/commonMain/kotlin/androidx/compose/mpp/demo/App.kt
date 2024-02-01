@@ -30,7 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.mpp.demo.bug.BugReproducers
 import androidx.compose.mpp.demo.components.Components
-import androidx.compose.mpp.demo.components.layers.PlatformLayers
+import androidx.compose.mpp.demo.layers.PlatformLayers
 import androidx.compose.mpp.demo.textfield.android.AndroidTextFieldSamples
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
