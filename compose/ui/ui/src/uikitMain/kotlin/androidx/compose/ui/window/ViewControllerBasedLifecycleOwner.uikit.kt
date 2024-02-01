@@ -19,7 +19,6 @@ package androidx.compose.ui.window
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import kotlin.math.log
 import kotlin.test.fail
 
 internal class ViewControllerBasedLifecycleOwner : LifecycleOwner {
@@ -47,9 +46,10 @@ internal class ViewControllerBasedLifecycleOwner : LifecycleOwner {
 
                         if (isApplicationForeground) {
                             lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+                            Running(lifecycle = lifecycle)
+                        } else {
+                            Suspended(lifecycle = lifecycle)
                         }
-
-                        Started(isPaused = !isApplicationForeground, lifecycle = lifecycle)
                     }
 
                     Action.VIEW_DID_DISAPPEAR -> {
@@ -78,49 +78,70 @@ internal class ViewControllerBasedLifecycleOwner : LifecycleOwner {
                 }
             }
         }
-        class Started(
-            val isPaused: Boolean,
+        class Running(
             private val lifecycle: LifecycleRegistry
         ) : State {
             override fun reduce(action: Action): State {
                 return when (action) {
                     Action.VIEW_WILL_APPEAR -> {
-                        // no-op
                         this
                     }
 
                     Action.VIEW_DID_DISAPPEAR -> {
-                        if (!isPaused) {
-                            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-                        }
-
+                        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
                         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
 
-                        Created(isApplicationForeground = !isPaused, lifecycle = lifecycle)
+                        Created(isApplicationForeground = true, lifecycle = lifecycle)
                     }
 
                     Action.APPLICATION_DID_ENTER_BACKGROUND -> {
-                        if (!isPaused) {
-                            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-                        }
+                        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
 
-                        Started(isPaused = true, lifecycle = lifecycle)
+                        Suspended(lifecycle = lifecycle)
                     }
 
                     Action.APPLICATION_WILL_ENTER_FOREGROUND -> {
-                        if (isPaused) {
-                            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-                        }
-
-                        Started(isPaused = false, lifecycle = lifecycle)
+                        this
                     }
 
                     Action.DISPOSE -> {
-                        logWarning("'ViewControllerBasedLifecycleOwner' received 'Action.DISPOSE' while in 'State.Started'. Make sure that view controller containment API is used correctly. 'removeFromParent' must be called before 'dispose'")
+                        logWarning("'ViewControllerBasedLifecycleOwner' received 'Action.DISPOSE' while in 'State.Running'. Make sure that view controller containment API is used correctly. 'removeFromParent' must be called before 'dispose'")
 
-                        if (!isPaused) {
-                            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-                        }
+                        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+                        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+                        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+
+                        Disposed
+                    }
+                }
+            }
+        }
+
+        class Suspended(private val lifecycle: LifecycleRegistry) : State {
+            override fun reduce(action: Action): State {
+                return when(action) {
+                    Action.VIEW_WILL_APPEAR -> {
+                        this
+                    }
+
+                    Action.VIEW_DID_DISAPPEAR -> {
+                        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+
+                        Created(isApplicationForeground = false, lifecycle = lifecycle)
+                    }
+
+                    Action.APPLICATION_DID_ENTER_BACKGROUND -> {
+                        this
+                    }
+
+                    Action.APPLICATION_WILL_ENTER_FOREGROUND -> {
+                        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+
+                        Running(lifecycle = lifecycle)
+                    }
+
+                    Action.DISPOSE -> {
+                        logWarning("'ViewControllerBasedLifecycleOwner' received 'Action.DISPOSE' while in 'State.Suspended'. Make sure that view controller containment API is used correctly. 'removeFromParent' must be called before 'dispose'")
 
                         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
                         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
@@ -130,6 +151,7 @@ internal class ViewControllerBasedLifecycleOwner : LifecycleOwner {
                 }
             }
         }
+
         object Disposed : State {
             override fun reduce(action: Action): State {
                 when (action) {
