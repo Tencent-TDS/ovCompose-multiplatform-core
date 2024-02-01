@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -27,6 +28,7 @@ import androidx.compose.ui.interop.UIKitView
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeUIViewController
+import androidx.lifecycle.LifecycleEventObserver
 import platform.UIKit.*
 import platform.Foundation.*
 import platform.darwin.dispatch_async
@@ -69,25 +71,33 @@ private fun NativeModalWithNavigation() {
 
 @Composable
 private fun NativeNavigationPage() {
-    val states = remember { mutableStateListOf("") }
-
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(Unit) {
-        lifecycleOwner.lifecycle.currentStateFlow.collect { state ->
-            print("state: $state")
-            states.add("$state")
+    val states = remember { mutableStateListOf("0 - ${lifecycleOwner.lifecycle.currentState}") }
+
+    val observer = remember {
+        LifecycleEventObserver { _, event ->
+            states.add("${states.size} ${event.name}")
         }
     }
 
-    LazyRow(Modifier.height(50.dp).fillMaxWidth()) {
-        items(states.size) { index ->
-            Text(states[index])
+    DisposableEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
     Column(Modifier.fillMaxSize().background(Color.DarkGray), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         val navigationController = LocalUIViewController.current.navigationController
+
+        LazyRow(Modifier.height(50.dp).fillMaxWidth()) {
+            items(states.size) { index ->
+                Box(Modifier.background(Color.White).padding(16.dp)) {
+                    Text(states[index], color = Color.Black)
+                }
+            }
+        }
 
         Button(onClick = {
             navigationController?.pushViewController(

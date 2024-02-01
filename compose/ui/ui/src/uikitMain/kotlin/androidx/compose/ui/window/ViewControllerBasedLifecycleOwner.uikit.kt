@@ -85,13 +85,8 @@ internal class ViewControllerBasedLifecycleOwner : LifecycleOwner {
             override fun reduce(action: Action): State {
                 return when (action) {
                     Action.VIEW_WILL_APPEAR -> {
-                        lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
-
-                        if (!isPaused) {
-                            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-                        }
-
-                        Started(isPaused = isPaused, lifecycle = lifecycle)
+                        // no-op
+                        this
                     }
 
                     Action.VIEW_DID_DISAPPEAR -> {
@@ -182,7 +177,9 @@ internal class ViewControllerBasedLifecycleOwner : LifecycleOwner {
     }
 
     private fun reduce(action: Action) {
+        val currentState = state
         state = state.reduce(action)
+        println("$currentState -> $action -> $state")
     }
 
     companion object {
