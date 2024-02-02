@@ -175,7 +175,7 @@ internal class ViewControllerBasedLifecycleOwner : LifecycleOwner {
     )
 
     private val applicationStateListener = ApplicationStateListener { isForeground ->
-        reduce(
+        handleAction(
             if (isForeground) Action.APPLICATION_WILL_ENTER_FOREGROUND
             else Action.APPLICATION_DID_ENTER_BACKGROUND
         )
@@ -186,22 +186,20 @@ internal class ViewControllerBasedLifecycleOwner : LifecycleOwner {
     }
 
     fun dispose() {
-        reduce(Action.DISPOSE)
+        handleAction(Action.DISPOSE)
         applicationStateListener.dispose()
     }
 
     fun handleViewWillAppear() {
-        reduce(Action.VIEW_WILL_APPEAR)
+        handleAction(Action.VIEW_WILL_APPEAR)
     }
 
     fun handleViewDidDisappear() {
-        reduce(Action.VIEW_DID_DISAPPEAR)
+        handleAction(Action.VIEW_DID_DISAPPEAR)
     }
 
-    private fun reduce(action: Action) {
-        val currentState = state
+    private fun handleAction(action: Action) {
         state = state.reduce(action)
-        println("$currentState -> $action -> $state")
     }
 
     companion object {
