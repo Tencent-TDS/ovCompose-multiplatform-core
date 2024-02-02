@@ -175,7 +175,7 @@ internal class ViewControllerBasedLifecycleOwner : LifecycleOwner {
     )
 
     private val applicationStateListener = ApplicationStateListener { isForeground ->
-        state = state.reduce(
+        reduce(
             if (isForeground) Action.APPLICATION_WILL_ENTER_FOREGROUND
             else Action.APPLICATION_DID_ENTER_BACKGROUND
         )
