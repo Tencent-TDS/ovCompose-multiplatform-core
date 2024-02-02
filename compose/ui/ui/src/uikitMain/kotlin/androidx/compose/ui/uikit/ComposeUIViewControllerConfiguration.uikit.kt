@@ -45,7 +45,7 @@ class ComposeUIViewControllerConfiguration {
      */
     @ExperimentalComposeApi
     var accessibilitySyncOptions: AccessibilitySyncOptions =
-        AccessibilitySyncOptions.WhenRequiredByAccessibilityServices(isDebugLoggingEnabled = false)
+        AccessibilitySyncOptions.WhenRequiredByAccessibilityServices(debugLogger = null)
         
     /**
      * Determines whether the Compose view should have an opaque background.

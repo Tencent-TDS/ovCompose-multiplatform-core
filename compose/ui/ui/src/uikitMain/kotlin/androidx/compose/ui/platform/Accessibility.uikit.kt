@@ -70,19 +70,17 @@ private val DUMMY_UI_ACCESSIBILITY_CONTAINER = NSObject()
 
 // TODO: Impl for UIKit interop views
 
-private object DebugLogger {
-    inline fun log(message: Any? = null) {
-        message?.let {
-            println("[a11y] $message")
-        } ?: println()
-    }
-
-    inline fun log(messages: List<Any>) {
-        for (message in messages) {
-            log(message)
-        }
-    }
+/**
+ * An interface for logging accessibility debug messages.
+ */
+@ExperimentalComposeApi
+interface AccessibilityDebugLogger {
+    /**
+     * Logs the given [message].
+     */
+    fun log(message: Any?)
 }
+
 
 /**
  * Represents a projection of the Compose semantics node to the iOS world.
@@ -97,6 +95,7 @@ private object DebugLogger {
  * resides.
  *
  */
+@OptIn(ExperimentalComposeApi::class)
 @ExportObjCClass
 private class AccessibilityElement(
     private var semanticsNode: SemanticsNode,
@@ -231,9 +230,7 @@ private class AccessibilityElement(
      */
     override fun resolveAccessibilityContainer(): Any? {
         if (!isAlive) {
-            if (mediator.isDebugLoggingCurrentlyEnabled) {
-                DebugLogger.log("resolveAccessibilityContainer failed because $semanticsNodeId was removed from the tree")
-            }
+            mediator.debugLogger?.log("resolveAccessibilityContainer failed because $semanticsNodeId was removed from the tree")
             return null
         }
 
@@ -247,15 +244,13 @@ private class AccessibilityElement(
     override fun accessibilityElementDidBecomeFocused() {
         super.accessibilityElementDidBecomeFocused()
 
-        if (mediator.isDebugLoggingCurrentlyEnabled) {
-            DebugLogger.log(
-                listOf(
-                    null,
-                    "Focused on:",
-                    semanticsNode.config
-                )
+        mediator.debugLogger?.log(
+            listOf(
+                null,
+                "Focused on:",
+                semanticsNode.config
             )
-        }
+        )
 
         if (!isAlive) {
             return
@@ -276,12 +271,10 @@ private class AccessibilityElement(
 
         val unclippedRect = semanticsNode.unclippedBoundsInWindow
 
-        if (mediator.isDebugLoggingCurrentlyEnabled) {
-            DebugLogger.log(listOf(
-                "scrollableAncestorRect: $scrollableAncestorRect",
-                "unclippedRect: $unclippedRect"
-            ))
-        }
+        mediator.debugLogger?.log(listOf(
+            "scrollableAncestorRect: $scrollableAncestorRect",
+            "unclippedRect: $unclippedRect"
+        ))
 
         // TODO: consider safe areas?
         // TODO: is RTL working properly?
@@ -553,7 +546,7 @@ private class AccessibilityElement(
         element.parent = this@AccessibilityElement
     }
 
-    fun debugPrint(depth: Int) {
+    fun debugLog(logger: AccessibilityDebugLogger, depth: Int) {
         val indent = " ".repeat(depth * 2)
 
         val container = resolveAccessibilityContainer() as AccessibilityContainer
@@ -562,15 +555,15 @@ private class AccessibilityElement(
         check(indexOfSelf != NSNotFound)
         check(container.accessibilityElementAtIndex(indexOfSelf) == this)
 
-        DebugLogger.log("${indent}AccessibilityElement_$semanticsNodeId")
-        DebugLogger.log("$indent  containmentChain: ${debugContainmentChain(this)}")
-        DebugLogger.log("$indent  isAccessibilityElement: $isAccessibilityElement")
-        DebugLogger.log("$indent  accessibilityLabel: $accessibilityLabel")
-        DebugLogger.log("$indent  accessibilityValue: $accessibilityValue")
-        DebugLogger.log("$indent  accessibilityTraits: $accessibilityTraits")
-        DebugLogger.log("$indent  accessibilityFrame: ${NSStringFromCGRect(accessibilityFrame)}")
-        DebugLogger.log("$indent  accessibilityIdentifier: $accessibilityIdentifier")
-        DebugLogger.log("$indent  accessibilityCustomActions: $accessibilityCustomActions")
+        logger.log("${indent}AccessibilityElement_$semanticsNodeId")
+        logger.log("$indent  containmentChain: ${debugContainmentChain(this)}")
+        logger.log("$indent  isAccessibilityElement: $isAccessibilityElement")
+        logger.log("$indent  accessibilityLabel: $accessibilityLabel")
+        logger.log("$indent  accessibilityValue: $accessibilityValue")
+        logger.log("$indent  accessibilityTraits: $accessibilityTraits")
+        logger.log("$indent  accessibilityFrame: ${NSStringFromCGRect(accessibilityFrame)}")
+        logger.log("$indent  accessibilityIdentifier: $accessibilityIdentifier")
+        logger.log("$indent  accessibilityCustomActions: $accessibilityCustomActions")
     }
 }
 
@@ -610,6 +603,7 @@ private class AccessibilityElement(
  * https://github.com/flutter/engine/blob/main/shell/platform/darwin/ios/framework/Source/SemanticsObject.h
  *
  */
+@OptIn(ExperimentalComposeApi::class)
 @ExportObjCClass
 private class AccessibilityContainer(
     /**
@@ -633,9 +627,7 @@ private class AccessibilityContainer(
      */
     override fun accessibilityElementAtIndex(index: NSInteger): Any? {
         if (!isAlive) {
-            if (mediator.isDebugLoggingCurrentlyEnabled) {
-                DebugLogger.log("accessibilityElementAtIndex(NSInteger) called after $semanticsNodeId was removed from the tree")
-            }
+            mediator.debugLogger?.log("accessibilityElementAtIndex(NSInteger) called after $semanticsNodeId was removed from the tree")
             return null
         }
 
@@ -663,9 +655,7 @@ private class AccessibilityContainer(
      */
     override fun accessibilityElementCount(): NSInteger {
         if (!isAlive) {
-            if (mediator.isDebugLoggingCurrentlyEnabled) {
-                DebugLogger.log("accessibilityElementCount() called after $semanticsNodeId was removed from the tree")
-            }
+            mediator.debugLogger?.log("accessibilityElementCount() called after $semanticsNodeId was removed from the tree")
             return 0
         }
 
@@ -677,9 +667,7 @@ private class AccessibilityContainer(
      */
     override fun indexOfAccessibilityElement(element: Any): NSInteger {
         if (!isAlive) {
-            if (mediator.isDebugLoggingCurrentlyEnabled) {
-                DebugLogger.log("indexOfAccessibilityElement(Any) called after $semanticsNodeId was removed from the tree")
-            }
+            mediator.debugLogger?.log("indexOfAccessibilityElement(Any) called after $semanticsNodeId was removed from the tree")
             return NSNotFound
         }
 
@@ -694,9 +682,7 @@ private class AccessibilityContainer(
 
     override fun accessibilityContainer(): Any? {
         if (!isAlive) {
-            if (mediator.isDebugLoggingCurrentlyEnabled) {
-                DebugLogger.log("accessibilityContainer() called after $semanticsNodeId was removed from the tree")
-            }
+            mediator.debugLogger?.log("accessibilityContainer() called after $semanticsNodeId was removed from the tree")
             return null
         }
 
@@ -707,9 +693,9 @@ private class AccessibilityContainer(
         }
     }
 
-    fun debugPrint(depth: Int) {
+    fun debugLog(logger: AccessibilityDebugLogger, depth: Int) {
         val indent = " ".repeat(depth * 2)
-        DebugLogger.log("${indent}AccessibilityContainer_${semanticsNodeId}")
+        logger.log("${indent}AccessibilityContainer_${semanticsNodeId}")
     }
 }
 
@@ -723,29 +709,30 @@ private sealed interface NodesSyncResult {
  */
 @ExperimentalComposeApi
 sealed class AccessibilitySyncOptions(
-    val isDebugLoggingEnabled: Boolean
+    internal val debugLogger: AccessibilityDebugLogger?
 ) {
     /**
      * Never sync the tree.
      */
-    data object Never: AccessibilitySyncOptions(isDebugLoggingEnabled = false)
+    data object Never: AccessibilitySyncOptions(debugLogger = null)
 
     /**
      * Sync the tree only when the accessibility services are running.
      *
-     * @param isDebugLoggingEnabled Indicates whether debug logging for the accessibility tree
-     * syncing and interaction is enabled.
+     * @param debugLogger Optional [AccessibilityDebugLogger] to log into the info about the
+     * accessibility tree syncing and interactions.
      */
-    class WhenRequiredByAccessibilityServices(isDebugLoggingEnabled: Boolean): AccessibilitySyncOptions(isDebugLoggingEnabled)
+    class WhenRequiredByAccessibilityServices(debugLogger: AccessibilityDebugLogger?): AccessibilitySyncOptions(debugLogger)
 
     /**
      * Always sync the tree, can be quite handy for debugging and testing.
      * Be aware that there is a significant overhead associated with doing it that can degrade
      * the visual performance of the app.
      *
-     * @param isDebugLoggingEnabled Indicates whether debug logging for the accessibility tree
+     * @param debugLogger Optional [AccessibilityDebugLogger] to log into the info about the
+     * accessibility tree syncing and interactions.
      */
-    class Always(isDebugLoggingEnabled: Boolean): AccessibilitySyncOptions(isDebugLoggingEnabled)
+    class Always(debugLogger: AccessibilityDebugLogger?): AccessibilitySyncOptions(debugLogger = debugLogger)
 }
 
 /**
@@ -760,8 +747,10 @@ internal class AccessibilityMediator constructor(
 ) {
     private var isAlive = true
 
-    var isDebugLoggingCurrentlyEnabled = false
-        private set
+    private var latestSyncOptions: AccessibilitySyncOptions = getAccessibilitySyncOptions()
+
+    val debugLogger: AccessibilityDebugLogger?
+        get() = latestSyncOptions.debugLogger
 
     var rootSemanticsNodeId: Int = -1
 
@@ -797,9 +786,9 @@ internal class AccessibilityMediator constructor(
             while (isAlive) {
                 var result: NodesSyncResult
 
-                val syncOptions = getAccessibilitySyncOptions()
-                isDebugLoggingCurrentlyEnabled = syncOptions.isDebugLoggingEnabled
-                val shouldPerformSync = when (syncOptions) {
+                latestSyncOptions = getAccessibilitySyncOptions()
+
+                val shouldPerformSync = when (latestSyncOptions) {
                     is AccessibilitySyncOptions.Never -> false
                     is AccessibilitySyncOptions.WhenRequiredByAccessibilityServices -> {
                         UIAccessibilityIsVoiceOverRunning()
@@ -818,9 +807,7 @@ internal class AccessibilityMediator constructor(
                         }
 
                         is NodesSyncResult.Success -> {
-                            if (isDebugLoggingCurrentlyEnabled) {
-                                DebugLogger.log("AccessibilityMediator.sync took $time")
-                            }
+                            debugLogger?.log("AccessibilityMediator.sync took $time")
                             UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, immutableResult.newElementToFocus)
                         }
                     }
@@ -832,9 +819,7 @@ internal class AccessibilityMediator constructor(
     }
 
     fun onSemanticsChange() {
-        if (isDebugLoggingCurrentlyEnabled) {
-            DebugLogger.log("onSemanticsChange")
-        }
+        debugLogger?.log("onSemanticsChange")
 
         isCurrentComposeAccessibleTreeDirty = true
     }
@@ -914,7 +899,7 @@ internal class AccessibilityMediator constructor(
             val isPresent = it in presentIds
 
             if (!isPresent) {
-                DebugLogger.log("$it removed")
+                debugLogger?.log("$it removed")
                 checkNotNull(accessibilityElementsMap[it]).dispose()
             }
 
@@ -952,8 +937,8 @@ internal class AccessibilityMediator constructor(
             traverseSemanticsTree(rootSemanticsNode)
         )
 
-        if (isDebugLoggingCurrentlyEnabled) {
-            debugTraverse(view)
+        debugLogger?.let {
+            debugTraverse(it, view)
         }
 
         // TODO: return refocused element if the old focus is not present in the new tree
@@ -967,34 +952,35 @@ internal class AccessibilityMediator constructor(
  * Traverse the accessibility tree starting from [accessibilityObject] using the same(assumed) logic
  * as iOS Accessibility services, and prints its debug data.
  */
-private fun debugTraverse(accessibilityObject: Any, depth: Int = 0) {
+@OptIn(ExperimentalComposeApi::class)
+private fun debugTraverse(debugLogger: AccessibilityDebugLogger, accessibilityObject: Any, depth: Int = 0) {
     val indent = " ".repeat(depth * 2)
 
     when (accessibilityObject) {
         is UIView -> {
-            DebugLogger.log("${indent}View")
+            debugLogger.log("${indent}View")
 
             accessibilityObject.accessibilityElements?.let { elements ->
                 for (element in elements) {
                     element?.let {
-                        debugTraverse(element, depth + 1)
+                        debugTraverse(debugLogger, element, depth + 1)
                     }
                 }
             }
         }
 
         is AccessibilityElement -> {
-            accessibilityObject.debugPrint(depth)
+            accessibilityObject.debugLog(debugLogger, depth)
         }
 
         is AccessibilityContainer -> {
-            accessibilityObject.debugPrint(depth)
+            accessibilityObject.debugLog(debugLogger, depth)
 
             val count = accessibilityObject.accessibilityElementCount()
             for (index in 0 until count) {
                 val element = accessibilityObject.accessibilityElementAtIndex(index)
                 element?.let {
-                    debugTraverse(element, depth + 1)
+                    debugTraverse(debugLogger, element, depth + 1)
                 }
             }
         }
