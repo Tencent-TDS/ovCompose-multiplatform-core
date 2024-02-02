@@ -152,7 +152,7 @@ private class AccessibilityElement(
             val child = children[i]
 
             if (child.hasChildren) {
-                return child.accessibilityContainer
+                child.accessibilityContainer
             } else {
                 child
             }
