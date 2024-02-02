@@ -777,7 +777,6 @@ internal class AccessibilityMediator constructor(
     private val accessibilityElementsMap = mutableMapOf<Int, AccessibilityElement>()
 
     init {
-        println("AccessibilityMediator created")
         val updateIntervalMillis = 50L
         // TODO: this approach was copied from desktop implementation, obviously it has a [updateIntervalMillis] lag
         //  between the actual change in the semantics tree and the change in the accessibility tree.
