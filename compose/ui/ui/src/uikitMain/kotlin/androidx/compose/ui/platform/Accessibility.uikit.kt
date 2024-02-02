@@ -395,7 +395,11 @@ private class AccessibilityElement(
             }
         }
 
-        return parent?.scrollIfPossible(direction, config) ?: false
+        parent?.let {
+            return it.scrollIfPossible(direction, it.semanticsNode.config)
+        }
+
+        return false
     }
 
     override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
