@@ -98,17 +98,15 @@ private class ComposeWindow(
         private set
 
     private fun <T : Event> HTMLCanvasElement.addTypedEvent(type: String, handler: (event: T, skikoView: SkikoView) -> Unit) {
-        addEventListener(type) { event ->
+        addEventListener(type, { event ->
             layer.layer?.skikoView?.let { skikoView -> handler(event as T, skikoView) }
-        }
+        })
     }
 
     private fun initEvents(canvas: HTMLCanvasElement) {
         var offsetX = 0.0
         var offsetY = 0.0
-
         var isPointerPressed = false
-
         canvas.addTypedEvent<TouchEvent>("touchstart") { event, skikoView ->
             event.preventDefault()
 
