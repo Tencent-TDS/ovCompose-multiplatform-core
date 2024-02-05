@@ -39,10 +39,10 @@ import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.jetbrains.kotlin.gradle.InternalKotlinGradlePluginApi
 
 /**
- * Usage that should be added to rootSoftwareComponent to represent android-specific variants
+ * Usage that should be added to rootSoftwareComponent to represent target-specific variants
  * It will be serialized to *.module in "variants" collection.
  */
-private class CustomUsage(
+internal class CustomUsage(
     private val name: String,
     private val attributes: AttributeContainer,
     private val dependencies: Set<ModuleDependency>
