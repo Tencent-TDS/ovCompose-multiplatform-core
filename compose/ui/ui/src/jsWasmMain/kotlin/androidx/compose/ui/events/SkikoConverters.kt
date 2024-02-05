@@ -22,6 +22,7 @@ import org.jetbrains.skiko.SkikoKey
 import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoKeyboardEventKind
 import org.jetbrains.skiko.SkikoMouseButtons
+import org.jetbrains.skiko.SkikoPlatformPointerEvent
 import org.jetbrains.skiko.SkikoPointer
 import org.jetbrains.skiko.SkikoPointerDevice
 import org.jetbrains.skiko.SkikoPointerEvent
@@ -275,6 +276,6 @@ internal fun TouchEvent.toSkikoEvent(
         kind = kind,
         timestamp = (currentNanoTime() / 1E6).toLong(),
         pointers = pointers,
-        platform = this
+        platform = this.unsafeCast<SkikoPlatformPointerEvent>()
     )
 }
