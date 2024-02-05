@@ -60,7 +60,7 @@ kotlin {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                 implementation(project(":annotation:annotation"))
+                implementation(project(":annotation:annotation"))
                 implementation(libs.atomicFu)
             }
         }

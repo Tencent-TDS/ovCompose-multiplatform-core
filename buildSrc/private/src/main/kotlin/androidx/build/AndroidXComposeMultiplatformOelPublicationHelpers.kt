@@ -100,7 +100,6 @@ internal fun Project.publishAndroidxReference(target: KotlinOnlyTarget<*>, newRo
 
             val usages = when (component) {
                 is KotlinVariant -> component.usages
-                //is JointAndroidKotlinTargetComponent -> component.usages
                 is KotlinVariantWithMetadataVariant -> component.usages
                 else -> emptyList()
             }
