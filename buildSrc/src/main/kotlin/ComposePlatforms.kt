@@ -47,6 +47,35 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
             ComposePlatforms.UikitSimArm64
         )
 
+        val PUBLISHED_NATIVE_ANDROIDX_COLLECTION = EnumSet.of(
+            UikitX64,
+            UikitArm64,
+            UikitSimArm64,
+            LinuxX64,
+            MacosX64,
+            MacosArm64,
+        )
+
+        val NATIVE = EnumSet.of(
+            MacosX64,
+            MacosArm64,
+            UikitX64,
+            UikitArm64,
+            UikitSimArm64,
+            TvosArm64,
+            TvosX64,
+            TvosSimulatorArm64,
+            WatchosArm64,
+            WatchosArm32,
+            WatchosX64,
+            WatchosSimulatorArm64,
+            LinuxX64,
+            LinuxArm64,
+            MingwX64,
+        )
+
+        val JB_PUBLISHED_COMPOSE_INTERNAL_COLLECTION = NATIVE - PUBLISHED_NATIVE_ANDROIDX_COLLECTION
+
         val ANDROID = EnumSet.of(
             ComposePlatforms.AndroidDebug,
             ComposePlatforms.AndroidRelease

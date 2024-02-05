@@ -51,6 +51,8 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 implementation(project(":collection:collection"))
+
+//implementation("org.jetbrains.compose.collection-internal:collection:24.2.2.1")
                 implementation(libs.kotlinStdlib)
             }
         }
@@ -58,6 +60,8 @@ androidXMultiplatform {
         commonTest {
             dependencies {
                 implementation(project(":collection:collection"))
+
+//implementation("org.jetbrains.compose.collection-internal:collection:24.2.2.1")
                 implementation(libs.kotlinStdlib)
             }
         }

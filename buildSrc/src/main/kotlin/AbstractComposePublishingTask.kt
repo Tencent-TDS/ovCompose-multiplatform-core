@@ -36,10 +36,12 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
     }
 
     fun publishMultiplatform(component: ComposeComponent) {
+        val isCollectionsLibs = component.path == ":collection:collection"
+        val isAnnotationsLibs = component.path == ":annotation:annotation"
         // To make OEL publishing (for android artifacts) work properly with kotlin >= 1.9.0,
         // we use decorated `KotlinMultiplatform` publication named - 'KotlinMultiplatformDecorated'.
         // see AndroidXComposeMultiplatformExtensionImpl.publishAndroidxReference for details.
-        if (ComposePlatforms.ANDROID.any { it in component.supportedPlatforms }) {
+        if (ComposePlatforms.ANDROID.any { it in component.supportedPlatforms } || isCollectionsLibs || isAnnotationsLibs) {
             val kotlinCommonPublicationName =
                 "${ComposePlatforms.KotlinMultiplatform.name}Decorated"
             dependsOnComposeTask("${component.path}:publish${kotlinCommonPublicationName}PublicationTo$repository")
@@ -51,6 +53,10 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
             if (platform !in component.supportedPlatforms) continue
 
             if (platform in ComposePlatforms.ANDROID && isOelPublication) continue
+
+            if (platform == ComposePlatforms.Desktop && isCollectionsLibs) continue
+            if (platform in ComposePlatforms.PUBLISHED_NATIVE_ANDROIDX_COLLECTION && isCollectionsLibs) continue
+            if (platform in ComposePlatforms.PUBLISHED_NATIVE_ANDROIDX_COLLECTION && isAnnotationsLibs) continue
 
             dependsOnComposeTask("${component.path}:publish${platform.name}PublicationTo$repository")
         }

@@ -60,7 +60,8 @@ kotlin {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                implementation(project(":annotation:annotation"))
+                 implementation(project(":annotation:annotation"))
+//                implementation("org.jetbrains.compose.annotation-internal:annotation:1.8.0-alpha01")
                 implementation(libs.atomicFu)
             }
         }

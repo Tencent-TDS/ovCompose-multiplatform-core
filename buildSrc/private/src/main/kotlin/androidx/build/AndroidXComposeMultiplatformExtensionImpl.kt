@@ -51,6 +51,7 @@ import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.gradle.kotlin.dsl.create
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
+import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 import org.tomlj.Toml
 
 open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
@@ -168,12 +169,44 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         return getDashedProjectName(p = p.parent!!) + "-" + p.name
     }
 
+    private fun KotlinNativeTarget.substituteSomeDependencies() {
+        val comp = compilations.getByName("main")
+        listOf(
+            comp.configurations.compileDependencyConfiguration,
+            comp.configurations.runtimeDependencyConfiguration,
+            comp.configurations.apiConfiguration,
+            comp.configurations.implementationConfiguration,
+            comp.configurations.runtimeOnlyConfiguration,
+            comp.configurations.compileOnlyConfiguration,
+        ).forEach {
+            it?.resolutionStrategy {
+                it.dependencySubstitution {
+                    it.substitute(it.project(":annotation:annotation"))
+                        .using(it.module("androidx.annotation:annotation:1.7.1"))
+                    it.substitute(it.project(":collection:collection"))
+                        .using(it.module("androidx.collection:collection:1.4.0"))
+                }
+            }
+        }
+    }
+
+    @Suppress("UNREACHABLE_CODE")
     override fun darwin(): Unit = multiplatformExtension.run {
-        macosX64()
-        macosArm64()
-        iosX64("uikitX64")
-        iosArm64("uikitArm64")
-        iosSimulatorArm64("uikitSimArm64")
+        macosX64() {
+            substituteSomeDependencies()
+        }
+        macosArm64() {
+            substituteSomeDependencies()
+        }
+        iosX64("uikitX64") {
+            substituteSomeDependencies()
+        }
+        iosArm64("uikitArm64") {
+            substituteSomeDependencies()
+        }
+        iosSimulatorArm64("uikitSimArm64") {
+            substituteSomeDependencies()
+        }
 
         val commonMain = sourceSets.getByName("commonMain")
         val nativeMain = sourceSets.create("nativeMain")
@@ -288,9 +321,57 @@ fun enableOELPublishing(project: Project) {
 
     val ext = project.multiplatformExtension ?: error("expected a multiplatform project")
 
+    var newRootComponent: CustomRootComponent? = null
+
+    if (project.name.contains("collection") || project.name.contains("annotation")) {
+        val moduleName = if (project.name.contains("collection")) {
+            "collection"
+        } else {
+            "annotation"
+        }
+        val rootComponent = project
+            .components
+            .withType(KotlinSoftwareComponentWithCoordinatesAndPublication::class.java)
+            .getByName("kotlin")
+
+        val composeVersion = requireNotNull(project.oelAndroidxVersion()) {
+            "Please specify oel.androidx.version property"
+        }
+        val dependencyGroup = project.group.toString().replace(
+            "org.jetbrains.compose.${moduleName}-internal",
+            "androidx.$moduleName"
+        )
+
+        val version = composeVersion
+
+        val newDependency = project.dependencies.create(dependencyGroup, project.name, version)
+
+        newRootComponent = CustomRootComponent(rootComponent, newDependency)
+    }
+
+    val collectionsLibTargetsPublishByAndroidx = setOf(
+        KonanTarget.LINUX_X64,
+        KonanTarget.IOS_X64,
+        KonanTarget.IOS_ARM64,
+        KonanTarget.IOS_SIMULATOR_ARM64,
+        KonanTarget.MACOS_X64,
+        KonanTarget.MACOS_ARM64,
+    )
+
     ext.targets.all { target ->
         if (target is KotlinAndroidTarget) {
             project.publishAndroidxReference(target)
+        }
+        if (target is KotlinJvmTarget) {
+            if (project.findBooleanProperty("oel.publication.jvmTarget") == true) {
+                 project.publishJvmReference(target as KotlinOnlyTarget<*>, newRootComponent!!)
+            }
+        }
+
+        if (target is KotlinNativeTarget && target.konanTarget in collectionsLibTargetsPublishByAndroidx) {
+            if (project.findBooleanProperty("oel.publication.jvmTarget") == true) {
+                project.publishJvmReference(target as KotlinOnlyTarget<*>, newRootComponent!!)
+            }
         }
     }
 }
