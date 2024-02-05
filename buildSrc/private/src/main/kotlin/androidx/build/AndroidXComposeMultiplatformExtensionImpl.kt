@@ -380,29 +380,7 @@ private fun Project.publishAndroidxReference(target: KotlinAndroidTarget) {
 
 
         // We can't add more usages to rootComponent, so we must decorate it
-        val newRootComponent = object :
-            SoftwareComponentInternal,
-            ComponentWithVariants,
-            ComponentWithCoordinates {
-            override fun getName(): String = "kotlinDecoratedRootComponent"
-            override fun getVariants(): Set<SoftwareComponent> = rootComponent.variants
-            override fun getCoordinates(): ModuleVersionIdentifier =
-                rootComponent.coordinates
-
-            override fun getUsages(): Set<UsageContext> = rootComponent.usages + extraUsages
-
-            private val extraUsages = mutableSetOf<UsageContext>()
-
-            fun addUsageFromConfiguration(configuration: Configuration) {
-                extraUsages.add(
-                    CustomUsage(
-                        name = configuration.name,
-                        attributes = configuration.attributes,
-                        dependencies = setOf(newDependency)
-                    )
-                )
-            }
-        }
+        val newRootComponent = CustomRootComponent(rootComponent, newDependency)
 
         extensions.getByType(PublishingExtension::class.java).apply {
             val kotlinMultiplatform = publications
