@@ -89,8 +89,6 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             commonMain.dependencies {
                 implementation(project(":collection:collection"))
-
-//implementation("org.jetbrains.compose.collection-internal:collection:24.2.2.1")
                 implementation(project(":compose:runtime:runtime"))
                 implementation(project(":compose:ui:ui"))
                 implementation(project(":compose:ui:ui-unit"))
