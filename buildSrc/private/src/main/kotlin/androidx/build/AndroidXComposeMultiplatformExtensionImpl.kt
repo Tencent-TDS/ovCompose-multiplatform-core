@@ -167,8 +167,10 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         return getDashedProjectName(p = p.parent!!) + "-" + p.name
     }
 
-    private fun KotlinNativeTarget.substituteSomeDependencies() {
+    private fun KotlinNativeTarget.substituteForOelPublishedDependencies() {
         val comp = compilations.getByName("main")
+        val androidAnnotationVersion = project.findProperty("oel.androidx.annotation.version")!!
+        val androidCollectionVersion = project.findProperty("oel.androidx.collection.version")!!
         listOf(
             comp.configurations.compileDependencyConfiguration,
             comp.configurations.runtimeDependencyConfiguration,
@@ -180,9 +182,9 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
             it?.resolutionStrategy {
                 it.dependencySubstitution {
                     it.substitute(it.project(":annotation:annotation"))
-                        .using(it.module("androidx.annotation:annotation:1.7.1"))
+                        .using(it.module("androidx.annotation:annotation:$androidAnnotationVersion"))
                     it.substitute(it.project(":collection:collection"))
-                        .using(it.module("androidx.collection:collection:1.4.0"))
+                        .using(it.module("androidx.collection:collection:$androidCollectionVersion"))
                 }
             }
         }
@@ -191,19 +193,19 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     @Suppress("UNREACHABLE_CODE")
     override fun darwin(): Unit = multiplatformExtension.run {
         macosX64() {
-            substituteSomeDependencies()
+            substituteForOelPublishedDependencies()
         }
         macosArm64() {
-            substituteSomeDependencies()
+            substituteForOelPublishedDependencies()
         }
         iosX64("uikitX64") {
-            substituteSomeDependencies()
+            substituteForOelPublishedDependencies()
         }
         iosArm64("uikitArm64") {
-            substituteSomeDependencies()
+            substituteForOelPublishedDependencies()
         }
         iosSimulatorArm64("uikitSimArm64") {
-            substituteSomeDependencies()
+            substituteForOelPublishedDependencies()
         }
 
         val commonMain = sourceSets.getByName("commonMain")
