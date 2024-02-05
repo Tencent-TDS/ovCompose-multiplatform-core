@@ -411,7 +411,7 @@ class ComposerParamTransformer(
 
             fn.dispatchReceiverParameter = dispatchReceiverParameter?.copyTo(fn)
             fn.extensionReceiverParameter = extensionReceiverParameter?.copyTo(fn)
-            fn.valueParameters = valueParameters.map { param ->
+            fn.valueParameters = valueParameters.mapIndexed { i, param ->
                 // Composable lambdas will always have `IrGet`s of all of their parameters
                 // generated, since they are passed into the restart lambda. This causes an
                 // interesting corner case with "anonymous parameters" of composable functions.
@@ -422,7 +422,8 @@ class ComposerParamTransformer(
                 // the names here to ensure that dex is always safe.
                 val newName = dexSafeName(param.name)
 
-                val newType = defaultParameterType(param).remapTypeParameters()
+                val isDefaultInOverriden = overriddenSymbols.any { it.owner.hasDefaultExpressionDefinedForValueParameter(i) }
+                val newType = defaultParameterType(param, isDefaultInOverriden).remapTypeParameters()
                 param.copyTo(
                     fn,
                     name = newName,
@@ -615,9 +616,10 @@ class ComposerParamTransformer(
         }
     }
 
-    private fun defaultParameterType(param: IrValueParameter): IrType {
+    private fun defaultParameterType(param: IrValueParameter, isDefaultInOverriden: Boolean): IrType {
         val type = param.type
-        if (param.defaultValue == null) return type
+
+        if (!isDefaultInOverriden && param.defaultValue == null) return type
         val constructorAccessible = !type.isPrimitiveType() &&
             type.classOrNull?.owner?.primaryConstructor != null
         return when {
