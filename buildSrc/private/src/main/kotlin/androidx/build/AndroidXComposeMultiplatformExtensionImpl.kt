@@ -21,7 +21,6 @@ import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinJsCompilerType
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
-import org.jetbrains.kotlin.gradle.plugin.*
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.gradle.api.Action
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
@@ -51,7 +50,6 @@ import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.gradle.kotlin.dsl.create
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
-import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 import org.tomlj.Toml
 
 open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
@@ -321,57 +319,34 @@ fun enableOELPublishing(project: Project) {
 
     val ext = project.multiplatformExtension ?: error("expected a multiplatform project")
 
-    var newRootComponent: CustomRootComponent? = null
+    val oelGroupId = project.findProperty("oel.androidx.groupId") as? String
 
-    if (project.name.contains("collection") || project.name.contains("annotation")) {
-        val moduleName = if (project.name.contains("collection")) {
-            "collection"
-        } else {
-            "annotation"
+    val newRootComponent: CustomRootComponent? = if (oelGroupId != null) {
+        val oelVersion = project.findProperty("oel.androidx.${project.name}.version") as? String
+        requireNotNull(oelVersion) {
+            "Please specify oel.androidx.${project.name}.version property"
         }
+
         val rootComponent = project
             .components
             .withType(KotlinSoftwareComponentWithCoordinatesAndPublication::class.java)
             .getByName("kotlin")
 
-        val composeVersion = requireNotNull(project.oelAndroidxVersion()) {
-            "Please specify oel.androidx.version property"
-        }
-        val dependencyGroup = project.group.toString().replace(
-            "org.jetbrains.compose.${moduleName}-internal",
-            "androidx.$moduleName"
-        )
-
-        val version = composeVersion
-
-        val newDependency = project.dependencies.create(dependencyGroup, project.name, version)
-
-        newRootComponent = CustomRootComponent(rootComponent, newDependency)
+        val newDependency = project.dependencies.create(oelGroupId, project.name, oelVersion)
+        CustomRootComponent(rootComponent, newDependency)
+    } else {
+        null
     }
 
-    val collectionsLibTargetsPublishByAndroidx = setOf(
-        KonanTarget.LINUX_X64,
-        KonanTarget.IOS_X64,
-        KonanTarget.IOS_ARM64,
-        KonanTarget.IOS_SIMULATOR_ARM64,
-        KonanTarget.MACOS_X64,
-        KonanTarget.MACOS_ARM64,
-    )
+    val oelTargetNames = (project.findProperty("oel.publication.targetNames") as? String ?: "")
+        .split(",").toSet()
 
     ext.targets.all { target ->
         if (target is KotlinAndroidTarget) {
             project.publishAndroidxReference(target)
         }
-        if (target is KotlinJvmTarget) {
-            if (project.findBooleanProperty("oel.publication.jvmTarget") == true) {
-                 project.publishJvmReference(target as KotlinOnlyTarget<*>, newRootComponent!!)
-            }
-        }
-
-        if (target is KotlinNativeTarget && target.konanTarget in collectionsLibTargetsPublishByAndroidx) {
-            if (project.findBooleanProperty("oel.publication.jvmTarget") == true) {
-                project.publishJvmReference(target as KotlinOnlyTarget<*>, newRootComponent!!)
-            }
+        if (target.name in oelTargetNames) {
+            project.publishAndroidxReference(target as KotlinOnlyTarget<*>, newRootComponent!!)
         }
     }
 }

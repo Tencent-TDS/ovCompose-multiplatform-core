@@ -35,15 +35,24 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
         }
     }
 
+    // android publication is always an OEL (published by androidx team, not jb),
+    // therefore add it unconditionally to OEL set
+    private val defaultOelTargetNames = setOf("android")
+
     fun publishMultiplatform(component: ComposeComponent) {
-        val isCollectionsLibs = component.path == ":collection:collection"
-        val isAnnotationsLibs = component.path == ":annotation:annotation"
-        // To make OEL publishing (for android artifacts) work properly with kotlin >= 1.9.0,
+        val oelTargetNames = project.rootProject.findProject(component.path)!!
+            .findProperty("oel.publication.targetNames").let {
+                (it as? String)?.split(",") ?: emptyList()
+            }.toSet() + defaultOelTargetNames
+
+        val supportedTargetNames = component.supportedPlatforms.map { it.toKotlinTargetName() }
+        val useOelPublication = supportedTargetNames.intersect(oelTargetNames).isNotEmpty()
+
+        // To make OEL publishing work properly with kotlin >= 1.9.0,
         // we use decorated `KotlinMultiplatform` publication named - 'KotlinMultiplatformDecorated'.
         // see AndroidXComposeMultiplatformExtensionImpl.publishAndroidxReference for details.
-        if (ComposePlatforms.ANDROID.any { it in component.supportedPlatforms } || isCollectionsLibs || isAnnotationsLibs) {
-            val kotlinCommonPublicationName =
-                "${ComposePlatforms.KotlinMultiplatform.name}Decorated"
+        if (useOelPublication) {
+            val kotlinCommonPublicationName = "${ComposePlatforms.KotlinMultiplatform.name}Decorated"
             dependsOnComposeTask("${component.path}:publish${kotlinCommonPublicationName}PublicationTo$repository")
         } else {
             dependsOnComposeTask("${component.path}:publish${ComposePlatforms.KotlinMultiplatform.name}PublicationTo$repository")
@@ -51,12 +60,7 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
 
         for (platform in targetPlatforms) {
             if (platform !in component.supportedPlatforms) continue
-
-            if (platform in ComposePlatforms.ANDROID && isOelPublication) continue
-
-            if (platform == ComposePlatforms.Desktop && isCollectionsLibs) continue
-            if (platform in ComposePlatforms.PUBLISHED_NATIVE_ANDROIDX_COLLECTION && isCollectionsLibs) continue
-            if (platform in ComposePlatforms.PUBLISHED_NATIVE_ANDROIDX_COLLECTION && isAnnotationsLibs) continue
+            if (platform.toKotlinTargetName() in oelTargetNames) continue
 
             dependsOnComposeTask("${component.path}:publish${platform.name}PublicationTo$repository")
         }

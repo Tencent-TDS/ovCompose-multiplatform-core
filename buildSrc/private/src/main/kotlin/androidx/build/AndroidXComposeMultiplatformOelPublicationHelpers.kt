@@ -36,10 +36,7 @@ import org.gradle.api.internal.component.SoftwareComponentInternal
 import org.gradle.api.internal.component.UsageContext
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
-import org.gradle.kotlin.dsl.create
 import org.jetbrains.kotlin.gradle.InternalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
-import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
 /**
  * Usage that should be added to rootSoftwareComponent to represent android-specific variants
@@ -61,33 +58,8 @@ private class CustomUsage(
 }
 
 @OptIn(InternalKotlinGradlePluginApi::class)
-internal fun Project.publishJvmReference(target: KotlinOnlyTarget<*>, newRootComponent: CustomRootComponent) {
+internal fun Project.publishAndroidxReference(target: KotlinOnlyTarget<*>, newRootComponent: CustomRootComponent) {
     afterEvaluate {
-        // Take root component which should contain "variants" (aka usages)
-        // this component gets published as "main/common" module
-        // that we want to add as android ones.
-//        val rootComponent = target.project
-//            .components
-//            .withType(KotlinSoftwareComponentWithCoordinatesAndPublication::class.java)
-//            .getByName("kotlin")
-
-//        val composeVersion = requireNotNull(target.project.oelAndroidxVersion()) {
-//            "Please specify oel.androidx.version property"
-//        }
-//        val version = composeVersion
-
-        // val groupId = target.project.group.toString()
-
-//        val dependencyGroup = target.project.group.toString().replace(
-//            "org.jetbrains.compose.collection-internal",
-//            "androidx.collection"
-//        )
-
-        // val newDependency = target.project.dependencies.create(dependencyGroup, name, version)
-
-        // We can't add more usages to rootComponent, so we must decorate it
-        //val newRootComponent = CustomRootComponent(rootComponent, newDependency)
-
         extensions.getByType(PublishingExtension::class.java).apply {
             val kotlinMultiplatform = publications
                 .getByName("kotlinMultiplatform") as MavenPublication
