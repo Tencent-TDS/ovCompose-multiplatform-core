@@ -74,7 +74,7 @@ actual fun DatePickerDialog(
     properties: DialogProperties,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    AlertDialog(
+    BasicAlertDialog(
         onDismissRequest = onDismissRequest,
         modifier = modifier.wrapContentHeight(),
         properties = properties
@@ -95,19 +95,17 @@ actual fun DatePickerDialog(
                         .align(Alignment.End)
                         .padding(DialogButtonsPadding)
                 ) {
-                    CompositionLocalProvider(
-                        LocalContentColor provides DialogTokens.ActionLabelTextColor.toColor()
+                    ProvideContentColorTextStyle(
+                        contentColor = DialogTokens.ActionLabelTextColor.value,
+                        textStyle =
+                        MaterialTheme.typography.fromToken(DialogTokens.ActionLabelTextFont)
                     ) {
-                        val textStyle =
-                            MaterialTheme.typography.fromToken(DialogTokens.ActionLabelTextFont)
-                        ProvideTextStyle(value = textStyle) {
-                            AlertDialogFlowRow(
-                                mainAxisSpacing = DialogButtonsMainAxisSpacing,
-                                crossAxisSpacing = DialogButtonsCrossAxisSpacing
-                            ) {
-                                dismissButton?.invoke()
-                                confirmButton()
-                            }
+                        AlertDialogFlowRow(
+                            mainAxisSpacing = DialogButtonsMainAxisSpacing,
+                            crossAxisSpacing = DialogButtonsCrossAxisSpacing
+                        ) {
+                            dismissButton?.invoke()
+                            confirmButton()
                         }
                     }
                 }

@@ -26,6 +26,8 @@ val composeProperties = ComposeProperties(project)
 
 val mainComponents =
     listOf(
+        ComposeComponent(":annotation:annotation", supportedPlatforms = ComposePlatforms.ALL - ComposePlatforms.ANDROID),
+        ComposeComponent(":collection:collection", supportedPlatforms = ComposePlatforms.ALL - ComposePlatforms.ANDROID),
         ComposeComponent(":compose:animation:animation"),
         ComposeComponent(":compose:animation:animation-core"),
         ComposeComponent(":compose:animation:animation-graphics"),
@@ -40,7 +42,7 @@ val mainComponents =
         ComposeComponent(":compose:ui:ui"),
         ComposeComponent(":compose:ui:ui-geometry"),
         ComposeComponent(":compose:ui:ui-graphics"),
-        ComposeComponent(":compose:ui:ui-test", supportedPlatforms = ComposePlatforms.JVM_BASED),
+        ComposeComponent(":compose:ui:ui-test"),
         ComposeComponent(
             ":compose:ui:ui-test-junit4",
             supportedPlatforms = ComposePlatforms.JVM_BASED
@@ -129,6 +131,7 @@ tasks.register("testUIKit") {
     dependsOn(":compose:ui:ui-text:$subtaskName")
     dependsOn(":compose:ui:ui:$subtaskName")
     dependsOn(":compose:material3:material3:$subtaskName")
+    dependsOn(":compose:foundation:foundation:$subtaskName")
 }
 
 tasks.register("testRuntimeNative") {

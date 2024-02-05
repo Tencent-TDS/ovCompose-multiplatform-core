@@ -19,16 +19,17 @@
 package androidx.compose.foundation.gestures
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.fastFold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastFold
 
-@Composable
-internal actual fun platformScrollConfig(): ScrollConfig = UiKitScrollConfig
+internal actual fun CompositionLocalConsumerModifierNode.platformScrollConfig(): ScrollConfig = UiKitScrollConfig
 
 /**
  * Opt out of the Cupertino overscroll behavior (rubber banding and spring effect).

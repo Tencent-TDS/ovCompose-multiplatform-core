@@ -55,6 +55,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.test.IgnoreWasmTarget
 
 @OptIn(ExperimentalTestApi::class)
 class ScrollableTest {
@@ -2139,7 +2140,7 @@ class ScrollableTest {
             val modifier = Modifier.scrollable(controller, Orientation.Vertical) as InspectableValue
             assertThat(modifier.nameFallback).isEqualTo("scrollable")
             assertThat(modifier.valueOverride).isNull()
-            assertThat(modifier.inspectableElements.map { it.name }.asIterable()).containsExactly(
+            assertThat(modifier.inspectableElements.map { it.name }.asIterable()).containsExactlyInOrder(
                 "orientation",
                 "state",
                 "overscrollEffect",
@@ -2147,12 +2148,15 @@ class ScrollableTest {
                 "reverseDirection",
                 "flingBehavior",
                 "interactionSource",
+                "scrollableBringIntoViewConfig",
             )
         }
     }
 
     @OptIn(ExperimentalFoundationApi::class)
     @Test
+    @IgnoreWasmTarget
+    // TODO(shabunc): https://youtrack.jetbrains.com/issue/COMPOSE-805/Fix-producingEqualMaterializedModifierAfterRecomposition-test-om-wasm-target
     fun producingEqualMaterializedModifierAfterRecomposition() = runSkikoComposeUiTest {
         val state = ScrollableState { it }
         val counter = mutableStateOf(0)

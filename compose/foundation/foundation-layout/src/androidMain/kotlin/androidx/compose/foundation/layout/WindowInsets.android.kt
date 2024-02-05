@@ -28,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.R
+import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Density
@@ -111,6 +112,22 @@ internal class AndroidWindowInsets(
  *
  * This property should be set prior to first composition.
  */
+var AbstractComposeView.consumeWindowInsets: Boolean
+    get() = getTag(R.id.consume_window_insets_tag) as? Boolean ?: true
+    set(value) {
+        setTag(R.id.consume_window_insets_tag, value)
+    }
+
+/**
+ * Indicates whether access to [WindowInsets] within the [content][ComposeView.setContent]
+ * should consume the Android  [android.view.WindowInsets]. The default value is `true`, meaning
+ * that access to [WindowInsets.Companion] will consume the Android WindowInsets.
+ *
+ * This property should be set prior to first composition.
+ */
+@Deprecated(
+    level = DeprecationLevel.HIDDEN,
+    message = "Please use AbstractComposeView.consumeWindowInsets")
 var ComposeView.consumeWindowInsets: Boolean
     get() = getTag(R.id.consume_window_insets_tag) as? Boolean ?: true
     set(value) {
@@ -469,7 +486,8 @@ internal class WindowInsetsHolder private constructor(insets: WindowInsetsCompat
     )
 
     /**
-     * `true` unless the `ComposeView` [ComposeView.consumeWindowInsets] is set to `false`.
+     * `true` unless the `AbstractComposeView` [AbstractComposeView.consumeWindowInsets] is set to
+     * `false`.
      */
     val consumes = (view.parent as? View)?.getTag(R.id.consume_window_insets_tag)
         as? Boolean ?: true

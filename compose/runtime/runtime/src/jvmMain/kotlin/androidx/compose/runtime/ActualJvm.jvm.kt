@@ -16,17 +16,11 @@
 
 package androidx.compose.runtime
 
-import androidx.compose.runtime.internal.ThreadMap
-import androidx.compose.runtime.internal.emptyThreadMap
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ThreadContextElement
-
-internal actual typealias AtomicReference<V> = java.util.concurrent.atomic.AtomicReference<V>
-
-internal actual fun getCurrentThreadId(): Long = Thread.currentThread().id
 
 @InternalComposeApi
 actual fun identityHashCode(instance: Any?): Int = System.identityHashCode(instance)
@@ -50,13 +44,6 @@ internal actual fun <T> invokeComposableForResult(
 
 actual annotation class CompositionContextLocal {}
 
-internal actual class AtomicInt actual constructor(value: Int) {
-    val delegate = java.util.concurrent.atomic.AtomicInteger(value)
-    actual fun get(): Int = delegate.get()
-    actual fun set(value: Int) = delegate.set(value)
-    actual fun add(amount: Int): Int = delegate.addAndGet(amount)
-}
-
 internal actual class WeakReference<T : Any> actual constructor(reference: T) :
     java.lang.ref.WeakReference<T>(reference)
 
@@ -78,6 +65,10 @@ internal actual class SnapshotContextElementImpl actual constructor(
         snapshot.unsafeLeave(oldState)
     }
 }
+
+internal actual fun currentThreadId(): Long = Thread.currentThread().id
+
+internal actual fun currentThreadName(): String = Thread.currentThread().name
 
 internal actual abstract class PlatformOptimizedCancellationException actual constructor(
     message: String?

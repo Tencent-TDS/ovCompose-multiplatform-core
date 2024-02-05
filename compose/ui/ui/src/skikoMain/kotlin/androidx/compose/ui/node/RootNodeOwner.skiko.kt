@@ -20,14 +20,17 @@ import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.Autofill
 import androidx.compose.ui.autofill.AutofillTree
+import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.focus.FocusOwnerImpl
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -51,20 +54,19 @@ import androidx.compose.ui.layout.RootMeasurePolicy
 import androidx.compose.ui.modifier.ModifierLocalManager
 import androidx.compose.ui.platform.DefaultAccessibilityManager
 import androidx.compose.ui.platform.DefaultHapticFeedback
+import androidx.compose.ui.platform.DelegatingSoftwareKeyboardController
 import androidx.compose.ui.platform.PlatformClipboardManager
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformRootForTest
+import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.RenderNodeLayer
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.semantics.EmptySemanticsElement
 import androidx.compose.ui.semantics.SemanticsOwner
-import androidx.compose.ui.text.ExperimentalTextApi
-import androidx.compose.ui.text.InternalTextApi
 import androidx.compose.ui.text.font.createFontFamilyResolver
-import androidx.compose.ui.text.input.PlatformTextInputPluginRegistry
-import androidx.compose.ui.text.input.PlatformTextInputPluginRegistryImpl
 import androidx.compose.ui.text.input.TextInputService
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -75,6 +77,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toOffset
 import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.awaitCancellation
 
 /**
  * Owner of root [LayoutNode].
@@ -199,7 +202,8 @@ internal class RootNodeOwner(
             platformContext.inputModeManager.requestInputMode(InputMode.Touch)
         }
         val isInBounds = event.eventType != PointerEventType.Exit && event.pointers.all {
-            bounds?.contains(it.position.round()) ?: true
+            val positionInWindow = owner.calculatePositionInWindow(it.position)
+            bounds?.contains(positionInWindow.round()) ?: true
         }
         pointerInputEventProcessor.process(
             event,
@@ -244,14 +248,17 @@ internal class RootNodeOwner(
         override val autofill: Autofill?  get() = null
         override val density get() = this@RootNodeOwner.density
         override val textInputService = TextInputService(platformContext.textInputService)
+        override val softwareKeyboardController =
+            DelegatingSoftwareKeyboardController(textInputService)
 
-        @Suppress("UNUSED_ANONYMOUS_PARAMETER")
-        @OptIn(InternalTextApi::class, ExperimentalTextApi::class)
-        override val platformTextInputPluginRegistry: PlatformTextInputPluginRegistry
-            get() = PlatformTextInputPluginRegistryImpl { factory, platformTextInput ->
-                TODO("See https://issuetracker.google.com/267235947")
-            }
-
+        // TODO https://youtrack.jetbrains.com/issue/COMPOSE-733/Merge-1.6.-Apply-changes-for-the-new-text-input
+        override suspend fun textInputSession(
+            session: suspend PlatformTextInputSessionScope.() -> Nothing
+        ): Nothing {
+            awaitCancellation()
+        }
+        // TODO https://youtrack.jetbrains.com/issue/COMPOSE-743/Implement-commonMain-Dragdrop-developed-in-AOSP
+        override val dragAndDropManager: DragAndDropManager get() = TODO("Not yet implemented")
         override val pointerIconService = PointerIconServiceImpl()
         override val focusOwner get() = this@RootNodeOwner.focusOwner
         override val windowInfo get() = platformContext.windowInfo
@@ -336,7 +343,12 @@ internal class RootNodeOwner(
             drawBlock: (Canvas) -> Unit,
             invalidateParentLayer: () -> Unit
         ) = RenderNodeLayer(
-            density,
+            Snapshot.withoutReadObservation {
+                // density is a mutable state that is observed whenever layer is created. the layer
+                // is updated manually on draw, so not observing the density changes here helps with
+                // performance in layout.
+                density
+            },
             invalidateParentLayer = {
                 invalidateParentLayer()
                 snapshotInvalidationTracker.requestDraw()
@@ -493,4 +505,5 @@ private fun IntRect.toConstraints() =
 private object IdentityPositionCalculator: PositionCalculator {
     override fun screenToLocal(positionOnScreen: Offset): Offset = positionOnScreen
     override fun localToScreen(localPosition: Offset): Offset = localPosition
+    override fun localToScreen(localTransform: Matrix) = Unit
 }

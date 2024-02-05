@@ -86,6 +86,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(project(":compose:runtime:runtime"))
                 implementation(project(":compose:ui:ui-util"))
                 implementation(project(":compose:ui:ui-geometry"))
+                implementation(project(":collection:collection"))
+                implementation(project(":annotation:annotation"))
             }
 
             androidMain.dependencies {
@@ -111,14 +113,12 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(jsWasmMain)
             }
 
-            if (project.kotlinWasmEnabled.toBoolean()) {
-                wasmJsMain {
-                    dependsOn(jsWasmMain)
-                    dependencies {
-                        implementation(libs.kotlinStdlib)
-                        implementation(libs.create("skikoWasm"))
-                        implementation(libs.create("skikoWasmWasm"))
-                    }
+            wasmJsMain {
+                dependsOn(jsWasmMain)
+                dependencies {
+                    implementation(libs.kotlinStdlib)
+                    implementation(libs.create("skikoWasm"))
+                    implementation(libs.create("skikoWasmWasm"))
                 }
             }
 

@@ -34,6 +34,7 @@ import kotlin.math.roundToLong
  * stateful and manage their own lifecycles.
  *
  * @see [Animatable]
+ * @see [rememberTransition]
  * @see [updateTransition]
  */
 @JvmDefaultWithCompatibility
@@ -98,6 +99,8 @@ internal fun convertSecondsToNanos(seconds: Float): Long =
 
 internal fun convertNanosToSeconds(nanos: Long): Double =
     nanos.toDouble() / SecondsToNanos
+
+internal const val SecondsToMillis: Long = 1_000L
 
 /**
  * Returns the velocity of the animation at the given play time.
@@ -185,6 +188,7 @@ fun <T, V : AnimationVector> TargetBasedAnimation(
  * @param initialVelocityVector the start velocity of the animation in the form of [AnimationVector]
  *
  * @see [Transition]
+ * @see [rememberTransition]
  * @see [updateTransition]
  * @see [Animatable]
  */

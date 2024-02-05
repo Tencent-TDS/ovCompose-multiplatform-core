@@ -23,6 +23,7 @@ import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.*
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toOffset
@@ -226,11 +228,16 @@ internal class ComposeSceneMediator(
         get() = if (useInteropBlending) 0 else 20
 
     init {
+        /*
+         * Transparency is used during redrawer creation that triggered by [addNotify], so
+         * it must be set to correct value before adding to the hierarchy to handle cases
+         * when [container] is already [isDisplayable].
+         */
+        skiaLayerComponent.transparency = useInteropBlending
+
         container.addToLayer(invisibleComponent, contentLayer)
         container.addToLayer(contentComponent, contentLayer)
         container.addContainerListener(containerListener)
-
-        skiaLayerComponent.transparency = useInteropBlending
 
         // It will be enabled dynamically. See DesktopPlatformComponent
         contentComponent.enableInputMethods(false)
@@ -428,18 +435,15 @@ internal class ComposeSceneMediator(
     fun onChangeComponentSize() = catchExceptions {
         if (!container.isDisplayable) return
 
-        val scale = container.density.density
-        val window = SwingUtilities.getWindowAncestor(container)
-        val windowContainer = (window as? RootPaneContainer)?.contentPane ?: window
-        val pointInWindow = SwingUtilities.convertPoint(container, Point(0, 0), windowContainer)
-        val offsetInWindow = IntOffset(
-            x = (pointInWindow.x * scale).toInt(),
-            y = (pointInWindow.y * scale).toInt()
-        )
+        val offsetInWindow = windowContext.offsetInWindow(container)
         val size = sceneBoundsInPx?.size ?: container.sizeInPx
         val boundsInWindow = IntRect(
             offset = offsetInWindow,
-            size = size
+            size = IntSize(
+                // container.sizeInPx can be negative
+                width = size.width.coerceAtLeast(0),
+                height = size.height.coerceAtLeast(0)
+            )
         )
         if (scene.boundsInWindow != boundsInWindow) {
             scene.boundsInWindow = boundsInWindow

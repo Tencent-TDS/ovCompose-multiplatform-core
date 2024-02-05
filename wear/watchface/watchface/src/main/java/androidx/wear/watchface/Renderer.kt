@@ -16,12 +16,12 @@
 
 package androidx.wear.watchface
 
-import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Picture
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
@@ -39,6 +39,7 @@ import androidx.annotation.CallSuper
 import androidx.annotation.IntDef
 import androidx.annotation.IntRange
 import androidx.annotation.Px
+import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.annotation.UiThread
 import androidx.annotation.WorkerThread
@@ -55,31 +56,33 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Describes the type of [Canvas] a [Renderer.CanvasRenderer] or [Renderer.CanvasRenderer2] should
+ * Describes the type of [Canvas] a [Renderer.CanvasRenderer] or [Renderer.CanvasRenderer2] can
  * request from a [SurfaceHolder].
- *
- * @hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 @IntDef(value = [CanvasType.SOFTWARE, CanvasType.HARDWARE])
-public annotation class CanvasType {
-    public companion object {
-        /** A software canvas will be requested. */
-        public const val SOFTWARE: Int = 0
+public annotation class CanvasTypeIntDef
 
-        /**
-         * A hardware canvas will be requested. This is usually faster than software rendering,
-         * however it can sometimes increase battery usage by rendering at a higher frame rate.
-         *
-         * NOTE this is only supported on API level 26 and above. On lower API levels we fall back
-         * to a software canvas.
-         *
-         * NOTE the system takes screenshots for use in the watch face picker UI and these will be
-         * taken using software rendering. This means [Bitmap]s with [Bitmap.Config.HARDWARE] must
-         * be avoided.
-         */
-        public const val HARDWARE: Int = 1
-    }
+/**
+ * Describes the type of [Canvas] a [Renderer.CanvasRenderer] or [Renderer.CanvasRenderer2] can
+ * request from a [SurfaceHolder].
+ */
+public object CanvasType {
+    /** A software canvas will be requested. */
+    public const val SOFTWARE: Int = 0
+
+    /**
+     * A hardware canvas will be requested. This is usually faster than software rendering,
+     * however it can sometimes increase battery usage by rendering at a higher frame rate.
+     *
+     * NOTE this is only supported on API level 26 and above. On lower API levels we fall back
+     * to a software canvas.
+     *
+     * NOTE the system takes screenshots for use in the watch face picker UI and these will be
+     * taken using software rendering for API level 27 and below. This means on API level 27 and
+     * below [Bitmap]s with [Bitmap.Config.HARDWARE] must be avoided.
+     */
+    public const val HARDWARE: Int = 1
 }
 
 internal val EGL_CONFIG_ATTRIB_LIST =
@@ -548,7 +551,7 @@ constructor(
      *   into [render].
      * @param currentUserStyleRepository The watch face's associated [CurrentUserStyleRepository].
      * @param watchState The watch face's associated [WatchState].
-     * @param canvasType The [CanvasType] to request. Note even if [CanvasType.HARDWARE] is used,
+     * @param canvasType The [CanvasTypeIntDef] to request. Note even if [CanvasType.HARDWARE] is used,
      *   screenshots will taken using the software rendering pipeline, as such [Bitmap]s with
      *   [Bitmap.Config.HARDWARE] must be avoided.
      * @param interactiveDrawModeUpdateDelayMillis The interval in milliseconds between frames in
@@ -569,7 +572,7 @@ constructor(
         surfaceHolder: SurfaceHolder,
         currentUserStyleRepository: CurrentUserStyleRepository,
         watchState: WatchState,
-        @CanvasType private val canvasType: Int,
+        @CanvasTypeIntDef private val canvasType: Int,
         @IntRange(from = 0, to = 60000) interactiveDrawModeUpdateDelayMillis: Long,
         val clearWithBackgroundTintBeforeRenderingHighlightLayer: Boolean = false
     ) :
@@ -603,22 +606,39 @@ constructor(
             renderParameters: RenderParameters
         ): Bitmap =
             TraceEvent("CanvasRenderer.takeScreenshot").use {
-                val bitmap =
-                    Bitmap.createBitmap(
-                        screenBounds.width(),
-                        screenBounds.height(),
-                        Bitmap.Config.ARGB_8888
-                    )
                 val prevRenderParameters = this.renderParameters
                 val originalIsForScreenshot = renderParameters.isForScreenshot
 
                 renderParameters.isForScreenshot = true
                 this.renderParameters = renderParameters
-                renderAndComposite(Canvas(bitmap), zonedDateTime)
-                this.renderParameters = prevRenderParameters
-                renderParameters.isForScreenshot = originalIsForScreenshot
 
-                return bitmap
+                if (Build.VERSION.SDK_INT >= 28) {
+                    val picture = Picture()
+                    renderAndComposite(
+                        picture.beginRecording(screenBounds.width(), screenBounds.height()),
+                        zonedDateTime
+                    )
+                    picture.endRecording()
+                    this.renderParameters = prevRenderParameters
+                    renderParameters.isForScreenshot = originalIsForScreenshot
+                    return Api28CreateBitmapHelper.createBitmap(
+                        picture,
+                        screenBounds.width(),
+                        screenBounds.height(),
+                        Bitmap.Config.ARGB_8888
+                    )
+                } else {
+                    val bitmap =
+                        Bitmap.createBitmap(
+                            screenBounds.width(),
+                            screenBounds.height(),
+                            Bitmap.Config.ARGB_8888
+                        )
+                    renderAndComposite(Canvas(bitmap), zonedDateTime)
+                    this.renderParameters = prevRenderParameters
+                    renderParameters.isForScreenshot = originalIsForScreenshot
+                    return bitmap
+                }
             }
 
         internal override fun renderScreenshotToSurface(
@@ -651,17 +671,34 @@ constructor(
                 // Render and composite the HighlightLayer
                 val highlightLayer = renderParameters.highlightLayer
                 if (highlightLayer != null) {
-                    val highlightLayerBitmap =
-                        Bitmap.createBitmap(
+                    val highlightLayerBitmap: Bitmap
+                    if (Build.VERSION.SDK_INT >= 28) {
+                        val picture = Picture()
+                        val highlightCanvas =
+                            picture.beginRecording(screenBounds.width(), screenBounds.height())
+                        if (clearWithBackgroundTintBeforeRenderingHighlightLayer) {
+                            highlightCanvas.drawColor(highlightLayer.backgroundTint)
+                        }
+                        renderHighlightLayer(highlightCanvas, screenBounds, zonedDateTime)
+                        picture.endRecording()
+                        highlightLayerBitmap = Api28CreateBitmapHelper.createBitmap(
+                            picture,
                             screenBounds.width(),
                             screenBounds.height(),
                             Bitmap.Config.ARGB_8888
                         )
-                    val highlightCanvas = Canvas(highlightLayerBitmap)
-                    if (clearWithBackgroundTintBeforeRenderingHighlightLayer) {
-                        highlightCanvas.drawColor(highlightLayer.backgroundTint)
+                    } else {
+                        highlightLayerBitmap = Bitmap.createBitmap(
+                            screenBounds.width(),
+                            screenBounds.height(),
+                            Bitmap.Config.ARGB_8888
+                        )
+                        val highlightCanvas = Canvas(highlightLayerBitmap)
+                        if (clearWithBackgroundTintBeforeRenderingHighlightLayer) {
+                            highlightCanvas.drawColor(highlightLayer.backgroundTint)
+                        }
+                        renderHighlightLayer(highlightCanvas, screenBounds, zonedDateTime)
                     }
-                    renderHighlightLayer(highlightCanvas, screenBounds, zonedDateTime)
                     canvas.drawBitmap(highlightLayerBitmap, 0f, 0f, HIGHLIGHT_LAYER_COMPOSITE_PAINT)
                     highlightLayerBitmap.recycle()
                 }
@@ -788,7 +825,7 @@ constructor(
      *   into [render].
      * @param currentUserStyleRepository The watch face's associated [CurrentUserStyleRepository].
      * @param watchState The watch face's associated [WatchState].
-     * @param canvasType The [CanvasType] to request. Note even if [CanvasType.HARDWARE] is used,
+     * @param canvasType The [CanvasTypeIntDef] to request. Note even if [CanvasType.HARDWARE] is used,
      *   screenshots will taken using the software rendering pipeline, as such [Bitmap]s with
      *   [Bitmap.Config.HARDWARE] must be avoided.
      * @param interactiveDrawModeUpdateDelayMillis The interval in milliseconds between frames in
@@ -807,7 +844,7 @@ constructor(
         surfaceHolder: SurfaceHolder,
         currentUserStyleRepository: CurrentUserStyleRepository,
         watchState: WatchState,
-        @CanvasType private val canvasType: Int,
+        @CanvasTypeIntDef private val canvasType: Int,
         @IntRange(from = 0, to = 60000) interactiveDrawModeUpdateDelayMillis: Long,
         clearWithBackgroundTintBeforeRenderingHighlightLayer: Boolean
     ) :
@@ -1329,7 +1366,6 @@ constructor(
 
                 surfaceHolder.addCallback(
                     object : SurfaceHolder.Callback {
-                        @SuppressLint("SyntheticAccessor")
                         override fun surfaceChanged(
                             holder: SurfaceHolder,
                             format: Int,
@@ -1339,7 +1375,6 @@ constructor(
                             uiThreadCoroutineScope.launch { createWindowSurface(width, height) }
                         }
 
-                        @SuppressLint("SyntheticAccessor")
                         override fun surfaceDestroyed(holder: SurfaceHolder) {
                             if (this@GlesRenderer::eglSurface.isInitialized) {
                                 if (!EGL14.eglDestroySurface(eglDisplay, eglSurface)) {
@@ -1758,4 +1793,15 @@ constructor(
             renderHighlightLayer(zonedDateTime, sharedAssetsHolder.sharedAssets!! as SharedAssetsT)
         }
     }
+}
+
+/** Helper to allow class verification. */
+@RequiresApi(28)
+internal object Api28CreateBitmapHelper {
+    fun createBitmap(
+        picture: Picture,
+        width: Int,
+        height: Int,
+        config: Bitmap.Config
+    ) = Bitmap.createBitmap(picture, width, height, config)
 }

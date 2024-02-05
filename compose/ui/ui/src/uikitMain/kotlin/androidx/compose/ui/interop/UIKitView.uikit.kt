@@ -27,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.InteropViewCatchPointerModifier
@@ -36,7 +35,7 @@ import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
@@ -83,7 +82,7 @@ fun <T : UIView> UIKitView(
 ) {
     // TODO: adapt UIKitView to reuse inside LazyColumn like in AndroidView:
     //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
-    val rootView = LocalLayerContainer.current
+    val rootView = LocalInteropContainer.current
     val embeddedInteropComponent = remember {
         EmbeddedInteropView(
             rootView = rootView,
@@ -97,7 +96,7 @@ fun <T : UIView> UIKitView(
 
     Place(
         modifier.onGloballyPositioned { coordinates ->
-            localToWindowOffset = coordinates.positionInWindow().round()
+            localToWindowOffset = coordinates.positionInRoot().round()
             val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
             if (rectInPixels != newRectInPixels) {
                 val rect = newRectInPixels / density
@@ -179,7 +178,7 @@ fun <T : UIViewController> UIKitViewController(
 ) {
     // TODO: adapt UIKitViewController to reuse inside LazyColumn like in AndroidView:
     //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
-    val rootView = LocalLayerContainer.current
+    val rootView = LocalInteropContainer.current
     val rootViewController = LocalUIViewController.current
     val embeddedInteropComponent = remember {
         EmbeddedInteropViewController(
@@ -196,7 +195,7 @@ fun <T : UIViewController> UIKitViewController(
 
     Place(
         modifier.onGloballyPositioned { coordinates ->
-            localToWindowOffset = coordinates.positionInWindow().round()
+            localToWindowOffset = coordinates.positionInRoot().round()
             val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
             if (rectInPixels != newRectInPixels) {
                 val rect = newRectInPixels / density
@@ -296,7 +295,7 @@ private abstract class EmbeddedInteropComponent<T : Any>(
         wrappingView = UIView().apply {
             addSubview(view)
         }
-        rootView.insertSubview(wrappingView, 0)
+        rootView.addSubview(wrappingView)
     }
 
     protected fun removeViewFromHierarchy(view: UIView) {

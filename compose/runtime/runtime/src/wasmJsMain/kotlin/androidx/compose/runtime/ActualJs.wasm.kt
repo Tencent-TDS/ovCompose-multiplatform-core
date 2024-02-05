@@ -27,48 +27,24 @@ import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 import kotlin.time.toDuration
 
-internal actual fun getCurrentThreadId(): Long = 0
-
-internal actual class AtomicInt actual constructor(private var value: Int) {
-    actual fun get(): Int = value
-
-    actual fun set(value: Int) {
-        this.value = value
-    }
-    actual fun add(amount: Int): Int {
-        this.value += amount
-        return this.value
-    }
-}
-
-actual class AtomicReference<V> actual constructor(private var value: V) {
-    actual fun get(): V = value
-
-    actual fun set(value: V) {
-        this.value = value
-    }
-
-    actual fun getAndSet(value: V): V {
-        val oldValue = this.value
-        this.value = value
-        return oldValue
-    }
-
-    actual fun compareAndSet(expect: V, newValue: V): Boolean =
-        if (expect == value) {
-            value = newValue
-            true
-        } else {
-            false
-        }
-}
-
 @JsFun("(obj, index) => obj[index]")
 private external fun dynamicGetInt(obj: JsAny, index: String): Int?
 
 @JsFun("(obj) => typeof obj")
 private external fun jsTypeOf(a: JsAny?): String
 
+/**
+ * We intentionally use the default `instance.hashCode()` here.
+ * The consequence is that the returned values can be more often not unique,
+ * but it's not required for correctness (absolute uniqueness can't be guaranteed on any platform).
+ * It has good performance comparing with alternatives.
+ *
+ * For more details have a look:
+ * https://kotlinlang.slack.com/archives/G010KHY484C/p1706547846376149
+ * Quote: "...we optimize for the case where hash code is unique, but it is not required for correctness"
+ *
+ * And here: https://jetbrains.slack.com/archives/C047QCXNLTX/p1706536405443729
+ */
 @InternalComposeApi
 actual fun identityHashCode(instance: Any?): Int {
     if (instance == null) {
@@ -130,3 +106,7 @@ internal actual fun logError(message: String, e: Throwable) {
     println(message)
     e.printStackTrace()
 }
+
+internal actual fun currentThreadId(): Long = 0
+
+internal actual fun currentThreadName(): String = "main"

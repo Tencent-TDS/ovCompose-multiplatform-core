@@ -16,14 +16,12 @@
 
 import androidx.build.AndroidXComposePlugin
 import androidx.build.LibraryType
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-import static androidx.inspection.gradle.InspectionPluginKt.packageInspector
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     id("AndroidXComposePlugin")
+    id("kotlinx-atomicfu")
 }
 
 AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
@@ -136,8 +134,6 @@ dependencies {
     }
 }
 
-packageInspector(project, ":compose:ui:ui-inspection")
-
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
@@ -156,6 +152,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          */
         sourceSets {
             commonMain.dependencies {
+                implementation(project(":collection:collection"))
                 implementation(libs.kotlinStdlibCommon)
                 implementation(libs.kotlinCoroutinesCore)
                 implementation(libs.atomicFu)
@@ -168,7 +165,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api project(":compose:ui:ui-graphics")
                 api project(":compose:ui:ui-text")
                 api project(":compose:ui:ui-unit")
-                implementation(project(":compose:ui:ui-util"))
+                api project(":compose:ui:ui-util")
+                implementation(project(":annotation:annotation"))
             }
 
             androidMain.dependencies {
@@ -227,14 +225,12 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 }
             }
 
-            if (project.kotlinWasmEnabled.toBoolean()) {
-                wasmJsMain {
-                    dependsOn(jsWasmMain)
-                    dependencies {
-                        implementation(libs.kotlinStdlib)
-                        implementation(libs.create("skikoWasm"))
-                        implementation(libs.create("skikoWasmWasm"))
-                    }
+            wasmJsMain {
+                dependsOn(jsWasmMain)
+                dependencies {
+                    implementation(libs.kotlinStdlib)
+                    implementation(libs.create("skikoWasm"))
+                    implementation(libs.create("skikoWasmWasm"))
                 }
             }
 

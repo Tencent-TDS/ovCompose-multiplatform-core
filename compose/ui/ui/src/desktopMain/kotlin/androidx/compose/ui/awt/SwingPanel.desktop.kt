@@ -27,7 +27,7 @@ import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -55,12 +55,13 @@ import java.awt.Point
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
 import java.awt.event.MouseEvent
-import java.util.concurrent.atomic.AtomicBoolean
+import java.awt.event.MouseWheelEvent
 import javax.swing.JPanel
 import javax.swing.LayoutFocusTraversalPolicy
 import javax.swing.SwingUtilities
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlinx.atomicfu.atomic
 
 val NoOpUpdate: Component.() -> Unit = {}
 
@@ -197,7 +198,7 @@ private class FocusSwitcher<T : Component>(
         Box(
             Modifier
                 .focusRequester(backwardRequester)
-                .onFocusChanged {
+                .onFocusEvent {
                     if (it.isFocused && !isRequesting) {
                         focusManager.clearFocus(force = true)
 
@@ -214,7 +215,7 @@ private class FocusSwitcher<T : Component>(
         Box(
             Modifier
                 .focusRequester(forwardRequester)
-                .onFocusChanged {
+                .onFocusEvent {
                     if (it.isFocused && !isRequesting) {
                         focusManager.clearFocus(force = true)
 
@@ -261,7 +262,7 @@ private class Updater<T : Component>(
     update: (T) -> Unit,
 ) {
     private var isDisposed = false
-    private val isUpdateScheduled = AtomicBoolean()
+    private val isUpdateScheduled = atomic(false)
     private val snapshotObserver = SnapshotStateObserver { command ->
         command()
     }
@@ -269,7 +270,7 @@ private class Updater<T : Component>(
     private val scheduleUpdate = { _: T ->
         if (!isUpdateScheduled.getAndSet(true)) {
             SwingUtilities.invokeLater {
-                isUpdateScheduled.set(false)
+                isUpdateScheduled.value = false
                 if (!isDisposed) {
                     performUpdate()
                 }
@@ -366,14 +367,32 @@ private class InteropPointerInputModifier<T : Component>(
 private fun MouseEvent.copy(
     component: Component,
     point: Point
-) = MouseEvent(
-    /* source = */ component,
-    /* id = */ id,
-    /* when = */ `when`,
-    /* modifiers = */ modifiersEx,
-    /* x = */ point.x,
-    /* y = */ point.y,
-    /* clickCount = */ clickCount,
-    /* popupTrigger = */ isPopupTrigger,
-    /* button = */ button
-)
+) = when(this) {
+    is MouseWheelEvent -> MouseWheelEvent(
+        /* source = */ component,
+        /* id = */ id,
+        /* when = */ `when`,
+        /* modifiers = */ modifiersEx,
+        /* x = */ point.x,
+        /* y = */ point.y,
+        /* xAbs = */ xOnScreen,
+        /* yAbs = */ yOnScreen,
+        /* clickCount = */ clickCount,
+        /* popupTrigger = */ isPopupTrigger,
+        /* scrollType = */ scrollType,
+        /* scrollAmount = */ scrollAmount,
+        /* wheelRotation = */ wheelRotation,
+        /* preciseWheelRotation = */ preciseWheelRotation
+    )
+    else -> MouseEvent(
+        /* source = */ component,
+        /* id = */ id,
+        /* when = */ `when`,
+        /* modifiers = */ modifiersEx,
+        /* x = */ point.x,
+        /* y = */ point.y,
+        /* clickCount = */ clickCount,
+        /* popupTrigger = */ isPopupTrigger,
+        /* button = */ button
+    )
+}

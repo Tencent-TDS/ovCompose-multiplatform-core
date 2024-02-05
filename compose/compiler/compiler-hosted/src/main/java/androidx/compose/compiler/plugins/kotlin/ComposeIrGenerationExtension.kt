@@ -16,9 +16,12 @@
 
 package androidx.compose.compiler.plugins.kotlin
 
+import androidx.compose.compiler.plugins.kotlin.analysis.FqNameMatcher
+import androidx.compose.compiler.plugins.kotlin.analysis.StabilityInferencer
 import androidx.compose.compiler.plugins.kotlin.lower.ClassStabilityTransformer
 import androidx.compose.compiler.plugins.kotlin.lower.ComposableFunInterfaceLowering
 import androidx.compose.compiler.plugins.kotlin.lower.ComposableFunctionBodyTransformer
+import androidx.compose.compiler.plugins.kotlin.lower.ComposableLambdaAnnotator
 import androidx.compose.compiler.plugins.kotlin.lower.ComposableSymbolRemapper
 import androidx.compose.compiler.plugins.kotlin.lower.ComposableTargetAnnotationsTransformer
 import androidx.compose.compiler.plugins.kotlin.lower.ComposerIntrinsicTransformer
@@ -43,6 +46,7 @@ import org.jetbrains.kotlin.backend.common.serialization.signature.PublicIdSigna
 import org.jetbrains.kotlin.ir.backend.js.lower.serialization.ir.JsGlobalDeclarationTable
 import org.jetbrains.kotlin.ir.backend.js.lower.serialization.ir.JsManglerIr
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.platform.isJs
 import org.jetbrains.kotlin.platform.isWasm
 import org.jetbrains.kotlin.platform.jvm.isJvm
@@ -53,14 +57,20 @@ class ComposeIrGenerationExtension(
     @Suppress("unused") private val liveLiteralsV2Enabled: Boolean = false,
     private val generateFunctionKeyMetaClasses: Boolean = false,
     private val sourceInformationEnabled: Boolean = true,
+    private val traceMarkersEnabled: Boolean = true,
     private val intrinsicRememberEnabled: Boolean = false,
     private val decoysEnabled: Boolean = false,
     private val metricsDestination: String? = null,
     private val reportsDestination: String? = null,
     private val validateIr: Boolean = false,
+    private val useK2: Boolean = false,
+    private val strongSkippingEnabled: Boolean = false,
+    private val stableTypeMatchers: Set<FqNameMatcher> = emptySet(),
+    private val moduleMetricsFactory: ((StabilityInferencer) -> ModuleMetrics)? = null,
     private val hideFromObjCDeclarationsSet: HideFromObjCDeclarationsSet? = null,
 ) : IrGenerationExtension {
     var metrics: ModuleMetrics = EmptyModuleMetrics
+        private set
 
     override fun generate(
         moduleFragment: IrModuleFragment,
@@ -68,6 +78,11 @@ class ComposeIrGenerationExtension(
     ) {
         val isKlibTarget = !pluginContext.platform.isJvm()
         VersionChecker(pluginContext).check()
+
+        val stabilityInferencer = StabilityInferencer(
+            pluginContext.moduleDescriptor,
+            stableTypeMatchers,
+        )
 
         // Input check.  This should always pass, else something is horribly wrong upstream.
         // Necessary because oftentimes the issue is upstream (compiler bug, prior plugin, etc)
@@ -77,8 +92,16 @@ class ComposeIrGenerationExtension(
         // create a symbol remapper to be used across all transforms
         val symbolRemapper = ComposableSymbolRemapper()
 
-        if (metricsDestination != null || reportsDestination != null) {
-            metrics = ModuleMetricsImpl(moduleFragment.name.asString())
+        if (useK2) {
+            moduleFragment.acceptVoid(ComposableLambdaAnnotator(pluginContext))
+        }
+
+        if (moduleMetricsFactory != null) {
+            metrics = moduleMetricsFactory.invoke(stabilityInferencer)
+        } else if (metricsDestination != null || reportsDestination != null) {
+            metrics = ModuleMetricsImpl(moduleFragment.name.asString()) {
+                stabilityInferencer.stabilityOf(it)
+            }
         }
 
         if (pluginContext.platform.isNative() && hideFromObjCDeclarationsSet != null) {
@@ -93,7 +116,8 @@ class ComposeIrGenerationExtension(
         ClassStabilityTransformer(
             pluginContext,
             symbolRemapper,
-            metrics
+            metrics,
+            stabilityInferencer
         ).lower(moduleFragment)
 
         LiveLiteralTransformer(
@@ -102,7 +126,8 @@ class ComposeIrGenerationExtension(
             DurableKeyVisitor(),
             pluginContext,
             symbolRemapper,
-            metrics
+            metrics,
+            stabilityInferencer
         ).lower(moduleFragment)
 
         ComposableFunInterfaceLowering(pluginContext).lower(moduleFragment)
@@ -110,7 +135,8 @@ class ComposeIrGenerationExtension(
         val functionKeyTransformer = DurableFunctionKeyTransformer(
             pluginContext,
             symbolRemapper,
-            metrics
+            metrics,
+            stabilityInferencer
         )
 
         functionKeyTransformer.lower(moduleFragment)
@@ -119,10 +145,14 @@ class ComposeIrGenerationExtension(
         ComposerLambdaMemoization(
             pluginContext,
             symbolRemapper,
-            metrics
+            metrics,
+            stabilityInferencer,
+            strongSkippingEnabled
         ).lower(moduleFragment)
 
-        CopyDefaultValuesFromExpectLowering(pluginContext).lower(moduleFragment)
+        if (!useK2) {
+            CopyDefaultValuesFromExpectLowering(pluginContext).lower(moduleFragment)
+        }
 
         val mangler = when {
             pluginContext.platform.isJs() -> JsManglerIr
@@ -150,6 +180,7 @@ class ComposeIrGenerationExtension(
                 pluginContext,
                 symbolRemapper,
                 idSignatureBuilder,
+                stabilityInferencer,
                 metrics,
             ).lower(moduleFragment)
 
@@ -157,6 +188,7 @@ class ComposeIrGenerationExtension(
                 pluginContext,
                 symbolRemapper,
                 idSignatureBuilder,
+                stabilityInferencer,
                 metrics,
             ).lower(moduleFragment)
         }
@@ -167,6 +199,7 @@ class ComposeIrGenerationExtension(
         ComposerParamTransformer(
             pluginContext,
             symbolRemapper,
+            stabilityInferencer,
             decoysEnabled,
             metrics,
         ).lower(moduleFragment)
@@ -174,7 +207,8 @@ class ComposeIrGenerationExtension(
         ComposableTargetAnnotationsTransformer(
             pluginContext,
             symbolRemapper,
-            metrics
+            metrics,
+            stabilityInferencer
         ).lower(moduleFragment)
 
         // transform calls to the currentComposer to just use the local parameter from the
@@ -185,8 +219,11 @@ class ComposeIrGenerationExtension(
             pluginContext,
             symbolRemapper,
             metrics,
+            stabilityInferencer,
             sourceInformationEnabled,
-            intrinsicRememberEnabled
+            traceMarkersEnabled,
+            intrinsicRememberEnabled,
+            strongSkippingEnabled
         ).lower(moduleFragment)
 
         if (decoysEnabled) {
@@ -199,7 +236,8 @@ class ComposeIrGenerationExtension(
                 symbolRemapper,
                 idSignatureBuilder,
                 metrics,
-                mangler!!
+                mangler!!,
+                stabilityInferencer
             ).lower(moduleFragment)
         }
 
@@ -208,6 +246,7 @@ class ComposeIrGenerationExtension(
                 pluginContext,
                 symbolRemapper,
                 metrics,
+                stabilityInferencer
             ).lower(moduleFragment)
         }
 
@@ -217,6 +256,7 @@ class ComposeIrGenerationExtension(
                 symbolRemapper,
                 metrics,
                 idSignatureBuilder!!,
+                stabilityInferencer,
                 decoysEnabled
             ).lower(moduleFragment)
         }

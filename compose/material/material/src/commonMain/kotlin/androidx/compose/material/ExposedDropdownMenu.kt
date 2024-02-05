@@ -108,6 +108,7 @@ interface ExposedDropdownMenuBoxScope {
      * @param scrollState a [ScrollState] to used by the menu's content for items vertical scrolling
      * @param content The content of the [ExposedDropdownMenu]
      */
+    @Suppress("ABSTRACT_COMPOSABLE_DEFAULT_PARAMETER_VALUE")
     @Composable
     fun ExposedDropdownMenu(
         expanded: Boolean,
@@ -420,8 +421,9 @@ private class DefaultTextFieldForExposedDropdownMenusColors(
     private val errorLabelColor: Color,
     private val placeholderColor: Color,
     private val disabledPlaceholderColor: Color
-) : TextFieldColorsWithIcons {
+) : TextFieldColors {
 
+    @Suppress("OVERRIDE_DEPRECATION")
     @Composable
     override fun leadingIconColor(enabled: Boolean, isError: Boolean): State<Color> {
         return rememberUpdatedState(
@@ -433,6 +435,7 @@ private class DefaultTextFieldForExposedDropdownMenusColors(
         )
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     @Composable
     override fun trailingIconColor(enabled: Boolean, isError: Boolean): State<Color> {
         return rememberUpdatedState(

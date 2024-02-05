@@ -39,7 +39,7 @@ import androidx.compose.ui.node.SnapshotInvalidationTracker
 import androidx.compose.ui.platform.GlobalSnapshotManager
 import androidx.compose.ui.platform.PlatformContext
 import kotlin.coroutines.CoroutineContext
-import kotlin.jvm.Volatile
+import kotlin.concurrent.Volatile
 
 /**
  * BaseComposeScene is an internal abstract class that implements the ComposeScene interface.
@@ -77,17 +77,17 @@ internal abstract class BaseComposeScene(
     private inline fun <T> postponeInvalidation(crossinline block: () -> T): T {
         check(!isClosed) { "ComposeScene is closed" }
         isInvalidationDisabled = true
-        val result = try {
+        return try {
             // Try to get see the up-to-date state before running block
             // Note that this doesn't guarantee it, if sendApplyNotifications is called concurrently
             // in a different thread than this code.
             snapshotInvalidationTracker.sendAndPerformSnapshotChanges()
-            block()
+            snapshotInvalidationTracker.performSnapshotChangesSynchronously(block)
         } finally {
             isInvalidationDisabled = false
+        }.also {
+            invalidateIfNeeded()
         }
-        invalidateIfNeeded()
-        return result
     }
 
     @Volatile
@@ -146,12 +146,26 @@ internal abstract class BaseComposeScene(
     }
 
     override fun render(canvas: Canvas, nanoTime: Long) = postponeInvalidation {
+        // Note that on Android the order is slightly different:
+        // - Recomposition
+        // - Layout
+        // - Draw
+        // - Composition effects
+        // - Synthetic events
+        // We do this differently in order to be able to observe changes made by synthetic events
+        // in the drawing phase, thus reducing the time before they are visible on screen.
+        //
+        // It is important, however, to run the composition effects before the synthetic events are
+        // dispatched, in order to allow registering for these events before they are sent.
+        // Otherwise, events like a synthetic mouse-enter sent due to a new element appearing under
+        // the pointer would be missed by e.g. InteractionSource.collectHoverAsState
         recomposer.performScheduledTasks()
-        frameClock.sendFrame(nanoTime) // Recomposition
-
-        doLayout()
+        frameClock.sendFrame(nanoTime)           // Recomposition
+        doLayout()                               // Layout
+        recomposer.performScheduledEffects()     // Composition effects (e.g. LaunchedEffect)
+        inputHandler.updatePointerPosition()     // Synthetic move event
         snapshotInvalidationTracker.onDraw()
-        draw(canvas)
+        draw(canvas)                             // Draw
     }
 
     override fun sendPointerEvent(
@@ -209,7 +223,6 @@ internal abstract class BaseComposeScene(
     private fun doLayout() {
         snapshotInvalidationTracker.onLayout()
         measureAndLayout()
-        inputHandler.onLayout()
     }
 
     protected abstract fun createComposition(content: @Composable () -> Unit): Composition

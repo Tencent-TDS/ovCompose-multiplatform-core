@@ -24,6 +24,7 @@ plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     id("AndroidXComposePlugin")
+    id("kotlinx-atomicfu")
 }
 
 AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
@@ -102,12 +103,14 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         sourceSets {
             commonMain.dependencies {
                 implementation(libs.kotlinStdlibCommon)
+                implementation(project(":collection:collection"))
                 api(project(':compose:animation:animation'))
                 api(project(':compose:runtime:runtime'))
                 api(project(':compose:ui:ui'))
                 implementation(project(":compose:ui:ui-text"))
                 implementation(project(":compose:ui:ui-util"))
                 implementation(project(':compose:foundation:foundation-layout'))
+                implementation(project(":annotation:annotation"))
             }
             androidMain.dependencies {
                 api("androidx.annotation:annotation:1.1.0")
@@ -118,6 +121,7 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(commonMain)
                 dependencies {
                     api(libs.skikoCommon)
+                    implementation(libs.atomicFu)
                 }
             }
 
@@ -135,10 +139,8 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(jsWasmMain)
             }
 
-            if (project.kotlinWasmEnabled.toBoolean()) {
-                wasmJsMain {
-                    dependsOn(jsWasmMain)
-                }
+            wasmJsMain {
+                dependsOn(jsWasmMain)
             }
 
             commonTest {
@@ -190,7 +192,6 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(commonTest)
                 dependencies {
                     implementation(project(":compose:ui:ui-test-junit4"))
-                    implementation(project(":internal-testutils-kmp"))
                     implementation(libs.skikoCommon)
                 }
             }
@@ -213,7 +214,7 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                     implementation(libs.mockitoKotlin)
                 }
             }
-            desktopTest.kotlin.srcDirs("src/test/kotlin", "src/desktopTest/kotlin")
+            desktopTest.kotlin.srcDirs("src/desktopTest/kotlin")
 
             nativeTest.dependsOn(jsNativeTest)
             jsTest.dependsOn(jsNativeTest)
