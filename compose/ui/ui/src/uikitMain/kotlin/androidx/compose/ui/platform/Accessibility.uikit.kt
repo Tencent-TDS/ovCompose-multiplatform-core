@@ -137,7 +137,7 @@ private class AccessibilityElement(
 
     /**
      * The latest configuration after the last sync with the Compose semantics tree.
-     * It's used avoid unnecessary recomputation of merged configs in when accessing
+     * It's used avoid unnecessary recomputation of merged configs when accessing
      * [SemanticsNode.config]
      */
     private val cachedConfig: SemanticsConfiguration
