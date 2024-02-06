@@ -301,13 +301,11 @@ private class AccessibilityElement(
 
         AccessibilityMediator.focusedElement = this
 
-        mediator.debugLogger?.log(
-            listOf(
-                null,
-                "Focused on:",
-                cachedConfig
-            )
-        )
+        mediator.debugLogger?.apply {
+            log(null)
+            log("Focused on:")
+            log(cachedConfig)
+        }
 
         if (!isAlive) {
             return
@@ -647,15 +645,17 @@ private class AccessibilityElement(
         check(indexOfSelf != NSNotFound)
         check(container.accessibilityElementAtIndex(indexOfSelf) == this)
 
-        logger.log("${indent}AccessibilityElement_$semanticsNodeId")
-        logger.log("$indent  containmentChain: ${debugContainmentChain(this)}")
-        logger.log("$indent  isAccessibilityElement: $isAccessibilityElement")
-        logger.log("$indent  accessibilityLabel: $accessibilityLabel")
-        logger.log("$indent  accessibilityValue: $accessibilityValue")
-        logger.log("$indent  accessibilityTraits: $accessibilityTraits")
-        logger.log("$indent  accessibilityFrame: ${NSStringFromCGRect(accessibilityFrame)}")
-        logger.log("$indent  accessibilityIdentifier: $accessibilityIdentifier")
-        logger.log("$indent  accessibilityCustomActions: $accessibilityCustomActions")
+        logger.apply {
+            log("${indent}AccessibilityElement_$semanticsNodeId")
+            log("$indent  containmentChain: ${debugContainmentChain(this@AccessibilityElement)}")
+            log("$indent  isAccessibilityElement: $isAccessibilityElement")
+            log("$indent  accessibilityLabel: $accessibilityLabel")
+            log("$indent  accessibilityValue: $accessibilityValue")
+            log("$indent  accessibilityTraits: $accessibilityTraits")
+            log("$indent  accessibilityFrame: ${NSStringFromCGRect(accessibilityFrame)}")
+            log("$indent  accessibilityIdentifier: $accessibilityIdentifier")
+            log("$indent  accessibilityCustomActions: $accessibilityCustomActions")
+        }
     }
 }
 
@@ -1045,10 +1045,14 @@ internal class AccessibilityMediator constructor(
         }
 
         if (needsRefocusing) {
-            needsRefocusing = false
             val refocusedElement = checkNotNull(accessibilityElementsMap[rootSemanticsNodeId])
                 .findFocusableElement()
-            return NodesSyncResult.Success(refocusedElement)
+
+            if (refocusedElement != null) {
+                needsRefocusing = false
+                debugLogger?.log("Refocusing on $refocusedElement")
+                return NodesSyncResult.Success(refocusedElement)
+            }
         }
 
         // TODO: return refocused element if the old focus is not present in the new tree
