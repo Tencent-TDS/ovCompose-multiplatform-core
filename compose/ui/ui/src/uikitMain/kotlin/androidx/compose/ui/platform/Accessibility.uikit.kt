@@ -751,7 +751,8 @@ internal class AccessibilityMediator constructor(
 ) {
     private var isAlive = true
 
-    private var debugLogger: AccessibilityDebugLogger? = null
+    var debugLogger: AccessibilityDebugLogger? = null
+        private set
 
     var rootSemanticsNodeId: Int = -1
 
