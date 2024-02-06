@@ -1052,6 +1052,15 @@ internal class AccessibilityMediator constructor(
             debugTraverse(it, view)
         }
 
+        val isFocusedElementDead = focusedElement?.let {
+            val accessibilityElement = it as? AccessibilityElement
+            accessibilityElement?.isAlive ?: false
+        } ?: false
+
+        if (isFocusedElementDead) {
+            needsRefocusing = true
+        }
+
         if (needsRefocusing) {
             debugLogger?.log("Needs refocusing")
             val refocusedElement = checkNotNull(accessibilityElementsMap[rootSemanticsNodeId])
