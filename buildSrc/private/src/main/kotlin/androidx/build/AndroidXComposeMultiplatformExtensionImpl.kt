@@ -26,25 +26,11 @@ import org.gradle.api.Action
 import org.jetbrains.kotlin.gradle.plugin.mpp.*
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.internal.publication.DefaultMavenPublication
-import org.gradle.api.attributes.Usage
 import org.gradle.api.tasks.Copy
 import org.gradle.kotlin.dsl.creating
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.getValue
 import org.jetbrains.kotlin.konan.target.KonanTarget
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.DependencyConstraint
-import org.gradle.api.artifacts.ExcludeRule
-import org.gradle.api.artifacts.ModuleDependency
-import org.gradle.api.artifacts.ModuleVersionIdentifier
-import org.gradle.api.artifacts.PublishArtifact
-import org.gradle.api.attributes.AttributeContainer
-import org.gradle.api.capabilities.Capability
-import org.gradle.api.component.ComponentWithCoordinates
-import org.gradle.api.component.ComponentWithVariants
-import org.gradle.api.component.SoftwareComponent
-import org.gradle.api.internal.component.SoftwareComponentInternal
-import org.gradle.api.internal.component.UsageContext
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.gradle.kotlin.dsl.create
@@ -292,27 +278,27 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     }
 }
 
-fun Project.experimentalOELPublication() : Boolean = findProperty("oel.publication") == "true"
-fun Project.oelAndroidxVersion() : String? = findProperty("oel.androidx.version") as String?
-fun Project.oelAndroidxFoundationVersion() : String? = findProperty("oel.androidx.foundation.version") as String?
-fun Project.oelAndroidxMaterial3Version() : String? = findProperty("oel.androidx.material3.version") as String?
-fun Project.oelAndroidxMaterialVersion() : String? = findProperty("oel.androidx.material.version") as String?
+fun Project.experimentalArtifactRedirectingPublication() : Boolean = findProperty("artifactRedirecting.publication") == "true"
+fun Project.artifactRedirectingAndroidxVersion() : String? = findProperty("artifactRedirecting.androidx.version") as String?
+fun Project.artifactRedirectingAndroidxFoundationVersion() : String? = findProperty("artifactRedirecting.androidx.foundation.version") as String?
+fun Project.artifactRedirectingAndroidxMaterial3Version() : String? = findProperty("artifactRedirecting.androidx.material3.version") as String?
+fun Project.artifactRedirectingAndroidxMaterialVersion() : String? = findProperty("artifactRedirecting.androidx.material.version") as String?
 
-fun enableOELPublishing(project: Project) {
-    if (!project.experimentalOELPublication()) return
+fun enableArtifactRedirectingPublishing(project: Project) {
+    if (!project.experimentalArtifactRedirectingPublication()) return
 
-    if (project.experimentalOELPublication() && (project.oelAndroidxVersion() == null)) {
+    if (project.experimentalArtifactRedirectingPublication() && (project.artifactRedirectingAndroidxVersion() == null)) {
         error("androidx version should be specified for OEL publications")
     }
 
     val ext = project.multiplatformExtension ?: error("expected a multiplatform project")
 
-    val oelGroupId = project.findProperty("oel.androidx.groupId") as? String
+    val oelGroupId = project.findProperty("artifactRedirecting.androidx.groupId") as? String
 
     val newRootComponent: CustomRootComponent? = if (oelGroupId != null) {
-        val oelVersion = project.findProperty("oel.androidx.${project.name}.version") as? String
+        val oelVersion = project.findProperty("artifactRedirecting.androidx.${project.name}.version") as? String
         requireNotNull(oelVersion) {
-            "Please specify oel.androidx.${project.name}.version property"
+            "Please specify artifactRedirecting.androidx.${project.name}.version property"
         }
 
         val rootComponent = project
@@ -326,7 +312,7 @@ fun enableOELPublishing(project: Project) {
         null
     }
 
-    val oelTargetNames = (project.findProperty("oel.publication.targetNames") as? String ?: "")
+    val oelTargetNames = (project.findProperty("artifactRedirecting.publication.targetNames") as? String ?: "")
         .split(",").toSet()
 
     ext.targets.all { target ->
@@ -350,17 +336,17 @@ private fun Project.publishAndroidxReference(target: KotlinAndroidTarget) {
             .withType(KotlinSoftwareComponentWithCoordinatesAndPublication::class.java)
             .getByName("kotlin")
 
-        val composeVersion = requireNotNull(target.project.oelAndroidxVersion()) {
-            "Please specify oel.androidx.version property"
+        val composeVersion = requireNotNull(target.project.artifactRedirectingAndroidxVersion()) {
+            "Please specify artifactRedirecting.androidx.version property"
         }
         val material3Version =
-            requireNotNull(target.project.oelAndroidxMaterial3Version()) {
-                "Please specify oel.androidx.material3.version property"
+            requireNotNull(target.project.artifactRedirectingAndroidxMaterial3Version()) {
+                "Please specify artifactRedirecting.androidx.material3.version property"
             }
         val foundationVersion =
-            target.project.oelAndroidxFoundationVersion() ?: composeVersion
+            target.project.artifactRedirectingAndroidxFoundationVersion() ?: composeVersion
         val materialVersion =
-            target.project.oelAndroidxMaterialVersion() ?: composeVersion
+            target.project.artifactRedirectingAndroidxMaterialVersion() ?: composeVersion
 
         val groupId = target.project.group.toString()
         val version = if (groupId.contains("org.jetbrains.compose.material3")) {
@@ -454,8 +440,8 @@ private fun Project.publishAndroidxReference(target: KotlinAndroidTarget) {
  */
 private fun KotlinNativeTarget.substituteForOelPublishedDependencies() {
     val comp = compilations.getByName("main")
-    val androidAnnotationVersion = project.findProperty("oel.androidx.annotation.version")!!
-    val androidCollectionVersion = project.findProperty("oel.androidx.collection.version")!!
+    val androidAnnotationVersion = project.findProperty("artifactRedirecting.androidx.annotation.version")!!
+    val androidCollectionVersion = project.findProperty("artifactRedirecting.androidx.collection.version")!!
     listOf(
         comp.configurations.compileDependencyConfiguration,
         comp.configurations.runtimeDependencyConfiguration,
