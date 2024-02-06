@@ -22,7 +22,9 @@ plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     id("AndroidXComposePlugin")
-    id("kotlinx-atomicfu")
+    // TODO https://youtrack.jetbrains.com/issue/COMPOSE-906/Fix-atomicfu-compilation-hanging
+    //  this hangs :compose:material3:material3:compileKotlinDesktop
+    //id("kotlinx-atomicfu")
     //id("AndroidXPaparazziPlugin") // isn't supported on Windows
 }
 
@@ -106,6 +108,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
                 implementation(project(":compose:ui:ui-util"))
                 implementation(project(":compose:foundation:foundation-layout"))
+                implementation(project(":annotation:annotation"))
+                implementation(project(":collection:collection"))
             }
 
             androidMain.dependencies {
