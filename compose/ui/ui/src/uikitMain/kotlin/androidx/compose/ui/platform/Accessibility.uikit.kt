@@ -912,11 +912,7 @@ internal class AccessibilityMediator constructor(
                         is NodesSyncResult.Success -> {
                             debugLogger?.log("AccessibilityMediator.sync took $time")
 
-                            if (immutableResult.newElementToFocus != null) {
-                                UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, immutableResult.newElementToFocus)
-                            } else {
-                                UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, null)
-                            }
+                            UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, immutableResult.newElementToFocus)
                         }
                     }
                 }
