@@ -636,6 +636,8 @@ private class AccessibilityElement(
         element.parent = this@AccessibilityElement
     }
 
+    private fun debugContainmentChain() = debugContainmentChain(this)
+
     fun debugLog(logger: AccessibilityDebugLogger, depth: Int) {
         val indent = " ".repeat(depth * 2)
 
@@ -647,7 +649,7 @@ private class AccessibilityElement(
 
         logger.apply {
             log("${indent}AccessibilityElement_$semanticsNodeId")
-            log("$indent  containmentChain: ${debugContainmentChain(this@AccessibilityElement)}")
+            log("$indent  containmentChain: ${debugContainmentChain()}")
             log("$indent  isAccessibilityElement: $isAccessibilityElement")
             log("$indent  accessibilityLabel: $accessibilityLabel")
             log("$indent  accessibilityValue: $accessibilityValue")
