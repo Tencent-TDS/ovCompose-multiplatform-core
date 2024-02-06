@@ -312,7 +312,7 @@ class ComposerParamTransformer(
                 this
             )
         } else {
-            val ctor = classSymbol!!.constructors.first()
+            val ctor = classSymbol!!.constructors.first { it.owner.isPrimary }
             val underlyingType = getInlineClassUnderlyingType(classSymbol.owner)
 
             // TODO(lmr): We should not be calling the constructor here, but this seems like a
