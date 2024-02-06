@@ -299,6 +299,8 @@ private class AccessibilityElement(
     override fun accessibilityElementDidBecomeFocused() {
         super.accessibilityElementDidBecomeFocused()
 
+        AccessibilityMediator.focusedElement = this
+
         mediator.debugLogger?.log(
             listOf(
                 null,
@@ -583,6 +585,29 @@ private class AccessibilityElement(
         semanticsNode = newSemanticsNode
     }
 
+    /**
+     * Find the element that is eligible for focusing.
+     */
+    fun findFocusableElement(): AccessibilityElement? {
+        // TODO: follow convention on refocusing on the first eligible element
+        //  following the element with `Heading` trait
+        check(isAlive)
+
+        if (isAccessibilityElement) {
+            return this
+        }
+
+        for (child in children) {
+            val focusableElement = child.findFocusableElement()
+
+            if (focusableElement != null) {
+                return focusableElement
+            }
+        }
+
+        return null
+    }
+
     private fun removeFromParent() {
         val parent = parent ?: return
 
@@ -812,6 +837,11 @@ internal class AccessibilityMediator constructor(
     coroutineContext: CoroutineContext,
     private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
 ) {
+    /**
+     * Indicates that this mediator was just created and the accessibility focus should be set on the
+     * first eligible element.
+     */
+    private var needsRefocusing = true
     private var isAlive = true
 
     var debugLogger: AccessibilityDebugLogger? = null
@@ -939,7 +969,6 @@ internal class AccessibilityMediator constructor(
      * that are not present in the tree anymore.
      */
     private fun traverseSemanticsTree(rootNode: SemanticsNode): Any {
-        // TODO: should we move [presentIds] to the class scope to avoid reallocation?
         val presentIds = mutableSetOf<Int>()
 
         fun traverseSemanticsNode(node: SemanticsNode): AccessibilityElement {
@@ -1015,10 +1044,21 @@ internal class AccessibilityMediator constructor(
             debugTraverse(it, view)
         }
 
+        if (needsRefocusing) {
+            needsRefocusing = false
+            val refocusedElement = checkNotNull(accessibilityElementsMap[rootSemanticsNodeId])
+                .findFocusableElement()
+            return NodesSyncResult.Success(refocusedElement)
+        }
+
         // TODO: return refocused element if the old focus is not present in the new tree
         //  reverse engineer the logic of iOS Accessibility services that is performed when the
         //  focused object is deallocated
         return NodesSyncResult.Success(null)
+    }
+
+    companion object {
+        var focusedElement: Any? = null
     }
 }
 
