@@ -5,6 +5,10 @@
 
 import java.util.*
 
+/**
+ * The name or alternative names can be used in gradle.properties of the modules (in arbitrary case).
+ * That means we need to be careful if/when renaming or deleting any enum value or its name.
+ */
 enum class ComposePlatforms(vararg val alternativeNames: String) {
     KotlinMultiplatform("Common"),
     Desktop("Jvm"),
@@ -29,11 +33,13 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
     MingwX64("Mingw"),
     ;
 
-    fun toKotlinTargetName(): String {
-        return when (this) {
-            AndroidRelease, AndroidDebug -> "android"
-            else -> this.name.replaceFirstChar { it.lowercaseChar() }
-        }
+    private val namesLowerCased by lazy {
+        listOf(name, *alternativeNames).map { it.lowercase() }.toSet()
+    }
+
+    fun matchesAnyIgnoringCase(namesToMatch: Collection<String>): Boolean {
+        val namesToMatchLowerCased = namesToMatch.map { it.lowercase() }.toSet()
+        return namesToMatchLowerCased.intersect(this.namesLowerCased).isNotEmpty()
     }
 
     fun matches(nameCandidate: String): Boolean =

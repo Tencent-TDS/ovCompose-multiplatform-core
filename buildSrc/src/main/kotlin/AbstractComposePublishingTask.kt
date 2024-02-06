@@ -45,8 +45,9 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
                 (it as? String)?.split(",") ?: emptyList()
             }.toSet() + defaultOelTargetNames
 
-        val supportedTargetNames = component.supportedPlatforms.map { it.toKotlinTargetName() }
-        val useOelPublication = supportedTargetNames.intersect(oelTargetNames).isNotEmpty()
+        val useOelPublication = component.supportedPlatforms.any {
+            it.matchesAnyIgnoringCase(oelTargetNames)
+        }
 
         // To make OEL publishing work properly with kotlin >= 1.9.0,
         // we use decorated `KotlinMultiplatform` publication named - 'KotlinMultiplatformDecorated'.
@@ -60,7 +61,7 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
 
         for (platform in targetPlatforms) {
             if (platform !in component.supportedPlatforms) continue
-            if (platform.toKotlinTargetName() in oelTargetNames) continue
+            if (platform.matchesAnyIgnoringCase(oelTargetNames)) continue
 
             dependsOnComposeTask("${component.path}:publish${platform.name}PublicationTo$repository")
         }
