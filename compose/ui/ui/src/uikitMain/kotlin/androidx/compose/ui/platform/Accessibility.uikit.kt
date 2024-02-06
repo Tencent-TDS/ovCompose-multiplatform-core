@@ -367,7 +367,9 @@ private class AccessibilityElement(
         }
     }
 
-    private fun scrollIfPossible(direction: UIAccessibilityScrollDirection, config: SemanticsConfiguration): Boolean {
+    private fun scrollIfPossible(direction: UIAccessibilityScrollDirection): Boolean {
+        val config = cachedConfig
+
         val (width, height) = semanticsNode.size
 
         // TODO: reverse engineer proper dimension scale
@@ -451,7 +453,7 @@ private class AccessibilityElement(
         }
 
         parent?.let {
-            return it.scrollIfPossible(direction, it.cachedConfig)
+            return it.scrollIfPossible(direction)
         }
 
         return false
@@ -462,7 +464,7 @@ private class AccessibilityElement(
             return false
         }
 
-        return scrollIfPossible(direction, cachedConfig)
+        return scrollIfPossible(direction)
     }
 
     override fun isAccessibilityElement(): Boolean =
