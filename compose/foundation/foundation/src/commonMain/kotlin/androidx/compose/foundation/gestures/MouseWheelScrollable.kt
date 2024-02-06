@@ -181,7 +181,7 @@ private class AnimatedMouseWheelScrollPhysics(
         }
         return with(scrollingLogic) {
             val delta = scrollDelta.reverseIfNeeded().toFloat()
-            if (canConsumeDelta(delta)) {
+            if (delta != 0f && canConsumeDelta(delta)) {
                 if (mouseWheelScrollConfig.isPreciseWheelScroll(pointerEvent)) {
                     // In case of high-resolution wheel, such as a freely rotating wheel with no notches
                     // or trackpads, delta should apply directly without any delays.
