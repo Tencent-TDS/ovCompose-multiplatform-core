@@ -453,7 +453,7 @@ private class AccessibilityElement(
         }
 
         parent?.let {
-            return it.scrollIfPossible(direction, it.cachedConfig)
+            return it.scrollIfPossible(direction)
         }
 
         return false
@@ -464,7 +464,7 @@ private class AccessibilityElement(
             return false
         }
 
-        return scrollIfPossible(direction, cachedConfig)
+        return scrollIfPossible(direction)
     }
 
     override fun isAccessibilityElement(): Boolean =
