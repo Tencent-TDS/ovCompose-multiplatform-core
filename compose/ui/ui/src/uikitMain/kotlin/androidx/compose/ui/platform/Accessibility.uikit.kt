@@ -47,6 +47,7 @@ import platform.UIKit.UIAccessibilityCustomAction
 import platform.UIKit.UIAccessibilityIsVoiceOverRunning
 import platform.UIKit.UIAccessibilityLayoutChangedNotification
 import platform.UIKit.UIAccessibilityPostNotification
+import platform.UIKit.UIAccessibilityScreenChangedNotification
 import platform.UIKit.UIAccessibilityScrollDirection
 import platform.UIKit.UIAccessibilityScrollDirectionDown
 import platform.UIKit.UIAccessibilityScrollDirectionLeft
@@ -910,7 +911,12 @@ internal class AccessibilityMediator constructor(
 
                         is NodesSyncResult.Success -> {
                             debugLogger?.log("AccessibilityMediator.sync took $time")
-                            UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, immutableResult.newElementToFocus)
+
+                            if (immutableResult.newElementToFocus != null) {
+                                UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, immutableResult.newElementToFocus)
+                            } else {
+                                UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, null)
+                            }
                         }
                     }
                 }
@@ -1047,6 +1053,7 @@ internal class AccessibilityMediator constructor(
         }
 
         if (needsRefocusing) {
+            debugLogger?.log("Needs refocusing")
             val refocusedElement = checkNotNull(accessibilityElementsMap[rootSemanticsNodeId])
                 .findFocusableElement()
 
@@ -1054,6 +1061,8 @@ internal class AccessibilityMediator constructor(
                 needsRefocusing = false
                 debugLogger?.log("Refocusing on $refocusedElement")
                 return NodesSyncResult.Success(refocusedElement)
+            } else {
+                debugLogger?.log("No focusable element found")
             }
         }
 
