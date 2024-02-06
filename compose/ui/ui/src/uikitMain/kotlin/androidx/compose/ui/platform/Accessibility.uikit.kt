@@ -1028,7 +1028,7 @@ internal class AccessibilityMediator constructor(
      *  of the issue and associated performance overhead.
      */
     private fun sync(): NodesSyncResult {
-        // TODO: investigate what needs to be done to reflect that this hiearchy is probably covered
+        // TODO: investigate what needs to be done to reflect that this hierarchy is probably covered
         //   by sibling overlay
 
         if (!isCurrentComposeAccessibleTreeDirty) {
@@ -1061,7 +1061,7 @@ internal class AccessibilityMediator constructor(
             needsRefocusing = true
         }
 
-        if (needsRefocusing) {
+        val newElementToFocus = if (needsRefocusing) {
             debugLogger?.log("Needs refocusing")
             val refocusedElement = checkNotNull(accessibilityElementsMap[rootSemanticsNodeId])
                 .findFocusableElement()
@@ -1069,16 +1069,16 @@ internal class AccessibilityMediator constructor(
             if (refocusedElement != null) {
                 needsRefocusing = false
                 debugLogger?.log("Refocusing on $refocusedElement")
-                return NodesSyncResult.Success(refocusedElement)
             } else {
                 debugLogger?.log("No focusable element found")
             }
+
+            refocusedElement
+        } else {
+            null
         }
 
-        // TODO: return refocused element if the old focus is not present in the new tree
-        //  reverse engineer the logic of iOS Accessibility services that is performed when the
-        //  focused object is deallocated
-        return NodesSyncResult.Success(null)
+        return NodesSyncResult.Success(newElementToFocus)
     }
 
     companion object {
