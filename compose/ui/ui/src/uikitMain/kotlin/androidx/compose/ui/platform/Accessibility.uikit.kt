@@ -47,7 +47,6 @@ import platform.UIKit.UIAccessibilityCustomAction
 import platform.UIKit.UIAccessibilityIsVoiceOverRunning
 import platform.UIKit.UIAccessibilityLayoutChangedNotification
 import platform.UIKit.UIAccessibilityPostNotification
-import platform.UIKit.UIAccessibilityScreenChangedNotification
 import platform.UIKit.UIAccessibilityScrollDirection
 import platform.UIKit.UIAccessibilityScrollDirectionDown
 import platform.UIKit.UIAccessibilityScrollDirectionLeft
@@ -844,7 +843,7 @@ internal class AccessibilityMediator constructor(
      * Indicates that this mediator was just created and the accessibility focus should be set on the
      * first eligible element.
      */
-    private var needsRefocusing = true
+    private var needsInitialRefocusing = true
     private var isAlive = true
 
     var debugLogger: AccessibilityDebugLogger? = null
@@ -1053,9 +1052,7 @@ internal class AccessibilityMediator constructor(
             accessibilityElement?.isAlive ?: false
         } ?: false
 
-        if (isFocusedElementDead) {
-            needsRefocusing = true
-        }
+        val needsRefocusing = needsInitialRefocusing || isFocusedElementDead
 
         val newElementToFocus = if (needsRefocusing) {
             debugLogger?.log("Needs refocusing")
@@ -1063,7 +1060,7 @@ internal class AccessibilityMediator constructor(
                 .findFocusableElement()
 
             if (refocusedElement != null) {
-                needsRefocusing = false
+                needsInitialRefocusing = false
                 debugLogger?.log("Refocusing on $refocusedElement")
             } else {
                 debugLogger?.log("No focusable element found")
