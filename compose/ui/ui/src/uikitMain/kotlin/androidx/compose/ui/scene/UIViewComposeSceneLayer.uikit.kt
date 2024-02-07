@@ -21,6 +21,7 @@ import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
@@ -58,7 +59,7 @@ internal class UIViewComposeSceneLayer(
 ) : ComposeSceneLayer {
 
     override var focusable: Boolean = focusStack != null
-    private var onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)? = null
+    private var onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)? = null
     private val rootView = composeContainer.view.window ?: composeContainer.view
     private val backgroundView: UIView = object : UIView(
         frame = CGRectZero.readValue()
@@ -87,6 +88,10 @@ internal class UIViewComposeSceneLayer(
         }
 
         override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
+            //TODO pass invoke(true) on touch up event only when this touch event begins outside of layer bounds.
+            // Also it should be only one touch event (not multitouch with 2 and more touches).
+            // In other cases pass invoke(false)
+            onOutsidePointerEvent?.invoke(true)
             return focusable
         }
     }
@@ -167,7 +172,7 @@ internal class UIViewComposeSceneLayer(
     }
 
     override fun setOutsidePointerEventListener(
-        onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)?
+        onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)?
     ) {
         this.onOutsidePointerEvent = onOutsidePointerEvent
     }
