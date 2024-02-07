@@ -16,12 +16,26 @@
 
 package androidx.compose.foundation
 
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 /**
  * BasicTooltipBox that wraps a composable with a tooltip.
@@ -53,14 +67,100 @@ actual fun BasicTooltipBox(
     enableUserInput: Boolean,
     content: @Composable () -> Unit
 ) {
-    Box(modifier = modifier) {
+    val scope = rememberCoroutineScope()
+    val longPressLabel = "Show tooltip" // TODO stringResource(R.string.tooltip_label)
+    Box(modifier = modifier
+        .handleGestures(enableUserInput, state)
+        .anchorSemantics(longPressLabel, enableUserInput, state, scope)
+    ) {
         content()
         if (state.isVisible) {
             Popup(
                 popupPositionProvider = positionProvider,
-                onDismissRequest = { state.dismiss() },
-                properties = PopupProperties(focusable = focusable),
+                onDismissRequest = {
+                    if (state.isVisible) {
+                        scope.launch { state.dismiss() }
+                    }
+                },
+                properties = PopupProperties(focusable = false), // TODO: Discuss how to support focusable
             ) { tooltip() }
         }
     }
 }
+
+
+private fun Modifier.handleGestures(
+    enabled: Boolean,
+    state: BasicTooltipState
+): Modifier =
+    if (enabled) {
+        this.pointerInput(state) {
+            coroutineScope {
+                awaitEachGesture {
+                    val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+                    val pass = PointerEventPass.Initial
+
+                    // wait for the first down press
+                    val inputType = awaitFirstDown(pass = pass).type
+
+                    if (inputType == PointerType.Touch || inputType == PointerType.Stylus) {
+                        try {
+                            // listen to if there is up gesture
+                            // within the longPressTimeout limit
+                            withTimeout(longPressTimeout) {
+                                waitForUpOrCancellation(pass = pass)
+                            }
+                        } catch (_: PointerEventTimeoutCancellationException) {
+                            // handle long press - Show the tooltip
+                            launch { state.show(MutatePriority.UserInput) }
+
+                            // consume the children's click handling
+                            val changes = awaitPointerEvent(pass = pass).changes
+                            for (i in 0 until changes.size) { changes[i].consume() }
+                        }
+                    }
+                }
+            }
+        }
+            .pointerInput(state) {
+                coroutineScope {
+                    awaitPointerEventScope {
+                        val pass = PointerEventPass.Main
+
+                        while (true) {
+                            val event = awaitPointerEvent(pass)
+                            val inputType = event.changes[0].type
+                            if (inputType == PointerType.Mouse) {
+                                when (event.type) {
+                                    PointerEventType.Enter -> {
+                                        launch { state.show(MutatePriority.UserInput) }
+                                    }
+
+                                    PointerEventType.Exit -> {
+                                        state.dismiss()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    } else this
+
+private fun Modifier.anchorSemantics(
+    label: String,
+    enabled: Boolean,
+    state: BasicTooltipState,
+    scope: CoroutineScope
+): Modifier =
+    if (enabled) {
+        this.semantics(mergeDescendants = true) {
+            onLongClick(
+                label = label,
+                action = {
+                    scope.launch { state.show() }
+                    true
+                }
+            )
+        }
+    } else this
