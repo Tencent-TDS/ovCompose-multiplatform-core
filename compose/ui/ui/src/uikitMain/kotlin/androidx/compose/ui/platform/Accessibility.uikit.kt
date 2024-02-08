@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import platform.CoreGraphics.CGRectMake
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityCustomAction
+import platform.UIKit.UIAccessibilityFocusedElement
 import platform.UIKit.UIAccessibilityIsVoiceOverRunning
 import platform.UIKit.UIAccessibilityLayoutChangedNotification
 import platform.UIKit.UIAccessibilityPostNotification
@@ -298,8 +299,6 @@ private class AccessibilityElement(
 
     override fun accessibilityElementDidBecomeFocused() {
         super.accessibilityElementDidBecomeFocused()
-
-        AccessibilityMediator.focusedElement = this
 
         mediator.debugLogger?.apply {
             log(null)
@@ -1047,6 +1046,10 @@ internal class AccessibilityMediator constructor(
             debugTraverse(it, view)
         }
 
+        val focusedElement = UIAccessibilityFocusedElement(null)
+
+        // TODO: in future the focused element could be the interop UIView that is detached from the
+        //  hierarchy, but still maitains the focus.
         val isFocusedElementDead = focusedElement?.let {
             val accessibilityElement = it as? AccessibilityElement
             accessibilityElement?.isAlive ?: false
@@ -1072,11 +1075,6 @@ internal class AccessibilityMediator constructor(
         }
 
         return NodesSyncResult.Success(newElementToFocus)
-    }
-
-    companion object {
-        // TODO: consider the cases when the focused elements are outside of Compose control.
-        var focusedElement: Any? = null
     }
 }
 
