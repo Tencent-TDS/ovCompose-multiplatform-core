@@ -1049,7 +1049,8 @@ internal class AccessibilityMediator constructor(
         val focusedElement = UIAccessibilityFocusedElement(null)
 
         // TODO: in future the focused element could be the interop UIView that is detached from the
-        //  hierarchy, but still maitains the focus.
+        //  hierarchy, but still maintains the focus until the GC collects it, or AX services detect
+        //  that it's not reachable anymore through containment chain
         val isFocusedElementDead = focusedElement?.let {
             val accessibilityElement = it as? AccessibilityElement
             accessibilityElement?.isAlive ?: false
