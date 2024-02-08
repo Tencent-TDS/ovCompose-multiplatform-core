@@ -25,7 +25,6 @@ import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.events.toSkikoDragEvent
 import androidx.compose.ui.events.toSkikoEvent
 import androidx.compose.ui.events.toSkikoScrollEvent
-import androidx.compose.ui.events.toSkikoTypeEvent
 import androidx.compose.ui.input.pointer.BrowserCursor
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.native.ComposeLayer
