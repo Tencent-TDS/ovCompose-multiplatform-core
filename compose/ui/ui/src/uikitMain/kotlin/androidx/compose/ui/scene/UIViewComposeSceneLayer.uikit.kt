@@ -69,6 +69,7 @@ internal class UIViewComposeSceneLayer(
                 super.hitTest(point, withEvent) == this
             ) {
                 if (previousSuccessHitTestTimestamp != withEvent?.timestamp) {
+                    // It is workaround to call onOutsidePointerEvent just once for one touch event.
                     previousSuccessHitTestTimestamp = withEvent?.timestamp
                     onOutsidePointerEvent?.invoke(PointerEventType.Press)
                     onOutsidePointerEvent?.invoke(PointerEventType.Release)
