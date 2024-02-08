@@ -126,6 +126,9 @@ internal class UIViewComposeSceneLayer(
                 SceneLayout.Bounds(rect = value)
             )
         }
+
+    override var compositionLocalContext: CompositionLocalContext? by mediator::compositionLocalContext
+
     override var scrimColor: Color? = null
         get() = field
         set(value) {
