@@ -44,6 +44,8 @@ import platform.CoreGraphics.CGSize
 import platform.UIKit.NSLayoutConstraint
 import platform.UIKit.UIColor
 import platform.UIKit.UIEvent
+import platform.UIKit.UIEventType
+import platform.UIKit.UIEventTypeTouches
 import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 
@@ -64,36 +66,65 @@ internal class UIViewComposeSceneLayer(
     private val backgroundView: UIView = object : UIView(
         frame = CGRectZero.readValue()
     ) {
-        init {
-            translatesAutoresizingMaskIntoConstraints = false
-            rootView.addSubview(this)
-            NSLayoutConstraint.activateConstraints(
-                getConstraintsToFillParent(this, rootView)
-            )
-        }
-
-
-        override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
-            super.touchesBegan(touches, withEvent)
-            if (touches.size == 1) {
-                onOutsidePointerEvent?.invoke(true)
+//        override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
+//            println("touchesBegan, touches.size: ${touches.size}")
+//            super.touchesBegan(touches, withEvent)
+//            if (touches.size == 1) {
+//                onOutsidePointerEvent?.invoke(PointerEventType.Press)
+//            }
+//        }
+//
+//        override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
+//            println("touchesEnded, touches.size: ${touches.size}")
+//            super.touchesEnded(touches, withEvent)
+//            if (touches.size == 1) {
+//                onOutsidePointerEvent?.invoke(PointerEventType.Release)
+//            }
+//        }
+//
+        /**
+         * We used simple solution to make only this view not touchable.
+         * Other view added to this container will be touchable.
+         */
+        override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+            println("-----hitTest------")
+            println(withEvent?.debugDescription)
+            println(withEvent?.description)
+            println(withEvent?.allTouches)
+            println(withEvent?.buttonMask)
+            println(withEvent?.modifierFlags)
+            println(withEvent?.subtype)
+            println(withEvent?.type)
+            println(withEvent?.subtype)
+            println(withEvent?.timestamp)
+            if (rootView.hitTest(point, withEvent) == this) {
+                onOutsidePointerEvent?.invoke(PointerEventType.Press)
+                onOutsidePointerEvent?.invoke(PointerEventType.Release)
+                return if (focusable) {
+                    this // handle touches
+                } else {
+                    null // transparent for touches
+                }
+            } else {
+                return null // transparent for touches
             }
         }
 
-        override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
-            super.touchesEnded(touches, withEvent)
-            if (touches.size == 1) {
-                onOutsidePointerEvent?.invoke(false)
-            }
-        }
-
-        override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
-            //TODO pass invoke(true) on touch up event only when this touch event begins outside of layer bounds.
-            // Also it should be only one touch event (not multitouch with 2 and more touches).
-            // In other cases pass invoke(false)
-            onOutsidePointerEvent?.invoke(true)
-            return focusable
-        }
+//        override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
+//            //TODO pass invoke(true) on touch up event only when this touch event begins outside of layer bounds.
+//            // Also it should be only one touch event (not multitouch with 2 and more touches).
+//            // In other cases pass invoke(false)
+////            boundsInWindow.contains()
+//            println("pointInside withEvent: $withEvent")
+//            println("pointInside withEvent?.allTouches?.size: ${withEvent?.allTouches?.size}")
+//            // if gesture start inside bounds - we should ignore
+//            // true if only one finger on UP
+//            // when down outside - call false
+//            // ignore move
+//            // after up outside - call true
+//
+//            return focusable
+//        }
     }
 
     private val mediator by lazy {
@@ -111,6 +142,12 @@ internal class UIViewComposeSceneLayer(
     }
 
     init {
+        backgroundView.multipleTouchEnabled = true
+        backgroundView.translatesAutoresizingMaskIntoConstraints = false
+        rootView.addSubview(backgroundView)
+        NSLayoutConstraint.activateConstraints(
+            getConstraintsToFillParent(backgroundView, rootView)
+        )
         composeContainer.attachLayer(this)
     }
 
