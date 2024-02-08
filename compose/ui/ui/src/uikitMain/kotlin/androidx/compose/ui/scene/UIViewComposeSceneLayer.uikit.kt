@@ -68,7 +68,7 @@ internal class UIViewComposeSceneLayer(
         frame = CGRectZero.readValue()
     ) {
 
-        var previousSuccessHitTestTimestamp: Double? = null
+        private var previousSuccessHitTestTimestamp: Double? = null
 
         private fun touchStartedOutside(withEvent: UIEvent?) {
             if (previousSuccessHitTestTimestamp != withEvent?.timestamp) {

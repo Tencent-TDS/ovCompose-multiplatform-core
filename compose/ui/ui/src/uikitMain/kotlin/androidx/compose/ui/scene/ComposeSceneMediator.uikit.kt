@@ -185,9 +185,6 @@ internal class ComposeSceneMediator(
         coroutineContext: CoroutineContext
     ) -> ComposeScene,
 ) {
-    fun hitTestInteractionView(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? =
-        interactionView.hitTest(point, withEvent)
-
     private val focusable: Boolean get() = focusStack != null
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
     private var _layout: SceneLayout = SceneLayout.Undefined
@@ -350,6 +347,9 @@ internal class ComposeSceneMediator(
             block()
         }
     }
+
+    fun hitTestInteractionView(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? =
+        interactionView.hitTest(point, withEvent)
 
     init {
         renderingView.onAttachedToWindow = {
