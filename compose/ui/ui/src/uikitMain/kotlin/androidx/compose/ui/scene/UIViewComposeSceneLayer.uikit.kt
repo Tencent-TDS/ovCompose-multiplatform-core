@@ -24,11 +24,14 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
+import androidx.compose.ui.toDpOffset
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.ComposeContainer
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.ProvideContainerCompositionLocals
@@ -36,12 +39,14 @@ import androidx.compose.ui.window.RenderingUIView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
 import platform.UIKit.NSLayoutConstraint
 import platform.UIKit.UIColor
 import platform.UIKit.UIEvent
+import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 
@@ -62,26 +67,47 @@ internal class UIViewComposeSceneLayer(
     private val backgroundView: UIView = object : UIView(
         frame = CGRectZero.readValue()
     ) {
-        private var previousSuccessHitTestTimestamp: Double? = null
-        override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? =
+
+        var previousSuccessHitTestTimestamp: Double? = null
+
+        private fun touchStartedOutside(withEvent: UIEvent?) {
+            if (previousSuccessHitTestTimestamp != withEvent?.timestamp) {
+                // This workaround needs to send PointerEventType.Press just once
+                previousSuccessHitTestTimestamp = withEvent?.timestamp
+                onOutsidePointerEvent?.invoke(PointerEventType.Press)
+            }
+        }
+
+        /**
+         * touchesEnded calls only when focused == true
+         */
+        override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
+            val touch = touches.firstOrNull() as? UITouch
+            val locationInView = touch?.locationInView(this)
+            if (locationInView != null) {
+                val offset = locationInView.useContents { toDpOffset() }
+                val contains = boundsInWindow.contains(offset.toOffset(density).round())
+                println("$boundsInWindow contains ${offset.toOffset(density).round()} is $contains")
+                if (!contains) {
+                    onOutsidePointerEvent?.invoke(PointerEventType.Release)
+                }
+            }
+            super.touchesEnded(touches, withEvent)
+        }
+
+        override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
             if (
                 mediator.hitTestInteractionView(point, withEvent) == null &&
                 super.hitTest(point, withEvent) == this
             ) {
-                if (previousSuccessHitTestTimestamp != withEvent?.timestamp) {
-                    // It is workaround to call onOutsidePointerEvent just once for one touch event.
-                    previousSuccessHitTestTimestamp = withEvent?.timestamp
-                    onOutsidePointerEvent?.invoke(PointerEventType.Press)
-                    onOutsidePointerEvent?.invoke(PointerEventType.Release)
-                }
+                touchStartedOutside(withEvent)
                 if (focusable) {
-                    this // handle touches
-                } else {
-                    null // transparent for touches
+                    return this // block touches
                 }
-            } else {
-                null // transparent for touches
             }
+            return null // transparent for touches
+        }
+
     }
 
     private val mediator by lazy {
