@@ -172,6 +172,19 @@ private class NativeKeyboardVisibilityListener(
     }
 }
 
+private class ComposeSceneMediatorRootUIView: UIView(CGRectZero.readValue()) {
+    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+        // forwards touches forward to the children, is never a target for a touch
+        val result = super.hitTest(point, withEvent)
+
+        return if (result == this) {
+            null
+        } else {
+            result
+        }
+    }
+}
+
 internal class ComposeSceneMediator(
     private val container: UIView,
     private val configuration: ComposeUIViewControllerConfiguration,
@@ -216,9 +229,9 @@ internal class ComposeSceneMediator(
     }
 
     /**
-     * rootView, that contains [interopViewContainer] and [interactionView] and is added to [container]
+     * view, that contains [interopViewContainer] and [interactionView] and is added to [container]
      */
-    private val rootView = UIView()
+    private val rootView = ComposeSceneMediatorRootUIView()
 
     /**
      * Container for UIKitView and UIKitViewController
