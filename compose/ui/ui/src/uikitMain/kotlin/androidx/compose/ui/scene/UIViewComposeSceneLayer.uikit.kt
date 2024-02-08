@@ -81,32 +81,39 @@ internal class UIViewComposeSceneLayer(
 //                onOutsidePointerEvent?.invoke(PointerEventType.Release)
 //            }
 //        }
-//
+
+        private var previousHitTestTimestamp: Double? = null
         /**
          * We used simple solution to make only this view not touchable.
          * Other view added to this container will be touchable.
          */
         override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+            previousHitTestTimestamp = withEvent?.timestamp
             println("-----hitTest------")
-            println(withEvent?.debugDescription)
-            println(withEvent?.description)
-            println(withEvent?.allTouches)
-            println(withEvent?.buttonMask)
-            println(withEvent?.modifierFlags)
-            println(withEvent?.subtype)
-            println(withEvent?.type)
-            println(withEvent?.subtype)
-            println(withEvent?.timestamp)
-            if (rootView.hitTest(point, withEvent) == this) {
-                onOutsidePointerEvent?.invoke(PointerEventType.Press)
-                onOutsidePointerEvent?.invoke(PointerEventType.Release)
-                return if (focusable) {
+            println("debugDescription ${withEvent?.debugDescription}")
+            println("description ${withEvent?.description}")
+            println("allTouches ${withEvent?.allTouches}")
+            println("buttonMask ${withEvent?.buttonMask}")
+            println("modifierFlags ${withEvent?.modifierFlags}")
+            println("subtype ${withEvent?.subtype}")
+            println("type ${withEvent?.type}")
+            println("subtype ${withEvent?.subtype}")
+            println("timestamp ${withEvent?.timestamp}")
+            return if (
+                mediator.hitTestInteractionView(point, withEvent) == null &&
+                super.hitTest(point, withEvent) == this
+            ) {
+                if (previousHitTestTimestamp != withEvent?.timestamp) {
+                    onOutsidePointerEvent?.invoke(PointerEventType.Press)
+                    onOutsidePointerEvent?.invoke(PointerEventType.Release)
+                }
+                if (focusable) {
                     this // handle touches
                 } else {
                     null // transparent for touches
                 }
             } else {
-                return null // transparent for touches
+                null // transparent for touches
             }
         }
 
