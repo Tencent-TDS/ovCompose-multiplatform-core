@@ -63,11 +63,6 @@ internal class UIViewComposeSceneLayer(
         frame = CGRectZero.readValue()
     ) {
         private var previousSuccessHitTestTimestamp: Double? = null
-
-        /**
-         * We used simple solution to make only this view not touchable.
-         * Other view added to this container will be touchable.
-         */
         override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? =
             if (
                 mediator.hitTestInteractionView(point, withEvent) == null &&
