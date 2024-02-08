@@ -106,7 +106,6 @@ internal class UIViewComposeSceneLayer(
             }
             return null // transparent for touches
         }
-
     }
 
     private val mediator by lazy {
