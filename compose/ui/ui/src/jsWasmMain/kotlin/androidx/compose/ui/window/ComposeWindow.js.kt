@@ -22,6 +22,8 @@ import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.events.toSkikoDragEvent
 import androidx.compose.ui.events.toSkikoEvent
 import androidx.compose.ui.events.toSkikoScrollEvent
@@ -29,6 +31,8 @@ import androidx.compose.ui.events.toSkikoTypeEvent
 import androidx.compose.ui.input.pointer.BrowserCursor
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.native.ComposeLayer
+import androidx.compose.ui.platform.DefaultInputModeManager
+import androidx.compose.ui.platform.ImeTextInputService
 import androidx.compose.ui.platform.JSTextInputService
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.ViewConfiguration
@@ -60,7 +64,7 @@ import org.w3c.dom.TouchEvent
 private class ComposeWindow(
     canvasId: String,
     content: @Composable () -> Unit,
-)  {
+) {
 
     private val density: Density = Density(
         density = window.devicePixelRatio.toFloat(),
@@ -70,7 +74,22 @@ private class ComposeWindow(
     private val _windowInfo = WindowInfoImpl().apply {
         isWindowFocused = true
     }
-    private val jsTextInputService = JSTextInputService()
+
+    // recognize default input mode. It can change with any next input event.
+    private fun getInitialInputMode(): InputMode {
+        return if (window.matchMedia("(pointer: coarse)").matches) {
+            InputMode.Touch
+        } else {
+            InputMode.Keyboard
+        }
+    }
+
+    private val jsInputModeManager = DefaultInputModeManager(getInitialInputMode())
+
+    private val imeTextInputService = ImeTextInputService(canvasId, density)
+
+    private val jsTextInputService = JSTextInputService(jsInputModeManager, imeTextInputService)
+
     private val platformContext: PlatformContext =
         object : PlatformContext by PlatformContext.Empty {
             override val windowInfo get() = _windowInfo
@@ -85,6 +104,8 @@ private class ComposeWindow(
                     setCursor(canvasId, pointerIcon.id)
                 }
             }
+
+            override val inputModeManager: InputModeManager = jsInputModeManager
         }
 
     private val layer = ComposeLayer(
@@ -159,6 +180,7 @@ private class ComposeWindow(
             event.preventDefault()
         })
 
+        // TODO Shouldn't we use e.preventDefault() to replace browser`s hotkeys(Tab, Ctrl+S, etc)?
         canvas.addTypedEvent<KeyboardEvent>("keydown") { event, skikoView ->
             skikoView.onKeyboardEvent(event.toSkikoEvent(SkikoKeyboardEventKind.DOWN))
 
