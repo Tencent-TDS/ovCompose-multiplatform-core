@@ -1075,6 +1075,7 @@ internal class AccessibilityMediator constructor(
     }
 
     companion object {
+        // TODO: consider the cases when the focused elements are outside of Compose control.
         var focusedElement: Any? = null
     }
 }
