@@ -500,9 +500,21 @@ internal class RootNodeOwner(
     }
 }
 
-// the max value that can be passed as Constraints(0, LargeDimension, 0, LargeDimension)
-// greater values cause "Can't represent a width of"
-internal const val LargeDimension = (1 shl 14) - 1 // 16383
+// TODO a proper way is to provide API in Constraints to get this value
+/**
+ * Equals [Constraints.MinNonFocusMask]
+ */
+private const val ConstraintsMinNonFocusMask = 0x7FFF // 32767
+
+/**
+ * The max value that can be passed as Constraints(0, LargeDimension, 0, LargeDimension)
+ *
+ * Greater values cause "Can't represent a width of".
+ * See [Constraints.createConstraints] and [Constraints.bitsNeedForSize]:
+ *  - it fails if `widthBits + heightBits > 31`
+ *  - widthBits/heightBits are greater than 15 if we pass size >= [Constraints.MinNonFocusMask]
+ */
+internal const val LargeDimension = ConstraintsMinNonFocusMask - 1
 
 /**
  * After https://android-review.googlesource.com/c/platform/frameworks/support/+/2901556
