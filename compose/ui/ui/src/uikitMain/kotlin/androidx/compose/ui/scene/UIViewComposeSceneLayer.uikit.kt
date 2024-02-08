@@ -87,7 +87,6 @@ internal class UIViewComposeSceneLayer(
             if (locationInView != null) {
                 val offset = locationInView.useContents { toDpOffset() }
                 val contains = boundsInWindow.contains(offset.toOffset(density).round())
-                println("$boundsInWindow contains ${offset.toOffset(density).round()} is $contains")
                 if (!contains) {
                     onOutsidePointerEvent?.invoke(PointerEventType.Release)
                 }
