@@ -828,6 +828,25 @@ sealed class AccessibilitySyncOptions(
     class Always(debugLogger: AccessibilityDebugLogger?): AccessibilitySyncOptions(debugLogger = debugLogger)
 }
 
+@OptIn(ExperimentalComposeApi::class)
+private val AccessibilitySyncOptions.shouldPerformSync
+    get() =
+        when (this) {
+            is AccessibilitySyncOptions.Never -> false
+            is AccessibilitySyncOptions.WhenRequiredByAccessibilityServices -> UIAccessibilityIsVoiceOverRunning()
+            is AccessibilitySyncOptions.Always -> true
+        }
+
+@OptIn(ExperimentalComposeApi::class)
+private val AccessibilitySyncOptions.debugLoggerIfEnabled: AccessibilityDebugLogger?
+    get() =
+        if (shouldPerformSync) {
+            debugLogger
+        } else {
+            null
+        }
+
+
 /**
  * A class responsible for mediating between the tree of specific SemanticsOwner and the iOS accessibility tree.
  */
@@ -845,6 +864,10 @@ internal class AccessibilityMediator constructor(
     private var needsInitialRefocusing = true
     private var isAlive = true
 
+    /**
+     * Remembered [AccessibilityDebugLogger] after last sync, if logging is enabled according to
+     * [AccessibilitySyncOptions].
+     */
     var debugLogger: AccessibilityDebugLogger? = null
         private set
 
@@ -873,6 +896,8 @@ internal class AccessibilityMediator constructor(
     private val accessibilityElementsMap = mutableMapOf<Int, AccessibilityElement>()
 
     init {
+        getAccessibilitySyncOptions().debugLoggerIfEnabled?.log("AccessibilityMediator for ${view} created")
+
         val updateIntervalMillis = 50L
         // TODO: this approach was copied from desktop implementation, obviously it has a [updateIntervalMillis] lag
         //  between the actual change in the semantics tree and the change in the accessibility tree.
@@ -883,13 +908,7 @@ internal class AccessibilityMediator constructor(
 
                 val syncOptions = getAccessibilitySyncOptions()
 
-                val shouldPerformSync = when (syncOptions) {
-                    is AccessibilitySyncOptions.Never -> false
-                    is AccessibilitySyncOptions.WhenRequiredByAccessibilityServices -> {
-                        UIAccessibilityIsVoiceOverRunning()
-                    }
-                    is AccessibilitySyncOptions.Always -> true
-                }
+                val shouldPerformSync = syncOptions.shouldPerformSync
 
                 debugLogger = if (shouldPerformSync) {
                     syncOptions.debugLogger
