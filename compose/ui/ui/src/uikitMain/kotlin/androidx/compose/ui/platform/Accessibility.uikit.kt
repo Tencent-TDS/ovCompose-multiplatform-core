@@ -473,9 +473,12 @@ private class AccessibilityElement(
             if (config.contains(SemanticsProperties.InvisibleToUser)) {
                 false
             } else {
-                // TODO: investigate if it can it be a traversal group _and_ contain properties that should
+                // TODO: investigate if it can it be one of those _and_ contain properties that should
                 //  be communicated to iOS?
-                if (config.getOrNull(SemanticsProperties.IsTraversalGroup) == true) {
+                if (config.getOrNull(SemanticsProperties.IsTraversalGroup) == true
+                    || config.contains(SemanticsProperties.IsPopup)
+                    || config.contains(SemanticsProperties.IsDialog)
+                ) {
                     false
                 } else {
                     config.containsImportantForAccessibility()
