@@ -102,11 +102,20 @@ internal sealed interface SceneLayout {
     class Bounds(val rect: IntRect) : SceneLayout
 }
 
+/**
+ * iOS specific-implementation of [PlatformContext.SemanticsOwnerListener] used to track changes in [SemanticsOwner].
+ *
+ * @property container The UI container associated with the semantics owner.
+ * @property coroutineContext The coroutine context to use for handling semantics changes.
+ * @property getAccessibilitySyncOptions A lambda function to retrieve the latest accessibility synchronization options.
+ * @property performEscape A lambda to delegate accessibility escape operation. Returns true if the escape was handled, false otherwise.
+ */
 @OptIn(ExperimentalComposeApi::class)
 private class SemanticsOwnerListenerImpl(
     private val container: UIView,
     private val coroutineContext: CoroutineContext,
-    private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions
+    private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
+    private val performEscape: () -> Boolean
 ): PlatformContext.SemanticsOwnerListener {
     var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
 
@@ -116,7 +125,8 @@ private class SemanticsOwnerListenerImpl(
                 container,
                 semanticsOwner,
                 coroutineContext,
-                getAccessibilitySyncOptions
+                getAccessibilitySyncOptions,
+                performEscape
             )
         }
     }
@@ -196,8 +206,10 @@ internal class ComposeSceneMediator(
         invalidate: () -> Unit,
         platformContext: PlatformContext,
         coroutineContext: CoroutineContext
-    ) -> ComposeScene,
+    ) -> ComposeScene
 ) {
+    var performAccessibilityEscape: (() -> Unit)? = null
+
     private val focusable: Boolean get() = focusStack != null
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
     private var _layout: SceneLayout = SceneLayout.Undefined
@@ -261,9 +273,22 @@ internal class ComposeSceneMediator(
 
     @OptIn(ExperimentalComposeApi::class)
     private val semanticsOwnerListener by lazy {
-        SemanticsOwnerListenerImpl(rootView, coroutineContext, getAccessibilitySyncOptions = {
-            configuration.accessibilitySyncOptions
-        })
+        SemanticsOwnerListenerImpl(
+            rootView,
+            coroutineContext,
+            getAccessibilitySyncOptions = {
+                configuration.accessibilitySyncOptions
+            },
+            performEscape = {
+                val callback = performAccessibilityEscape
+                if (callback != null) {
+                    callback()
+                    true
+                } else {
+                    false
+                }
+            }
+        )
     }
 
     private val platformContext: PlatformContext by lazy {

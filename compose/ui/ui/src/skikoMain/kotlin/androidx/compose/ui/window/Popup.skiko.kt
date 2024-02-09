@@ -412,6 +412,17 @@ fun Popup(
     } else {
         null
     }
+
+    val onEscapeEvent =
+        if (onDismissRequest != null
+            && (properties.dismissOnBackPress || properties.dismissOnClickOutside)) {
+            {
+                onDismissRequest()
+            }
+        } else {
+            null
+        }
+
     PopupLayout(
         popupPositionProvider = popupPositionProvider,
         properties = properties,
@@ -419,6 +430,7 @@ fun Popup(
         onPreviewKeyEvent = onPreviewKeyEvent,
         onKeyEvent = overriddenOnKeyEvent,
         onOutsidePointerEvent = onOutsidePointerEvent,
+        onEscapeEvent = onEscapeEvent,
         content = content,
     )
 }
@@ -431,6 +443,7 @@ private fun PopupLayout(
     onPreviewKeyEvent: ((KeyEvent) -> Boolean)? = null,
     onKeyEvent: ((KeyEvent) -> Boolean)? = null,
     onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)? = null,
+    onEscapeEvent: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val platformInsets = properties.insetsConfig.safeInsets
@@ -441,6 +454,7 @@ private fun PopupLayout(
     )
     layer.setKeyEventListener(onPreviewKeyEvent, onKeyEvent)
     layer.setOutsidePointerEventListener(onOutsidePointerEvent)
+    layer.setEscapeEventListener(onEscapeEvent)
     rememberLayerContent(layer) {
         val parentBoundsInWindow = layoutParentBoundsInWindow ?: return@rememberLayerContent
         val containerSize = LocalWindowInfo.current.containerSize
