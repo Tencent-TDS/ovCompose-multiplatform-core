@@ -572,6 +572,16 @@ private class AccessibilityElement(
             mediator.convertRectToWindowSpaceCGRect(semanticsNode.boundsInWindow)
         }
 
+
+    override fun accessibilityPerformEscape(): Boolean {
+        if (!isAlive) {
+            mediator.debugLogger?.log("accessibilityPerformEscape() called after $semanticsNodeId was removed from the tree")
+            return false
+        }
+
+        return false
+    }
+
     // TODO: check the reference/value semantics for SemanticsNode, perhaps it doesn't need
     //  recreation at all
     fun updateWithNewSemanticsNode(newSemanticsNode: SemanticsNode) {
