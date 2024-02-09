@@ -48,6 +48,7 @@ import platform.UIKit.UIAccessibilityFocusedElement
 import platform.UIKit.UIAccessibilityIsVoiceOverRunning
 import platform.UIKit.UIAccessibilityLayoutChangedNotification
 import platform.UIKit.UIAccessibilityPostNotification
+import platform.UIKit.UIAccessibilityScreenChangedNotification
 import platform.UIKit.UIAccessibilityScrollDirection
 import platform.UIKit.UIAccessibilityScrollDirectionDown
 import platform.UIKit.UIAccessibilityScrollDirectionLeft
@@ -582,7 +583,12 @@ private class AccessibilityElement(
             return false
         }
 
-        return false
+        if (mediator.performEscape()) {
+            UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, null)
+            return true
+        } else {
+            return super.accessibilityPerformEscape()
+        }
     }
 
     // TODO: check the reference/value semantics for SemanticsNode, perhaps it doesn't need
@@ -869,6 +875,7 @@ internal class AccessibilityMediator constructor(
     private val owner: SemanticsOwner,
     coroutineContext: CoroutineContext,
     private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
+    val performEscape: () -> Boolean
 ) {
     /**
      * Indicates that this mediator was just created and the accessibility focus should be set on the

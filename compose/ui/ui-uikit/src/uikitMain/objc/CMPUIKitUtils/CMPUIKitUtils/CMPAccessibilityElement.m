@@ -101,7 +101,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (BOOL)accessibilityPerformEscape {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return [super accessibilityPerformEscape];
 }
 
 - (void)accessibilityElementDidBecomeFocused {
