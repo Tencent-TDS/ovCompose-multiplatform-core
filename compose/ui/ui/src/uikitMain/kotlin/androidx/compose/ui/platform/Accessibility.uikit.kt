@@ -870,7 +870,7 @@ private val AccessibilitySyncOptions.debugLoggerIfEnabled: AccessibilityDebugLog
  * A class responsible for mediating between the tree of specific SemanticsOwner and the iOS accessibility tree.
  */
 @OptIn(ExperimentalComposeApi::class)
-internal class AccessibilityMediator constructor(
+internal class AccessibilityMediator(
     val view: UIView,
     private val owner: SemanticsOwner,
     coroutineContext: CoroutineContext,
