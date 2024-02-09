@@ -582,8 +582,8 @@ private class MultiLayerComposeSceneImpl(
             check(!isClosed) { "AttachedComposeSceneLayer is closed" }
             composition?.dispose()
             composition = owner.setContent(
-                parent = compositionContext,
-                { compositionLocalContext }
+                parent = this@AttachedComposeSceneLayer.compositionContext,
+                { this@AttachedComposeSceneLayer.compositionLocalContext }
             ) {
                 owner.setRootModifier(background then keyInput)
                 content()
