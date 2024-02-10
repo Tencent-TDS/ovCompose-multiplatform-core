@@ -186,6 +186,7 @@ private class ComposeSceneMediatorRootUIView: UIView(CGRectZero.readValue()) {
 }
 
 internal class ComposeSceneMediator(
+    private val mainComposeScene: Boolean,
     private val container: UIView,
     private val configuration: ComposeUIViewControllerConfiguration,
     private val focusStack: FocusStack<UIView>?,
@@ -495,11 +496,14 @@ internal class ComposeSceneMediator(
 
     fun viewWillLayoutSubviews() {
         val density = container.systemDensity
-        //TODO: Current code updates layout based on rootViewController size.
-        // Maybe we need to rewrite it for SingleLayerComposeScene.
-
-        val boundsInWindow = windowContext.boundsInWindow(container)
-        scene.density = density // TODO: Maybe it is wrong to set density to scene here?
+        val boundsInWindow: IntRect = if (mainComposeScene) {
+            with(density) {
+                container.bounds.useContents { toDpRect().toRect().roundToIntRect() }
+            }
+        } else {
+            windowContext.boundsInWindow(container)
+        }
+        scene.density = density
         scene.boundsInWindow = boundsInWindow
         onComposeSceneInvalidate()
     }
