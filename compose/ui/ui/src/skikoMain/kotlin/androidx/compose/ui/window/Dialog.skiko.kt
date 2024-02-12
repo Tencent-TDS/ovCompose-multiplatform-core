@@ -155,7 +155,6 @@ actual fun Dialog(
     } else {
         null
     }
-
     DialogLayout(
         modifier = Modifier.semantics { dialog() },
         onKeyEvent = onKeyEvent,
