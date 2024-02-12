@@ -219,6 +219,7 @@ private class AnimatedMouseWheelScrollPhysics(
         if (targetValue.isLowScrollingDelta()) {
             return
         }
+        var animationState = AnimationState(0f)
 
         /*
          * TODO Handle real down/up events from touchpad to set isScrollInProgress correctly.
@@ -234,13 +235,13 @@ private class AnimatedMouseWheelScrollPhysics(
             }?.let {
                 targetScrollDelta = it
                 targetValue = targetScrollDelta.value.reverseIfNeeded().toFloat()
+                animationState = AnimationState(0f) // Reset previous animation leftover
 
                 !targetValue.isLowScrollingDelta()
             } ?: false
         }
 
         scrollableState.userScroll {
-            val animationState = AnimationState(0f)
             var requiredAnimation = true
             while (requiredAnimation) {
                 requiredAnimation = false
