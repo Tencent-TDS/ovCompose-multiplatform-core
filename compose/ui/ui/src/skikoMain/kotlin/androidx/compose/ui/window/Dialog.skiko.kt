@@ -157,19 +157,10 @@ actual fun Dialog(
         null
     }
 
-    val onEscapeEvent = if (properties.dismissOnBackPress || properties.dismissOnClickOutside) {
-        {
-            onDismissRequest()
-        }
-    } else {
-        null
-    }
-
     DialogLayout(
         modifier = Modifier.semantics { dialog() },
         onKeyEvent = onKeyEvent,
         onOutsidePointerEvent = onOutsidePointerEvent,
-        onEscapeEvent = onEscapeEvent,
         properties = properties,
         content = content
     )
@@ -182,7 +173,6 @@ private fun DialogLayout(
     onPreviewKeyEvent: ((KeyEvent) -> Boolean)? = null,
     onKeyEvent: ((KeyEvent) -> Boolean)? = null,
     onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)? = null,
-    onEscapeEvent: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val platformInsets = properties.insetsConfig.safeInsets
@@ -192,7 +182,6 @@ private fun DialogLayout(
     layer.scrimColor = properties.scrimColor
     layer.setKeyEventListener(onPreviewKeyEvent, onKeyEvent)
     layer.setOutsidePointerEventListener(onOutsidePointerEvent)
-    layer.setEscapeEventListener(onEscapeEvent)
     rememberLayerContent(layer) {
         val containerSize = LocalWindowInfo.current.containerSize
         val measurePolicy = rememberDialogMeasurePolicy(

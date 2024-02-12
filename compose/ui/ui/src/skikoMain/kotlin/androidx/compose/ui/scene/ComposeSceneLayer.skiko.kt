@@ -149,27 +149,6 @@ interface ComposeSceneLayer {
     )
 
     /**
-     * Establishes a callback function that is triggered by platform specific semantic escape event,
-     * such as iOS accessibility escape gesture which is meant to dismiss the current layer.
-     *
-     * @param onEscapeEvent The callback function that is invoked when the accessibility escape event occurs.
-     * Implementation should perform any possible dismiss routine if it's semantically correct.
-     * When the layer represents [Popup] and [Dialog], if any of the following:
-     * - [PopupProperties.dismissOnBackPress]
-     * - [PopupProperties.dismissOnClickOutside]
-     * - [DialogProperties.dismissOnBackPress]
-     * - [DialogProperties.dismissOnClickOutside]
-     *
-     * is true, the layer will be dismissed.
-     *
-     * NOTE: Later this function can be used for root scene layer to perform contextual escape, such
-     * as a navigation pop.
-     */
-    fun setEscapeEventListener(
-        onEscapeEvent: (() -> Unit)? = null,
-    ) = Unit
-
-    /**
      * Returns the position relative to the [ComposeScene] of the [positionInWindow],
      * the position relative to the window.
      */

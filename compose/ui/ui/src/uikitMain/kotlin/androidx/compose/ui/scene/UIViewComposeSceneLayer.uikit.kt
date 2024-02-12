@@ -190,10 +190,6 @@ internal class UIViewComposeSceneLayer(
         mediator.setKeyEventListener(onPreviewKeyEvent, onKeyEvent)
     }
 
-    override fun setEscapeEventListener(onEscapeEvent: (() -> Unit)?) {
-        //mediator.performAccessibilityEscape = onEscapeEvent
-    }
-
     override fun setOutsidePointerEventListener(
         onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)?
     ) {
