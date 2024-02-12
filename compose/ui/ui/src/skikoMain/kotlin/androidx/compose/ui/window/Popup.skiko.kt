@@ -412,7 +412,6 @@ fun Popup(
     } else {
         null
     }
-
     PopupLayout(
         popupPositionProvider = popupPositionProvider,
         properties = properties,

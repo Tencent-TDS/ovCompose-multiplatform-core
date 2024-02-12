@@ -146,7 +146,6 @@ actual fun Dialog(
     } else {
         null
     }
-
     val onOutsidePointerEvent = if (properties.dismissOnClickOutside) {
         { eventType: PointerEventType ->
             if (eventType == PointerEventType.Release) {
