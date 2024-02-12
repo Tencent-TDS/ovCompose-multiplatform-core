@@ -71,7 +71,9 @@ import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import org.jetbrains.skia.Canvas
+import org.jetbrains.skiko.SkikoKey
 import org.jetbrains.skiko.SkikoKeyboardEvent
+import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
 import platform.CoreGraphics.CGPoint
@@ -117,7 +119,7 @@ private class SemanticsOwnerListenerImpl(
     private val coroutineContext: CoroutineContext,
     private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
     private val performEscape: () -> Boolean
-): PlatformContext.SemanticsOwnerListener {
+) : PlatformContext.SemanticsOwnerListener {
     var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
 
     override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
@@ -209,8 +211,6 @@ internal class ComposeSceneMediator(
         coroutineContext: CoroutineContext
     ) -> ComposeScene
 ) {
-    var performAccessibilityEscape: (() -> Unit)? = null
-
     private val focusable: Boolean get() = focusStack != null
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
     private var _layout: SceneLayout = SceneLayout.Undefined
@@ -281,13 +281,23 @@ internal class ComposeSceneMediator(
                 configuration.accessibilitySyncOptions
             },
             performEscape = {
-                val callback = performAccessibilityEscape
-                if (callback != null) {
-                    callback()
-                    true
-                } else {
-                    false
-                }
+                onKeyboardEvent(
+                    KeyEvent(
+                        SkikoKeyboardEvent(
+                            SkikoKey.KEY_ESCAPE,
+                            kind = SkikoKeyboardEventKind.DOWN,
+                            platform = null
+                        )
+                    )
+                ) || onKeyboardEvent(
+                    KeyEvent(
+                        SkikoKeyboardEvent(
+                            SkikoKey.KEY_ESCAPE,
+                            kind = SkikoKeyboardEventKind.UP,
+                            platform = null
+                        )
+                    )
+                )
             }
         )
     }
@@ -316,10 +326,7 @@ internal class ComposeSceneMediator(
     private val keyboardEventHandler: KeyboardEventHandler by lazy {
         object : KeyboardEventHandler {
             override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
-                val composeEvent = KeyEvent(event)
-                if (!uiKitTextInputService.onPreviewKeyEvent(composeEvent)) {
-                    scene.sendKeyEvent(composeEvent)
-                }
+                onKeyboardEvent(KeyEvent(event))
             }
         }
     }
@@ -379,6 +386,9 @@ internal class ComposeSceneMediator(
             scene = scene
         )
     }
+
+    var density by scene::density
+    var layoutDirection by scene::layoutDirection
 
     private var onAttachedToWindow: (() -> Unit)? = null
     private fun runOnceViewAttached(block: () -> Unit) {
@@ -648,9 +658,21 @@ internal class ComposeSceneMediator(
         size.height
     }
 
-    var density by scene::density
-    var layoutDirection by scene::layoutDirection
+    private var _onPreviewKeyEvent: (KeyEvent) -> Boolean = { false }
+    private var _onKeyEvent: (KeyEvent) -> Boolean = { false }
+    fun setKeyEventListener(
+        onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
+        onKeyEvent: ((KeyEvent) -> Boolean)?
+    ) {
+        this._onPreviewKeyEvent = onPreviewKeyEvent ?: { false }
+        this._onKeyEvent = onKeyEvent ?: { false }
+    }
 
+    private fun onKeyboardEvent(keyEvent: KeyEvent): Boolean =
+        uiKitTextInputService.onPreviewKeyEvent(keyEvent) // TODO: fix redundant call
+            || _onPreviewKeyEvent(keyEvent)
+            || scene.sendKeyEvent(keyEvent)
+            || _onKeyEvent(keyEvent)
 }
 
 internal fun getConstraintsToFillParent(view: UIView, parent: UIView) =
