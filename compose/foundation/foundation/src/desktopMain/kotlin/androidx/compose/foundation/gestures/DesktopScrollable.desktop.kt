@@ -48,6 +48,8 @@ internal actual fun CompositionLocalConsumerModifierNode.platformScrollConfig():
 internal abstract class DesktopScrollConfig : ScrollConfig {
     override var isSmoothScrollingEnabled = System.getProperty("compose.scrolling.smooth.enabled") != "false"
         internal set
+
+    override fun isPreciseWheelScroll(event: PointerEvent): Boolean = event.isPreciseWheelRotation
 }
 
 // TODO(demin): is this formula actually correct? some experimental values don't fit
@@ -111,3 +113,9 @@ private val PointerEvent.shouldScrollByPage
 
 private val PointerEvent.totalScrollDelta
     get() = this.changes.fastFold(Offset.Zero) { acc, c -> acc + c.scrollDelta }
+
+private val PointerEvent.isPreciseWheelRotation
+    get() = (awtEventOrNull as? MouseWheelEvent)?.isPreciseWheelRotation ?: false
+
+private val MouseWheelEvent.isPreciseWheelRotation
+    get() = abs(preciseWheelRotation - wheelRotation.toDouble()) > 0.001
