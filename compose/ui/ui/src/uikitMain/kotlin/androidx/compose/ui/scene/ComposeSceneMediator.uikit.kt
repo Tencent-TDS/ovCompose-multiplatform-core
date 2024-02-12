@@ -281,7 +281,7 @@ internal class ComposeSceneMediator(
                 configuration.accessibilitySyncOptions
             },
             performEscape = {
-                onKeyboardEvent(
+                val down = onKeyboardEvent(
                     KeyEvent(
                         SkikoKeyboardEvent(
                             SkikoKey.KEY_ESCAPE,
@@ -289,7 +289,9 @@ internal class ComposeSceneMediator(
                             platform = null
                         )
                     )
-                ) || onKeyboardEvent(
+                )
+
+                val up = onKeyboardEvent(
                     KeyEvent(
                         SkikoKeyboardEvent(
                             SkikoKey.KEY_ESCAPE,
@@ -298,6 +300,8 @@ internal class ComposeSceneMediator(
                         )
                     )
                 )
+
+                down || up
             }
         )
     }
