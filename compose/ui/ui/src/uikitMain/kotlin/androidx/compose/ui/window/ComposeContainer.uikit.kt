@@ -310,7 +310,6 @@ internal class ComposeContainer(
 
     private fun setContent(content: @Composable () -> Unit) {
         val mediator = mediator ?: ComposeSceneMediator(
-            mainComposeScene = true,
             container = view,
             configuration = configuration,
             focusStack = focusStack,

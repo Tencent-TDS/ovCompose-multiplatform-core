@@ -186,7 +186,6 @@ private class ComposeSceneMediatorRootUIView: UIView(CGRectZero.readValue()) {
 }
 
 internal class ComposeSceneMediator(
-    private val mainComposeScene: Boolean,
     private val container: UIView,
     private val configuration: ComposeUIViewControllerConfiguration,
     private val focusStack: FocusStack<UIView>?,
@@ -496,13 +495,7 @@ internal class ComposeSceneMediator(
 
     fun viewWillLayoutSubviews() {
         val density = container.systemDensity
-        val boundsInWindow: IntRect = if (mainComposeScene) {
-            with(density) {
-                container.bounds.useContents { toDpRect().toRect().roundToIntRect() }
-            }
-        } else {
-            windowContext.boundsInWindow(container)
-        }
+        val boundsInWindow: IntRect = windowContext.boundsInWindow(container)
         scene.density = density
         scene.boundsInWindow = boundsInWindow
         onComposeSceneInvalidate()

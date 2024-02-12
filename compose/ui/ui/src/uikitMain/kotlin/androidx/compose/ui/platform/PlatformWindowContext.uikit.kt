@@ -17,12 +17,14 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
-import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.toDpRect
+import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.roundToIntRect
+import kotlinx.cinterop.cValue
 import kotlinx.cinterop.useContents
+import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UIView
 
 /**
@@ -66,10 +68,15 @@ internal class PlatformWindowContext {
     fun boundsInWindow(container: UIView): IntRect {
         val density = container.systemDensity
         return if (_windowContainer != null && _windowContainer != container) {
-            container.convertRect(
-                rect = container.bounds,
+            val convertedPoint = container.convertPoint(
+                point = cValue { container.bounds.useContents { origin } },
                 toView = _windowContainer,
             )
+            //TODO split boundsInWindow and size in ComposeSceneLayer
+            // https://youtrack.jetbrains.com/issue/COMPOSE-964
+            val (x, y) = convertedPoint.useContents { x to y }
+            val (w, h) = container.bounds.useContents { size.width to size.height }
+            CGRectMake(x, y, w, h)
         } else {
             container.bounds
         }.useContents {
