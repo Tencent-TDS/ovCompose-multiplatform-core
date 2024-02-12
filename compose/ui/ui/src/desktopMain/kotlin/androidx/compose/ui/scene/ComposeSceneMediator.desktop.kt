@@ -345,7 +345,6 @@ internal class ComposeSceneMediator(
         if (!awtEventFilter.shouldSendKeyEvent(event)) {
             return
         }
-
         textInputService.onKeyEvent(event)
         windowContext.setKeyboardModifiers(event.toPointerKeyboardModifiers())
 
