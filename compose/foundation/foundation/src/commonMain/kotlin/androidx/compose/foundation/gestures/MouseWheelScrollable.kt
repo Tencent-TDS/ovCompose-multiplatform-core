@@ -45,6 +45,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 
 private val AnimationThreshold = 4.dp
 private val AnimationSpeed = 1.dp // dp / ms
@@ -170,7 +171,7 @@ private class AnimatedMouseWheelScrollPhysics(
     private fun ScrollingLogic.dispatchWheelScroll(delta: Float) {
         val offset = delta.reverseIfNeeded().toOffset()
         coroutineScope.launch {
-            scrollableState.scroll(MutatePriority.UserInput) {
+            scrollableState.userScroll {
                 dispatchScroll(offset, NestedScrollSource.Wheel)
             }
 
@@ -190,6 +191,13 @@ private class AnimatedMouseWheelScrollPhysics(
         val offset = delta.reverseIfNeeded().toOffset()
         val consumed = dispatchScroll(offset, NestedScrollSource.Wheel)
         consumed.reverseIfNeeded().toFloat()
+    }
+
+    private suspend fun ScrollableState.userScroll(
+        block: suspend ScrollScope.() -> Unit
+    ) = supervisorScope {
+        // Run it in supervisorScope to ignore cancellations from scrolls with higher MutatePriority
+        scroll(MutatePriority.UserInput, block)
     }
 
     override fun PointerInputScope.onMouseWheel(pointerEvent: PointerEvent): Boolean {
@@ -257,34 +265,30 @@ private class AnimatedMouseWheelScrollPhysics(
             val durationMillis = (abs(target - anim.value) / speed)
                 .roundToInt()
                 .coerceAtMost(MaxAnimationDuration)
-            try {
-                scrollableState.scroll(MutatePriority.UserInput) {
-                    anim.animateTo(
-                        target,
-                        animationSpec = tween(
-                            durationMillis = durationMillis,
-                            easing = LinearEasing
-                        ),
-                        sequentialAnimation = true
-                    ) {
-                        val delta = value - lastValue
-                        if (!delta.isLowScrollingDelta()) {
-                            val consumedDelta = dispatchWheelScroll(delta)
-                            if (!(delta - consumedDelta).isLowScrollingDelta()) {
-                                cancelAnimation()
-                                return@animateTo
-                            }
-                            lastValue += delta
-                        }
-                        tryReceiveNext()?.let {
-                            target += it
-                            requiredAnimation = !(target - lastValue).isLowScrollingDelta()
+            scrollableState.userScroll {
+                anim.animateTo(
+                    target,
+                    animationSpec = tween(
+                        durationMillis = durationMillis,
+                        easing = LinearEasing
+                    ),
+                    sequentialAnimation = true
+                ) {
+                    val delta = value - lastValue
+                    if (!delta.isLowScrollingDelta()) {
+                        val consumedDelta = dispatchWheelScroll(delta)
+                        if (!(delta - consumedDelta).isLowScrollingDelta()) {
                             cancelAnimation()
+                            return@animateTo
                         }
+                        lastValue += delta
+                    }
+                    tryReceiveNext()?.let {
+                        target += it
+                        requiredAnimation = !(target - lastValue).isLowScrollingDelta()
+                        cancelAnimation()
                     }
                 }
-            } catch (ignore: CancellationException) {
-                requiredAnimation = true
             }
         }
     }
