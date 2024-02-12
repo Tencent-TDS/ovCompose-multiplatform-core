@@ -589,8 +589,6 @@ internal interface ScrollConfig {
     val isSmoothScrollingEnabled: Boolean
         get() = false
 
-    fun isPreciseWheelScroll(event: PointerEvent): Boolean = false
-
     fun Density.calculateMouseWheelScroll(event: PointerEvent, bounds: IntSize): Offset
 }
 
