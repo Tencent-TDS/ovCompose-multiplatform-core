@@ -108,7 +108,7 @@ private class SemanticsOwnerListenerImpl(
     private val container: UIView,
     private val coroutineContext: CoroutineContext,
     private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions
-): PlatformContext.SemanticsOwnerListener {
+) : PlatformContext.SemanticsOwnerListener {
     var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
 
     override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
@@ -144,7 +144,7 @@ private class RenderingUIViewDelegateImpl(
     private val interopContext: UIKitInteropContext,
     private val getBoundsInPx: () -> IntRect,
     private val scene: ComposeScene
-): RenderingUIView.Delegate {
+) : RenderingUIView.Delegate {
     override fun retrieveInteropTransaction(): UIKitInteropTransaction =
         interopContext.retrieve()
 
@@ -159,7 +159,7 @@ private class RenderingUIViewDelegateImpl(
 
 private class NativeKeyboardVisibilityListener(
     private val keyboardVisibilityListener: KeyboardVisibilityListenerImpl
-): NSObject() {
+) : NSObject() {
     @Suppress("unused")
     @ObjCAction
     fun keyboardWillShow(arg: NSNotification) {
@@ -173,7 +173,7 @@ private class NativeKeyboardVisibilityListener(
     }
 }
 
-private class ComposeSceneMediatorRootUIView: UIView(CGRectZero.readValue()) {
+private class ComposeSceneMediatorRootUIView : UIView(CGRectZero.readValue()) {
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
         // forwards touches forward to the children, is never a target for a touch
         val result = super.hitTest(point, withEvent)
@@ -496,6 +496,9 @@ internal class ComposeSceneMediator(
 
     fun viewWillLayoutSubviews() {
         val density = container.systemDensity
+        //TODO: Current code updates layout based on rootViewController size.
+        // Maybe we need to rewrite it for SingleLayerComposeScene.
+
         val offsetInWindow = windowContext.offsetInWindow(container)
         val size = container.bounds.useContents {
             with(density) {
@@ -509,9 +512,8 @@ internal class ComposeSceneMediator(
                 height = size.height,
             )
         )
-        scene.density = density
-        //TODO split boundsInWindow and size in ComposeSceneLayer
-        // https://youtrack.jetbrains.com/issue/COMPOSE-964
+        scene.density = density // TODO: Maybe it is wrong to set density to scene here?
+        // TODO: it should be updated on any container bounds change: resize or move itself or any parent
         scene.boundsInWindow = boundsInWindow
         onComposeSceneInvalidate()
     }
