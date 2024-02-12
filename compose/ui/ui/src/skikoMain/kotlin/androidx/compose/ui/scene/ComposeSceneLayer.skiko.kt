@@ -181,7 +181,6 @@ internal fun rememberComposeSceneLayer(
         )
     }
     layer.focusable = focusable
-    layer.compositionLocalContext = compositionLocalContext
     DisposableEffect(Unit) {
         onDispose {
             layer.close()
@@ -190,6 +189,7 @@ internal fun rememberComposeSceneLayer(
     SideEffect {
         layer.density = density
         layer.layoutDirection = layoutDirection
+        layer.compositionLocalContext = compositionLocalContext
     }
     return layer
 }
