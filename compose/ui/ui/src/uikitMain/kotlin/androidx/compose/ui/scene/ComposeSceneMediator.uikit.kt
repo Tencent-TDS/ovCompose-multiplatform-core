@@ -510,6 +510,8 @@ internal class ComposeSceneMediator(
             )
         )
         scene.density = density
+        //TODO split boundsInWindow and size in ComposeSceneLayer
+        // https://youtrack.jetbrains.com/issue/COMPOSE-964
         scene.boundsInWindow = boundsInWindow
         onComposeSceneInvalidate()
     }
