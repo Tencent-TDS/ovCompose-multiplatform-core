@@ -51,6 +51,7 @@ import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntRect
@@ -495,7 +496,19 @@ internal class ComposeSceneMediator(
 
     fun viewWillLayoutSubviews() {
         val density = container.systemDensity
-        val boundsInWindow: IntRect = windowContext.boundsInWindow(container)
+        val offsetInWindow = windowContext.offsetInWindow(container)
+        val size = container.bounds.useContents {
+            with(density) {
+                toDpRect().toRect().roundToIntRect()
+            }
+        }
+        val boundsInWindow = IntRect(
+            offset = offsetInWindow,
+            size = IntSize(
+                width = size.width,
+                height = size.height,
+            )
+        )
         scene.density = density
         scene.boundsInWindow = boundsInWindow
         onComposeSceneInvalidate()
