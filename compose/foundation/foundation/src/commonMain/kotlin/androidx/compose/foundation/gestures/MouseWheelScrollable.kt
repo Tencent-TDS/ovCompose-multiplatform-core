@@ -41,6 +41,7 @@ import androidx.compose.ui.util.fastForEach
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sign
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -155,8 +156,10 @@ private class AnimatedMouseWheelScrollPhysics(
     suspend fun receiveMouseWheelEvents() {
         while (coroutineContext.isActive) {
             val scrollDelta = channel.receive()
-            val speed = with(density()) { AnimationSpeed.toPx() }
-            scrollingLogic.dispatchMouseWheelScroll(scrollDelta, speed)
+            val density = density()
+            val threshold = with(density) { AnimationThreshold.toPx() }
+            val speed = with(density) { AnimationSpeed.toPx() }
+            scrollingLogic.dispatchMouseWheelScroll(scrollDelta, threshold, speed)
         }
     }
 
@@ -208,6 +211,7 @@ private class AnimatedMouseWheelScrollPhysics(
 
     private suspend fun ScrollingLogic.dispatchMouseWheelScroll(
         scrollDelta: MouseWheelScrollDelta,
+        threshold: Float, // px
         speed: Float, // px / ms
     ) {
         var targetScrollDelta = scrollDelta
@@ -228,12 +232,12 @@ private class AnimatedMouseWheelScrollPhysics(
          *  Ideally it should be resolved by catching real touches from input device instead of
          *  waiting the next event with timeout before resetting progress flag.
          */
-        suspend fun waitNextScrollDelta(timeoutMillis: Long): Boolean {
+        suspend fun waitNextScrollDelta(timeoutMillis: Long, forceApplyImmediately: Boolean = false): Boolean {
             if (timeoutMillis < 0) return false
             return withTimeoutOrNull(timeoutMillis) {
                 channel.receive()
             }?.let {
-                targetScrollDelta = it
+                targetScrollDelta = if (forceApplyImmediately) it.copy(shouldApplyImmediately = true) else it
                 targetValue = targetScrollDelta.value.reverseIfNeeded().toFloat()
                 animationState = AnimationState(0f) // Reset previous animation leftover
 
@@ -245,10 +249,23 @@ private class AnimatedMouseWheelScrollPhysics(
             var requiredAnimation = true
             while (requiredAnimation) {
                 requiredAnimation = false
-                if (targetScrollDelta.shouldApplyImmediately) {
+                if (targetScrollDelta.shouldApplyImmediately || abs(targetValue) < threshold) {
                     dispatchMouseWheelScroll(targetValue)
-                    requiredAnimation = waitNextScrollDelta(ProgressTimeout)
+                    requiredAnimation = waitNextScrollDelta(
+                        timeoutMillis = ProgressTimeout,
+
+                        // Apply the next event without `ProgressTimeout` immediately too.
+                        // Currently, `isPreciseWheelScroll` might be false-negative in case if
+                        // precise value is almost equal regular one.
+                        forceApplyImmediately = targetScrollDelta.shouldApplyImmediately
+                    )
                 } else {
+                    // Animation will start only on the next frame,
+                    // so apply threshold immediately to avoid delays.
+                    val instantDelta = sign(targetValue) * threshold
+                    dispatchMouseWheelScroll(instantDelta)
+                    targetValue -= instantDelta
+
                     val durationMillis = (abs(targetValue - animationState.value) / speed)
                         .roundToInt()
                         .coerceAtMost(MaxAnimationDuration)
@@ -315,6 +332,7 @@ private class AnimatedMouseWheelScrollPhysics(
  */
 private inline fun Float.isLowScrollingDelta(): Boolean = abs(this) < 0.5f
 
+private val AnimationThreshold = 6.dp // (AnimationSpeed * MaxAnimationDuration) / (1000ms / 60Hz)
 private val AnimationSpeed = 1.dp // dp / ms
 private const val MaxAnimationDuration = 100 // ms
 private const val ProgressTimeout = 100L // ms
