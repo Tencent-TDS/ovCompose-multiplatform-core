@@ -226,7 +226,7 @@ private class AnimatedMouseWheelScrollPhysics(
          *  Touchpads emit just multiple mouse wheel events, so detecting start and end of this
          *  "gesture" is not straight forward.
          *  Ideally it should be resolved by catching real touches from input device instead of
-         *  waiting the next event with timeout (before resetting progress flag).
+         *  waiting the next event with timeout before resetting progress flag.
          */
         suspend fun waitNextScrollDelta(timeoutMillis: Long): Boolean {
             if (timeoutMillis < 0) return false
@@ -263,7 +263,10 @@ private class AnimatedMouseWheelScrollPhysics(
                         }
                         nextScrollDelta != null
                     }
-                    requiredAnimation = waitNextScrollDelta(ProgressTimeout - durationMillis)
+                    if (!requiredAnimation) {
+                        // If it's completed, wait the next event with timeout before resetting progress flag
+                        requiredAnimation = waitNextScrollDelta(ProgressTimeout - durationMillis)
+                    }
                 }
             }
         }
