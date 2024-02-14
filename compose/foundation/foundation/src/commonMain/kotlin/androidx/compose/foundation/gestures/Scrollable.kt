@@ -608,7 +608,7 @@ private class ScrollableGesturesNode(
 ) : DelegatingNode() {
     val draggableState = ScrollDraggableState(scrollLogic)
     private val startDragImmediately = { scrollLogic.shouldScrollImmediately() }
-    private val onDragStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit = { velocity ->
+    private val onScrollStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit = { velocity ->
         nestedScrollDispatcher.coroutineScope.launch {
             scrollLogic.onDragStopped(velocity)
         }
@@ -622,13 +622,19 @@ private class ScrollableGesturesNode(
             interactionSource = interactionSource,
             reverseDirection = false,
             startDragImmediately = startDragImmediately,
-            onDragStopped = onDragStopped,
+            onDragStopped = onScrollStopped,
             canDrag = CanDragCalculation,
             onDragStarted = NoOpOnDragStarted
         )
     )
 
-    val mouseWheelScrollNode = delegate(MouseWheelScrollNode(scrollLogic, enabled))
+    val mouseWheelScrollNode = delegate(
+        MouseWheelScrollNode(
+            scrollingLogic = scrollLogic,
+            enabled = enabled,
+            onScrollStopped = onScrollStopped,
+        )
+    )
 
     fun update(
         orientation: Orientation,
@@ -645,11 +651,14 @@ private class ScrollableGesturesNode(
             reverseDirection = false,
             startDragImmediately = startDragImmediately,
             onDragStarted = NoOpOnDragStarted,
-            onDragStopped = onDragStopped,
+            onDragStopped = onScrollStopped,
             canDrag = CanDragCalculation
         )
 
-        mouseWheelScrollNode.enabled = enabled
+        mouseWheelScrollNode.update(
+            enabled = enabled,
+            onScrollStopped = onScrollStopped
+        )
     }
 }
 
