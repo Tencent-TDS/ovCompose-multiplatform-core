@@ -43,6 +43,7 @@ import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.Channel
@@ -196,20 +197,21 @@ private class AnimatedMouseWheelScrollPhysics(
             .reduceOrNull { accumulator, it -> accumulator + it }
 
     /**
-     * Replacement of regular [Channel.receive] that re-schedules a check each frame.
+     * Replacement of regular [Channel.receive] that schedules an invalidation each frame.
      * It avoids entering an idle state while waiting for [ScrollProgressTimeout].
      * It's important for tests that attempt to trigger another scroll after a mouse wheel event.
      */
-    private suspend fun Channel<MouseWheelScrollDelta>.busyReceive(): MouseWheelScrollDelta? {
-        while (coroutineContext.isActive) {
-            coroutineScope {
-                select {
-                    async { receive() }.onAwait { it }
-                    async { withFrameNanos { null } }.onAwait { it }
-                }.also { coroutineContext.cancelChildren() }
-            }?.let { return it }
+    private suspend fun Channel<MouseWheelScrollDelta>.busyReceive() = coroutineScope {
+        val job = launch {
+            while (coroutineContext.isActive) {
+                withFrameNanos { }
+            }
         }
-        return null
+        try {
+            receive()
+        } finally {
+            job.cancel()
+        }
     }
 
     private fun <E> untilNull(builderAction: () -> E?) = sequence<E> {
