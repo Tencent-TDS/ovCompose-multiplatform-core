@@ -523,9 +523,6 @@ interface BringIntoViewSpec {
     }
 }
 
-@Composable
-internal expect fun rememberFlingBehavior(): FlingBehavior
-
 /**
  * Contains the default values used by [scrollable]
  */
@@ -535,7 +532,7 @@ object ScrollableDefaults {
      * Create and remember default [FlingBehavior] that will represent natural fling curve.
      */
     @Composable
-    fun flingBehavior(): FlingBehavior = rememberFlingBehavior()
+    fun flingBehavior(): FlingBehavior = rememberPlatformDefaultFlingBehavior()
 
     /**
      * Create and remember default [OverscrollEffect] that will be used for showing over scroll
@@ -927,10 +924,13 @@ internal interface ScrollableDefaultFlingBehavior : FlingBehavior {
 /**
  * This method returns [ScrollableDefaultFlingBehavior] whose density will be managed by the
  * [ScrollableElement] because it's not created inside [Composable] context.
- * This is different from [rememberFlingBehavior] which creates [FlingBehavior] whose density
+ * This is different from [rememberPlatformDefaultFlingBehavior] which creates [FlingBehavior] whose density
  * depends on [LocalDensity] and is automatically resolved.
  */
 internal expect fun platformDefaultFlingBehavior(): ScrollableDefaultFlingBehavior
+
+@Composable
+internal expect fun rememberPlatformDefaultFlingBehavior(): FlingBehavior
 
 internal class DefaultFlingBehavior(
     var flingDecay: DecayAnimationSpec<Float>,
@@ -983,7 +983,7 @@ internal class DefaultFlingBehavior(
  */
 internal val ModifierLocalScrollableContainer = modifierLocalOf { false }
 
-internal val NoOpFlingBehavior = object : FlingBehavior {
+internal val NoOpFlingBehavior = object : ScrollableDefaultFlingBehavior {
     override suspend fun ScrollScope.performFling(initialVelocity: Float): Float = 0f
 }
 
