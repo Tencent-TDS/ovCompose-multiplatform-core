@@ -52,8 +52,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 internal class MouseWheelScrollNode(
     private val scrollingLogic: ScrollingLogic,
+    private val onScrollStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit,
     private var enabled: Boolean,
-    private var onScrollStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit,
 ) : DelegatingNode(), CompositionLocalConsumerModifierNode {
     private lateinit var mouseWheelScrollConfig: ScrollConfig
 
@@ -72,14 +72,12 @@ internal class MouseWheelScrollNode(
 
     fun update(
         enabled: Boolean,
-        onScrollStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit,
     ) {
         var resetPointerInputHandling = false
         if (this.enabled != enabled) {
             this.enabled = enabled
             resetPointerInputHandling = true
         }
-        this.onScrollStopped = onScrollStopped
         if (resetPointerInputHandling) {
             pointerInputNode.resetPointerInputHandler()
         }

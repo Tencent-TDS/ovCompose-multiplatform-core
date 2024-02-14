@@ -285,6 +285,12 @@ private class ScrollableNode(
         nestedScrollDispatcher = nestedScrollDispatcher,
     )
 
+    val onScrollStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit = { velocity ->
+        nestedScrollDispatcher.coroutineScope.launch {
+            scrollingLogic.onScrollStopped(velocity)
+        }
+    }
+
     val nestedScrollConnection =
         ScrollableNestedScrollConnection(enabled = enabled, scrollingLogic = scrollingLogic)
 
@@ -313,16 +319,48 @@ private class ScrollableNode(
         delegate(FocusedBoundsObserverNode { contentInViewNode.onFocusBoundsChanged(it) })
     }
 
+    private val draggableState = ScrollDraggableState(scrollingLogic)
+    private val startDragImmediately = { scrollingLogic.shouldScrollImmediately() }
+    private val onDragStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit = { velocity ->
+        nestedScrollDispatcher.coroutineScope.launch {
+            scrollingLogic.onScrollStopped(velocity)
+        }
+    }
+
     /**
      * Pointer gesture handling
      */
-    val scrollableGesturesNode = delegate(
-        ScrollableGesturesNode(
-            interactionSource = interactionSource,
+    val draggableGesturesNode = delegate(
+        DraggableNode(
+            draggableState,
             orientation = orientation,
             enabled = enabled,
-            nestedScrollDispatcher = nestedScrollDispatcher,
-            scrollLogic = scrollingLogic
+            interactionSource = interactionSource,
+            reverseDirection = false,
+            startDragImmediately = startDragImmediately,
+            onDragStopped = onDragStopped,
+            canDrag = CanDragCalculation,
+            onDragStarted = NoOpOnDragStarted
+        )
+    )
+
+    private val onWheelScrollStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit = { velocity ->
+        // TODO Split [flingBehavior] for drag and mouse wheel
+        //  Currently, default [flingBehavior] is not triggered at all to avoid unexpected effects
+        //  during regular scrolling. However, custom one must be triggered because it's used not
+        //  only for "inertia", but also for snapping in [Pager] or [rememberSnapFlingBehavior].
+        if (flingBehavior != null) {
+            nestedScrollDispatcher.coroutineScope.launch {
+                scrollingLogic.onScrollStopped(velocity)
+            }
+        }
+    }
+
+    val mouseWheelScrollNode = delegate(
+        MouseWheelScrollNode(
+            scrollingLogic = scrollingLogic,
+            onScrollStopped = onWheelScrollStopped,
+            enabled = enabled,
         )
     )
 
@@ -353,9 +391,19 @@ private class ScrollableNode(
             nestedScrollDispatcher = nestedScrollDispatcher
         )
 
-        scrollableGesturesNode.update(
-            interactionSource = interactionSource,
+        draggableGesturesNode.update(
+            draggableState,
             orientation = orientation,
+            enabled = enabled,
+            interactionSource = interactionSource,
+            reverseDirection = false,
+            startDragImmediately = startDragImmediately,
+            onDragStarted = NoOpOnDragStarted,
+            onDragStopped = onScrollStopped,
+            canDrag = CanDragCalculation
+        )
+
+        mouseWheelScrollNode.update(
             enabled = enabled
         )
 
@@ -593,72 +641,6 @@ internal interface ScrollConfig {
 
 internal expect fun CompositionLocalConsumerModifierNode.platformScrollConfig(): ScrollConfig
 
-/**
- * A node that detects and processes all scrollable gestures.
- */
-private class ScrollableGesturesNode(
-    val scrollLogic: ScrollingLogic,
-    val orientation: Orientation,
-    val enabled: Boolean,
-    val nestedScrollDispatcher: NestedScrollDispatcher,
-    val interactionSource: MutableInteractionSource?
-) : DelegatingNode() {
-    val draggableState = ScrollDraggableState(scrollLogic)
-    private val startDragImmediately = { scrollLogic.shouldScrollImmediately() }
-    private val onScrollStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit = { velocity ->
-        nestedScrollDispatcher.coroutineScope.launch {
-            scrollLogic.onDragStopped(velocity)
-        }
-    }
-
-    val draggableGesturesNode = delegate(
-        DraggableNode(
-            draggableState,
-            orientation = orientation,
-            enabled = enabled,
-            interactionSource = interactionSource,
-            reverseDirection = false,
-            startDragImmediately = startDragImmediately,
-            onDragStopped = onScrollStopped,
-            canDrag = CanDragCalculation,
-            onDragStarted = NoOpOnDragStarted
-        )
-    )
-
-    val mouseWheelScrollNode = delegate(
-        MouseWheelScrollNode(
-            scrollingLogic = scrollLogic,
-            enabled = enabled,
-            onScrollStopped = onScrollStopped,
-        )
-    )
-
-    fun update(
-        orientation: Orientation,
-        enabled: Boolean,
-        interactionSource: MutableInteractionSource?,
-    ) {
-
-        // update draggable node
-        draggableGesturesNode.update(
-            draggableState,
-            orientation = orientation,
-            enabled = enabled,
-            interactionSource = interactionSource,
-            reverseDirection = false,
-            startDragImmediately = startDragImmediately,
-            onDragStarted = NoOpOnDragStarted,
-            onDragStopped = onScrollStopped,
-            canDrag = CanDragCalculation
-        )
-
-        mouseWheelScrollNode.update(
-            enabled = enabled,
-            onScrollStopped = onScrollStopped
-        )
-    }
-}
-
 private val CanDragCalculation: (PointerInputChange) -> Boolean =
     { down -> down.type != PointerType.Mouse }
 
@@ -758,7 +740,7 @@ internal class ScrollingLogic(
             .reverseIfNeeded().toOffset()
     }
 
-    suspend fun onDragStopped(initialVelocity: Velocity) {
+    suspend fun onScrollStopped(initialVelocity: Velocity) {
         // Self started flinging, set
         registerNestedFling(true)
 
