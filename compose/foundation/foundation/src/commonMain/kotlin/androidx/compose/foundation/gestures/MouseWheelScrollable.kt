@@ -272,9 +272,9 @@ internal class MouseWheelScrollNode(
                 }
             }
         }
-
-        // Since there was a pause (see [waitNextScrollDelta]), current velocity is zero.
-        coroutineScope.onScrollStopped(Velocity.Zero)
+        val velocityPxInMs = minOf(abs(targetValue) / MaxAnimationDuration, speed)
+        val velocity = Velocity.Zero.update(sign(targetValue).reverseIfNeeded() * velocityPxInMs * 1000)
+        coroutineScope.onScrollStopped(velocity)
     }
 
     private suspend fun ScrollScope.animateMouseWheelScroll(
@@ -323,4 +323,4 @@ private inline fun Float.isLowScrollingDelta(): Boolean = abs(this) < 0.5f
 private val AnimationThreshold = 6.dp // (AnimationSpeed * MaxAnimationDuration) / (1000ms / 60Hz)
 private val AnimationSpeed = 1.dp // dp / ms
 private const val MaxAnimationDuration = 100 // ms
-private const val ScrollProgressTimeout = 100L // ms
+private const val ScrollProgressTimeout = 50L // ms
