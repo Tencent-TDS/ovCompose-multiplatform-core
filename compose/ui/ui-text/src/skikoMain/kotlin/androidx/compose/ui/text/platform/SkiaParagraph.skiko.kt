@@ -26,6 +26,7 @@ import org.jetbrains.skia.paragraph.ParagraphBuilder as SkParagraphBuilder
 import org.jetbrains.skia.paragraph.Shadow as SkShadow
 import org.jetbrains.skia.paragraph.TextIndent as SkTextIndent
 import org.jetbrains.skia.paragraph.TextStyle as SkTextStyle
+import org.jetbrains.skia.paragraph.FontRastrSettings as SkFontRastrSettings
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -493,11 +494,34 @@ internal class ParagraphBuilder(
         return null
     }
 
+    private fun makeSkFontRasterizationSettings(style: TextStyle): SkFontRastrSettings {
+        val rasterizationSettings = style.paragraphStyle.platformStyle?.fontRasterizationSettings
+            ?: FontRasterizationSettings.defaultForCurrentPlatform
+        val edging = when (rasterizationSettings.edging) {
+            FontEdging.ALIAS -> org.jetbrains.skia.FontEdging.ALIAS
+            FontEdging.ANTI_ALIAS -> org.jetbrains.skia.FontEdging.ANTI_ALIAS
+            FontEdging.SUBPIXEL_ANTI_ALIAS -> org.jetbrains.skia.FontEdging.SUBPIXEL_ANTI_ALIAS
+        }
+        val hinting = when (rasterizationSettings.hinting) {
+            FontHinting.NONE -> org.jetbrains.skia.FontHinting.NONE
+            FontHinting.SLIGHT -> org.jetbrains.skia.FontHinting.SLIGHT
+            FontHinting.NORMAL -> org.jetbrains.skia.FontHinting.NORMAL
+            FontHinting.FULL -> org.jetbrains.skia.FontHinting.FULL
+        }
+        return SkFontRastrSettings(
+            edging = edging,
+            hinting = hinting,
+            subpixel = rasterizationSettings.subpixelPositioning
+            // rasterizationSettings.autoHintingForced is ignored here for now because it's not supported in skia
+        )
+    }
+
     private fun textStyleToParagraphStyle(
         style: TextStyle,
         computedStyle: ComputedStyle
     ): ParagraphStyle {
         val pStyle = ParagraphStyle()
+        pStyle.fontRastrSettings = makeSkFontRasterizationSettings(style)
         pStyle.textStyle = makeSkTextStyle(computedStyle)
         style.textAlign.let {
             pStyle.alignment = it.toSkAlignment()
