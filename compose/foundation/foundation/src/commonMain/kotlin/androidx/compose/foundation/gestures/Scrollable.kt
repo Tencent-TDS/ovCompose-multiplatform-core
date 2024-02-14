@@ -285,12 +285,6 @@ private class ScrollableNode(
         nestedScrollDispatcher = nestedScrollDispatcher,
     )
 
-    val onScrollStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit = { velocity ->
-        nestedScrollDispatcher.coroutineScope.launch {
-            scrollingLogic.onScrollStopped(velocity)
-        }
-    }
-
     val nestedScrollConnection =
         ScrollableNestedScrollConnection(enabled = enabled, scrollingLogic = scrollingLogic)
 
@@ -323,7 +317,7 @@ private class ScrollableNode(
     private val startDragImmediately = { scrollingLogic.shouldScrollImmediately() }
     private val onDragStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit = { velocity ->
         nestedScrollDispatcher.coroutineScope.launch {
-            scrollingLogic.onScrollStopped(velocity)
+            scrollingLogic.onScrollStopped(velocity, Drag)
         }
     }
 
@@ -345,14 +339,8 @@ private class ScrollableNode(
     )
 
     private val onWheelScrollStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit = { velocity ->
-        // TODO Split [flingBehavior] for drag and mouse wheel
-        //  Currently, default [flingBehavior] is not triggered at all to avoid unexpected effects
-        //  during regular scrolling. However, custom one must be triggered because it's used not
-        //  only for "inertia", but also for snapping in [Pager] or [rememberSnapFlingBehavior].
-        if (flingBehavior != null) {
-            nestedScrollDispatcher.coroutineScope.launch {
-                scrollingLogic.onScrollStopped(velocity)
-            }
+        nestedScrollDispatcher.coroutineScope.launch {
+            scrollingLogic.onScrollStopped(velocity, Wheel)
         }
     }
 
@@ -399,7 +387,7 @@ private class ScrollableNode(
             reverseDirection = false,
             startDragImmediately = startDragImmediately,
             onDragStarted = NoOpOnDragStarted,
-            onDragStopped = onScrollStopped,
+            onDragStopped = onDragStopped,
             canDrag = CanDragCalculation
         )
 
@@ -740,7 +728,14 @@ internal class ScrollingLogic(
             .reverseIfNeeded().toOffset()
     }
 
-    suspend fun onScrollStopped(initialVelocity: Velocity) {
+    suspend fun onScrollStopped(
+        initialVelocity: Velocity,
+        source: NestedScrollSource
+    ) {
+        if (source == Wheel && !flingBehavior.shouldBeTriggeredByMouseWheel) {
+            return
+        }
+
         // Self started flinging, set
         registerNestedFling(true)
 
@@ -904,6 +899,16 @@ internal interface ScrollableDefaultFlingBehavior : FlingBehavior {
 }
 
 /**
+ * TODO Move it to public interface
+ *  Currently, default [FlingBehavior] is not triggered at all to avoid unexpected effects
+ *  during regular scrolling. However, custom one must be triggered because it's used not
+ *  only for "inertia", but also for snapping in [androidx.compose.foundation.pager.Pager] or
+ *  [androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior].
+ */
+private val FlingBehavior.shouldBeTriggeredByMouseWheel
+    get() = this !is ScrollableDefaultFlingBehavior
+
+/**
  * This method returns [ScrollableDefaultFlingBehavior] whose density will be managed by the
  * [ScrollableElement] because it's not created inside [Composable] context.
  * This is different from [rememberPlatformDefaultFlingBehavior] which creates [FlingBehavior] whose density
@@ -965,7 +970,7 @@ internal class DefaultFlingBehavior(
  */
 internal val ModifierLocalScrollableContainer = modifierLocalOf { false }
 
-internal val NoOpFlingBehavior = object : ScrollableDefaultFlingBehavior {
+internal val NoOpFlingBehavior = object : FlingBehavior {
     override suspend fun ScrollScope.performFling(initialVelocity: Float): Float = 0f
 }
 
