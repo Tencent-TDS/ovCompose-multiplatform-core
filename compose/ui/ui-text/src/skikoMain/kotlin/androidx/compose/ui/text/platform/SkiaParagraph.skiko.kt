@@ -497,16 +497,16 @@ internal class ParagraphBuilder(
     private fun makeSkFontRasterizationSettings(style: TextStyle): SkFontRastrSettings {
         val rasterizationSettings = style.paragraphStyle.platformStyle?.fontRasterizationSettings
             ?: FontRasterizationSettings.defaultForCurrentPlatform
-        val edging = when (rasterizationSettings.edging) {
-            FontEdging.ALIAS -> org.jetbrains.skia.FontEdging.ALIAS
-            FontEdging.ANTI_ALIAS -> org.jetbrains.skia.FontEdging.ANTI_ALIAS
-            FontEdging.SUBPIXEL_ANTI_ALIAS -> org.jetbrains.skia.FontEdging.SUBPIXEL_ANTI_ALIAS
+        val edging = when (rasterizationSettings.smoothing) {
+            FontSmoothing.None-> org.jetbrains.skia.FontEdging.ALIAS
+            FontSmoothing.AntiAlias -> org.jetbrains.skia.FontEdging.ANTI_ALIAS
+            FontSmoothing.SubpixelAntiAlias -> org.jetbrains.skia.FontEdging.SUBPIXEL_ANTI_ALIAS
         }
         val hinting = when (rasterizationSettings.hinting) {
-            FontHinting.NONE -> org.jetbrains.skia.FontHinting.NONE
-            FontHinting.SLIGHT -> org.jetbrains.skia.FontHinting.SLIGHT
-            FontHinting.NORMAL -> org.jetbrains.skia.FontHinting.NORMAL
-            FontHinting.FULL -> org.jetbrains.skia.FontHinting.FULL
+            FontHinting.None -> org.jetbrains.skia.FontHinting.NONE
+            FontHinting.Slight -> org.jetbrains.skia.FontHinting.SLIGHT
+            FontHinting.Normal -> org.jetbrains.skia.FontHinting.NORMAL
+            FontHinting.Full -> org.jetbrains.skia.FontHinting.FULL
         }
         return SkFontRastrSettings(
             edging = edging,

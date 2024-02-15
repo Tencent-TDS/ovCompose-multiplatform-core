@@ -22,21 +22,24 @@ import androidx.compose.ui.text.platform.currentPlatform
 /**
  * Whether edge pixels draw opaque or with partial transparency.
  */
-enum class FontEdging {
+enum class FontSmoothing {
     /**
      * no transparent pixels on glyph edges
      */
-    ALIAS,
+    /**
+     * no transparent pixels on glyph edges
+     */
+    None,
 
     /**
      * may have transparent pixels on glyph edges
      */
-    ANTI_ALIAS,
+    AntiAlias,
 
     /**
      * glyph positioned in pixel using transparency
      */
-    SUBPIXEL_ANTI_ALIAS;
+    SubpixelAntiAlias;
 }
 
 /**
@@ -46,26 +49,26 @@ enum class FontHinting {
     /**
      * glyph outlines unchanged
      */
-    NONE,
+    None,
 
     /**
      * minimal modification to improve constrast
      */
-    SLIGHT,
+    Slight,
 
     /**
      * glyph outlines modified to improve constrast
      */
-    NORMAL,
+    Normal,
 
     /**
      * modifies glyph outlines for maximum constrast
      */
-    FULL;
+    Full;
 }
 
 data class FontRasterizationSettings(
-    val edging: FontEdging,
+    val smoothing: FontSmoothing,
     val hinting: FontHinting,
     val subpixelPositioning: Boolean,
     val autoHintingForced: Boolean
@@ -75,20 +78,20 @@ data class FontRasterizationSettings(
             when (currentPlatform()) {
                 Platform.Windows -> FontRasterizationSettings(
                     subpixelPositioning = true,
-                    edging = FontEdging.SUBPIXEL_ANTI_ALIAS, // Most UIs still use ClearType on Windows, so we should match this
-                    hinting = FontHinting.NORMAL, // NONE would trigger some potentially unwanted behavior, but everything else is forced into NORMAL on Windows
+                    smoothing = FontSmoothing.SubpixelAntiAlias, // Most UIs still use ClearType on Windows, so we should match this
+                    hinting = FontHinting.Normal, // None would trigger some potentially unwanted behavior, but everything else is forced into Normal on Windows
                     autoHintingForced = false,
                 )
                 Platform.Linux, Platform.Android, Platform.Unknown -> FontRasterizationSettings(
                     subpixelPositioning = true,
-                    edging = FontEdging.SUBPIXEL_ANTI_ALIAS, // Not all distributions default to SUBPIXEL_ANTI_ALIAS, but we still do to ensure sharpness on Low-DPI displays
-                    hinting = FontHinting.SLIGHT, // Most distributions use SLIGHT now by default
+                    smoothing = FontSmoothing.SubpixelAntiAlias, // Not all distributions default to SubpixelAntiAlias, but we still do to ensure sharpness on Low-DPI displays
+                    hinting = FontHinting.Slight, // Most distributions use Slight now by default
                     autoHintingForced = false,
                 )
                 Platform.MacOS, Platform.IOS, Platform.TvOS, Platform.WatchOS -> FontRasterizationSettings(
                     subpixelPositioning = true,
-                    edging = FontEdging.ANTI_ALIAS, // macOS doesn't support SUBPIXEL_ANTI_ALIAS anymore as of Catalina
-                    hinting = FontHinting.NORMAL, // Completely ignored on macOS
+                    smoothing = FontSmoothing.AntiAlias, // macOS doesn't support SubpixelAntiAlias anymore as of Catalina
+                    hinting = FontHinting.Normal, // Completely ignored on macOS
                     autoHintingForced = false, // Completely ignored on macOS
                 )
             }

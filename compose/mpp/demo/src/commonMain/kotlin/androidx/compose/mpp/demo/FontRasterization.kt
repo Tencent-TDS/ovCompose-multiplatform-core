@@ -28,7 +28,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.FontEdging
+import androidx.compose.ui.text.FontSmoothing
 import androidx.compose.ui.text.FontHinting
 import androidx.compose.ui.text.FontRasterizationSettings
 import androidx.compose.ui.text.PlatformParagraphStyle
@@ -41,18 +41,18 @@ fun FontRasterization() {
     MaterialTheme {
         val state = rememberScrollState()
         Column(Modifier.fillMaxSize().padding(10.dp).verticalScroll(state)) {
-            val hintingOptions = listOf(FontHinting.NONE, FontHinting.SLIGHT, FontHinting.NORMAL, FontHinting.FULL)
+            val hintingOptions = listOf(FontHinting.None, FontHinting.Slight, FontHinting.Normal, FontHinting.Full)
             val isAutoHintingForcedOptions = listOf(false, true)
             val subpixelOptions = listOf(false, true)
-            val edgingOptions = listOf(FontEdging.ALIAS, FontEdging.ANTI_ALIAS, FontEdging.SUBPIXEL_ANTI_ALIAS)
+            val smoothingOptions = listOf(FontSmoothing.None, FontSmoothing.AntiAlias, FontSmoothing.SubpixelAntiAlias)
             val text = "Lorem ipsum"
 
             for (subpixel in subpixelOptions) {
-                for (edging in edgingOptions) {
+                for (smoothing in smoothingOptions) {
                     for (hinting in hintingOptions) {
                         for (autoHintingForced in isAutoHintingForcedOptions) {
                             val fontRasterizationSettings = FontRasterizationSettings(
-                                edging = edging,
+                                smoothing = smoothing,
                                 hinting = hinting,
                                 subpixelPositioning = subpixel,
                                 autoHintingForced = autoHintingForced
