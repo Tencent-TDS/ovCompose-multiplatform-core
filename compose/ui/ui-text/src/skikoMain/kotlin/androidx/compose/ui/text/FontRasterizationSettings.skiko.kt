@@ -22,6 +22,7 @@ import androidx.compose.ui.text.platform.currentPlatform
 /**
  * Whether edge pixels draw opaque or with partial transparency.
  */
+@ExperimentalTextApi
 enum class FontSmoothing {
     /**
      * no transparent pixels on glyph edges
@@ -45,6 +46,7 @@ enum class FontSmoothing {
 /**
  * Level of glyph outline adjustment
  */
+@ExperimentalTextApi
 enum class FontHinting {
     /**
      * glyph outlines unchanged
@@ -67,7 +69,8 @@ enum class FontHinting {
     Full;
 }
 
-data class FontRasterizationSettings(
+@ExperimentalTextApi
+class FontRasterizationSettings(
     val smoothing: FontSmoothing,
     val hinting: FontHinting,
     val subpixelPositioning: Boolean,
@@ -82,12 +85,14 @@ data class FontRasterizationSettings(
                     hinting = FontHinting.Normal, // None would trigger some potentially unwanted behavior, but everything else is forced into Normal on Windows
                     autoHintingForced = false,
                 )
+
                 Platform.Linux, Platform.Android, Platform.Unknown -> FontRasterizationSettings(
                     subpixelPositioning = true,
                     smoothing = FontSmoothing.SubpixelAntiAlias, // Not all distributions default to SubpixelAntiAlias, but we still do to ensure sharpness on Low-DPI displays
                     hinting = FontHinting.Slight, // Most distributions use Slight now by default
                     autoHintingForced = false,
                 )
+
                 Platform.MacOS, Platform.IOS, Platform.TvOS, Platform.WatchOS -> FontRasterizationSettings(
                     subpixelPositioning = true,
                     smoothing = FontSmoothing.AntiAlias, // macOS doesn't support SubpixelAntiAlias anymore as of Catalina
@@ -96,5 +101,32 @@ data class FontRasterizationSettings(
                 )
             }
         }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as FontRasterizationSettings
+
+        if (smoothing != other.smoothing) return false
+        if (hinting != other.hinting) return false
+        if (subpixelPositioning != other.subpixelPositioning) return false
+        return autoHintingForced == other.autoHintingForced
+    }
+
+    override fun hashCode(): Int {
+        var result = smoothing.hashCode()
+        result = 31 * result + hinting.hashCode()
+        result = 31 * result + subpixelPositioning.hashCode()
+        result = 31 * result + autoHintingForced.hashCode()
+        return result
+    }
+
+    override fun toString(): String {
+        return "FontRasterizationSettings(smoothing=$smoothing, " +
+            "hinting=$hinting, " +
+            "subpixelPositioning=$subpixelPositioning, " +
+            "autoHintingForced=$autoHintingForced)"
     }
 }

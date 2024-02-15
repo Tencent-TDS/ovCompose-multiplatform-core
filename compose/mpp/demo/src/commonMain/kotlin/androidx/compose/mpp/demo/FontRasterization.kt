@@ -26,16 +26,17 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.FontSmoothing
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.FontHinting
 import androidx.compose.ui.text.FontRasterizationSettings
+import androidx.compose.ui.text.FontSmoothing
 import androidx.compose.ui.text.PlatformParagraphStyle
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 
+@OptIn(ExperimentalTextApi::class)
 @Composable
 fun FontRasterization() {
     MaterialTheme {
