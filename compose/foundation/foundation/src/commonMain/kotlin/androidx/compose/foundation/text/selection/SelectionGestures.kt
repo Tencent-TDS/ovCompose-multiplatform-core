@@ -183,7 +183,7 @@ private suspend fun AwaitPointerEventScope.mouseSelection(
 
         val started = observer.onStart(downChange.position, selectionAdjustment)
         if (started) {
-            var dragConsumed = false
+            var dragConsumed = selectionAdjustment != SelectionAdjustment.None
             val shouldConsumeUp = drag(downChange.id) {
                 if (observer.onDrag(it.position, selectionAdjustment)) {
                     it.consume()
