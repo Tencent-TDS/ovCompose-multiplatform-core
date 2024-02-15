@@ -64,7 +64,7 @@ import org.w3c.dom.TouchEvent
 private class ComposeWindow(
     canvasId: String,
     content: @Composable () -> Unit,
-) {
+)  {
 
     private val density: Density = Density(
         density = window.devicePixelRatio.toFloat(),
@@ -180,7 +180,6 @@ private class ComposeWindow(
             event.preventDefault()
         })
 
-        // TODO Shouldn't we use e.preventDefault() to replace browser`s hotkeys(Tab, Ctrl+S, etc)?
         canvas.addTypedEvent<KeyboardEvent>("keydown") { event, skikoView ->
             skikoView.onKeyboardEvent(event.toSkikoEvent(SkikoKeyboardEventKind.DOWN))
 
