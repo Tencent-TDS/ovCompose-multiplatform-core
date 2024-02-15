@@ -27,7 +27,6 @@ import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.events.toSkikoDragEvent
 import androidx.compose.ui.events.toSkikoEvent
 import androidx.compose.ui.events.toSkikoScrollEvent
-import androidx.compose.ui.events.toSkikoTypeEvent
 import androidx.compose.ui.input.pointer.BrowserCursor
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.native.ComposeLayer
@@ -181,14 +180,12 @@ private class ComposeWindow(
         })
 
         canvas.addTypedEvent<KeyboardEvent>("keydown") { event, skikoView ->
+            event.preventDefault()
             skikoView.onKeyboardEvent(event.toSkikoEvent(SkikoKeyboardEventKind.DOWN))
-
-            event.toSkikoTypeEvent()?.let { inputEvent ->
-                skikoView.input?.onInputEvent(inputEvent)
-            }
         }
 
         canvas.addTypedEvent<KeyboardEvent>("keyup") { event, skikoView ->
+            event.preventDefault()
             skikoView.onKeyboardEvent(event.toSkikoEvent(SkikoKeyboardEventKind.UP))
         }
     }

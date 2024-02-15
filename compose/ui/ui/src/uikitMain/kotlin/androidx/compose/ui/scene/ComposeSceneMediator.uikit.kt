@@ -51,6 +51,7 @@ import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntRect
@@ -70,7 +71,9 @@ import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import org.jetbrains.skia.Canvas
+import org.jetbrains.skiko.SkikoKey
 import org.jetbrains.skiko.SkikoKeyboardEvent
+import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
 import platform.CoreGraphics.CGPoint
@@ -102,12 +105,21 @@ internal sealed interface SceneLayout {
     class Bounds(val rect: IntRect) : SceneLayout
 }
 
+/**
+ * iOS specific-implementation of [PlatformContext.SemanticsOwnerListener] used to track changes in [SemanticsOwner].
+ *
+ * @property container The UI container associated with the semantics owner.
+ * @property coroutineContext The coroutine context to use for handling semantics changes.
+ * @property getAccessibilitySyncOptions A lambda function to retrieve the latest accessibility synchronization options.
+ * @property performEscape A lambda to delegate accessibility escape operation. Returns true if the escape was handled, false otherwise.
+ */
 @OptIn(ExperimentalComposeApi::class)
 private class SemanticsOwnerListenerImpl(
     private val container: UIView,
     private val coroutineContext: CoroutineContext,
-    private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions
-): PlatformContext.SemanticsOwnerListener {
+    private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
+    private val performEscape: () -> Boolean
+) : PlatformContext.SemanticsOwnerListener {
     var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
 
     override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
@@ -116,7 +128,8 @@ private class SemanticsOwnerListenerImpl(
                 container,
                 semanticsOwner,
                 coroutineContext,
-                getAccessibilitySyncOptions
+                getAccessibilitySyncOptions,
+                performEscape
             )
         }
     }
@@ -143,7 +156,7 @@ private class RenderingUIViewDelegateImpl(
     private val interopContext: UIKitInteropContext,
     private val getBoundsInPx: () -> IntRect,
     private val scene: ComposeScene
-): RenderingUIView.Delegate {
+) : RenderingUIView.Delegate {
     override fun retrieveInteropTransaction(): UIKitInteropTransaction =
         interopContext.retrieve()
 
@@ -158,7 +171,7 @@ private class RenderingUIViewDelegateImpl(
 
 private class NativeKeyboardVisibilityListener(
     private val keyboardVisibilityListener: KeyboardVisibilityListenerImpl
-): NSObject() {
+) : NSObject() {
     @Suppress("unused")
     @ObjCAction
     fun keyboardWillShow(arg: NSNotification) {
@@ -169,6 +182,19 @@ private class NativeKeyboardVisibilityListener(
     @ObjCAction
     fun keyboardWillHide(arg: NSNotification) {
         keyboardVisibilityListener.keyboardWillHide(arg)
+    }
+}
+
+private class ComposeSceneMediatorRootUIView : UIView(CGRectZero.readValue()) {
+    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+        // forwards touches forward to the children, is never a target for a touch
+        val result = super.hitTest(point, withEvent)
+
+        return if (result == this) {
+            null
+        } else {
+            result
+        }
     }
 }
 
@@ -183,7 +209,7 @@ internal class ComposeSceneMediator(
         invalidate: () -> Unit,
         platformContext: PlatformContext,
         coroutineContext: CoroutineContext
-    ) -> ComposeScene,
+    ) -> ComposeScene
 ) {
     private val focusable: Boolean get() = focusStack != null
     private val keyboardOverlapHeightState: MutableState<Float> = mutableStateOf(0f)
@@ -216,6 +242,11 @@ internal class ComposeSceneMediator(
     }
 
     /**
+     * view, that contains [interopViewContainer] and [interactionView] and is added to [container]
+     */
+    private val rootView = ComposeSceneMediatorRootUIView()
+
+    /**
      * Container for UIKitView and UIKitViewController
      */
     private val interopViewContainer = InteropContainer()
@@ -243,9 +274,36 @@ internal class ComposeSceneMediator(
 
     @OptIn(ExperimentalComposeApi::class)
     private val semanticsOwnerListener by lazy {
-        SemanticsOwnerListenerImpl(container, coroutineContext, getAccessibilitySyncOptions = {
-            configuration.accessibilitySyncOptions
-        })
+        SemanticsOwnerListenerImpl(
+            rootView,
+            coroutineContext,
+            getAccessibilitySyncOptions = {
+                configuration.accessibilitySyncOptions
+            },
+            performEscape = {
+                val down = onKeyboardEvent(
+                    KeyEvent(
+                        SkikoKeyboardEvent(
+                            SkikoKey.KEY_ESCAPE,
+                            kind = SkikoKeyboardEventKind.DOWN,
+                            platform = null
+                        )
+                    )
+                )
+
+                val up = onKeyboardEvent(
+                    KeyEvent(
+                        SkikoKeyboardEvent(
+                            SkikoKey.KEY_ESCAPE,
+                            kind = SkikoKeyboardEventKind.UP,
+                            platform = null
+                        )
+                    )
+                )
+
+                down || up
+            }
+        )
     }
 
     private val platformContext: PlatformContext by lazy {
@@ -272,10 +330,7 @@ internal class ComposeSceneMediator(
     private val keyboardEventHandler: KeyboardEventHandler by lazy {
         object : KeyboardEventHandler {
             override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
-                val composeEvent = KeyEvent(event)
-                if (!uiKitTextInputService.onPreviewKeyEvent(composeEvent)) {
-                    scene.sendKeyEvent(composeEvent)
-                }
+                onKeyboardEvent(KeyEvent(event))
             }
         }
     }
@@ -336,6 +391,9 @@ internal class ComposeSceneMediator(
         )
     }
 
+    var density by scene::density
+    var layoutDirection by scene::layoutDirection
+
     private var onAttachedToWindow: (() -> Unit)? = null
     private fun runOnceViewAttached(block: () -> Unit) {
         if (renderingView.window == null) {
@@ -348,6 +406,9 @@ internal class ComposeSceneMediator(
         }
     }
 
+    fun hitTestInteractionView(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? =
+        interactionView.hitTest(point, withEvent)
+
     init {
         renderingView.onAttachedToWindow = {
             renderingView.onAttachedToWindow = null
@@ -355,15 +416,23 @@ internal class ComposeSceneMediator(
             this.onAttachedToWindow?.invoke()
             focusStack?.pushAndFocus(interactionView)
         }
-        container.addSubview(interopViewContainer)
-        interopViewContainer.translatesAutoresizingMaskIntoConstraints = false
+
+        rootView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(rootView)
         NSLayoutConstraint.activateConstraints(
-            getConstraintsToFillParent(interopViewContainer, container)
+            getConstraintsToFillParent(rootView, container)
         )
-        container.addSubview(interactionView)
-        interactionView.translatesAutoresizingMaskIntoConstraints = false
+
+        interopViewContainer.translatesAutoresizingMaskIntoConstraints = false
+        rootView.addSubview(interopViewContainer)
         NSLayoutConstraint.activateConstraints(
-            getConstraintsToFillParent(interactionView, container)
+            getConstraintsToFillParent(interopViewContainer, rootView)
+        )
+
+        interactionView.translatesAutoresizingMaskIntoConstraints = false
+        rootView.addSubview(interactionView)
+        NSLayoutConstraint.activateConstraints(
+            getConstraintsToFillParent(interactionView, rootView)
         )
         interactionView.addSubview(renderingView)
     }
@@ -418,9 +487,8 @@ internal class ComposeSceneMediator(
     fun dispose() {
         focusStack?.popUntilNext(renderingView)
         renderingView.dispose()
-        renderingView.removeFromSuperview()
         interactionView.dispose()
-        interactionView.removeFromSuperview()
+        rootView.removeFromSuperview()
         scene.close()
         // After scene is disposed all UIKit interop actions can't be deferred to be synchronized with rendering
         // Thus they need to be executed now.
@@ -470,8 +538,21 @@ internal class ComposeSceneMediator(
         //TODO: Current code updates layout based on rootViewController size.
         // Maybe we need to rewrite it for SingleLayerComposeScene.
 
-        val boundsInWindow = windowContext.boundsInWindow(container)
+        val offsetInWindow = windowContext.offsetInWindow(container)
+        val size = container.bounds.useContents {
+            with(density) {
+                toDpRect().toRect().roundToIntRect()
+            }
+        }
+        val boundsInWindow = IntRect(
+            offset = offsetInWindow,
+            size = IntSize(
+                width = size.width,
+                height = size.height,
+            )
+        )
         scene.density = density // TODO: Maybe it is wrong to set density to scene here?
+        // TODO: it should be updated on any container bounds change: resize or move itself or any parent
         scene.boundsInWindow = boundsInWindow
         onComposeSceneInvalidate()
     }
@@ -581,9 +662,21 @@ internal class ComposeSceneMediator(
         size.height
     }
 
-    var density by scene::density
-    var layoutDirection by scene::layoutDirection
+    private var _onPreviewKeyEvent: (KeyEvent) -> Boolean = { false }
+    private var _onKeyEvent: (KeyEvent) -> Boolean = { false }
+    fun setKeyEventListener(
+        onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
+        onKeyEvent: ((KeyEvent) -> Boolean)?
+    ) {
+        this._onPreviewKeyEvent = onPreviewKeyEvent ?: { false }
+        this._onKeyEvent = onKeyEvent ?: { false }
+    }
 
+    private fun onKeyboardEvent(keyEvent: KeyEvent): Boolean =
+        uiKitTextInputService.onPreviewKeyEvent(keyEvent) // TODO: fix redundant call
+            || _onPreviewKeyEvent(keyEvent)
+            || scene.sendKeyEvent(keyEvent)
+            || _onKeyEvent(keyEvent)
 }
 
 internal fun getConstraintsToFillParent(view: UIView, parent: UIView) =

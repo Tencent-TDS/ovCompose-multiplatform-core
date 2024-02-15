@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-package androidx.compose.mpp.demo.components.dialog
+package androidx.compose.foundation
 
-import androidx.compose.mpp.demo.Screen
+import androidx.compose.runtime.Composable
 
-val Dialogs = Screen.Selection(
-    "Dialogs",
-    DialogExample,
-    Screen.Example("CompositionLocal inside Dialog") { DialogCompositionLocalExample() },
-    DialogWithTextField,
-    FocusAndKeyInput,
-)
+// TODO(https://github.com/JetBrains/compose-multiplatform/issues/3360) Support localization
+//  the current values are copied from compose\foundation\foundation\src\androidMain\res\values-en-rGB\strings.xml
+internal actual object BasicTooltipStrings {
+    @Composable
+    actual fun label() = "show tooltip"
+    @Composable
+    actual fun description() = "tooltip"
+}
