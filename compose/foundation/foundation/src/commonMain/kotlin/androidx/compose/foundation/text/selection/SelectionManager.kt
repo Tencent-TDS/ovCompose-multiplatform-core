@@ -130,7 +130,11 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
      */
     val modifier
         get() = Modifier
-            .onClearSelectionRequested { onRelease() }
+            .onClearSelectionRequested {
+                if (hasFocus) {
+                    onRelease()
+                }
+            }
             .onGloballyPositioned { containerLayoutCoordinates = it }
             .focusRequester(focusRequester)
             .onFocusChanged { focusState ->
@@ -675,9 +679,8 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
         }
     }
 
-    private fun Modifier.onClearSelectionRequested(block: () -> Unit): Modifier {
-        return if (hasFocus) pointerInput(Unit) { detectNonConsumingTap { block() } } else this
-    }
+    private fun Modifier.onClearSelectionRequested(block: () -> Unit): Modifier =
+        pointerInput(Unit) { detectNonConsumingTap { block() } }
 
     private fun convertToContainerCoordinates(
         layoutCoordinates: LayoutCoordinates,
