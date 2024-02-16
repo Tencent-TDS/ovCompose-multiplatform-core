@@ -100,8 +100,9 @@ internal class ComposeContainer(
 
     @OptIn(ExperimentalComposeApi::class)
     private val windowContainer: UIView
-        get() = if (configuration.platformLayers) checkNotNull(view.window) {
-            "ComposeUIViewController.view should be attached to window"
+        get() = if (configuration.platformLayers) {
+            // TODO: if window is nil like in 4310, this value is no longer updated before next viewWillLayoutSubviews
+            view.window ?: view
         } else view
 
     /*
@@ -174,6 +175,11 @@ internal class ComposeContainer(
         currentInterfaceOrientation?.let {
             interfaceOrientationState.value = it
         }
+
+        updateWindowContainer()
+    }
+
+    private fun updateWindowContainer() {
         val scale = windowContainer.systemDensity.density
         val size = windowContainer.frame.useContents<CGRect, IntSize> {
             IntSize(
@@ -239,6 +245,9 @@ internal class ComposeContainer(
         layers.fastForEach {
             it.viewDidAppear(animated)
         }
+
+        updateWindowContainer()
+
         configuration.delegate.viewDidAppear(animated)
     }
 
