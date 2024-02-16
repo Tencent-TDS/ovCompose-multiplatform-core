@@ -19,17 +19,17 @@ package androidx.compose.ui.scene
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalContext
-import androidx.compose.ui.asDpOffset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.ComposeContainer
@@ -56,7 +56,7 @@ internal class UIViewComposeSceneLayer(
     private val initLayoutDirection: LayoutDirection,
     configuration: ComposeUIViewControllerConfiguration,
     focusStack: FocusStack<UIView>?,
-    windowInfo: WindowInfo,
+    windowContext: PlatformWindowContext,
     compositionContext: CompositionContext,
 ) : ComposeSceneLayer {
 
@@ -82,10 +82,10 @@ internal class UIViewComposeSceneLayer(
          */
         override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
             val touch = touches.firstOrNull() as? UITouch
-            val locationInView = touch?.locationInView(this)
+            val locationInView = touch?.locationInView(this)?.useContents { asDpOffset() }
             if (locationInView != null) {
-                val offset = locationInView.useContents { asDpOffset() }
-                val contains = boundsInWindow.contains(offset.toOffset(density).round())
+                // This view's coordinate space is equal to [ComposeScene]'s
+                val contains = boundsInWindow.contains(locationInView.toOffset(density).round())
                 if (!contains) {
                     onOutsidePointerEvent?.invoke(PointerEventType.Release)
                 }
@@ -100,7 +100,8 @@ internal class UIViewComposeSceneLayer(
             ) {
                 touchStartedOutside(withEvent)
                 if (focusable) {
-                    return this // block touches
+                    // Focusable layers don't pass touches through, even if it's out of bounds.
+                    return this
                 }
             }
             return null // transparent for touches
@@ -112,7 +113,7 @@ internal class UIViewComposeSceneLayer(
             container = rootView,
             configuration = configuration,
             focusStack = focusStack,
-            windowInfo = windowInfo,
+            windowContext = windowContext,
             coroutineContext = compositionContext.effectCoroutineContext,
             renderingUIViewFactory = ::createSkikoUIView,
             composeSceneFactory = ::createComposeScene
@@ -143,7 +144,6 @@ internal class UIViewComposeSceneLayer(
             layoutDirection = initLayoutDirection,
             coroutineContext = coroutineContext,
             composeSceneContext = composeContainer.createComposeSceneContext(platformContext),
-            calculateMatrixToWindow = { composeContainer.calculateMatrixToWindow(rootView, it) },
             invalidate = invalidate,
         )
 

@@ -261,7 +261,6 @@ internal class ComposeContainer(
                 composeSceneContext = createComposeSceneContext(
                     platformContext = mediator.platformContext
                 ),
-                calculateMatrixToWindow = mediator::onCalculateMatrixToWindow,
                 invalidate = mediator::onComposeInvalidation,
             )
         }

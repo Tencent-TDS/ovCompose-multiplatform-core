@@ -78,6 +78,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.unit.toRect
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlinx.coroutines.awaitCancellation
 
@@ -95,7 +97,6 @@ internal class RootNodeOwner(
     val platformContext: PlatformContext,
     private val snapshotInvalidationTracker: SnapshotInvalidationTracker,
     private val inputHandler: ComposeSceneInputHandler,
-    private val calculateMatrixToWindow: (Matrix) -> Unit,
 ) {
     // TODO(https://github.com/JetBrains/compose-multiplatform/issues/2944)
     //  Check if ComposePanel/SwingPanel focus interop work correctly with new features of
@@ -126,20 +127,6 @@ internal class RootNodeOwner(
 
     private val constraints
         get() = size?.toConstraints() ?: Constraints()
-
-    private val _rootToWindowMatrix = Matrix()
-    val rootToWindowMatrix: Matrix
-        get() {
-            calculateMatrixToWindow(_rootToWindowMatrix)
-            return _rootToWindowMatrix
-        }
-
-    private val _windowToRootMatrix = Matrix()
-    val windowToRootMatrix: Matrix
-        get() {
-            rootToWindowMatrix.invertTo(_windowToRootMatrix)
-            return _windowToRootMatrix
-        }
 
     private var _layoutDirection by mutableStateOf(layoutDirection)
     var layoutDirection: LayoutDirection
@@ -239,6 +226,20 @@ internal class RootNodeOwner(
         owner.root.hitTest(position, result, true)
         val last = result.lastOrNull()
         return (last as? BackwardsCompatNode)?.element is InteropViewCatchPointerModifier
+    }
+
+    private fun calculateBoundsInWindow(): Rect? {
+        val rect = size?.toRect() ?: return null
+        val p0 = platformContext.calculatePositionInWindow(Offset(rect.left, rect.top))
+        val p1 = platformContext.calculatePositionInWindow(Offset(rect.left, rect.bottom))
+        val p3 = platformContext.calculatePositionInWindow(Offset(rect.right, rect.top))
+        val p4 = platformContext.calculatePositionInWindow(Offset(rect.right, rect.bottom))
+
+        val left = min(min(p0.x, p1.x), min(p3.x, p4.x))
+        val top = min(min(p0.y, p1.y), min(p3.y, p4.y))
+        val right = max(max(p0.x, p1.x), max(p3.x, p4.x))
+        val bottom = max(max(p0.y, p1.y), max(p3.y, p4.y))
+        return Rect(left, top, right, bottom)
     }
 
     private inner class OwnerImpl(
@@ -390,10 +391,10 @@ internal class RootNodeOwner(
         }
 
         override fun calculatePositionInWindow(localPosition: Offset): Offset =
-            rootToWindowMatrix.map(localPosition)
+            platformContext.calculatePositionInWindow(localPosition)
 
         override fun calculateLocalPosition(positionInWindow: Offset): Offset =
-            windowToRootMatrix.map(positionInWindow)
+            platformContext.calculateLocalPosition(positionInWindow)
 
         private val endApplyChangesListeners = mutableVectorOf<(() -> Unit)?>()
 
@@ -435,9 +436,7 @@ internal class RootNodeOwner(
         override val visibleBounds: Rect
             get() {
                 val windowRect = platformContext.windowInfo.containerSize.toIntRect().toRect()
-                val ownerRect = size?.toRect()?.let {
-                    rootToWindowMatrix.map(it)
-                }
+                val ownerRect = calculateBoundsInWindow()
                 return ownerRect?.intersect(windowRect) ?: windowRect
             }
 

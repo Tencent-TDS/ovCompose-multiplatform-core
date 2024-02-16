@@ -24,6 +24,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asComposeCanvas
+import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.HistoricalChange
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -35,24 +36,25 @@ import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.platform.AccessibilityMediator
 import androidx.compose.ui.platform.AccessibilitySyncOptions
-import androidx.compose.ui.platform.IOSPlatformContextImpl
+import androidx.compose.ui.platform.DefaultInputModeManager
+import androidx.compose.ui.platform.EmptyViewConfiguration
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.UIKitTextInputService
-import androidx.compose.ui.semantics.SemanticsOwner
-import androidx.compose.ui.uikit.systemDensity
-import androidx.compose.ui.asDpOffset
-import androidx.compose.ui.asDpRect
+import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
+import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.asDpOffset
+import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntRect
@@ -203,7 +205,7 @@ internal class ComposeSceneMediator(
     private val container: UIView,
     private val configuration: ComposeUIViewControllerConfiguration,
     private val focusStack: FocusStack<UIView>?,
-    windowInfo: WindowInfo,
+    private val windowContext: PlatformWindowContext,
     val coroutineContext: CoroutineContext,
     private val renderingUIViewFactory: (RenderingUIView.Delegate) -> RenderingUIView,
     composeSceneFactory: (
@@ -227,7 +229,7 @@ internal class ComposeSceneMediator(
     private val scene: ComposeScene by lazy {
         composeSceneFactory(
             ::onComposeSceneInvalidate,
-            platformContext,
+            IOSPlatformContext(),
             coroutineContext,
         )
     }
@@ -304,16 +306,6 @@ internal class ComposeSceneMediator(
 
                 down || up
             }
-        )
-    }
-
-    private val platformContext: PlatformContext by lazy {
-        IOSPlatformContextImpl(
-            inputServices = uiKitTextInputService,
-            textToolbar = uiKitTextInputService,
-            windowInfo = windowInfo,
-            density = container.systemDensity,
-            semanticsOwnerListener = semanticsOwnerListener
         )
     }
 
@@ -666,6 +658,28 @@ internal class ComposeSceneMediator(
             || _onPreviewKeyEvent(keyEvent)
             || scene.sendKeyEvent(keyEvent)
             || _onKeyEvent(keyEvent)
+
+    private inner class IOSPlatformContext : PlatformContext by PlatformContext.Empty {
+        override val windowInfo: WindowInfo get() = windowContext.windowInfo
+
+        override fun calculatePositionInWindow(localPosition: Offset): Offset =
+            windowContext.calculatePositionInWindow(container, localPosition)
+
+        override fun calculateLocalPosition(positionInWindow: Offset): Offset =
+            windowContext.calculateLocalPosition(container, positionInWindow)
+
+        override val viewConfiguration = object : ViewConfiguration by EmptyViewConfiguration {
+            override val touchSlop: Float
+                get() = with(density) {
+                    // this value is originating from iOS 16 drag behavior reverse engineering
+                    10.dp.toPx()
+                }
+        }
+        override val inputModeManager = DefaultInputModeManager(InputMode.Touch)
+        override val textInputService = this@ComposeSceneMediator.uiKitTextInputService
+        override val textToolbar = this@ComposeSceneMediator.uiKitTextInputService
+        override val semanticsOwnerListener = this@ComposeSceneMediator.semanticsOwnerListener
+    }
 }
 
 internal fun getConstraintsToFillParent(view: UIView, parent: UIView) =

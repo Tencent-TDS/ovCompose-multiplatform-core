@@ -55,8 +55,6 @@ import kotlinx.coroutines.Dispatchers
  * [rememberCoroutineScope]) and run recompositions.
  * @param composeSceneContext The context to share resources between multiple scenes and provide
  * a way for platform interaction.
- * @param calculateMatrixToWindow Represents the transformation to convert coordinates (in pixels)
- * from scene to window coordinate space ([WindowInfo.containerSize] should be used as reference).
  * @param invalidate The function to be called when the content need to be recomposed or
  * re-rendered. If you draw your content using [ComposeScene.render] method, in this callback you
  * should schedule the next [ComposeScene.render] in your rendering loop.
@@ -71,7 +69,6 @@ fun SingleLayerComposeScene(
     size: Size? = null,
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
     composeSceneContext: ComposeSceneContext = ComposeSceneContext.Empty,
-    calculateMatrixToWindow: (Matrix) -> Unit = {},
     invalidate: () -> Unit = {},
 ): ComposeScene = SingleLayerComposeSceneImpl(
     density = density,
@@ -79,7 +76,6 @@ fun SingleLayerComposeScene(
     size = size,
     coroutineContext = coroutineContext,
     composeSceneContext = composeSceneContext,
-    calculateMatrixToWindow = calculateMatrixToWindow,
     invalidate = invalidate
 )
 
@@ -89,7 +85,6 @@ private class SingleLayerComposeSceneImpl(
     size: Size?,
     coroutineContext: CoroutineContext,
     composeSceneContext: ComposeSceneContext,
-    calculateMatrixToWindow: (Matrix) -> Unit,
     invalidate: () -> Unit,
 ) : BaseComposeScene(
     coroutineContext = coroutineContext,
@@ -105,7 +100,6 @@ private class SingleLayerComposeSceneImpl(
             platformContext = composeSceneContext.platformContext,
             snapshotInvalidationTracker = snapshotInvalidationTracker,
             inputHandler = inputHandler,
-            calculateMatrixToWindow = calculateMatrixToWindow
         )
     }
 

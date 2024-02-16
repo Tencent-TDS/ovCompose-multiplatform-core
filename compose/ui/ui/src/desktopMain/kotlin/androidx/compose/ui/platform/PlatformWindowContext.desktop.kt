@@ -22,7 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.density
@@ -34,8 +34,6 @@ import kotlin.math.roundToInt
 
 /**
  * Tracking a state of window.
- *
- * TODO: Extract information about window from [PlatformContext] in skiko source set.
  */
 internal class PlatformWindowContext {
     private val _windowInfo = WindowInfoImpl()
@@ -68,23 +66,47 @@ internal class PlatformWindowContext {
         )
     }
 
-    /**
-     * Calculates the offset of the given [container] within the window.
-     * It uses [_windowContainer] as a reference for window coordinate space.
-     *
-     * @param container The container component whose offset needs to be calculated.
-     * @return The offset of the container within the window as an [Offset] object.
-     */
-    fun offsetInWindow(container: Component): Offset {
-        val scale = container.density.density
-        val pointInWindow = if (_windowContainer != null) {
-            SwingUtilities.convertPoint(container, Point(0, 0), _windowContainer)
-        } else {
-            Point(0, 0)
-        }
-        return Offset(
-            x = pointInWindow.x * scale,
-            y = pointInWindow.y * scale
+    fun calculatePositionInWindow(container: Component, localPosition: Offset): Offset {
+        val windowContainer = _windowContainer ?: return localPosition
+        return convertPoint(
+            position = localPosition,
+            fromView = container,
+            toView = windowContainer
         )
     }
+
+    fun calculateLocalPosition(container: Component, positionInWindow: Offset): Offset {
+        val windowContainer = _windowContainer ?: return positionInWindow
+        return convertPoint(
+            position = positionInWindow,
+            fromView = windowContainer,
+            toView = container
+        )
+    }
+
+    private fun convertPoint(position: Offset, fromView: Component, toView: Component): Offset {
+        return if (fromView != toView) {
+            val fromPoint = position.toPoint(fromView.density)
+            val toPoint = SwingUtilities.convertPoint(fromView, fromPoint, toView)
+            toPoint.toOffset(toView.density)
+        } else {
+            position
+        }
+    }
+}
+
+private fun Offset.toPoint(density: Density): Point {
+    val scale = density.density
+    return Point(
+        (x / scale).roundToInt(),
+        (y / scale).roundToInt()
+    )
+}
+
+private fun Point.toOffset(density: Density): Offset {
+    val scale = density.density
+    return Offset(
+        x = x * scale,
+        y = y * scale
+    )
 }

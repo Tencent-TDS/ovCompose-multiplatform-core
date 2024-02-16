@@ -424,12 +424,6 @@ internal class ComposeSceneMediator(
         }
     }
 
-    fun onCalculateMatrixToWindow(matrix: Matrix) {
-        val offsetInWindow = windowContext.offsetInWindow(container)
-        matrix.reset()
-        matrix.translate(offsetInWindow.x, offsetInWindow.y)
-    }
-
     fun onComposeInvalidation() = catchExceptions {
         if (isDisposed) return
         skiaLayerComponent.onComposeInvalidation()
@@ -559,6 +553,13 @@ internal class ComposeSceneMediator(
     private inner class DesktopPlatformContext : PlatformContext by PlatformContext.Empty {
         override val windowInfo: WindowInfo get() = windowContext.windowInfo
         override val isWindowTransparent: Boolean get() = windowContext.isWindowTransparent
+
+        override fun calculatePositionInWindow(localPosition: Offset): Offset =
+            windowContext.calculatePositionInWindow(container, localPosition)
+
+        override fun calculateLocalPosition(positionInWindow: Offset): Offset =
+            windowContext.calculateLocalPosition(container, positionInWindow)
+
         override val viewConfiguration: ViewConfiguration = DesktopViewConfiguration()
         override val textInputService: PlatformTextInputService = this@ComposeSceneMediator.textInputService
 

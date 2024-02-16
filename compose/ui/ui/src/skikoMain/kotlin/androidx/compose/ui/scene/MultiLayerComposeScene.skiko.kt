@@ -122,7 +122,6 @@ private class MultiLayerComposeSceneImpl(
         platformContext = composeSceneContext.platformContext,
         snapshotInvalidationTracker = snapshotInvalidationTracker,
         inputHandler = inputHandler,
-        calculateMatrixToWindow = { /* [ComposeScene] is equal to window in this implementation */ },
     )
 
     override var density: Density = density
@@ -500,7 +499,6 @@ private class MultiLayerComposeSceneImpl(
             },
             snapshotInvalidationTracker = snapshotInvalidationTracker,
             inputHandler = inputHandler,
-            calculateMatrixToWindow = { /* [ComposeScene] is equal to window in this implementation */ },
         )
         private var composition: Composition? = null
         private var outsidePointerCallback: ((eventType: PointerEventType) -> Unit)? = null

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,33 +14,25 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui
+package androidx.compose.ui.unit
 
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.DpRect
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.dp
 import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSize
+import platform.CoreGraphics.CGSizeMake
 
-internal fun Rect.toCGRect() =
-    CGRectMake(left.toDouble(), top.toDouble(), size.width.toDouble(), size.height.toDouble())
-
-internal fun Rect.toCGRect(density: Double) =
-    CGRectMake(
-        left / density,
-        top / density,
-        size.width / density,
-        size.height / density
-    )
-
-internal operator fun IntRect.div(divider: Float) =
-    Rect(left / divider, top / divider, right / divider, bottom / divider)
+internal fun CGPoint.asDpOffset(): DpOffset = DpOffset(x.dp, y.dp)
+internal fun DpOffset.asCGPoint() = CGPointMake(x.value.toDouble(), y.value.toDouble())
 
 internal fun CGSize.asDpSize(): DpSize = DpSize(width.dp, height.dp)
-internal fun CGPoint.asDpOffset(): DpOffset = DpOffset(x.dp, y.dp)
+internal fun DpSize.asCGSize() = CGSizeMake(width.value.toDouble(), width.value.toDouble())
+
 internal fun CGRect.asDpRect(): DpRect = DpRect(origin.asDpOffset(), size.asDpSize())
+internal fun DpRect.asCGRect() = CGRectMake(
+    left.value.toDouble(),
+    top.value.toDouble(),
+    width.value.toDouble(),
+    height.value.toDouble()
+)

@@ -25,10 +25,9 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
-import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.WindowInfoImpl
+import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
@@ -113,8 +112,8 @@ internal class ComposeContainer(
     )
     val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
     private val focusStack: FocusStack<UIView> = FocusStackImpl()
-    private val windowInfo = WindowInfoImpl().apply {
-        isWindowFocused = true
+    private val windowContext = PlatformWindowContext().apply {
+        setWindowFocused(true)
     }
 
     /*
@@ -175,14 +174,14 @@ internal class ComposeContainer(
             interfaceOrientationState.value = it
         }
 
-        updateWindowContainerSize()
+        updateWindowContainer()
         mediator?.viewWillLayoutSubviews()
         layers.fastForEach {
             it.viewWillLayoutSubviews()
         }
     }
 
-    private fun updateWindowContainerSize() {
+    private fun updateWindowContainer() {
         val scale = windowContainer.systemDensity.density
         val size = windowContainer.frame.useContents<CGRect, IntSize> {
             IntSize(
@@ -190,7 +189,8 @@ internal class ComposeContainer(
                 height = (size.height * scale).roundToInt()
             )
         }
-        windowInfo.containerSize = size
+        windowContext.setContainerSize(size)
+        windowContext.setWindowContainer(windowContainer)
     }
 
     override fun viewWillTransitionToSize(
@@ -243,7 +243,7 @@ internal class ComposeContainer(
         layers.fastForEach {
             it.viewDidAppear(animated)
         }
-        updateWindowContainerSize()
+        updateWindowContainer()
         configuration.delegate.viewDidAppear(animated)
     }
 
@@ -277,11 +277,6 @@ internal class ComposeContainer(
         super.didReceiveMemoryWarning()
     }
 
-    fun calculateMatrixToWindow(view: UIView, matrix: Matrix) {
-        // TODO construct transform [matrix] to convert [view] coordinates
-        //  into [windowContainer] in pixels
-    }
-
     fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext =
         ComposeSceneContextImpl(platformContext)
 
@@ -304,7 +299,6 @@ internal class ComposeContainer(
             composeSceneContext = ComposeSceneContextImpl(
                 platformContext = platformContext
             ),
-            calculateMatrixToWindow = { calculateMatrixToWindow(view, it) },
             invalidate = invalidate,
         )
     } else {
@@ -324,7 +318,7 @@ internal class ComposeContainer(
             container = view,
             configuration = configuration,
             focusStack = focusStack,
-            windowInfo = windowInfo,
+            windowContext = windowContext,
             coroutineContext = coroutineDispatcher,
             renderingUIViewFactory = ::createSkikoUIView,
             composeSceneFactory = ::createComposeScene,
@@ -371,7 +365,7 @@ internal class ComposeContainer(
                 initLayoutDirection = layoutDirection,
                 configuration = configuration,
                 focusStack = if (focusable) focusStack else null,
-                windowInfo = windowInfo,
+                windowContext = windowContext,
                 compositionContext = compositionContext,
             )
     }
