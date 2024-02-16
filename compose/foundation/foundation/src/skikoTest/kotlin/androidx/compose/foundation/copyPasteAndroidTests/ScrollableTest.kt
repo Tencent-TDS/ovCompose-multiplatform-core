@@ -2379,12 +2379,3 @@ internal suspend fun savePointerInputEvents(
         }
     }
 }
-
-// TODO Replace it with public API once available
-@OptIn(ExperimentalTestApi::class)
-fun SkikoComposeUiTest.delay(timeMillis: Long) {
-    try {
-        waitUntil(timeMillis) { false }
-    } catch (ignore: ComposeTimeoutException) {
-    }
-}
