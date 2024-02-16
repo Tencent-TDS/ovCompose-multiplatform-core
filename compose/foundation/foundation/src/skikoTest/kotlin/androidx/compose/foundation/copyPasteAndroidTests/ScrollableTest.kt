@@ -447,6 +447,7 @@ class ScrollableTest {
 
     @Test
     fun scrollable_mouseWheel_scrollWhenAnimated() = runSkikoComposeUiTest {
+        mainClock.autoAdvance = false
         var total = 0f
         val controller = ScrollableState(
             consumeScrollDelta = {
@@ -463,16 +464,20 @@ class ScrollableTest {
         onNodeWithTag(scrollableBoxTag).performMouseInput {
             this.scroll(100f, ScrollWheel.Vertical)
         }
-        delay(timeMillis = 20)
+        waitForIdle()  // Needed to start the animation before advancing the clock
+        mainClock.advanceTimeBy(milliseconds = 20)
         onNodeWithTag(scrollableBoxTag).performMouseInput {
             // Send another event during animation
             this.scroll(20f, ScrollWheel.Vertical)
         }
-        delay(timeMillis = 20)
+        waitForIdle()  // Needed to start the animation before advancing the clock
+        mainClock.advanceTimeBy(milliseconds = 20)
         onNodeWithTag(scrollableBoxTag).performMouseInput {
             // Send one more event with opposite direction during animation
             this.scroll(-120f, ScrollWheel.Vertical)
         }
+        waitForIdle()  // Needed to start the animation before advancing the clock
+        mainClock.advanceTimeBy(milliseconds = 1_000)
         runOnIdle {
             assertThat(total).isEqualTo(0f, eps = 0.01f)
         }
