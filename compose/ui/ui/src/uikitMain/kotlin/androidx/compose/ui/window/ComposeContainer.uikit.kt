@@ -101,7 +101,6 @@ internal class ComposeContainer(
     @OptIn(ExperimentalComposeApi::class)
     private val windowContainer: UIView
         get() = if (configuration.platformLayers) {
-            // TODO: if window is nil like in 4310, this value is no longer updated before next viewWillLayoutSubviews
             view.window ?: view
         } else view
 
