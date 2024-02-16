@@ -19,6 +19,8 @@ package androidx.compose.ui.platform
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -28,6 +30,7 @@ import java.awt.Component
 import java.awt.Container
 import java.awt.Point
 import javax.swing.SwingUtilities
+import kotlin.math.roundToInt
 
 /**
  * Tracking a state of window.
@@ -58,10 +61,11 @@ internal class PlatformWindowContext {
         _windowContainer = windowContainer
     }
 
-    fun setContainerSize(size: IntSize) {
-        if (_windowInfo.containerSize != size) {
-            _windowInfo.containerSize = size
-        }
+    fun setContainerSize(size: Size) {
+        _windowInfo.containerSize = IntSize(
+            width = size.width.roundToInt(),
+            height = size.height.roundToInt()
+        )
     }
 
     /**
@@ -69,18 +73,18 @@ internal class PlatformWindowContext {
      * It uses [_windowContainer] as a reference for window coordinate space.
      *
      * @param container The container component whose offset needs to be calculated.
-     * @return The offset of the container within the window as an [IntOffset] object.
+     * @return The offset of the container within the window as an [Offset] object.
      */
-    fun offsetInWindow(container: Component): IntOffset {
+    fun offsetInWindow(container: Component): Offset {
         val scale = container.density.density
         val pointInWindow = if (_windowContainer != null) {
             SwingUtilities.convertPoint(container, Point(0, 0), _windowContainer)
         } else {
             Point(0, 0)
         }
-        return IntOffset(
-            x = (pointInWindow.x * scale).toInt(),
-            y = (pointInWindow.y * scale).toInt()
+        return Offset(
+            x = pointInWindow.x * scale,
+            y = pointInWindow.y * scale
         )
     }
 }

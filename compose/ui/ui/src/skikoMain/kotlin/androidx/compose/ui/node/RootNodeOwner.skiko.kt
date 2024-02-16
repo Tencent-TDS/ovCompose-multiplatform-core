@@ -29,6 +29,9 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.focus.FocusOwnerImpl
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.input.InputMode
@@ -60,6 +63,7 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformRootForTest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.RenderNodeLayer
+import androidx.compose.ui.platform.invertTo
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
@@ -69,13 +73,12 @@ import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.input.TextInputService
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.round
-import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.unit.toIntRect
+import androidx.compose.ui.unit.toRect
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 import kotlinx.coroutines.awaitCancellation
 
 /**
@@ -87,11 +90,12 @@ import kotlinx.coroutines.awaitCancellation
 internal class RootNodeOwner(
     density: Density,
     layoutDirection: LayoutDirection,
-    bounds: IntRect?,
+    size: Size?,
     coroutineContext: CoroutineContext,
     val platformContext: PlatformContext,
     private val snapshotInvalidationTracker: SnapshotInvalidationTracker,
     private val inputHandler: ComposeSceneInputHandler,
+    private val calculateMatrixToWindow: (Matrix) -> Unit,
 ) {
     // TODO(https://github.com/JetBrains/compose-multiplatform/issues/2944)
     //  Check if ComposePanel/SwingPanel focus interop work correctly with new features of
@@ -117,12 +121,25 @@ internal class RootNodeOwner(
         }
     val owner: Owner = OwnerImpl(layoutDirection, coroutineContext)
     val semanticsOwner = SemanticsOwner(owner.root)
+    var size by mutableStateOf(size)
+    var density by mutableStateOf(density)
 
-    /**
-     * Bounds of [Owner] in window coordinates.
-     */
-    var bounds by mutableStateOf(bounds)
-    var density: Density by mutableStateOf(density)
+    private val constraints
+        get() = size?.toConstraints() ?: Constraints()
+
+    private val _rootToWindowMatrix = Matrix()
+    val rootToWindowMatrix: Matrix
+        get() {
+            calculateMatrixToWindow(_rootToWindowMatrix)
+            return _rootToWindowMatrix
+        }
+
+    private val _windowToRootMatrix = Matrix()
+    val windowToRootMatrix: Matrix
+        get() {
+            rootToWindowMatrix.invertTo(_windowToRootMatrix)
+            return _windowToRootMatrix
+        }
 
     private var _layoutDirection by mutableStateOf(layoutDirection)
     var layoutDirection: LayoutDirection
@@ -178,8 +195,7 @@ internal class RootNodeOwner(
                 height = children.maxOfOrNull { it.outerCoordinator.measuredHeight } ?: 0,
             )
         } finally {
-            measureAndLayoutDelegate
-                .updateRootConstraintsWithInfinityCheck(bounds?.toConstraints() ?: Constraints())
+            measureAndLayoutDelegate.updateRootConstraintsWithInfinityCheck(constraints)
         }
     }
 
@@ -202,8 +218,7 @@ internal class RootNodeOwner(
             platformContext.inputModeManager.requestInputMode(InputMode.Touch)
         }
         val isInBounds = event.eventType != PointerEventType.Exit && event.pointers.all {
-            val positionInWindow = owner.calculatePositionInWindow(it.position)
-            bounds?.contains(positionInWindow.round()) ?: true
+            size?.toRect()?.contains(it.position) ?: true
         }
         pointerInputEventProcessor.process(
             event,
@@ -285,8 +300,7 @@ internal class RootNodeOwner(
         }
 
         override fun measureAndLayout(sendPointerUpdate: Boolean) {
-            measureAndLayoutDelegate
-                .updateRootConstraintsWithInfinityCheck(bounds?.toConstraints() ?: Constraints())
+            measureAndLayoutDelegate.updateRootConstraintsWithInfinityCheck(constraints)
             val rootNodeResized = measureAndLayoutDelegate.measureAndLayout {
                 if (sendPointerUpdate) {
                     inputHandler.onPointerUpdate()
@@ -375,15 +389,11 @@ internal class RootNodeOwner(
             }
         }
 
-        override fun calculatePositionInWindow(localPosition: Offset): Offset {
-            val offset = bounds?.topLeft?.toOffset() ?: Offset.Zero
-            return localPosition + offset
-        }
+        override fun calculatePositionInWindow(localPosition: Offset): Offset =
+            rootToWindowMatrix.map(localPosition)
 
-        override fun calculateLocalPosition(positionInWindow: Offset): Offset {
-            val offset = bounds?.topLeft?.toOffset() ?: Offset.Zero
-            return positionInWindow - offset
-        }
+        override fun calculateLocalPosition(positionInWindow: Offset): Offset =
+            windowToRootMatrix.map(positionInWindow)
 
         private val endApplyChangesListeners = mutableVectorOf<(() -> Unit)?>()
 
@@ -422,10 +432,13 @@ internal class RootNodeOwner(
         override val density get() = this@RootNodeOwner.density
         override val textInputService get() = owner.textInputService
         override val semanticsOwner get() = this@RootNodeOwner.semanticsOwner
-        override val visibleBounds: IntRect
+        override val visibleBounds: Rect
             get() {
-                val container = IntRect(IntOffset.Zero, platformContext.windowInfo.containerSize)
-                return bounds?.intersect(container) ?: container
+                val windowRect = platformContext.windowInfo.containerSize.toIntRect().toRect()
+                val ownerRect = size?.toRect()?.let {
+                    rootToWindowMatrix.map(it)
+                }
+                return ownerRect?.intersect(windowRect) ?: windowRect
             }
 
         override val hasPendingMeasureOrLayout: Boolean
@@ -535,8 +548,8 @@ private fun MeasureAndLayoutDelegate.updateRootConstraintsWithInfinityCheck(
     )
 }
 
-private fun IntRect.toConstraints() =
-    Constraints(maxWidth = width, maxHeight = height)
+private fun Size.toConstraints() =
+    Constraints(maxWidth = width.roundToInt(), maxHeight = height.roundToInt())
 
 private object IdentityPositionCalculator: PositionCalculator {
     override fun screenToLocal(positionOnScreen: Offset): Offset = positionOnScreen

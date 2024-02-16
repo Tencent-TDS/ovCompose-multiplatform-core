@@ -246,22 +246,23 @@ internal class ComposeContainer(
         return when (layerType) {
             LayerType.OnSameCanvas ->
                 MultiLayerComposeScene(
+                    density = density,
+                    layoutDirection = layoutDirection,
                     coroutineContext = mediator.coroutineContext,
                     composeSceneContext = createComposeSceneContext(
                         platformContext = mediator.platformContext
                     ),
-                    density = density,
                     invalidate = mediator::onComposeInvalidation,
-                    layoutDirection = layoutDirection,
                 )
             else -> SingleLayerComposeScene(
-                coroutineContext = mediator.coroutineContext,
                 density = density,
-                invalidate = mediator::onComposeInvalidation,
                 layoutDirection = layoutDirection,
+                coroutineContext = mediator.coroutineContext,
                 composeSceneContext = createComposeSceneContext(
                     platformContext = mediator.platformContext
                 ),
+                calculateMatrixToWindow = mediator::onCalculateMatrixToWindow,
+                invalidate = mediator::onComposeInvalidation,
             )
         }
     }

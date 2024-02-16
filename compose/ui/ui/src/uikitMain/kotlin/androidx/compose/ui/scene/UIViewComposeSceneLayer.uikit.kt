@@ -19,12 +19,12 @@ package androidx.compose.ui.scene
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalContext
+import androidx.compose.ui.asDpOffset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.PlatformWindowContext
-import androidx.compose.ui.toDpOffset
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
@@ -56,7 +56,7 @@ internal class UIViewComposeSceneLayer(
     private val initLayoutDirection: LayoutDirection,
     configuration: ComposeUIViewControllerConfiguration,
     focusStack: FocusStack<UIView>?,
-    windowContext: PlatformWindowContext,
+    windowInfo: WindowInfo,
     compositionContext: CompositionContext,
 ) : ComposeSceneLayer {
 
@@ -84,7 +84,7 @@ internal class UIViewComposeSceneLayer(
             val touch = touches.firstOrNull() as? UITouch
             val locationInView = touch?.locationInView(this)
             if (locationInView != null) {
-                val offset = locationInView.useContents { toDpOffset() }
+                val offset = locationInView.useContents { asDpOffset() }
                 val contains = boundsInWindow.contains(offset.toOffset(density).round())
                 if (!contains) {
                     onOutsidePointerEvent?.invoke(PointerEventType.Release)
@@ -112,7 +112,7 @@ internal class UIViewComposeSceneLayer(
             container = rootView,
             configuration = configuration,
             focusStack = focusStack,
-            windowContext = windowContext,
+            windowInfo = windowInfo,
             coroutineContext = compositionContext.effectCoroutineContext,
             renderingUIViewFactory = ::createSkikoUIView,
             composeSceneFactory = ::createComposeScene
@@ -139,11 +139,12 @@ internal class UIViewComposeSceneLayer(
         coroutineContext: CoroutineContext,
     ): ComposeScene =
         SingleLayerComposeScene(
+            density = initDensity, // We should use the local density already set for the current layer.
+            layoutDirection = initLayoutDirection,
             coroutineContext = coroutineContext,
             composeSceneContext = composeContainer.createComposeSceneContext(platformContext),
-            density = initDensity, // We should use the local density already set for the current layer.
+            calculateMatrixToWindow = { composeContainer.calculateMatrixToWindow(rootView, it) },
             invalidate = invalidate,
-            layoutDirection = initLayoutDirection,
         )
 
     override var density by mediator::density

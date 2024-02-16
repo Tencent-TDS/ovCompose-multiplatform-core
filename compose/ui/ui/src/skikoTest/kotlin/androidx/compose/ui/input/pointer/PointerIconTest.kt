@@ -37,9 +37,6 @@ import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runSkikoComposeUiTest
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.use
 import kotlin.coroutines.CoroutineContext
@@ -99,7 +96,7 @@ class PointerIconTest {
         )
 
         try {
-            scene.boundsInWindow = IntRect(0, 0, surface.width, surface.height)
+            scene.size = Size(surface.width.toFloat(), surface.height.toFloat())
             scene.setContent {
                 Box(
                     modifier = Modifier
@@ -129,7 +126,7 @@ class PointerIconTest {
         )
 
         try {
-            scene.boundsInWindow = IntRect(0, 0, surface.width, surface.height)
+            scene.size = Size(surface.width.toFloat(), surface.height.toFloat())
             scene.setContent {
                 Box(
                     modifier = Modifier
@@ -234,7 +231,7 @@ class PointerIconTest {
         val recomposeChannel = Channel<Int>(Channel.CONFLATED) // helps with waiting for recomposition
         var count = 0
         try {
-            scene.boundsInWindow = IntRect(0, 0, surface.width, surface.height)
+            scene.size = Size(surface.width.toFloat(), surface.height.toFloat())
             scene.setContent {
                 Box(
                     modifier = Modifier.pointerHoverIcon(iconState.value).size(30.dp, 30.dp)
@@ -278,7 +275,7 @@ class PointerIconTest {
         val recomposeChannel = Channel<Int>(Channel.CONFLATED) // helps with waiting for recomposition
         var count = 0
         try {
-            scene.boundsInWindow = IntRect(0, 0, surface.width, surface.height)
+            scene.size = Size(surface.width.toFloat(), surface.height.toFloat())
             scene.setContent {
                 Box(
                     modifier = Modifier.size(100.dp, 100.dp).pointerHoverIcon(PointerIcon.Default)

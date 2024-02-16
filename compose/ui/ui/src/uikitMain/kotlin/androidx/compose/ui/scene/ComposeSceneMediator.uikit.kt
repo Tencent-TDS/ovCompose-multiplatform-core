@@ -44,8 +44,9 @@ import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.uikit.systemDensity
-import androidx.compose.ui.toDpOffset
-import androidx.compose.ui.toDpRect
+import androidx.compose.ui.asDpOffset
+import androidx.compose.ui.asDpRect
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.unit.DpOffset
@@ -202,7 +203,7 @@ internal class ComposeSceneMediator(
     private val container: UIView,
     private val configuration: ComposeUIViewControllerConfiguration,
     private val focusStack: FocusStack<UIView>?,
-    private val windowContext: PlatformWindowContext,
+    windowInfo: WindowInfo,
     val coroutineContext: CoroutineContext,
     private val renderingUIViewFactory: (RenderingUIView.Delegate) -> RenderingUIView,
     composeSceneFactory: (
@@ -268,7 +269,7 @@ internal class ComposeSceneMediator(
 
     private val interopContext: UIKitInteropContext by lazy {
         UIKitInteropContext(
-            requestRedraw = { onComposeSceneInvalidate() }
+            requestRedraw = ::onComposeSceneInvalidate
         )
     }
 
@@ -310,7 +311,7 @@ internal class ComposeSceneMediator(
         IOSPlatformContextImpl(
             inputServices = uiKitTextInputService,
             textToolbar = uiKitTextInputService,
-            windowInfo = windowContext.windowInfo,
+            windowInfo = windowInfo,
             density = container.systemDensity,
             semanticsOwnerListener = semanticsOwnerListener
         )
@@ -352,7 +353,7 @@ internal class ComposeSceneMediator(
         object : InteractionUIView.Delegate {
             override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean =
                 point.useContents {
-                    val position = this.toDpOffset().toOffset(density)
+                    val position = this.asDpOffset().toOffset(density)
                     !scene.hitTestInteropView(position)
                 }
 
@@ -535,26 +536,14 @@ internal class ComposeSceneMediator(
 
     fun viewWillLayoutSubviews() {
         val density = container.systemDensity
-        //TODO: Current code updates layout based on rootViewController size.
-        // Maybe we need to rewrite it for SingleLayerComposeScene.
+        scene.density = density
 
-        val offsetInWindow = windowContext.offsetInWindow(container)
-        val size = container.bounds.useContents {
+        // TODO: it should be updated on any container size change
+        scene.size = container.bounds.useContents {
             with(density) {
-                toDpRect().toRect().roundToIntRect()
+                asDpRect().toRect().size
             }
         }
-        val boundsInWindow = IntRect(
-            offset = offsetInWindow,
-            size = IntSize(
-                width = size.width,
-                height = size.height,
-            )
-        )
-        scene.density = density // TODO: Maybe it is wrong to set density to scene here?
-        // TODO: it should be updated on any container bounds change: resize or move itself or any parent
-        scene.boundsInWindow = boundsInWindow
-        onComposeSceneInvalidate()
     }
 
     private fun calcSafeArea(): PlatformInsets =
@@ -577,7 +566,7 @@ internal class ComposeSceneMediator(
             )
         }
 
-    fun getBoundsInDp(): DpRect = renderingView.frame.useContents { this.toDpRect() }
+    fun getBoundsInDp(): DpRect = renderingView.frame.useContents { this.asDpRect() }
 
     fun getBoundsInPx(): IntRect = with(container.systemDensity) {
         getBoundsInDp().toRect().roundToIntRect()

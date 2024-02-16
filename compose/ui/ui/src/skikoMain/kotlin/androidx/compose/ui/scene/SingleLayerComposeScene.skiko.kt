@@ -25,18 +25,19 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.node.RootNodeOwner
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.toIntRect
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 
@@ -48,12 +49,14 @@ import kotlinx.coroutines.Dispatchers
  *
  * @param density Initial density of the content which will be used to convert [Dp] units.
  * @param layoutDirection Initial layout direction of the content.
- * @param boundsInWindow The bounds of the [ComposeScene]. Default value is `null`, which means
- * the size will be determined by the content.
+ * @param size The size of the ComposeScene. Default value is `null`, which means the size will be
+ * determined by the contents.
  * @param coroutineContext Context which will be used to launch effects ([LaunchedEffect],
  * [rememberCoroutineScope]) and run recompositions.
  * @param composeSceneContext The context to share resources between multiple scenes and provide
  * a way for platform interaction.
+ * @param calculateMatrixToWindow Represents the transformation to convert coordinates (in pixels)
+ * from scene to window coordinate space ([WindowInfo.containerSize] should be used as reference).
  * @param invalidate The function to be called when the content need to be recomposed or
  * re-rendered. If you draw your content using [ComposeScene.render] method, in this callback you
  * should schedule the next [ComposeScene.render] in your rendering loop.
@@ -65,26 +68,29 @@ import kotlinx.coroutines.Dispatchers
 fun SingleLayerComposeScene(
     density: Density = Density(1f),
     layoutDirection: LayoutDirection = LayoutDirection.Ltr,
-    boundsInWindow: IntRect? = null,
+    size: Size? = null,
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
     composeSceneContext: ComposeSceneContext = ComposeSceneContext.Empty,
+    calculateMatrixToWindow: (Matrix) -> Unit = {},
     invalidate: () -> Unit = {},
 ): ComposeScene = SingleLayerComposeSceneImpl(
     density = density,
     layoutDirection = layoutDirection,
-    boundsInWindow = boundsInWindow,
+    size = size,
     coroutineContext = coroutineContext,
     composeSceneContext = composeSceneContext,
+    calculateMatrixToWindow = calculateMatrixToWindow,
     invalidate = invalidate
 )
 
 private class SingleLayerComposeSceneImpl(
     density: Density,
     layoutDirection: LayoutDirection,
-    boundsInWindow: IntRect?,
+    size: Size?,
     coroutineContext: CoroutineContext,
     composeSceneContext: ComposeSceneContext,
-    invalidate: () -> Unit = {},
+    calculateMatrixToWindow: (Matrix) -> Unit,
+    invalidate: () -> Unit,
 ) : BaseComposeScene(
     coroutineContext = coroutineContext,
     composeSceneContext = composeSceneContext,
@@ -95,10 +101,11 @@ private class SingleLayerComposeSceneImpl(
             density = density,
             layoutDirection = layoutDirection,
             coroutineContext = compositionContext.effectCoroutineContext,
-            bounds = boundsInWindow,
+            size = size,
             platformContext = composeSceneContext.platformContext,
             snapshotInvalidationTracker = snapshotInvalidationTracker,
             inputHandler = inputHandler,
+            calculateMatrixToWindow = calculateMatrixToWindow
         )
     }
 
@@ -116,14 +123,14 @@ private class SingleLayerComposeSceneImpl(
             mainOwner.layoutDirection = value
         }
 
-    override var boundsInWindow: IntRect? = boundsInWindow
+    override var size: Size? = size
         set(value) {
             check(!isClosed) { "ComposeScene is closed" }
-            check(value == null || (value.size.width >= 0 && value.size.height >= 0)) {
+            check(value == null || (value.width >= 0f && value.height >= 0)) {
                 "Size of ComposeScene cannot be negative"
             }
             field = value
-            mainOwner.bounds = value
+            mainOwner.size = value
         }
 
     override val focusManager: ComposeSceneFocusManager =

@@ -41,6 +41,6 @@ internal fun Rect.toCGRect(density: Double) =
 internal operator fun IntRect.div(divider: Float) =
     Rect(left / divider, top / divider, right / divider, bottom / divider)
 
-internal fun CGSize.toDpSize(): DpSize = DpSize(width.dp, height.dp)
-internal fun CGPoint.toDpOffset(): DpOffset = DpOffset(x.dp, y.dp)
-internal fun CGRect.toDpRect(): DpRect = DpRect(origin.toDpOffset(), size.toDpSize())
+internal fun CGSize.asDpSize(): DpSize = DpSize(width.dp, height.dp)
+internal fun CGPoint.asDpOffset(): DpOffset = DpOffset(x.dp, y.dp)
+internal fun CGRect.asDpRect(): DpRect = DpRect(origin.asDpOffset(), size.asDpSize())

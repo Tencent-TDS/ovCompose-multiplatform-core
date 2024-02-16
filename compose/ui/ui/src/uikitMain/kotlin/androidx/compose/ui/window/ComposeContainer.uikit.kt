@@ -25,9 +25,10 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.PlatformWindowContext
+import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
@@ -36,11 +37,11 @@ import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SceneLayout
 import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.scene.UIViewComposeSceneLayer
-import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.PlistSanityCheck
+import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.uikit.utils.CMPViewController
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
@@ -75,7 +76,6 @@ import platform.UIKit.UIContentSizeCategoryExtraSmall
 import platform.UIKit.UIContentSizeCategoryLarge
 import platform.UIKit.UIContentSizeCategoryMedium
 import platform.UIKit.UIContentSizeCategorySmall
-import platform.UIKit.UIScreen
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
@@ -113,8 +113,8 @@ internal class ComposeContainer(
     )
     val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
     private val focusStack: FocusStack<UIView> = FocusStackImpl()
-    private val windowContext = PlatformWindowContext().apply {
-        setWindowFocused(true)
+    private val windowInfo = WindowInfoImpl().apply {
+        isWindowFocused = true
     }
 
     /*
@@ -175,10 +175,14 @@ internal class ComposeContainer(
             interfaceOrientationState.value = it
         }
 
-        updateWindowContainer()
+        updateWindowContainerSize()
+        mediator?.viewWillLayoutSubviews()
+        layers.fastForEach {
+            it.viewWillLayoutSubviews()
+        }
     }
 
-    private fun updateWindowContainer() {
+    private fun updateWindowContainerSize() {
         val scale = windowContainer.systemDensity.density
         val size = windowContainer.frame.useContents<CGRect, IntSize> {
             IntSize(
@@ -186,12 +190,7 @@ internal class ComposeContainer(
                 height = (size.height * scale).roundToInt()
             )
         }
-        windowContext.setContainerSize(size)
-        windowContext.setWindowContainer(windowContainer)
-        mediator?.viewWillLayoutSubviews()
-        layers.fastForEach {
-            it.viewWillLayoutSubviews()
-        }
+        windowInfo.containerSize = size
     }
 
     override fun viewWillTransitionToSize(
@@ -244,9 +243,7 @@ internal class ComposeContainer(
         layers.fastForEach {
             it.viewDidAppear(animated)
         }
-
-        updateWindowContainer()
-
+        updateWindowContainerSize()
         configuration.delegate.viewDidAppear(animated)
     }
 
@@ -280,6 +277,11 @@ internal class ComposeContainer(
         super.didReceiveMemoryWarning()
     }
 
+    fun calculateMatrixToWindow(view: UIView, matrix: Matrix) {
+        // TODO construct transform [matrix] to convert [view] coordinates
+        //  into [windowContainer] in pixels
+    }
+
     fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext =
         ComposeSceneContextImpl(platformContext)
 
@@ -296,23 +298,24 @@ internal class ComposeContainer(
         coroutineContext: CoroutineContext,
     ): ComposeScene = if (configuration.platformLayers) {
         SingleLayerComposeScene(
-            coroutineContext = coroutineContext,
             density = systemDensity,
-            invalidate = invalidate,
             layoutDirection = layoutDirection,
+            coroutineContext = coroutineContext,
             composeSceneContext = ComposeSceneContextImpl(
                 platformContext = platformContext
             ),
+            calculateMatrixToWindow = { calculateMatrixToWindow(view, it) },
+            invalidate = invalidate,
         )
     } else {
         MultiLayerComposeScene(
+            density = systemDensity,
+            layoutDirection = layoutDirection,
             coroutineContext = coroutineContext,
             composeSceneContext = ComposeSceneContextImpl(
                 platformContext = platformContext
             ),
-            density = systemDensity,
             invalidate = invalidate,
-            layoutDirection = layoutDirection,
         )
     }
 
@@ -321,7 +324,7 @@ internal class ComposeContainer(
             container = view,
             configuration = configuration,
             focusStack = focusStack,
-            windowContext = windowContext,
+            windowInfo = windowInfo,
             coroutineContext = coroutineDispatcher,
             renderingUIViewFactory = ::createSkikoUIView,
             composeSceneFactory = ::createComposeScene,
@@ -368,7 +371,7 @@ internal class ComposeContainer(
                 initLayoutDirection = layoutDirection,
                 configuration = configuration,
                 focusStack = if (focusable) focusStack else null,
-                windowContext = windowContext,
+                windowInfo = windowInfo,
                 compositionContext = compositionContext,
             )
     }

@@ -23,7 +23,9 @@ import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.*
@@ -31,12 +33,8 @@ import androidx.compose.ui.scene.skia.SkiaLayerComponent
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.sizeInPx
@@ -47,7 +45,6 @@ import java.awt.event.KeyEvent
 import java.awt.im.InputMethodRequests
 import javax.accessibility.Accessible
 import javax.swing.JLayeredPane
-import javax.swing.RootPaneContainer
 import javax.swing.SwingUtilities
 import kotlin.coroutines.CoroutineContext
 import org.jetbrains.skia.Canvas
@@ -170,7 +167,7 @@ internal class ComposeSceneMediator(
      * For example if we want to show dialog in a separate window with size of this
      * dialog, but constrains (and scene size) should remain the size of the main window.
      */
-    var sceneBoundsInPx: IntRect? = null
+    var sceneBoundsInPx: Rect? = null
 
     private val semanticsOwnerListener = DesktopSemanticsOwnerListener()
     var rootForTestListener: PlatformContext.RootForTestListener? by DelegateRootForTestListener()
@@ -318,7 +315,7 @@ internal class ComposeSceneMediator(
     private val MouseEvent.position: Offset
         get() {
             val pointInContainer = SwingUtilities.convertPoint(contentComponent, point, container)
-            val offset = sceneBoundsInPx?.topLeft?.toOffset() ?: Offset.Zero
+            val offset = sceneBoundsInPx?.topLeft ?: Offset.Zero
             val density = contentComponent.density
             return Offset(pointInContainer.x.toFloat(), pointInContainer.y.toFloat()) * density.density - offset
         }
@@ -427,6 +424,12 @@ internal class ComposeSceneMediator(
         }
     }
 
+    fun onCalculateMatrixToWindow(matrix: Matrix) {
+        val offsetInWindow = windowContext.offsetInWindow(container)
+        matrix.reset()
+        matrix.translate(offsetInWindow.x, offsetInWindow.y)
+    }
+
     fun onComposeInvalidation() = catchExceptions {
         if (isDisposed) return
         skiaLayerComponent.onComposeInvalidation()
@@ -435,19 +438,12 @@ internal class ComposeSceneMediator(
     fun onChangeComponentSize() = catchExceptions {
         if (!container.isDisplayable) return
 
-        val offsetInWindow = windowContext.offsetInWindow(container)
         val size = sceneBoundsInPx?.size ?: container.sizeInPx
-        val boundsInWindow = IntRect(
-            offset = offsetInWindow,
-            size = IntSize(
-                // container.sizeInPx can be negative
-                width = size.width.coerceAtLeast(0),
-                height = size.height.coerceAtLeast(0)
-            )
+        scene.size = Size(
+            // container.sizeInPx can be negative
+            width = size.width.coerceAtLeast(0f),
+            height = size.height.coerceAtLeast(0f)
         )
-        if (scene.boundsInWindow != boundsInWindow) {
-            scene.boundsInWindow = boundsInWindow
-        }
     }
 
     fun onChangeComponentDensity() = catchExceptions {
@@ -482,10 +478,10 @@ internal class ComposeSceneMediator(
         override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
             catchExceptions {
                 val composeCanvas = canvas.asComposeCanvas()
-                val offset = sceneBoundsInPx?.topLeft ?: IntOffset.Zero
+                val offset = sceneBoundsInPx?.topLeft ?: Offset.Zero
                 val scale = contentComponent.density.density
-                val dx = contentComponent.x * scale - offset.x.toFloat()
-                val dy = contentComponent.y * scale - offset.y.toFloat()
+                val dx = contentComponent.x * scale - offset.x
+                val dy = contentComponent.y * scale - offset.y
                 composeCanvas.translate(-dx, -dy)
                 scene.render(composeCanvas, nanoTime)
                 composeCanvas.translate(dx, dy)
