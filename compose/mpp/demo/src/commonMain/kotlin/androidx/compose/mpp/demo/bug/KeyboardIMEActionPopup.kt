@@ -18,6 +18,7 @@ package androidx.compose.mpp.demo.bug
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,33 +39,36 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 
 val KeyboardIMEActionPopup = Screen.Example("KeyboardIMEActionPopup") {
-    var visible by remember { mutableStateOf(false) }
+    Column {
+        var visible by remember { mutableStateOf(false) }
 
-    Spacer(modifier = Modifier.height(32.dp))
-    OutlinedTextField(
-        value = "",
-        onValueChange = {},
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Done
-        )
-    )
-    Spacer(modifier = Modifier.height(32.dp))
-    Button(
-        onClick = { visible = true }
-    ) {
-        Text("Expand")
-    }
-
-    if (visible)
-        Dialog(
-            onDismissRequest = { visible = false }
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .background(MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.height(32.dp))
+        OutlinedTextField(
+            value = "",
+            onValueChange = {},
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Done
             )
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = { visible = true }
+        ) {
+            Text("Expand")
         }
+
+        if (visible)
+            Dialog(
+                onDismissRequest = { visible = false }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            }
+    }
 }
+˚
