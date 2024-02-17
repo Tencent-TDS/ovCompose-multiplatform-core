@@ -143,7 +143,6 @@ internal class ComposeSceneMediator(
         }
     }
     private val mouseListener = object : MouseAdapter() {
-        override fun mouseClicked(event: MouseEvent) = Unit
         override fun mousePressed(event: MouseEvent) = onMouseEvent(event)
         override fun mouseReleased(event: MouseEvent) = onMouseEvent(event)
         override fun mouseEntered(event: MouseEvent) = onMouseEvent(event)
@@ -279,6 +278,16 @@ internal class ComposeSceneMediator(
         component.removeKeyListener(keyListener)
     }
 
+    private var isMouseEventProcessing = false
+    private inline fun processMouseEvent(block: () -> Unit) {
+        isMouseEventProcessing = true
+        try {
+            block()
+        } finally {
+            isMouseEventProcessing = false
+        }
+    }
+
     // Decides which AWT events should be delivered, and which should be filtered out
     private val awtEventFilter = object {
 
@@ -286,8 +295,9 @@ internal class ComposeSceneMediator(
 
         fun shouldSendMouseEvent(event: MouseEvent): Boolean {
             // AWT can send events after the window is disposed
-            if (isDisposed)
+            if (isDisposed || isMouseEventProcessing) {
                 return false
+            }
 
             // Filter out mouse events that report the primary button has changed state to pressed,
             // but aren't themselves a mouse press event. This is needed because on macOS, AWT sends
@@ -317,7 +327,7 @@ internal class ComposeSceneMediator(
 
     private val MouseEvent.position: Offset
         get() {
-            val pointInContainer = SwingUtilities.convertPoint(contentComponent, point, container)
+            val pointInContainer = SwingUtilities.convertPoint(component, point, container)
             val offset = sceneBoundsInPx?.topLeft?.toOffset() ?: Offset.Zero
             val density = contentComponent.density
             return Offset(pointInContainer.x.toFloat(), pointInContainer.y.toFloat()) * density.density - offset
@@ -331,14 +341,18 @@ internal class ComposeSceneMediator(
             keyboardModifiersRequireUpdate = false
             windowContext.setKeyboardModifiers(event.keyboardModifiers)
         }
-        scene.onMouseEvent(event.position, event)
+        processMouseEvent {
+            scene.onMouseEvent(event.position, event)
+        }
     }
 
     private fun onMouseWheelEvent(event: MouseWheelEvent): Unit = catchExceptions {
         if (!awtEventFilter.shouldSendMouseEvent(event)) {
             return
         }
-        scene.onMouseWheelEvent(event.position, event)
+        processMouseEvent {
+            scene.onMouseWheelEvent(event.position, event)
+        }
     }
 
     private fun onKeyEvent(event: KeyEvent) = catchExceptions {
@@ -394,6 +408,10 @@ internal class ComposeSceneMediator(
 
     fun addToComponentLayer(component: Component) {
         container.addToLayer(component, interopLayer)
+
+        component.addMouseListener(mouseListener)
+        component.addMouseMotionListener(mouseMotionListener)
+        component.addMouseWheelListener(mouseWheelListener)
     }
 
     private var onPreviewKeyEvent: (ComposeKeyEvent) -> Boolean = { false }
