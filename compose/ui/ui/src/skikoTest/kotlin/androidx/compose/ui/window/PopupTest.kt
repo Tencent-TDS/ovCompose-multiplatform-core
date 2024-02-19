@@ -686,7 +686,7 @@ class PopupTest {
             invalidate = ::invalidate
         )
         try {
-            scene.boundsInWindow = IntRect(0, 0, 100, 100)
+            scene.size = Size(100f, 100f)
             scene.setContent {
                 Popup {
                     Box(Modifier.size(200.dp))
