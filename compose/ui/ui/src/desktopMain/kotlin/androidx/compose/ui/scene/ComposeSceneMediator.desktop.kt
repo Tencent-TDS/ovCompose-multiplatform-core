@@ -23,7 +23,6 @@ import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.*
@@ -45,9 +44,9 @@ import java.awt.Cursor
 import java.awt.event.*
 import java.awt.event.KeyEvent
 import java.awt.im.InputMethodRequests
+import java.lang.ref.WeakReference
 import javax.accessibility.Accessible
 import javax.swing.JLayeredPane
-import javax.swing.RootPaneContainer
 import javax.swing.SwingUtilities
 import kotlin.coroutines.CoroutineContext
 import org.jetbrains.skia.Canvas
@@ -93,20 +92,52 @@ internal class ComposeSceneMediator(
         private val clipMap = mutableMapOf<Component, ClipComponent>()
 
         override fun componentAdded(e: ContainerEvent) {
+            val component = e.child
+            if (useInteropBlending) {
+                // In case of interop blending, compose might draw content above this [component].
+                // But due to implementation of [JLayeredPane]'s lightweight/heavyweight mixing
+                // logic, it doesn't send mouse events to parents or another layers.
+                // In case if [component] is placed above [contentComponent] (see addToLayer),
+                // subscribe to mouse events from interop views to handle such input.
+                subscribeToMouseEvents(component)
+            } else {
+                // Without interop blending, just add clip region to make proper
+                // "interop always on top" behaviour.
+                addClipComponent(component)
+            }
+        }
+
+        override fun componentRemoved(e: ContainerEvent) {
+            val component = e.child
+            removeClipComponent(component)
+            unsubscribeFromMouseEvents(component)
+        }
+
+        private fun addClipComponent(component: Component) {
             if (useInteropBlending) {
                 return
             }
-            val component = e.child
             val clipRectangle = ClipComponent(component)
             clipMap[component] = clipRectangle
             skiaLayerComponent.clipComponents.add(clipRectangle)
         }
 
-        override fun componentRemoved(e: ContainerEvent) {
-            val component = e.child
+        private fun removeClipComponent(component: Component) {
             clipMap.remove(component)?.let {
                 skiaLayerComponent.clipComponents.remove(it)
             }
+        }
+
+        private fun subscribeToMouseEvents(component: Component) {
+            component.addMouseListener(mouseListener)
+            component.addMouseMotionListener(mouseListener)
+            component.addMouseWheelListener(mouseListener)
+        }
+
+        private fun unsubscribeFromMouseEvents(component: Component) {
+            component.removeMouseListener(mouseListener)
+            component.removeMouseMotionListener(mouseListener)
+            component.removeMouseWheelListener(mouseListener)
         }
     }
     private val inputMethodListener = object : InputMethodListener {
@@ -147,12 +178,10 @@ internal class ComposeSceneMediator(
         override fun mouseReleased(event: MouseEvent) = onMouseEvent(event)
         override fun mouseEntered(event: MouseEvent) = onMouseEvent(event)
         override fun mouseExited(event: MouseEvent) = onMouseEvent(event)
-    }
-    private val mouseMotionListener = object : MouseMotionAdapter() {
         override fun mouseDragged(event: MouseEvent) = onMouseEvent(event)
         override fun mouseMoved(event: MouseEvent) = onMouseEvent(event)
+        override fun mouseWheelMoved(event: MouseWheelEvent) = onMouseWheelEvent(event)
     }
-    private val mouseWheelListener = MouseWheelListener { event -> onMouseWheelEvent(event) }
     private val keyListener = object : KeyAdapter() {
         override fun keyPressed(event: KeyEvent) = onKeyEvent(event)
         override fun keyReleased(event: KeyEvent) = onKeyEvent(event)
@@ -227,15 +256,16 @@ internal class ComposeSceneMediator(
         get() = if (useInteropBlending) 0 else 20
 
     init {
-        /*
-         * Transparency is used during redrawer creation that triggered by [addNotify], so
-         * it must be set to correct value before adding to the hierarchy to handle cases
-         * when [container] is already [isDisplayable].
-         */
+        // Transparency is used during redrawer creation that triggered by [addNotify], so
+        // it must be set to correct value before adding to the hierarchy to handle cases
+        // when [container] is already [isDisplayable].
         skiaLayerComponent.transparency = useInteropBlending
 
         container.addToLayer(invisibleComponent, contentLayer)
         container.addToLayer(contentComponent, contentLayer)
+
+        // Adding after adding invisibleComponent and contentComponent
+        // to react only on changes with interopLayer
         container.addContainerListener(containerListener)
 
         // It will be enabled dynamically. See DesktopPlatformComponent
@@ -264,8 +294,8 @@ internal class ComposeSceneMediator(
         component.addInputMethodListener(inputMethodListener)
         component.addFocusListener(focusListener)
         component.addMouseListener(mouseListener)
-        component.addMouseMotionListener(mouseMotionListener)
-        component.addMouseWheelListener(mouseWheelListener)
+        component.addMouseMotionListener(mouseListener)
+        component.addMouseWheelListener(mouseListener)
         component.addKeyListener(keyListener)
     }
 
@@ -273,20 +303,12 @@ internal class ComposeSceneMediator(
         component.removeInputMethodListener(inputMethodListener)
         component.removeFocusListener(focusListener)
         component.removeMouseListener(mouseListener)
-        component.removeMouseMotionListener(mouseMotionListener)
-        component.removeMouseWheelListener(mouseWheelListener)
+        component.removeMouseMotionListener(mouseListener)
+        component.removeMouseWheelListener(mouseListener)
         component.removeKeyListener(keyListener)
     }
 
-    private var isMouseEventProcessing = false
-    private inline fun processMouseEvent(block: () -> Unit) {
-        isMouseEventProcessing = true
-        try {
-            block()
-        } finally {
-            isMouseEventProcessing = false
-        }
-    }
+    private var lastMouseEvent = WeakReference<MouseEvent?>(null)
 
     // Decides which AWT events should be delivered, and which should be filtered out
     private val awtEventFilter = object {
@@ -295,7 +317,13 @@ internal class ComposeSceneMediator(
 
         fun shouldSendMouseEvent(event: MouseEvent): Boolean {
             // AWT can send events after the window is disposed
-            if (isDisposed || isMouseEventProcessing) {
+            if (isDisposed) {
+                return false
+            }
+
+            // Filter out mouse events if [ComposeScene] already processing mouse event,
+            // or it was already received via another listener.
+            if (event == lastMouseEvent.get()) {
                 return false
             }
 
@@ -341,18 +369,22 @@ internal class ComposeSceneMediator(
             keyboardModifiersRequireUpdate = false
             windowContext.setKeyboardModifiers(event.keyboardModifiers)
         }
-        processMouseEvent {
-            scene.onMouseEvent(event.position, event)
-        }
+        // Remember the event that [scene] already received to avoid double processing
+        // in the next cases:
+        // - [SwingPanel] might manually spawn a new AWT event for interop view
+        //   (see [InteropPointerInputModifier] for details)
+        // - Precaution of changes inside JDK if the same event will be sent to multiple components
+        //   inside [container] (the mouse listener is added into several components)
+        lastMouseEvent = WeakReference(event)
+        scene.onMouseEvent(event.position, event)
     }
 
     private fun onMouseWheelEvent(event: MouseWheelEvent): Unit = catchExceptions {
         if (!awtEventFilter.shouldSendMouseEvent(event)) {
             return
         }
-        processMouseEvent {
-            scene.onMouseWheelEvent(event.position, event)
-        }
+        lastMouseEvent = WeakReference(event)
+        scene.onMouseWheelEvent(event.position, event)
     }
 
     private fun onKeyEvent(event: KeyEvent) = catchExceptions {
@@ -408,10 +440,6 @@ internal class ComposeSceneMediator(
 
     fun addToComponentLayer(component: Component) {
         container.addToLayer(component, interopLayer)
-
-        component.addMouseListener(mouseListener)
-        component.addMouseMotionListener(mouseMotionListener)
-        component.addMouseWheelListener(mouseWheelListener)
     }
 
     private var onPreviewKeyEvent: (ComposeKeyEvent) -> Boolean = { false }
