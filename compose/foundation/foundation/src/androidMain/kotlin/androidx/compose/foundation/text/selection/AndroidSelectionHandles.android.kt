@@ -20,14 +20,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.Handle.SelectionEnd
 import androidx.compose.foundation.text.Handle.SelectionStart
-import androidx.compose.foundation.text.selection.HandleReferencePoint.TopLeft
-import androidx.compose.foundation.text.selection.HandleReferencePoint.TopMiddle
-import androidx.compose.foundation.text.selection.HandleReferencePoint.TopRight
 import androidx.compose.foundation.text.selection.SelectionHandleAnchor.Left
 import androidx.compose.foundation.text.selection.SelectionHandleAnchor.Right
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.CacheDrawScope
@@ -66,13 +64,13 @@ internal actual fun SelectionHandle(
     lineHeight: Float,
     modifier: Modifier,
 ) {
-    val isLeft = isLeft(isStartHandle, direction, handlesCrossed)
+    val isLeft = isLeftSelectionHandle(isStartHandle, direction, handlesCrossed)
     // The left selection handle's top right is placed at the given position, and vice versa.
-    val handleReferencePoint = if (isLeft) TopRight else TopLeft
+    val alignment = if (isLeft) AbsoluteAlignment.TopRight else AbsoluteAlignment.TopLeft
 
     // Propagate the view configuration to the popup.
     val viewConfiguration = LocalViewConfiguration.current
-    HandlePopup(positionProvider = offsetProvider, handleReferencePoint = handleReferencePoint) {
+    HandlePopup(positionProvider = offsetProvider, alignment = alignment) {
         CompositionLocalProvider(LocalViewConfiguration provides viewConfiguration) {
             SelectionHandleIcon(
                 modifier = modifier.semantics {
@@ -220,108 +218,15 @@ internal fun CacheDrawScope.createHandleImage(radius: Float): ImageBitmap {
 @Composable
 internal fun HandlePopup(
     positionProvider: OffsetProvider,
-    handleReferencePoint: HandleReferencePoint,
+    alignment: Alignment,
     content: @Composable () -> Unit
 ) {
-    val popupPositionProvider = remember(handleReferencePoint, positionProvider) {
-        HandlePositionProvider(handleReferencePoint, positionProvider)
+    val popupPositionProvider = remember(alignment, positionProvider) {
+        HandlePositionProvider(alignment, positionProvider)
     }
     Popup(
         popupPositionProvider = popupPositionProvider,
         properties = PopupProperties(excludeFromSystemGesture = true, clippingEnabled = false),
         content = content,
     )
-}
-
-/**
- * The enum that specifies how a selection/cursor handle is placed to its given position.
- * When this value is [TopLeft], the top left corner of the handle will be placed at the
- * given position.
- * When this value is [TopRight], the top right corner of the handle will be placed at the
- * given position.
- * When this value is [TopMiddle], the handle top edge's middle point will be placed at the given
- * position.
- */
-internal enum class HandleReferencePoint {
-    TopLeft,
-    TopRight,
-    TopMiddle
-}
-
-/**
- * This [PopupPositionProvider] for [HandlePopup]. It will position the selection handle
- * to the result of [positionProvider] in its anchor layout.
- *
- * @see HandleReferencePoint
- */
-internal class HandlePositionProvider(
-    private val handleReferencePoint: HandleReferencePoint,
-    private val positionProvider: OffsetProvider
-) : PopupPositionProvider {
-
-    /**
-     * When Handle disappears, it starts reporting its position as [Offset.Unspecified]. Normally,
-     * Popup is dismissed immediately when its position becomes unspecified, but for one frame a
-     * position update might be requested by soon-to-be-destroyed Popup. In this case, report the
-     * last known position as there are no more updates. If the first ever position is provided as
-     * unspecified, start with [Offset.Zero] default.
-     */
-    private var prevPosition: Offset = Offset.Zero
-
-    override fun calculatePosition(
-        anchorBounds: IntRect,
-        windowSize: IntSize,
-        layoutDirection: LayoutDirection,
-        popupContentSize: IntSize
-    ): IntOffset {
-        val position = positionProvider.provide().takeOrElse { prevPosition }
-        prevPosition = position
-
-        // We want the cursor to point to the position,
-        // so adjust the x-axis based on where the handle is pointing.
-        val xAdjustment = when (handleReferencePoint) {
-            TopLeft -> 0
-            TopMiddle -> popupContentSize.width / 2
-            TopRight -> popupContentSize.width
-        }
-
-        val offset = position.round()
-        val x = anchorBounds.left + offset.x - xAdjustment
-        val y = anchorBounds.top + offset.y
-        return IntOffset(x, y)
-    }
-}
-
-/**
- * Computes whether the handle's appearance should be left-pointing or right-pointing.
- */
-internal fun isLeft(
-    isStartHandle: Boolean,
-    direction: ResolvedTextDirection,
-    handlesCrossed: Boolean
-): Boolean {
-    return if (isStartHandle) {
-        isHandleLtrDirection(direction, handlesCrossed)
-    } else {
-        !isHandleLtrDirection(direction, handlesCrossed)
-    }
-}
-
-/**
- * This method is to check if the selection handles should use the natural Ltr pointing
- * direction.
- * If the context is Ltr and the handles are not crossed, or if the context is Rtl and the handles
- * are crossed, return true.
- *
- * In Ltr context, the start handle should point to the left, and the end handle should point to
- * the right. However, in Rtl context or when handles are crossed, the start handle should point to
- * the right, and the end handle should point to left.
- */
-/*@VisibleForTesting*/
-internal fun isHandleLtrDirection(
-    direction: ResolvedTextDirection,
-    areHandlesCrossed: Boolean
-): Boolean {
-    return direction == ResolvedTextDirection.Ltr && !areHandlesCrossed ||
-        direction == ResolvedTextDirection.Rtl && areHandlesCrossed
 }
