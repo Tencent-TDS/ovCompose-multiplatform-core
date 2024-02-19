@@ -264,8 +264,8 @@ internal class ComposeSceneMediator(
         container.addToLayer(invisibleComponent, contentLayer)
         container.addToLayer(contentComponent, contentLayer)
 
-        // Adding after adding invisibleComponent and contentComponent
-        // to react only on changes with interopLayer
+        // Adding a listener after adding [invisibleComponent] and [contentComponent]
+        // to react only on changes with [interopLayer].
         container.addContainerListener(containerListener)
 
         // It will be enabled dynamically. See DesktopPlatformComponent
@@ -321,7 +321,7 @@ internal class ComposeSceneMediator(
                 return false
             }
 
-            // Filter out mouse events if [ComposeScene] already processing mouse event,
+            // Filter out mouse event if [ComposeScene] is already processing this mouse event,
             // or it was already received via another listener.
             if (event == lastMouseEvent.get()) {
                 return false
@@ -373,7 +373,7 @@ internal class ComposeSceneMediator(
         // in the next cases:
         // - [SwingPanel] might manually spawn a new AWT event for interop view
         //   (see [InteropPointerInputModifier] for details)
-        // - Precaution of changes inside JDK if the same event will be sent to multiple components
+        // - Precaution of changes inside JDK if the same event is sent to multiple components
         //   inside [container] (the mouse listener is added into several components)
         lastMouseEvent = WeakReference(event)
         scene.onMouseEvent(event.position, event)
