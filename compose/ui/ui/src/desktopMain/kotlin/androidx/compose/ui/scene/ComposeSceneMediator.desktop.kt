@@ -114,9 +114,6 @@ internal class ComposeSceneMediator(
         }
 
         private fun addClipComponent(component: Component) {
-            if (useInteropBlending) {
-                return
-            }
             val clipRectangle = ClipComponent(component)
             clipMap[component] = clipRectangle
             skiaLayerComponent.clipComponents.add(clipRectangle)
