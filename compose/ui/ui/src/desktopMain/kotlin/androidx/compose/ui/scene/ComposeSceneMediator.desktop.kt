@@ -44,7 +44,6 @@ import java.awt.Cursor
 import java.awt.event.*
 import java.awt.event.KeyEvent
 import java.awt.im.InputMethodRequests
-import java.lang.ref.WeakReference
 import javax.accessibility.Accessible
 import javax.swing.JLayeredPane
 import javax.swing.SwingUtilities
@@ -306,17 +305,11 @@ internal class ComposeSceneMediator(
     }
 
     private var isMouseEventProcessing = false
-    private var lastMouseEvent = WeakReference<MouseEvent?>(null)
-    private inline fun processMouseEvent(event: MouseEvent, block: () -> Unit) {
+    private inline fun processMouseEvent(block: () -> Unit) {
         // Track if [event] is currently processing to avoid recursion in case if [SwingPanel]
         // manually spawns a new AWT event for interop view.
         // See [InteropPointerInputModifier] for details.
         isMouseEventProcessing = true
-        // Remember [event] itself as precaution of changes inside JDK if the same event is sent
-        // to multiple components inside [container]. In case of such changes it might lead to
-        // double processing of the same event because our mouse listener is added into several
-        // components.
-        lastMouseEvent = WeakReference(event)
         try {
             block()
         } finally {
@@ -335,9 +328,8 @@ internal class ComposeSceneMediator(
                 return false
             }
 
-            // Filter out mouse event if [ComposeScene] is already processing this mouse event,
-            // or it was already received via another listener.
-            if (isMouseEventProcessing || event == lastMouseEvent.get()) {
+            // Filter out mouse event if [ComposeScene] is already processing this mouse event
+            if (isMouseEventProcessing) {
                 return false
             }
 
@@ -383,7 +375,7 @@ internal class ComposeSceneMediator(
             keyboardModifiersRequireUpdate = false
             windowContext.setKeyboardModifiers(event.keyboardModifiers)
         }
-        processMouseEvent(event) {
+        processMouseEvent {
             scene.onMouseEvent(event.position, event)
         }
     }
@@ -392,7 +384,7 @@ internal class ComposeSceneMediator(
         if (!awtEventFilter.shouldSendMouseEvent(event)) {
             return
         }
-        processMouseEvent(event) {
+        processMouseEvent {
             scene.onMouseWheelEvent(event.position, event)
         }
     }
