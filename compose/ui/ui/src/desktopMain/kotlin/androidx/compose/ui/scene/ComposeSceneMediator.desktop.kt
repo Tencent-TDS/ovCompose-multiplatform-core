@@ -305,7 +305,24 @@ internal class ComposeSceneMediator(
         component.removeKeyListener(keyListener)
     }
 
+    private var isMouseEventProcessing = false
     private var lastMouseEvent = WeakReference<MouseEvent?>(null)
+    private inline fun processMouseEvent(event: MouseEvent, block: () -> Unit) {
+        // Track if [event] is currently processing to avoid recursion in case if [SwingPanel]
+        // manually spawns a new AWT event for interop view.
+        // See [InteropPointerInputModifier] for details.
+        isMouseEventProcessing = true
+        // Remember [event] itself as precaution of changes inside JDK if the same event is sent
+        // to multiple components inside [container]. In case of such changes it might lead to
+        // double processing of the same event because our mouse listener is added into several
+        // components.
+        lastMouseEvent = WeakReference(event)
+        try {
+            block()
+        } finally {
+            isMouseEventProcessing = false
+        }
+    }
 
     // Decides which AWT events should be delivered, and which should be filtered out
     private val awtEventFilter = object {
@@ -320,7 +337,7 @@ internal class ComposeSceneMediator(
 
             // Filter out mouse event if [ComposeScene] is already processing this mouse event,
             // or it was already received via another listener.
-            if (event == lastMouseEvent.get()) {
+            if (isMouseEventProcessing || event == lastMouseEvent.get()) {
                 return false
             }
 
@@ -366,22 +383,18 @@ internal class ComposeSceneMediator(
             keyboardModifiersRequireUpdate = false
             windowContext.setKeyboardModifiers(event.keyboardModifiers)
         }
-        // Remember the event that [scene] already received to avoid double processing
-        // in the next cases:
-        // - [SwingPanel] might manually spawn a new AWT event for interop view
-        //   (see [InteropPointerInputModifier] for details)
-        // - Precaution of changes inside JDK if the same event is sent to multiple components
-        //   inside [container] (the mouse listener is added into several components)
-        lastMouseEvent = WeakReference(event)
-        scene.onMouseEvent(event.position, event)
+        processMouseEvent(event) {
+            scene.onMouseEvent(event.position, event)
+        }
     }
 
     private fun onMouseWheelEvent(event: MouseWheelEvent): Unit = catchExceptions {
         if (!awtEventFilter.shouldSendMouseEvent(event)) {
             return
         }
-        lastMouseEvent = WeakReference(event)
-        scene.onMouseWheelEvent(event.position, event)
+        processMouseEvent(event) {
+            scene.onMouseWheelEvent(event.position, event)
+        }
     }
 
     private fun onKeyEvent(event: KeyEvent) = catchExceptions {
