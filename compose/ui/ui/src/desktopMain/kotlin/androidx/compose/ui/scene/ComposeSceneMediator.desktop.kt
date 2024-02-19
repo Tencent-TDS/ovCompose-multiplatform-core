@@ -98,7 +98,7 @@ internal class ComposeSceneMediator(
                 // logic, it doesn't send mouse events to parents or another layers.
                 // In case if [component] is placed above [contentComponent] (see addToLayer),
                 // subscribe to mouse events from interop views to handle such input.
-                subscribeToMouseEvents(component)
+                component.subscribeToMouseEvents(mouseListener)
             } else {
                 // Without interop blending, just add clip region to make proper
                 // "interop always on top" behaviour.
@@ -109,7 +109,7 @@ internal class ComposeSceneMediator(
         override fun componentRemoved(e: ContainerEvent) {
             val component = e.child
             removeClipComponent(component)
-            unsubscribeFromMouseEvents(component)
+            component.unsubscribeFromMouseEvents(mouseListener)
         }
 
         private fun addClipComponent(component: Component) {
@@ -122,18 +122,6 @@ internal class ComposeSceneMediator(
             clipMap.remove(component)?.let {
                 skiaLayerComponent.clipComponents.remove(it)
             }
-        }
-
-        private fun subscribeToMouseEvents(component: Component) {
-            component.addMouseListener(mouseListener)
-            component.addMouseMotionListener(mouseListener)
-            component.addMouseWheelListener(mouseListener)
-        }
-
-        private fun unsubscribeFromMouseEvents(component: Component) {
-            component.removeMouseListener(mouseListener)
-            component.removeMouseMotionListener(mouseListener)
-            component.removeMouseWheelListener(mouseListener)
         }
     }
     private val inputMethodListener = object : InputMethodListener {
@@ -289,23 +277,24 @@ internal class ComposeSceneMediator(
     private fun subscribe(component: Component) {
         component.addInputMethodListener(inputMethodListener)
         component.addFocusListener(focusListener)
-        component.addMouseListener(mouseListener)
-        component.addMouseMotionListener(mouseListener)
-        component.addMouseWheelListener(mouseListener)
         component.addKeyListener(keyListener)
+        component.subscribeToMouseEvents(mouseListener)
     }
 
     private fun unsubscribe(component: Component) {
         component.removeInputMethodListener(inputMethodListener)
         component.removeFocusListener(focusListener)
-        component.removeMouseListener(mouseListener)
-        component.removeMouseMotionListener(mouseListener)
-        component.removeMouseWheelListener(mouseListener)
         component.removeKeyListener(keyListener)
+        component.unsubscribeFromMouseEvents(mouseListener)
     }
 
     private var isMouseEventProcessing = false
     private inline fun processMouseEvent(block: () -> Unit) {
+        // Filter out mouse event if [ComposeScene] is already processing this mouse event
+        if (isMouseEventProcessing) {
+            return
+        }
+
         // Track if [event] is currently processing to avoid recursion in case if [SwingPanel]
         // manually spawns a new AWT event for interop view.
         // See [InteropPointerInputModifier] for details.
@@ -325,11 +314,6 @@ internal class ComposeSceneMediator(
         fun shouldSendMouseEvent(event: MouseEvent): Boolean {
             // AWT can send events after the window is disposed
             if (isDisposed) {
-                return false
-            }
-
-            // Filter out mouse event if [ComposeScene] is already processing this mouse event
-            if (isMouseEventProcessing) {
                 return false
             }
 
@@ -748,6 +732,18 @@ private val MouseEvent.keyboardModifiers get() = PointerKeyboardModifiers(
     isScrollLockOn = getLockingKeyStateSafe(KeyEvent.VK_SCROLL_LOCK),
     isNumLockOn = getLockingKeyStateSafe(KeyEvent.VK_NUM_LOCK),
 )
+
+private fun Component.subscribeToMouseEvents(mouseAdapter: MouseAdapter) {
+    addMouseListener(mouseAdapter)
+    addMouseMotionListener(mouseAdapter)
+    addMouseWheelListener(mouseAdapter)
+}
+
+private fun Component.unsubscribeFromMouseEvents(mouseAdapter: MouseAdapter) {
+    removeMouseListener(mouseAdapter)
+    removeMouseMotionListener(mouseAdapter)
+    removeMouseWheelListener(mouseAdapter)
+}
 
 private fun getLockingKeyStateSafe(
     mask: Int
