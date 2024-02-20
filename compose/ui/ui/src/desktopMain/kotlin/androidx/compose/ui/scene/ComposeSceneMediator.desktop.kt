@@ -24,30 +24,64 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.asComposeCanvas
-import androidx.compose.ui.input.pointer.*
-import androidx.compose.ui.platform.*
+import androidx.compose.ui.input.pointer.AwtCursor
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerButtons
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.platform.AccessibilityController
+import androidx.compose.ui.platform.ComposeSceneAccessible
+import androidx.compose.ui.platform.DelegateRootForTestListener
+import androidx.compose.ui.platform.DesktopTextInputService
+import androidx.compose.ui.platform.EmptyViewConfiguration
+import androidx.compose.ui.platform.PlatformComponent
+import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.PlatformWindowContext
+import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.sizeInPx
-import java.awt.*
+import java.awt.Component
 import java.awt.Cursor
-import java.awt.event.*
+import java.awt.Dimension
+import java.awt.Point
+import java.awt.Toolkit
+import java.awt.event.ContainerEvent
+import java.awt.event.ContainerListener
+import java.awt.event.FocusEvent
+import java.awt.event.FocusListener
+import java.awt.event.InputEvent
+import java.awt.event.InputMethodEvent
+import java.awt.event.InputMethodListener
+import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import java.awt.event.MouseWheelEvent
 import java.awt.im.InputMethodRequests
 import javax.accessibility.Accessible
 import javax.swing.JLayeredPane
 import javax.swing.SwingUtilities
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 import org.jetbrains.skia.Canvas
-import org.jetbrains.skiko.*
+import org.jetbrains.skiko.ClipComponent
+import org.jetbrains.skiko.ExperimentalSkikoApi
+import org.jetbrains.skiko.GraphicsApi
+import org.jetbrains.skiko.SkikoInput
+import org.jetbrains.skiko.SkikoView
+import org.jetbrains.skiko.hostOs
 import org.jetbrains.skiko.swing.SkiaSwingLayer
 
 /**
@@ -466,10 +500,10 @@ internal class ComposeSceneMediator(
         if (!container.isDisplayable) return
 
         val size = sceneBoundsInPx?.size ?: container.sizeInPx
-        scene.size = Size(
+        scene.size = IntSize(
             // container.sizeInPx can be negative
-            width = size.width.coerceAtLeast(0f),
-            height = size.height.coerceAtLeast(0f)
+            width = size.width.coerceAtLeast(0f).roundToInt(),
+            height = size.height.coerceAtLeast(0f).roundToInt()
         )
     }
 

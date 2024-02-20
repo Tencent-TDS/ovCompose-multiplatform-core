@@ -32,7 +32,6 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -54,7 +53,6 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.round
-import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachReversed
@@ -89,7 +87,7 @@ import kotlinx.coroutines.Dispatchers
 fun MultiLayerComposeScene(
     density: Density = Density(1f),
     layoutDirection: LayoutDirection = LayoutDirection.Ltr,
-    size: Size? = null,
+    size: IntSize? = null,
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
     composeSceneContext: ComposeSceneContext = ComposeSceneContext.Empty,
     invalidate: () -> Unit = {},
@@ -105,7 +103,7 @@ fun MultiLayerComposeScene(
 private class MultiLayerComposeSceneImpl(
     density: Density,
     layoutDirection: LayoutDirection,
-    size: Size?,
+    size: IntSize?,
     coroutineContext: CoroutineContext,
     composeSceneContext: ComposeSceneContext,
     invalidate: () -> Unit = {},
@@ -138,7 +136,7 @@ private class MultiLayerComposeSceneImpl(
             mainOwner.layoutDirection = value
         }
 
-    override var size: Size? = size
+    override var size: IntSize? = size
         set(value) {
             check(!isClosed) { "ComposeScene is closed" }
             check(value == null || (value.width >= 0f && value.height >= 0)) {

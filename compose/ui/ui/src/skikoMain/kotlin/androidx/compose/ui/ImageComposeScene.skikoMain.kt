@@ -21,7 +21,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerButton
@@ -38,7 +37,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlin.coroutines.CoroutineContext
-import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.DurationUnit.NANOSECONDS
 import kotlin.time.ExperimentalTime
@@ -137,7 +135,7 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
     private val scene = MultiLayerComposeScene(
         density = density,
         layoutDirection = layoutDirection,
-        size = Size(width.toFloat(), height.toFloat()),
+        size = IntSize(width, height),
         coroutineContext = coroutineContext,
     ).also {
         it.setContent(content = content)
@@ -173,7 +171,7 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
      */
     var constraints: Constraints
         get() = scene.size?.toConstraints() ?: Constraints()
-        set(value) { scene.size = value.toSize() }
+        set(value) { scene.size = value.toIntSize() }
 
     /**
      * Returns true if there are pending recompositions, renders or dispatched tasks.
@@ -301,12 +299,11 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
     fun sendKeyEvent(event: KeyEvent): Boolean = scene.sendKeyEvent(event)
 }
 
-private fun Constraints.toSize() =
+private fun Constraints.toIntSize() =
     if (maxWidth != Constraints.Infinity || maxHeight != Constraints.Infinity) {
-        Size(width = maxWidth.toFloat(), height = maxHeight.toFloat())
+        IntSize(width = maxWidth, height = maxHeight)
     } else {
         null
     }
 
-private fun Size.toConstraints() =
-    Constraints(maxWidth = width.roundToInt(), maxHeight = height.roundToInt())
+private fun IntSize.toConstraints() = Constraints(maxWidth = width, maxHeight = height)

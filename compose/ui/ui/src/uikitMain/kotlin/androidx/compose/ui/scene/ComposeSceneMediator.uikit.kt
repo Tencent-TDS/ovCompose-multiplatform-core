@@ -53,6 +53,7 @@ import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.dp
@@ -68,6 +69,7 @@ import androidx.compose.ui.window.RenderingUIView
 import androidx.compose.ui.window.UITouchesEventPhase
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.floor
+import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ObjCAction
@@ -531,11 +533,15 @@ internal class ComposeSceneMediator(
         scene.density = density
 
         // TODO: it should be updated on any container size change
-        scene.size = container.bounds.useContents {
+        val boundsInPx = container.bounds.useContents {
             with(density) {
-                asDpRect().toRect().size
+                asDpRect().toRect()
             }
         }
+        scene.size = IntSize(
+            width = boundsInPx.width.roundToInt(),
+            height = boundsInPx.height.roundToInt()
+        )
     }
 
     private fun calcSafeArea(): PlatformInsets =

@@ -30,8 +30,6 @@ import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.focus.FocusOwnerImpl
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.input.InputMode
@@ -63,7 +61,6 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformRootForTest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.RenderNodeLayer
-import androidx.compose.ui.platform.invertTo
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
@@ -77,10 +74,10 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toIntRect
 import androidx.compose.ui.unit.toRect
+import androidx.compose.ui.util.fastAll
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
 import kotlinx.coroutines.awaitCancellation
 
 /**
@@ -92,7 +89,7 @@ import kotlinx.coroutines.awaitCancellation
 internal class RootNodeOwner(
     density: Density,
     layoutDirection: LayoutDirection,
-    size: Size?,
+    size: IntSize?,
     coroutineContext: CoroutineContext,
     val platformContext: PlatformContext,
     private val snapshotInvalidationTracker: SnapshotInvalidationTracker,
@@ -204,9 +201,8 @@ internal class RootNodeOwner(
         if (event.button != null) {
             platformContext.inputModeManager.requestInputMode(InputMode.Touch)
         }
-        val isInBounds = event.eventType != PointerEventType.Exit && event.pointers.all {
-            size?.toRect()?.contains(it.position) ?: true
-        }
+        val isInBounds = event.eventType != PointerEventType.Exit &&
+            event.pointers.fastAll { isInBounds(it.position) }
         pointerInputEventProcessor.process(
             event,
             IdentityPositionCalculator,
@@ -228,8 +224,11 @@ internal class RootNodeOwner(
         return (last as? BackwardsCompatNode)?.element is InteropViewCatchPointerModifier
     }
 
+    private fun isInBounds(localPosition: Offset): Boolean =
+        size?.toIntRect()?.toRect()?.contains(localPosition) ?: true
+
     private fun calculateBoundsInWindow(): Rect? {
-        val rect = size?.toRect() ?: return null
+        val rect = size?.toIntRect()?.toRect() ?: return null
         val p0 = platformContext.calculatePositionInWindow(Offset(rect.left, rect.top))
         val p1 = platformContext.calculatePositionInWindow(Offset(rect.left, rect.bottom))
         val p3 = platformContext.calculatePositionInWindow(Offset(rect.right, rect.top))
@@ -547,8 +546,7 @@ private fun MeasureAndLayoutDelegate.updateRootConstraintsWithInfinityCheck(
     )
 }
 
-private fun Size.toConstraints() =
-    Constraints(maxWidth = width.roundToInt(), maxHeight = height.roundToInt())
+private fun IntSize.toConstraints() = Constraints(maxWidth = width, maxHeight = height)
 
 private object IdentityPositionCalculator: PositionCalculator {
     override fun screenToLocal(positionOnScreen: Offset): Offset = positionOnScreen

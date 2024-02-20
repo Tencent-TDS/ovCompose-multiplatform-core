@@ -39,7 +39,6 @@ import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.toSize
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.cancellation.CancellationException
@@ -176,7 +175,7 @@ class SkikoComposeUiTest(
 
     private fun createUi() = MultiLayerComposeScene(
         density = density,
-        size = size.toSize(),
+        size = size,
         coroutineContext = coroutineContext,
         composeSceneContext = TestComposeSceneContext(),
         invalidate = { }

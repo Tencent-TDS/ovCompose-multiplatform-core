@@ -19,8 +19,8 @@ package androidx.compose.ui
 import org.jetbrains.skia.Canvas as SkCanvas
 import androidx.compose.runtime.*
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.*
@@ -32,7 +32,6 @@ import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.*
 import kotlin.coroutines.CoroutineContext
-import kotlin.math.roundToInt
 import kotlinx.coroutines.*
 import org.jetbrains.skiko.currentNanoTime
 
@@ -196,7 +195,7 @@ class ComposeScene internal constructor(
      */
     var constraints: Constraints
         get() = replacement.size?.toConstraints() ?: Constraints()
-        set(value) { replacement.size = value.toSize() }
+        set(value) { replacement.size = value.toIntSize() }
 
     /**
      * Returns the current content size
@@ -368,12 +367,11 @@ class ComposeScene internal constructor(
     }
 }
 
-private fun Constraints.toSize() =
+private fun Constraints.toIntSize() =
     if (maxWidth != Constraints.Infinity || maxHeight != Constraints.Infinity) {
-        Size(width = maxWidth.toFloat(), height = maxHeight.toFloat())
+        IntSize(width = maxWidth, height = maxHeight)
     } else {
         null
     }
 
-private fun Size.toConstraints() =
-    Constraints(maxWidth = width.roundToInt(), maxHeight = height.roundToInt())
+private fun IntSize.toConstraints() = Constraints(maxWidth = width, maxHeight = height)

@@ -25,13 +25,10 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.node.RootNodeOwner
-import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -66,7 +63,7 @@ import kotlinx.coroutines.Dispatchers
 fun SingleLayerComposeScene(
     density: Density = Density(1f),
     layoutDirection: LayoutDirection = LayoutDirection.Ltr,
-    size: Size? = null,
+    size: IntSize? = null,
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
     composeSceneContext: ComposeSceneContext = ComposeSceneContext.Empty,
     invalidate: () -> Unit = {},
@@ -82,7 +79,7 @@ fun SingleLayerComposeScene(
 private class SingleLayerComposeSceneImpl(
     density: Density,
     layoutDirection: LayoutDirection,
-    size: Size?,
+    size: IntSize?,
     coroutineContext: CoroutineContext,
     composeSceneContext: ComposeSceneContext,
     invalidate: () -> Unit,
@@ -117,7 +114,7 @@ private class SingleLayerComposeSceneImpl(
             mainOwner.layoutDirection = value
         }
 
-    override var size: Size? = size
+    override var size: IntSize? = size
         set(value) {
             check(!isClosed) { "ComposeScene is closed" }
             check(value == null || (value.width >= 0f && value.height >= 0)) {

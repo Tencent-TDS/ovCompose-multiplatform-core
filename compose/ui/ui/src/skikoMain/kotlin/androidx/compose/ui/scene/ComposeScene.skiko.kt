@@ -26,7 +26,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.InteropViewCatchPointerModifier
@@ -90,7 +89,7 @@ interface ComposeScene {
      * it can be set to `null`. In such a case, the content will be laid out without any
      * restrictions and the window size will be utilized to bounds verification.
      */
-    var size: Size?
+    var size: IntSize?
 
     /**
      * Top-level composition locals, which will be provided for the Composable content,
