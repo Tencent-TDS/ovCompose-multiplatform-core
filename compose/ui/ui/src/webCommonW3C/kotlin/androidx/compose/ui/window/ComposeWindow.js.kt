@@ -28,6 +28,7 @@ import androidx.compose.ui.events.toSkikoScrollEvent
 import androidx.compose.ui.input.pointer.BrowserCursor
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.native.ComposeLayer
+import androidx.compose.ui.native.SkikoViewExtension
 import androidx.compose.ui.platform.JSTextInputService
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.ViewConfiguration
@@ -95,9 +96,9 @@ private class ComposeWindow(
 
     val canvas = document.getElementById(canvasId) as HTMLCanvasElement
 
-    private fun <T : Event> HTMLCanvasElement.addTypedEvent(type: String, handler: (event: T, skikoView: SkikoView) -> Unit) {
+    private fun <T : Event> HTMLCanvasElement.addTypedEvent(type: String, handler: (event: T, skikoView: SkikoViewExtension) -> Unit) {
         addEventListener(type, { event ->
-            layer.layer?.skikoView?.let { skikoView -> handler(event as T, skikoView) }
+            layer.layer?.skikoView?.let { skikoView -> handler(event as T, skikoView as SkikoViewExtension) }
         })
     }
 
@@ -159,13 +160,13 @@ private class ComposeWindow(
         })
 
         canvas.addTypedEvent<KeyboardEvent>("keydown") { event, skikoView ->
-            event.preventDefault()
-            skikoView.onKeyboardEvent(event.toSkikoEvent(SkikoKeyboardEventKind.DOWN))
+            val processed = skikoView.onKeyboardEventWithResult(event.toSkikoEvent(SkikoKeyboardEventKind.DOWN))
+            if (processed) event.preventDefault()
         }
 
         canvas.addTypedEvent<KeyboardEvent>("keyup") { event, skikoView ->
-            event.preventDefault()
-            skikoView.onKeyboardEvent(event.toSkikoEvent(SkikoKeyboardEventKind.UP))
+            val processed = skikoView.onKeyboardEventWithResult(event.toSkikoEvent(SkikoKeyboardEventKind.UP))
+            if (processed) event.preventDefault()
         }
     }
 
