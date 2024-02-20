@@ -102,7 +102,8 @@ internal class ComposeContainer(
             _windowContainer = value
 
             windowContext.setWindowContainer(value)
-            onChangeWindowBounds()
+            onChangeWindowSize()
+            onChangeWindowPosition()
         }
 
     private val coroutineExceptionHandler = DesktopCoroutineExceptionHandler()
@@ -146,8 +147,8 @@ internal class ComposeContainer(
         layers.fastForEach(DesktopComposeSceneLayer::close)
     }
 
-    override fun componentResized(e: ComponentEvent?) = onChangeWindowBounds()
-    override fun componentMoved(e: ComponentEvent?) = onChangeWindowBounds()
+    override fun componentResized(e: ComponentEvent?) = onChangeWindowPosition()
+    override fun componentMoved(e: ComponentEvent?) = onChangeWindowSize()
     override fun componentShown(e: ComponentEvent?) = Unit
     override fun componentHidden(e: ComponentEvent?) = Unit
 
@@ -160,11 +161,18 @@ internal class ComposeContainer(
         layers.fastForEach(DesktopComposeSceneLayer::onChangeWindowFocus)
     }
 
-    private fun onChangeWindowBounds() {
+    private fun onChangeWindowPosition() {
+        if (!container.isDisplayable) return
+
+        mediator.onChangeComponentPosition()
+    }
+
+    private fun onChangeWindowSize() {
         if (!container.isDisplayable) return
 
         windowContext.setContainerSize(windowContainer.sizeInPx)
-        layers.fastForEach(DesktopComposeSceneLayer::onChangeWindowBounds)
+        mediator.onChangeComponentSize()
+        layers.fastForEach(DesktopComposeSceneLayer::onChangeWindowSize)
     }
 
     fun onChangeWindowTransparency(value: Boolean) {
@@ -187,7 +195,8 @@ internal class ComposeContainer(
         setWindow(SwingUtilities.getWindowAncestor(container))
 
         // Re-checking the actual size if it wasn't available during init.
-        onChangeWindowBounds()
+        onChangeWindowSize()
+        onChangeWindowPosition()
     }
 
     fun removeNotify() {
@@ -203,7 +212,8 @@ internal class ComposeContainer(
 
         // In case of preferred size there is no separate event for changing window size,
         // so re-checking the actual size on container resize too.
-        onChangeWindowBounds()
+        onChangeWindowSize()
+        onChangeWindowPosition()
     }
 
     private fun setWindow(window: Window?) {

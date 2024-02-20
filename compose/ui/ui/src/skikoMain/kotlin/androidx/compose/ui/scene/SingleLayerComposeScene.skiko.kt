@@ -143,6 +143,11 @@ private class SingleLayerComposeSceneImpl(
         return mainOwner.measureInConstraints(Constraints())
     }
 
+    override fun invalidatePositionInWindow() {
+        check(!isClosed) { "ComposeScene is closed" }
+        mainOwner.invalidatePositionInWindow()
+    }
+
     override fun createComposition(content: @Composable () -> Unit): Composition {
         return mainOwner.setContent(
             compositionContext,

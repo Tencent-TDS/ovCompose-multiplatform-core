@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
@@ -34,8 +35,10 @@ import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -130,6 +133,15 @@ interface ComposeScene {
      * size bounds (e.g. LazyColumn without maximum height).
      */
     fun calculateContentSize(): IntSize
+
+    /**
+     * Invalidates position of [ComposeScene] in window. It will trigger callbacks like
+     * [Modifier.onGloballyPositioned] so they can recalculate actual position in the window.
+     *
+     * @see PlatformContext.calculatePositionInWindow
+     * @see PlatformContext.calculateLocalPosition
+     */
+    fun invalidatePositionInWindow()
 
     /**
      * Returns true if there are pending recompositions, renders or dispatched tasks.

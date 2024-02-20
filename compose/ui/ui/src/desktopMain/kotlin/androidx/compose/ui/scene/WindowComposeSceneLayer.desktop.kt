@@ -175,7 +175,7 @@ internal class WindowComposeSceneLayer(
         return positionInWindow
     }
 
-    override fun onChangeWindowBounds() {
+    override fun onChangeWindowSize() {
         val scaledRectangle = boundsInWindow.toAwtRectangle(density)
         dialog.location = getDialogLocation(scaledRectangle.x, scaledRectangle.y)
         windowContext.setContainerSize(windowContainer.sizeInPx)

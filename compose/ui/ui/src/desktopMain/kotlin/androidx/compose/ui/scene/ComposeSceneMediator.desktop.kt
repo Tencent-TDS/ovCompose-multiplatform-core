@@ -216,6 +216,14 @@ internal class ComposeSceneMediator(
      */
     var sceneBoundsInPx: Rect? = null
 
+    private var offsetInWindow = Point(0, 0)
+        set(value) {
+            if (field != value) {
+                field = value
+                scene.invalidatePositionInWindow()
+            }
+        }
+
     private val semanticsOwnerListener = DesktopSemanticsOwnerListener()
     var rootForTestListener: PlatformContext.RootForTestListener? by DelegateRootForTestListener()
 
@@ -494,6 +502,12 @@ internal class ComposeSceneMediator(
     fun onComposeInvalidation() = catchExceptions {
         if (isDisposed) return
         skiaLayerComponent.onComposeInvalidation()
+    }
+
+    fun onChangeComponentPosition() = catchExceptions {
+        if (!container.isDisplayable) return
+
+        offsetInWindow = windowContext.offsetInWindow(container)
     }
 
     fun onChangeComponentSize() = catchExceptions {

@@ -187,6 +187,11 @@ internal class RootNodeOwner(
         owner.measureAndLayout(sendPointerUpdate = true)
     }
 
+    fun invalidatePositionInWindow() {
+        owner.root.layoutDelegate.measurePassDelegate.notifyChildrenUsingCoordinatesWhilePlacing()
+        measureAndLayoutDelegate.dispatchOnPositionedCallbacks(forceDispatch = true)
+    }
+
     fun draw(canvas: Canvas) {
         owner.root.draw(canvas)
         clearInvalidObservations()
