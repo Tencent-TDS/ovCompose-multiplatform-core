@@ -49,8 +49,8 @@ import kotlinx.coroutines.Dispatchers
  *
  * @param density Initial density of the content which will be used to convert [Dp] units.
  * @param layoutDirection Initial layout direction of the content.
- * @param size The size of the ComposeScene. Default value is `null`, which means the size will be
- * determined by the contents.
+ * @param size The size of the [ComposeScene]. Default value is `null`, which means the size will be
+ * determined by the content.
  * @param coroutineContext Context which will be used to launch effects ([LaunchedEffect],
  * [rememberCoroutineScope]) and run recompositions.
  * @param composeSceneContext The context to share resources between multiple scenes and provide
