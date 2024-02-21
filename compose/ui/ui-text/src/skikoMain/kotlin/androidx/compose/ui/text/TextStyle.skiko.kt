@@ -79,6 +79,7 @@ actual class PlatformParagraphStyle {
         actual val Default: PlatformParagraphStyle = PlatformParagraphStyle()
     }
 
+    @ExperimentalTextApi
     val fontRasterizationSettings: FontRasterizationSettings
 
     @ExperimentalTextApi
