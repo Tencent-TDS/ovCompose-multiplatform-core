@@ -27,9 +27,6 @@ enum class FontSmoothing {
     /**
      * no transparent pixels on glyph edges
      */
-    /**
-     * no transparent pixels on glyph edges
-     */
     None,
 
     /**
