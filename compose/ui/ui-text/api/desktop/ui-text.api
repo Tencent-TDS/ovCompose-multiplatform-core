@@ -127,7 +127,7 @@ public final class androidx/compose/ui/text/FontRasterizationSettings {
 }
 
 public final class androidx/compose/ui/text/FontRasterizationSettings$Companion {
-	public final fun getDefaultForCurrentPlatform ()Landroidx/compose/ui/text/FontRasterizationSettings;
+	public final fun getPlatformDefault ()Landroidx/compose/ui/text/FontRasterizationSettings;
 }
 
 public final class androidx/compose/ui/text/FontSmoothing : java/lang/Enum {
