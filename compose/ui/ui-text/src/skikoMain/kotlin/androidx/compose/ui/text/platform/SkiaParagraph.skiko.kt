@@ -497,23 +497,7 @@ internal class ParagraphBuilder(
     private fun makeSkFontRasterizationSettings(style: TextStyle): SkFontRastrSettings {
         val rasterizationSettings = style.paragraphStyle.platformStyle?.fontRasterizationSettings
             ?: FontRasterizationSettings.PlatformDefault
-        val edging = when (rasterizationSettings.smoothing) {
-            FontSmoothing.None-> org.jetbrains.skia.FontEdging.ALIAS
-            FontSmoothing.AntiAlias -> org.jetbrains.skia.FontEdging.ANTI_ALIAS
-            FontSmoothing.SubpixelAntiAlias -> org.jetbrains.skia.FontEdging.SUBPIXEL_ANTI_ALIAS
-        }
-        val hinting = when (rasterizationSettings.hinting) {
-            FontHinting.None -> org.jetbrains.skia.FontHinting.NONE
-            FontHinting.Slight -> org.jetbrains.skia.FontHinting.SLIGHT
-            FontHinting.Normal -> org.jetbrains.skia.FontHinting.NORMAL
-            FontHinting.Full -> org.jetbrains.skia.FontHinting.FULL
-        }
-        return SkFontRastrSettings(
-            edging = edging,
-            hinting = hinting,
-            subpixel = rasterizationSettings.subpixelPositioning
-            // rasterizationSettings.autoHintingForced is ignored here for now because it's not supported in skia
-        )
+        return rasterizationSettings.toSkFontRastrSettings()
     }
 
     private fun textStyleToParagraphStyle(
