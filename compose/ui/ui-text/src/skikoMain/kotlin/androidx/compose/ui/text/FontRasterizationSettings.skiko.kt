@@ -79,15 +79,25 @@ class FontRasterizationSettings(
             when (currentPlatform()) {
                 Platform.Windows -> FontRasterizationSettings(
                     subpixelPositioning = true,
-                    smoothing = FontSmoothing.SubpixelAntiAlias, // Most UIs still use ClearType on Windows, so we should match this
+                    // Most UIs still use ClearType on Windows, so we should match this
+                    // We temporarily disabled `SubpixelAntiAlias` until we figure out
+                    // how to properly retrieve default OS settings
+                    smoothing = FontSmoothing.AntiAlias,
                     hinting = FontHinting.Normal, // None would trigger some potentially unwanted behavior, but everything else is forced into Normal on Windows
                     autoHintingForced = false,
                 )
 
-                Platform.Linux, Platform.Android, Platform.Unknown -> FontRasterizationSettings(
+                Platform.Linux, Platform.Unknown -> FontRasterizationSettings(
                     subpixelPositioning = true,
-                    smoothing = FontSmoothing.SubpixelAntiAlias, // Not all distributions default to SubpixelAntiAlias, but we still do to ensure sharpness on Low-DPI displays
+                    smoothing = FontSmoothing.AntiAlias,
                     hinting = FontHinting.Slight, // Most distributions use Slight now by default
+                    autoHintingForced = false,
+                )
+
+                Platform.Android -> FontRasterizationSettings(
+                    subpixelPositioning = true,
+                    smoothing = FontSmoothing.AntiAlias,
+                    hinting = FontHinting.Slight,
                     autoHintingForced = false,
                 )
 
