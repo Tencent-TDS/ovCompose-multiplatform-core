@@ -31,12 +31,12 @@ enum class FontSmoothing {
     None,
 
     /**
-     * may have transparent pixels on glyph edges
+     * change transparency of the pixels to fit the pixel grid
      */
     AntiAlias,
 
     /**
-     * glyph positioned in pixel using transparency
+     * change transparency and color of the pixels to fit the RGB subpixel grid
      */
     SubpixelAntiAlias;
 }
