@@ -356,6 +356,7 @@ public final class androidx/compose/ui/text/PlaceholderVerticalAlign$Companion {
 public final class androidx/compose/ui/text/PlatformParagraphStyle {
 	public static final field $stable I
 	public static final field Companion Landroidx/compose/ui/text/PlatformParagraphStyle$Companion;
+	public fun <init> ()V
 	public fun <init> (Landroidx/compose/ui/text/FontRasterizationSettings;)V
 	public synthetic fun <init> (Landroidx/compose/ui/text/FontRasterizationSettings;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z

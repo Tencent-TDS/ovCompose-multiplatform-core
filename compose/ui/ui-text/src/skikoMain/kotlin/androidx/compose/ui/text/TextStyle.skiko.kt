@@ -82,6 +82,10 @@ actual class PlatformParagraphStyle {
     @ExperimentalTextApi
     val fontRasterizationSettings: FontRasterizationSettings
 
+    constructor() {
+        this.fontRasterizationSettings = FontRasterizationSettings.PlatformDefault
+    }
+
     @ExperimentalTextApi
     constructor(fontRasterizationSettings: FontRasterizationSettings = FontRasterizationSettings.PlatformDefault) {
         this.fontRasterizationSettings = fontRasterizationSettings
