@@ -74,7 +74,7 @@ class FontRasterizationSettings(
     val autoHintingForced: Boolean
 ) {
     companion object {
-        val defaultForCurrentPlatform by lazy {
+        val PlatformDefault by lazy {
             when (currentPlatform()) {
                 Platform.Windows -> FontRasterizationSettings(
                     subpixelPositioning = true,

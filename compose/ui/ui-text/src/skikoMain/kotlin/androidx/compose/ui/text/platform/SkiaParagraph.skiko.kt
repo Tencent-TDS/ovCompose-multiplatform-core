@@ -496,7 +496,7 @@ internal class ParagraphBuilder(
 
     private fun makeSkFontRasterizationSettings(style: TextStyle): SkFontRastrSettings {
         val rasterizationSettings = style.paragraphStyle.platformStyle?.fontRasterizationSettings
-            ?: FontRasterizationSettings.defaultForCurrentPlatform
+            ?: FontRasterizationSettings.PlatformDefault
         val edging = when (rasterizationSettings.smoothing) {
             FontSmoothing.None-> org.jetbrains.skia.FontEdging.ALIAS
             FontSmoothing.AntiAlias -> org.jetbrains.skia.FontEdging.ANTI_ALIAS
