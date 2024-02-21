@@ -479,7 +479,7 @@ internal class MetalRedrawer(
          * Get an existing command queue associated with the device or create a new one and cache it.
          * Assumed to be run on the main thread.
          */
-        fun getCachedCommandQueue(device: MTLDeviceProtocol): MTLCommandQueueProtocol {
+        private fun getCachedCommandQueue(device: MTLDeviceProtocol): MTLCommandQueueProtocol {
             val cached = cachedCommandQueue
             if (cached != null) {
                 cached.refCount++
@@ -495,7 +495,7 @@ internal class MetalRedrawer(
          * Release the cached command queue. Release the cache if refCount reaches 0.
          * Assumed to be run on the main thread.
          */
-        fun releaseCachedCommandQueue(queue: MTLCommandQueueProtocol) {
+        private fun releaseCachedCommandQueue(queue: MTLCommandQueueProtocol) {
             val cached = cachedCommandQueue ?: return
             if (cached.queue == queue) {
                 cached.refCount--
