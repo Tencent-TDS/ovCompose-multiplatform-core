@@ -1,19 +1,3 @@
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.TextField
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import kotlin.test.Test
-import kotlinx.browser.document
-import org.w3c.dom.HTMLCanvasElement
-import androidx.compose.ui.window.*
-import kotlin.test.AfterTest
-import kotlin.test.assertEquals
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.test.runTest
-import org.w3c.dom.events.KeyboardEvent
-
 /*
  * Copyright 2024 The Android Open Source Project
  *
@@ -29,6 +13,23 @@ import org.w3c.dom.events.KeyboardEvent
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.TextField
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import kotlin.test.Test
+import kotlinx.browser.document
+import org.w3c.dom.HTMLCanvasElement
+import androidx.compose.ui.window.*
+import kotlin.test.AfterTest
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.test.assertFalse
+import org.w3c.dom.events.KeyboardEvent
+import org.w3c.dom.events.KeyboardEventInit
 
 class CanvasBasedWindowTests {
 
@@ -48,7 +49,7 @@ class CanvasBasedWindowTests {
     }
 
     @Test
-    fun testPreventDefault() = runTest {
+    fun testPreventDefault()  {
         val canvasElement = document.createElement("canvas") as HTMLCanvasElement
         canvasElement.setAttribute("id", canvasId)
         document.body!!.appendChild(canvasElement)
@@ -71,32 +72,41 @@ class CanvasBasedWindowTests {
             stack.add(event.defaultPrevented)
         })
 
+        // dispatchEvent synchronously invokes all the listeners
         canvasElement.dispatchEvent(createCopyKeyboardEvent())
-        delay(100)
-
         assertEquals(1, stack.size)
-        assertEquals(true, stack.last())
+        assertTrue(stack.last())
 
         canvasElement.dispatchEvent(createTypedEvent())
-        delay(100)
-
         assertEquals(2, stack.size)
-        assertEquals(true, stack.last())
+        assertTrue( stack.last())
         assertEquals("c", changedValue)
 
         canvasElement.dispatchEvent(createEventShouldNotBePrevented())
-        delay(100)
-
         assertEquals(3, stack.size)
-        assertEquals(false, stack.last())
+        assertFalse(stack.last())
     }
 }
 
-private fun createCopyKeyboardEvent(): KeyboardEvent =
-    js("new KeyboardEvent('keydown', {key: 'c', code: 'KeyC', keyCode: 67, ctrlKey: true, metaKey: true, cancelable: true})")
+internal external interface KeyboardEventInitExtended : KeyboardEventInit {
+    var keyCode: Int?
+}
 
-private fun createTypedEvent(): KeyboardEvent =
-    js("new KeyboardEvent('keydown', {key: 'c', code: 'KeyC', keyCode: 67, cancelable: true})")
+internal fun KeyboardEventInit.keyDownEvent() = KeyboardEvent("keydown", this)
+internal fun KeyboardEventInit.withKeyCode() = (this as KeyboardEventInitExtended).apply {
+    keyCode = key!!.uppercase().first().code
+}
 
-private fun createEventShouldNotBePrevented(): KeyboardEvent =
-    js("new KeyboardEvent('keydown', {ctrlKey: true, cancelable: true})")
+internal fun createCopyKeyboardEvent(): KeyboardEvent =
+    KeyboardEventInit(key = "c", code = "KeyC", ctrlKey = true, metaKey = true, cancelable = true)
+        .withKeyCode()
+        .keyDownEvent()
+
+internal fun createTypedEvent(): KeyboardEvent =
+    KeyboardEventInit(key = "c", code = "KeyC", cancelable = true)
+        .withKeyCode()
+        .keyDownEvent()
+
+internal fun createEventShouldNotBePrevented(): KeyboardEvent =
+    KeyboardEventInit(ctrlKey = true, cancelable = true)
+        .keyDownEvent()
