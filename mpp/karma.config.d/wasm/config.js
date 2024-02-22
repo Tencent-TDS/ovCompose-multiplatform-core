@@ -66,18 +66,3 @@ const KarmaWebpackOutputPlugin = {
 
 config.plugins.push(KarmaWebpackOutputPlugin);
 config.frameworks.push("webpack-output");
-
-// config.browsers = ['ChromeHeadlessWithWebGL'];
-// config.customLaunchers = {
-//     ChromeHeadlessWithWebGL: {
-//         base: 'ChromeHeadless',
-//         flags: [
-//             // '--headless',
-//             '--use-gl=desktop',
-//             '--enable-webgl',
-//             '--ignore-gpu-blocklist',
-//             '--disable-gpu',
-//             '--no-sandbox'
-//         ]
-//     }
-// };

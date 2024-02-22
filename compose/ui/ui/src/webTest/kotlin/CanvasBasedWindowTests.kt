@@ -9,7 +9,6 @@ import kotlinx.browser.document
 import org.w3c.dom.HTMLCanvasElement
 import androidx.compose.ui.window.*
 import kotlin.test.AfterTest
-import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
@@ -49,17 +48,17 @@ class CanvasBasedWindowTests {
     }
 
     @Test
-    fun canCreateCanvasBasedWindow() = runTest {
+    fun testPreventDefault() = runTest {
         val canvasElement = document.createElement("canvas") as HTMLCanvasElement
         canvasElement.setAttribute("id", canvasId)
         document.body!!.appendChild(canvasElement)
 
-
         val fr = FocusRequester()
+        var changedValue = ""
         CanvasBasedWindow(canvasElementId = canvasId) {
             TextField(
                 value = "",
-                onValueChange = {},
+                onValueChange = { changedValue = it },
                 modifier = Modifier.fillMaxSize().focusRequester(fr)
             )
             SideEffect {
@@ -72,14 +71,32 @@ class CanvasBasedWindowTests {
             stack.add(event.defaultPrevented)
         })
 
-        val event = createKeyboardEvent()
-        canvasElement.dispatchEvent(event)
+        canvasElement.dispatchEvent(createCopyKeyboardEvent())
         delay(100)
 
         assertEquals(1, stack.size)
         assertEquals(true, stack.last())
+
+        canvasElement.dispatchEvent(createTypedEvent())
+        delay(100)
+
+        assertEquals(2, stack.size)
+        assertEquals(true, stack.last())
+        assertEquals("c", changedValue)
+
+        canvasElement.dispatchEvent(createEventShouldNotBePrevented())
+        delay(100)
+
+        assertEquals(3, stack.size)
+        assertEquals(false, stack.last())
     }
 }
 
-private fun createKeyboardEvent(): KeyboardEvent =
+private fun createCopyKeyboardEvent(): KeyboardEvent =
     js("new KeyboardEvent('keydown', {key: 'c', code: 'KeyC', keyCode: 67, ctrlKey: true, metaKey: true, cancelable: true})")
+
+private fun createTypedEvent(): KeyboardEvent =
+    js("new KeyboardEvent('keydown', {key: 'c', code: 'KeyC', keyCode: 67, cancelable: true})")
+
+private fun createEventShouldNotBePrevented(): KeyboardEvent =
+    js("new KeyboardEvent('keydown', {ctrlKey: true, cancelable: true})")
