@@ -237,6 +237,7 @@ includeProject(":lifecycle:lifecycle-common")
 includeProject(":lifecycle:lifecycle-runtime")
 includeProject(":lifecycle:lifecycle-runtime-lint")
 includeProject(":lifecycle:lifecycle-viewmodel")
+includeProject(":lifecycle:lifecycle-viewmodel-compose")
 includeProject(":lifecycle:lifecycle-viewmodel-savedstate")
 includeProject(":savedstate:savedstate")
 
