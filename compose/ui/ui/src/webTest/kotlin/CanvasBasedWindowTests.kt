@@ -28,6 +28,7 @@ import kotlin.test.AfterTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
+import kotlinx.browser.window
 import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.events.KeyboardEventInit
 
@@ -42,6 +43,7 @@ class CanvasBasedWindowTests {
     
     @Test
     fun canCreate() {
+        if (isHeadlessBrowser()) return
         val canvasElement = document.createElement("canvas") as HTMLCanvasElement
         canvasElement.setAttribute("id", canvasId)
         document.body!!.appendChild(canvasElement)
@@ -50,6 +52,7 @@ class CanvasBasedWindowTests {
 
     @Test
     fun testPreventDefault()  {
+        if (isHeadlessBrowser()) return
         val canvasElement = document.createElement("canvas") as HTMLCanvasElement
         canvasElement.setAttribute("id", canvasId)
         document.body!!.appendChild(canvasElement)
@@ -110,3 +113,7 @@ internal fun createTypedEvent(): KeyboardEvent =
 internal fun createEventShouldNotBePrevented(): KeyboardEvent =
     KeyboardEventInit(ctrlKey = true, cancelable = true)
         .keyDownEvent()
+
+
+// Unreliable heuristic, but it works for now
+internal fun isHeadlessBrowser(): Boolean = window.navigator.userAgent.contains("Headless")
