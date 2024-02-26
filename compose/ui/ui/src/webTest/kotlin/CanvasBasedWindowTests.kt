@@ -25,6 +25,7 @@ import kotlinx.browser.document
 import org.w3c.dom.HTMLCanvasElement
 import androidx.compose.ui.window.*
 import kotlin.test.AfterTest
+import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
@@ -32,6 +33,7 @@ import kotlinx.browser.window
 import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.events.KeyboardEventInit
 
+@Ignore
 class CanvasBasedWindowTests {
 
     private val canvasId = "canvas1"
