@@ -33,7 +33,6 @@ import kotlinx.browser.window
 import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.events.KeyboardEventInit
 
-//@Ignore
 class CanvasBasedWindowTests {
 
     private val canvasId = "canvas1"
