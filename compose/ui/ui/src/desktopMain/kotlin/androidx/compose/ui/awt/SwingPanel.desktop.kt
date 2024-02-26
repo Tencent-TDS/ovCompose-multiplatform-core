@@ -18,6 +18,7 @@ package androidx.compose.ui.awt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.currentCompositeKeyHash
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.Modifier
@@ -37,7 +38,8 @@ import androidx.compose.ui.input.pointer.PointerInputFilter
 import androidx.compose.ui.input.pointer.PointerInputModifier
 import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
-import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.EmptyLayout
+import androidx.compose.ui.layout.OverlayLayout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -90,14 +92,22 @@ public fun <T : Component> SwingPanel(
     modifier: Modifier = Modifier,
     update: (T) -> Unit = NoOpUpdate,
 ) {
-    val componentInfo = remember { ComponentInfo<T>() }
+    val interopContainer = LocalSwingInteropContainer.current
+    val compositeKey = currentCompositeKeyHash
+    val componentInfo = remember {
+        ComponentInfo<T>(
+            container = SwingPanelContainer(
+                key = compositeKey,
+                focusComponent = interopContainer.container,
+            )
+        )
+    }
 
-    val root = LocalLayerContainer.current
     val density = LocalDensity.current
     val focusManager = LocalFocusManager.current
     val focusSwitcher = remember { FocusSwitcher(componentInfo, focusManager) }
 
-    Box(
+    OverlayLayout(
         modifier = modifier.onGloballyPositioned { coordinates ->
             val bounds = coordinates.boundsInRoot().round(density)
             componentInfo.container.setBounds(bounds.left, bounds.top, bounds.width, bounds.height)
@@ -106,12 +116,13 @@ public fun <T : Component> SwingPanel(
         }.drawBehind {
             // Clear interop area to make visible the component under our canvas.
             drawRect(Color.Transparent, blendMode = BlendMode.Clear)
-        }.then(InteropPointerInputModifier(root, componentInfo))
+        }.swingInterop(componentInfo.container)
+            .then(InteropPointerInputModifier(interopContainer.container, componentInfo))
     ) {
         focusSwitcher.Content()
     }
 
-    DisposableEffect(factory) {
+    DisposableEffect(Unit) {
         val focusListener = object : FocusListener {
             override fun focusGained(e: FocusEvent) {
                 if (componentInfo.container.isParentOf(e.oppositeComponent)) {
@@ -125,42 +136,55 @@ public fun <T : Component> SwingPanel(
 
             override fun focusLost(e: FocusEvent) = Unit
         }
-        root.addFocusListener(focusListener)
-        componentInfo.component = factory()
-        componentInfo.container = JPanel().apply {
-            layout = BorderLayout(0, 0)
-            focusTraversalPolicy = object : LayoutFocusTraversalPolicy() {
-                override fun getComponentAfter(aContainer: Container?, aComponent: Component?): Component? {
-                    return if (aComponent == getLastComponent(aContainer)) {
-                        root
-                    } else {
-                        super.getComponentAfter(aContainer, aComponent)
-                    }
-                }
-
-                override fun getComponentBefore(aContainer: Container?, aComponent: Component?): Component? {
-                    return if (aComponent == getFirstComponent(aContainer)) {
-                        root
-                    } else {
-                        super.getComponentBefore(aContainer, aComponent)
-                    }
-                }
-            }
-            isFocusCycleRoot = true
-            add(componentInfo.component)
-        }
-        componentInfo.updater = Updater(componentInfo.component, update)
-        root.add(componentInfo.container)
+        interopContainer.container.addFocusListener(focusListener)
+        interopContainer.addInteropComponent(componentInfo.container)
         onDispose {
-            root.remove(componentInfo.container)
+            interopContainer.removeInteropComponent(componentInfo.container)
+            interopContainer.container.removeFocusListener(focusListener)
+        }
+    }
+
+    DisposableEffect(factory) {
+        componentInfo.component = factory()
+        componentInfo.container.add(componentInfo.component)
+        componentInfo.updater = Updater(componentInfo.component, update)
+        onDispose {
+            componentInfo.container.remove(componentInfo.component)
             componentInfo.updater.dispose()
-            root.removeFocusListener(focusListener)
         }
     }
 
     SideEffect {
         componentInfo.container.background = background.toAwtColor()
         componentInfo.updater.update = update
+    }
+}
+
+private class SwingPanelContainer(
+    key: Int,
+    private val focusComponent: Component
+): JPanel() {
+    init {
+        name = "SwingPanel #$key"
+        layout = BorderLayout(0, 0)
+        focusTraversalPolicy = object : LayoutFocusTraversalPolicy() {
+            override fun getComponentAfter(aContainer: Container?, aComponent: Component?): Component? {
+                return if (aComponent == getLastComponent(aContainer)) {
+                    focusComponent
+                } else {
+                    super.getComponentAfter(aContainer, aComponent)
+                }
+            }
+
+            override fun getComponentBefore(aContainer: Container?, aComponent: Component?): Component? {
+                return if (aComponent == getFirstComponent(aContainer)) {
+                    focusComponent
+                } else {
+                    super.getComponentBefore(aContainer, aComponent)
+                }
+            }
+        }
+        isFocusCycleRoot = true
     }
 }
 
@@ -194,7 +218,7 @@ private class FocusSwitcher<T : Component>(
 
     @Composable
     fun Content() {
-        Box(
+        EmptyLayout(
             Modifier
                 .focusRequester(backwardRequester)
                 .onFocusEvent {
@@ -211,7 +235,7 @@ private class FocusSwitcher<T : Component>(
                 }
                 .focusTarget()
         )
-        Box(
+        EmptyLayout(
             Modifier
                 .focusRequester(forwardRequester)
                 .onFocusEvent {
@@ -231,27 +255,9 @@ private class FocusSwitcher<T : Component>(
     }
 }
 
-@Composable
-private fun Box(modifier: Modifier, content: @Composable () -> Unit = {}) {
-    Layout(
-        content = content,
-        modifier = modifier,
-        measurePolicy = { measurables, constraints ->
-            val placeables = measurables.map { it.measure(constraints) }
-            layout(
-                placeables.maxOfOrNull { it.width } ?: 0,
-                placeables.maxOfOrNull { it.height } ?: 0
-            ) {
-                placeables.forEach {
-                    it.place(0, 0)
-                }
-            }
-        }
-    )
-}
-
-private class ComponentInfo<T : Component> {
-    lateinit var container: Container
+private class ComponentInfo<T : Component>(
+    val container: Container
+) {
     lateinit var component: T
     lateinit var updater: Updater<T>
 }

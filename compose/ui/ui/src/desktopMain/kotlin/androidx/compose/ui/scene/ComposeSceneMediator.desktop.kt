@@ -20,6 +20,7 @@ import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.ComposeFeatureFlags
+import androidx.compose.ui.awt.SwingInteropContainer
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
@@ -124,6 +125,17 @@ internal class ComposeSceneMediator(
     var fullscreen by skiaLayerComponent::fullscreen
     val windowHandle by skiaLayerComponent::windowHandle
     val renderApi by skiaLayerComponent::renderApi
+
+    @OptIn(ExperimentalSkikoApi::class)
+    private val interopContainer = SwingInteropContainer(
+        container = container,
+        useInteropBlending = useInteropBlending,
+
+        // Applying layer on macOS makes our bridge non-transparent
+        // But it draws always on top, so we can just add it as-is
+        // TODO: Figure out why it makes difference in transparency
+        useLayers = renderApi != GraphicsApi.METAL || contentComponent is SkiaSwingLayer
+    )
 
     private val containerListener = object : ContainerListener {
         private val clipMap = mutableMapOf<Component, ClipComponent>()
@@ -275,18 +287,14 @@ internal class ComposeSceneMediator(
     private val useInteropBlending: Boolean
         get() = ComposeFeatureFlags.useInteropBlending && skiaLayerComponent.interopBlendingSupported
 
-    private val contentLayer: Int = 10
-    private val interopLayer: Int
-        get() = if (useInteropBlending) 0 else 20
-
     init {
         // Transparency is used during redrawer creation that triggered by [addNotify], so
         // it must be set to correct value before adding to the hierarchy to handle cases
         // when [container] is already [isDisplayable].
         skiaLayerComponent.transparency = useInteropBlending
 
-        container.addToLayer(invisibleComponent, contentLayer)
-        container.addToLayer(contentComponent, contentLayer)
+        interopContainer.addContentComponent(invisibleComponent)
+        interopContainer.addContentComponent(contentComponent)
 
         // Adding a listener after adding [invisibleComponent] and [contentComponent]
         // to react only on changes with [interopLayer].
@@ -451,24 +459,6 @@ internal class ComposeSceneMediator(
         _onComponentAttached = null
     }
 
-    @OptIn(ExperimentalSkikoApi::class)
-    private fun JLayeredPane.addToLayer(component: Component, layer: Int) {
-        val index = 0 // AWT renders it in the reverse order, so insert it to beginning
-        if (renderApi == GraphicsApi.METAL && contentComponent !is SkiaSwingLayer) {
-            // Applying layer on macOS makes our bridge non-transparent
-            // But it draws always on top, so we can just add it as-is
-            // TODO: Figure out why it makes difference in transparency
-            add(component, index)
-        } else {
-            setLayer(component, layer)
-            add(component, null, index)
-        }
-    }
-
-    fun addToComponentLayer(component: Component) {
-        container.addToLayer(component, interopLayer)
-    }
-
     private var onPreviewKeyEvent: (ComposeKeyEvent) -> Boolean = { false }
     private var onKeyEvent: (ComposeKeyEvent) -> Boolean = { false }
 
@@ -495,7 +485,11 @@ internal class ComposeSceneMediator(
         // (we don't know the real density if we have unattached component)
         runOnceComponentAttached {
             catchExceptions {
-                scene.setContent(content)
+                scene.setContent {
+                    interopContainer {
+                        content()
+                    }
+                }
             }
         }
     }
