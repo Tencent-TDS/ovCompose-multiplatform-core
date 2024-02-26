@@ -87,8 +87,8 @@ class ComposableSymbolRemapper : DeepCopySymbolRemapper(
             this is IrBasedDeclarationDescriptor<*> ||
                 containingDeclaration.let { it is FunctionDescriptor && it.isTransformed() }
 
-        private fun KotlinType.containsComposable() =
+        private fun KotlinType.containsComposable(): Boolean =
             hasComposableAnnotation() ||
-                arguments.any { it.type.hasComposableAnnotation() }
+                arguments.any { it.type.hasComposableAnnotation() || it.type.containsComposable() }
     }
 )
