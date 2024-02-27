@@ -19,6 +19,11 @@ package androidx.compose.ui.layout
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
+/**
+ * Creates a layout with no content. It's usually used to add modifier to the hierarchy.
+ *
+ * @param modifier The modifier to be applied to the layout.
+ */
 @Composable
 internal fun EmptyLayout(modifier: Modifier) = Layout(
     content = {},

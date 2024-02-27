@@ -21,6 +21,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.currentCompositeKeyHash
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
+import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusDirection
@@ -67,18 +68,15 @@ import kotlinx.atomicfu.atomic
 val NoOpUpdate: Component.() -> Unit = {}
 
 /**
- * Composes an AWT/Swing component obtained from [factory]. The [factory]
- * block will be called to obtain the [Component] to be composed.
+ * Composes an AWT/Swing component obtained from [factory]. The [factory] block will be called
+ * to obtain the [Component] to be composed.
  *
- * The Swing component is placed on
- * top of the Compose layer (that means that Compose content can't overlap or clip it).
- * This can be changed in the future, when the better interop with Swing will be implemented. See related issues:
- * https://github.com/JetBrains/compose-jb/issues/1521
- * https://github.com/JetBrains/compose-jb/issues/1202
- * https://github.com/JetBrains/compose-jb/issues/1449
+ * By default, the Swing component is placed on top of the Compose layer (that means that Compose
+ * content can't overlap or clip it). It might be changed by `compose.interop.blending` system
+ * property. See [ComposeFeatureFlags.useInteropBlending].
  *
  * The [update] block runs due to recomposition, this is the place to set [Component] properties
- * depending on state. When state changes, the block will be reexecuted to set the new properties.
+ * depending on state. When state changes, the block will be re-executed to set the new properties.
  *
  * @param background Background color of SwingPanel
  * @param factory The block creating the [Component] to be composed.

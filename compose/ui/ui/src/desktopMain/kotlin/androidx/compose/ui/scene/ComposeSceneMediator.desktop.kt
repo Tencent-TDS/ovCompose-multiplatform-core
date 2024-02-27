@@ -126,13 +126,25 @@ internal class ComposeSceneMediator(
     val windowHandle by skiaLayerComponent::windowHandle
     val renderApi by skiaLayerComponent::renderApi
 
-    // Applying layer on macOS makes our bridge non-transparent
-    // But it draws always on top, so we can just add it as-is
-    // TODO: Figure out why it makes difference in transparency
+    /**
+     * @see ComposeFeatureFlags.useInteropBlending
+     */
+    private val useInteropBlending: Boolean
+        get() = ComposeFeatureFlags.useInteropBlending && skiaLayerComponent.interopBlendingSupported
+
+    /**
+     * Adding any components below [contentComponent] makes our bridge non-transparent on macOS.
+     * But as it draws always on top, so we can just add it as-is.
+     * TODO: Figure out why it makes difference in transparency
+     */
     @OptIn(ExperimentalSkikoApi::class)
     private val metalOrderHack
         get() = renderApi == GraphicsApi.METAL && contentComponent !is SkiaSwingLayer
 
+    /**
+     * A container that controls interop views/components. It is used to add and remove
+     * native views/components to [container].
+     */
     private val interopContainer = SwingInteropContainer(
         container = container,
         placeInteropAbove = !useInteropBlending || metalOrderHack
@@ -284,9 +296,6 @@ internal class ComposeSceneMediator(
      * (Window focus change is implemented in JB fork, but not upstreamed yet).
      */
     private var keyboardModifiersRequireUpdate = false
-
-    private val useInteropBlending: Boolean
-        get() = ComposeFeatureFlags.useInteropBlending && skiaLayerComponent.interopBlendingSupported
 
     init {
         // Transparency is used during redrawer creation that triggered by [addNotify], so

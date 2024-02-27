@@ -19,6 +19,7 @@ package androidx.compose.ui.interop
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.node.InteropContainer
+import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.TrackInteropModifierElement
 import androidx.compose.ui.node.TrackInteropModifierNode
 import androidx.compose.ui.node.countInteropComponentsBefore
@@ -29,12 +30,16 @@ import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
 import platform.UIKit.UIView
 
+/**
+ * Providing interop container as composition local, so [UIKitView]/[UIKitViewController] can use it
+ * to add native views to the hierarchy.
+ */
 internal val LocalUIKitInteropContainer = staticCompositionLocalOf<UIKitInteropContainer> {
     error("UIKitInteropContainer not provided")
 }
 
 /**
- * This InteropContainer in UIView. And needs to add UIKitView interop views.
+ * A container that controls interop views/components.
  */
 internal class UIKitInteropContainer: InteropContainer<UIView> {
     val containerView: UIView = UIKitInteropContainerView()
@@ -61,8 +66,13 @@ private class UIKitInteropContainerView: UIView(CGRectZero.readValue()) {
         }
 }
 
+/**
+ * Modifier to track interop view inside [LayoutNode] hierarchy.
+ *
+ * @param view The [UIView] that matches the current node.
+ */
 internal fun Modifier.trackUIKitInterop(
-    component: UIView
+    view: UIView
 ): Modifier = this then TrackInteropModifierElement(
-    nativeView = component
+    nativeView = view
 )

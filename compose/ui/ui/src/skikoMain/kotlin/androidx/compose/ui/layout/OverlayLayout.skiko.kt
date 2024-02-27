@@ -19,6 +19,12 @@ package androidx.compose.ui.layout
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
+/**
+ * Creates an overlay layout that places the content on top of each other.
+ *
+ * @param modifier The modifier to be applied to the layout.
+ * @param content The composable content to be placed in the overlay layout.
+ */
 @Composable
 internal fun OverlayLayout(modifier: Modifier, content: @Composable () -> Unit) = Layout(
     content = content,
