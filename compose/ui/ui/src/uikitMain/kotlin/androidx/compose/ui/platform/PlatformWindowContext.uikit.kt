@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.asCGPoint
 import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.toDpOffset
 import androidx.compose.ui.unit.toOffset
-import kotlinx.cinterop.cValue
 import kotlinx.cinterop.useContents
 import platform.UIKit.UIView
 
