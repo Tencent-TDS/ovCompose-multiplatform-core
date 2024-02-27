@@ -70,7 +70,7 @@ internal class PlatformWindowContext {
         return if (fromView != toView) {
             val density = fromView.systemDensity
             fromView.convertPoint(
-                point = cValue { point.toDpOffset(density).asCGPoint() },
+                point = point.toDpOffset(density).asCGPoint(),
                 toView = toView,
             ).useContents {
                 asDpOffset().toOffset(density)
