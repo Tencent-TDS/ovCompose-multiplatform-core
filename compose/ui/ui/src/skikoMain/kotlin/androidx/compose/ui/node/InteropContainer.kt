@@ -58,11 +58,9 @@ internal fun <T> InteropContainer<T>.countInteropComponentsBefore(nativeView: T)
  * that allows to traverse interop views in the tree with the right order.
  */
 @Composable
-internal fun <T> InteropContainer<T>.TrackInteropContainer(container: T, content: @Composable () -> Unit) {
+internal fun <T> InteropContainer<T>.TrackInteropContainer(content: @Composable () -> Unit) {
     OverlayLayout(
-        modifier = TrackInteropModifierElement(
-            nativeView = container
-        ) { rootModifier = it },
+        modifier = TrackInteropModifierElement { rootModifier = it },
         content = content
     )
 }
@@ -79,7 +77,7 @@ internal fun <T> InteropContainer<T>.TrackInteropContainer(container: T, content
  * @see ModifierNodeElement
  */
 internal data class TrackInteropModifierElement<T>(
-    var nativeView: T,
+    var nativeView: T? = null,
     val onModifierNodeCreated: ((TrackInteropModifierNode<T>) -> Unit)? = null
 ) : ModifierNodeElement<TrackInteropModifierNode<T>>() {
     override fun create() = TrackInteropModifierNode(
@@ -105,7 +103,7 @@ private const val TRAVERSAL_NODE_KEY =
  * @see TraversableNode
  */
 internal class TrackInteropModifierNode<T>(
-    var nativeView: T
+    var nativeView: T?
 ) : Modifier.Node(), TraversableNode {
     override val traverseKey = TRAVERSAL_NODE_KEY
 }
