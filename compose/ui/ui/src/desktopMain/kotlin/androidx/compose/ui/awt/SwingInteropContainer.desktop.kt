@@ -20,12 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.OverlayLayout
-import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.TraversableNode
-import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAction.CancelTraversal
-import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAction.ContinueTraversal
-import androidx.compose.ui.node.traverseDescendants
+import androidx.compose.ui.node.InteropContainer
+import androidx.compose.ui.node.TrackInteropModifierElement
 import java.awt.Component
 import java.awt.Container
 
@@ -33,47 +29,26 @@ internal val LocalSwingInteropContainer = staticCompositionLocalOf<SwingInteropC
     error("LocalSwingInteropContainer not provided")
 }
 
-// Key used to match my custom Modifier.Node that implements TraversableNode.
-private const val TRAVERSAL_NODE_KEY =
-    "androidx.compose.ui.awt.SWING_INTEROP_TRAVERSAL_NODE_KEY"
-
 internal class SwingInteropContainer(
     val container: Container,
     private val placeInteropAbove: Boolean
-) {
-    private var rootModifier: SwingInteropModifierNode? = null
+): InteropContainer<Component>() {
     private var interopComponentsCount = 0
 
-    fun addInteropComponent(component: Component): Component {
+    override fun addInteropView(nativeView: Component) {
         val nonInteropComponents = container.componentCount - interopComponentsCount
-        val index = interopComponentsCount - countInteropComponentsBefore(component)
-        println("addInteropComponent $index")
-
-        container.add(component, if (placeInteropAbove) {
+        val index = interopComponentsCount - countInteropComponentsBefore(nativeView)
+        container.add(nativeView, if (placeInteropAbove) {
             index
         } else {
             index + nonInteropComponents
         })
         interopComponentsCount++
-        return component
     }
 
-    fun removeInteropComponent(component: Component) {
+    override fun removeInteropView(nativeView: Component) {
         interopComponentsCount--
-        container.remove(component)
-    }
-
-    private fun countInteropComponentsBefore(component: Component): Int {
-        var componentsBefore = 0
-        rootModifier?.traverseDescendants {
-            if (it.component != component) {
-                componentsBefore++
-                ContinueTraversal
-            } else {
-                CancelTraversal
-            }
-        }
-        return componentsBefore
+        container.remove(nativeView)
     }
 
     @Composable
@@ -81,40 +56,16 @@ internal class SwingInteropContainer(
         CompositionLocalProvider(
             LocalSwingInteropContainer provides this,
         ) {
-            OverlayLayout(
-                modifier = Modifier then SwingInteropModifierElement(
-                    component = container
-                ) { rootModifier = it },
+            TrackInteropContainer(
+                container = container,
                 content = content
             )
         }
     }
 }
 
-internal fun Modifier.swingInterop(
+internal fun Modifier.trackSwingInterop(
     component: Component
-): Modifier = this then SwingInteropModifierElement(
-    component = component
+): Modifier = this then TrackInteropModifierElement(
+    nativeView = component
 )
-
-private data class SwingInteropModifierElement(
-    var component: Component,
-    val block: ((SwingInteropModifierNode) -> Unit)? = null
-) : ModifierNodeElement<SwingInteropModifierNode>() {
-    override fun create() = SwingInteropModifierNode(
-        component = component
-    ).also {
-        block?.invoke(it)
-    }
-
-    override fun update(node: SwingInteropModifierNode) {
-        node.component = component
-    }
-}
-
-
-private class SwingInteropModifierNode(
-    var component: Component
-) : Modifier.Node(), TraversableNode {
-    override val traverseKey = TRAVERSAL_NODE_KEY
-}

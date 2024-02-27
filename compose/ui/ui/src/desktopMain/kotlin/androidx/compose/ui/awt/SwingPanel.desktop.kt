@@ -116,7 +116,7 @@ public fun <T : Component> SwingPanel(
         }.drawBehind {
             // Clear interop area to make visible the component under our canvas.
             drawRect(Color.Transparent, blendMode = BlendMode.Clear)
-        }.swingInterop(componentInfo.container)
+        }.trackSwingInterop(componentInfo.container)
             .then(InteropPointerInputModifier(interopContainer.container, componentInfo))
     ) {
         focusSwitcher.Content()
@@ -137,9 +137,9 @@ public fun <T : Component> SwingPanel(
             override fun focusLost(e: FocusEvent) = Unit
         }
         interopContainer.container.addFocusListener(focusListener)
-        interopContainer.addInteropComponent(componentInfo.container)
+        interopContainer.addInteropView(componentInfo.container)
         onDispose {
-            interopContainer.removeInteropComponent(componentInfo.container)
+            interopContainer.removeInteropView(componentInfo.container)
             interopContainer.container.removeFocusListener(focusListener)
         }
     }
