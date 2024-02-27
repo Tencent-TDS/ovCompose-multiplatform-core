@@ -33,89 +33,89 @@ import kotlinx.browser.window
 import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.events.KeyboardEventInit
 
-@Ignore // WiP: investigating a CI issue - a nodejs error or timeout
-class CanvasBasedWindowTests {
-
-    private val canvasId = "canvas1"
-    
-    @AfterTest
-    fun cleanup() {
-        document.getElementById(canvasId)?.remove()
-    }
-    
-    @Test
-    fun canCreate() {
-        if (isHeadlessBrowser()) return
-        val canvasElement = document.createElement("canvas") as HTMLCanvasElement
-        canvasElement.setAttribute("id", canvasId)
-        document.body!!.appendChild(canvasElement)
-        CanvasBasedWindow(canvasElementId = canvasId) {  }
-    }
-
-    @Test
-    fun testPreventDefault() {
-        if (isHeadlessBrowser()) return
-        val canvasElement = document.createElement("canvas") as HTMLCanvasElement
-        canvasElement.setAttribute("id", canvasId)
-        document.body!!.appendChild(canvasElement)
-
-        val fr = FocusRequester()
-        var changedValue = ""
-        CanvasBasedWindow(canvasElementId = canvasId) {
-            TextField(
-                value = "",
-                onValueChange = { changedValue = it },
-                modifier = Modifier.fillMaxSize().focusRequester(fr)
-            )
-            SideEffect {
-                fr.requestFocus()
-            }
-        }
-
-        val stack = mutableListOf<Boolean>()
-        canvasElement.addEventListener("keydown", { event ->
-            stack.add(event.defaultPrevented)
-        })
-
-        // dispatchEvent synchronously invokes all the listeners
-        canvasElement.dispatchEvent(createCopyKeyboardEvent())
-        assertEquals(1, stack.size)
-        assertTrue(stack.last())
-
-        canvasElement.dispatchEvent(createTypedEvent())
-        assertEquals(2, stack.size)
-        assertTrue( stack.last())
-        assertEquals("c", changedValue)
-
-        canvasElement.dispatchEvent(createEventShouldNotBePrevented())
-        assertEquals(3, stack.size)
-        assertFalse(stack.last())
-    }
-}
-
-internal external interface KeyboardEventInitExtended : KeyboardEventInit {
-    var keyCode: Int?
-}
-
-internal fun KeyboardEventInit.keyDownEvent() = KeyboardEvent("keydown", this)
-internal fun KeyboardEventInit.withKeyCode() = (this as KeyboardEventInitExtended).apply {
-    keyCode = key!!.uppercase().first().code
-}
-
-internal fun createCopyKeyboardEvent(): KeyboardEvent =
-    KeyboardEventInit(key = "c", code = "KeyC", ctrlKey = true, metaKey = true, cancelable = true)
-        .withKeyCode()
-        .keyDownEvent()
-
-internal fun createTypedEvent(): KeyboardEvent =
-    KeyboardEventInit(key = "c", code = "KeyC", cancelable = true)
-        .withKeyCode()
-        .keyDownEvent()
-
-internal fun createEventShouldNotBePrevented(): KeyboardEvent =
-    KeyboardEventInit(ctrlKey = true, cancelable = true)
-        .keyDownEvent()
-
-
-// Unreliable heuristic, but it works for now
-internal fun isHeadlessBrowser(): Boolean = window.navigator.userAgent.contains("Headless")
+//@Ignore // WiP: investigating a CI issue - a nodejs error or timeout
+//class CanvasBasedWindowTests {
+//
+//    private val canvasId = "canvas1"
+//
+//    @AfterTest
+//    fun cleanup() {
+//        document.getElementById(canvasId)?.remove()
+//    }
+//
+//    @Test
+//    fun canCreate() {
+//        if (isHeadlessBrowser()) return
+//        val canvasElement = document.createElement("canvas") as HTMLCanvasElement
+//        canvasElement.setAttribute("id", canvasId)
+//        document.body!!.appendChild(canvasElement)
+//        CanvasBasedWindow(canvasElementId = canvasId) {  }
+//    }
+//
+//    @Test
+//    fun testPreventDefault() {
+//        if (isHeadlessBrowser()) return
+//        val canvasElement = document.createElement("canvas") as HTMLCanvasElement
+//        canvasElement.setAttribute("id", canvasId)
+//        document.body!!.appendChild(canvasElement)
+//
+//        val fr = FocusRequester()
+//        var changedValue = ""
+//        CanvasBasedWindow(canvasElementId = canvasId) {
+//            TextField(
+//                value = "",
+//                onValueChange = { changedValue = it },
+//                modifier = Modifier.fillMaxSize().focusRequester(fr)
+//            )
+//            SideEffect {
+//                fr.requestFocus()
+//            }
+//        }
+//
+//        val stack = mutableListOf<Boolean>()
+//        canvasElement.addEventListener("keydown", { event ->
+//            stack.add(event.defaultPrevented)
+//        })
+//
+//        // dispatchEvent synchronously invokes all the listeners
+//        canvasElement.dispatchEvent(createCopyKeyboardEvent())
+//        assertEquals(1, stack.size)
+//        assertTrue(stack.last())
+//
+//        canvasElement.dispatchEvent(createTypedEvent())
+//        assertEquals(2, stack.size)
+//        assertTrue( stack.last())
+//        assertEquals("c", changedValue)
+//
+//        canvasElement.dispatchEvent(createEventShouldNotBePrevented())
+//        assertEquals(3, stack.size)
+//        assertFalse(stack.last())
+//    }
+//}
+//
+//internal external interface KeyboardEventInitExtended : KeyboardEventInit {
+//    var keyCode: Int?
+//}
+//
+//internal fun KeyboardEventInit.keyDownEvent() = KeyboardEvent("keydown", this)
+//internal fun KeyboardEventInit.withKeyCode() = (this as KeyboardEventInitExtended).apply {
+//    keyCode = key!!.uppercase().first().code
+//}
+//
+//internal fun createCopyKeyboardEvent(): KeyboardEvent =
+//    KeyboardEventInit(key = "c", code = "KeyC", ctrlKey = true, metaKey = true, cancelable = true)
+//        .withKeyCode()
+//        .keyDownEvent()
+//
+//internal fun createTypedEvent(): KeyboardEvent =
+//    KeyboardEventInit(key = "c", code = "KeyC", cancelable = true)
+//        .withKeyCode()
+//        .keyDownEvent()
+//
+//internal fun createEventShouldNotBePrevented(): KeyboardEvent =
+//    KeyboardEventInit(ctrlKey = true, cancelable = true)
+//        .keyDownEvent()
+//
+//
+//// Unreliable heuristic, but it works for now
+//internal fun isHeadlessBrowser(): Boolean = window.navigator.userAgent.contains("Headless")
