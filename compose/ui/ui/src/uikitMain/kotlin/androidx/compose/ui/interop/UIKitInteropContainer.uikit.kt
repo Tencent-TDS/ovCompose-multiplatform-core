@@ -14,8 +14,14 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.window
+package androidx.compose.ui.interop
 
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.node.InteropContainer
+import androidx.compose.ui.node.TrackInteropModifierElement
+import androidx.compose.ui.node.TrackInteropModifierNode
+import androidx.compose.ui.node.countInteropComponentsBefore
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGPoint
@@ -23,10 +29,28 @@ import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
 import platform.UIKit.UIView
 
+internal val LocalUIKitInteropContainer = staticCompositionLocalOf<UIKitInteropContainer> {
+    error("UIKitInteropContainer not provided")
+}
+
 /**
  * This InteropContainer in UIView. And needs to add UIKitView interop views.
  */
-internal class InteropContainer : UIView(CGRectZero.readValue()) {
+internal class UIKitInteropContainer: InteropContainer<UIView> {
+    val containerView: UIView = UIKitInteropContainerView()
+    override var rootModifier: TrackInteropModifierNode<UIView>? = null
+
+    override fun addInteropView(nativeView: UIView) {
+        val index = countInteropComponentsBefore(nativeView)
+        containerView.insertSubview(nativeView, index.toLong())
+    }
+
+    override fun removeInteropView(nativeView: UIView) {
+        nativeView.removeFromSuperview()
+    }
+}
+
+private class UIKitInteropContainerView: UIView(CGRectZero.readValue()) {
     /**
      * We used simple solution to make only this view not touchable.
      * Other view added to this container will be touchable.
@@ -36,3 +60,9 @@ internal class InteropContainer : UIView(CGRectZero.readValue()) {
             it != this
         }
 }
+
+internal fun Modifier.trackUIKitInterop(
+    component: UIView
+): Modifier = this then TrackInteropModifierElement(
+    nativeView = component
+)

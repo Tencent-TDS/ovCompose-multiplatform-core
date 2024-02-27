@@ -87,10 +87,10 @@ fun <T : UIView> UIKitView(
 ) {
     // TODO: adapt UIKitView to reuse inside LazyColumn like in AndroidView:
     //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
-    val rootView = LocalInteropContainer.current
+    val interopContainer = LocalUIKitInteropContainer.current
     val embeddedInteropComponent = remember {
         EmbeddedInteropView(
-            rootView = rootView,
+            interopContainer = interopContainer,
             onRelease
         )
     }
@@ -107,7 +107,7 @@ fun <T : UIView> UIKitView(
                 val rect = newRectInPixels.toRect().toDpRect(density)
 
                 interopContext.deferAction {
-                    embeddedInteropComponent.wrappingView.setFrame(rect.asCGRect())
+                    embeddedInteropComponent.container.setFrame(rect.asCGRect())
                 }
 
                 if (rectInPixels.width != newRectInPixels.width || rectInPixels.height != newRectInPixels.height) {
@@ -121,8 +121,9 @@ fun <T : UIView> UIKitView(
                 rectInPixels = newRectInPixels
             }
         }.drawBehind {
-            drawRect(Color.Transparent, blendMode = BlendMode.DstAtop) // draw transparent hole
-        }.let {
+            // Clear interop area to make visible the component under our canvas.
+            drawRect(Color.Transparent, blendMode = BlendMode.Clear)
+        }.trackUIKitInterop(embeddedInteropComponent.container).let {
             if (interactive) {
                 it.then(InteropViewCatchPointerModifier())
             } else {
@@ -183,13 +184,13 @@ fun <T : UIViewController> UIKitViewController(
 ) {
     // TODO: adapt UIKitViewController to reuse inside LazyColumn like in AndroidView:
     //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
-    val rootView = LocalInteropContainer.current
+    val interopContainer = LocalUIKitInteropContainer.current
     val rootViewController = LocalUIViewController.current
     val embeddedInteropComponent = remember {
         EmbeddedInteropViewController(
-            rootView,
-            rootViewController,
-            onRelease
+            interopContainer = interopContainer,
+            rootViewController = rootViewController,
+            onRelease = onRelease
         )
     }
 
@@ -206,7 +207,7 @@ fun <T : UIViewController> UIKitViewController(
                 val rect = newRectInPixels.toRect().toDpRect(density)
 
                 interopContext.deferAction {
-                    embeddedInteropComponent.wrappingView.setFrame(rect.asCGRect())
+                    embeddedInteropComponent.container.setFrame(rect.asCGRect())
                 }
 
                 if (rectInPixels.width != newRectInPixels.width || rectInPixels.height != newRectInPixels.height) {
@@ -220,8 +221,9 @@ fun <T : UIViewController> UIKitViewController(
                 rectInPixels = newRectInPixels
             }
         }.drawBehind {
-            drawRect(Color.Transparent, blendMode = BlendMode.DstAtop) // draw transparent hole
-        }.let {
+            // Clear interop area to make visible the component under our canvas.
+            drawRect(Color.Transparent, blendMode = BlendMode.Clear)
+        }.trackUIKitInterop(embeddedInteropComponent.container).let {
             if (interactive) {
                 it.then(InteropViewCatchPointerModifier())
             } else {
@@ -278,18 +280,18 @@ private fun parseColor(color: Color): UIColor {
 }
 
 private abstract class EmbeddedInteropComponent<T : Any>(
-    val rootView: UIView,
+    val interopContainer: UIKitInteropContainer,
     val onRelease: (T) -> Unit
 ) {
-    lateinit var wrappingView: UIView
+    var container = UIView()
     lateinit var component: T
     lateinit var updater: Updater<T>
 
     fun setBackgroundColor(color: Color) {
         if (color == Color.Unspecified) {
-            wrappingView.backgroundColor = rootView.backgroundColor
+            container.backgroundColor = interopContainer.containerView.backgroundColor
         } else {
-            wrappingView.backgroundColor = parseColor(color)
+            container.backgroundColor = parseColor(color)
         }
     }
 
@@ -297,23 +299,22 @@ private abstract class EmbeddedInteropComponent<T : Any>(
     abstract fun removeFromHierarchy()
 
     protected fun addViewToHierarchy(view: UIView) {
-        wrappingView = UIView().apply {
-            addSubview(view)
-        }
-        rootView.addSubview(wrappingView)
+        container.addSubview(view)
+        interopContainer.addInteropView(container)
     }
 
     protected fun removeViewFromHierarchy(view: UIView) {
-        wrappingView.removeFromSuperview()
+        view.removeFromSuperview()
+        interopContainer.removeInteropView(container)
         updater.dispose()
         onRelease(component)
     }
 }
 
 private class EmbeddedInteropView<T : UIView>(
-    rootView: UIView,
+    interopContainer: UIKitInteropContainer,
     onRelease: (T) -> Unit
-) : EmbeddedInteropComponent<T>(rootView, onRelease) {
+) : EmbeddedInteropComponent<T>(interopContainer, onRelease) {
     override fun addToHierarchy() {
         addViewToHierarchy(component)
     }
@@ -324,10 +325,10 @@ private class EmbeddedInteropView<T : UIView>(
 }
 
 private class EmbeddedInteropViewController<T : UIViewController>(
-    rootView: UIView,
+    interopContainer: UIKitInteropContainer,
     private val rootViewController: UIViewController,
     onRelease: (T) -> Unit
-) : EmbeddedInteropComponent<T>(rootView, onRelease) {
+) : EmbeddedInteropComponent<T>(interopContainer, onRelease) {
     override fun addToHierarchy() {
         rootViewController.addChildViewController(component)
         addViewToHierarchy(component.view)

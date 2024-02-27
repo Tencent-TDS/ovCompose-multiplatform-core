@@ -21,7 +21,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.node.InteropContainer
+import androidx.compose.ui.node.TrackInteropContainer
 import androidx.compose.ui.node.TrackInteropModifierElement
+import androidx.compose.ui.node.TrackInteropModifierNode
+import androidx.compose.ui.node.countInteropComponentsBefore
 import java.awt.Component
 import java.awt.Container
 
@@ -32,8 +35,9 @@ internal val LocalSwingInteropContainer = staticCompositionLocalOf<SwingInteropC
 internal class SwingInteropContainer(
     val container: Container,
     private val placeInteropAbove: Boolean
-): InteropContainer<Component>() {
+): InteropContainer<Component> {
     private var interopComponentsCount = 0
+    override var rootModifier: TrackInteropModifierNode<Component>? = null
 
     override fun addInteropView(nativeView: Component) {
         val nonInteropComponents = container.componentCount - interopComponentsCount

@@ -22,34 +22,34 @@ import androidx.compose.ui.layout.OverlayLayout
 import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAction.CancelTraversal
 import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAction.ContinueTraversal
 
-internal abstract class InteropContainer<T> {
-    private var rootModifier: TrackInteropModifierNode<T>? = null
+internal interface InteropContainer<T> {
+    var rootModifier: TrackInteropModifierNode<T>?
 
-    abstract fun addInteropView(nativeView: T)
-    abstract fun removeInteropView(nativeView: T)
+    fun addInteropView(nativeView: T)
+    fun removeInteropView(nativeView: T)
+}
 
-    fun countInteropComponentsBefore(nativeView: T): Int {
-        var componentsBefore = 0
-        rootModifier?.traverseDescendants {
-            if (it.nativeView != nativeView) {
-                componentsBefore++
-                ContinueTraversal
-            } else {
-                CancelTraversal
-            }
+internal fun <T> InteropContainer<T>.countInteropComponentsBefore(nativeView: T): Int {
+    var componentsBefore = 0
+    rootModifier?.traverseDescendants {
+        if (it.nativeView != nativeView) {
+            componentsBefore++
+            ContinueTraversal
+        } else {
+            CancelTraversal
         }
-        return componentsBefore
     }
+    return componentsBefore
+}
 
-    @Composable
-    protected fun TrackInteropContainer(container: T, content: @Composable () -> Unit) {
-        OverlayLayout(
-            modifier = TrackInteropModifierElement(
-                nativeView = container
-            ) { rootModifier = it },
-            content = content
-        )
-    }
+@Composable
+internal fun <T> InteropContainer<T>.TrackInteropContainer(container: T, content: @Composable () -> Unit) {
+    OverlayLayout(
+        modifier = TrackInteropModifierElement(
+            nativeView = container
+        ) { rootModifier = it },
+        content = content
+    )
 }
 
 internal data class TrackInteropModifierElement<T>(
