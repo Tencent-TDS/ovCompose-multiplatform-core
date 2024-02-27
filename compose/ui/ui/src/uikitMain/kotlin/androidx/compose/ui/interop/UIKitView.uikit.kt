@@ -30,14 +30,11 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.InteropViewCatchPointerModifier
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.Measurable
-import androidx.compose.ui.layout.MeasurePolicy
-import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.EmptyLayout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.uikit.toUIColor
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.asCGRect
@@ -51,7 +48,6 @@ import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.Foundation.NSThread
-import platform.UIKit.UIColor
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.UIKit.addChildViewController
@@ -99,7 +95,7 @@ fun <T : UIView> UIKitView(
     var localToWindowOffset: IntOffset by remember { mutableStateOf(IntOffset.Zero) }
     val interopContext = LocalUIKitInteropContext.current
 
-    Place(
+    EmptyLayout(
         modifier.onGloballyPositioned { coordinates ->
             localToWindowOffset = coordinates.positionInRoot().round()
             val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
@@ -199,7 +195,7 @@ fun <T : UIViewController> UIKitViewController(
     var localToWindowOffset: IntOffset by remember { mutableStateOf(IntOffset.Zero) }
     val interopContext = LocalUIKitInteropContext.current
 
-    Place(
+    EmptyLayout(
         modifier.onGloballyPositioned { coordinates ->
             localToWindowOffset = coordinates.positionInRoot().round()
             val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
@@ -260,25 +256,6 @@ fun <T : UIViewController> UIKitViewController(
     }
 }
 
-@Composable
-private fun Place(modifier: Modifier) {
-    Layout({}, measurePolicy = PlaceMeasurePolicy, modifier = modifier)
-}
-
-private object PlaceMeasurePolicy : MeasurePolicy {
-    override fun MeasureScope.measure(measurables: List<Measurable>, constraints: Constraints) =
-        layout(constraints.maxWidth, constraints.maxHeight) {}
-}
-
-private fun parseColor(color: Color): UIColor {
-    return UIColor(
-        red = color.red.toDouble(),
-        green = color.green.toDouble(),
-        blue = color.blue.toDouble(),
-        alpha = color.alpha.toDouble()
-    )
-}
-
 private abstract class EmbeddedInteropComponent<T : Any>(
     val interopContainer: UIKitInteropContainer,
     val onRelease: (T) -> Unit
@@ -291,7 +268,7 @@ private abstract class EmbeddedInteropComponent<T : Any>(
         if (color == Color.Unspecified) {
             container.backgroundColor = interopContainer.containerView.backgroundColor
         } else {
-            container.backgroundColor = parseColor(color)
+            container.backgroundColor = color.toUIColor()
         }
     }
 
