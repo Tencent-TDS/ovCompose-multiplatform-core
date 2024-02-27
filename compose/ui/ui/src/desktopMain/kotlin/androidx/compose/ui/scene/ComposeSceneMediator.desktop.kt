@@ -54,6 +54,7 @@ import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.sizeInPx
 import java.awt.Component
+import java.awt.Container
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Point
@@ -72,7 +73,6 @@ import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 import java.awt.im.InputMethodRequests
 import javax.accessibility.Accessible
-import javax.swing.JLayeredPane
 import javax.swing.SwingUtilities
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
@@ -95,7 +95,7 @@ import org.jetbrains.skiko.swing.SkiaSwingLayer
  * - for forcing refocus on input methods change
  */
 internal class ComposeSceneMediator(
-    private val container: JLayeredPane,
+    private val container: Container,
     private val windowContext: PlatformWindowContext,
     private var exceptionHandler: WindowExceptionHandler?,
 
@@ -126,15 +126,16 @@ internal class ComposeSceneMediator(
     val windowHandle by skiaLayerComponent::windowHandle
     val renderApi by skiaLayerComponent::renderApi
 
+    // Applying layer on macOS makes our bridge non-transparent
+    // But it draws always on top, so we can just add it as-is
+    // TODO: Figure out why it makes difference in transparency
     @OptIn(ExperimentalSkikoApi::class)
+    private val metalOrderHack
+        get() = renderApi == GraphicsApi.METAL && contentComponent !is SkiaSwingLayer
+
     private val interopContainer = SwingInteropContainer(
         container = container,
-        useInteropBlending = useInteropBlending,
-
-        // Applying layer on macOS makes our bridge non-transparent
-        // But it draws always on top, so we can just add it as-is
-        // TODO: Figure out why it makes difference in transparency
-        useLayers = renderApi != GraphicsApi.METAL || contentComponent is SkiaSwingLayer
+        placeInteropAbove = !useInteropBlending || metalOrderHack
     )
 
     private val containerListener = object : ContainerListener {
@@ -293,8 +294,8 @@ internal class ComposeSceneMediator(
         // when [container] is already [isDisplayable].
         skiaLayerComponent.transparency = useInteropBlending
 
-        interopContainer.addContentComponent(invisibleComponent)
-        interopContainer.addContentComponent(contentComponent)
+        container.add(invisibleComponent)
+        container.add(contentComponent)
 
         // Adding a listener after adding [invisibleComponent] and [contentComponent]
         // to react only on changes with [interopLayer].

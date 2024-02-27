@@ -27,7 +27,7 @@ import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAct
 import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAction.ContinueTraversal
 import androidx.compose.ui.node.traverseDescendants
 import java.awt.Component
-import javax.swing.JLayeredPane
+import java.awt.Container
 
 internal val LocalSwingInteropContainer = staticCompositionLocalOf<SwingInteropContainer> {
     error("LocalSwingInteropContainer not provided")
@@ -38,34 +38,23 @@ private const val TRAVERSAL_NODE_KEY =
     "androidx.compose.ui.awt.SWING_INTEROP_TRAVERSAL_NODE_KEY"
 
 internal class SwingInteropContainer(
-    val container: JLayeredPane,
-    private val useInteropBlending: Boolean,
-    private val useLayers: Boolean
+    val container: Container,
+    private val placeInteropAbove: Boolean
 ) {
     private var rootModifier: SwingInteropModifierNode? = null
     private var interopComponentsCount = 0
 
-    private val contentLayer: Int = 10
-    private val interopLayer: Int
-        get() = if (useInteropBlending) 0 else 20
-
-    private fun JLayeredPane.addToLayer(component: Component, layer: Int, index: Int = -1) {
-        if (!useLayers) {
-            add(component, index)
-        } else {
-            setLayer(component, layer)
-            add(component, null, index)
-        }
-    }
-
-    fun addContentComponent(component: Component) {
-        container.addToLayer(component, contentLayer)
-    }
-
     fun addInteropComponent(component: Component): Component {
-        interopComponentsCount++
+        val nonInteropComponents = container.componentCount - interopComponentsCount
         val index = interopComponentsCount - countInteropComponentsBefore(component)
-        container.addToLayer(component, interopLayer, index)
+        println("addInteropComponent $index")
+
+        container.add(component, if (placeInteropAbove) {
+            index
+        } else {
+            index + nonInteropComponents
+        })
+        interopComponentsCount++
         return component
     }
 
