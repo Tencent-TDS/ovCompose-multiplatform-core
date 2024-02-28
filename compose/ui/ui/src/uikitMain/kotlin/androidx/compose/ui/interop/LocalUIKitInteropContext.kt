@@ -23,7 +23,7 @@ internal enum class UIKitInteropState {
     BEGAN, UNCHANGED, ENDED
 }
 
-internal enum class UIKitInteropViewHierarchyChange {
+internal enum class UIKitInteropEvent {
     VIEW_ADDED,
     VIEW_REMOVED
 }
@@ -38,7 +38,7 @@ internal interface UIKitInteropTransaction {
     val state: UIKitInteropState
 
     companion object {
-        val empty = object : UIKitInteropTransaction {
+        val empty: UIKitInteropTransaction = object : UIKitInteropTransaction {
             override val actions: List<UIKitInteropAction>
                 get() = emptyList()
 
@@ -77,7 +77,7 @@ private class UIKitInteropMutableTransaction: UIKitInteropTransaction {
 
 /**
  * Class which can be used to add actions related to UIKit objects to be executed in sync with compose rendering,
- * Addding deferred actions is threadsafe, but they will be executed in the order of their submission, and on the main thread.
+ * Adding deferred actions is thread-safe, but they will be executed in the order of their submission, and on the main thread.
  */
 internal class UIKitInteropContext(
     val requestRedraw: () -> Unit
@@ -86,9 +86,9 @@ internal class UIKitInteropContext(
     private var transaction = UIKitInteropMutableTransaction()
 
     /**
-     * Number of views, created by interop API and present in current view hierarchy
+     * Number of views whose changes are being synchronized with Compose rendering
      */
-    private var viewsCount = 0
+    private var synchronizedViewsCount = 0
         set(value) {
             require(value >= 0)
 
@@ -98,22 +98,22 @@ internal class UIKitInteropContext(
     /**
      * Add lambda to a list of commands which will be executed later in the same CATransaction, when the next rendered Compose frame is presented
      */
-    fun deferAction(hierarchyChange: UIKitInteropViewHierarchyChange? = null, action: () -> Unit) {
+    fun deferAction(event: UIKitInteropEvent? = null, action: () -> Unit) {
         requestRedraw()
 
         lock.doLocked {
-            if (hierarchyChange == UIKitInteropViewHierarchyChange.VIEW_ADDED) {
-                if (viewsCount == 0) {
+            if (event == UIKitInteropEvent.VIEW_ADDED) {
+                if (synchronizedViewsCount == 0) {
                     transaction.state = UIKitInteropState.BEGAN
                 }
-                viewsCount += 1
+                synchronizedViewsCount += 1
             }
 
             transaction.actions.add(action)
 
-            if (hierarchyChange == UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
-                viewsCount -= 1
-                if (viewsCount == 0) {
+            if (event == UIKitInteropEvent.VIEW_REMOVED) {
+                synchronizedViewsCount -= 1
+                if (synchronizedViewsCount == 0) {
                     transaction.state = UIKitInteropState.ENDED
                 }
             }

@@ -317,8 +317,9 @@ internal class ComposeSceneMediator(
             keyboardOverlapHeightState = keyboardOverlapHeightState,
             viewProvider = { container },
             densityProvider = { container.systemDensity },
-            composeSceneMediatorProvider = { this },
             focusManager = focusManager,
+            getMediatorViewHeight = { getViewHeight() },
+            interopContext = interopContext
         )
     }
 
@@ -492,7 +493,7 @@ internal class ComposeSceneMediator(
 
     fun onComposeSceneInvalidate() = renderingView.needRedraw()
 
-    fun setLayout(value: SceneLayout) {
+    fun setLayout(value: SceneLayout) = interopContext.deferAction {
         _layout = value
         when (value) {
             SceneLayout.UseConstraintsToFillContainer -> {
@@ -645,7 +646,10 @@ internal class ComposeSceneMediator(
         )
     }
 
-    fun getViewHeight(): Double = renderingView.frame.useContents {
+    /**
+     * Returns the height of the rendering view in DPs.
+     */
+    private fun getViewHeight(): Double = renderingView.frame.useContents {
         size.height
     }
 

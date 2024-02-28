@@ -137,12 +137,12 @@ fun <T : UIView> UIKitView(
             interopContext.deferAction(action = it)
         }
 
-        interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
+        interopContext.deferAction(UIKitInteropEvent.VIEW_ADDED) {
             embeddedInteropComponent.addToHierarchy()
         }
 
         onDispose {
-            interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
+            interopContext.deferAction(UIKitInteropEvent.VIEW_REMOVED) {
                 embeddedInteropComponent.removeFromHierarchy()
             }
         }
@@ -236,12 +236,12 @@ fun <T : UIViewController> UIKitViewController(
             interopContext.deferAction(action = it)
         }
 
-        interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
+        interopContext.deferAction(UIKitInteropEvent.VIEW_ADDED) {
             embeddedInteropComponent.addToHierarchy()
         }
 
         onDispose {
-            interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
+            interopContext.deferAction(UIKitInteropEvent.VIEW_REMOVED) {
                 embeddedInteropComponent.removeFromHierarchy()
             }
         }

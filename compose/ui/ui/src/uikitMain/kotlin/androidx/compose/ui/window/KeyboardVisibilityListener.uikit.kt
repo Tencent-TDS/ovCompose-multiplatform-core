@@ -17,8 +17,9 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.MutableState
+import androidx.compose.ui.interop.UIKitInteropContext
+import androidx.compose.ui.interop.UIKitInteropEvent
 import androidx.compose.ui.scene.ComposeSceneFocusManager
-import androidx.compose.ui.scene.ComposeSceneMediator
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.unit.Density
@@ -54,8 +55,9 @@ internal class KeyboardVisibilityListenerImpl(
     private val keyboardOverlapHeightState: MutableState<Float>,
     private val viewProvider: () -> UIView,
     private val densityProvider: () -> Density,
-    private val composeSceneMediatorProvider: () -> ComposeSceneMediator,
+    private val getMediatorViewHeight: () -> Double,
     private val focusManager: ComposeSceneFocusManager,
+    private val interopContext: UIKitInteropContext,
 ) : KeyboardVisibilityListener {
 
     val view get() = viewProvider()
@@ -66,12 +68,13 @@ internal class KeyboardVisibilityListenerImpl(
             hidden = true
         }
     }
+
+    // TODO: refactor and integrate with MetalRedrawer displayLink
     private var keyboardAnimationListener: CADisplayLink? = null
 
     override fun keyboardWillShow(arg: NSNotification) {
         animateKeyboard(arg, true)
 
-        val mediator = composeSceneMediatorProvider()
         val userInfo = arg.userInfo ?: return
         val keyboardInfo = userInfo[UIKeyboardFrameEndUserInfoKey] as NSValue
         val keyboardHeight = keyboardInfo.CGRectValue().useContents { size.height }
@@ -80,7 +83,7 @@ internal class KeyboardVisibilityListenerImpl(
 
             if (focusedRect != null) {
                 updateViewBounds(
-                    offsetY = calcFocusedLiftingY(mediator, focusedRect, keyboardHeight)
+                    offsetY = calcFocusedLiftingY(focusedRect, keyboardHeight)
                 )
             }
         }
@@ -144,6 +147,7 @@ internal class KeyboardVisibilityListenerImpl(
             },
             selector = sel_registerName("animationDidUpdate")
         ).apply {
+            view.window?.screen?.maximumFramesPerSecond?.let { preferredFramesPerSecond = it }
             addToRunLoop(NSRunLoop.mainRunLoop(), NSDefaultRunLoopMode)
         }
 
@@ -155,30 +159,34 @@ internal class KeyboardVisibilityListenerImpl(
         } else {
             0.0
         }
-        UIView.animateWithDuration(
-            duration = duration,
-            animations = {
-                //set final destination for animation
-                keyboardAnimationView.setFrame(CGRectMake(0.0, toValue, 0.0, 0.0))
-            },
-            completion = { isFinished ->
-                if (isFinished) {
-                    keyboardAnimationListener?.invalidate()
-                    keyboardAnimationListener = null
-                    keyboardAnimationView.removeFromSuperview()
-                } else {
-                    //animation was canceled by other animation
+
+        interopContext.deferAction(UIKitInteropEvent.VIEW_ADDED) {
+            UIView.animateWithDuration(
+                duration = duration,
+                animations = {
+                    //set final destination for animation
+                    keyboardAnimationView.setFrame(CGRectMake(0.0, toValue, 0.0, 0.0))
+                },
+                completion = { isFinished ->
+                    interopContext.deferAction(UIKitInteropEvent.VIEW_REMOVED) {
+                        if (isFinished) {
+                            keyboardAnimationListener?.invalidate()
+                            keyboardAnimationListener = null
+                            keyboardAnimationView.removeFromSuperview()
+                        } else {
+                            //animation was canceled by other animation
+                        }
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 
     private fun calcFocusedLiftingY(
-        composeSceneMediator: ComposeSceneMediator,
         focusedRect: DpRect,
         keyboardHeight: Double
     ): Double {
-        val viewHeight = composeSceneMediator.getViewHeight()
+        val viewHeight = getMediatorViewHeight()
         val hiddenPartOfFocusedElement: Double =
             keyboardHeight - viewHeight + focusedRect.bottom.value
         return if (hiddenPartOfFocusedElement > 0) {
