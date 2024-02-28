@@ -127,6 +127,9 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                 projectAfterEvaluate.tasks.withType(KotlinCompile::class.java).configureEach { compile ->
                     // Needed to enable `expect` and `actual` keywords
                     compile.kotlinOptions.freeCompilerArgs += "-Xmulti-platform"
+
+                    // Suppress a warning that 'expect'/'actual' classes are in Beta.
+                    compile.kotlinOptions.freeCompilerArgs += "-Xexpect-actual-classes"
                 }
             }
 
@@ -143,20 +146,6 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                 it.kotlinOptions {
                     freeCompilerArgs += "-opt-in=kotlinx.cinterop.ExperimentalForeignApi"
                     freeCompilerArgs += "-opt-in=kotlin.experimental.ExperimentalNativeApi"
-                }
-            }
-
-            // TODO: remove this (https://youtrack.jetbrains.com/issue/COMPOSE-939)
-            project.configurations.all {
-                val isWeb = it.name.startsWith("wasmJs") ||
-                    it.name.startsWith("js")
-                if (isWeb) {
-                    it.resolutionStrategy.eachDependency {
-                        if (it.requested.group.startsWith("org.jetbrains.kotlinx") &&
-                            it.requested.name.startsWith("kotlinx-coroutines-")) {
-                            it.useVersion("1.8.0-RC2")
-                        }
-                    }
                 }
             }
         }

@@ -27,12 +27,12 @@ import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.toCompose
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.platformContext
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.SkiaLayer
@@ -54,7 +54,7 @@ internal class ComposeLayer(
     // Should be set to an actual value by ComposeWindow implementation
     private var density = Density(1f)
 
-    private inner class ComponentImpl : SkikoView {
+    private inner class ComponentImpl : SkikoViewExtended {
         override val input = this@ComposeLayer.input
 
         override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
@@ -62,8 +62,12 @@ internal class ComposeLayer(
         }
 
         override fun onKeyboardEvent(event: SkikoKeyboardEvent) {
-            if (isDisposed) return
-            scene.sendKeyEvent(KeyEvent(event))
+            onKeyboardEventWithResult(event)
+        }
+
+        override fun onKeyboardEventWithResult(event: SkikoKeyboardEvent): Boolean {
+            if (isDisposed) return false
+            return scene.sendKeyEvent(KeyEvent(event))
         }
 
         override fun onPointerEvent(event: SkikoPointerEvent) {
@@ -120,7 +124,7 @@ internal class ComposeLayer(
         }
     }
 
-    private val view = ComponentImpl()
+    internal val view: SkikoViewExtended = ComponentImpl()
 
     init {
         layer.skikoView = view
@@ -149,7 +153,7 @@ internal class ComposeLayer(
     }
 
     fun setSize(width: Int, height: Int) {
-        scene.boundsInWindow = IntRect(0, 0, width, height)
+        scene.size = IntSize(width, height)
 
         layer.needRedraw()
     }
@@ -187,4 +191,8 @@ internal fun SkikoPointerEvent.getScrollDelta(): Offset {
     }?.let {
         Offset(it.deltaX.toFloat(), it.deltaY.toFloat())
     } ?: Offset.Zero
+}
+
+internal interface SkikoViewExtended : SkikoView {
+    fun onKeyboardEventWithResult(event: SkikoKeyboardEvent): Boolean
 }

@@ -36,11 +36,11 @@ import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.SceneLayout
 import androidx.compose.ui.scene.SingleLayerComposeScene
 import androidx.compose.ui.scene.UIViewComposeSceneLayer
-import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.PlistSanityCheck
+import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.uikit.utils.CMPViewController
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
@@ -75,7 +75,6 @@ import platform.UIKit.UIContentSizeCategoryExtraSmall
 import platform.UIKit.UIContentSizeCategoryLarge
 import platform.UIKit.UIContentSizeCategoryMedium
 import platform.UIKit.UIContentSizeCategorySmall
-import platform.UIKit.UIScreen
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
@@ -100,8 +99,8 @@ internal class ComposeContainer(
 
     @OptIn(ExperimentalComposeApi::class)
     private val windowContainer: UIView
-        get() = if (configuration.platformLayers) checkNotNull(view.window) {
-            "ComposeUIViewController.view should be attached to window"
+        get() = if (configuration.platformLayers) {
+            view.window ?: view
         } else view
 
     /*
@@ -174,6 +173,15 @@ internal class ComposeContainer(
         currentInterfaceOrientation?.let {
             interfaceOrientationState.value = it
         }
+
+        updateWindowContainer()
+        mediator?.viewWillLayoutSubviews()
+        layers.fastForEach {
+            it.viewWillLayoutSubviews()
+        }
+    }
+
+    private fun updateWindowContainer() {
         val scale = windowContainer.systemDensity.density
         val size = windowContainer.frame.useContents<CGRect, IntSize> {
             IntSize(
@@ -183,10 +191,6 @@ internal class ComposeContainer(
         }
         windowContext.setContainerSize(size)
         windowContext.setWindowContainer(windowContainer)
-        mediator?.viewWillLayoutSubviews()
-        layers.fastForEach {
-            it.viewWillLayoutSubviews()
-        }
     }
 
     override fun viewWillTransitionToSize(
@@ -239,6 +243,7 @@ internal class ComposeContainer(
         layers.fastForEach {
             it.viewDidAppear(animated)
         }
+        updateWindowContainer()
         configuration.delegate.viewDidAppear(animated)
     }
 
@@ -288,23 +293,23 @@ internal class ComposeContainer(
         coroutineContext: CoroutineContext,
     ): ComposeScene = if (configuration.platformLayers) {
         SingleLayerComposeScene(
-            coroutineContext = coroutineContext,
             density = systemDensity,
-            invalidate = invalidate,
             layoutDirection = layoutDirection,
+            coroutineContext = coroutineContext,
             composeSceneContext = ComposeSceneContextImpl(
                 platformContext = platformContext
             ),
+            invalidate = invalidate,
         )
     } else {
         MultiLayerComposeScene(
+            density = systemDensity,
+            layoutDirection = layoutDirection,
             coroutineContext = coroutineContext,
             composeSceneContext = ComposeSceneContextImpl(
                 platformContext = platformContext
             ),
-            density = systemDensity,
             invalidate = invalidate,
-            layoutDirection = layoutDirection,
         )
     }
 

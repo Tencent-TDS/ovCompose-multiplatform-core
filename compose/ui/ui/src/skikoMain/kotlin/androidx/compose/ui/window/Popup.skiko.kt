@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformInsetsConfig
 import androidx.compose.ui.platform.ZeroInsetsConfig
+import androidx.compose.ui.platform.union
 import androidx.compose.ui.scene.ComposeSceneLayer
 import androidx.compose.ui.scene.rememberComposeSceneLayer
 import androidx.compose.ui.semantics.popup
@@ -433,7 +434,7 @@ private fun PopupLayout(
     onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    val platformInsets = properties.insetsConfig.safeInsets
+    val platformInsets = properties.platformInsets
     var layoutParentBoundsInWindow: IntRect? by remember { mutableStateOf(null) }
     EmptyLayout(Modifier.parentBoundsInWindow { layoutParentBoundsInWindow = it })
     val layer = rememberComposeSceneLayer(
@@ -454,7 +455,10 @@ private fun PopupLayout(
             layoutDirection = layoutDirection,
             parentBoundsInWindow = parentBoundsInWindow
         )
-        properties.insetsConfig.excludeSafeInsets {
+        PlatformInsetsConfig.excludeInsets(
+            safeInsets = properties.usePlatformInsets,
+            ime = false,
+        ) {
             Layout(
                 content = content,
                 modifier = modifier,
@@ -463,6 +467,13 @@ private fun PopupLayout(
         }
     }
 }
+
+private val PopupProperties.platformInsets: PlatformInsets
+    @Composable get() = if (usePlatformInsets) {
+        PlatformInsetsConfig.safeInsets
+    } else {
+        PlatformInsets.Zero
+    }
 
 @Composable
 private fun rememberLayerContent(layer: ComposeSceneLayer, content: @Composable () -> Unit) {
@@ -479,9 +490,6 @@ private fun EmptyLayout(modifier: Modifier = Modifier) = Layout(
         layout(0, 0) {}
     }
 )
-
-private val PopupProperties.insetsConfig: InsetsConfig
-    get() = if (usePlatformInsets) PlatformInsetsConfig else ZeroInsetsConfig
 
 private fun Modifier.parentBoundsInWindow(
     onBoundsChanged: (IntRect) -> Unit
@@ -517,10 +525,7 @@ private fun rememberPopupMeasurePolicy(
                 boundsWithoutInsets, sizeWithoutInsets, layoutDirection, contentSize
             )
             if (properties.clippingEnabled) {
-                IntOffset(
-                    x = positionInWindow.x.coerceIn(0, sizeWithoutInsets.width - contentSize.width),
-                    y = positionInWindow.y.coerceIn(0, sizeWithoutInsets.height - contentSize.height)
-                )
+                clipPosition(positionInWindow, contentSize, sizeWithoutInsets)
             } else {
                 positionInWindow
             }
@@ -529,6 +534,16 @@ private fun rememberPopupMeasurePolicy(
         layer.calculateLocalPosition(positionWithInsets)
     }
 }
+
+private fun clipPosition(position: IntOffset, contentSize: IntSize, containerSize: IntSize) =
+    IntOffset(
+        x = if (contentSize.width < containerSize.width) {
+            position.x.coerceIn(0, containerSize.width - contentSize.width)
+        } else 0,
+        y = if (contentSize.height < containerSize.height) {
+            position.y.coerceIn(0, containerSize.height - contentSize.height)
+        } else 0
+    )
 
 private fun KeyEvent.isDismissRequest() =
     type == KeyEventType.KeyDown && key == Key.Escape
