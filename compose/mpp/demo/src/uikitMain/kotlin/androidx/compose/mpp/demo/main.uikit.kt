@@ -22,7 +22,6 @@ import platform.UIKit.UIViewController
 
 @OptIn(ExperimentalComposeApi::class, ExperimentalComposeUiApi::class)
 fun main(vararg args: String) {
-    androidx.compose.runtime.enableTraceOSLog()
     androidx.compose.ui.util.enableTraceOSLog()
 
     val arg = args.firstOrNull() ?: ""

@@ -16,29 +16,6 @@
 
 package androidx.compose.runtime
 
-import androidx.compose.ui.uikit.utils.CMPOSLogger
-import androidx.compose.ui.uikit.utils.CMPOSLoggerInterval
-
-
-/**
- * Enables iOS OS logging for the `androidx.compose.runtime` APIs.
- *
- * Tracing allows logging detailed information about the Compose UI framework, which can be further
- * analyzed using the XCode Instruments tool.
- *
- * This method is an [ExperimentalComposeApi], which means it is subject to change without notice in major, minor, or patch releases.
- *
- * @see ExperimentalComposeApi
- */
-@ExperimentalComposeApi
-fun enableTraceOSLog() {
-    if (traceImpl == null) {
-        traceImpl = CMPOSLogger(categoryName = "androidx.compose.runtime")
-    }
-}
-
-private var traceImpl: CMPOSLogger? = null
-
 internal actual object Trace {
     /**
      * Writes a trace message to indicate that a given section of code has begun.
@@ -48,7 +25,7 @@ internal actual object Trace {
      * to [endSection]. May be null.
      */
     actual fun beginSection(name: String): Any? {
-        return traceImpl?.beginIntervalNamed(name)
+        return null
     }
 
     /**
@@ -61,8 +38,6 @@ internal actual object Trace {
      * @param token The instance returned from the corresponding call to [beginSection].
      */
     actual fun endSection(token: Any?) {
-        token?.let {
-            traceImpl?.endInterval(it as CMPOSLoggerInterval)
-        }
     }
+
 }

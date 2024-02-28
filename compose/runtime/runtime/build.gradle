@@ -126,11 +126,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                     api("androidx.annotation:annotation:1.1.0")
                 }
             }
-            uikitMain {
-                dependencies {
-                    api project(":compose:ui:ui-uikit")
-                }
-            }
 
             commonTest.dependencies {
                 implementation kotlin("test")
