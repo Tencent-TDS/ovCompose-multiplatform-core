@@ -6,6 +6,7 @@ import SwiftUIInteropExample
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.main.defaultUIKitMain
 import androidx.compose.ui.platform.AccessibilityDebugLogger
 import androidx.compose.ui.platform.AccessibilitySyncOptions
@@ -14,8 +15,10 @@ import bugs.IosBugs
 import bugs.StartRecompositionCheck
 import platform.UIKit.UIViewController
 
-@OptIn(ExperimentalComposeApi::class)
+@OptIn(ExperimentalComposeApi::class, ExperimentalComposeUiApi::class)
 fun main(vararg args: String) {
+    androidx.compose.ui.util.enableTraceOSLog()
+
     val arg = args.firstOrNull() ?: ""
     defaultUIKitMain("ComposeDemo", ComposeUIViewController(configure = {
         accessibilitySyncOptions = AccessibilitySyncOptions.WhenRequiredByAccessibilityServices(object: AccessibilityDebugLogger {
