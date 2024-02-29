@@ -233,7 +233,7 @@ internal class ComposeContainer(
         super.viewWillAppear(animated)
 
         isInsideSwiftUI = checkIfInsideSwiftUI()
-        setContent(content)
+        createMediatorIfNeeded()
         configuration.delegate.viewWillAppear(animated)
     }
 
@@ -313,7 +313,7 @@ internal class ComposeContainer(
         )
     }
 
-    private fun setContent(content: @Composable () -> Unit) {
+    private fun createMediatorIfNeeded() {
         val mediator = mediator ?: ComposeSceneMediator(
             container = view,
             configuration = configuration,
