@@ -101,7 +101,9 @@ internal actual value class Strings(val value: Int) {
 internal actual fun String.format(vararg formatArgs: Any?): String {
     var result = this
     formatArgs.forEachIndexed { index, arg ->
-        result = result.replace("%${index+1}$", arg.toString())
+        result = result
+            .replace("%${index+1}\$d", arg.toString())
+            .replace("%${index+1}\$s", arg.toString())
     }
     return result
 }
