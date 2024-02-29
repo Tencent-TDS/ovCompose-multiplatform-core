@@ -324,10 +324,10 @@ internal class ComposeContainer(
             composeSceneFactory = ::createComposeScene,
         ).also {
             this.mediator = it
-        }
-        mediator.setContent {
-            ProvideContainerCompositionLocals(this) {
-                content()
+            it.setContent {
+                ProvideContainerCompositionLocals(this) {
+                    content()
+                }
             }
         }
         mediator.setLayout(SceneLayout.UseConstraintsToFillContainer)
