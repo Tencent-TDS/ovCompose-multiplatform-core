@@ -53,7 +53,23 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
+    }
+
+    @Test
+    fun determineCursorDesiredOffset_tap_before_punctuation() {
+        // https://github.com/JetBrains/compose-multiplatform/issues/4388
+        val text = "0@1"
+        val givenOffset = 1
+        val desiredOffset = 1
+        val result = determineCursorDesiredOffset(
+            offset = givenOffset,
+            createSimpleTextFieldValue(text = text, cursorOffset = null),
+            textLayoutResult = createSimpleTextLayoutResultProxy(text),
+            currentText = text
+        )
+        //assertEquals(de, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     @Test
@@ -66,7 +82,7 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     @Test
@@ -79,7 +95,7 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     @Test
@@ -92,7 +108,7 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     @Test
@@ -105,7 +121,7 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     @Test
@@ -119,7 +135,7 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     @Test
@@ -134,7 +150,7 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     @Test
@@ -148,7 +164,7 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     @Test
@@ -163,7 +179,7 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     @Test
@@ -176,7 +192,7 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     @Test
@@ -189,7 +205,7 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     // TODO: remove ignore after fix two compound emojis considered as one whole word
@@ -204,7 +220,7 @@ class CupertinoTextFieldDelegateTest {
             textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
             currentText = sampleText
         )
-        assertEquals(result, desiredOffset)
+        assertEquals(desiredOffset, result)
     }
 
     private fun createSimpleTextFieldValue(text: String, cursorOffset: Int?) =

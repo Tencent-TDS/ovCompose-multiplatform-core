@@ -121,8 +121,9 @@ internal fun findNextNonWhitespaceSymbolsSubsequenceStartOffset(
     }
     currentOffset = nextOffset
 
+    nextOffset = charIterator.next()
+
     while (nextOffset != BreakIterator.DONE) {
-        nextOffset = charIterator.next()
         if (currentText.codePointAt(currentOffset).isWhitespace() && !currentText.codePointAt(
                 nextOffset
             ).isWhitespace()
@@ -131,6 +132,8 @@ internal fun findNextNonWhitespaceSymbolsSubsequenceStartOffset(
         } else {
             currentOffset = nextOffset
         }
+
+        nextOffset = charIterator.next()
     }
     return currentOffset
 }
@@ -163,6 +166,16 @@ internal fun String.midpointPositionWithUnicodeSymbols(): Int {
         currentOffset = charIterator.next()
     }
     return currentOffset
+}
+
+/**
+ * Checks if the given Unicode code point is a whitespace character or a punctuation character.
+ *
+ * @receiver The Unicode code point to be checked.
+ * @return `true` if the code point is a whitespace or punctuation character, `false` otherwise.
+ */
+private fun CodePoint.isWhitespaceOrPunctuation(): Boolean {
+    return this.isWhitespace() || this.isPunctuation()
 }
 
 /**
