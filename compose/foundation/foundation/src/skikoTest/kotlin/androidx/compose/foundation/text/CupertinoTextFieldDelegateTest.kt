@@ -72,15 +72,15 @@ class CupertinoTextFieldDelegateTest {
     }
 
     // TODO: ticket for reviewing our approach will be made and covered in this test
-//    @Test
-//    fun determineCursorDesiredOffset_tap_before_punctuation() {
-//        // https://github.com/JetBrains/compose-multiplatform/issues/4388
-//        val text = "0@1 5"
-//        val givenOffset = 1
-//        val desiredOffset = 1
-//
-//        testDetermineCursorDesiredOffset(givenOffset, desiredOffset, text)
-//    }
+    @Test
+    fun determineCursorDesiredOffset_tap_before_punctuation() {
+        // https://github.com/JetBrains/compose-multiplatform/issues/4388
+        val text = "0@1"
+        val givenOffset = 1
+        val desiredOffset = 0 // TODO: define what should happen exactly, this test only assures that no crash happens
+
+        testDetermineCursorDesiredOffset(givenOffset, desiredOffset, text)
+    }
 
     @Test
     fun determineCursorDesiredOffset_tap_in_the_first_half_of_word() {
