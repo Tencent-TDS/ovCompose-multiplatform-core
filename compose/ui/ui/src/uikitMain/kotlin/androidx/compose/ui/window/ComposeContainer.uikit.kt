@@ -325,9 +325,7 @@ internal class ComposeContainer(
         ).also {
             this.mediator = it
             it.setContent {
-                ProvideContainerCompositionLocals(this) {
-                    content()
-                }
+                ProvideContainerCompositionLocals(this, content)
             }
         }
         mediator.setLayout(SceneLayout.UseConstraintsToFillContainer)
