@@ -192,7 +192,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 tasks.register("updateTranslations", UpdateTranslationsTask.class) {
     group = "localization"
     gitRepo = "https://github.com/androidx/androidx"
-    repoResDirectory = "compose/ui/ui/src/androidMain/res"
+    repoResDirectories = ["compose/ui/ui/src/androidMain/res"]
     targetDirectory = project.file("src/skikoMain/kotlin/androidx/compose/material/l10n")
     targetPackageName = "androidx.compose.material.l10n"
     kotlinStringsPackageName = "androidx.compose.material"

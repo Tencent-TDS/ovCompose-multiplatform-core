@@ -45,10 +45,13 @@ open class UpdateTranslationsTask : DefaultTask() {
     lateinit var gitRepo: String
 
     /**
-     * The root resources directory in the repo.
+     * The root resources directories in the repo.
+     *
+     * Note that there may be more than one because Android shares resources across modules, and
+     * some modules use resources from more than one.
      */
     @Input
-    lateinit var repoResDirectory: String
+    lateinit var repoResDirectories: List<String>
 
     /**
      * The strings to translate.
@@ -109,33 +112,37 @@ open class UpdateTranslationsTask : DefaultTask() {
         val repoDir = File(dir, gitRepo.substringAfterLast('/'))
         repoDir.deleteRecursively()
 
-        // The directories in the repo to check out
-        val valuesDirByLocale = locales.associate { localeTag ->
+        // The directories in the repo to check out.
+        // For each locale, there could be several values directories.
+        val valuesDirsByLocale: Map<Locale, List<String>> = locales.associate { localeTag ->
             val locale = Locale.fromTag(localeTag)
-            val resDir = if (repoResDirectory.endsWith("/")) repoResDirectory else "$repoResDirectory/"
-            val valuesDir = resDir + locale.valuesDirName()
-            locale to valuesDir
+            val valuesDirs = repoResDirectories.map {
+                val resDir = if (it.endsWith("/")) it else "$it/"
+                resDir + locale.valuesDirName()
+            }
+            locale to valuesDirs
         }
 
         // Clone the repo, but don't check out any files
         execCommand(dir, git, "clone", "-n", "--depth=1", "--filter=tree:0", gitRepo)
 
         // Set a sparse checkout to download only the directories we need
+        val allValuesDirs = valuesDirsByLocale.values.flatten()
         execCommand(repoDir, git, "sparse-checkout", "set", "--no-cone",
-            *valuesDirByLocale.values.toTypedArray())
+            *allValuesDirs.toTypedArray())
 
         // Actually download them
         execCommand(repoDir, git, "checkout")
 
         // Write the per-language translation files
-        val localesGroupedByLanguage = valuesDirByLocale.keys.groupBy { it.language }
+        val localesGroupedByLanguage = valuesDirsByLocale.keys.groupBy { it.language }
         for ((language, locales) in localesGroupedByLanguage) {
             writeLanguageFile(
                 language = language,
                 locales = locales,
                 stringByResourceName = stringByResourceName,
                 repoDir = repoDir,
-                valuesDirByLocale = valuesDirByLocale
+                valuesDirsByLocale = valuesDirsByLocale
             )
         }
 
@@ -157,15 +164,15 @@ open class UpdateTranslationsTask : DefaultTask() {
      * @param locales The locales to write translations for.
      * @param stringByResourceName Maps Android resource names to the names of our Kotlin `Strings`.
      * @param repoDir The directory on the disk where the repository has been checked out.
-     * @param valuesDirByLocale For each locale, the path of the corresponding "values" directory in
-     * the repository.
+     * @param valuesDirsByLocale For each locale, the paths of the corresponding "values"
+     * directories in the repository.
      */
     private fun writeLanguageFile(
         language: String,
         locales: List<Locale>,
         stringByResourceName: Map<String, String>,
         repoDir: File,
-        valuesDirByLocale: Map<Locale, String>,
+        valuesDirsByLocale: Map<Locale, List<String>>,
     ) {
         val kotlinFileName = language.replaceFirstChar { it.uppercase() } + ".kt"
         println("Writing $kotlinFileName for locales ${locales.joinToString()}")
@@ -176,13 +183,6 @@ open class UpdateTranslationsTask : DefaultTask() {
             it.appendLine("import $kotlinStringsPackageName.Translations")
 
             for (locale in locales) {
-                val stringsFile = File(File(repoDir, valuesDirByLocale[locale]!!), "strings.xml")
-                if (!stringsFile.isFile) {
-                    throw IOException("Missing strings.xml file for locale: $locale")
-                }
-                val document = docBuilder.parse(stringsFile)
-                val root = document.documentElement
-
                 // Keep track of the strings for which translations were found, to be able to detect
                 // missing ones.
                 val remainingStrings = stringByResourceName.values.toMutableSet()
@@ -190,18 +190,28 @@ open class UpdateTranslationsTask : DefaultTask() {
                 it.appendLine()
                 it.appendLine("@Suppress(\"UnusedReceiverParameter\")")
                 it.appendLine("internal fun Translations.${locale.translationFunctionName()}() = mapOf(")
-                val nodeList = root.childNodes
-                for (i in 0 until nodeList.length) {
-                    val node = nodeList.item(i)
 
-                    val element = node as? Element
-                    if (element?.tagName == "string") {
-                        val name = element.attributes.getNamedItem("name").nodeValue
-                        val string = stringByResourceName[name]
-                        if (string != null) {
-                            val content = element.textContent.removeSurrounding("\"", "\"")
-                            it.appendLine("    Strings.$string to \"$content\",")
-                            remainingStrings.remove(string)
+                for (valuesDir in valuesDirsByLocale[locale]!!) {
+                    val stringsFile = File(File(repoDir, valuesDir), "strings.xml")
+                    if (!stringsFile.isFile) {
+                        throw IOException("Missing strings.xml file for locale: $locale")
+                    }
+                    val document = docBuilder.parse(stringsFile)
+                    val root = document.documentElement
+
+                    val nodeList = root.childNodes
+                    for (i in 0 until nodeList.length) {
+                        val node = nodeList.item(i)
+
+                        val element = node as? Element
+                        if (element?.tagName == "string") {
+                            val name = element.attributes.getNamedItem("name").nodeValue
+                            val string = stringByResourceName[name]
+                            if (string != null) {
+                                val content = element.textContent.removeSurrounding("\"", "\"")
+                                it.appendLine("    Strings.$string to \"$content\",")
+                                remainingStrings.remove(string)
+                            }
                         }
                     }
                 }

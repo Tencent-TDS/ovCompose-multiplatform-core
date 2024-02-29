@@ -346,7 +346,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 tasks.register("updateTranslations", UpdateTranslationsTask.class) {
     group = "localization"
     gitRepo = "https://android.googlesource.com/platform/frameworks/base"
-    repoResDirectory = "core/res/res"
+    repoResDirectories = ["core/res/res"]
     targetDirectory = project.file("src/desktopMain/kotlin/androidx/compose/ui/platform/l10n")
     targetPackageName = "androidx.compose.ui.platform.l10n"
     kotlinStringsPackageName = "androidx.compose.ui.platform"
