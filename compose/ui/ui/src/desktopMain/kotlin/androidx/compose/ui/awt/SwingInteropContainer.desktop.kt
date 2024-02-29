@@ -74,6 +74,11 @@ internal class SwingInteropContainer(
             index + nonInteropComponents
         })
         interopComponentsCount++
+
+        // Sometimes Swing displays the rest of interop views in incorrect order after removing,
+        // so we need to force re-validate it.
+        container.validate()
+        container.repaint()
     }
 
     override fun removeInteropView(nativeView: Component) {
