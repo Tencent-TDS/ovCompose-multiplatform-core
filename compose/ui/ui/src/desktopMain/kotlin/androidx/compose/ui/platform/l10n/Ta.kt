@@ -20,9 +20,9 @@ import androidx.compose.ui.platform.Strings
 import androidx.compose.ui.platform.Translations
 
 @Suppress("UnusedReceiverParameter")
-internal fun Translations.ru() = mapOf(
-    Strings.SelectAll to "Выбрать все",
-    Strings.Cut to "Вырезать",
-    Strings.Copy to "Копировать",
-    Strings.Paste to "Вставить",
+internal fun Translations.ta() = mapOf(
+    Strings.SelectAll to "அனைத்தையும் தேர்ந்தெடு",
+    Strings.Cut to "வெட்டு",
+    Strings.Copy to "நகலெடு",
+    Strings.Paste to "ஒட்டு",
 )

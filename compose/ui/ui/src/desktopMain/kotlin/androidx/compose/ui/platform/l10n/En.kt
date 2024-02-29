@@ -21,8 +21,40 @@ import androidx.compose.ui.platform.Translations
 
 @Suppress("UnusedReceiverParameter")
 internal fun Translations.en() = mapOf(
-    Strings.Copy to "Copy",
+    Strings.SelectAll to "Select all",
     Strings.Cut to "Cut",
+    Strings.Copy to "Copy",
     Strings.Paste to "Paste",
-    Strings.SelectAll to "Select All"
+)
+
+@Suppress("UnusedReceiverParameter")
+internal fun Translations.enAU() = mapOf(
+    Strings.SelectAll to "Select all",
+    Strings.Cut to "Cut",
+    Strings.Copy to "Copy",
+    Strings.Paste to "Paste",
+)
+
+@Suppress("UnusedReceiverParameter")
+internal fun Translations.enCA() = mapOf(
+    Strings.SelectAll to "Select all",
+    Strings.Cut to "Cut",
+    Strings.Copy to "Copy",
+    Strings.Paste to "Paste",
+)
+
+@Suppress("UnusedReceiverParameter")
+internal fun Translations.enGB() = mapOf(
+    Strings.SelectAll to "Select all",
+    Strings.Cut to "Cut",
+    Strings.Copy to "Copy",
+    Strings.Paste to "Paste",
+)
+
+@Suppress("UnusedReceiverParameter")
+internal fun Translations.enIN() = mapOf(
+    Strings.SelectAll to "Select all",
+    Strings.Cut to "Cut",
+    Strings.Copy to "Copy",
+    Strings.Paste to "Paste",
 )
