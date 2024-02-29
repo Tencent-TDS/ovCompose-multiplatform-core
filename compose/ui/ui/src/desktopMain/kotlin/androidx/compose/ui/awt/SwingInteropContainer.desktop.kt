@@ -60,12 +60,14 @@ internal class SwingInteropContainer(
     private var interopComponents = mutableMapOf<Component, InteropComponent>()
 
     override var rootModifier: TrackInteropModifierNode<InteropComponent>? = null
+    override val interopViews: Set<InteropComponent>
+        get() = interopComponents.values.toSet()
 
     override fun addInteropView(nativeView: InteropComponent) {
         val component = nativeView.container
         val nonInteropComponents = container.componentCount - interopComponents.size
         // AWT uses the reverse order for drawing and events, so index = size - count
-        val index = maxOf(0, interopComponents.size - countInteropComponentsBefore(nativeView))
+        val index = interopComponents.size - countInteropComponentsBefore(nativeView)
         interopComponents[component] = nativeView
         container.add(component, if (placeInteropAbove) {
             index

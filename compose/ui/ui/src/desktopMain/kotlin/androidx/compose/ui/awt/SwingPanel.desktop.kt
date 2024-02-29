@@ -188,7 +188,7 @@ private class SwingPanelContainer(
     private val focusComponent: Component
 ): JPanel() {
     init {
-        name = "SwingPanel #$key"
+        name = "SwingPanel #${key.toString(MaxSupportedRadix)}"
         layout = null
         focusTraversalPolicy = object : LayoutFocusTraversalPolicy() {
             override fun getComponentAfter(aContainer: Container?, aComponent: Component?): Component? {
@@ -398,3 +398,8 @@ private class InteropPointerInputModifier<T : Component>(
         return SwingUtilities.getDeepestComponentAt(parent, point.x, point.y)
     }
 }
+
+/**
+ * The maximum radix available for conversion to and from strings.
+ */
+private val MaxSupportedRadix = 36

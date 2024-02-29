@@ -29,6 +29,7 @@ import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAct
  */
 internal interface InteropContainer<T> {
     var rootModifier: TrackInteropModifierNode<T>?
+    val interopViews: Set<T>
 
     fun addInteropView(nativeView: T)
     fun removeInteropView(nativeView: T)
@@ -44,7 +45,11 @@ internal fun <T> InteropContainer<T>.countInteropComponentsBefore(nativeView: T)
     var componentsBefore = 0
     rootModifier?.traverseDescendants {
         if (it.nativeView != nativeView) {
-            componentsBefore++
+            // It might be inside Compose tree before adding in InteropContainer in case
+            // if it was initiated out of scroll visible bounds for example.
+            if (it.nativeView in interopViews) {
+                componentsBefore++
+            }
             ContinueTraversal
         } else {
             CancelTraversal
