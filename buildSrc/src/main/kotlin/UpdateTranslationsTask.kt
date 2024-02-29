@@ -188,7 +188,7 @@ open class UpdateTranslationsTask : DefaultTask() {
                 val remainingStrings = stringByResourceName.values.toMutableSet()
 
                 it.appendLine()
-                it.appendLine("@Suppress(\"UnusedReceiverParameter\")")
+                it.appendLine("@Suppress(\"UnusedReceiverParameter\", \"DuplicatedCode\")")
                 it.appendLine("internal fun Translations.${locale.translationFunctionName()}() = mapOf(")
 
                 for (valuesDir in valuesDirsByLocale[locale]!!) {
@@ -208,7 +208,10 @@ open class UpdateTranslationsTask : DefaultTask() {
                             val name = element.attributes.getNamedItem("name").nodeValue
                             val string = stringByResourceName[name]
                             if (string != null) {
-                                val content = element.textContent.removeSurrounding("\"", "\"")
+                                val content = element.textContent
+                                    .trim()
+                                    .removeSurrounding("\"", "\"")
+                                    .replace("\$", "\\$")
                                 it.appendLine("    Strings.$string to \"$content\",")
                                 remainingStrings.remove(string)
                             }
