@@ -113,7 +113,7 @@ internal class SwingInteropContainer(
  * @param component The Swing component that matches the current node.
  */
 internal fun Modifier.trackSwingInterop(
-    component: Component
+    component: InteropComponent
 ): Modifier = this then TrackInteropModifierElement(
     nativeView = component
 )

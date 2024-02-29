@@ -133,7 +133,7 @@ public fun <T : Component> SwingPanel(
         }.drawBehind {
             // Clear interop area to make visible the component under our canvas.
             drawRect(Color.Transparent, blendMode = BlendMode.Clear)
-        }.trackSwingInterop(componentInfo.container)
+        }.trackSwingInterop(componentInfo)
             .then(InteropPointerInputModifier(componentInfo))
     ) {
         focusSwitcher.Content()
