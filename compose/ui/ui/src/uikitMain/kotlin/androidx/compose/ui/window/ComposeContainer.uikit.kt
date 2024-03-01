@@ -314,7 +314,13 @@ internal class ComposeContainer(
     }
 
     private fun createMediatorIfNeeded() {
-        val mediator = mediator ?: ComposeSceneMediator(
+        if (mediator == null) {
+            mediator = createMediator()
+        }
+    }
+
+    private fun createMediator(): ComposeSceneMediator {
+        val mediator = ComposeSceneMediator(
             container = view,
             configuration = configuration,
             focusStack = focusStack,
@@ -322,13 +328,12 @@ internal class ComposeContainer(
             coroutineContext = coroutineDispatcher,
             renderingUIViewFactory = ::createSkikoUIView,
             composeSceneFactory = ::createComposeScene,
-        ).also {
-            this.mediator = it
-            it.setContent {
-                ProvideContainerCompositionLocals(this, content)
-            }
+        )
+        mediator.setContent {
+            ProvideContainerCompositionLocals(this, content)
         }
         mediator.setLayout(SceneLayout.UseConstraintsToFillContainer)
+        return mediator
     }
 
     private fun dispose() {
