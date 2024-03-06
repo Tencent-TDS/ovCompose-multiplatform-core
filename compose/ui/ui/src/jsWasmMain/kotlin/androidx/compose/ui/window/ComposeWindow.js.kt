@@ -190,9 +190,11 @@ private class ComposeWindow(
         val width = boxSize.width * density
         val height = boxSize.height * density
 
-        //TODO: We can remove this as soon as it'll been fixed on skiko side
-        canvas.width = width
-        canvas.height = height
+        // TODO: What we actually should do is to pass this new dimensions to attachTo without setting them directly on canvas.
+        // We should be HTMLCanvas-agnostic in that sense
+        canvas.width = boxSize.width
+        canvas.height = boxSize.height
+
 
         _windowInfo.containerSize = IntSize(width, height)
 
