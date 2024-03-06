@@ -65,6 +65,9 @@ import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.InteractionUIView
 import androidx.compose.ui.interop.UIKitInteropContainer
 import androidx.compose.ui.node.TrackInteropContainer
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.asCGRect
+import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.window.KeyboardEventHandler
 import androidx.compose.ui.window.KeyboardVisibilityListenerImpl
 import androidx.compose.ui.window.RenderingUIView
@@ -101,6 +104,7 @@ import platform.UIKit.UITouch
 import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
+import platform.UIKit.UIWindow
 import platform.darwin.NSObject
 
 /**
@@ -116,17 +120,17 @@ internal sealed interface SceneLayout {
 /**
  * iOS specific-implementation of [PlatformContext.SemanticsOwnerListener] used to track changes in [SemanticsOwner].
  *
- * @property container The UI container associated with the semantics owner.
+ * @property rootView The UI container associated with the semantics owner.
  * @property coroutineContext The coroutine context to use for handling semantics changes.
  * @property getAccessibilitySyncOptions A lambda function to retrieve the latest accessibility synchronization options.
  * @property performEscape A lambda to delegate accessibility escape operation. Returns true if the escape was handled, false otherwise.
  */
 @OptIn(ExperimentalComposeApi::class)
 private class SemanticsOwnerListenerImpl(
-    private val container: UIView,
+    private val rootView: UIView,
     private val coroutineContext: CoroutineContext,
     private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
-    private val convertContainerWindowRectToRootWindowCGRect: (Rect) -> CValue<CGRect>,
+    private val convertToAppWindowCGRect: (Rect, UIWindow) -> CValue<CGRect>,
     private val performEscape: () -> Boolean
 ) : PlatformContext.SemanticsOwnerListener {
     var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
@@ -134,11 +138,11 @@ private class SemanticsOwnerListenerImpl(
     override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
         if (current == null) {
             current = semanticsOwner to AccessibilityMediator(
-                container,
+                rootView,
                 semanticsOwner,
                 coroutineContext,
                 getAccessibilitySyncOptions,
-                convertContainerWindowRectToRootWindowCGRect,
+                convertToAppWindowCGRect,
                 performEscape
             )
         }
@@ -298,8 +302,10 @@ internal class ComposeSceneMediator(
             getAccessibilitySyncOptions = {
                 configuration.accessibilitySyncOptions
             },
-            convertContainerWindowRectToRootWindowCGRect = {
-                windowContext.convertContainerWindowRectToRootWindowCGRect(it)
+            convertToAppWindowCGRect = { rect, window ->
+               windowContext.convertWindowRect(rect, window)
+                   .toDpRect(Density(window.screen.scale.toFloat()))
+                   .asCGRect()
             },
             performEscape = {
                 val down = onKeyboardEvent(
