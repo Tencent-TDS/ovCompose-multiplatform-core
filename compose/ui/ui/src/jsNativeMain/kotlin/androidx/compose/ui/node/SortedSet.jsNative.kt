@@ -70,8 +70,9 @@ internal actual class SortedSet<E> actual constructor(
      * @returns whether actually inserted.
      */
     actual fun add(element: E): Boolean {
-        if (element in indexByElement.keys)
+        if (element in indexByElement) {
             return false
+        }
 
         // Insert the item at the rightmost leaf
         val index = itemTree.size
@@ -103,10 +104,11 @@ internal actual class SortedSet<E> actual constructor(
             indexByElement[rightMostLeafElement] = index
 
             // Restore min-heap invariant
-            if (!index.isRootIndex && (itemTree[index.parentIndex] >= itemTree[index]))
+            if (!index.isRootIndex && (itemTree[index.parentIndex] >= itemTree[index])) {
                 heapifyUp(index)
-            else
+            } else {
                 heapifyDown(index)
+            }
         }
 
         return true
@@ -125,7 +127,7 @@ internal actual class SortedSet<E> actual constructor(
     /**
      * Returns whether the set contains the given element.
      */
-    actual fun contains(element: E) = element in indexByElement.keys
+    actual fun contains(element: E) = element in indexByElement
 
     /**
      * Bubbles up the element at the given index until the min-heap invariant is restored.
@@ -138,8 +140,9 @@ internal actual class SortedSet<E> actual constructor(
             val parentIndex = currentIndex.parentIndex
 
             // If the order is correct, stop
-            if (itemTree[parentIndex] <= element)
+            if (itemTree[parentIndex] <= element) {
                 break
+            }
 
             // Swap
             swap(currentIndex, parentIndex)
@@ -170,15 +173,13 @@ internal actual class SortedSet<E> actual constructor(
                 // Look at left child
                 indexOfSmallerElement = leftChildIndex
                 smallerElement = leftChildElement
-            }
-            else {
+            } else {
                 val rightChildElement = itemTree[rightChildIndex]
                 // Look at the smaller child
                 if (leftChildElement < rightChildElement) {
                     indexOfSmallerElement = leftChildIndex
                     smallerElement = leftChildElement
-                }
-                else {
+                } else {
                     indexOfSmallerElement = rightChildIndex
                     smallerElement = rightChildElement
                 }
