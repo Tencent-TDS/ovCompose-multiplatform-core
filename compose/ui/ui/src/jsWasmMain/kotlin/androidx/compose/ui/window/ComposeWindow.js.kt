@@ -171,14 +171,9 @@ private class ComposeWindow(
     }
 
     init {
-        layer.layer.attachTo(canvas)
         initEvents(canvas)
 
         canvas.setAttribute("tabindex", "0")
-        layer.layer.needRedraw()
-
-        _windowInfo.containerSize = IntSize(canvas.width, canvas.height)
-        layer.setSize(canvas.width, canvas.height)
 
         layer.setDensity(density)
         layer.setContent {
@@ -189,12 +184,20 @@ private class ComposeWindow(
         }
     }
 
-    fun resize(newSize: IntSize) {
-        canvas.width = newSize.width
-        canvas.height = newSize.height
-        _windowInfo.containerSize = IntSize(canvas.width, canvas.height)
+    fun resize(boxSize: IntSize) {
+        val density = density.density.toInt()
+
+        val width = boxSize.width * density
+        val height = boxSize.height * density
+
+        //TODO: We can remove this as soon as it'll been fixed on skiko side
+        canvas.width = width
+        canvas.height = height
+
+        _windowInfo.containerSize = IntSize(width, height)
+
         layer.layer.attachTo(canvas)
-        layer.setSize(canvas.width, canvas.height)
+        layer.setSize(width, height)
         layer.layer.needRedraw()
     }
 
@@ -247,6 +250,11 @@ fun CanvasBasedWindow(
         )
     }
 
+    fun getParentContainerBox(): IntSize {
+        val documentElement = document.documentElement ?: return IntSize(0, 0)
+        return IntSize(documentElement.clientWidth, documentElement.clientHeight)
+    }
+
     val actualRequestResize: suspend () -> IntSize = if (requestResize != null) {
         requestResize
     } else {
@@ -258,20 +266,13 @@ fun CanvasBasedWindow(
         // because the default behaviour expects that the Canvas takes the entire window space,
         // so the app has the same lifecycle as the browser tab.
         window.addEventListener("resize", { _ ->
-            val w = document.documentElement?.clientWidth ?: 0
-            val h = document.documentElement?.clientHeight ?: 0
-            channel.trySend(IntSize(w, h))
+            channel.trySend(getParentContainerBox())
         })
+
+        channel.trySend(getParentContainerBox())
 
         suspend {
             channel.receive()
-        }
-    }
-
-    if (requestResize == null) {
-        (document.getElementById(canvasElementId) as? HTMLCanvasElement)?.let {
-            it.width = document.documentElement?.clientWidth ?: 0
-            it.height = document.documentElement?.clientHeight ?: 0
         }
     }
 
