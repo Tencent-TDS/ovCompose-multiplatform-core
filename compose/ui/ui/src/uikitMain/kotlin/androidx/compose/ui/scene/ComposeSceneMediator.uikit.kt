@@ -23,6 +23,7 @@ import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEvent
@@ -83,6 +84,7 @@ import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
 import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
@@ -124,6 +126,7 @@ private class SemanticsOwnerListenerImpl(
     private val container: UIView,
     private val coroutineContext: CoroutineContext,
     private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
+    private val convertContainerWindowRectToRootWindowCGRect: (Rect) -> CValue<CGRect>,
     private val performEscape: () -> Boolean
 ) : PlatformContext.SemanticsOwnerListener {
     var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
@@ -135,6 +138,7 @@ private class SemanticsOwnerListenerImpl(
                 semanticsOwner,
                 coroutineContext,
                 getAccessibilitySyncOptions,
+                convertContainerWindowRectToRootWindowCGRect,
                 performEscape
             )
         }
@@ -293,6 +297,9 @@ internal class ComposeSceneMediator(
             coroutineContext,
             getAccessibilitySyncOptions = {
                 configuration.accessibilitySyncOptions
+            },
+            convertContainerWindowRectToRootWindowCGRect = {
+                windowContext.convertContainerWindowRectToRootWindowCGRect(it)
             },
             performEscape = {
                 val down = onKeyboardEvent(

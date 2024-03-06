@@ -17,14 +17,23 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.uikit.systemDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.asCGPoint
+import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.toDpOffset
+import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
+import kotlinx.cinterop.CValue
+import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
+import platform.CoreGraphics.CGRect
+import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIView
+import platform.UIKit.UIWindow
 
 /**
  * Tracking a state of window.
@@ -33,6 +42,9 @@ internal class PlatformWindowContext {
     private val _windowInfo = WindowInfoImpl()
     val windowInfo: WindowInfo get() = _windowInfo
 
+    /**
+     * A container used for additional layers and as reference for window coordinate space.
+     */
     private var _windowContainer: UIView? = null
 
     fun setWindowFocused(focused: Boolean) {
@@ -63,6 +75,36 @@ internal class PlatformWindowContext {
             fromView = windowContainer,
             toView = container
         )
+    }
+
+    /**
+     * Converts the given [Rect] from the coordinate space of the container window to the coordinate
+     * space of the root UIWindow in which hierarchy with the container window resides.
+     */
+    fun convertContainerWindowRectToRootWindowCGRect(rect: Rect): CValue<CGRect> {
+        val windowContainer = _windowContainer ?: return CGRectZero.readValue()
+
+        val windowContainerWindow = windowContainer.window
+
+        fun UIWindow.density(): Density {
+            return Density(screen.scale.toFloat())
+        }
+
+        return if (windowContainerWindow == null) {
+            if (windowContainer is UIWindow) {
+                // windowContainer is the root window itself
+                rect.toDpRect(windowContainer.density()).asCGRect()
+            } else {
+                // windowContainer is not attached to any window
+                CGRectZero.readValue()
+            }
+        } else {
+            val cgRect = rect
+                .toDpRect(windowContainerWindow.density())
+                .asCGRect()
+
+            windowContainer.convertRect(cgRect, toView = windowContainerWindow)
+        }
     }
 
     private fun convertPoint(point: Offset, fromView: UIView, toView: UIView): Offset {

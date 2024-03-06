@@ -575,7 +575,10 @@ private class AccessibilityElement(
 
     override fun accessibilityFrame(): CValue<CGRect> =
         getOrElse(CachedAccessibilityPropertyKeys.accessibilityFrame) {
-            mediator.convertRectToWindowSpaceCGRect(semanticsNode.boundsInWindow)
+            // AX services expect the frame to be in the coordinate space of the root UIWindow
+            // [semanticsNode.boundsInWindow] provide it in so called `window container` space,
+            // which can be different from the root UIWindow space.
+            mediator.convertContainerWindowRectToRootWindowCGRect(semanticsNode.boundsInWindow)
         }
 
 
@@ -877,6 +880,7 @@ internal class AccessibilityMediator(
     private val owner: SemanticsOwner,
     coroutineContext: CoroutineContext,
     private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
+    val convertContainerWindowRectToRootWindowCGRect: (Rect) -> CValue<CGRect>,
     val performEscape: () -> Boolean
 ) {
     /**
@@ -973,13 +977,6 @@ internal class AccessibilityMediator(
         // TODO: Only recompute the layout-related properties of the node
         isCurrentComposeAccessibleTreeDirty = true
 
-    }
-
-    fun convertRectToWindowSpaceCGRect(rect: Rect): CValue<CGRect> {
-        val window = view.window ?: return CGRectMake(0.0, 0.0, 0.0, 0.0)
-        val density = Density(window.screen.scale.toFloat())
-        val localSpaceCGRect = rect.toDpRect(density).asCGRect()
-        return window.convertRect(localSpaceCGRect, fromView = view)
     }
 
     fun dispose() {
