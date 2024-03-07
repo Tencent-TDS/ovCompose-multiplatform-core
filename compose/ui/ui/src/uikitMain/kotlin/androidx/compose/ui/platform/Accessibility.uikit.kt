@@ -979,6 +979,7 @@ internal class AccessibilityMediator(
 
                 while (invalidationChannel.tryReceive().isSuccess) {
                     // Do nothing, just consume the channel
+                    // Workaround for the channel buffering two invalidations despite the capacity of 1
                 }
 
                 val syncOptions = getAccessibilitySyncOptions()
