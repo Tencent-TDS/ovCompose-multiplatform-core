@@ -255,9 +255,7 @@ private class AccessibilityElement(
         }
     }
     private fun discardCachedAccessibilityFrameRecursively() {
-        if (cachedProperties.containsKey(CachedAccessibilityPropertyKeys.accessibilityFrame)) {
-            cachedProperties.remove(CachedAccessibilityPropertyKeys.accessibilityFrame)
-
+        if (cachedProperties.remove(CachedAccessibilityPropertyKeys.accessibilityFrame) != null) {
             for (child in children) {
                 child.discardCachedAccessibilityFrameRecursively()
             }
