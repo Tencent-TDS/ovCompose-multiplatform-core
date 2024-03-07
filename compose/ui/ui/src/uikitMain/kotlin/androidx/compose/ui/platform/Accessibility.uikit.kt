@@ -1040,14 +1040,17 @@ internal class AccessibilityMediator(
     fun onSemanticsChange() {
         debugLogger?.log("onSemanticsChange")
 
-        invalidationChannel.trySend(SemanticsTreeInvalidation.SemanticsChanged)
+        invalidationKind = SemanticsTreeInvalidationKind.COMPLETE
+        invalidationChannel.trySend(Unit)
     }
 
     fun onLayoutChange(nodeId: Int) {
         debugLogger?.log("onLayoutChange (nodeId=$nodeId)")
 
+        invalidatedBoundsNodeIds.add(nodeId)
+
         // unprocessedInvalidationKind will be set to BOUNDS in sync(), it's a strict subset of COMPLETE
-        invalidationChannel.trySend(SemanticsTreeInvalidation.BoundsChanged(nodeId))
+        invalidationChannel.trySend(Unit)
     }
 
     fun dispose() {
