@@ -260,7 +260,7 @@ private class AccessibilityElement(
                 child.discardCachedAccessibilityFrameRecursively()
             }
         } else {
-            // Not calculated yet, or the subtree was already discarded
+            // Not calculated yet, or the subtree was already discarded. Do nothing.
         }
     }
 
