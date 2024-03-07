@@ -992,7 +992,10 @@ internal class AccessibilityMediator(
         getAccessibilitySyncOptions().debugLoggerIfEnabled?.log("AccessibilityMediator for ${view} created")
 
         coroutineScope.launch {
-            while (isAlive) {
+            // The main loop that listens for invalidations and performs the tree syncing
+            // Will exit on CancellationException from within await on `invalidationChannel.receive()`
+            // when [job] is cancelled
+            while (true) {
                 var strategy = SemanticsTreeSyncStrategy.from(
                     invalidationChannel.receive()
                 )
