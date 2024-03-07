@@ -89,16 +89,52 @@ interface AccessibilityDebugLogger {
 /**
  * Enum class representing different kinds of accessibility invalidation.
  */
-private enum class SemanticsTreeInvalidationKind {
+private sealed interface SemanticsTreeInvalidation {
     /**
-     * The tree was changed, need to recompute the whole tree.
+     * Represents a complete invalidation of the semantics tree.
      */
-    COMPLETE,
+    object SemanticsChanged : SemanticsTreeInvalidation
 
     /**
-     * Only bounds of the nodes were changed, need to recompute the bounds of the affected subtrees.
+     * Represents a change in the bounds of a node with the given [id].
      */
-    BOUNDS
+    class BoundsChanged(val id: Int) : SemanticsTreeInvalidation
+}
+
+private sealed interface SemanticsTreeSyncStrategy {
+    /**
+     * Returns the updated strategy with the given [invalidation] applied.
+     */
+    fun reduce(invalidation: SemanticsTreeInvalidation): SemanticsTreeSyncStrategy
+
+    object Complete : SemanticsTreeSyncStrategy {
+        override fun reduce(invalidation: SemanticsTreeInvalidation): Complete {
+            return this
+        }
+    }
+
+    class BoundsOnly(id: Int) : SemanticsTreeSyncStrategy {
+        val ids = mutableSetOf(id)
+
+        override fun reduce(invalidation: SemanticsTreeInvalidation): SemanticsTreeSyncStrategy {
+            when (invalidation) {
+                is SemanticsTreeInvalidation.SemanticsChanged -> return Complete
+                is SemanticsTreeInvalidation.BoundsChanged -> {
+                    ids.add(invalidation.id)
+                    return this
+                }
+            }
+        }
+    }
+
+    companion object {
+        fun from(invalidation: SemanticsTreeInvalidation): SemanticsTreeSyncStrategy {
+            return when (invalidation) {
+                is SemanticsTreeInvalidation.SemanticsChanged -> Complete
+                is SemanticsTreeInvalidation.BoundsChanged -> BoundsOnly(invalidation.id)
+            }
+        }
+    }
 }
 
 private class CachedAccessibilityPropertyKey<V>
@@ -242,19 +278,18 @@ private class AccessibilityElement(
         return null
     }
 
-    fun discardCache(invalidationKind: SemanticsTreeInvalidationKind) {
-        when (invalidationKind) {
-            SemanticsTreeInvalidationKind.COMPLETE -> {
-                _cachedConfig = null
-                cachedProperties.clear()
-            }
-
-            SemanticsTreeInvalidationKind.BOUNDS -> {
-                discardCachedAccessibilityFrameRecursively()
-            }
-        }
+    /**
+     * Discards the cache for the properties that are computed from the [SemanticsNode.config].
+     */
+    fun discardCache() {
+        _cachedConfig = null
+        cachedProperties.clear()
     }
-    private fun discardCachedAccessibilityFrameRecursively() {
+
+    /**
+     * Discards the cached accessibilityFrame for this element and all its descendants recursively.
+     */
+    fun discardCachedAccessibilityFrameRecursively() {
         if (cachedProperties.remove(CachedAccessibilityPropertyKeys.accessibilityFrame) != null) {
             for (child in children) {
                 child.discardCachedAccessibilityFrameRecursively()
@@ -927,21 +962,7 @@ internal class AccessibilityMediator(
     private var needsInitialRefocusing = true
     private var isAlive = true
 
-    /**
-     * The kind of invalidation that determines what kind of logic will be executed in the next sync.
-     * `COMPLETE` invalidation means that the whole tree should be recomputed, `BOUNDS` means that only
-     * the bounds of the nodes should be recomputed. A list of changed performed by `BOUNDS` path
-     * is a strict subset of `COMPLETE`, so in the end of sync it will be reset to `BOUNDS`.
-     * Executing sync assumes that at least one kind of invalidation happened, if it was triggered
-     * by [onSemanticsChange] it will be automatically promoted to `COMPLETE`.
-     */
-    private var invalidationKind = SemanticsTreeInvalidationKind.COMPLETE
-
-    /**
-     * A set of node ids that had their bounds invalidated after the last sync.
-     */
-    private var invalidatedBoundsNodeIds = mutableSetOf<Int>()
-    private val invalidationChannel = Channel<Unit>(1, onBufferOverflow = BufferOverflow.DROP_LATEST)
+    private val invalidationChannel = Channel<SemanticsTreeInvalidation>(capacity = Channel.UNLIMITED)
 
     /**
      * Remembered [AccessibilityDebugLogger] after last sync, if logging is enabled according to
@@ -973,11 +994,15 @@ internal class AccessibilityMediator(
 
         coroutineScope.launch {
             while (isAlive) {
-                invalidationChannel.receive()
+                var strategy = SemanticsTreeSyncStrategy.from(
+                    invalidationChannel.receive()
+                )
 
-                while (invalidationChannel.tryReceive().isSuccess) {
-                    // Do nothing, just consume the channel
-                    // Workaround for the channel buffering two invalidations despite the capacity of 1
+                while (true) {
+                    val result = invalidationChannel.tryReceive()
+
+                    val invalidation = result.getOrNull() ?: break
+                    strategy = strategy.reduce(invalidation)
                 }
 
                 val syncOptions = getAccessibilitySyncOptions()
@@ -994,16 +1019,13 @@ internal class AccessibilityMediator(
                     var result: NodesSyncResult
 
                     val time = measureTime {
-                        result = sync(invalidationKind)
+                        result = sync(strategy)
                     }
 
                     debugLogger?.log("AccessibilityMediator.sync took $time")
 
                     UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, result.newElementToFocus)
                 }
-
-                invalidationKind = SemanticsTreeInvalidationKind.BOUNDS
-                invalidatedBoundsNodeIds.clear()
             }
         }
     }
@@ -1105,7 +1127,7 @@ internal class AccessibilityMediator(
         }
 
         for (element in accessibilityElementsMap.values) {
-            element.discardCache(SemanticsTreeInvalidationKind.COMPLETE)
+            element.discardCache()
         }
 
         return checkNotNull(rootAccessibilityElement.resolveAccessibilityContainer()) {
@@ -1116,16 +1138,16 @@ internal class AccessibilityMediator(
     /**
      * Syncs the accessibility tree with the current semantics tree.
      */
-    private fun sync(invalidationKind: SemanticsTreeInvalidationKind): NodesSyncResult {
-        when (invalidationKind) {
-            SemanticsTreeInvalidationKind.COMPLETE -> {
+    private fun sync(strategy: SemanticsTreeSyncStrategy): NodesSyncResult {
+        when (strategy) {
+            is SemanticsTreeSyncStrategy.Complete -> {
                 return completeSync()
             }
 
-            SemanticsTreeInvalidationKind.BOUNDS -> {
-                for (id in invalidatedBoundsNodeIds) {
+            is SemanticsTreeSyncStrategy.BoundsOnly -> {
+                for (id in strategy.ids) {
                     val element = accessibilityElementsMap[id]
-                    element?.discardCache(SemanticsTreeInvalidationKind.BOUNDS)
+                    element?.discardCachedAccessibilityFrameRecursively()
                 }
 
                 return NodesSyncResult(null)
