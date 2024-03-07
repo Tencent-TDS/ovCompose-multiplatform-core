@@ -96,7 +96,7 @@ private enum class SemanticsTreeInvalidationKind {
     COMPLETE,
 
     /**
-     * Only bounds of the nodes were changed, need to recompute the bounds of the nodes.
+     * Only bounds of the nodes were changed, need to recompute the bounds of the affected subtrees.
      */
     BOUNDS
 }
