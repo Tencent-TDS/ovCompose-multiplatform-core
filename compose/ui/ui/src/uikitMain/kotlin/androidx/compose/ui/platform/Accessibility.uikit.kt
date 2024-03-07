@@ -1001,8 +1001,9 @@ internal class AccessibilityMediator(
                 )
 
                 while (true) {
-                    // Consumes all the invalidations to select a proper strategy
-                    val invalidation = invalidationChannel.tryReceive().getOrNull() ?: break
+                    val result = invalidationChannel.tryReceive()
+
+                    val invalidation = result.getOrNull() ?: break
                     strategy = strategy.reduce(invalidation)
                 }
 
