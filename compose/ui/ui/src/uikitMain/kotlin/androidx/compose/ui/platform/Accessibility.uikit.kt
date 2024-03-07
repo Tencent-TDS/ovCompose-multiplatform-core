@@ -250,8 +250,19 @@ private class AccessibilityElement(
             }
 
             SemanticsTreeInvalidationKind.BOUNDS -> {
-                cachedProperties.remove(CachedAccessibilityPropertyKeys.accessibilityFrame)
+                discardCachedAccessibilityFrameRecursively()
             }
+        }
+    }
+    private fun discardCachedAccessibilityFrameRecursively() {
+        if (cachedProperties.containsKey(CachedAccessibilityPropertyKeys.accessibilityFrame)) {
+            cachedProperties.remove(CachedAccessibilityPropertyKeys.accessibilityFrame)
+
+            for (child in children) {
+                child.discardCachedAccessibilityFrameRecursively()
+            }
+        } else {
+            // Not calculated yet, or the subtree was already discarded
         }
     }
 
@@ -927,6 +938,11 @@ internal class AccessibilityMediator(
      * by [onSemanticsChange] it will be automatically promoted to `COMPLETE`.
      */
     private var invalidationKind = SemanticsTreeInvalidationKind.COMPLETE
+
+    /**
+     * A set of node ids that had their bounds invalidated after the last sync.
+     */
+    private var invalidatedBoundsNodeIds = mutableSetOf<Int>()
     private val invalidationChannel = Channel<Unit>(1, onBufferOverflow = BufferOverflow.DROP_LATEST)
 
     /**
@@ -961,6 +977,10 @@ internal class AccessibilityMediator(
             while (isAlive) {
                 invalidationChannel.receive()
 
+                while (invalidationChannel.tryReceive().isSuccess) {
+                    // Do nothing, just consume the channel
+                }
+
                 val syncOptions = getAccessibilitySyncOptions()
 
                 val shouldPerformSync = syncOptions.shouldPerformSync
@@ -984,6 +1004,7 @@ internal class AccessibilityMediator(
                 }
 
                 invalidationKind = SemanticsTreeInvalidationKind.BOUNDS
+                invalidatedBoundsNodeIds.clear()
             }
         }
     }
@@ -1003,6 +1024,8 @@ internal class AccessibilityMediator(
 
     fun onLayoutChange(nodeId: Int) {
         debugLogger?.log("onLayoutChange (nodeId=$nodeId)")
+
+        invalidatedBoundsNodeIds.add(nodeId)
 
         // unprocessedInvalidationKind will be set to BOUNDS in sync(), it's a strict subset of COMPLETE
         invalidationChannel.trySend(Unit)
@@ -1101,8 +1124,9 @@ internal class AccessibilityMediator(
             }
 
             SemanticsTreeInvalidationKind.BOUNDS -> {
-                for (element in accessibilityElementsMap.values) {
-                    element.discardCache(SemanticsTreeInvalidationKind.BOUNDS)
+                for (id in invalidatedBoundsNodeIds) {
+                    val element = accessibilityElementsMap[id]
+                    element?.discardCache(SemanticsTreeInvalidationKind.BOUNDS)
                 }
 
                 return NodesSyncResult(null)
@@ -1140,10 +1164,12 @@ internal class AccessibilityMediator(
         // TODO: in future the focused element could be the interop UIView that is detached from the
         //  hierarchy, but still maintains the focus until the GC collects it, or AX services detect
         //  that it's not reachable anymore through containment chain
-        val isFocusedElementDead = focusedElement?.let {
+        val isFocusedElementAlive = focusedElement?.let {
             val accessibilityElement = it as? AccessibilityElement
             accessibilityElement?.isAlive ?: false
         } ?: false
+
+        val isFocusedElementDead = !isFocusedElementAlive
 
         val needsRefocusing = needsInitialRefocusing || isFocusedElementDead
 
