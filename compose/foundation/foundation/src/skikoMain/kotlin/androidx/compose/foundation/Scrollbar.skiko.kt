@@ -383,7 +383,9 @@ internal fun <T> OldOrNewScrollbar(
         newScrollbarAdapterFactory(oldOrNewAdapter, containerSize)
     }
     val coroutineScope = rememberCoroutineScope()
-    val sliderAdapter = remember(adapter, containerSize, minimalHeight, reverseLayout, isVertical) {
+    val sliderAdapter = remember(
+        adapter, containerSize, minimalHeight, reverseLayout, isVertical, coroutineScope
+    ) {
         SliderAdapter(adapter, containerSize, minimalHeight, reverseLayout, isVertical, coroutineScope)
     }
 

@@ -33,10 +33,10 @@ import kotlin.jvm.JvmName
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-
 
 /**
  * Defines how to scroll the scrollable component and how to display a scrollbar for it.
@@ -463,14 +463,14 @@ internal class SliderAdapter(
         adapter.scrollTo(value / scrollScale)
     }
 
-    private val setRawPositionMutex = Mutex()
+    private val dragMutex = Mutex()
 
     /** Called on every movement while dragging the thumb */
     fun onDragDelta(offset: Offset) {
-        coroutineScope.launch {
+        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
             // Mutex is used to ensure that all earlier drag deltas were applied
             // before calculating a new raw position
-            setRawPositionMutex.withLock {
+            dragMutex.withLock {
                 val dragDelta = if (isVertical) offset.y else offset.x
                 val maxScrollPosition = adapter.maxScrollOffset * scrollScale
                 val currentPosition = position
