@@ -35,7 +35,6 @@ import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.readValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import platform.CoreGraphics.CGRect
