@@ -459,8 +459,13 @@ internal class SliderAdapter(
         unscrolledDragDistance = 0.0
     }
 
-    private suspend fun setRawPosition(value: Double) {
-        adapter.scrollTo(value / scrollScale)
+    private suspend fun setPosition(value: Double) {
+        val rawPosition = if (reverseLayout) {
+            trackSize - thumbSize - value
+        } else {
+            value
+        }
+        adapter.scrollTo(rawPosition / scrollScale)
     }
 
     private val dragMutex = Mutex()
@@ -483,12 +488,7 @@ internal class SliderAdapter(
 
                 // Have to add to position for smooth content scroll if the items are of different size
                 val newPos = position + sliderDelta
-                val newRaw = if (reverseLayout) {
-                    trackSize - thumbSize - newPos
-                } else {
-                    newPos
-                }
-                setRawPosition(newRaw)
+                setPosition(newPos)
                 unscrolledDragDistance += dragDelta - sliderDelta
             }
         }
