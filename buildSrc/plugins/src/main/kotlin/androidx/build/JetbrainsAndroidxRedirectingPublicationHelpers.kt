@@ -58,7 +58,7 @@ internal class CustomUsage(
 }
 
 @OptIn(InternalKotlinGradlePluginApi::class)
-internal fun Project.publishAndroidxReference(target: KotlinOnlyTarget<*>, newRootComponent: CustomRootComponent) {
+internal fun Project.publishAndroidxReference(target: AbstractKotlinTarget, newRootComponent: CustomRootComponent) {
     afterEvaluate {
         extensions.getByType(PublishingExtension::class.java).apply {
             val kotlinMultiplatform = publications
@@ -101,6 +101,7 @@ internal fun Project.publishAndroidxReference(target: KotlinOnlyTarget<*>, newRo
             val usages = when (component) {
                 is KotlinVariant -> component.usages
                 is KotlinVariantWithMetadataVariant -> component.usages
+                is JointAndroidKotlinTargetComponent -> component.usages
                 else -> emptyList()
             }
 
