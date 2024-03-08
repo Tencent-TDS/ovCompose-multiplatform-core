@@ -30,7 +30,6 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinSoftwareComponentWithCoordinatesAndPublication
 import org.jetbrains.kotlin.konan.target.KonanTarget
 
-@Suppress("UNUSED_PARAMETER")
 open class JetbrainsExtensions(
     val project: Project,
     val multiplatformExtension: KotlinMultiplatformExtension
@@ -136,7 +135,7 @@ class JetbrainsAndroidXPlugin : Plugin<Project> {
 
     companion object {
 
-        @Suppress("UNUSED_PARAMETER", "UNUSED_VARIABLE")
+        @Suppress("UNUSED_PARAMETER")
         @JvmStatic
         fun applyAndConfigure(
             project: Project
