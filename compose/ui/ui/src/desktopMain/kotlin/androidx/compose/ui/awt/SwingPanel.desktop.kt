@@ -18,8 +18,10 @@ package androidx.compose.ui.awt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.currentCompositeKeyHash
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
+import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusDirection
@@ -37,8 +39,9 @@ import androidx.compose.ui.input.pointer.PointerInputFilter
 import androidx.compose.ui.input.pointer.PointerInputModifier
 import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.EmptyLayout
+import androidx.compose.ui.layout.OverlayLayout
+import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -47,14 +50,11 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
-import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Container
-import java.awt.Point
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
 import java.awt.event.MouseEvent
-import java.awt.event.MouseWheelEvent
 import javax.swing.JPanel
 import javax.swing.LayoutFocusTraversalPolicy
 import javax.swing.SwingUtilities
@@ -65,18 +65,15 @@ import kotlinx.atomicfu.atomic
 val NoOpUpdate: Component.() -> Unit = {}
 
 /**
- * Composes an AWT/Swing component obtained from [factory]. The [factory]
- * block will be called to obtain the [Component] to be composed.
+ * Composes an AWT/Swing component obtained from [factory]. The [factory] block will be called
+ * to obtain the [Component] to be composed.
  *
- * The Swing component is placed on
- * top of the Compose layer (that means that Compose content can't overlap or clip it).
- * This can be changed in the future, when the better interop with Swing will be implemented. See related issues:
- * https://github.com/JetBrains/compose-jb/issues/1521
- * https://github.com/JetBrains/compose-jb/issues/1202
- * https://github.com/JetBrains/compose-jb/issues/1449
+ * By default, the Swing component is placed on top of the Compose layer (that means that Compose
+ * content can't overlap or clip it). It might be changed by `compose.interop.blending` system
+ * property. See [ComposeFeatureFlags.useInteropBlending].
  *
  * The [update] block runs due to recomposition, this is the place to set [Component] properties
- * depending on state. When state changes, the block will be reexecuted to set the new properties.
+ * depending on state. When state changes, the block will be re-executed to set the new properties.
  *
  * @param background Background color of SwingPanel
  * @param factory The block creating the [Component] to be composed.
@@ -90,28 +87,59 @@ public fun <T : Component> SwingPanel(
     modifier: Modifier = Modifier,
     update: (T) -> Unit = NoOpUpdate,
 ) {
-    val componentInfo = remember { ComponentInfo<T>() }
+    val interopContainer = LocalSwingInteropContainer.current
+    val compositeKey = currentCompositeKeyHash
+    val componentInfo = remember {
+        ComponentInfo<T>(
+            container = SwingPanelContainer(
+                key = compositeKey,
+                focusComponent = interopContainer.container,
+            )
+        )
+    }
 
-    val root = LocalLayerContainer.current
     val density = LocalDensity.current
     val focusManager = LocalFocusManager.current
     val focusSwitcher = remember { FocusSwitcher(componentInfo, focusManager) }
 
-    Box(
+    OverlayLayout(
         modifier = modifier.onGloballyPositioned { coordinates ->
-            val bounds = coordinates.boundsInRoot().round(density)
-            componentInfo.container.setBounds(bounds.left, bounds.top, bounds.width, bounds.height)
+            val rootCoordinates = coordinates.findRootCoordinates()
+            val clipedBounds = rootCoordinates
+                .localBoundingBoxOf(coordinates, clipBounds = true).round(density)
+            val bounds = rootCoordinates
+                .localBoundingBoxOf(coordinates, clipBounds = false).round(density)
+
+            // Take care about clipped bounds
+            componentInfo.clipBounds = clipedBounds // Clipping area for skia canvas
+            componentInfo.container.isVisible = !clipedBounds.isEmpty // Hide if it's fully clipped
+            // Swing clips children based on parent's bounds, so use our container for clipping
+            componentInfo.container.setBounds(
+                /* x = */ clipedBounds.left,
+                /* y = */ clipedBounds.top,
+                /* width = */ clipedBounds.width,
+                /* height = */ clipedBounds.height
+            )
+
+            // The real size and position should be based on not-clipped bounds
+            componentInfo.component.setBounds(
+                /* x = */ bounds.left - clipedBounds.left, // Local position relative to container
+                /* y = */ bounds.top - clipedBounds.top,
+                /* width = */ bounds.width,
+                /* height = */ bounds.height
+            )
             componentInfo.container.validate()
             componentInfo.container.repaint()
         }.drawBehind {
             // Clear interop area to make visible the component under our canvas.
             drawRect(Color.Transparent, blendMode = BlendMode.Clear)
-        }.then(InteropPointerInputModifier(root, componentInfo))
+        }.trackSwingInterop(componentInfo)
+            .then(InteropPointerInputModifier(componentInfo))
     ) {
         focusSwitcher.Content()
     }
 
-    DisposableEffect(factory) {
+    DisposableEffect(Unit) {
         val focusListener = object : FocusListener {
             override fun focusGained(e: FocusEvent) {
                 if (componentInfo.container.isParentOf(e.oppositeComponent)) {
@@ -125,42 +153,61 @@ public fun <T : Component> SwingPanel(
 
             override fun focusLost(e: FocusEvent) = Unit
         }
-        root.addFocusListener(focusListener)
-        componentInfo.component = factory()
-        componentInfo.container = JPanel().apply {
-            layout = BorderLayout(0, 0)
-            focusTraversalPolicy = object : LayoutFocusTraversalPolicy() {
-                override fun getComponentAfter(aContainer: Container?, aComponent: Component?): Component? {
-                    return if (aComponent == getLastComponent(aContainer)) {
-                        root
-                    } else {
-                        super.getComponentAfter(aContainer, aComponent)
-                    }
-                }
-
-                override fun getComponentBefore(aContainer: Container?, aComponent: Component?): Component? {
-                    return if (aComponent == getFirstComponent(aContainer)) {
-                        root
-                    } else {
-                        super.getComponentBefore(aContainer, aComponent)
-                    }
-                }
-            }
-            isFocusCycleRoot = true
-            add(componentInfo.component)
-        }
-        componentInfo.updater = Updater(componentInfo.component, update)
-        root.add(componentInfo.container)
+        interopContainer.container.addFocusListener(focusListener)
+        interopContainer.addInteropView(componentInfo)
         onDispose {
-            root.remove(componentInfo.container)
+            interopContainer.removeInteropView(componentInfo)
+            interopContainer.container.removeFocusListener(focusListener)
+        }
+    }
+
+    DisposableEffect(factory) {
+        componentInfo.component = factory()
+        componentInfo.container.add(componentInfo.component)
+        componentInfo.updater = Updater(componentInfo.component, update)
+        onDispose {
+            componentInfo.container.remove(componentInfo.component)
             componentInfo.updater.dispose()
-            root.removeFocusListener(focusListener)
         }
     }
 
     SideEffect {
         componentInfo.container.background = background.toAwtColor()
         componentInfo.updater.update = update
+    }
+}
+
+/**
+ * A container for [SwingPanel]'s component. Takes care about focus and clipping.
+ *
+ * @param key The unique identifier for the panel container.
+ * @param focusComponent The component that should receive focus.
+ */
+private class SwingPanelContainer(
+    key: Int,
+    private val focusComponent: Component
+): JPanel() {
+    init {
+        name = "SwingPanel #${key.toString(MaxSupportedRadix)}"
+        layout = null
+        focusTraversalPolicy = object : LayoutFocusTraversalPolicy() {
+            override fun getComponentAfter(aContainer: Container?, aComponent: Component?): Component? {
+                return if (aComponent == getLastComponent(aContainer)) {
+                    focusComponent
+                } else {
+                    super.getComponentAfter(aContainer, aComponent)
+                }
+            }
+
+            override fun getComponentBefore(aContainer: Container?, aComponent: Component?): Component? {
+                return if (aComponent == getFirstComponent(aContainer)) {
+                    focusComponent
+                } else {
+                    super.getComponentBefore(aContainer, aComponent)
+                }
+            }
+        }
+        isFocusCycleRoot = true
     }
 }
 
@@ -194,7 +241,7 @@ private class FocusSwitcher<T : Component>(
 
     @Composable
     fun Content() {
-        Box(
+        EmptyLayout(
             Modifier
                 .focusRequester(backwardRequester)
                 .onFocusEvent {
@@ -211,7 +258,7 @@ private class FocusSwitcher<T : Component>(
                 }
                 .focusTarget()
         )
-        Box(
+        EmptyLayout(
             Modifier
                 .focusRequester(forwardRequester)
                 .onFocusEvent {
@@ -231,27 +278,9 @@ private class FocusSwitcher<T : Component>(
     }
 }
 
-@Composable
-private fun Box(modifier: Modifier, content: @Composable () -> Unit = {}) {
-    Layout(
-        content = content,
-        modifier = modifier,
-        measurePolicy = { measurables, constraints ->
-            val placeables = measurables.map { it.measure(constraints) }
-            layout(
-                placeables.maxOfOrNull { it.width } ?: 0,
-                placeables.maxOfOrNull { it.height } ?: 0
-            ) {
-                placeables.forEach {
-                    it.place(0, 0)
-                }
-            }
-        }
-    )
-}
-
-private class ComponentInfo<T : Component> {
-    lateinit var container: Container
+private class ComponentInfo<T : Component>(
+    container: SwingPanelContainer
+): InteropComponent(container) {
     lateinit var component: T
     lateinit var updater: Updater<T>
 }
@@ -314,7 +343,6 @@ private fun Rect.round(density: Density): IntRect {
 }
 
 private class InteropPointerInputModifier<T : Component>(
-    private val root: Container,
     private val componentInfo: ComponentInfo<T>,
 ) : PointerInputFilter(), PointerInputModifier {
     override val pointerInputFilter: PointerInputFilter = this
@@ -356,51 +384,22 @@ private class InteropPointerInputModifier<T : Component>(
             // Do not redispatch the event if it originally from this interop view.
             return
         }
-        val containerPoint = SwingUtilities.convertPoint(root, e.point, componentInfo.component)
-        val component = SwingUtilities.getDeepestComponentAt(
-            componentInfo.component,
-            containerPoint.x,
-            containerPoint.y
-        )
+        val component = getDeepestComponentForEvent(componentInfo.component, e)
         if (component != null) {
-            val componentPoint = SwingUtilities.convertPoint(root, e.point, component)
-            component.dispatchEvent(e.copy(component, componentPoint))
+            component.dispatchEvent(SwingUtilities.convertMouseEvent(e.component, e, component))
             pointerEvent.changes.fastForEach {
                 it.consume()
             }
         }
     }
+
+    private fun getDeepestComponentForEvent(parent: Component, event: MouseEvent): Component? {
+        val point = SwingUtilities.convertPoint(event.component, event.point, parent)
+        return SwingUtilities.getDeepestComponentAt(parent, point.x, point.y)
+    }
 }
 
-private fun MouseEvent.copy(
-    component: Component,
-    point: Point
-) = when(this) {
-    is MouseWheelEvent -> MouseWheelEvent(
-        /* source = */ component,
-        /* id = */ id,
-        /* when = */ `when`,
-        /* modifiers = */ modifiersEx,
-        /* x = */ point.x,
-        /* y = */ point.y,
-        /* xAbs = */ xOnScreen,
-        /* yAbs = */ yOnScreen,
-        /* clickCount = */ clickCount,
-        /* popupTrigger = */ isPopupTrigger,
-        /* scrollType = */ scrollType,
-        /* scrollAmount = */ scrollAmount,
-        /* wheelRotation = */ wheelRotation,
-        /* preciseWheelRotation = */ preciseWheelRotation
-    )
-    else -> MouseEvent(
-        /* source = */ component,
-        /* id = */ id,
-        /* when = */ `when`,
-        /* modifiers = */ modifiersEx,
-        /* x = */ point.x,
-        /* y = */ point.y,
-        /* clickCount = */ clickCount,
-        /* popupTrigger = */ isPopupTrigger,
-        /* button = */ button
-    )
-}
+/**
+ * The maximum radix available for conversion to and from strings.
+ */
+private val MaxSupportedRadix = 36

@@ -20,6 +20,7 @@ import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.ComposeFeatureFlags
+import androidx.compose.ui.awt.SwingInteropContainer
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
@@ -32,8 +33,8 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
-import androidx.compose.ui.platform.AccessibilityController
-import androidx.compose.ui.platform.ComposeSceneAccessible
+import androidx.compose.ui.platform.a11y.AccessibilityController
+import androidx.compose.ui.platform.a11y.ComposeSceneAccessible
 import androidx.compose.ui.platform.DelegateRootForTestListener
 import androidx.compose.ui.platform.DesktopTextInputService
 import androidx.compose.ui.platform.EmptyViewConfiguration
@@ -53,6 +54,7 @@ import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.sizeInPx
 import java.awt.Component
+import java.awt.Container
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Point
@@ -71,12 +73,11 @@ import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 import java.awt.im.InputMethodRequests
 import javax.accessibility.Accessible
-import javax.swing.JLayeredPane
 import javax.swing.SwingUtilities
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import org.jetbrains.skia.Canvas
-import org.jetbrains.skiko.ClipComponent
+import org.jetbrains.skiko.ClipRectangle
 import org.jetbrains.skiko.ExperimentalSkikoApi
 import org.jetbrains.skiko.GraphicsApi
 import org.jetbrains.skiko.SkikoInput
@@ -94,7 +95,7 @@ import org.jetbrains.skiko.swing.SkiaSwingLayer
  * - for forcing refocus on input methods change
  */
 internal class ComposeSceneMediator(
-    private val container: JLayeredPane,
+    private val container: Container,
     private val windowContext: PlatformWindowContext,
     private var exceptionHandler: WindowExceptionHandler?,
 
@@ -125,8 +126,32 @@ internal class ComposeSceneMediator(
     val windowHandle by skiaLayerComponent::windowHandle
     val renderApi by skiaLayerComponent::renderApi
 
+    /**
+     * @see ComposeFeatureFlags.useInteropBlending
+     */
+    private val useInteropBlending: Boolean
+        get() = ComposeFeatureFlags.useInteropBlending && skiaLayerComponent.interopBlendingSupported
+
+    /**
+     * Adding any components below [contentComponent] makes our bridge non-transparent on macOS.
+     * But as it draws always on top, so we can just add it as-is.
+     * TODO: Figure out why it makes difference in transparency
+     */
+    @OptIn(ExperimentalSkikoApi::class)
+    private val metalOrderHack
+        get() = renderApi == GraphicsApi.METAL && contentComponent !is SkiaSwingLayer
+
+    /**
+     * A container that controls interop views/components. It is used to add and remove
+     * native views/components to [container].
+     */
+    private val interopContainer = SwingInteropContainer(
+        container = container,
+        placeInteropAbove = !useInteropBlending || metalOrderHack
+    )
+
     private val containerListener = object : ContainerListener {
-        private val clipMap = mutableMapOf<Component, ClipComponent>()
+        private val clipMap = mutableMapOf<Component, ClipRectangle>()
 
         override fun componentAdded(e: ContainerEvent) {
             val component = e.child
@@ -151,7 +176,7 @@ internal class ComposeSceneMediator(
         }
 
         private fun addClipComponent(component: Component) {
-            val clipRectangle = ClipComponent(component)
+            val clipRectangle = interopContainer.getClipRectForComponent(component)
             clipMap[component] = clipRectangle
             skiaLayerComponent.clipComponents.add(clipRectangle)
         }
@@ -272,21 +297,14 @@ internal class ComposeSceneMediator(
      */
     private var keyboardModifiersRequireUpdate = false
 
-    private val useInteropBlending: Boolean
-        get() = ComposeFeatureFlags.useInteropBlending && skiaLayerComponent.interopBlendingSupported
-
-    private val contentLayer: Int = 10
-    private val interopLayer: Int
-        get() = if (useInteropBlending) 0 else 20
-
     init {
         // Transparency is used during redrawer creation that triggered by [addNotify], so
         // it must be set to correct value before adding to the hierarchy to handle cases
         // when [container] is already [isDisplayable].
         skiaLayerComponent.transparency = useInteropBlending
 
-        container.addToLayer(invisibleComponent, contentLayer)
-        container.addToLayer(contentComponent, contentLayer)
+        container.add(invisibleComponent)
+        container.add(contentComponent)
 
         // Adding a listener after adding [invisibleComponent] and [contentComponent]
         // to react only on changes with [interopLayer].
@@ -451,23 +469,6 @@ internal class ComposeSceneMediator(
         _onComponentAttached = null
     }
 
-    @OptIn(ExperimentalSkikoApi::class)
-    private fun JLayeredPane.addToLayer(component: Component, layer: Int) {
-        if (renderApi == GraphicsApi.METAL && contentComponent !is SkiaSwingLayer) {
-            // Applying layer on macOS makes our bridge non-transparent
-            // But it draws always on top, so we can just add it as-is
-            // TODO: Figure out why it makes difference in transparency
-            add(component, 0)
-        } else {
-            setLayer(component, layer)
-            add(component, null, -1)
-        }
-    }
-
-    fun addToComponentLayer(component: Component) {
-        container.addToLayer(component, interopLayer)
-    }
-
     private var onPreviewKeyEvent: (ComposeKeyEvent) -> Boolean = { false }
     private var onKeyEvent: (ComposeKeyEvent) -> Boolean = { false }
 
@@ -494,7 +495,11 @@ internal class ComposeSceneMediator(
         // (we don't know the real density if we have unattached component)
         runOnceComponentAttached {
             catchExceptions {
-                scene.setContent(content)
+                scene.setContent {
+                    interopContainer {
+                        content()
+                    }
+                }
             }
         }
     }
@@ -613,12 +618,11 @@ internal class ComposeSceneMediator(
             _accessibilityControllers[semanticsOwner] = AccessibilityController(
                 owner = semanticsOwner,
                 desktopComponent = platformComponent,
-                coroutineContext = coroutineContext,
                 onFocusReceived = {
                     skiaLayerComponent.requestNativeFocusOnAccessible(it)
                 }
             ).also {
-                it.syncLoop()
+                it.launchSyncLoop(coroutineContext)
             }
         }
 
@@ -628,6 +632,10 @@ internal class ComposeSceneMediator(
 
         override fun onSemanticsChange(semanticsOwner: SemanticsOwner) {
             _accessibilityControllers[semanticsOwner]?.onSemanticsChange()
+        }
+
+        override fun onLayoutChange(semanticsOwner: SemanticsOwner, semanticsNodeId: Int) {
+            _accessibilityControllers[semanticsOwner]?.onLayoutChanged(nodeId = semanticsNodeId)
         }
     }
 

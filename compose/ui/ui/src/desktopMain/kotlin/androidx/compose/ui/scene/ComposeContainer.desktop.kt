@@ -21,7 +21,6 @@ import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.LayerType
-import androidx.compose.ui.awt.LocalLayerContainer
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
@@ -147,8 +146,15 @@ internal class ComposeContainer(
         layers.fastForEach(DesktopComposeSceneLayer::close)
     }
 
-    override fun componentResized(e: ComponentEvent?) = onChangeWindowPosition()
-    override fun componentMoved(e: ComponentEvent?) = onChangeWindowSize()
+    override fun componentResized(e: ComponentEvent?)  {
+        onChangeWindowSize()
+
+        // Sometimes Swing displays interop views in incorrect order after resizing,
+        // so we need to force re-validate it.
+        container.validate()
+        container.repaint()
+    }
+    override fun componentMoved(e: ComponentEvent?) = onChangeWindowPosition()
     override fun componentShown(e: ComponentEvent?) = Unit
     override fun componentHidden(e: ComponentEvent?) = Unit
 
@@ -201,10 +207,6 @@ internal class ComposeContainer(
 
     fun removeNotify() {
         setWindow(null)
-    }
-
-    fun addToComponentLayer(component: Component) {
-        mediator.addToComponentLayer(component)
     }
 
     fun setBounds(x: Int, y: Int, width: Int, height: Int) {
@@ -343,6 +345,5 @@ private fun ProvideContainerCompositionLocals(
     composeContainer: ComposeContainer,
     content: @Composable () -> Unit,
 ) = CompositionLocalProvider(
-    LocalLayerContainer provides composeContainer.container,
     content = content
 )

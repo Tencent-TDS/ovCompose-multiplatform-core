@@ -23,6 +23,7 @@ import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.KeyEvent
@@ -30,7 +31,7 @@ import androidx.compose.ui.input.pointer.HistoricalChange
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
-import androidx.compose.ui.interop.LocalInteropContainer
+import androidx.compose.ui.interop.LocalUIKitInteropContainer
 import androidx.compose.ui.interop.LocalUIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.interop.UIKitInteropTransaction
@@ -62,7 +63,11 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.InteractionUIView
-import androidx.compose.ui.window.InteropContainer
+import androidx.compose.ui.interop.UIKitInteropContainer
+import androidx.compose.ui.node.TrackInteropContainer
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.asCGRect
+import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.window.KeyboardEventHandler
 import androidx.compose.ui.window.KeyboardVisibilityListenerImpl
 import androidx.compose.ui.window.RenderingUIView
@@ -82,6 +87,7 @@ import org.jetbrains.skiko.SkikoKeyboardEventKind
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
 import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
@@ -98,6 +104,7 @@ import platform.UIKit.UITouch
 import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
+import platform.UIKit.UIWindow
 import platform.darwin.NSObject
 
 /**
@@ -113,16 +120,17 @@ internal sealed interface SceneLayout {
 /**
  * iOS specific-implementation of [PlatformContext.SemanticsOwnerListener] used to track changes in [SemanticsOwner].
  *
- * @property container The UI container associated with the semantics owner.
+ * @property rootView The UI container associated with the semantics owner.
  * @property coroutineContext The coroutine context to use for handling semantics changes.
  * @property getAccessibilitySyncOptions A lambda function to retrieve the latest accessibility synchronization options.
  * @property performEscape A lambda to delegate accessibility escape operation. Returns true if the escape was handled, false otherwise.
  */
 @OptIn(ExperimentalComposeApi::class)
 private class SemanticsOwnerListenerImpl(
-    private val container: UIView,
+    private val rootView: UIView,
     private val coroutineContext: CoroutineContext,
     private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
+    private val convertToAppWindowCGRect: (Rect, UIWindow) -> CValue<CGRect>,
     private val performEscape: () -> Boolean
 ) : PlatformContext.SemanticsOwnerListener {
     var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
@@ -130,10 +138,11 @@ private class SemanticsOwnerListenerImpl(
     override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
         if (current == null) {
             current = semanticsOwner to AccessibilityMediator(
-                container,
+                rootView,
                 semanticsOwner,
                 coroutineContext,
                 getAccessibilitySyncOptions,
+                convertToAppWindowCGRect,
                 performEscape
             )
         }
@@ -153,6 +162,14 @@ private class SemanticsOwnerListenerImpl(
 
         if (current.first == semanticsOwner) {
             current.second.onSemanticsChange()
+        }
+    }
+
+    override fun onLayoutChange(semanticsOwner: SemanticsOwner, semanticsNodeId: Int) {
+        val current = current ?: return
+
+        if (current.first == semanticsOwner) {
+            current.second.onLayoutChange(nodeId = semanticsNodeId)
         }
     }
 }
@@ -254,7 +271,7 @@ internal class ComposeSceneMediator(
     /**
      * Container for UIKitView and UIKitViewController
      */
-    private val interopViewContainer = InteropContainer()
+    private val interopViewContainer = UIKitInteropContainer()
 
     private val interactionView by lazy {
         InteractionUIView(
@@ -284,6 +301,11 @@ internal class ComposeSceneMediator(
             coroutineContext,
             getAccessibilitySyncOptions = {
                 configuration.accessibilitySyncOptions
+            },
+            convertToAppWindowCGRect = { rect, window ->
+               windowContext.convertWindowRect(rect, window)
+                   .toDpRect(Density(window.screen.scale.toFloat()))
+                   .asCGRect()
             },
             performEscape = {
                 val down = onKeyboardEvent(
@@ -418,10 +440,10 @@ internal class ComposeSceneMediator(
             getConstraintsToFillParent(rootView, container)
         )
 
-        interopViewContainer.translatesAutoresizingMaskIntoConstraints = false
-        rootView.addSubview(interopViewContainer)
+        interopViewContainer.containerView.translatesAutoresizingMaskIntoConstraints = false
+        rootView.addSubview(interopViewContainer.containerView)
         NSLayoutConstraint.activateConstraints(
-            getConstraintsToFillParent(interopViewContainer, rootView)
+            getConstraintsToFillParent(interopViewContainer.containerView, rootView)
         )
 
         interactionView.translatesAutoresizingMaskIntoConstraints = false
@@ -446,7 +468,9 @@ internal class ComposeSceneMediator(
                  */
                 if (renderingView.isReadyToShowContent.value) {
                     ProvideComposeSceneMediatorCompositionLocals {
-                        content()
+                        interopViewContainer.TrackInteropContainer(
+                            content = content
+                        )
                     }
                 }
             }
@@ -472,10 +496,10 @@ internal class ComposeSceneMediator(
     private fun ProvideComposeSceneMediatorCompositionLocals(content: @Composable () -> Unit) =
         CompositionLocalProvider(
             LocalUIKitInteropContext provides interopContext,
+            LocalUIKitInteropContainer provides interopViewContainer,
             LocalKeyboardOverlapHeight provides keyboardOverlapHeightState.value,
             LocalSafeArea provides safeAreaState.value,
             LocalLayoutMargins provides layoutMarginsState.value,
-            LocalInteropContainer provides interopViewContainer,
             content = content
         )
 
