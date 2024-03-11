@@ -105,6 +105,11 @@ internal class ComposeSceneMediator(
      */
     private val eventFilter: AwtEventFilter = OnlyValidPrimaryMouseButtonFilter,
 
+    /**
+     * @see PlatformContext.measureDrawLayerBounds
+     */
+    private val measureDrawLayerBounds: Boolean = false,
+
     val coroutineContext: CoroutineContext,
 
     skiaLayerComponentFactory: (ComposeSceneMediator) -> SkiaLayerComponent,
@@ -629,6 +634,7 @@ internal class ComposeSceneMediator(
         override fun calculateLocalPosition(positionInWindow: Offset): Offset =
             windowContext.calculateLocalPosition(container, positionInWindow)
 
+        override val measureDrawLayerBounds: Boolean = this@ComposeSceneMediator.measureDrawLayerBounds
         override val viewConfiguration: ViewConfiguration = DesktopViewConfiguration()
         override val textInputService: PlatformTextInputService = this@ComposeSceneMediator.textInputService
 

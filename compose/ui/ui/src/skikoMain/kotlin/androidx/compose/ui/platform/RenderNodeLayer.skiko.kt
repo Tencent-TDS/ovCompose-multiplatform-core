@@ -19,7 +19,6 @@ package androidx.compose.ui.platform
 import org.jetbrains.skia.Rect as SkRect
 import androidx.compose.ui.geometry.MutableRect
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Canvas
@@ -61,6 +60,7 @@ import org.jetbrains.skia.ShadowUtils
 
 internal class RenderNodeLayer(
     private var density: Density,
+    measureDrawBounds: Boolean,
     private val invalidateParentLayer: () -> Unit,
     private val drawBlock: (Canvas) -> Unit,
     private val onDestroy: () -> Unit = {}
@@ -77,7 +77,8 @@ internal class RenderNodeLayer(
         }
 
     private val pictureRecorder = PictureRecorder()
-    private val bbhFactory = RTreeFactory()
+    // Use factory for BBoxHierarchy to track real bounds of drawn content
+    private val bbhFactory = if (measureDrawBounds) RTreeFactory() else null
     private var picture: Picture? = null
     private var isDestroyed = false
 
@@ -236,27 +237,17 @@ internal class RenderNodeLayer(
 
     override fun drawLayer(canvas: Canvas) {
         if (picture == null) {
-            val bounds = size.toSize().toRect()
+            val largestRect = SkRect.makeLTRB(
+                l = PICTURE_MIN_VALUE,
+                t = PICTURE_MIN_VALUE,
+                r = PICTURE_MAX_VALUE,
+                b = PICTURE_MAX_VALUE
+            )
             val pictureCanvas = pictureRecorder.beginRecording(
-                // The goal with selecting the size of the rectangle here is to avoid limiting the
-                // drawable area as much as possible.
-                // Due to https://partnerissuetracker.corp.google.com/issues/324465764 we have to
-                // leave room for scale between the values we specify here and Float.MAX_VALUE.
-                // The maximum possible scale that can be applied to the canvas will be
-                // Float.MAX_VALUE divided by the largest value below.
-                // 2^30 was chosen because it's big enough, leaves quite a lot of room between it
-                // and Float.MAX_VALUE, and also lets the width and height fit into int32 (just in
-                // case).
-                bounds = SkRect.makeLTRB(
-                    l = -(1 shl 30).toFloat(),
-                    t = -(1 shl 30).toFloat(),
-                    r = ((1 shl 30)-1).toFloat(),
-                    b = ((1 shl 30)-1).toFloat()
-                ),
-                // Pass factory for BBoxHierarchy explicitly to track real bounds of drawn content
+                bounds = largestRect,
                 bbh = bbhFactory
             )
-            performDrawLayer(pictureCanvas.asComposeCanvas(), bounds)
+            performDrawLayer(pictureCanvas.asComposeCanvas())
             picture = pictureRecorder.finishRecordingAsPicture()
         }
 
@@ -275,7 +266,7 @@ internal class RenderNodeLayer(
         matrix.timesAssign(inverseMatrix)
     }
 
-    private fun performDrawLayer(canvas: Canvas, bounds: Rect) {
+    private fun performDrawLayer(canvas: Canvas) {
         if (alpha > 0) {
             if (shadowElevation > 0) {
                 drawShadow(canvas)
@@ -296,6 +287,7 @@ internal class RenderNodeLayer(
                     currentRenderEffect != null ||
                     compositingStrategy == CompositingStrategy.Offscreen
             if (requiresLayer) {
+                val bounds = size.toSize().toRect()
                 canvas.saveLayer(
                     bounds,
                     Paint().apply {
@@ -365,3 +357,15 @@ internal class RenderNodeLayer(
 // Copy from Android's frameworks/base/libs/hwui/utils/MathUtils.h
 private const val NON_ZERO_EPSILON = 0.001f
 private inline fun Float.isZero(): Boolean = abs(this) <= NON_ZERO_EPSILON
+
+// The goal with selecting the size of the rectangle here is to avoid limiting the
+// drawable area as much as possible.
+// Due to https://partnerissuetracker.corp.google.com/issues/324465764 we have to
+// leave room for scale between the values we specify here and Float.MAX_VALUE.
+// The maximum possible scale that can be applied to the canvas will be
+// Float.MAX_VALUE divided by the largest value below.
+// 2^30 was chosen because it's big enough, leaves quite a lot of room between it
+// and Float.MAX_VALUE, and also lets the width and height fit into int32 (just in
+// case).
+private const val PICTURE_MIN_VALUE = -(1 shl 30).toFloat()
+private const val PICTURE_MAX_VALUE = ((1 shl 30)-1).toFloat()

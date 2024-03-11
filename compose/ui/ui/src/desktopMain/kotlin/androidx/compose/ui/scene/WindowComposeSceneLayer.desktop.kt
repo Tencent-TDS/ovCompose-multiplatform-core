@@ -109,6 +109,7 @@ internal class WindowComposeSceneLayer(
                 composeContainer.exceptionHandler?.onException(it) ?: throw it
             },
             eventFilter = eventFilter,
+            measureDrawLayerBounds = true,
             coroutineContext = compositionContext.effectCoroutineContext,
             skiaLayerComponentFactory = ::createSkiaLayerComponent,
             composeSceneFactory = ::createComposeScene,
