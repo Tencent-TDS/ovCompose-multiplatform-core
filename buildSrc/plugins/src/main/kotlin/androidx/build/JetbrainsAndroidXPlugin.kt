@@ -57,14 +57,18 @@ open class JetbrainsExtensions(
     }
 
     /**
+     * When https://youtrack.jetbrains.com/issue/KT-61096 is implemented,
+     * this workaround won't be needed anymore:
+     *
      * K/Native stores the dependencies in klib manifest and tries to resolve them during compilation.
      * Since we use project dependency - implementation(project(...)), the klib manifest will reference
      * our groupId (for example org.jetbrains.compose.collection-internal instead of androidx.collection).
      * Therefore, the dependency can't be resolved since we don't publish libs for some k/native targets.
      *
-     * To fix that, we need to make sure
+     * To workaround that, we need to make sure
      * that the project dependency is substituted by a module dependency (from androidx).
-     * We do this here. It should be called only for appropriate k/native targets.
+     * We do this here. It should be called only for those k/native targets which require
+     * redirection to androidx artefacts.
      *
      * For available androidx targets see:
      * https://maven.google.com/web/index.html#androidx.annotation
