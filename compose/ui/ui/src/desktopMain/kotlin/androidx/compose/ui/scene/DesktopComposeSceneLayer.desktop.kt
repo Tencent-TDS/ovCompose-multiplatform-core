@@ -21,13 +21,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.awt.AwtEventFilter
 import androidx.compose.ui.awt.AwtEventFilters
+import androidx.compose.ui.awt.BoundsEventFilter
 import androidx.compose.ui.awt.OnlyValidPrimaryMouseButtonFilter
 import androidx.compose.ui.awt.toAwtRectangle
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastForEachReversed
+import java.awt.Rectangle
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
 import javax.swing.SwingUtilities
@@ -49,10 +52,21 @@ internal abstract class DesktopComposeSceneLayer(
     protected val eventFilter get() = AwtEventFilters(
         OnlyValidPrimaryMouseButtonFilter,
         DetectEventOutsideLayer(),
+        boundsEventFilter,
         FocusableLayerEventFilter()
+    )
+    private val boundsEventFilter = BoundsEventFilter(
+        bounds = Rectangle(windowContainer.size),
+        relativeTo = windowContainer,
+        onOutside = ::onMouseEventOutside
     )
 
     protected abstract val mediator: ComposeSceneMediator?
+
+    /**
+     * Bounds of real drawings from previous render.
+     */
+    protected var visibleBounds = IntRect.Zero
 
     private var outsidePointerCallback: ((eventType: PointerEventType) -> Unit)? = null
     private var isClosed = false
@@ -67,6 +81,13 @@ internal abstract class DesktopComposeSceneLayer(
         set(value) {
             field = value
             mediator?.onChangeLayoutDirection(value)
+        }
+
+    // It shouldn't be used for setting canvas size - it will crop drawings outside
+    override var boundsInWindow: IntRect = IntRect.Zero
+        set(value) {
+            field = value
+            boundsEventFilter.bounds = value.toAwtRectangle(density)
         }
 
     final override var compositionLocalContext: CompositionLocalContext?

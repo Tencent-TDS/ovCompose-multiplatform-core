@@ -29,9 +29,11 @@ import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
 import androidx.compose.ui.scene.skia.WindowSkiaLayerComponent
 import androidx.compose.ui.skiko.OverlaySkikoViewDecorator
+import androidx.compose.ui.skiko.RecordDrawRectSkikoViewDecorator
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.getDialogScrimBlendMode
@@ -95,12 +97,6 @@ internal class WindowComposeSceneLayer(
         set(value) {
             field = value
             dialog.isFocusable = value
-        }
-
-    override var boundsInWindow: IntRect = IntRect.Zero
-        set(value) {
-            field = value
-            setDialogBounds(value)
         }
 
     override var scrimColor: Color? = null
@@ -173,8 +169,16 @@ internal class WindowComposeSceneLayer(
         canvas.drawRect(SkRect.makeWH(width.toFloat(), height.toFloat()), paint)
     }
 
+    private fun onDrawRectChange(rect: Rect) {
+        val bounds = rect.roundToIntRect().translate(visibleBounds.topLeft)
+        visibleBounds = bounds
+        setDialogBounds(bounds)
+    }
+
     private fun createSkiaLayerComponent(mediator: ComposeSceneMediator): SkiaLayerComponent {
-        val skikoView = OverlaySkikoViewDecorator(mediator) { canvas, width, height ->
+        val skikoView = OverlaySkikoViewDecorator(
+            RecordDrawRectSkikoViewDecorator(mediator, ::onDrawRectChange)
+        ) { canvas, width, height ->
             composeContainer.layersAbove(this).forEach {
                 it.onRenderOverlay(canvas, width, height, transparent)
             }

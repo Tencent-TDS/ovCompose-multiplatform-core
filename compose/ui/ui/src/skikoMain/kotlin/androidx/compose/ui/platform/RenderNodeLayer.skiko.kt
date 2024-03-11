@@ -16,16 +16,48 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.ui.geometry.*
+import org.jetbrains.skia.Rect as SkRect
+import androidx.compose.ui.geometry.MutableRect
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.DefaultCameraDistance
+import androidx.compose.ui.graphics.DefaultShadowColor
+import androidx.compose.ui.graphics.Fields
+import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.ReusableGraphicsLayerScope
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.alphaMultiplier
+import androidx.compose.ui.graphics.asComposeCanvas
+import androidx.compose.ui.graphics.asSkiaPath
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.toSkiaRRect
 import androidx.compose.ui.node.OwnedLayer
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import kotlin.math.abs
 import kotlin.math.max
-import org.jetbrains.skia.*
+import org.jetbrains.skia.ClipMode
+import org.jetbrains.skia.Picture
+import org.jetbrains.skia.PictureRecorder
+import org.jetbrains.skia.Point3
+import org.jetbrains.skia.RTreeFactory
+import org.jetbrains.skia.ShadowUtils
 
 internal class RenderNodeLayer(
     private var density: Density,
@@ -45,6 +77,7 @@ internal class RenderNodeLayer(
         }
 
     private val pictureRecorder = PictureRecorder()
+    private val bbhFactory = RTreeFactory()
     private var picture: Picture? = null
     private var isDestroyed = false
 
@@ -214,12 +247,14 @@ internal class RenderNodeLayer(
                 // 2^30 was chosen because it's big enough, leaves quite a lot of room between it
                 // and Float.MAX_VALUE, and also lets the width and height fit into int32 (just in
                 // case).
-                org.jetbrains.skia.Rect.makeLTRB(
+                bounds = SkRect.makeLTRB(
                     l = -(1 shl 30).toFloat(),
                     t = -(1 shl 30).toFloat(),
                     r = ((1 shl 30)-1).toFloat(),
                     b = ((1 shl 30)-1).toFloat()
-                )
+                ),
+                // Pass factory for BBoxHierarchy explicitly to track real bounds of drawn content
+                bbh = bbhFactory
             )
             performDrawLayer(pictureCanvas.asComposeCanvas(), bounds)
             picture = pictureRecorder.finishRecordingAsPicture()

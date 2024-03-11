@@ -16,8 +16,11 @@
 
 package androidx.compose.ui.awt
 
+import java.awt.Component
+import java.awt.Rectangle
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
+import javax.swing.SwingUtilities
 
 internal interface AwtEventFilter {
     fun shouldSendMouseEvent(event: MouseEvent): Boolean = true
@@ -38,6 +41,37 @@ internal class AwtEventFilters(
 
     override fun shouldSendKeyEvent(event: KeyEvent): Boolean {
         return filters.all { it.shouldSendKeyEvent(event) }
+    }
+}
+
+internal class BoundsEventFilter(
+    var bounds: Rectangle,
+    private val relativeTo: Component,
+    private val onOutside: (event: MouseEvent) -> Unit
+) : AwtEventFilter {
+    override fun shouldSendMouseEvent(event: MouseEvent): Boolean {
+        when (event.id) {
+            // Do not filter motion events
+            MouseEvent.MOUSE_MOVED,
+            MouseEvent.MOUSE_ENTERED,
+            MouseEvent.MOUSE_EXITED,
+            MouseEvent.MOUSE_DRAGGED -> return true
+        }
+        return if (inBounds(event)) {
+            true
+        } else {
+            onOutside(event)
+            false
+        }
+    }
+
+    private fun inBounds(event: MouseEvent): Boolean {
+        val point = if (event.component != relativeTo) {
+            SwingUtilities.convertPoint(event.component, event.point, relativeTo)
+        } else {
+            event.point
+        }
+        return bounds.contains(point)
     }
 }
 
