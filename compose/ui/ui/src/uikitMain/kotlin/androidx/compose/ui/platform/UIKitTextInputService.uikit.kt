@@ -484,17 +484,6 @@ internal class UIKitTextInputService(
     }
 }
 
-private fun UITextGranularity.toTextIterator() =
-    when (this) {
-        UITextGranularity.UITextGranularitySentence -> BreakIterator.makeSentenceInstance()
-        UITextGranularity.UITextGranularityLine -> BreakIterator.makeLineInstance()
-        UITextGranularity.UITextGranularityWord -> BreakIterator.makeWordInstance()
-        UITextGranularity.UITextGranularityCharacter -> BreakIterator.makeCharacterInstance()
-        UITextGranularity.UITextGranularityParagraph -> TODO("UITextGranularityParagraph iterator")
-        UITextGranularity.UITextGranularityDocument -> TODO("UITextGranularityDocument iterator")
-        else -> error("Unknown granularity")
-    }
-
 private data class CurrentInput(
     var value: TextFieldValue,
     val onEditCommand: (List<EditCommand>) -> Unit
