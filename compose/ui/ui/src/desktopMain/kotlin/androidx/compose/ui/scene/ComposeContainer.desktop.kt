@@ -305,6 +305,7 @@ internal class ComposeContainer(
                 skiaLayerAnalytics = skiaLayerAnalytics,
                 density = density,
                 layoutDirection = layoutDirection,
+                focusable = focusable,
                 compositionContext = compositionContext
             )
             LayerType.OnComponent -> SwingComposeSceneLayer(

@@ -55,6 +55,7 @@ internal class WindowComposeSceneLayer(
     private val skiaLayerAnalytics: SkiaLayerAnalytics,
     density: Density,
     layoutDirection: LayoutDirection,
+    focusable: Boolean,
     compositionContext: CompositionContext
 ) : DesktopComposeSceneLayer() {
     private val window get() = requireNotNull(composeContainer.window)
@@ -113,10 +114,10 @@ internal class WindowComposeSceneLayer(
             _mediator?.onChangeLayoutDirection(value)
         }
 
-    override var focusable
-        get() = true
-        set(_) {
-            // Ignore the value - window is always focusable
+    override var focusable: Boolean = focusable
+        set(value) {
+            field = value
+            // TODO: Pass it to mediator/scene
         }
 
     override var boundsInWindow: IntRect = IntRect.Zero
@@ -209,9 +210,8 @@ internal class WindowComposeSceneLayer(
     }
 
     override fun onRenderOverlay(canvas: Canvas, width: Int, height: Int) {
-        val paint = scrimColor?.let { scrimColor ->
-            Paint().apply { color = scrimColor }.asFrameworkPaint()
-        } ?: return
+        val scrimColor = scrimColor ?: return
+        val paint = Paint().apply { color = scrimColor }.asFrameworkPaint()
         canvas.drawRect(org.jetbrains.skia.Rect.makeWH(width.toFloat(), height.toFloat()), paint)
     }
 
