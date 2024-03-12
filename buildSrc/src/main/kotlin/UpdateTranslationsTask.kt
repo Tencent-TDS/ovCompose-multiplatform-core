@@ -1,15 +1,3 @@
-import java.io.File
-import java.io.IOException
-import java.nio.file.Files
-import java.util.*
-import javax.xml.parsers.DocumentBuilderFactory
-import kotlin.concurrent.thread
-import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputDirectory
-import org.gradle.api.tasks.TaskAction
-import org.w3c.dom.Element
-
 /*
  * Copyright 2024 The Android Open Source Project
  *
@@ -26,23 +14,43 @@ import org.w3c.dom.Element
  * limitations under the License.
  */
 
+import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.util.*
+import javax.xml.parsers.DocumentBuilderFactory
+import kotlin.concurrent.thread
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.TaskAction
+import org.w3c.dom.Element
+
 /**
  * A task that checks out an Android repository with string translations, extracts the translations
  * we're interested in and writes Kotlin source files that provide them.
  */
-open class UpdateTranslationsTask : DefaultTask() {
+abstract class UpdateTranslationsTask : DefaultTask() {
 
     /**
      * The git binary to use.
      */
-    @Input
-    var git: String = "git"
+    @get:Input
+    abstract val git: Property<String>
+    init {
+        @Suppress("LeakingThis")
+        git.convention("git")
+    }
 
     /**
      * The URL of the repository to check out.
      */
-    @Input
-    lateinit var gitRepo: String
+    @get:Input
+    abstract val gitRepo: Property<String>
 
     /**
      * The root resources directories in the repo.
@@ -50,8 +58,8 @@ open class UpdateTranslationsTask : DefaultTask() {
      * Note that there may be more than one because Android shares resources across modules, and
      * some modules use resources from more than one.
      */
-    @Input
-    lateinit var repoResDirectories: List<String>
+    @get:Input
+    abstract val repoResDirectories: ListProperty<String>
 
     /**
      * The strings to translate.
@@ -59,8 +67,8 @@ open class UpdateTranslationsTask : DefaultTask() {
      * The keys are the names of the Android resources in the XML file, and the values are the names
      * of the Kotlin `Strings` constants.
      */
-    @Input
-    lateinit var stringByResourceName: Map<String, String>
+    @get:Input
+    abstract val stringByResourceName: MapProperty<String, String>
 
     /**
      * The locales to get the translations for, in `language(_region)` format; e.g. "fr-CA" or just
@@ -68,8 +76,8 @@ open class UpdateTranslationsTask : DefaultTask() {
      *
      * Note that language may not be an empty string; use "en" for the default locale.
      */
-    @Input
-    lateinit var locales: List<String>
+    @get:Input
+    abstract val locales: ListProperty<String>
 
     /**
      * The directory where the Kotlin source files are to be written.
@@ -77,20 +85,20 @@ open class UpdateTranslationsTask : DefaultTask() {
      * Note that this directory is deleted first in order to clear translations that are no longer
      * needed.
      */
-    @InputDirectory
-    lateinit var targetDirectory: File
+    @get:InputDirectory
+    abstract val targetDirectory: DirectoryProperty
 
     /**
      * The name of the package of the Kotlin source files to be written.
      */
-    @Input
-    lateinit var targetPackageName: String
+    @get:Input
+    abstract val targetPackageName: Property<String>
 
     /**
      * The package name of the Kotlin `Strings.kt` file.
      */
-    @Input
-    lateinit var kotlinStringsPackageName: String
+    @get:Input
+    abstract val kotlinStringsPackageName: Property<String>
 
     /**
      * Updates the translations.
@@ -102,6 +110,7 @@ open class UpdateTranslationsTask : DefaultTask() {
         dir.mkdirs()
         dir.deleteOnExit()
 
+        val targetDirectory = targetDirectory.get().asFile
         if (targetDirectory.isDirectory && !targetDirectory.deleteRecursively())
             throw IOException("Unable to delete directory $targetDirectory")
 
@@ -109,30 +118,32 @@ open class UpdateTranslationsTask : DefaultTask() {
             throw IOException("Unable to create directory $targetDirectory")
 
         // The directory into which the repo will be cloned
-        val repoDir = File(dir, gitRepo.substringAfterLast('/'))
+        val repoDir = File(dir, gitRepo.get().substringAfterLast('/'))
         repoDir.deleteRecursively()
 
         // The directories in the repo to check out.
         // For each locale, there could be several values directories.
-        val valuesDirsByLocale: Map<Locale, List<String>> = locales.associate { localeTag ->
+        val valuesDirsByLocale: Map<Locale, List<String>> = locales.get().associate { localeTag ->
             val locale = Locale.fromTag(localeTag)
-            val valuesDirs = repoResDirectories.map {
+            val valuesDirs = repoResDirectories.get().map {
                 val resDir = if (it.endsWith("/")) it else "$it/"
                 resDir + locale.valuesDirName()
             }
             locale to valuesDirs
         }
 
+        val gitCommand = git.getOrElse("git")
+
         // Clone the repo, but don't check out any files
-        execCommand(dir, git, "clone", "-n", "--depth=1", "--filter=tree:0", gitRepo)
+        execCommand(dir, gitCommand, "clone", "-n", "--depth=1", "--filter=tree:0", gitRepo.get())
 
         // Set a sparse checkout to download only the directories we need
         val allValuesDirs = valuesDirsByLocale.values.flatten()
-        execCommand(repoDir, git, "sparse-checkout", "set", "--no-cone",
+        execCommand(repoDir, gitCommand, "sparse-checkout", "set", "--no-cone",
             *allValuesDirs.toTypedArray())
 
         // Actually download them
-        execCommand(repoDir, git, "checkout")
+        execCommand(repoDir, gitCommand, "checkout")
 
         // Write the per-language translation files
         val localesGroupedByLanguage = valuesDirsByLocale.keys.groupBy { it.language }
@@ -140,7 +151,7 @@ open class UpdateTranslationsTask : DefaultTask() {
             writeLanguageFile(
                 language = language,
                 locales = locales,
-                stringByResourceName = stringByResourceName,
+                stringByResourceName = stringByResourceName.get(),
                 repoDir = repoDir,
                 valuesDirsByLocale = valuesDirsByLocale
             )
@@ -177,10 +188,10 @@ open class UpdateTranslationsTask : DefaultTask() {
         val kotlinFileName = language.replaceFirstChar { it.uppercase() } + ".kt"
         println("Writing $kotlinFileName for locales ${locales.joinToString()}")
 
-        File(targetDirectory, kotlinFileName).bufferedWriter().use {
+        File(targetDirectory.get().asFile, kotlinFileName).bufferedWriter().use {
             it.write(kotlinFilePreamble())
-            it.appendLine("import $kotlinStringsPackageName.Strings")
-            it.appendLine("import $kotlinStringsPackageName.Translations")
+            it.appendLine("import ${kotlinStringsPackageName.get()}.Strings")
+            it.appendLine("import ${kotlinStringsPackageName.get()}.Translations")
 
             for (locale in locales) {
                 // Keep track of the strings for which translations were found, to be able to detect
@@ -231,9 +242,9 @@ open class UpdateTranslationsTask : DefaultTask() {
      * Writes the `Translations.kt` file which maps all locales to the actual translations.
      */
     private fun writeTranslationsFile(locales: List<Locale>) {
-        File(targetDirectory, "Translations.kt").bufferedWriter().use {
+        File(targetDirectory.asFile.get(), "Translations.kt").bufferedWriter().use {
             it.write(kotlinFilePreamble())
-            it.appendLine("import $kotlinStringsPackageName.Translations")
+            it.appendLine("import ${kotlinStringsPackageName.get()}.Translations")
             it.appendLine()
             it.appendLine("""
                 /**
@@ -277,7 +288,7 @@ open class UpdateTranslationsTask : DefaultTask() {
          * limitations under the License.
          */
 
-        package $targetPackageName
+        package ${targetPackageName.get()}
         
         
     """.trimIndent()

@@ -19,7 +19,7 @@ package androidx.compose.ui.platform.l10n
 import androidx.compose.ui.platform.Strings
 import androidx.compose.ui.platform.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.si() = mapOf(
     Strings.SelectAll to "සියල්ල තෝරන්න",
     Strings.Cut to "කපන්න",

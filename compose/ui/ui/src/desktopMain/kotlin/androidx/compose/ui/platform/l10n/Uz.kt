@@ -19,7 +19,7 @@ package androidx.compose.ui.platform.l10n
 import androidx.compose.ui.platform.Strings
 import androidx.compose.ui.platform.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.uz() = mapOf(
     Strings.SelectAll to "Hammasini belgilash",
     Strings.Cut to "Kesib olish",

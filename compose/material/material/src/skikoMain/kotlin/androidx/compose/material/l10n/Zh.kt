@@ -19,7 +19,7 @@ package androidx.compose.material.l10n
 import androidx.compose.material.Strings
 import androidx.compose.material.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.zhCN() = mapOf(
     Strings.NavigationMenu to "导航菜单",
     Strings.ExposedDropdownMenu to "下拉菜单",
@@ -30,7 +30,7 @@ internal fun Translations.zhCN() = mapOf(
     Strings.SliderRangeEnd to "范围终点",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.zhHK() = mapOf(
     Strings.NavigationMenu to "導覽選單",
     Strings.ExposedDropdownMenu to "下拉式選單",
@@ -41,7 +41,7 @@ internal fun Translations.zhHK() = mapOf(
     Strings.SliderRangeEnd to "範圍結束",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.zhTW() = mapOf(
     Strings.NavigationMenu to "導覽選單",
     Strings.ExposedDropdownMenu to "下拉式選單",

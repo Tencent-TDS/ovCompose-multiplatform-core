@@ -19,7 +19,7 @@ package androidx.compose.ui.platform.l10n
 import androidx.compose.ui.platform.Strings
 import androidx.compose.ui.platform.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.ja() = mapOf(
     Strings.SelectAll to "すべて選択",
     Strings.Cut to "切り取り",

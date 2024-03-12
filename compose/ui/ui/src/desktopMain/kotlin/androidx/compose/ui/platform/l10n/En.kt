@@ -19,7 +19,7 @@ package androidx.compose.ui.platform.l10n
 import androidx.compose.ui.platform.Strings
 import androidx.compose.ui.platform.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.en() = mapOf(
     Strings.SelectAll to "Select all",
     Strings.Cut to "Cut",
@@ -27,7 +27,7 @@ internal fun Translations.en() = mapOf(
     Strings.Paste to "Paste",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.enAU() = mapOf(
     Strings.SelectAll to "Select all",
     Strings.Cut to "Cut",
@@ -35,7 +35,7 @@ internal fun Translations.enAU() = mapOf(
     Strings.Paste to "Paste",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.enCA() = mapOf(
     Strings.SelectAll to "Select all",
     Strings.Cut to "Cut",
@@ -43,7 +43,7 @@ internal fun Translations.enCA() = mapOf(
     Strings.Paste to "Paste",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.enGB() = mapOf(
     Strings.SelectAll to "Select all",
     Strings.Cut to "Cut",
@@ -51,7 +51,7 @@ internal fun Translations.enGB() = mapOf(
     Strings.Paste to "Paste",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.enIN() = mapOf(
     Strings.SelectAll to "Select all",
     Strings.Cut to "Cut",

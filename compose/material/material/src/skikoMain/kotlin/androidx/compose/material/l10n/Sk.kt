@@ -19,7 +19,7 @@ package androidx.compose.material.l10n
 import androidx.compose.material.Strings
 import androidx.compose.material.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.sk() = mapOf(
     Strings.NavigationMenu to "Navigačná ponuka",
     Strings.ExposedDropdownMenu to "Rozbaľovacia ponuka",

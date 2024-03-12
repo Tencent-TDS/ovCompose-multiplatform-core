@@ -19,7 +19,7 @@ package androidx.compose.ui.platform.l10n
 import androidx.compose.ui.platform.Strings
 import androidx.compose.ui.platform.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.zhCN() = mapOf(
     Strings.SelectAll to "全选",
     Strings.Cut to "剪切",
@@ -27,7 +27,7 @@ internal fun Translations.zhCN() = mapOf(
     Strings.Paste to "粘贴",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.zhHK() = mapOf(
     Strings.SelectAll to "全部選取",
     Strings.Cut to "剪下",
@@ -35,7 +35,7 @@ internal fun Translations.zhHK() = mapOf(
     Strings.Paste to "貼上",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.zhTW() = mapOf(
     Strings.SelectAll to "全部選取",
     Strings.Cut to "剪下",

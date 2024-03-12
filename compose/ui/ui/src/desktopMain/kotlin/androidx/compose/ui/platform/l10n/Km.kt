@@ -19,7 +19,7 @@ package androidx.compose.ui.platform.l10n
 import androidx.compose.ui.platform.Strings
 import androidx.compose.ui.platform.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.km() = mapOf(
     Strings.SelectAll to "ជ្រើសរើស​ទាំងអស់",
     Strings.Cut to "កាត់",

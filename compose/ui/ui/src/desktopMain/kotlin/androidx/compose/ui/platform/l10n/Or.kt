@@ -19,7 +19,7 @@ package androidx.compose.ui.platform.l10n
 import androidx.compose.ui.platform.Strings
 import androidx.compose.ui.platform.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.or() = mapOf(
     Strings.SelectAll to "ସବୁ ଚୟନ କରନ୍ତୁ",
     Strings.Cut to "କଟ୍‌",

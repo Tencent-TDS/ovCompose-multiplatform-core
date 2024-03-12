@@ -19,7 +19,7 @@ package androidx.compose.material.l10n
 import androidx.compose.material.Strings
 import androidx.compose.material.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.pt() = mapOf(
     Strings.NavigationMenu to "Menu de navegação",
     Strings.ExposedDropdownMenu to "Menu suspenso",
@@ -30,7 +30,7 @@ internal fun Translations.pt() = mapOf(
     Strings.SliderRangeEnd to "Fim do intervalo",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.ptBR() = mapOf(
     Strings.NavigationMenu to "Menu de navegação",
     Strings.ExposedDropdownMenu to "Menu suspenso",
@@ -41,7 +41,7 @@ internal fun Translations.ptBR() = mapOf(
     Strings.SliderRangeEnd to "Fim do intervalo",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.ptPT() = mapOf(
     Strings.NavigationMenu to "Menu de navegação",
     Strings.ExposedDropdownMenu to "Menu pendente",

@@ -19,7 +19,7 @@ package androidx.compose.material.l10n
 import androidx.compose.material.Strings
 import androidx.compose.material.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.es() = mapOf(
     Strings.NavigationMenu to "Menú de navegación",
     Strings.ExposedDropdownMenu to "Menú desplegable",
@@ -30,7 +30,7 @@ internal fun Translations.es() = mapOf(
     Strings.SliderRangeEnd to "Fin del intervalo",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.esUS() = mapOf(
     Strings.NavigationMenu to "Menú de navegación",
     Strings.ExposedDropdownMenu to "Menú desplegable",

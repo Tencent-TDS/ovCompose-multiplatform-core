@@ -19,7 +19,7 @@ package androidx.compose.material.l10n
 import androidx.compose.material.Strings
 import androidx.compose.material.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.ko() = mapOf(
     Strings.NavigationMenu to "탐색 메뉴",
     Strings.ExposedDropdownMenu to "드롭다운 메뉴",

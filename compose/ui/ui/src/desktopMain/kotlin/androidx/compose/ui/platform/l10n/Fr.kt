@@ -19,7 +19,7 @@ package androidx.compose.ui.platform.l10n
 import androidx.compose.ui.platform.Strings
 import androidx.compose.ui.platform.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.fr() = mapOf(
     Strings.SelectAll to "Tout sélectionner",
     Strings.Cut to "Couper",
@@ -27,7 +27,7 @@ internal fun Translations.fr() = mapOf(
     Strings.Paste to "Coller",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.frCA() = mapOf(
     Strings.SelectAll to "Tout sélectionner",
     Strings.Cut to "Couper",

@@ -19,7 +19,7 @@ package androidx.compose.material.l10n
 import androidx.compose.material.Strings
 import androidx.compose.material.Translations
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.en() = mapOf(
     Strings.NavigationMenu to "Navigation menu",
     Strings.ExposedDropdownMenu to "Dropdown menu",
@@ -30,7 +30,7 @@ internal fun Translations.en() = mapOf(
     Strings.SliderRangeEnd to "Range end",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.enAU() = mapOf(
     Strings.NavigationMenu to "Navigation menu",
     Strings.ExposedDropdownMenu to "Drop-down menu",
@@ -41,7 +41,7 @@ internal fun Translations.enAU() = mapOf(
     Strings.SliderRangeEnd to "Range end",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.enCA() = mapOf(
     Strings.NavigationMenu to "Navigation menu",
     Strings.ExposedDropdownMenu to "Dropdown menu",
@@ -52,7 +52,7 @@ internal fun Translations.enCA() = mapOf(
     Strings.SliderRangeEnd to "Range end",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.enGB() = mapOf(
     Strings.NavigationMenu to "Navigation menu",
     Strings.ExposedDropdownMenu to "Drop-down menu",
@@ -63,7 +63,7 @@ internal fun Translations.enGB() = mapOf(
     Strings.SliderRangeEnd to "Range end",
 )
 
-@Suppress("UnusedReceiverParameter")
+@Suppress("UnusedReceiverParameter", "DuplicatedCode")
 internal fun Translations.enIN() = mapOf(
     Strings.NavigationMenu to "Navigation menu",
     Strings.ExposedDropdownMenu to "Drop-down menu",
