@@ -45,9 +45,11 @@ import kotlinx.coroutines.isActive
 import org.jetbrains.skiko.SkiaLayer
 import org.jetbrains.skiko.SkikoKeyboardEventKind
 import org.jetbrains.skiko.SkikoPointerEventKind
+import org.w3c.dom.AddEventListenerOptions
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLStyleElement
 import org.w3c.dom.HTMLTitleElement
+import org.w3c.dom.MediaQueryListEvent
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.events.MouseEvent
@@ -101,6 +103,19 @@ private class ComposeWindow(
     ) {
         this.addEventListener(type, { event -> handler(event as T, layer.view) })
     }
+
+    private fun initMediaEventListener(handler: (Float) -> Unit) {
+        val contentScale = density.density
+        window.matchMedia("(resolution: ${contentScale}dppx)")
+            .addEventListener("change", { evt ->
+                evt as MediaQueryListEvent
+                if (!evt.matches) {
+                    handler(contentScale)
+                    initMediaEventListener(handler)
+                }
+            }, AddEventListenerOptions(capture = true, once = true))
+    }
+
 
     private fun initEvents(canvas: HTMLCanvasElement) {
         var offsetX = 0.0
@@ -168,6 +183,10 @@ private class ComposeWindow(
             val processed = skikoView.onKeyboardEventWithResult(event.toSkikoEvent(SkikoKeyboardEventKind.UP))
             if (processed) event.preventDefault()
         }
+
+        initMediaEventListener {
+            resize(_windowInfo.containerSize)
+        }
     }
 
     init {
@@ -190,11 +209,13 @@ private class ComposeWindow(
         val width = boxSize.width * density
         val height = boxSize.height * density
 
-        // TODO: What we actually should do is to pass this new dimensions to attachTo without setting them directly on canvas.
-        // We should be HTMLCanvas-agnostic in that sense
-        canvas.width = boxSize.width
-        canvas.height = boxSize.height
+        canvas.width = width
+        canvas.height = height
 
+        // Scale canvas to allow high DPI rendering as suggested in
+        // https://www.khronos.org/webgl/wiki/HandlingHighDPI.
+        canvas.style.width = "${boxSize.width}px"
+        canvas.style.height = "${boxSize.height}px"
 
         _windowInfo.containerSize = IntSize(width, height)
 
