@@ -25,7 +25,7 @@ import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.LayerType
 import androidx.compose.ui.awt.AwtEventFilter
 import androidx.compose.ui.awt.AwtEventFilters
-import androidx.compose.ui.awt.PrimaryMouseButtonFilter
+import androidx.compose.ui.awt.OnlyValidPrimaryMouseButtonFilter
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
@@ -122,7 +122,7 @@ internal class ComposeContainer(
             exceptionHandler?.onException(it) ?: throw it
         },
         eventFilter = AwtEventFilters(
-            PrimaryMouseButtonFilter,
+            OnlyValidPrimaryMouseButtonFilter,
             FocusableLayerEventFilter()
         ),
         coroutineContext = coroutineContext,

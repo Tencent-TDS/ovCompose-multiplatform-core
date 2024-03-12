@@ -21,7 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.awt.AwtEventFilter
-import androidx.compose.ui.awt.PrimaryMouseButtonFilter
+import androidx.compose.ui.awt.OnlyValidPrimaryMouseButtonFilter
 import androidx.compose.ui.awt.SwingInteropContainer
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
@@ -103,7 +103,7 @@ internal class ComposeSceneMediator(
     /**
      * Decides which AWT events should be delivered, and which should be filtered out
      */
-    private val eventFilter: AwtEventFilter = PrimaryMouseButtonFilter,
+    private val eventFilter: AwtEventFilter = OnlyValidPrimaryMouseButtonFilter,
 
     val coroutineContext: CoroutineContext,
 

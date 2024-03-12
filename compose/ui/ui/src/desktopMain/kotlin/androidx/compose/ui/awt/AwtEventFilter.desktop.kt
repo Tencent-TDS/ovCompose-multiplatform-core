@@ -16,11 +16,8 @@
 
 package androidx.compose.ui.awt
 
-import java.awt.Component
-import java.awt.Rectangle
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
-import javax.swing.SwingUtilities
 
 internal interface AwtEventFilter {
     fun shouldSendMouseEvent(event: MouseEvent): Boolean = true
@@ -51,7 +48,7 @@ internal class AwtEventFilters(
  * the window by its corner/edge. This causes false-positives in detectTapGestures.
  * See https://github.com/JetBrains/compose-multiplatform/issues/2850 for more details.
 */
-internal object PrimaryMouseButtonFilter : AwtEventFilter {
+internal object OnlyValidPrimaryMouseButtonFilter : AwtEventFilter {
     private var isPrimaryButtonPressed = false
 
     override fun shouldSendMouseEvent(event: MouseEvent): Boolean {
