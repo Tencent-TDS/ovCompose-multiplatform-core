@@ -104,6 +104,7 @@ internal interface IOSSkikoInput {
 
     /**
      * Returns the text position at a specified offset from another text position.
+     * Returned value must be in range between 0 and length of text (inclusive).
      */
     fun positionFromPosition(position: Long, offset: Long): Long
 

@@ -457,6 +457,7 @@ internal class UIKitTextInputService(
 
         /**
          * Returns the text position at a specified offset from another text position.
+         * Returned value must be in range between 0 and length of text (inclusive).
          */
         override fun positionFromPosition(position: Long, offset: Long): Long {
             val text = getState()?.text ?: return 0
@@ -472,10 +473,16 @@ internal class UIKitTextInputService(
             iterator.setText(text)
 
             repeat(offset.absoluteValue.toInt()) {
-                resultPosition = if (offset > 0) {
+                val iteratorResult = if (offset > 0) {
                     iterator.following(resultPosition)
                 } else {
                     iterator.preceding(resultPosition)
+                }
+
+                if (iteratorResult == BreakIterator.DONE) {
+                    return resultPosition.toLong()
+                } else {
+                    resultPosition = iteratorResult
                 }
             }
 
