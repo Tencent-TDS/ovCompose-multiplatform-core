@@ -57,6 +57,9 @@ import org.w3c.dom.events.WheelEvent
 import org.w3c.dom.TouchEvent
 
 
+private val actualDensity
+    get() = window.devicePixelRatio
+
 @OptIn(InternalComposeApi::class)
 private class ComposeWindow(
     canvasId: String,
@@ -64,7 +67,7 @@ private class ComposeWindow(
 )  {
 
     private val density: Density = Density(
-        density = window.devicePixelRatio.toFloat(),
+        density = actualDensity.toFloat(),
         fontScale = 1f
     )
 
@@ -104,15 +107,16 @@ private class ComposeWindow(
         this.addEventListener(type, { event -> handler(event as T, layer.view) })
     }
 
-    private fun initMediaEventListener(handler: (Float) -> Unit) {
-        val contentScale = density.density
+
+    private fun initMediaEventListener(handler: (Double) -> Unit) {
+        val contentScale = actualDensity
         window.matchMedia("(resolution: ${contentScale}dppx)")
             .addEventListener("change", { evt ->
                 evt as MediaQueryListEvent
                 if (!evt.matches) {
                     handler(contentScale)
-                    initMediaEventListener(handler)
                 }
+                initMediaEventListener(handler)
             }, AddEventListenerOptions(capture = true, once = true))
     }
 
@@ -185,7 +189,7 @@ private class ComposeWindow(
         }
 
         initMediaEventListener {
-            resize(_windowInfo.containerSize)
+            resize(getParentContainerBox())
         }
     }
 
@@ -204,10 +208,10 @@ private class ComposeWindow(
     }
 
     fun resize(boxSize: IntSize) {
-        val density = density.density.toInt()
+        val scaledDensity = density.density.toInt()
 
-        val width = boxSize.width * density
-        val height = boxSize.height * density
+        val width = boxSize.width * scaledDensity
+        val height = boxSize.height * scaledDensity
 
         canvas.width = width
         canvas.height = height
@@ -232,6 +236,11 @@ private class ComposeWindow(
 }
 
 private val defaultCanvasElementId = "ComposeTarget"
+
+private fun getParentContainerBox(): IntSize {
+    val documentElement = document.documentElement ?: return IntSize(0, 0)
+    return IntSize(documentElement.clientWidth, documentElement.clientHeight)
+}
 
 @ExperimentalComposeUiApi
 /**
@@ -271,11 +280,6 @@ fun CanvasBasedWindow(
                 )
             }
         )
-    }
-
-    fun getParentContainerBox(): IntSize {
-        val documentElement = document.documentElement ?: return IntSize(0, 0)
-        return IntSize(documentElement.clientWidth, documentElement.clientHeight)
     }
 
     val actualRequestResize: suspend () -> IntSize = if (requestResize != null) {
