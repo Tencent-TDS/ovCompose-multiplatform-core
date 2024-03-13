@@ -134,7 +134,7 @@ class SkikoComposeUiTest(
         @InternalTestApi
         set
 
-    private val testOwner = DesktopTestOwner()
+    private val testOwner = SkikoTestOwner()
     private val testContext = createTestContext(testOwner)
 
     private val idlingResources = mutableSetOf<IdlingResource>()
@@ -321,7 +321,7 @@ class SkikoComposeUiTest(
     }
 
     @OptIn(InternalComposeUiApi::class)
-    private inner class DesktopTestOwner : TestOwner, SkikoTestOwner {
+    internal inner class SkikoTestOwner : TestOwner {
         override fun <T> runOnUiThread(action: () -> T): T {
             return this@SkikoComposeUiTest.runOnUiThread(action)
         }
@@ -334,7 +334,7 @@ class SkikoComposeUiTest(
         override val mainClock get() =
             this@SkikoComposeUiTest.mainClock
 
-        override fun captureToImage(semanticsNode: SemanticsNode): ImageBitmap =
+        fun captureToImage(semanticsNode: SemanticsNode): ImageBitmap =
             this@SkikoComposeUiTest.captureToImage(semanticsNode)
     }
 
