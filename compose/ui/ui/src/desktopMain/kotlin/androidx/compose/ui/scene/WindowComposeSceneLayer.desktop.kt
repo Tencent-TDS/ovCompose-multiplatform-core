@@ -171,8 +171,8 @@ internal class WindowComposeSceneLayer(
     }
 
     private fun onDrawRectChange(rect: Rect) {
-        val bounds = rect.roundToIntRect().translate(visibleBounds.topLeft)
-        visibleBounds = bounds
+        val bounds = rect.roundToIntRect().translate(drawBounds.topLeft)
+        drawBounds = bounds
         setDialogBounds(bounds)
     }
 

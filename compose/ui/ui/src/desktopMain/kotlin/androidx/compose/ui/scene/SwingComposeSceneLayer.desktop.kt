@@ -55,8 +55,8 @@ internal class SwingComposeSceneLayer(
         override fun addNotify() {
             super.addNotify()
             mediator?.onComponentAttached()
-            if (!visibleBounds.isEmpty) {
-                setComponentBounds(visibleBounds)
+            if (!drawBounds.isEmpty) {
+                setComponentBounds(drawBounds)
             }
         }
 
@@ -85,7 +85,7 @@ internal class SwingComposeSceneLayer(
             if (field.width != value.width || field.height != value.height) {
                 field = value
                 container.setBounds(0, 0, value.width, value.height)
-                if (visibleBounds.isEmpty) {
+                if (drawBounds.isEmpty) {
                     mediator?.contentComponent?.size = container.size
                 }
                 mediator?.onChangeComponentSize()
@@ -142,8 +142,8 @@ internal class SwingComposeSceneLayer(
     }
 
     private fun onDrawRectChange(rect: Rect) {
-        val bounds = rect.roundToIntRect().translate(visibleBounds.topLeft)
-        visibleBounds = bounds
+        val bounds = rect.roundToIntRect().translate(drawBounds.topLeft)
+        drawBounds = bounds
         setComponentBounds(bounds)
     }
 

@@ -66,7 +66,7 @@ internal abstract class DesktopComposeSceneLayer(
     /**
      * Bounds of real drawings from previous render.
      */
-    protected var visibleBounds = IntRect.Zero
+    protected var drawBounds = IntRect.Zero
 
     private var outsidePointerCallback: ((eventType: PointerEventType) -> Unit)? = null
     private var isClosed = false

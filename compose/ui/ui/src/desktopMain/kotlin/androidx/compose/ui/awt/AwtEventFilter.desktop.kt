@@ -74,7 +74,7 @@ internal class BoundsEventFilter(
             MouseEvent.MOUSE_EXITED,
             MouseEvent.MOUSE_DRAGGED -> return false
         }
-        return if (inBounds(event)) {
+        return if (event.isInBounds) {
             false
         } else {
             onOutside(event)
@@ -82,13 +82,13 @@ internal class BoundsEventFilter(
         }
     }
 
-    private fun inBounds(event: MouseEvent): Boolean {
-        val point = if (event.component != relativeTo) {
-            SwingUtilities.convertPoint(event.component, event.point, relativeTo)
+    private val MouseEvent.isInBounds: Boolean get() {
+        val localPoint = if (component != relativeTo) {
+            SwingUtilities.convertPoint(component, point, relativeTo)
         } else {
-            event.point
+            point
         }
-        return bounds.contains(point)
+        return bounds.contains(localPoint)
     }
 }
 
