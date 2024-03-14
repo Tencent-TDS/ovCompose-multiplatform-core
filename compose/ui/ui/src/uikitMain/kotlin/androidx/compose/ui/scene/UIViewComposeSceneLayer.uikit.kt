@@ -131,7 +131,7 @@ internal class UIViewComposeSceneLayer(
     /**
      * Bounds of real drawings from previous render.
      */
-    private var visibleBounds = IntRect.Zero
+    private var drawBounds = IntRect.Zero
 
     init {
         backgroundView.translatesAutoresizingMaskIntoConstraints = false
@@ -209,16 +209,17 @@ internal class UIViewComposeSceneLayer(
         return positionInWindow
     }
 
-    private fun onDrawRectChange(rect: Rect) {
-        val bounds = rect.roundToIntRect().translate(visibleBounds.topLeft)
-        visibleBounds = bounds
+    private fun onDrawRectChange(canvasBoundsInPx: Rect) {
+        val currentCanvasOffset = drawBounds.topLeft
+        val boundsInWindow = canvasBoundsInPx.roundToIntRect().translate(currentCanvasOffset)
+        drawBounds = boundsInWindow
         updateBounds()
     }
 
     private fun updateBounds() {
         mediator.setLayout(
             SceneLayout.Bounds(
-                renderBounds = visibleBounds,
+                renderBounds = drawBounds,
                 interactionBounds = boundsInWindow
             )
         )

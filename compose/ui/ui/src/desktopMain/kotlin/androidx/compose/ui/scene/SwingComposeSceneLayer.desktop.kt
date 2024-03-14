@@ -20,6 +20,7 @@ import androidx.compose.runtime.CompositionContext
 import androidx.compose.ui.awt.toAwtColor
 import androidx.compose.ui.awt.toAwtRectangle
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
 import androidx.compose.ui.scene.skia.SwingSkiaLayerComponent
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.window.density
+import androidx.compose.ui.window.sizeInPx
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.event.MouseAdapter
@@ -55,9 +57,7 @@ internal class SwingComposeSceneLayer(
         override fun addNotify() {
             super.addNotify()
             mediator?.onComponentAttached()
-            if (!drawBounds.isEmpty) {
-                setComponentBounds(drawBounds)
-            }
+            updateComponentBounds()
         }
 
         override fun paint(g: Graphics) {
@@ -74,10 +74,6 @@ internal class SwingComposeSceneLayer(
         it.background = Color.Transparent.toAwtColor()
         it.size = Dimension(windowContainer.width, windowContainer.height)
         it.addMouseListener(backgroundMouseListener)
-
-        // TODO: Currently it works only with offscreen rendering
-        // TODO: Do not clip this from main scene if layersContainer == main container
-        windowContainer.add(it, JLayeredPane.POPUP_LAYER, 0)
     }
 
     private var containerSize = IntSize.Zero
@@ -108,6 +104,8 @@ internal class SwingComposeSceneLayer(
         }
 
     init {
+        val boundsInPx = windowContainer.sizeInPx.toRect()
+        drawBounds = boundsInPx.roundToIntRect()
         mediator = ComposeSceneMediator(
             container = container,
             windowContext = composeContainer.windowContext,
@@ -123,6 +121,11 @@ internal class SwingComposeSceneLayer(
             it.onChangeWindowTransparency(true)
             it.contentComponent.size = container.size
         }
+
+        // TODO: Currently it works only with offscreen rendering
+        // TODO: Do not clip this from main scene if layersContainer == main container
+        windowContainer.add(container, JLayeredPane.POPUP_LAYER, 0)
+
         composeContainer.attachLayer(this)
     }
 
@@ -141,10 +144,11 @@ internal class SwingComposeSceneLayer(
         containerSize = IntSize(windowContainer.width, windowContainer.height)
     }
 
-    private fun onDrawRectChange(rect: Rect) {
-        val bounds = rect.roundToIntRect().translate(drawBounds.topLeft)
-        drawBounds = bounds
-        setComponentBounds(bounds)
+    private fun onDrawRectChange(canvasBoundsInPx: Rect) {
+        val currentCanvasOffset = drawBounds.topLeft
+        val boundsInWindow = canvasBoundsInPx.roundToIntRect().translate(currentCanvasOffset)
+        drawBounds = boundsInWindow
+        updateComponentBounds()
     }
 
     private fun createSkiaLayerComponent(mediator: ComposeSceneMediator): SkiaLayerComponent {
@@ -169,8 +173,8 @@ internal class SwingComposeSceneLayer(
         )
     }
 
-    private fun setComponentBounds(bounds: IntRect) {
-        val scaledRectangle = bounds.toAwtRectangle(density)
+    private fun updateComponentBounds() {
+        val scaledRectangle = drawBounds.toAwtRectangle(density)
         val localBounds = SwingUtilities.convertRectangle(
             /* source = */ windowContainer,
             /* aRectangle = */ scaledRectangle,
