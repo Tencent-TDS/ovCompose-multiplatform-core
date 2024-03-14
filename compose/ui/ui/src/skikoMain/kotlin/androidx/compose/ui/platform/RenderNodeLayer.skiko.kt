@@ -237,14 +237,8 @@ internal class RenderNodeLayer(
 
     override fun drawLayer(canvas: Canvas) {
         if (picture == null) {
-            val largestRect = SkRect.makeLTRB(
-                l = PICTURE_MIN_VALUE,
-                t = PICTURE_MIN_VALUE,
-                r = PICTURE_MAX_VALUE,
-                b = PICTURE_MAX_VALUE
-            )
             val pictureCanvas = pictureRecorder.beginRecording(
-                bounds = largestRect,
+                bounds = PICTURE_BOUNDS,
                 bbh = bbhFactory
             )
             performDrawLayer(pictureCanvas.asComposeCanvas())
@@ -369,3 +363,9 @@ private inline fun Float.isZero(): Boolean = abs(this) <= NON_ZERO_EPSILON
 // case).
 private const val PICTURE_MIN_VALUE = -(1 shl 30).toFloat()
 private const val PICTURE_MAX_VALUE = ((1 shl 30)-1).toFloat()
+private val PICTURE_BOUNDS = SkRect.makeLTRB(
+    l = PICTURE_MIN_VALUE,
+    t = PICTURE_MIN_VALUE,
+    r = PICTURE_MAX_VALUE,
+    b = PICTURE_MAX_VALUE
+)

@@ -53,10 +53,7 @@ internal class RecordDrawRectSkikoViewDecorator(
     private inline fun Canvas.recordCullRect(
         block: (Canvas) -> Unit
     ): SkRect? {
-        val largestRect = SkRect.makeLTRB(
-            Float.MIN_VALUE, Float.MIN_VALUE, Float.MAX_VALUE, Float.MAX_VALUE
-        )
-        val pictureCanvas = pictureRecorder.beginRecording(largestRect, bbhFactory)
+        val pictureCanvas = pictureRecorder.beginRecording(PICTURE_BOUNDS, bbhFactory)
         pictureCanvas.translate(MEASURE_OFFSET, MEASURE_OFFSET)
         block(pictureCanvas)
         val picture = pictureRecorder.finishRecordingAsPicture()
@@ -83,3 +80,10 @@ internal class RecordDrawRectSkikoViewDecorator(
  * so temporary applying some offset is required to get right measurement in negative area.
  */
 private const val MEASURE_OFFSET = (1 shl 14).toFloat()
+
+private val PICTURE_BOUNDS = SkRect.makeLTRB(
+    l = Float.MIN_VALUE,
+    t = Float.MIN_VALUE,
+    r = Float.MAX_VALUE,
+    b = Float.MAX_VALUE
+)
