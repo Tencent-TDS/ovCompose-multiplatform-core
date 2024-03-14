@@ -20,6 +20,7 @@ import org.jetbrains.skia.Rect as SkRect
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.toComposeRect
 import org.jetbrains.skia.Canvas
+import org.jetbrains.skia.Picture
 import org.jetbrains.skia.PictureRecorder
 import org.jetbrains.skia.RTreeFactory
 import org.jetbrains.skiko.SkikoView
@@ -46,23 +47,39 @@ internal class RecordDrawRectSkikoViewDecorator(
     override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
         drawRect = canvas.recordCullRect {
             decorated.onRender(it, width, height, nanoTime)
-        }.toComposeRect()
+        }?.toComposeRect() ?: Rect.Zero
     }
 
     private inline fun Canvas.recordCullRect(
         block: (Canvas) -> Unit
-    ): SkRect {
+    ): SkRect? {
         val largestRect = SkRect.makeLTRB(
             Float.MIN_VALUE, Float.MIN_VALUE, Float.MAX_VALUE, Float.MAX_VALUE
         )
         val pictureCanvas = pictureRecorder.beginRecording(largestRect, bbhFactory)
+        pictureCanvas.translate(MEASURE_OFFSET, MEASURE_OFFSET)
         block(pictureCanvas)
         val picture = pictureRecorder.finishRecordingAsPicture()
         try {
+            save()
+            translate(-MEASURE_OFFSET, -MEASURE_OFFSET)
             drawPicture(picture, null, null)
-            return picture.cullRect
+            restore()
+            return if (!picture.cullRect.isEmpty) {
+                picture.cullRect.offset(-MEASURE_OFFSET, -MEASURE_OFFSET)
+            } else {
+                // It means that there ware no drawings.
+                // Applying our offset is incorrect in this case.
+                null
+            }
         } finally {
             picture.close()
         }
     }
 }
+
+/**
+ * Skia cannot return negative values in [Picture.cullRect],
+ * so temporary applying some offset is required to get right measurement in negative area.
+ */
+private const val MEASURE_OFFSET = (1 shl 14).toFloat()
