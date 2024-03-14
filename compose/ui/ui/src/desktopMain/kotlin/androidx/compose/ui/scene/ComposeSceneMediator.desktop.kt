@@ -20,7 +20,7 @@ import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.ComposeFeatureFlags
-import androidx.compose.ui.awt.AwtEventFilter
+import androidx.compose.ui.awt.AwtEventListener
 import androidx.compose.ui.awt.OnlyValidPrimaryMouseButtonFilter
 import androidx.compose.ui.awt.SwingInteropContainer
 import androidx.compose.ui.focus.FocusDirection
@@ -99,11 +99,7 @@ internal class ComposeSceneMediator(
     private val container: Container,
     private val windowContext: PlatformWindowContext,
     private var exceptionHandler: WindowExceptionHandler?,
-
-    /**
-     * Decides which AWT events should be delivered, and which should be filtered out
-     */
-    private val eventFilter: AwtEventFilter = OnlyValidPrimaryMouseButtonFilter,
+    private val eventListener: AwtEventListener = OnlyValidPrimaryMouseButtonFilter,
 
     /**
      * @see PlatformContext.measureDrawLayerBounds
@@ -386,7 +382,7 @@ internal class ComposeSceneMediator(
         if (isDisposed) {
             return
         }
-        if (!eventFilter.shouldSendMouseEvent(event)) {
+        if (eventListener.onMouseEvent(event)) {
             return
         }
         if (keyboardModifiersRequireUpdate) {
@@ -403,7 +399,7 @@ internal class ComposeSceneMediator(
         if (isDisposed) {
             return
         }
-        if (!eventFilter.shouldSendMouseEvent(event)) {
+        if (eventListener.onMouseEvent(event)) {
             return
         }
         processMouseEvent {
@@ -416,7 +412,7 @@ internal class ComposeSceneMediator(
         if (isDisposed) {
             return
         }
-        if (!eventFilter.shouldSendKeyEvent(event)) {
+        if (eventListener.onKeyEvent(event)) {
             return
         }
         textInputService.onKeyEvent(event)
