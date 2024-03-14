@@ -78,9 +78,7 @@ internal class SwingComposeSceneLayer(
             if (field.width != value.width || field.height != value.height) {
                 field = value
                 container.setBounds(0, 0, value.width, value.height)
-                if (drawBounds.isEmpty) {
-                    mediator?.contentComponent?.size = container.size
-                }
+                mediator?.contentComponent?.size = container.size
                 mediator?.onChangeComponentSize()
             }
         }
