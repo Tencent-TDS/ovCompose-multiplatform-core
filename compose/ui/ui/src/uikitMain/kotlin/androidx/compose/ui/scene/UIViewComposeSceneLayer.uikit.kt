@@ -127,9 +127,14 @@ internal class UIViewComposeSceneLayer(
     }
 
     /**
-     * Bounds of real drawings from previous render.
+     * Bounds of real drawings based on previous renders.
      */
     private var drawBounds = IntRect.Zero
+
+    /**
+     * The maximum amount to inflate the [drawBounds] comparing to [boundsInWindow].
+     */
+    private var maxDrawInflate = IntRect.Zero
 
     init {
         backgroundView.translatesAutoresizingMaskIntoConstraints = false
@@ -210,9 +215,14 @@ internal class UIViewComposeSceneLayer(
     private fun recordDrawBounds(renderDelegate: SkikoRenderDelegate) =
         RecordDrawRectSkikoViewDecorator(renderDelegate) { canvasBoundsInPx ->
             val currentCanvasOffset = drawBounds.topLeft
-            val boundsInWindow = canvasBoundsInPx.roundToIntRect().translate(currentCanvasOffset)
-                .union(boundsInWindow)
-            drawBounds = boundsInWindow
+            val drawBoundsInWindow = canvasBoundsInPx.roundToIntRect().translate(currentCanvasOffset)
+            maxDrawInflate = maxInflate(boundsInWindow, drawBoundsInWindow, maxDrawInflate)
+            drawBounds = IntRect(
+                left = boundsInWindow.left - maxDrawInflate.left,
+                top = boundsInWindow.top - maxDrawInflate.top,
+                right = boundsInWindow.right + maxDrawInflate.right,
+                bottom = boundsInWindow.bottom + maxDrawInflate.bottom
+            )
             updateBounds()
         }
 
@@ -249,9 +259,9 @@ internal class UIViewComposeSceneLayer(
     }
 }
 
-private fun IntRect.union(other: IntRect) = IntRect(
-    left = min(left, other.left),
-    top = min(top, other.top),
-    bottom = max(bottom, other.bottom),
-    right = max(right, other.right)
+private fun maxInflate(baseBounds: IntRect, currentBounds: IntRect, maxInflate: IntRect) = IntRect(
+    left = max(baseBounds.left - currentBounds.left, maxInflate.left),
+    top = max(baseBounds.top - currentBounds.top, maxInflate.top),
+    right = max(currentBounds.right - baseBounds.right, maxInflate.right),
+    bottom = max(currentBounds.bottom - baseBounds.bottom, maxInflate.bottom)
 )
