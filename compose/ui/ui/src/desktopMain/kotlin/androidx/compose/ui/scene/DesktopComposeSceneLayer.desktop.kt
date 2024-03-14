@@ -21,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.awt.AwtEventListener
 import androidx.compose.ui.awt.AwtEventListeners
-import androidx.compose.ui.awt.BoundsEventFilter
 import androidx.compose.ui.awt.OnlyValidPrimaryMouseButtonFilter
 import androidx.compose.ui.awt.toAwtRectangle
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -56,9 +55,7 @@ internal abstract class DesktopComposeSceneLayer(
         FocusableLayerEventFilter()
     )
     private val boundsEventFilter = BoundsEventFilter(
-        bounds = Rectangle(windowContainer.size),
-        relativeTo = windowContainer,
-        onOutside = ::onMouseEventOutside
+        bounds = Rectangle(windowContainer.size)
     )
 
     protected abstract val mediator: ComposeSceneMediator?
@@ -205,6 +202,36 @@ internal abstract class DesktopComposeSceneLayer(
 
         override fun onMouseEvent(event: MouseEvent): Boolean = !noFocusableLayersAbove
         override fun onKeyEvent(event: KeyEvent): Boolean = !focusable || !noFocusableLayersAbove
+    }
+
+    private inner class BoundsEventFilter(
+        var bounds: Rectangle,
+    ) : AwtEventListener {
+        private val MouseEvent.isInBounds: Boolean
+            get() {
+                val localPoint = if (component != windowContainer) {
+                    SwingUtilities.convertPoint(component, point, windowContainer)
+                } else {
+                    point
+                }
+                return bounds.contains(localPoint)
+            }
+
+        override fun onMouseEvent(event: MouseEvent): Boolean {
+            when (event.id) {
+                // Do not filter motion events
+                MouseEvent.MOUSE_MOVED,
+                MouseEvent.MOUSE_ENTERED,
+                MouseEvent.MOUSE_EXITED,
+                MouseEvent.MOUSE_DRAGGED -> return false
+            }
+            return if (event.isInBounds) {
+                false
+            } else {
+                onMouseEventOutside(event)
+                true
+            }
+        }
     }
 }
 

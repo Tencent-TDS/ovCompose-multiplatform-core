@@ -16,11 +16,8 @@
 
 package androidx.compose.ui.awt
 
-import java.awt.Component
-import java.awt.Rectangle
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
-import javax.swing.SwingUtilities
 
 internal interface AwtEventListener {
     /**
@@ -58,37 +55,6 @@ internal class AwtEventListeners(
             }
         }
         return false
-    }
-}
-
-internal class BoundsEventFilter(
-    var bounds: Rectangle,
-    private val relativeTo: Component,
-    private val onOutside: (event: MouseEvent) -> Unit
-) : AwtEventListener {
-    override fun onMouseEvent(event: MouseEvent): Boolean {
-        when (event.id) {
-            // Do not filter motion events
-            MouseEvent.MOUSE_MOVED,
-            MouseEvent.MOUSE_ENTERED,
-            MouseEvent.MOUSE_EXITED,
-            MouseEvent.MOUSE_DRAGGED -> return false
-        }
-        return if (event.isInBounds) {
-            false
-        } else {
-            onOutside(event)
-            true
-        }
-    }
-
-    private val MouseEvent.isInBounds: Boolean get() {
-        val localPoint = if (component != relativeTo) {
-            SwingUtilities.convertPoint(component, point, relativeTo)
-        } else {
-            point
-        }
-        return bounds.contains(localPoint)
     }
 }
 
