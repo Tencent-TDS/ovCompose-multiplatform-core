@@ -24,16 +24,21 @@ import androidx.compose.ui.awt.AwtEventListeners
 import androidx.compose.ui.awt.OnlyValidPrimaryMouseButtonFilter
 import androidx.compose.ui.awt.toAwtRectangle
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.skiko.RecordDrawRectSkikoViewDecorator
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.util.fastForEachReversed
 import java.awt.Rectangle
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
 import javax.swing.SwingUtilities
+import kotlin.math.max
+import kotlin.math.min
 import org.jetbrains.skia.Canvas
+import org.jetbrains.skiko.SkikoView
 
 /**
  * Represents an abstract class for a desktop Compose scene layer.
@@ -119,6 +124,15 @@ internal abstract class DesktopComposeSceneLayer(
     override fun calculateLocalPosition(positionInWindow: IntOffset) =
         positionInWindow // [ComposeScene] is equal to [windowContainer] for the layer.
 
+    protected fun recordDrawBounds(skikoView: SkikoView) =
+        RecordDrawRectSkikoViewDecorator(skikoView) { canvasBoundsInPx ->
+            val currentCanvasOffset = drawBounds.topLeft
+            val boundsInWindow = canvasBoundsInPx.roundToIntRect().translate(currentCanvasOffset)
+                .union(boundsInWindow)
+            drawBounds = boundsInWindow
+            onUpdateBounds()
+        }
+
     /**
      * Called when the focus of the window containing main Compose view has changed.
      */
@@ -141,6 +155,12 @@ internal abstract class DesktopComposeSceneLayer(
      * Called when the layers in [composeContainer] have changed.
      */
     open fun onLayersChange() {
+    }
+
+    /**
+     * Called when bounds of the layer has been updated.
+     */
+    open fun onUpdateBounds() {
     }
 
     /**
@@ -237,3 +257,10 @@ internal abstract class DesktopComposeSceneLayer(
 
 private fun MouseEvent.isMainAction() =
     button == MouseEvent.BUTTON1
+
+private fun IntRect.union(other: IntRect) = IntRect(
+    left = min(left, other.left),
+    top = min(top, other.top),
+    bottom = max(bottom, other.bottom),
+    right = max(right, other.right)
+)

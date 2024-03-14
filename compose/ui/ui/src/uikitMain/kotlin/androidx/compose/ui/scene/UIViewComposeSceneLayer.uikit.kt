@@ -19,7 +19,6 @@ package androidx.compose.ui.scene
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalContext
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -43,15 +42,14 @@ import androidx.compose.ui.window.ProvideContainerCompositionLocals
 import androidx.compose.ui.window.RenderingUIView
 import androidx.compose.ui.window.SkikoRenderDelegate
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.max
+import kotlin.math.min
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
-import org.jetbrains.skia.Canvas
-import org.jetbrains.skiko.SkikoView
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
-import platform.Foundation.NSTimeInterval
 import platform.UIKit.NSLayoutConstraint
 import platform.UIKit.UIEvent
 import platform.UIKit.UITouch
@@ -145,7 +143,7 @@ internal class UIViewComposeSceneLayer(
     private fun createSkikoUIView(interopContext: UIKitInteropContext, renderDelegate: SkikoRenderDelegate): RenderingUIView =
         RenderingUIView(
             interopContext = interopContext,
-            renderDelegate = RecordDrawRectSkikoViewDecorator(renderDelegate, ::onDrawRectChange)
+            renderDelegate = recordDrawBounds(renderDelegate)
         ).apply {
             opaque = false
         }
@@ -209,12 +207,14 @@ internal class UIViewComposeSceneLayer(
         return positionInWindow
     }
 
-    private fun onDrawRectChange(canvasBoundsInPx: Rect) {
-        val currentCanvasOffset = drawBounds.topLeft
-        val boundsInWindow = canvasBoundsInPx.roundToIntRect().translate(currentCanvasOffset)
-        drawBounds = boundsInWindow
-        updateBounds()
-    }
+    private fun recordDrawBounds(renderDelegate: SkikoRenderDelegate) =
+        RecordDrawRectSkikoViewDecorator(renderDelegate) { canvasBoundsInPx ->
+            val currentCanvasOffset = drawBounds.topLeft
+            val boundsInWindow = canvasBoundsInPx.roundToIntRect().translate(currentCanvasOffset)
+                .union(boundsInWindow)
+            drawBounds = boundsInWindow
+            updateBounds()
+        }
 
     private fun updateBounds() {
         mediator.setLayout(
@@ -248,3 +248,10 @@ internal class UIViewComposeSceneLayer(
         mediator.viewWillTransitionToSize(targetSize, coordinator)
     }
 }
+
+private fun IntRect.union(other: IntRect) = IntRect(
+    left = min(left, other.left),
+    top = min(top, other.top),
+    bottom = max(bottom, other.bottom),
+    right = max(right, other.right)
+)

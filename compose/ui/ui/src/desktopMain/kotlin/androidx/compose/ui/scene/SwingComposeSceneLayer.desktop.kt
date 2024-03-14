@@ -19,14 +19,11 @@ package androidx.compose.ui.scene
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.ui.awt.toAwtColor
 import androidx.compose.ui.awt.toAwtRectangle
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
 import androidx.compose.ui.scene.skia.SwingSkiaLayerComponent
-import androidx.compose.ui.skiko.RecordDrawRectSkikoViewDecorator
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.roundToIntRect
@@ -57,7 +54,7 @@ internal class SwingComposeSceneLayer(
         override fun addNotify() {
             super.addNotify()
             mediator?.onComponentAttached()
-            updateComponentBounds()
+            onUpdateBounds()
         }
 
         override fun paint(g: Graphics) {
@@ -144,15 +141,17 @@ internal class SwingComposeSceneLayer(
         containerSize = IntSize(windowContainer.width, windowContainer.height)
     }
 
-    private fun onDrawRectChange(canvasBoundsInPx: Rect) {
-        val currentCanvasOffset = drawBounds.topLeft
-        val boundsInWindow = canvasBoundsInPx.roundToIntRect().translate(currentCanvasOffset)
-        drawBounds = boundsInWindow
-        updateComponentBounds()
+    override fun onUpdateBounds() {
+        val scaledRectangle = drawBounds.toAwtRectangle(density)
+        val localBounds = SwingUtilities.convertRectangle(
+            /* source = */ windowContainer,
+            /* aRectangle = */ scaledRectangle,
+            /* destination = */ container)
+        mediator?.contentComponent?.bounds = localBounds
     }
 
     private fun createSkiaLayerComponent(mediator: ComposeSceneMediator): SkiaLayerComponent {
-        val skikoView = RecordDrawRectSkikoViewDecorator(mediator, ::onDrawRectChange)
+        val skikoView = recordDrawBounds(mediator)
         return SwingSkiaLayerComponent(
             mediator = mediator,
             skikoView = skikoView,
@@ -171,14 +170,5 @@ internal class SwingComposeSceneLayer(
                 platformContext = mediator.platformContext
             ),
         )
-    }
-
-    private fun updateComponentBounds() {
-        val scaledRectangle = drawBounds.toAwtRectangle(density)
-        val localBounds = SwingUtilities.convertRectangle(
-            /* source = */ windowContainer,
-            /* aRectangle = */ scaledRectangle,
-            /* destination = */ container)
-        mediator?.contentComponent?.bounds = localBounds
     }
 }
