@@ -40,7 +40,6 @@ import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -67,6 +66,18 @@ private val actualDensity
 private interface ComposeWindowState {
     fun init() {}
     fun sizeFlow(): Flow<IntSize>
+
+    companion object {
+        fun createFromLambda(lambda: suspend () -> IntSize): ComposeWindowState {
+            return object : ComposeWindowState {
+                override fun sizeFlow(): Flow<IntSize> = flow {
+                    while (coroutineContext.isActive) {
+                        emit(lambda())
+                    }
+                }
+            }
+        }
+    }
 }
 
 private class DefaultWindowState : ComposeWindowState {
@@ -102,16 +113,6 @@ private class DefaultWindowState : ComposeWindowState {
     }
 
     override fun sizeFlow() = channel.receiveAsFlow()
-}
-
-private fun(suspend () -> IntSize).asComposeWindowState(): ComposeWindowState {
-    return object : ComposeWindowState {
-        override fun sizeFlow(): Flow<IntSize> = flow {
-            while (coroutineContext.isActive) {
-                emit(this@asComposeWindowState())
-            }
-        }
-    }
 }
 
 @OptIn(InternalComposeApi::class)
@@ -244,7 +245,6 @@ private class ComposeWindow(
                     rememberCoroutineScope().launch {
                         state.sizeFlow().collect { size ->
                             this@ComposeWindow.resize(size)
-                            delay(100)
                         }
                     }
                 }
@@ -281,11 +281,6 @@ private class ComposeWindow(
 }
 
 private const val defaultCanvasElementId = "ComposeTarget"
-
-private fun getParentContainerBox(): IntSize {
-    val documentElement = document.documentElement ?: return IntSize(0, 0)
-    return IntSize(documentElement.clientWidth, documentElement.clientHeight)
-}
 
 @ExperimentalComposeUiApi
 /**
@@ -332,6 +327,6 @@ fun CanvasBasedWindow(
     ComposeWindow(
         canvas = canvas,
         content = content,
-        state = requestResize?.asComposeWindowState() ?: DefaultWindowState()
+        state = if (requestResize == null) DefaultWindowState() else ComposeWindowState.createFromLambda(requestResize)
     )
 }
