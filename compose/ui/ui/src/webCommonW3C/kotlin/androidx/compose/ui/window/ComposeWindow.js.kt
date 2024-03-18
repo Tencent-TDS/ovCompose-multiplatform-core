@@ -145,7 +145,11 @@ private class ComposeWindow(
 
     private val jsInputModeManager = DefaultInputModeManager(getInitialInputMode())
 
-    private val imeTextInputService = ImeTextInputService(canvasId, density)
+    private val imeTextInputService =
+        ImeTextInputService(
+            canvas.id.takeIf { it.isNotBlank() } ?: canvas.hashCode().toString(),
+            density
+        )
 
     private val jsTextInputService = JSTextInputService(jsInputModeManager, imeTextInputService)
 
@@ -201,17 +205,35 @@ private class ComposeWindow(
 
         addTypedEvent<TouchEvent>("touchmove") { event ->
             event.preventDefault()
-            layer.view.onPointerEvent(event.toSkikoEvent(SkikoPointerEventKind.MOVE, offsetX, offsetY))
+            layer.view.onPointerEvent(
+                event.toSkikoEvent(
+                    SkikoPointerEventKind.MOVE,
+                    offsetX,
+                    offsetY
+                )
+            )
         }
 
         addTypedEvent<TouchEvent>("touchend") { event ->
             event.preventDefault()
-            layer.view.onPointerEvent(event.toSkikoEvent(SkikoPointerEventKind.UP, offsetX, offsetY))
+            layer.view.onPointerEvent(
+                event.toSkikoEvent(
+                    SkikoPointerEventKind.UP,
+                    offsetX,
+                    offsetY
+                )
+            )
         }
 
         addTypedEvent<TouchEvent>("touchcancel") { event ->
             event.preventDefault()
-            layer.view.onPointerEvent(event.toSkikoEvent(SkikoPointerEventKind.UP, offsetX, offsetY))
+            layer.view.onPointerEvent(
+                event.toSkikoEvent(
+                    SkikoPointerEventKind.UP,
+                    offsetX,
+                    offsetY
+                )
+            )
         }
 
         addTypedEvent<MouseEvent>("mousedown") { event ->
@@ -241,12 +263,14 @@ private class ComposeWindow(
         })
 
         addTypedEvent<KeyboardEvent>("keydown") { event ->
-            val processed = layer.view.onKeyboardEventWithResult(event.toSkikoEvent(SkikoKeyboardEventKind.DOWN))
+            val processed =
+                layer.view.onKeyboardEventWithResult(event.toSkikoEvent(SkikoKeyboardEventKind.DOWN))
             if (processed) event.preventDefault()
         }
 
         addTypedEvent<KeyboardEvent>("keyup") { event ->
-            val processed = layer.view.onKeyboardEventWithResult(event.toSkikoEvent(SkikoKeyboardEventKind.UP))
+            val processed =
+                layer.view.onKeyboardEventWithResult(event.toSkikoEvent(SkikoKeyboardEventKind.UP))
             if (processed) event.preventDefault()
         }
     }
@@ -304,17 +328,17 @@ private class ComposeWindow(
 private const val defaultCanvasElementId = "ComposeTarget"
 
 @ExperimentalComposeUiApi
-/**
- * EXPERIMENTAL! Might be deleted or changed in the future!
- *
- * Initializes the composition in HTML canvas identified by [canvasElementId].
- *
- * It can be resized by providing [requestResize].
- * By default, it will listen to the window resize events.
- *
- * By default, styles will be applied to use the entire inner window, disabling scrollbars.
- * This can be turned off by setting [applyDefaultStyles] to false.
- */
+    /**
+     * EXPERIMENTAL! Might be deleted or changed in the future!
+     *
+     * Initializes the composition in HTML canvas identified by [canvasElementId].
+     *
+     * It can be resized by providing [requestResize].
+     * By default, it will listen to the window resize events.
+     *
+     * By default, styles will be applied to use the entire inner window, disabling scrollbars.
+     * This can be turned off by setting [applyDefaultStyles] to false.
+     */
 fun CanvasBasedWindow(
     title: String? = null,
     canvasElementId: String = defaultCanvasElementId,
@@ -348,6 +372,8 @@ fun CanvasBasedWindow(
     ComposeWindow(
         canvas = canvas,
         content = content,
-        state = if (requestResize == null) DefaultWindowState() else ComposeWindowState.createFromLambda(requestResize)
+        state = if (requestResize == null) DefaultWindowState() else ComposeWindowState.createFromLambda(
+            requestResize
+        )
     )
 }
