@@ -36,6 +36,7 @@ import androidx.compose.ui.assertReceivedNoEvents
 import androidx.compose.ui.assertThat
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -45,8 +46,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformInsetsConfig
+import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.platform.ZeroInsetsConfig
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.scene.ComposeScene
+import androidx.compose.ui.scene.ComposeSceneContext
+import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
@@ -65,6 +70,9 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.fail
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runTest
+import org.jetbrains.skia.Surface
 
 @OptIn(ExperimentalTestApi::class)
 class PopupTest {
@@ -74,8 +82,15 @@ class PopupTest {
             override val safeInsets: PlatformInsets
                 @Composable get() = insets
 
+            override val ime: PlatformInsets
+                @Composable get() = PlatformInsets.Zero
+
             @Composable
-            override fun excludeSafeInsets(content: @Composable () -> Unit) {
+            override fun excludeInsets(
+                safeInsets: Boolean,
+                ime: Boolean,
+                content: @Composable () -> Unit
+            ) {
                 content()
             }
         }
@@ -653,5 +668,34 @@ class PopupTest {
 
         // It should not generate extra Exit/Enter events
         background.events.assertReceivedNoEvents()
+    }
+
+    @Test
+    fun popupContentLargerThanWindowInfoContainer() = runTest(StandardTestDispatcher()) {
+        lateinit var scene: ComposeScene
+        val size = IntSize(100, 100)
+        val surface = Surface.makeRasterN32Premul(size.width, size.height)
+        fun invalidate() {
+            scene.render(surface.canvas.asComposeCanvas(), 1)
+        }
+        scene = MultiLayerComposeScene(
+            composeSceneContext = object : ComposeSceneContext {
+            }.also {
+                val windowInfo = it.platformContext.windowInfo as WindowInfoImpl
+                windowInfo.containerSize = IntSize(50, 50)
+            },
+            invalidate = ::invalidate
+        )
+        try {
+            scene.size = size
+            scene.setContent {
+                Popup {
+                    Box(Modifier.size(200.dp))
+                }
+            }
+            invalidate()
+        } finally {
+            scene.close()
+        }
     }
 }

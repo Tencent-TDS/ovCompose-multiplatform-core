@@ -76,23 +76,23 @@ class ParagraphStyle(
     val textMotion: TextMotion? = null
 ) {
     @Deprecated("Kept for backwards compatibility.", level = DeprecationLevel.WARNING)
-    @get:JvmName("getTextAlign")
-    @Suppress("unused")
+    @get:JvmName("getTextAlign-buA522U") // b/320819734
+    @Suppress("unused", "RedundantNullableReturnType", "PropertyName")
     val deprecated_boxing_textAlign: TextAlign? get() = this.textAlign
 
     @Deprecated("Kept for backwards compatibility.", level = DeprecationLevel.WARNING)
-    @get:JvmName("getTextDirection")
-    @Suppress("unused")
+    @get:JvmName("getTextDirection-mmuk1to") // b/320819734
+    @Suppress("unused", "RedundantNullableReturnType", "PropertyName")
     val deprecated_boxing_textDirection: TextDirection? get() = this.textDirection
 
     @Deprecated("Kept for backwards compatibility.", level = DeprecationLevel.WARNING)
-    @get:JvmName("getHyphens")
-    @Suppress("unused")
+    @get:JvmName("getHyphens-EaSxIns") // b/320819734
+    @Suppress("unused", "RedundantNullableReturnType", "PropertyName")
     val deprecated_boxing_hyphens: Hyphens? get() = this.hyphens
 
     @Deprecated("Kept for backwards compatibility.", level = DeprecationLevel.WARNING)
-    @get:JvmName("getLineBreak")
-    @Suppress("unused")
+    @get:JvmName("getLineBreak-LgCVezo") // b/320819734
+    @Suppress("unused", "RedundantNullableReturnType", "PropertyName")
     val deprecated_boxing_lineBreak: LineBreak? get() = this.lineBreak
 
     @Deprecated("ParagraphStyle constructors that take nullable TextAlign, " +
@@ -398,18 +398,22 @@ class ParagraphStyle(
         return result
     }
 
+    // Long string concatenation causes atomicfu plugin to be slow/hang.
+    // See https://youtrack.jetbrains.com/issue/KT-65645/Atomicfu-plugin-compilation-hangs-on-a-long-string-concatenation
     override fun toString(): String {
-        return "ParagraphStyle(" +
-            "textAlign=$textAlign, " +
-            "textDirection=$textDirection, " +
-            "lineHeight=$lineHeight, " +
-            "textIndent=$textIndent, " +
-            "platformStyle=$platformStyle, " +
-            "lineHeightStyle=$lineHeightStyle, " +
-            "lineBreak=$lineBreak, " +
-            "hyphens=$hyphens, " +
-            "textMotion=$textMotion" +
-            ")"
+        return buildString {
+            append("ParagraphStyle(")
+            append("textAlign=$textAlign, ")
+            append("textDirection=$textDirection, ")
+            append("lineHeight=$lineHeight, ")
+            append("textIndent=$textIndent, ")
+            append("platformStyle=$platformStyle, ")
+            append("lineHeightStyle=$lineHeightStyle, ")
+            append("lineBreak=$lineBreak, ")
+            append("hyphens=$hyphens, ")
+            append("textMotion=$textMotion")
+            append(")")
+        }
     }
 }
 

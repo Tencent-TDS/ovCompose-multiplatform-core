@@ -17,16 +17,23 @@
 package androidx.compose.ui.scene
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.currentCompositionLocalContext
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCompositionContext
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -58,12 +65,19 @@ interface ComposeSceneLayer {
     var layoutDirection: LayoutDirection
 
     /**
-     * The real bounds of content in scaled pixels relative to window.
+     * The real bounds of content in pixels relative to [WindowInfo.containerSize].
      * This property is used to set the position and size of [Popup]/[Dialog].
      * The implementation should be ready to react on the changes in size/position that can
      * happen during recompositions.
      */
     var boundsInWindow: IntRect
+
+    /**
+     * Composition locals context which will be provided for the Composable content, which is set by [setContent].
+     *
+     * `null` if no composition locals should be provided.
+     */
+    var compositionLocalContext: CompositionLocalContext?
 
     /**
      * The color of the background fill. It can be set to null if no background drawing is necessary.
@@ -128,18 +142,16 @@ interface ComposeSceneLayer {
      * the [boundsInWindow] should be entirely handled by this layer, without activating this event.
      *
      * @param onOutsidePointerEvent The callback function that is invoked when a pointer event
-     * occurs outside. It accepts a boolean parameter to denote if the event is intended to close
-     * this layer. When the parameter is true, it typically signifies that it's the primary (left)
-     * mouse button or single pointer that executed a full click (press and release) outside
-     * of [boundsInWindow], and false in all other cases.
+     * occurs outside. It's called only on the primary (left) mouse button or single pointer
+     * gesture that started outside of [boundsInWindow].
      */
     fun setOutsidePointerEventListener(
-        onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)? = null,
+        onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)? = null,
     )
 
     /**
      * Returns the position relative to the [ComposeScene] of the [positionInWindow],
-     * the position relative to the window.
+     * the position relative to the window in pixels.
      */
     fun calculateLocalPosition(positionInWindow: IntOffset): IntOffset
 }
@@ -160,13 +172,16 @@ internal fun rememberComposeSceneLayer(
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
     val parentComposition = rememberCompositionContext()
+    val compositionLocalContext by rememberUpdatedState(currentCompositionLocalContext)
     val layer = remember {
         scene.createLayer(
             density = density,
             layoutDirection = layoutDirection,
             focusable = focusable,
             compositionContext = parentComposition,
-        )
+        ).also {
+            it.compositionLocalContext = compositionLocalContext
+        }
     }
     layer.focusable = focusable
     DisposableEffect(Unit) {
@@ -177,6 +192,7 @@ internal fun rememberComposeSceneLayer(
     SideEffect {
         layer.density = density
         layer.layoutDirection = layoutDirection
+        layer.compositionLocalContext = compositionLocalContext
     }
     return layer
 }

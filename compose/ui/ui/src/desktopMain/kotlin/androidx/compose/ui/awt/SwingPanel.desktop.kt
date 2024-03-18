@@ -39,7 +39,6 @@ import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -51,11 +50,9 @@ import androidx.compose.ui.util.fastForEach
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Container
-import java.awt.Point
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
 import java.awt.event.MouseEvent
-import java.awt.event.MouseWheelEvent
 import javax.swing.JPanel
 import javax.swing.LayoutFocusTraversalPolicy
 import javax.swing.SwingUtilities
@@ -107,7 +104,7 @@ public fun <T : Component> SwingPanel(
         }.drawBehind {
             // Clear interop area to make visible the component under our canvas.
             drawRect(Color.Transparent, blendMode = BlendMode.Clear)
-        }.then(InteropPointerInputModifier(root, componentInfo))
+        }.then(InteropPointerInputModifier(componentInfo))
     ) {
         focusSwitcher.Content()
     }
@@ -315,7 +312,6 @@ private fun Rect.round(density: Density): IntRect {
 }
 
 private class InteropPointerInputModifier<T : Component>(
-    private val root: Container,
     private val componentInfo: ComponentInfo<T>,
 ) : PointerInputFilter(), PointerInputModifier {
     override val pointerInputFilter: PointerInputFilter = this
@@ -348,51 +344,26 @@ private class InteropPointerInputModifier<T : Component>(
 
     private fun dispatchToView(pointerEvent: PointerEvent) {
         val e = pointerEvent.awtEventOrNull ?: return
-        val containerPoint = SwingUtilities.convertPoint(root, e.point, componentInfo.component)
-        val component = SwingUtilities.getDeepestComponentAt(
-            componentInfo.component,
-            containerPoint.x,
-            containerPoint.y
-        )
+        when (e.id) {
+            // Do not redispatch Enter/Exit events since they are related exclusively
+            // to original component.
+            MouseEvent.MOUSE_ENTERED, MouseEvent.MOUSE_EXITED -> return
+        }
+        if (SwingUtilities.isDescendingFrom(e.component, componentInfo.container)) {
+            // Do not redispatch the event if it originally from this interop view.
+            return
+        }
+        val component = getDeepestComponentForEvent(componentInfo.component, e)
         if (component != null) {
-            val componentPoint = SwingUtilities.convertPoint(root, e.point, component)
-            component.dispatchEvent(e.copy(component, componentPoint))
+            component.dispatchEvent(SwingUtilities.convertMouseEvent(e.component, e, component))
             pointerEvent.changes.fastForEach {
                 it.consume()
             }
         }
     }
-}
 
-private fun MouseEvent.copy(
-    component: Component,
-    point: Point
-) = when(this) {
-    is MouseWheelEvent -> MouseWheelEvent(
-        /* source = */ component,
-        /* id = */ id,
-        /* when = */ `when`,
-        /* modifiers = */ modifiersEx,
-        /* x = */ point.x,
-        /* y = */ point.y,
-        /* xAbs = */ xOnScreen,
-        /* yAbs = */ yOnScreen,
-        /* clickCount = */ clickCount,
-        /* popupTrigger = */ isPopupTrigger,
-        /* scrollType = */ scrollType,
-        /* scrollAmount = */ scrollAmount,
-        /* wheelRotation = */ wheelRotation,
-        /* preciseWheelRotation = */ preciseWheelRotation
-    )
-    else -> MouseEvent(
-        /* source = */ component,
-        /* id = */ id,
-        /* when = */ `when`,
-        /* modifiers = */ modifiersEx,
-        /* x = */ point.x,
-        /* y = */ point.y,
-        /* clickCount = */ clickCount,
-        /* popupTrigger = */ isPopupTrigger,
-        /* button = */ button
-    )
+    private fun getDeepestComponentForEvent(parent: Component, event: MouseEvent): Component? {
+        val point = SwingUtilities.convertPoint(event.component, event.point, parent)
+        return SwingUtilities.getDeepestComponentAt(parent, point.x, point.y)
+    }
 }

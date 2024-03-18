@@ -23,35 +23,65 @@ import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.asComposeCanvas
-import androidx.compose.ui.input.pointer.*
-import androidx.compose.ui.platform.*
+import androidx.compose.ui.input.pointer.AwtCursor
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerButtons
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.platform.AccessibilityController
+import androidx.compose.ui.platform.ComposeSceneAccessible
+import androidx.compose.ui.platform.DelegateRootForTestListener
+import androidx.compose.ui.platform.DesktopTextInputService
+import androidx.compose.ui.platform.EmptyViewConfiguration
+import androidx.compose.ui.platform.PlatformComponent
+import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.PlatformWindowContext
+import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.sizeInPx
-import java.awt.*
+import java.awt.Component
 import java.awt.Cursor
-import java.awt.event.*
+import java.awt.Dimension
+import java.awt.Point
+import java.awt.Toolkit
+import java.awt.event.ContainerEvent
+import java.awt.event.ContainerListener
+import java.awt.event.FocusEvent
+import java.awt.event.FocusListener
+import java.awt.event.InputEvent
+import java.awt.event.InputMethodEvent
+import java.awt.event.InputMethodListener
+import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import java.awt.event.MouseWheelEvent
 import java.awt.im.InputMethodRequests
 import javax.accessibility.Accessible
 import javax.swing.JLayeredPane
-import javax.swing.RootPaneContainer
 import javax.swing.SwingUtilities
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 import org.jetbrains.skia.Canvas
-import org.jetbrains.skiko.*
+import org.jetbrains.skiko.ClipComponent
+import org.jetbrains.skiko.ExperimentalSkikoApi
+import org.jetbrains.skiko.GraphicsApi
+import org.jetbrains.skiko.SkikoInput
+import org.jetbrains.skiko.SkikoView
+import org.jetbrains.skiko.hostOs
 import org.jetbrains.skiko.swing.SkiaSwingLayer
 
 /**
@@ -78,6 +108,12 @@ internal class ComposeSceneMediator(
 
     val skikoView: SkikoView = DesktopSkikoView()
 
+    private val semanticsOwnerListener = DesktopSemanticsOwnerListener()
+    var rootForTestListener: PlatformContext.RootForTestListener? by DelegateRootForTestListener()
+    val accessible: Accessible = ComposeSceneAccessible {
+        semanticsOwnerListener.accessibilityControllers
+    }
+
     private val platformComponent = DesktopPlatformComponent()
     private val textInputService = DesktopTextInputService(platformComponent)
     private val _platformContext = DesktopPlatformContext()
@@ -93,17 +129,34 @@ internal class ComposeSceneMediator(
         private val clipMap = mutableMapOf<Component, ClipComponent>()
 
         override fun componentAdded(e: ContainerEvent) {
-            if (useInteropBlending) {
-                return
-            }
             val component = e.child
+            if (useInteropBlending) {
+                // In case of interop blending, compose might draw content above this [component].
+                // But due to implementation of [JLayeredPane]'s lightweight/heavyweight mixing
+                // logic, it doesn't send mouse events to parents or another layers.
+                // In case if [component] is placed above [contentComponent] (see addToLayer),
+                // subscribe to mouse events from interop views to handle such input.
+                component.subscribeToMouseEvents(mouseListener)
+            } else {
+                // Without interop blending, just add clip region to make proper
+                // "interop always on top" behaviour.
+                addClipComponent(component)
+            }
+        }
+
+        override fun componentRemoved(e: ContainerEvent) {
+            val component = e.child
+            removeClipComponent(component)
+            component.unsubscribeFromMouseEvents(mouseListener)
+        }
+
+        private fun addClipComponent(component: Component) {
             val clipRectangle = ClipComponent(component)
             clipMap[component] = clipRectangle
             skiaLayerComponent.clipComponents.add(clipRectangle)
         }
 
-        override fun componentRemoved(e: ContainerEvent) {
-            val component = e.child
+        private fun removeClipComponent(component: Component) {
             clipMap.remove(component)?.let {
                 skiaLayerComponent.clipComponents.remove(it)
             }
@@ -143,17 +196,14 @@ internal class ComposeSceneMediator(
         }
     }
     private val mouseListener = object : MouseAdapter() {
-        override fun mouseClicked(event: MouseEvent) = Unit
         override fun mousePressed(event: MouseEvent) = onMouseEvent(event)
         override fun mouseReleased(event: MouseEvent) = onMouseEvent(event)
         override fun mouseEntered(event: MouseEvent) = onMouseEvent(event)
         override fun mouseExited(event: MouseEvent) = onMouseEvent(event)
-    }
-    private val mouseMotionListener = object : MouseMotionAdapter() {
         override fun mouseDragged(event: MouseEvent) = onMouseEvent(event)
         override fun mouseMoved(event: MouseEvent) = onMouseEvent(event)
+        override fun mouseWheelMoved(event: MouseWheelEvent) = onMouseWheelEvent(event)
     }
-    private val mouseWheelListener = MouseWheelListener { event -> onMouseWheelEvent(event) }
     private val keyListener = object : KeyAdapter() {
         override fun keyPressed(event: KeyEvent) = onKeyEvent(event)
         override fun keyReleased(event: KeyEvent) = onKeyEvent(event)
@@ -170,19 +220,21 @@ internal class ComposeSceneMediator(
      * For example if we want to show dialog in a separate window with size of this
      * dialog, but constrains (and scene size) should remain the size of the main window.
      */
-    var sceneBoundsInPx: IntRect? = null
+    var sceneBoundsInPx: Rect? = null
 
-    private val semanticsOwnerListener = DesktopSemanticsOwnerListener()
-    var rootForTestListener: PlatformContext.RootForTestListener? by DelegateRootForTestListener()
+    private var offsetInWindow = Point(0, 0)
+        set(value) {
+            if (field != value) {
+                field = value
+                scene.invalidatePositionInWindow()
+            }
+        }
 
     private val scene by lazy { composeSceneFactory(this) }
     val focusManager get() = scene.focusManager
     var compositionLocalContext: CompositionLocalContext?
         get() = scene.compositionLocalContext
         set(value) { scene.compositionLocalContext = value }
-    val accessible: Accessible = ComposeSceneAccessible {
-        semanticsOwnerListener.accessibilityControllers
-    }
 
     /**
      * Provides the size of ComposeScene content inside infinity constraints
@@ -228,15 +280,16 @@ internal class ComposeSceneMediator(
         get() = if (useInteropBlending) 0 else 20
 
     init {
-        /*
-         * Transparency is used during redrawer creation that triggered by [addNotify], so
-         * it must be set to correct value before adding to the hierarchy to handle cases
-         * when [container] is already [isDisplayable].
-         */
+        // Transparency is used during redrawer creation that triggered by [addNotify], so
+        // it must be set to correct value before adding to the hierarchy to handle cases
+        // when [container] is already [isDisplayable].
         skiaLayerComponent.transparency = useInteropBlending
 
         container.addToLayer(invisibleComponent, contentLayer)
         container.addToLayer(contentComponent, contentLayer)
+
+        // Adding a listener after adding [invisibleComponent] and [contentComponent]
+        // to react only on changes with [interopLayer].
         container.addContainerListener(containerListener)
 
         // It will be enabled dynamically. See DesktopPlatformComponent
@@ -264,19 +317,33 @@ internal class ComposeSceneMediator(
     private fun subscribe(component: Component) {
         component.addInputMethodListener(inputMethodListener)
         component.addFocusListener(focusListener)
-        component.addMouseListener(mouseListener)
-        component.addMouseMotionListener(mouseMotionListener)
-        component.addMouseWheelListener(mouseWheelListener)
         component.addKeyListener(keyListener)
+        component.subscribeToMouseEvents(mouseListener)
     }
 
     private fun unsubscribe(component: Component) {
         component.removeInputMethodListener(inputMethodListener)
         component.removeFocusListener(focusListener)
-        component.removeMouseListener(mouseListener)
-        component.removeMouseMotionListener(mouseMotionListener)
-        component.removeMouseWheelListener(mouseWheelListener)
         component.removeKeyListener(keyListener)
+        component.unsubscribeFromMouseEvents(mouseListener)
+    }
+
+    private var isMouseEventProcessing = false
+    private inline fun processMouseEvent(block: () -> Unit) {
+        // Filter out mouse event if [ComposeScene] is already processing this mouse event
+        if (isMouseEventProcessing) {
+            return
+        }
+
+        // Track if [event] is currently processing to avoid recursion in case if [SwingPanel]
+        // manually spawns a new AWT event for interop view.
+        // See [InteropPointerInputModifier] for details.
+        isMouseEventProcessing = true
+        try {
+            block()
+        } finally {
+            isMouseEventProcessing = false
+        }
     }
 
     // Decides which AWT events should be delivered, and which should be filtered out
@@ -286,8 +353,9 @@ internal class ComposeSceneMediator(
 
         fun shouldSendMouseEvent(event: MouseEvent): Boolean {
             // AWT can send events after the window is disposed
-            if (isDisposed)
+            if (isDisposed) {
                 return false
+            }
 
             // Filter out mouse events that report the primary button has changed state to pressed,
             // but aren't themselves a mouse press event. This is needed because on macOS, AWT sends
@@ -317,8 +385,8 @@ internal class ComposeSceneMediator(
 
     private val MouseEvent.position: Offset
         get() {
-            val pointInContainer = SwingUtilities.convertPoint(contentComponent, point, container)
-            val offset = sceneBoundsInPx?.topLeft?.toOffset() ?: Offset.Zero
+            val pointInContainer = SwingUtilities.convertPoint(component, point, container)
+            val offset = sceneBoundsInPx?.topLeft ?: Offset.Zero
             val density = contentComponent.density
             return Offset(pointInContainer.x.toFloat(), pointInContainer.y.toFloat()) * density.density - offset
         }
@@ -331,14 +399,18 @@ internal class ComposeSceneMediator(
             keyboardModifiersRequireUpdate = false
             windowContext.setKeyboardModifiers(event.keyboardModifiers)
         }
-        scene.onMouseEvent(event.position, event)
+        processMouseEvent {
+            scene.onMouseEvent(event.position, event)
+        }
     }
 
     private fun onMouseWheelEvent(event: MouseWheelEvent): Unit = catchExceptions {
         if (!awtEventFilter.shouldSendMouseEvent(event)) {
             return
         }
-        scene.onMouseWheelEvent(event.position, event)
+        processMouseEvent {
+            scene.onMouseWheelEvent(event.position, event)
+        }
     }
 
     private fun onKeyEvent(event: KeyEvent) = catchExceptions {
@@ -381,14 +453,15 @@ internal class ComposeSceneMediator(
 
     @OptIn(ExperimentalSkikoApi::class)
     private fun JLayeredPane.addToLayer(component: Component, layer: Int) {
+        val index = 0 // AWT renders it in the reverse order, so insert it to beginning
         if (renderApi == GraphicsApi.METAL && contentComponent !is SkiaSwingLayer) {
             // Applying layer on macOS makes our bridge non-transparent
             // But it draws always on top, so we can just add it as-is
             // TODO: Figure out why it makes difference in transparency
-            add(component, 0)
+            add(component, index)
         } else {
             setLayer(component, layer)
-            add(component, null, -1)
+            add(component, null, index)
         }
     }
 
@@ -432,29 +505,21 @@ internal class ComposeSceneMediator(
         skiaLayerComponent.onComposeInvalidation()
     }
 
+    fun onChangeComponentPosition() = catchExceptions {
+        if (!container.isDisplayable) return
+
+        offsetInWindow = windowContext.offsetInWindow(container)
+    }
+
     fun onChangeComponentSize() = catchExceptions {
         if (!container.isDisplayable) return
 
-        val scale = container.density.density
-        val window = SwingUtilities.getWindowAncestor(container)
-        val windowContainer = (window as? RootPaneContainer)?.contentPane ?: window
-        val pointInWindow = SwingUtilities.convertPoint(container, Point(0, 0), windowContainer)
-        val offsetInWindow = IntOffset(
-            x = (pointInWindow.x * scale).toInt(),
-            y = (pointInWindow.y * scale).toInt()
-        )
         val size = sceneBoundsInPx?.size ?: container.sizeInPx
-        val boundsInWindow = IntRect(
-            offset = offsetInWindow,
-            size = IntSize(
-                // container.sizeInPx can be negative
-                width = size.width.coerceAtLeast(0),
-                height = size.height.coerceAtLeast(0)
-            )
+        scene.size = IntSize(
+            // container.sizeInPx can be negative
+            width = size.width.coerceAtLeast(0f).roundToInt(),
+            height = size.height.coerceAtLeast(0f).roundToInt()
         )
-        if (scene.boundsInWindow != boundsInWindow) {
-            scene.boundsInWindow = boundsInWindow
-        }
     }
 
     fun onChangeComponentDensity() = catchExceptions {
@@ -489,10 +554,10 @@ internal class ComposeSceneMediator(
         override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
             catchExceptions {
                 val composeCanvas = canvas.asComposeCanvas()
-                val offset = sceneBoundsInPx?.topLeft ?: IntOffset.Zero
+                val offset = sceneBoundsInPx?.topLeft ?: Offset.Zero
                 val scale = contentComponent.density.density
-                val dx = contentComponent.x * scale - offset.x.toFloat()
-                val dy = contentComponent.y * scale - offset.y.toFloat()
+                val dx = contentComponent.x * scale - offset.x
+                val dy = contentComponent.y * scale - offset.y
                 composeCanvas.translate(-dx, -dy)
                 scene.render(composeCanvas, nanoTime)
                 composeCanvas.translate(dx, dy)
@@ -570,6 +635,13 @@ internal class ComposeSceneMediator(
     private inner class DesktopPlatformContext : PlatformContext by PlatformContext.Empty {
         override val windowInfo: WindowInfo get() = windowContext.windowInfo
         override val isWindowTransparent: Boolean get() = windowContext.isWindowTransparent
+
+        override fun calculatePositionInWindow(localPosition: Offset): Offset =
+            windowContext.calculatePositionInWindow(container, localPosition)
+
+        override fun calculateLocalPosition(positionInWindow: Offset): Offset =
+            windowContext.calculateLocalPosition(container, positionInWindow)
+
         override val viewConfiguration: ViewConfiguration = DesktopViewConfiguration()
         override val textInputService: PlatformTextInputService = this@ComposeSceneMediator.textInputService
 
@@ -707,6 +779,18 @@ private val MouseEvent.keyboardModifiers get() = PointerKeyboardModifiers(
     isScrollLockOn = getLockingKeyStateSafe(KeyEvent.VK_SCROLL_LOCK),
     isNumLockOn = getLockingKeyStateSafe(KeyEvent.VK_NUM_LOCK),
 )
+
+private fun Component.subscribeToMouseEvents(mouseAdapter: MouseAdapter) {
+    addMouseListener(mouseAdapter)
+    addMouseMotionListener(mouseAdapter)
+    addMouseWheelListener(mouseAdapter)
+}
+
+private fun Component.unsubscribeFromMouseEvents(mouseAdapter: MouseAdapter) {
+    removeMouseListener(mouseAdapter)
+    removeMouseMotionListener(mouseAdapter)
+    removeMouseWheelListener(mouseAdapter)
+}
 
 private fun getLockingKeyStateSafe(
     mask: Int

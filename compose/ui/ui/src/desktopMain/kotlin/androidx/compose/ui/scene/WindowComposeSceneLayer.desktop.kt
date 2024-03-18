@@ -18,9 +18,13 @@ package androidx.compose.ui.scene
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
+import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.awt.toAwtColor
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
 import androidx.compose.ui.scene.skia.WindowSkiaLayerComponent
@@ -28,7 +32,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.toIntRect
+import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.layoutDirectionFor
 import androidx.compose.ui.window.sizeInPx
@@ -49,7 +53,7 @@ internal class WindowComposeSceneLayer(
     compositionContext: CompositionContext
 ) : DesktopComposeSceneLayer() {
     private val window get() = requireNotNull(composeContainer.window)
-    private val windowContainer get() = requireNotNull(composeContainer.windowContainer)
+    private val windowContainer get() = composeContainer.windowContainer
     private val windowContext = PlatformWindowContext().also {
         it.isWindowTransparent = true
         it.setContainerSize(windowContainer.sizeInPx)
@@ -102,8 +106,15 @@ internal class WindowComposeSceneLayer(
             dialog.location = getDialogLocation(scaledRectangle.x, scaledRectangle.y)
             dialog.setSize(scaledRectangle.width, scaledRectangle.height)
             _mediator?.contentComponent?.setSize(scaledRectangle.width, scaledRectangle.height)
-            _mediator?.sceneBoundsInPx = IntRect(-value.topLeft, windowContainer.sizeInPx)
+            _mediator?.sceneBoundsInPx = Rect(
+                offset = -value.topLeft.toOffset(),
+                size = windowContainer.sizeInPx
+            )
         }
+
+    override var compositionLocalContext: CompositionLocalContext?
+        get() = _mediator?.compositionLocalContext
+        set(value) { _mediator?.compositionLocalContext = value }
 
     override var scrimColor: Color? = null
         set(value) {
@@ -123,7 +134,7 @@ internal class WindowComposeSceneLayer(
             composeSceneFactory = ::createComposeScene,
         ).also {
             it.onChangeWindowTransparency(true)
-            it.sceneBoundsInPx = windowContainer.sizeInPx.toIntRect()
+            it.sceneBoundsInPx = windowContainer.sizeInPx.toRect()
             it.contentComponent.size = windowContainer.size
         }
         dialog.location = getDialogLocation(0, 0)
@@ -135,6 +146,8 @@ internal class WindowComposeSceneLayer(
     override fun close() {
         composeContainer.detachLayer(this)
         _mediator?.dispose()
+        _mediator = null
+
         dialog.dispose()
     }
 
@@ -152,7 +165,9 @@ internal class WindowComposeSceneLayer(
         )
     }
 
-    override fun setOutsidePointerEventListener(onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)?) {
+    override fun setOutsidePointerEventListener(
+        onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)?
+    ) {
         // TODO
     }
 
@@ -160,13 +175,16 @@ internal class WindowComposeSceneLayer(
         return positionInWindow
     }
 
-    override fun onChangeWindowBounds() {
+    override fun onChangeWindowSize() {
         val scaledRectangle = boundsInWindow.toAwtRectangle(density)
         dialog.location = getDialogLocation(scaledRectangle.x, scaledRectangle.y)
         windowContext.setContainerSize(windowContainer.sizeInPx)
 
         // Update compose constrains based on main window size
-        _mediator?.sceneBoundsInPx = IntRect(-boundsInWindow.topLeft, windowContainer.sizeInPx)
+        _mediator?.sceneBoundsInPx = Rect(
+            offset = -boundsInWindow.topLeft.toOffset(),
+            size = windowContainer.sizeInPx
+        )
     }
 
     private fun createSkiaLayerComponent(mediator: ComposeSceneMediator): SkiaLayerComponent {

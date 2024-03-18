@@ -447,6 +447,7 @@ class ScrollableTest {
 
     @Test
     fun scrollable_mouseWheel_scrollWhenAnimated() = runSkikoComposeUiTest {
+        mainClock.autoAdvance = false
         var total = 0f
         val controller = ScrollableState(
             consumeScrollDelta = {
@@ -463,16 +464,20 @@ class ScrollableTest {
         onNodeWithTag(scrollableBoxTag).performMouseInput {
             this.scroll(100f, ScrollWheel.Vertical)
         }
-        delay(timeMillis = 20)
+        waitForIdle()  // Needed to start the animation before advancing the clock
+        mainClock.advanceTimeBy(milliseconds = 20)
         onNodeWithTag(scrollableBoxTag).performMouseInput {
             // Send another event during animation
             this.scroll(20f, ScrollWheel.Vertical)
         }
-        delay(timeMillis = 20)
+        waitForIdle()  // Needed to start the animation before advancing the clock
+        mainClock.advanceTimeBy(milliseconds = 20)
         onNodeWithTag(scrollableBoxTag).performMouseInput {
             // Send one more event with opposite direction during animation
             this.scroll(-120f, ScrollWheel.Vertical)
         }
+        waitForIdle()  // Needed to start the animation before advancing the clock
+        mainClock.advanceTimeBy(milliseconds = 1_000)
         runOnIdle {
             assertThat(total).isEqualTo(0f, eps = 0.01f)
         }
@@ -768,17 +773,19 @@ class ScrollableTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun scrollable_nestedScroll_disabledForMouseWheel() = runSkikoComposeUiTest {
+    fun scrollable_nestedScroll_childPartialConsumptionForMouseWheel() = runSkikoComposeUiTest {
         var innerDrag = 0f
         var outerDrag = 0f
         val outerState = ScrollableState(
             consumeScrollDelta = {
+                // Since the child has already consumed half, the parent will consume the rest.
                 outerDrag += it
                 it
             }
         )
         val innerState = ScrollableState(
             consumeScrollDelta = {
+                // Child consumes half, leaving the rest for the parent to consume.
                 innerDrag += it / 2
                 it / 2
             }
@@ -812,7 +819,10 @@ class ScrollableTest {
         }
         runOnIdle {
             assertThat(innerDrag).isGreaterThan(0f)
-            assertThat(outerDrag).isEqualTo(0f)
+            assertThat(outerDrag).isGreaterThan(0f)
+            // Since child (inner) consumes half of the scroll, the parent (outer) consumes the
+            // remainder (which is half as well), so they will be equal.
+            assertThat(innerDrag).isEqualTo(outerDrag)
         }
     }
 
@@ -2367,14 +2377,5 @@ internal suspend fun savePointerInputEvents(
                 }
             }
         }
-    }
-}
-
-// TODO Replace it with public API once available
-@OptIn(ExperimentalTestApi::class)
-fun SkikoComposeUiTest.delay(timeMillis: Long) {
-    try {
-        waitUntil(timeMillis) { false }
-    } catch (ignore: ComposeTimeoutException) {
     }
 }

@@ -25,10 +25,9 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
-import androidx.compose.ui.interop.LocalLayerContainer
 import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.WindowInfoImpl
+import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeSceneLayer
@@ -41,6 +40,7 @@ import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.PlistSanityCheck
+import androidx.compose.ui.uikit.systemDensity
 import androidx.compose.ui.uikit.utils.CMPViewController
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
@@ -63,7 +63,6 @@ import platform.CoreGraphics.CGSizeEqualToSize
 import platform.Foundation.NSStringFromClass
 import platform.UIKit.UIApplication
 import platform.UIKit.UIColor
-import platform.UIKit.UIContentSizeCategory
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraExtraLarge
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraLarge
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraLarge
@@ -76,8 +75,6 @@ import platform.UIKit.UIContentSizeCategoryExtraSmall
 import platform.UIKit.UIContentSizeCategoryLarge
 import platform.UIKit.UIContentSizeCategoryMedium
 import platform.UIKit.UIContentSizeCategorySmall
-import platform.UIKit.UIContentSizeCategoryUnspecified
-import platform.UIKit.UIScreen
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
@@ -100,6 +97,12 @@ internal class ComposeContainer(
     private val layers: MutableList<UIViewComposeSceneLayer> = mutableListOf()
     private val layoutDirection get() = getLayoutDirection()
 
+    @OptIn(ExperimentalComposeApi::class)
+    private val windowContainer: UIView
+        get() = if (configuration.platformLayers) {
+            view.window ?: view
+        } else view
+
     /*
      * Initial value is arbitrarily chosen to avoid propagating invalid value logic
      * It's never the case in real usage scenario to reflect that in type system
@@ -109,8 +112,8 @@ internal class ComposeContainer(
     )
     val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
     private val focusStack: FocusStack<UIView> = FocusStackImpl()
-    private val windowInfo = WindowInfoImpl().also {
-        it.isWindowFocused = true
+    private val windowContext = PlatformWindowContext().apply {
+        setWindowFocused(true)
     }
 
     /*
@@ -142,10 +145,12 @@ internal class ComposeContainer(
         }
     }
 
+    @OptIn(ExperimentalComposeApi::class)
     override fun loadView() {
         view = UIView().apply {
-            backgroundColor = UIColor.whiteColor
             setClipsToBounds(true)
+            opaque = configuration.opaque
+            backgroundColor = if (configuration.opaque) UIColor.whiteColor else UIColor.clearColor
         } // rootView needs to interop with UIKit
     }
 
@@ -169,21 +174,23 @@ internal class ComposeContainer(
             interfaceOrientationState.value = it
         }
 
-        val window = checkNotNull(view.window) {
-            "ComposeUIViewController.view should be attached to window"
+        updateWindowContainer()
+        mediator?.viewWillLayoutSubviews()
+        layers.fastForEach {
+            it.viewWillLayoutSubviews()
         }
-        val scale = window.screen.scale
-        val size = window.frame.useContents<CGRect, IntSize> {
+    }
+
+    private fun updateWindowContainer() {
+        val scale = windowContainer.systemDensity.density
+        val size = windowContainer.frame.useContents<CGRect, IntSize> {
             IntSize(
                 width = (size.width * scale).roundToInt(),
                 height = (size.height * scale).roundToInt()
             )
         }
-        windowInfo.containerSize = size
-        mediator?.viewWillLayoutSubviews()
-        layers.fastForEach {
-            it.viewWillLayoutSubviews()
-        }
+        windowContext.setContainerSize(size)
+        windowContext.setWindowContainer(windowContainer)
     }
 
     override fun viewWillTransitionToSize(
@@ -236,6 +243,7 @@ internal class ComposeContainer(
         layers.fastForEach {
             it.viewDidAppear(animated)
         }
+        updateWindowContainer()
         configuration.delegate.viewDidAppear(animated)
     }
 
@@ -272,22 +280,11 @@ internal class ComposeContainer(
     fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext =
         ComposeSceneContextImpl(platformContext)
 
-    private fun getContentSizeCategory(): UIContentSizeCategory =
-        traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
-
-    private fun getSystemDensity(): Density {
-        val contentSizeCategory = getContentSizeCategory()
-        return Density(
-            density = UIScreen.mainScreen.scale.toFloat(),
-            fontScale = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
-        )
-    }
-
+    @OptIn(ExperimentalComposeApi::class)
     private fun createSkikoUIView(renderRelegate: RenderingUIView.Delegate): RenderingUIView =
-        RenderingUIView(
-            renderDelegate = renderRelegate,
-            transparency = false,
-        )
+        RenderingUIView(renderDelegate = renderRelegate).apply {
+            opaque = configuration.opaque
+        }
 
     @OptIn(ExperimentalComposeApi::class)
     private fun createComposeScene(
@@ -296,23 +293,23 @@ internal class ComposeContainer(
         coroutineContext: CoroutineContext,
     ): ComposeScene = if (configuration.platformLayers) {
         SingleLayerComposeScene(
-            coroutineContext = coroutineContext,
-            density = getSystemDensity(),
-            invalidate = invalidate,
+            density = systemDensity,
             layoutDirection = layoutDirection,
+            coroutineContext = coroutineContext,
             composeSceneContext = ComposeSceneContextImpl(
                 platformContext = platformContext
             ),
+            invalidate = invalidate,
         )
     } else {
         MultiLayerComposeScene(
+            density = systemDensity,
+            layoutDirection = layoutDirection,
             coroutineContext = coroutineContext,
             composeSceneContext = ComposeSceneContextImpl(
                 platformContext = platformContext
             ),
-            density = getSystemDensity(),
             invalidate = invalidate,
-            layoutDirection = layoutDirection,
         )
     }
 
@@ -321,7 +318,7 @@ internal class ComposeContainer(
             container = view,
             configuration = configuration,
             focusStack = focusStack,
-            windowInfo = windowInfo,
+            windowContext = windowContext,
             coroutineContext = coroutineDispatcher,
             renderingUIViewFactory = ::createSkikoUIView,
             composeSceneFactory = ::createComposeScene,
@@ -368,9 +365,8 @@ internal class ComposeContainer(
                 initLayoutDirection = layoutDirection,
                 configuration = configuration,
                 focusStack = if (focusable) focusStack else null,
-                windowInfo = windowInfo,
+                windowContext = windowContext,
                 compositionContext = compositionContext,
-                compositionLocalContext = mediator?.compositionLocalContext,
             )
     }
 
@@ -419,7 +415,6 @@ internal fun ProvideContainerCompositionLocals(
 ) = with(composeContainer) {
     CompositionLocalProvider(
         LocalUIViewController provides this,
-        LocalLayerContainer provides view,
         LocalInterfaceOrientation provides interfaceOrientationState.value,
         LocalSystemTheme provides systemThemeState.value,
         content = content

@@ -30,7 +30,7 @@ AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
 if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     dependencies {
         /*
-         * When updating dependencies, make sure to make the an an analogous update in the
+         * When updating dependencies, make sure to make the an analogous update in the
          * corresponding block below
          */
         implementation(libs.kotlinStdlibCommon)
@@ -138,16 +138,16 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             jsWasmMain.dependsOn(jsNativeMain)
 
             jsMain {
+                kotlin.srcDir("src/webCommonW3C/kotlin")
                 dependsOn(jsWasmMain)
             }
 
-            if (project.kotlinWasmEnabled.toBoolean()) {
-                wasmJsMain {
-                    dependsOn(jsWasmMain)
-                    dependencies {
-                        implementation(libs.create("skikoWasm"))
-                        implementation(libs.create("skikoWasmWasm"))
-                    }
+            wasmJsMain {
+                kotlin.srcDir("src/webCommonW3C/kotlin")
+                dependsOn(jsWasmMain)
+                dependencies {
+                    implementation(libs.create("skikoWasm"))
+                    implementation(libs.create("skikoWasmWasm"))
                 }
             }
 
@@ -251,12 +251,6 @@ androidx {
 
 android {
     namespace "androidx.compose.ui.text"
-}
-
-project.tasks.configureEach {
-    if (name == "compileJsWasmMainKotlinMetadata") {
-        enabled = false
-    }
 }
 
 afterEvaluate {

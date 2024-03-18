@@ -21,6 +21,7 @@ import androidx.compose.ui.interop.UIKitInteropTransaction
 import androidx.compose.ui.interop.doLocked
 import androidx.compose.ui.interop.isNotEmpty
 import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.trace
 import kotlin.math.roundToInt
 import kotlinx.cinterop.*
 import org.jetbrains.skia.*
@@ -37,6 +38,8 @@ import org.jetbrains.skia.Rect
 import platform.Foundation.NSLock
 import platform.Foundation.NSRunLoopCommonModes
 import platform.Foundation.NSTimeInterval
+import platform.Metal.MTLCommandQueueProtocol
+import platform.Metal.MTLDeviceProtocol
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationState
 
@@ -190,16 +193,14 @@ internal class InflightCommandBuffers(
 
 internal class MetalRedrawer(
     private val metalLayer: CAMetalLayer,
-    private val callbacks: MetalRedrawerCallbacks,
-    private val transparency: Boolean,
+    private val callbacks: MetalRedrawerCallbacks
 ) {
     // Workaround for KN compiler bug
     // Type mismatch: inferred type is objcnames.protocols.MTLDeviceProtocol but platform.Metal.MTLDeviceProtocol was expected
     @Suppress("USELESS_CAST")
     private val device = metalLayer.device as platform.Metal.MTLDeviceProtocol?
         ?: throw IllegalStateException("CAMetalLayer.device can not be null")
-    private val queue = device.newCommandQueue()
-        ?: throw IllegalStateException("Couldn't create Metal command queue")
+    private val queue = getCachedCommandQueue(device)
     private val context = DirectContext.makeMetal(device.objcPtr(), queue.objcPtr())
     private var lastRenderTimestamp: NSTimeInterval = CACurrentMediaTime()
     private val pictureRecorder = PictureRecorder()
@@ -228,6 +229,13 @@ internal class MetalRedrawer(
             displayLinkConditions.needsToBeProactive = value
         }
 
+    var opaque: Boolean = true
+        set(value) {
+            field = value
+
+            updateLayerOpacity()
+        }
+
     /**
      * `true` if Metal rendering is synchronized with changes of UIKit interop views, `false` otherwise
      */
@@ -237,9 +245,13 @@ internal class MetalRedrawer(
 
             // If active, make metalLayer transparent, opaque otherwise.
             // Rendering into opaque CAMetalLayer allows direct-to-screen optimization.
-            metalLayer.setOpaque(!value && !transparency)
+            updateLayerOpacity()
             metalLayer.drawsAsynchronously = !value
         }
+
+    private fun updateLayerOpacity() {
+        metalLayer.setOpaque(!isInteropActive && opaque)
+    }
 
     /**
      * null after [dispose] call
@@ -283,10 +295,14 @@ internal class MetalRedrawer(
             UIApplication.sharedApplication.applicationState != UIApplicationState.UIApplicationStateBackground
 
         caDisplayLink.addToRunLoop(NSRunLoop.mainRunLoop, NSRunLoopCommonModes)
+
+        updateLayerOpacity()
     }
 
     fun dispose() {
         check(caDisplayLink != null) { "MetalRedrawer.dispose() was called more than once" }
+
+        releaseCachedCommandQueue(queue)
 
         applicationStateListener.dispose()
 
@@ -314,7 +330,7 @@ internal class MetalRedrawer(
         draw(waitUntilCompletion = true, CACurrentMediaTime())
     }
 
-    private fun draw(waitUntilCompletion: Boolean, targetTimestamp: NSTimeInterval) {
+    private fun draw(waitUntilCompletion: Boolean, targetTimestamp: NSTimeInterval) = trace("MetalRedrawer:draw") {
         check(NSThread.isMainThread)
 
         lastRenderTimestamp = maxOf(targetTimestamp, lastRenderTimestamp)
@@ -329,23 +345,29 @@ internal class MetalRedrawer(
             }
 
             // Perform timestep and record all draw commands into [Picture]
-            pictureRecorder.beginRecording(
-                Rect(
-                    left = 0f,
-                    top = 0f,
-                    width.toFloat(),
-                    height.toFloat()
-                )
-            ).also { canvas ->
-                canvas.clear(if (transparency) Color.TRANSPARENT else Color.WHITE)
-                callbacks.render(canvas, lastRenderTimestamp)
+            val picture = trace("MetalRedrawer:draw:pictureRecording") {
+                pictureRecorder.beginRecording(
+                    Rect(
+                        left = 0f,
+                        top = 0f,
+                        width.toFloat(),
+                        height.toFloat()
+                    )
+                ).also { canvas ->
+                    canvas.clear(if (metalLayer.opaque) Color.WHITE else Color.TRANSPARENT)
+                    callbacks.render(canvas, lastRenderTimestamp)
+                }
+
+                pictureRecorder.finishRecordingAsPicture()
             }
 
-            val picture = pictureRecorder.finishRecordingAsPicture()
+            trace("MetalRedrawer:draw:waitInflightSemaphore") {
+                dispatch_semaphore_wait(inflightSemaphore, DISPATCH_TIME_FOREVER)
+            }
 
-            dispatch_semaphore_wait(inflightSemaphore, DISPATCH_TIME_FOREVER)
-
-            val metalDrawable = metalLayer.nextDrawable()
+            val metalDrawable = trace("MetalRedrawer:draw:nextDrawable") {
+                metalLayer.nextDrawable()
+            }
 
             if (metalDrawable == null) {
                 // TODO: anomaly, log
@@ -391,46 +413,53 @@ internal class MetalRedrawer(
             val mustEncodeAndPresentOnMainThread = true
 
             val encodeAndPresentBlock = {
-                surface.canvas.drawPicture(picture)
-                picture.close()
-                surface.flushAndSubmit()
+                trace("MetalRedrawer:draw:encodeAndPresent") {
+                    surface.canvas.drawPicture(picture)
+                    picture.close()
+                    surface.flushAndSubmit()
 
-                val commandBuffer = queue.commandBuffer()!!
-                commandBuffer.label = "Present"
+                    val commandBuffer = queue.commandBuffer()!!
+                    commandBuffer.label = "Present"
 
-                if (!presentsWithTransaction) {
-                    commandBuffer.presentDrawable(metalDrawable)
-                }
-
-                commandBuffer.addCompletedHandler {
-                    // Signal work finish, allow a new command buffer to be scheduled
-                    dispatch_semaphore_signal(inflightSemaphore)
-                }
-                commandBuffer.commit()
-
-                if (presentsWithTransaction) {
-                    // If there are pending changes in UIKit interop, [waitUntilScheduled](https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443036-waituntilscheduled) is called
-                    // to ensure that transaction is available
-                    commandBuffer.waitUntilScheduled()
-                    metalDrawable.present()
-
-                    interopTransaction.actions.fastForEach {
-                        it.invoke()
+                    if (!presentsWithTransaction) {
+                        commandBuffer.presentDrawable(metalDrawable)
                     }
 
-                    if (interopTransaction.state == UIKitInteropState.ENDED) {
-                        isInteropActive = false
+                    commandBuffer.addCompletedHandler {
+                        // Signal work finish, allow a new command buffer to be scheduled
+                        dispatch_semaphore_signal(inflightSemaphore)
                     }
-                }
+                    commandBuffer.commit()
 
-                surface.close()
-                renderTarget.close()
+                    if (presentsWithTransaction) {
+                        // If there are pending changes in UIKit interop, [waitUntilScheduled](https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443036-waituntilscheduled) is called
+                        // to ensure that transaction is available
+                        trace("MetalRedrawer:draw:waitTransaction") {
+                            commandBuffer.waitUntilScheduled()
+                        }
 
-                // Track current inflight command buffers to synchronously wait for their schedule in case app goes background
-                inflightCommandBuffers.add(commandBuffer)
+                        metalDrawable.present()
 
-                if (waitUntilCompletion) {
-                    commandBuffer.waitUntilCompleted()
+                        interopTransaction.actions.fastForEach {
+                            it.invoke()
+                        }
+
+                        if (interopTransaction.state == UIKitInteropState.ENDED) {
+                            isInteropActive = false
+                        }
+                    }
+
+                    surface.close()
+                    renderTarget.close()
+
+                    // Track current inflight command buffers to synchronously wait for their schedule in case app goes background
+                    inflightCommandBuffers.add(commandBuffer)
+
+                    if (waitUntilCompletion) {
+                        trace("MetalRedrawer:draw:waitUntilCompleted") {
+                            commandBuffer.waitUntilCompleted()
+                        }
+                    }
                 }
             }
 
@@ -449,6 +478,46 @@ internal class MetalRedrawer(
     companion object {
         private val renderingDispatchQueue =
             dispatch_queue_create("RenderingDispatchQueue", null)
+
+        private class CachedCommandQueue(
+            val queue: MTLCommandQueueProtocol,
+            var refCount: Int = 1
+        )
+
+        /**
+         * Cached command queue record. Assumed to be associated with default MTLDevice.
+         */
+        private var cachedCommandQueue: CachedCommandQueue? = null
+
+        /**
+         * Get an existing command queue associated with the device or create a new one and cache it.
+         * Assumed to be run on the main thread.
+         */
+        private fun getCachedCommandQueue(device: MTLDeviceProtocol): MTLCommandQueueProtocol {
+            val cached = cachedCommandQueue
+            if (cached != null) {
+                cached.refCount++
+                return cached.queue
+            } else {
+                val queue = device.newCommandQueue() ?: throw IllegalStateException("MTLDevice.newCommandQueue() returned null")
+                cachedCommandQueue = CachedCommandQueue(queue)
+                return queue
+            }
+        }
+
+        /**
+         * Release the cached command queue. Release the cache if refCount reaches 0.
+         * Assumed to be run on the main thread.
+         */
+        private fun releaseCachedCommandQueue(queue: MTLCommandQueueProtocol) {
+            val cached = cachedCommandQueue ?: return
+            if (cached.queue == queue) {
+                cached.refCount--
+                if (cached.refCount == 0) {
+                    cachedCommandQueue = null
+                }
+            }
+        }
     }
 }
 

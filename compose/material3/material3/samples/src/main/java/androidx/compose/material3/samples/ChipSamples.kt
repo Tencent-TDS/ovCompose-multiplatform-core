@@ -18,10 +18,15 @@ package androidx.compose.material3.samples
 
 import androidx.annotation.Sampled
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
@@ -33,7 +38,6 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ElevatedAssistChip
 import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.ElevatedSuggestionChip
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -50,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEachIndexed
 
 @Preview
 @Sampled
@@ -85,7 +90,6 @@ fun ElevatedAssistChipSample() {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Sampled
 @Composable
@@ -109,7 +113,6 @@ fun FilterChipSample() {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Sampled
 @Composable
@@ -133,7 +136,6 @@ fun ElevatedFilterChipSample() {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Sampled
 @Composable
@@ -163,7 +165,6 @@ fun FilterChipWithLeadingIconSample() {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Sampled
 @Composable
@@ -176,7 +177,6 @@ fun InputChipSample() {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Sampled
 @Composable
@@ -227,6 +227,35 @@ fun ChipGroupSingleLineSample() {
                     modifier = Modifier.padding(horizontal = 4.dp),
                     onClick = { /* do something*/ },
                     label = { Text("Chip $index") }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Preview
+@Sampled
+@Composable
+fun ChipGroupReflowSample() {
+    val colorNames = listOf(
+        "Blue", "Yellow", "Red", "Orange", "Black", "Green",
+        "White", "Magenta", "Gray", "Transparent"
+    )
+    Column {
+        FlowRow(
+            Modifier
+                .fillMaxWidth(1f)
+                .wrapContentHeight(align = Alignment.Top),
+            horizontalArrangement = Arrangement.Start,
+        ) {
+            colorNames.fastForEachIndexed { index, element ->
+                AssistChip(
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp)
+                        .align(alignment = Alignment.CenterVertically),
+                    onClick = { /* do something*/ },
+                    label = { Text("$element $index") }
                 )
             }
         }

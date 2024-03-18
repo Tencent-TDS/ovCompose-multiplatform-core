@@ -16,7 +16,6 @@
 
 import androidx.build.AndroidXComposePlugin
 import androidx.build.LibraryType
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
@@ -106,6 +105,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
                 implementation(project(":compose:ui:ui-util"))
                 implementation(project(":compose:foundation:foundation-layout"))
+                implementation(project(":annotation:annotation"))
+                implementation(project(":collection:collection"))
             }
 
             androidMain.dependencies {
@@ -134,13 +135,15 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             nativeMain.dependsOn(jsNativeMain)
             jsWasmMain.dependsOn(jsNativeMain)
-            jsMain.dependsOn(jsWasmMain)
-            if (project.kotlinWasmEnabled.toBoolean()) {
-                wasmJsMain {
-                    dependsOn(jsWasmMain)
-                    dependencies {
-                        implementation(libs.kotlinStdlib)
-                    }
+            jsMain {
+                kotlin.srcDir("src/webCommonW3C/kotlin")
+                dependsOn(jsWasmMain)
+            }
+            wasmJsMain {
+                kotlin.srcDir("src/webCommonW3C/kotlin")
+                dependsOn(jsWasmMain)
+                dependencies {
+                    implementation(libs.kotlinStdlib)
                 }
             }
 
@@ -172,6 +175,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             skikoTest.dependencies {
                 implementation(libs.kotlinTest)
+                implementation(project(":compose:ui:ui-test"))
             }
 
             desktopTest {
@@ -220,10 +224,4 @@ android {
     sourceSets.androidTest.assets.srcDirs +=
             project.rootDir.absolutePath + "/golden/compose/material3/material3"
     namespace "androidx.compose.material3"
-}
-
-project.tasks.configureEach {
-    if (name == "compileJsWasmMainKotlinMetadata") {
-        enabled = false
-    }
 }

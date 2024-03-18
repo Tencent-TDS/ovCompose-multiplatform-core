@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +25,41 @@
 
 @implementation UIViewController(CMPUIKitUtilsPrivate)
 
+- (BOOL)cmp_isRootViewController {
+    // Check that it's not rootViewController of one of windows of one of the connected scenes.
+    // In most apps it will be a single scene with a single connected window.
+    if (@available(iOS 13.0, *)) {
+        for (UIScene *scene in [UIApplication.sharedApplication connectedScenes]) {
+            if ([scene isKindOfClass:[UIWindowScene class]]) {
+                UIWindowScene *windowScene = (UIWindowScene *)scene;
+                
+                for (UIWindow *window in windowScene.windows) {
+                    if (window.rootViewController == self) {
+                        return YES;
+                    }
+                }
+            }
+        }
+    } else {
+        for (UIWindow* window in UIApplication.sharedApplication.windows) {
+            if (window.rootViewController == self) {
+                return YES;
+            }
+        }
+    }
+    
+    return NO;
+}
+
 - (BOOL)cmp_isInWindowHierarchy {
     if (self.view.window != nil) {
         return YES;
     } else if (self.parentViewController != nil) {
         return [self.parentViewController cmp_isInWindowHierarchy];
+    } else if (self.presentingViewController != nil) {
+        return [self.presentingViewController cmp_isInWindowHierarchy];
     } else {
-        return NO;
+        return [self cmp_isRootViewController];
     }
 }
 
@@ -63,19 +91,10 @@ typedef NS_ENUM(NSInteger, CMPViewControllerLifecycleState) {
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
-    
-    [self transitLifecycleToStarted];
+        
+    [self viewControllerDidEnterWindowHierarchy];
 }
 
-- (void)didMoveToParentViewController:(UIViewController *)parent {
-    [super didMoveToParentViewController:parent];
-    
-    if (parent) {
-        [self transitLifecycleToStarted];
-    }
-}
-
-/// This method can be triggered by both `viewWillAppear` and `didMoveToParentViewController`. Mind that in second case the `view` could still not be constructed (adding `UIViewController`  to inactive tab of `UITabBarController`, for example), so the `ComposeScene` is not neccessarily created at this point.
 - (void)transitLifecycleToStarted {
     switch (_lifecycleState) {
         case CMPViewControllerLifecycleStateDestroyed:
@@ -95,7 +114,7 @@ typedef NS_ENUM(NSInteger, CMPViewControllerLifecycleState) {
 - (void)scheduleHierarchyContainmentCheck {
     double delayInSeconds = 0.5;
     
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{        
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         switch (self->_lifecycleState) {
             case CMPViewControllerLifecycleStateInitalized:
             case CMPViewControllerLifecycleStateDestroyed:
@@ -117,6 +136,7 @@ typedef NS_ENUM(NSInteger, CMPViewControllerLifecycleState) {
 }
 
 - (void)viewControllerDidEnterWindowHierarchy {
+    [self transitLifecycleToStarted];
 }
 
 - (void)viewControllerDidLeaveWindowHierarchy {

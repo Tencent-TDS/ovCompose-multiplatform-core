@@ -26,6 +26,7 @@ import org.jetbrains.skia.paragraph.ParagraphBuilder as SkParagraphBuilder
 import org.jetbrains.skia.paragraph.Shadow as SkShadow
 import org.jetbrains.skia.paragraph.TextIndent as SkTextIndent
 import org.jetbrains.skia.paragraph.TextStyle as SkTextStyle
+import org.jetbrains.skia.paragraph.FontRastrSettings as SkFontRastrSettings
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -41,7 +42,6 @@ import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import org.jetbrains.skia.FontFeature
-import org.jetbrains.skia.FontMetrics
 import org.jetbrains.skia.Paint
 import org.jetbrains.skia.paragraph.*
 import org.jetbrains.skia.paragraph.ParagraphStyle
@@ -102,7 +102,6 @@ internal actual fun ActualParagraph(
     constraints
 )
 
-@Suppress("UNUSED_PARAMETER")
 internal actual fun ActualParagraph(
     paragraphIntrinsics: ParagraphIntrinsics,
     maxLines: Int,
@@ -134,6 +133,7 @@ internal data class ComputedStyle(
     var localeList: LocaleList?,
     var background: Color = Color.Unspecified,
     var textDecoration: TextDecoration?,
+    var textDecorationLineStyle: TextDecorationLineStyle?,
     var shadow: Shadow?,
     var drawStyle: DrawStyle?,
     var blendMode: BlendMode,
@@ -163,6 +163,7 @@ internal data class ComputedStyle(
         localeList = spanStyle.localeList,
         background = spanStyle.background,
         textDecoration = spanStyle.textDecoration,
+        textDecorationLineStyle = spanStyle.platformStyle?.textDecorationLineStyle,
         shadow = spanStyle.shadow,
         drawStyle = spanStyle.drawStyle,
         blendMode = blendMode,
@@ -194,7 +195,8 @@ internal data class ComputedStyle(
             res.fontStyle = it.toSkFontStyle()
         }
         textDecoration?.let {
-            res.decorationStyle = it.toSkDecorationStyle(textForegroundStyle.color)
+            res.decorationStyle =
+                it.toSkDecorationStyle(textForegroundStyle.color, textDecorationLineStyle)
         }
         if (background != Color.Unspecified) {
             res.background = Paint().also {
@@ -216,7 +218,6 @@ internal data class ComputedStyle(
 
         res.fontSize = fontSize
         fontFamily?.let {
-            @Suppress("UNCHECKED_CAST")
             val resolved = fontFamilyResolver.resolve(
                 it,
                 fontWeight ?: FontWeight.Normal,
@@ -224,6 +225,7 @@ internal data class ComputedStyle(
                 fontSynthesis ?: FontSynthesis.None
             ).value as FontLoadResult
             res.fontFamilies = resolved.aliases.toTypedArray()
+            res.typeface = resolved.typeface
         }
 
         baselineShift?.let {
@@ -258,6 +260,11 @@ internal data class ComputedStyle(
         other.textDecoration?.let { textDecoration = it }
         other.shadow?.let { shadow = it }
         other.drawStyle?.let { drawStyle = it }
+        other.platformStyle?.let { platformStyle ->
+            platformStyle.textDecorationLineStyle?.let {
+                textDecorationLineStyle = it
+            }
+        }
     }
 }
 
@@ -430,8 +437,8 @@ internal class ParagraphBuilder(
         cuts.sortBy { it.position }
         val activeStyles = mutableListOf(initialStyle)
         for (cut in cuts) {
-            when {
-                cut is Cut.StyleAdd -> {
+            when (cut) {
+                is Cut.StyleAdd -> {
                     activeStyles.add(cut.style)
                     val prev = previousStyleAddAtTheSamePosition(cut.position, ops)
                     if (prev == null) {
@@ -445,11 +452,11 @@ internal class ParagraphBuilder(
                         prev.style.merge(density, cut.style)
                     }
                 }
-                cut is Cut.StyleRemove -> {
+                is Cut.StyleRemove -> {
                     activeStyles.remove(cut.style)
                     ops.add(Op.StyleAdd(cut.position, mergeStyles(activeStyles)))
                 }
-                cut is Cut.PutPlaceholder -> {
+                is Cut.PutPlaceholder -> {
                     val currentStyle = mergeStyles(activeStyles)
                     val op = Op.PutPlaceholder(
                         cut = cut,
@@ -464,8 +471,7 @@ internal class ParagraphBuilder(
                     )
                     ops.add(op)
                 }
-                cut is Cut.EndPlaceholder ->
-                    ops.add(Op.EndPlaceholder(cut))
+                is Cut.EndPlaceholder -> ops.add(Op.EndPlaceholder(cut))
             }
         }
         return ops
@@ -488,11 +494,18 @@ internal class ParagraphBuilder(
         return null
     }
 
+    private fun makeSkFontRasterizationSettings(style: TextStyle): SkFontRastrSettings {
+        val rasterizationSettings = style.paragraphStyle.platformStyle?.fontRasterizationSettings
+            ?: FontRasterizationSettings.PlatformDefault
+        return rasterizationSettings.toSkFontRastrSettings()
+    }
+
     private fun textStyleToParagraphStyle(
         style: TextStyle,
         computedStyle: ComputedStyle
     ): ParagraphStyle {
         val pStyle = ParagraphStyle()
+        pStyle.fontRastrSettings = makeSkFontRasterizationSettings(style)
         pStyle.textStyle = makeSkTextStyle(computedStyle)
         style.textAlign.let {
             pStyle.alignment = it.toSkAlignment()
@@ -624,13 +637,25 @@ fun FontStyle.toSkFontStyle(): SkFontStyle {
     }
 }
 
-// TODO: Remove from public
+@Suppress("unused")
+@Deprecated(
+    message = "This method was not intended to be public",
+    level = DeprecationLevel.HIDDEN
+)
 fun TextDecoration.toSkDecorationStyle(color: Color): SkDecorationStyle {
+    return toSkDecorationStyle(color, null)
+}
+
+private fun TextDecoration.toSkDecorationStyle(
+    color: Color,
+    textDecorationLineStyle: TextDecorationLineStyle?
+): SkDecorationStyle {
     val underline = contains(TextDecoration.Underline)
     val overline = false
     val lineThrough = contains(TextDecoration.LineThrough)
     val gaps = false
-    val lineStyle = SkDecorationLineStyle.SOLID
+    val lineStyle =
+        textDecorationLineStyle?.toSkDecorationLineStyle() ?: SkDecorationLineStyle.SOLID
     val thicknessMultiplier = 1f
     return SkDecorationStyle(
         underline,
@@ -641,6 +666,17 @@ fun TextDecoration.toSkDecorationStyle(color: Color): SkDecorationStyle {
         lineStyle,
         thicknessMultiplier
     )
+}
+
+private fun TextDecorationLineStyle.toSkDecorationLineStyle(): SkDecorationLineStyle {
+    return when (this) {
+        TextDecorationLineStyle.Solid -> SkDecorationLineStyle.SOLID
+        TextDecorationLineStyle.Double -> SkDecorationLineStyle.DOUBLE
+        TextDecorationLineStyle.Dotted -> SkDecorationLineStyle.DOTTED
+        TextDecorationLineStyle.Dashed -> SkDecorationLineStyle.DASHED
+        TextDecorationLineStyle.Wavy -> SkDecorationLineStyle.WAVY
+        else -> SkDecorationLineStyle.SOLID
+    }
 }
 
 // TODO: Remove from public

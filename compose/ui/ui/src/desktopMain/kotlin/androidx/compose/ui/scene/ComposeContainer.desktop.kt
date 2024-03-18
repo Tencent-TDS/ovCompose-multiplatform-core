@@ -38,16 +38,12 @@ import androidx.compose.ui.window.density
 import androidx.compose.ui.window.layoutDirectionFor
 import androidx.compose.ui.window.sizeInPx
 import java.awt.Component
-import java.awt.Container
-import java.awt.Rectangle
 import java.awt.Window
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
-import javax.swing.JFrame
 import javax.swing.JLayeredPane
-import javax.swing.RootPaneContainer
 import javax.swing.SwingUtilities
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
@@ -59,12 +55,21 @@ import org.jetbrains.skiko.SkiaLayerAnalytics
  * Internal entry point to Compose.
  *
  * It binds Skia canvas and [ComposeScene] to [container].
- * It also configures compose based on [ComposeFeatureFlags].
+ *
+ * @property container A container for the [ComposeScene].
+ * @property skiaLayerAnalytics The analytics for the Skia layer.
+ * @property window The window ancestor of the [container].
+ * @property windowContainer A container used for additional layers and as reference
+ *  for window coordinate space.
+ * @property useSwingGraphics Flag indicating if offscreen rendering to Swing graphics is used.
+ * @property layerType The type of layer used for Popup/Dialog.
  */
 internal class ComposeContainer(
     val container: JLayeredPane,
     private val skiaLayerAnalytics: SkiaLayerAnalytics,
+
     window: Window? = null,
+    windowContainer: JLayeredPane = container,
 
     private val useSwingGraphics: Boolean = ComposeFeatureFlags.useSwingGraphics,
     private val layerType: LayerType = ComposeFeatureFlags.layerType,
@@ -72,8 +77,6 @@ internal class ComposeContainer(
     val windowContext = PlatformWindowContext()
     var window: Window? = null
         private set
-    val windowContainer: Container?
-        get() = (window as? RootPaneContainer)?.contentPane ?: window
 
     private var layoutDirection = layoutDirectionFor(window ?: container)
 
@@ -82,10 +85,26 @@ internal class ComposeContainer(
      */
     private val layers = mutableListOf<DesktopComposeSceneLayer>()
 
-    /**
-     * A container used for additional layers.
-     */
-    var layersContainer: JLayeredPane? = null
+    private var _windowContainer: JLayeredPane? = null
+    var windowContainer: JLayeredPane
+        get() = requireNotNull(_windowContainer)
+        set(value) {
+            if (_windowContainer == value) {
+                return
+            }
+            if (layerType == LayerType.OnSameCanvas && value != container) {
+                error("Customizing windowContainer cannot be used with LayerType.OnSameCanvas")
+            }
+
+            _windowContainer?.removeComponentListener(this)
+            value.addComponentListener(this)
+
+            _windowContainer = value
+
+            windowContext.setWindowContainer(value)
+            onChangeWindowSize()
+            onChangeWindowPosition()
+        }
 
     private val coroutineExceptionHandler = DesktopCoroutineExceptionHandler()
     private val coroutineContext = MainUIDispatcher + coroutineExceptionHandler
@@ -116,6 +135,7 @@ internal class ComposeContainer(
 
     init {
         setWindow(window)
+        this.windowContainer = windowContainer
 
         if (layerType == LayerType.OnComponent && !useSwingGraphics) {
             error("Unsupported LayerType.OnComponent might be used only with rendering to Swing graphics")
@@ -127,8 +147,8 @@ internal class ComposeContainer(
         layers.fastForEach(DesktopComposeSceneLayer::close)
     }
 
-    override fun componentResized(e: ComponentEvent?) = onChangeWindowBounds()
-    override fun componentMoved(e: ComponentEvent?) = onChangeWindowBounds()
+    override fun componentResized(e: ComponentEvent?) = onChangeWindowPosition()
+    override fun componentMoved(e: ComponentEvent?) = onChangeWindowSize()
     override fun componentShown(e: ComponentEvent?) = Unit
     override fun componentHidden(e: ComponentEvent?) = Unit
 
@@ -141,10 +161,18 @@ internal class ComposeContainer(
         layers.fastForEach(DesktopComposeSceneLayer::onChangeWindowFocus)
     }
 
-    private fun onChangeWindowBounds() {
-        val container = windowContainer ?: return
-        windowContext.setContainerSize(container.sizeInPx)
-        layers.fastForEach(DesktopComposeSceneLayer::onChangeWindowBounds)
+    private fun onChangeWindowPosition() {
+        if (!container.isDisplayable) return
+
+        mediator.onChangeComponentPosition()
+    }
+
+    private fun onChangeWindowSize() {
+        if (!container.isDisplayable) return
+
+        windowContext.setContainerSize(windowContainer.sizeInPx)
+        mediator.onChangeComponentSize()
+        layers.fastForEach(DesktopComposeSceneLayer::onChangeWindowSize)
     }
 
     fun onChangeWindowTransparency(value: Boolean) {
@@ -165,6 +193,10 @@ internal class ComposeContainer(
     fun addNotify() {
         mediator.onComponentAttached()
         setWindow(SwingUtilities.getWindowAncestor(container))
+
+        // Re-checking the actual size if it wasn't available during init.
+        onChangeWindowSize()
+        onChangeWindowPosition()
     }
 
     fun removeNotify() {
@@ -180,7 +212,8 @@ internal class ComposeContainer(
 
         // In case of preferred size there is no separate event for changing window size,
         // so re-checking the actual size on container resize too.
-        onChangeWindowBounds()
+        onChangeWindowSize()
+        onChangeWindowPosition()
     }
 
     private fun setWindow(window: Window?) {
@@ -189,14 +222,10 @@ internal class ComposeContainer(
         }
 
         this.window?.removeWindowFocusListener(this)
-        this.window?.removeComponentListener(this)
-
-        window?.addComponentListener(this)
         window?.addWindowFocusListener(this)
         this.window = window
 
         onChangeWindowFocus()
-        onChangeWindowBounds()
     }
 
     fun setKeyEventListeners(
@@ -227,22 +256,22 @@ internal class ComposeContainer(
         return when (layerType) {
             LayerType.OnSameCanvas ->
                 MultiLayerComposeScene(
+                    density = density,
+                    layoutDirection = layoutDirection,
                     coroutineContext = mediator.coroutineContext,
                     composeSceneContext = createComposeSceneContext(
                         platformContext = mediator.platformContext
                     ),
-                    density = density,
                     invalidate = mediator::onComposeInvalidation,
-                    layoutDirection = layoutDirection,
                 )
             else -> SingleLayerComposeScene(
-                coroutineContext = mediator.coroutineContext,
                 density = density,
-                invalidate = mediator::onComposeInvalidation,
                 layoutDirection = layoutDirection,
+                coroutineContext = mediator.coroutineContext,
                 composeSceneContext = createComposeSceneContext(
                     platformContext = mediator.platformContext
                 ),
+                invalidate = mediator::onComposeInvalidation,
             )
         }
     }

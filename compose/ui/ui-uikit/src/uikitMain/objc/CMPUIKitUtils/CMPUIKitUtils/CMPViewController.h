@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CMPViewController : UIViewController
 
+/// Indicates that view controller is considered alive in terms of structural containment.
+/// Overriding classes should call super.
 - (void)viewControllerDidEnterWindowHierarchy;
+
+/// Indicates that view controller is considered alive in terms of structural containment
+/// Overriding classes should call super.
 - (void)viewControllerDidLeaveWindowHierarchy;
 
 @end

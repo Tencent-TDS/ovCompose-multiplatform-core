@@ -22,17 +22,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.Button
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -78,7 +76,9 @@ fun TimePickerSample() {
         Button(
             modifier = Modifier.align(Alignment.Center),
             onClick = { showTimePicker = true }
-        ) { Text("Set Time") }
+        ) {
+            Text("Set Time")
+        }
         SnackbarHost(hostState = snackState)
     }
 
@@ -116,7 +116,9 @@ fun TimeInputSample() {
         Button(
             modifier = Modifier.align(Alignment.Center),
             onClick = { showTimePicker = true }
-        ) { Text("Set Time") }
+        ) {
+            Text("Set Time")
+        }
         SnackbarHost(hostState = snackState)
     }
 
@@ -156,7 +158,9 @@ fun TimePickerSwitchableSample() {
         Button(
             modifier = Modifier.align(Alignment.Center),
             onClick = { showTimePicker = true }
-        ) { Text("Set Time") }
+        ) {
+            Text("Set Time")
+        }
         SnackbarHost(hostState = snackState)
     }
 
@@ -179,10 +183,8 @@ fun TimePickerSwitchableSample() {
                 showTimePicker = false
             },
             toggle = {
-                if (configuration.screenHeightDp > 540) {
-                    IconButton(
-                        modifier = Modifier.offset(x = -(8.dp)),
-                        onClick = { showingPicker.value = !showingPicker.value }) {
+                if (configuration.screenHeightDp > 400) {
+                    IconButton(onClick = { showingPicker.value = !showingPicker.value }) {
                         val icon = if (showingPicker.value) {
                             Icons.Outlined.Keyboard
                         } else {
@@ -200,7 +202,7 @@ fun TimePickerSwitchableSample() {
                 }
             }
         ) {
-            if (showingPicker.value && configuration.screenHeightDp > 540) {
+            if (showingPicker.value && configuration.screenHeightDp > 400) {
                 TimePicker(state = state)
             } else {
                 TimeInput(state = state)
@@ -214,7 +216,7 @@ fun TimePickerDialog(
     title: String = "Select Time",
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
-    toggle: @Composable RowScope.() -> Unit = {},
+    toggle: @Composable () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     Dialog(
@@ -226,6 +228,7 @@ fun TimePickerDialog(
             tonalElevation = 6.dp,
             modifier = Modifier
                 .width(IntrinsicSize.Min)
+                .height(IntrinsicSize.Min)
                 .background(
                     shape = MaterialTheme.shapes.extraLarge,
                     color = MaterialTheme.colorScheme.surface
@@ -243,19 +246,18 @@ fun TimePickerDialog(
                     style = MaterialTheme.typography.labelMedium
                 )
                 content()
-                Row(
-                    modifier = Modifier
-                        .height(40.dp)
-                        .fillMaxWidth()
+                Row(modifier = Modifier
+                    .height(40.dp)
+                    .fillMaxWidth()
                 ) {
                     toggle()
                     Spacer(modifier = Modifier.weight(1f))
-                    TextButton(
-                        onClick = onCancel
-                    ) { Text("Cancel") }
-                    TextButton(
-                        onClick = onConfirm
-                    ) { Text("OK") }
+                    TextButton(onClick = onCancel) {
+                        Text("Cancel")
+                    }
+                    TextButton(onClick = onConfirm) {
+                        Text("OK")
+                    }
                 }
             }
         }

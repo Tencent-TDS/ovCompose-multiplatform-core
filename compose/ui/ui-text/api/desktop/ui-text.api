@@ -103,6 +103,42 @@ public final class androidx/compose/ui/text/DesktopTextStyle_skikoKt {
 public abstract interface annotation class androidx/compose/ui/text/ExperimentalTextApi : java/lang/annotation/Annotation {
 }
 
+public final class androidx/compose/ui/text/FontHinting : java/lang/Enum {
+	public static final field Full Landroidx/compose/ui/text/FontHinting;
+	public static final field None Landroidx/compose/ui/text/FontHinting;
+	public static final field Normal Landroidx/compose/ui/text/FontHinting;
+	public static final field Slight Landroidx/compose/ui/text/FontHinting;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Landroidx/compose/ui/text/FontHinting;
+	public static fun values ()[Landroidx/compose/ui/text/FontHinting;
+}
+
+public final class androidx/compose/ui/text/FontRasterizationSettings {
+	public static final field $stable I
+	public static final field Companion Landroidx/compose/ui/text/FontRasterizationSettings$Companion;
+	public fun <init> (Landroidx/compose/ui/text/FontSmoothing;Landroidx/compose/ui/text/FontHinting;ZZ)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAutoHintingForced ()Z
+	public final fun getHinting ()Landroidx/compose/ui/text/FontHinting;
+	public final fun getSmoothing ()Landroidx/compose/ui/text/FontSmoothing;
+	public final fun getSubpixelPositioning ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class androidx/compose/ui/text/FontRasterizationSettings$Companion {
+	public final fun getPlatformDefault ()Landroidx/compose/ui/text/FontRasterizationSettings;
+}
+
+public final class androidx/compose/ui/text/FontSmoothing : java/lang/Enum {
+	public static final field AntiAlias Landroidx/compose/ui/text/FontSmoothing;
+	public static final field None Landroidx/compose/ui/text/FontSmoothing;
+	public static final field SubpixelAntiAlias Landroidx/compose/ui/text/FontSmoothing;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Landroidx/compose/ui/text/FontSmoothing;
+	public static fun values ()[Landroidx/compose/ui/text/FontSmoothing;
+}
+
 public abstract interface annotation class androidx/compose/ui/text/InternalTextApi : java/lang/annotation/Annotation {
 }
 
@@ -257,16 +293,16 @@ public final class androidx/compose/ui/text/ParagraphStyle {
 	public final fun copy-ykzQM6k (IIJLandroidx/compose/ui/text/style/TextIndent;Landroidx/compose/ui/text/PlatformParagraphStyle;Landroidx/compose/ui/text/style/LineHeightStyle;IILandroidx/compose/ui/text/style/TextMotion;)Landroidx/compose/ui/text/ParagraphStyle;
 	public static synthetic fun copy-ykzQM6k$default (Landroidx/compose/ui/text/ParagraphStyle;IIJLandroidx/compose/ui/text/style/TextIndent;Landroidx/compose/ui/text/PlatformParagraphStyle;Landroidx/compose/ui/text/style/LineHeightStyle;IILandroidx/compose/ui/text/style/TextMotion;ILjava/lang/Object;)Landroidx/compose/ui/text/ParagraphStyle;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getHyphens ()Landroidx/compose/ui/text/style/Hyphens;
+	public final fun getHyphens-EaSxIns ()Landroidx/compose/ui/text/style/Hyphens;
 	public final fun getHyphens-vmbZdU8 ()I
-	public final fun getLineBreak ()Landroidx/compose/ui/text/style/LineBreak;
+	public final fun getLineBreak-LgCVezo ()Landroidx/compose/ui/text/style/LineBreak;
 	public final fun getLineBreak-rAG3T2k ()I
 	public final fun getLineHeight-XSAIIZE ()J
 	public final fun getLineHeightStyle ()Landroidx/compose/ui/text/style/LineHeightStyle;
 	public final fun getPlatformStyle ()Landroidx/compose/ui/text/PlatformParagraphStyle;
-	public final fun getTextAlign ()Landroidx/compose/ui/text/style/TextAlign;
+	public final fun getTextAlign-buA522U ()Landroidx/compose/ui/text/style/TextAlign;
 	public final fun getTextAlign-e0LSkKk ()I
-	public final fun getTextDirection ()Landroidx/compose/ui/text/style/TextDirection;
+	public final fun getTextDirection-mmuk1to ()Landroidx/compose/ui/text/style/TextDirection;
 	public final fun getTextDirection-s_7X-co ()I
 	public final fun getTextIndent ()Landroidx/compose/ui/text/style/TextIndent;
 	public final fun getTextMotion ()Landroidx/compose/ui/text/style/TextMotion;
@@ -321,7 +357,10 @@ public final class androidx/compose/ui/text/PlatformParagraphStyle {
 	public static final field $stable I
 	public static final field Companion Landroidx/compose/ui/text/PlatformParagraphStyle$Companion;
 	public fun <init> ()V
+	public fun <init> (Landroidx/compose/ui/text/FontRasterizationSettings;)V
+	public synthetic fun <init> (Landroidx/compose/ui/text/FontRasterizationSettings;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFontRasterizationSettings ()Landroidx/compose/ui/text/FontRasterizationSettings;
 	public fun hashCode ()I
 	public final fun merge (Landroidx/compose/ui/text/PlatformParagraphStyle;)Landroidx/compose/ui/text/PlatformParagraphStyle;
 }
@@ -334,7 +373,9 @@ public final class androidx/compose/ui/text/PlatformSpanStyle {
 	public static final field $stable I
 	public static final field Companion Landroidx/compose/ui/text/PlatformSpanStyle$Companion;
 	public fun <init> ()V
+	public synthetic fun <init> (Landroidx/compose/ui/text/TextDecorationLineStyle;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getTextDecorationLineStyle-Gch4ia8 ()Landroidx/compose/ui/text/TextDecorationLineStyle;
 	public fun hashCode ()I
 	public final fun merge (Landroidx/compose/ui/text/PlatformSpanStyle;)Landroidx/compose/ui/text/PlatformSpanStyle;
 }
@@ -346,6 +387,7 @@ public final class androidx/compose/ui/text/PlatformSpanStyle$Companion {
 public final class androidx/compose/ui/text/PlatformTextStyle {
 	public static final field $stable I
 	public fun <init> (Landroidx/compose/ui/text/PlatformSpanStyle;Landroidx/compose/ui/text/PlatformParagraphStyle;)V
+	public synthetic fun <init> (Landroidx/compose/ui/text/TextDecorationLineStyle;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getParagraphStyle ()Landroidx/compose/ui/text/PlatformParagraphStyle;
 	public final fun getSpanStyle ()Landroidx/compose/ui/text/PlatformSpanStyle;
@@ -414,6 +456,28 @@ public final class androidx/compose/ui/text/StringKt {
 
 public final class androidx/compose/ui/text/SynchronizationKt {
 	public static final fun synchronized (Landroidx/compose/ui/text/SynchronizedObject;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+}
+
+public final class androidx/compose/ui/text/TextDecorationLineStyle {
+	public static final field Companion Landroidx/compose/ui/text/TextDecorationLineStyle$Companion;
+	public static final synthetic fun box-impl (I)Landroidx/compose/ui/text/TextDecorationLineStyle;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (ILjava/lang/Object;)Z
+	public static final fun equals-impl0 (II)Z
+	public final fun getValue ()I
+	public fun hashCode ()I
+	public static fun hashCode-impl (I)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (I)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()I
+}
+
+public final class androidx/compose/ui/text/TextDecorationLineStyle$Companion {
+	public final fun getDashed-671RMmY ()I
+	public final fun getDotted-671RMmY ()I
+	public final fun getDouble-671RMmY ()I
+	public final fun getSolid-671RMmY ()I
+	public final fun getWavy-671RMmY ()I
 }
 
 public final class androidx/compose/ui/text/TextLayoutInput {
@@ -581,20 +645,20 @@ public final class androidx/compose/ui/text/TextStyle {
 	public final fun getFontStyle-4Lr2A7w ()Landroidx/compose/ui/text/font/FontStyle;
 	public final fun getFontSynthesis-ZQGJjVo ()Landroidx/compose/ui/text/font/FontSynthesis;
 	public final fun getFontWeight ()Landroidx/compose/ui/text/font/FontWeight;
-	public final fun getHyphens ()Landroidx/compose/ui/text/style/Hyphens;
+	public final fun getHyphens-EaSxIns ()Landroidx/compose/ui/text/style/Hyphens;
 	public final fun getHyphens-vmbZdU8 ()I
 	public final fun getLetterSpacing-XSAIIZE ()J
-	public final fun getLineBreak ()Landroidx/compose/ui/text/style/LineBreak;
+	public final fun getLineBreak-LgCVezo ()Landroidx/compose/ui/text/style/LineBreak;
 	public final fun getLineBreak-rAG3T2k ()I
 	public final fun getLineHeight-XSAIIZE ()J
 	public final fun getLineHeightStyle ()Landroidx/compose/ui/text/style/LineHeightStyle;
 	public final fun getLocaleList ()Landroidx/compose/ui/text/intl/LocaleList;
 	public final fun getPlatformStyle ()Landroidx/compose/ui/text/PlatformTextStyle;
 	public final fun getShadow ()Landroidx/compose/ui/graphics/Shadow;
-	public final fun getTextAlign ()Landroidx/compose/ui/text/style/TextAlign;
+	public final fun getTextAlign-buA522U ()Landroidx/compose/ui/text/style/TextAlign;
 	public final fun getTextAlign-e0LSkKk ()I
 	public final fun getTextDecoration ()Landroidx/compose/ui/text/style/TextDecoration;
-	public final fun getTextDirection ()Landroidx/compose/ui/text/style/TextDirection;
+	public final fun getTextDirection-mmuk1to ()Landroidx/compose/ui/text/style/TextDirection;
 	public final fun getTextDirection-s_7X-co ()I
 	public final fun getTextGeometricTransform ()Landroidx/compose/ui/text/style/TextGeometricTransform;
 	public final fun getTextIndent ()Landroidx/compose/ui/text/style/TextIndent;
@@ -1400,7 +1464,7 @@ public final class androidx/compose/ui/text/platform/ResourceFont : androidx/com
 }
 
 public final class androidx/compose/ui/text/platform/SkiaParagraph_skikoKt {
-	public static final fun toSkDecorationStyle-4WTKRHQ (Landroidx/compose/ui/text/style/TextDecoration;J)Lorg/jetbrains/skia/paragraph/DecorationStyle;
+	public static final synthetic fun toSkDecorationStyle-4WTKRHQ (Landroidx/compose/ui/text/style/TextDecoration;J)Lorg/jetbrains/skia/paragraph/DecorationStyle;
 	public static final fun toSkFontStyle-nzbMABs (I)Lorg/jetbrains/skia/FontStyle;
 	public static final fun toSkPlaceholderAlignment-do9X-Gg (I)Lorg/jetbrains/skia/paragraph/PlaceholderAlignment;
 }

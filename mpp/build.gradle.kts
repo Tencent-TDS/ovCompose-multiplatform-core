@@ -123,6 +123,16 @@ tasks.register("checkDesktop") {
 
 tasks.register("testWeb") {
     dependsOn(":compose:runtime:runtime:jsTest")
+    // TODO: ideally we want to run all wasm tests that are possible but now we deal only with modules that have skikoTests
+
+    // Unfortunately, the CI (TC) behaviour is not determined with these tests:
+    // The agents become stuck, cancelled, etc.
+    // Only one in 3 runs passes. It spoils the development of other Compose parts.
+//    dependsOn(":compose:foundation:foundation:wasmJsBrowserTest")
+//    dependsOn(":compose:material3:material3:wasmJsBrowserTest")
+//    dependsOn(":compose:ui:ui-text:wasmJsBrowserTest")
+//    dependsOn(":compose:ui:ui-text:wasmJsBrowserTest")
+//    dependsOn(":compose:ui:ui:wasmJsBrowserTest")
 }
 
 tasks.register("testUIKit") {
@@ -130,7 +140,10 @@ tasks.register("testUIKit") {
         if (System.getProperty("os.arch") == "aarch64") "uikitSimArm64Test" else "uikitX64Test"
     dependsOn(":compose:ui:ui-text:$subtaskName")
     dependsOn(":compose:ui:ui:$subtaskName")
-    dependsOn(":compose:material3:material3:$subtaskName")
+// TODO fix it properly and uncomment https://youtrack.jetbrains.com/issue/COMPOSE-950/Reenable-material3-tests-on-iOS
+//  Commented because it crashes on CI.
+//    dependsOn(":compose:material3:material3:$subtaskName") 
+    dependsOn(":compose:foundation:foundation:$subtaskName")
 }
 
 tasks.register("testRuntimeNative") {

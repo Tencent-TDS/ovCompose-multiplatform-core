@@ -18,9 +18,11 @@ package androidx.compose.ui.scene
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
+import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.awt.toAwtColor
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
 import androidx.compose.ui.scene.skia.SwingSkiaLayerComponent
 import androidx.compose.ui.unit.Density
@@ -35,6 +37,7 @@ import java.awt.Rectangle
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import javax.swing.JLayeredPane
+import javax.swing.SwingUtilities
 import kotlin.math.ceil
 import kotlin.math.floor
 import org.jetbrains.skiko.SkiaLayerAnalytics
@@ -47,12 +50,14 @@ internal class SwingComposeSceneLayer(
     focusable: Boolean,
     compositionContext: CompositionContext
 ) : DesktopComposeSceneLayer(), MouseListener {
-    private val layersContainer get() = composeContainer.layersContainer ?: composeContainer.container
+    private val windowContainer get() = composeContainer.windowContainer
     private val container = object : JLayeredPane() {
         override fun addNotify() {
             super.addNotify()
             _mediator?.onComponentAttached()
-            _mediator?.contentComponent?.bounds = this@SwingComposeSceneLayer.boundsInWindow.toAwtRectangle(density)
+            _boundsInWindow?.let {
+                _mediator?.contentComponent?.bounds = it.toAwtRectangle(density)
+            }
         }
 
         override fun paint(g: Graphics) {
@@ -66,24 +71,27 @@ internal class SwingComposeSceneLayer(
         it.layout = null
         it.isOpaque = false
         it.background = Color.Transparent.toAwtColor()
-        it.size = Dimension(layersContainer.width, layersContainer.height)
+        it.size = Dimension(windowContainer.width, windowContainer.height)
         it.addMouseListener(this)
 
         // TODO: Currently it works only with offscreen rendering
         // TODO: Do not clip this from main scene if layersContainer == main container
-        layersContainer.add(it, JLayeredPane.POPUP_LAYER, 0)
+        windowContainer.add(it, JLayeredPane.POPUP_LAYER, 0)
     }
     private var containerSize = IntSize.Zero
         set(value) {
             if (field.width != value.width || field.height != value.height) {
                 field = value
                 container.setBounds(0, 0, value.width, value.height)
+                if (_boundsInWindow == null) {
+                    _mediator?.contentComponent?.size = container.size
+                }
                 _mediator?.onChangeComponentSize()
             }
         }
 
     private var _mediator: ComposeSceneMediator? = null
-    private var outsidePointerCallback: ((Boolean) -> Unit)? = null
+    private var outsidePointerCallback: ((eventType: PointerEventType) -> Unit)? = null
 
     override var density: Density = density
         set(value) {
@@ -103,11 +111,21 @@ internal class SwingComposeSceneLayer(
             // TODO: Pass it to mediator/scene
         }
 
-    override var boundsInWindow: IntRect = IntRect.Zero
+    private var _boundsInWindow: IntRect? = null
+    override var boundsInWindow: IntRect
+        get() = _boundsInWindow ?: IntRect.Zero
         set(value) {
-            field = value
-            _mediator?.contentComponent?.bounds = value.toAwtRectangle(container.density)
+            _boundsInWindow = value
+            val localBounds = SwingUtilities.convertRectangle(
+                /* source = */ windowContainer,
+                /* aRectangle = */ value.toAwtRectangle(container.density),
+                /* destination = */ container)
+            _mediator?.contentComponent?.bounds = localBounds
         }
+
+    override var compositionLocalContext: CompositionLocalContext?
+        get() = _mediator?.compositionLocalContext
+        set(value) { _mediator?.compositionLocalContext = value }
 
     override var scrimColor: Color? = null
         set(value) {
@@ -117,7 +135,6 @@ internal class SwingComposeSceneLayer(
         }
 
     init {
-        boundsInWindow = IntRect(0, 0, layersContainer.width, layersContainer.height)
         _mediator = ComposeSceneMediator(
             container = container,
             windowContext = composeContainer.windowContext,
@@ -129,7 +146,7 @@ internal class SwingComposeSceneLayer(
             composeSceneFactory = ::createComposeScene,
         ).also {
             it.onChangeWindowTransparency(true)
-            it.contentComponent.bounds = boundsInWindow.toAwtRectangle(density)
+            it.contentComponent.size = container.size
         }
         composeContainer.attachLayer(this)
     }
@@ -139,9 +156,9 @@ internal class SwingComposeSceneLayer(
         _mediator?.dispose()
         _mediator = null
 
-        layersContainer.remove(container)
-        layersContainer.invalidate()
-        layersContainer.repaint()
+        windowContainer.remove(container)
+        windowContainer.invalidate()
+        windowContainer.repaint()
     }
 
     override fun setContent(content: @Composable () -> Unit) {
@@ -159,7 +176,7 @@ internal class SwingComposeSceneLayer(
     }
 
     override fun setOutsidePointerEventListener(
-        onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)?
+        onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)?
     ) {
         outsidePointerCallback = onOutsidePointerEvent
     }
@@ -185,8 +202,8 @@ internal class SwingComposeSceneLayer(
         )
     }
 
-    override fun onChangeWindowBounds() {
-        containerSize = IntSize(layersContainer.width, layersContainer.height)
+    override fun onChangeWindowSize() {
+        containerSize = IntSize(windowContainer.width, windowContainer.height)
     }
 
     // region MouseListener
@@ -201,8 +218,15 @@ internal class SwingComposeSceneLayer(
 
     private fun onMouseEvent(event: MouseEvent) {
         // TODO: Filter/consume based on [focused] flag
-        val dismissRequest = event.button == MouseEvent.BUTTON1 && event.id == MouseEvent.MOUSE_RELEASED
-        outsidePointerCallback?.invoke(dismissRequest)
+        if (!event.isMainAction()) {
+            return
+        }
+        val eventType = when (event.id) {
+            MouseEvent.MOUSE_PRESSED -> PointerEventType.Press
+            MouseEvent.MOUSE_RELEASED -> PointerEventType.Release
+            else -> return
+        }
+        outsidePointerCallback?.invoke(eventType)
     }
 }
 
@@ -217,3 +241,6 @@ private fun IntRect.toAwtRectangle(density: Density): Rectangle {
         left, top, width, height
     )
 }
+
+private fun MouseEvent.isMainAction() =
+    button == MouseEvent.BUTTON1

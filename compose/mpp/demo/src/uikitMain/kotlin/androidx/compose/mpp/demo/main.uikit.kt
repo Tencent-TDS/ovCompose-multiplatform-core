@@ -3,17 +3,39 @@ package androidx.compose.mpp.demo
 
 import NativeModalWithNaviationExample
 import SwiftUIInteropExample
-import androidx.compose.runtime.*
+import UIKitViewOrder
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.ExperimentalComposeRuntimeApi
+import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.main.defaultUIKitMain
+import androidx.compose.ui.platform.AccessibilityDebugLogger
+import androidx.compose.ui.platform.AccessibilitySyncOptions
 import androidx.compose.ui.window.ComposeUIViewController
 import bugs.IosBugs
+import bugs.ProperContainmentDisposal
+import bugs.ComposeAndNativeScroll
 import bugs.StartRecompositionCheck
 import platform.UIKit.UIViewController
 
 
+@OptIn(ExperimentalComposeApi::class, ExperimentalComposeUiApi::class)
 fun main(vararg args: String) {
+    androidx.compose.ui.util.enableTraceOSLog()
+
     val arg = args.firstOrNull() ?: ""
-    defaultUIKitMain("ComposeDemo", ComposeUIViewController {
+    defaultUIKitMain("ComposeDemo", ComposeUIViewController(configure = {
+        accessibilitySyncOptions = AccessibilitySyncOptions.WhenRequiredByAccessibilityServices(object: AccessibilityDebugLogger {
+            override fun log(message: Any?) {
+                if (message == null) {
+                    println()
+                } else {
+                    println("[a11y]: $message")
+                }
+            }
+        })
+    }) {
         IosDemo(arg)
     })
 }
@@ -25,6 +47,9 @@ fun IosDemo(arg: String, makeHostingController: ((Int) -> UIViewController)? = n
             extraScreens = listOf(
                 IosBugs,
                 NativeModalWithNaviationExample,
+                UIKitViewOrder,
+                ProperContainmentDisposal,
+                ComposeAndNativeScroll
             ) + listOf(makeHostingController).mapNotNull {
                 it?.let {
                     SwiftUIInteropExample(it)

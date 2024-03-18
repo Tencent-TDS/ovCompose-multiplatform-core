@@ -21,13 +21,17 @@ import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.asDpOffset
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.ComposeContainer
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.ProvideContainerCompositionLocals
@@ -35,12 +39,14 @@ import androidx.compose.ui.window.RenderingUIView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
 import platform.UIKit.NSLayoutConstraint
 import platform.UIKit.UIColor
 import platform.UIKit.UIEvent
+import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 
@@ -50,31 +56,55 @@ internal class UIViewComposeSceneLayer(
     private val initLayoutDirection: LayoutDirection,
     configuration: ComposeUIViewControllerConfiguration,
     focusStack: FocusStack<UIView>?,
-    windowInfo: WindowInfo,
+    windowContext: PlatformWindowContext,
     compositionContext: CompositionContext,
-    compositionLocalContext: CompositionLocalContext?,
 ) : ComposeSceneLayer {
 
     override var focusable: Boolean = focusStack != null
-    private var onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)? = null
+    private var onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)? = null
     private val rootView = composeContainer.view.window ?: composeContainer.view
     private val backgroundView: UIView = object : UIView(
         frame = CGRectZero.readValue()
     ) {
-        init {
-            translatesAutoresizingMaskIntoConstraints = false
-            rootView.addSubview(this)
-            NSLayoutConstraint.activateConstraints(
-                getConstraintsToFillParent(this, rootView)
-            )
+
+        private var previousSuccessHitTestTimestamp: Double? = null
+
+        private fun touchStartedOutside(withEvent: UIEvent?) {
+            if (previousSuccessHitTestTimestamp != withEvent?.timestamp) {
+                // This workaround needs to send PointerEventType.Press just once
+                previousSuccessHitTestTimestamp = withEvent?.timestamp
+                onOutsidePointerEvent?.invoke(PointerEventType.Press)
+            }
         }
 
-        override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
-            //TODO pass invoke(true) on touch up event only when this touch event begins outside of layer bounds.
-            // Also it should be only one touch event (not multitouch with 2 and more touches).
-            // In other cases pass invoke(false)
-            onOutsidePointerEvent?.invoke(true)
-            return focusable
+        /**
+         * touchesEnded calls only when focused == true
+         */
+        override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
+            val touch = touches.firstOrNull() as? UITouch
+            val locationInView = touch?.locationInView(this)?.useContents { asDpOffset() }
+            if (locationInView != null) {
+                // This view's coordinate space is equal to [ComposeScene]'s
+                val contains = boundsInWindow.contains(locationInView.toOffset(density).round())
+                if (!contains) {
+                    onOutsidePointerEvent?.invoke(PointerEventType.Release)
+                }
+            }
+            super.touchesEnded(touches, withEvent)
+        }
+
+        override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+            if (
+                mediator.hitTestInteractionView(point, withEvent) == null &&
+                super.hitTest(point, withEvent) == this
+            ) {
+                touchStartedOutside(withEvent)
+                if (focusable) {
+                    // Focusable layers don't pass touches through, even if it's out of bounds.
+                    return this
+                }
+            }
+            return null // transparent for touches
         }
     }
 
@@ -83,24 +113,26 @@ internal class UIViewComposeSceneLayer(
             container = rootView,
             configuration = configuration,
             focusStack = focusStack,
-            windowInfo = windowInfo,
+            windowContext = windowContext,
             coroutineContext = compositionContext.effectCoroutineContext,
             renderingUIViewFactory = ::createSkikoUIView,
-            composeSceneFactory = ::createComposeScene,
-        ).also {
-            it.compositionLocalContext = compositionLocalContext
-        }
+            composeSceneFactory = ::createComposeScene
+        )
     }
 
     init {
+        backgroundView.translatesAutoresizingMaskIntoConstraints = false
+        rootView.addSubview(backgroundView)
+        NSLayoutConstraint.activateConstraints(
+            getConstraintsToFillParent(backgroundView, rootView)
+        )
         composeContainer.attachLayer(this)
     }
 
     private fun createSkikoUIView(renderDelegate: RenderingUIView.Delegate): RenderingUIView =
-        RenderingUIView(
-            renderDelegate = renderDelegate,
-            transparency = true,
-        )
+        RenderingUIView(renderDelegate = renderDelegate).apply {
+            opaque = false
+        }
 
     private fun createComposeScene(
         invalidate: () -> Unit,
@@ -108,11 +140,11 @@ internal class UIViewComposeSceneLayer(
         coroutineContext: CoroutineContext,
     ): ComposeScene =
         SingleLayerComposeScene(
+            density = initDensity, // We should use the local density already set for the current layer.
+            layoutDirection = initLayoutDirection,
             coroutineContext = coroutineContext,
             composeSceneContext = composeContainer.createComposeSceneContext(platformContext),
-            density = initDensity, // We should use the local density already set for the current layer.
             invalidate = invalidate,
-            layoutDirection = initLayoutDirection,
         )
 
     override var density by mediator::density
@@ -125,6 +157,9 @@ internal class UIViewComposeSceneLayer(
                 SceneLayout.Bounds(rect = value)
             )
         }
+
+    override var compositionLocalContext: CompositionLocalContext? by mediator::compositionLocalContext
+
     override var scrimColor: Color? = null
         get() = field
         set(value) {
@@ -150,11 +185,11 @@ internal class UIViewComposeSceneLayer(
         onPreviewKeyEvent: ((KeyEvent) -> Boolean)?,
         onKeyEvent: ((KeyEvent) -> Boolean)?
     ) {
-        //todo
+        mediator.setKeyEventListener(onPreviewKeyEvent, onKeyEvent)
     }
 
     override fun setOutsidePointerEventListener(
-        onOutsidePointerEvent: ((dismissRequest: Boolean) -> Unit)?
+        onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)?
     ) {
         this.onOutsidePointerEvent = onOutsidePointerEvent
     }

@@ -20,10 +20,11 @@ import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.foundation.gestures.DefaultScrollMotionDurationScale
-import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollScope
+import androidx.compose.foundation.gestures.ScrollableDefaultFlingBehavior
 import androidx.compose.ui.MotionDurationScale
 import kotlin.math.abs
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 
 internal class CupertinoFlingBehavior(
@@ -36,7 +37,7 @@ internal class CupertinoFlingBehavior(
      * blackbox
      */
     private val velocityThreshold: Float = 500f
-) : FlingBehavior {
+) : ScrollableDefaultFlingBehavior {
     override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
         if (abs(initialVelocity) < velocityThreshold) {
             return 0f
@@ -52,7 +53,11 @@ internal class CupertinoFlingBehavior(
                     initialVelocity = initialVelocity,
                 ).animateDecay(flingDecay) {
                     val delta = value - lastValue
-                    val consumed = scrollBy(delta)
+                    val consumed = try {
+                        scrollBy(delta)
+                    } catch (exception: CancellationException) {
+                        0.0f
+                    }
                     lastValue = value
                     velocityLeft = this.velocity
                     // avoid rounding errors and stop if anything is unconsumed

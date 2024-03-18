@@ -20,6 +20,7 @@ import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.Autofill
 import androidx.compose.ui.autofill.AutofillTree
@@ -28,6 +29,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.focus.FocusOwnerImpl
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.input.InputMode
@@ -59,7 +61,6 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformRootForTest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.RenderNodeLayer
-import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
@@ -69,13 +70,15 @@ import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.input.TextInputService
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.round
-import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.unit.toIntRect
+import androidx.compose.ui.unit.toRect
+import androidx.compose.ui.util.fastAll
+import androidx.compose.ui.util.trace
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.max
+import kotlin.math.min
 import kotlinx.coroutines.awaitCancellation
 
 /**
@@ -87,7 +90,7 @@ import kotlinx.coroutines.awaitCancellation
 internal class RootNodeOwner(
     density: Density,
     layoutDirection: LayoutDirection,
-    bounds: IntRect?,
+    size: IntSize?,
     coroutineContext: CoroutineContext,
     val platformContext: PlatformContext,
     private val snapshotInvalidationTracker: SnapshotInvalidationTracker,
@@ -117,12 +120,11 @@ internal class RootNodeOwner(
         }
     val owner: Owner = OwnerImpl(layoutDirection, coroutineContext)
     val semanticsOwner = SemanticsOwner(owner.root)
+    var size by mutableStateOf(size)
+    var density by mutableStateOf(density)
 
-    /**
-     * Bounds of [Owner] in window coordinates.
-     */
-    var bounds by mutableStateOf(bounds)
-    var density: Density by mutableStateOf(density)
+    private val constraints
+        get() = size?.toConstraints() ?: Constraints()
 
     private var _layoutDirection by mutableStateOf(layoutDirection)
     var layoutDirection: LayoutDirection
@@ -168,7 +170,7 @@ internal class RootNodeOwner(
     fun measureInConstraints(constraints: Constraints): IntSize {
         try {
             // TODO: is it possible to measure without reassigning root constraints?
-            measureAndLayoutDelegate.updateRootConstraints(constraints)
+            measureAndLayoutDelegate.updateRootConstraintsWithInfinityCheck(constraints)
             measureAndLayoutDelegate.measureOnly()
 
             // Don't use mainOwner.root.width here, as it strictly coerced by [constraints]
@@ -178,7 +180,7 @@ internal class RootNodeOwner(
                 height = children.maxOfOrNull { it.outerCoordinator.measuredHeight } ?: 0,
             )
         } finally {
-            measureAndLayoutDelegate.updateRootConstraints(bounds?.toConstraints() ?: Constraints())
+            measureAndLayoutDelegate.updateRootConstraintsWithInfinityCheck(constraints)
         }
     }
 
@@ -186,7 +188,12 @@ internal class RootNodeOwner(
         owner.measureAndLayout(sendPointerUpdate = true)
     }
 
-    fun draw(canvas: Canvas) {
+    fun invalidatePositionInWindow() {
+        owner.root.layoutDelegate.measurePassDelegate.notifyChildrenUsingCoordinatesWhilePlacing()
+        measureAndLayoutDelegate.dispatchOnPositionedCallbacks(forceDispatch = true)
+    }
+
+    fun draw(canvas: Canvas) = trace("RootNodeOwner:draw") {
         owner.root.draw(canvas)
         clearInvalidObservations()
     }
@@ -200,10 +207,8 @@ internal class RootNodeOwner(
         if (event.button != null) {
             platformContext.inputModeManager.requestInputMode(InputMode.Touch)
         }
-        val isInBounds = event.eventType != PointerEventType.Exit && event.pointers.all {
-            val positionInWindow = owner.calculatePositionInWindow(it.position)
-            bounds?.contains(positionInWindow.round()) ?: true
-        }
+        val isInBounds = event.eventType != PointerEventType.Exit &&
+            event.pointers.fastAll { isInBounds(it.position) }
         pointerInputEventProcessor.process(
             event,
             IdentityPositionCalculator,
@@ -223,6 +228,23 @@ internal class RootNodeOwner(
         owner.root.hitTest(position, result, true)
         val last = result.lastOrNull()
         return (last as? BackwardsCompatNode)?.element is InteropViewCatchPointerModifier
+    }
+
+    private fun isInBounds(localPosition: Offset): Boolean =
+        size?.toIntRect()?.toRect()?.contains(localPosition) ?: true
+
+    private fun calculateBoundsInWindow(): Rect? {
+        val rect = size?.toIntRect()?.toRect() ?: return null
+        val p0 = platformContext.calculatePositionInWindow(Offset(rect.left, rect.top))
+        val p1 = platformContext.calculatePositionInWindow(Offset(rect.left, rect.bottom))
+        val p3 = platformContext.calculatePositionInWindow(Offset(rect.right, rect.top))
+        val p4 = platformContext.calculatePositionInWindow(Offset(rect.right, rect.bottom))
+
+        val left = min(min(p0.x, p1.x), min(p3.x, p4.x))
+        val top = min(min(p0.y, p1.y), min(p3.y, p4.y))
+        val right = max(max(p0.x, p1.x), max(p3.x, p4.x))
+        val bottom = max(max(p0.y, p1.y), max(p3.y, p4.y))
+        return Rect(left, top, right, bottom)
     }
 
     private inner class OwnerImpl(
@@ -284,7 +306,7 @@ internal class RootNodeOwner(
         }
 
         override fun measureAndLayout(sendPointerUpdate: Boolean) {
-            measureAndLayoutDelegate.updateRootConstraints(bounds?.toConstraints() ?: Constraints())
+            measureAndLayoutDelegate.updateRootConstraintsWithInfinityCheck(constraints)
             val rootNodeResized = measureAndLayoutDelegate.measureAndLayout {
                 if (sendPointerUpdate) {
                     inputHandler.onPointerUpdate()
@@ -342,7 +364,12 @@ internal class RootNodeOwner(
             drawBlock: (Canvas) -> Unit,
             invalidateParentLayer: () -> Unit
         ) = RenderNodeLayer(
-            density,
+            Snapshot.withoutReadObservation {
+                // density is a mutable state that is observed whenever layer is created. the layer
+                // is updated manually on draw, so not observing the density changes here helps with
+                // performance in layout.
+                density
+            },
             invalidateParentLayer = {
                 invalidateParentLayer()
                 snapshotInvalidationTracker.requestDraw()
@@ -368,15 +395,11 @@ internal class RootNodeOwner(
             }
         }
 
-        override fun calculatePositionInWindow(localPosition: Offset): Offset {
-            val offset = bounds?.topLeft?.toOffset() ?: Offset.Zero
-            return localPosition + offset
-        }
+        override fun calculatePositionInWindow(localPosition: Offset): Offset =
+            platformContext.calculatePositionInWindow(localPosition)
 
-        override fun calculateLocalPosition(positionInWindow: Offset): Offset {
-            val offset = bounds?.topLeft?.toOffset() ?: Offset.Zero
-            return positionInWindow - offset
-        }
+        override fun calculateLocalPosition(positionInWindow: Offset): Offset =
+            platformContext.calculateLocalPosition(positionInWindow)
 
         private val endApplyChangesListeners = mutableVectorOf<(() -> Unit)?>()
 
@@ -415,10 +438,11 @@ internal class RootNodeOwner(
         override val density get() = this@RootNodeOwner.density
         override val textInputService get() = owner.textInputService
         override val semanticsOwner get() = this@RootNodeOwner.semanticsOwner
-        override val visibleBounds: IntRect
+        override val visibleBounds: Rect
             get() {
-                val container = IntRect(IntOffset.Zero, platformContext.windowInfo.containerSize)
-                return bounds?.intersect(container) ?: container
+                val windowRect = platformContext.windowInfo.containerSize.toIntRect().toRect()
+                val ownerRect = calculateBoundsInWindow()
+                return ownerRect?.intersect(windowRect) ?: windowRect
             }
 
         override val hasPendingMeasureOrLayout: Boolean
@@ -493,8 +517,42 @@ internal class RootNodeOwner(
     }
 }
 
-private fun IntRect.toConstraints() =
-    Constraints(maxWidth = width, maxHeight = height)
+// TODO a proper way is to provide API in Constraints to get this value
+/**
+ * Equals [Constraints.MinNonFocusMask]
+ */
+private const val ConstraintsMinNonFocusMask = 0x7FFF // 32767
+
+/**
+ * The max value that can be passed as Constraints(0, LargeDimension, 0, LargeDimension)
+ *
+ * Greater values cause "Can't represent a width of".
+ * See [Constraints.createConstraints] and [Constraints.bitsNeedForSize]:
+ *  - it fails if `widthBits + heightBits > 31`
+ *  - widthBits/heightBits are greater than 15 if we pass size >= [Constraints.MinNonFocusMask]
+ */
+internal const val LargeDimension = ConstraintsMinNonFocusMask - 1
+
+/**
+ * After https://android-review.googlesource.com/c/platform/frameworks/support/+/2901556
+ * Compose core doesn't allow measuring in infinity constraints,
+ * but RootNodeOwner and ComposeScene allow passing Infinity constraints by contract
+ * (Android on the other hand doesn't have public API for that and don't have such an issue).
+ *
+ * This method adds additional check on Infinity constraints,
+ * and pass constraint large enough instead
+ */
+private fun MeasureAndLayoutDelegate.updateRootConstraintsWithInfinityCheck(
+    constraints: Constraints
+) {
+    val maxWidth = if (constraints.hasBoundedWidth) constraints.maxWidth else LargeDimension
+    val maxHeight = if (constraints.hasBoundedHeight) constraints.maxHeight else LargeDimension
+    updateRootConstraints(
+        Constraints(constraints.minWidth, maxWidth, constraints.minHeight, maxHeight)
+    )
+}
+
+private fun IntSize.toConstraints() = Constraints(maxWidth = width, maxHeight = height)
 
 private object IdentityPositionCalculator: PositionCalculator {
     override fun screenToLocal(positionOnScreen: Offset): Offset = positionOnScreen
