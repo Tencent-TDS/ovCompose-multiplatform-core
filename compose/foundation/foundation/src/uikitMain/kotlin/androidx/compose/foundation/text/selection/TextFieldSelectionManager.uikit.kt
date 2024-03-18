@@ -120,7 +120,10 @@ private fun calculateSelectionMagnifierCenterIOS(
 
     // Center vertically on the current line.
     val centerY = if (transformedText.isNotEmpty()) {
-        layoutResult.getBoundingBox(textOffset).center.y
+        val line = layoutResult.getLineForOffset(textOffset)
+        val top = layoutResult.getLineTop(line)
+        val bottom = layoutResult.getLineBottom(line)
+        ((bottom - top) / 2) + top
     } else {
         // can't get line bounds for empty field
         // better alternatives?
