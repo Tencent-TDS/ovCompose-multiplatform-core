@@ -20,6 +20,8 @@ import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.ComposeFeatureFlags
+import androidx.compose.ui.awt.AwtEventListener
+import androidx.compose.ui.awt.OnlyValidPrimaryMouseButtonFilter
 import androidx.compose.ui.awt.SwingInteropContainer
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
@@ -33,8 +35,6 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
-import androidx.compose.ui.platform.a11y.AccessibilityController
-import androidx.compose.ui.platform.a11y.ComposeSceneAccessible
 import androidx.compose.ui.platform.DelegateRootForTestListener
 import androidx.compose.ui.platform.DesktopTextInputService
 import androidx.compose.ui.platform.EmptyViewConfiguration
@@ -43,6 +43,8 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.platform.a11y.AccessibilityController
+import androidx.compose.ui.platform.a11y.ComposeSceneAccessible
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.PlatformTextInputService
@@ -80,7 +82,6 @@ import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.ClipRectangle
 import org.jetbrains.skiko.ExperimentalSkikoApi
 import org.jetbrains.skiko.GraphicsApi
-import org.jetbrains.skiko.SkikoInput
 import org.jetbrains.skiko.SkikoView
 import org.jetbrains.skiko.hostOs
 import org.jetbrains.skiko.swing.SkiaSwingLayer
@@ -98,16 +99,15 @@ internal class ComposeSceneMediator(
     private val container: Container,
     private val windowContext: PlatformWindowContext,
     private var exceptionHandler: WindowExceptionHandler?,
+    private val eventListener: AwtEventListener = OnlyValidPrimaryMouseButtonFilter,
 
     val coroutineContext: CoroutineContext,
 
     skiaLayerComponentFactory: (ComposeSceneMediator) -> SkiaLayerComponent,
     composeSceneFactory: (ComposeSceneMediator) -> ComposeScene,
-) {
+) : SkikoView {
     private var isDisposed = false
     private val invisibleComponent = InvisibleComponent()
-
-    val skikoView: SkikoView = DesktopSkikoView()
 
     private val semanticsOwnerListener = DesktopSemanticsOwnerListener()
     var rootForTestListener: PlatformContext.RootForTestListener? by DelegateRootForTestListener()
@@ -364,43 +364,6 @@ internal class ComposeSceneMediator(
         }
     }
 
-    // Decides which AWT events should be delivered, and which should be filtered out
-    private val awtEventFilter = object {
-
-        var isPrimaryButtonPressed = false
-
-        fun shouldSendMouseEvent(event: MouseEvent): Boolean {
-            // AWT can send events after the window is disposed
-            if (isDisposed) {
-                return false
-            }
-
-            // Filter out mouse events that report the primary button has changed state to pressed,
-            // but aren't themselves a mouse press event. This is needed because on macOS, AWT sends
-            // us spurious enter/exit events that report the primary button as pressed when resizing
-            // the window by its corner/edge. This causes false-positives in detectTapGestures.
-            // See https://github.com/JetBrains/compose-multiplatform/issues/2850 for more details.
-            val eventReportsPrimaryButtonPressed =
-                (event.modifiersEx and MouseEvent.BUTTON1_DOWN_MASK) != 0
-            if ((event.button == MouseEvent.BUTTON1) &&
-                ((event.id == MouseEvent.MOUSE_PRESSED) ||
-                    (event.id == MouseEvent.MOUSE_RELEASED))) {
-                isPrimaryButtonPressed = eventReportsPrimaryButtonPressed  // Update state
-            }
-            if (eventReportsPrimaryButtonPressed && !isPrimaryButtonPressed) {
-                return false  // Ignore such events
-            }
-
-            return true
-        }
-
-        @Suppress("UNUSED_PARAMETER")
-        fun shouldSendKeyEvent(event: KeyEvent): Boolean {
-            // AWT can send events after the window is disposed
-            return !isDisposed
-        }
-    }
-
     private val MouseEvent.position: Offset
         get() {
             val pointInContainer = SwingUtilities.convertPoint(component, point, container)
@@ -410,7 +373,11 @@ internal class ComposeSceneMediator(
         }
 
     private fun onMouseEvent(event: MouseEvent): Unit = catchExceptions {
-        if (!awtEventFilter.shouldSendMouseEvent(event)) {
+        // AWT can send events after the window is disposed
+        if (isDisposed) {
+            return
+        }
+        if (eventListener.onMouseEvent(event)) {
             return
         }
         if (keyboardModifiersRequireUpdate) {
@@ -423,7 +390,11 @@ internal class ComposeSceneMediator(
     }
 
     private fun onMouseWheelEvent(event: MouseWheelEvent): Unit = catchExceptions {
-        if (!awtEventFilter.shouldSendMouseEvent(event)) {
+        // AWT can send events after the window is disposed
+        if (isDisposed) {
+            return
+        }
+        if (eventListener.onMouseEvent(event)) {
             return
         }
         processMouseEvent {
@@ -432,7 +403,11 @@ internal class ComposeSceneMediator(
     }
 
     private fun onKeyEvent(event: KeyEvent) = catchExceptions {
-        if (!awtEventFilter.shouldSendKeyEvent(event)) {
+        // AWT can send events after the window is disposed
+        if (isDisposed) {
+            return
+        }
+        if (eventListener.onKeyEvent(event)) {
             return
         }
         textInputService.onKeyEvent(event)
@@ -463,7 +438,7 @@ internal class ComposeSceneMediator(
     }
 
     fun onComponentAttached() {
-        onChangeComponentDensity()
+        onChangeDensity()
 
         _onComponentAttached?.invoke()
         _onComponentAttached = null
@@ -526,9 +501,7 @@ internal class ComposeSceneMediator(
         )
     }
 
-    fun onChangeComponentDensity() = catchExceptions {
-        if (!container.isDisplayable) return
-        val density = container.density
+    fun onChangeDensity(density: Density = container.density) = catchExceptions {
         if (scene.density != density) {
             scene.density = density
             onChangeComponentSize()
@@ -543,30 +516,33 @@ internal class ComposeSceneMediator(
         scene.layoutDirection = layoutDirection
     }
 
+    override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) = catchExceptions {
+        canvas.withSceneOffset {
+            scene.render(asComposeCanvas(), nanoTime)
+        }
+    }
+
+    private inline fun Canvas.withSceneOffset(block: Canvas.() -> Unit) {
+        // Offset of scene relative to [container]
+        val sceneBoundsOffset = sceneBoundsInPx?.topLeft ?: Offset.Zero
+        // Offset of canvas relative to [container]
+        val contentOffset = with(contentComponent) {
+            val scale = density.density
+            Offset(x * scale, y * scale)
+        }
+        val sceneOffset = sceneBoundsOffset - contentOffset
+        save()
+        translate(sceneOffset.x, sceneOffset.y)
+        block()
+        restore()
+    }
+
     fun onRenderApiChanged(action: () -> Unit) {
         skiaLayerComponent.onRenderApiChanged(action)
     }
 
     fun onChangeWindowFocus() {
         keyboardModifiersRequireUpdate = true
-    }
-
-    private inner class DesktopSkikoView : SkikoView {
-        override val input: SkikoInput
-            get() = SkikoInput.Empty
-
-        override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
-            catchExceptions {
-                val composeCanvas = canvas.asComposeCanvas()
-                val offset = sceneBoundsInPx?.topLeft ?: Offset.Zero
-                val scale = contentComponent.density.density
-                val dx = contentComponent.x * scale - offset.x
-                val dy = contentComponent.y * scale - offset.y
-                composeCanvas.translate(-dx, -dy)
-                scene.render(composeCanvas, nanoTime)
-                composeCanvas.translate(dx, dy)
-            }
-        }
     }
 
     private inner class DesktopViewConfiguration : ViewConfiguration by EmptyViewConfiguration {
