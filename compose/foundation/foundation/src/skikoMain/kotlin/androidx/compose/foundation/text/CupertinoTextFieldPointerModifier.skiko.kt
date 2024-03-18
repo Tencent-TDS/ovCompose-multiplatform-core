@@ -229,7 +229,10 @@ private fun getLongPressHandlerModifier(
                     manager.currentDragPosition = null // required for magnifier
                 }
 
-                override fun onCancel() {}
+                override fun onCancel() {
+                    manager.draggingHandle = null // required for magnifier
+                    manager.currentDragPosition = null // required for magnifier
+                }
             }
 
         detectDragGesturesAfterLongPress(
