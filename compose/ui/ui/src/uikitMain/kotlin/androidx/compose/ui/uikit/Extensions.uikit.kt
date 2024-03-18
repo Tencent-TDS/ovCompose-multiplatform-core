@@ -16,8 +16,10 @@
 
 package androidx.compose.ui.uikit
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.window.uiContentSizeCategoryToFontScaleMap
+import platform.UIKit.UIColor
 import platform.UIKit.UIContentSizeCategoryUnspecified
 import platform.UIKit.UIScreen
 import platform.UIKit.UITraitEnvironmentProtocol
@@ -27,7 +29,15 @@ internal val UITraitEnvironmentProtocol.systemDensity: Density
         val contentSizeCategory =
             traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
         return Density(
+            // TODO: refactor to avoid mainScreen scale, window can be attached to different screens
             density = UIScreen.mainScreen.scale.toFloat(),
             fontScale = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
         )
     }
+
+internal fun Color.toUIColor() = UIColor(
+    red = red.toDouble(),
+    green = green.toDouble(),
+    blue = blue.toDouble(),
+    alpha = alpha.toDouble(),
+)

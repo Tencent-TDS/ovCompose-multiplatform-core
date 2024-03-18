@@ -20,10 +20,16 @@ import androidx.compose.ui.platform.EmptyInputTraits
 import androidx.compose.ui.platform.IOSSkikoInput
 import androidx.compose.ui.platform.SkikoUITextInputTraits
 import androidx.compose.ui.platform.TextActions
+import androidx.compose.ui.platform.ViewConfiguration
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectIntersectsRect
@@ -51,8 +57,6 @@ import platform.UIKit.UIReturnKeyType
 import platform.UIKit.UITextAutocapitalizationType
 import platform.UIKit.UITextAutocorrectionType
 import platform.UIKit.UITextContentType
-import platform.UIKit.UITextDirection
-import platform.UIKit.UITextGranularity
 import platform.UIKit.UITextInputDelegateProtocol
 import platform.UIKit.UITextInputProtocol
 import platform.UIKit.UITextInputStringTokenizer
@@ -76,10 +80,19 @@ import platform.darwin.NSInteger
 @Suppress("CONFLICTING_OVERLOADS")
 internal class IntermediateTextInputUIView(
     private val keyboardEventHandler: KeyboardEventHandler,
+    private val viewConfiguration: ViewConfiguration
 ) : UIView(frame = CGRectZero.readValue()),
     UIKeyInputProtocol, UITextInputProtocol {
+    private var menuMonitoringJob = Job()
     private var _inputDelegate: UITextInputDelegateProtocol? = null
     var input: IOSSkikoInput? = null
+        set(value) {
+            field = value
+            if (value == null) {
+                cancelContextMenuUpdate()
+            }
+        }
+
     private var _currentTextMenuActions: TextActions? = null
     var inputTraits: SkikoUITextInputTraits = EmptyInputTraits
 
@@ -405,7 +418,7 @@ internal class IntermediateTextInputUIView(
     override fun keyboardType(): UIKeyboardType = inputTraits.keyboardType()
     override fun keyboardAppearance(): UIKeyboardAppearance = inputTraits.keyboardAppearance()
     override fun returnKeyType(): UIReturnKeyType = inputTraits.returnKeyType()
-    override fun textContentType(): UITextContentType? = inputTraits.textContentType()
+    override fun textContentType(): UITextContentType = inputTraits.textContentType()
     override fun isSecureTextEntry(): Boolean = inputTraits.isSecureTextEntry()
     override fun enablesReturnKeyAutomatically(): Boolean =
         inputTraits.enablesReturnKeyAutomatically()
@@ -471,14 +484,24 @@ internal class IntermediateTextInputUIView(
         }
     }
 
+    private fun shouldReloadContextMenuItems(actions: TextActions): Boolean {
+        return (_currentTextMenuActions?.copy == null) != (actions.copy == null) ||
+            (_currentTextMenuActions?.paste == null) != (actions.paste == null) ||
+            (_currentTextMenuActions?.cut == null) != (actions.cut == null) ||
+            (_currentTextMenuActions?.selectAll == null) != (actions.selectAll == null)
+    }
+
+    private fun cancelContextMenuUpdate() {
+        menuMonitoringJob.cancel()
+        menuMonitoringJob = Job()
+    }
+
     /**
      * Show copy/paste text menu
      * @param targetRect - rectangle of selected text area
      * @param textActions - available (not null) actions in text menu
      */
     fun showTextMenu(targetRect: org.jetbrains.skia.Rect, textActions: TextActions) {
-        _currentTextMenuActions = textActions
-        val menu: UIMenuController = UIMenuController.sharedMenuController()
         val cgRect = CGRectMake(
             x = targetRect.left.toDouble(),
             y = targetRect.top.toDouble(),
@@ -486,24 +509,27 @@ internal class IntermediateTextInputUIView(
             height = targetRect.height.toDouble()
         )
         val isTargetVisible = CGRectIntersectsRect(bounds, cgRect)
+
         if (isTargetVisible) {
-            if (menu.isMenuVisible()) {
-                menu.setTargetRect(cgRect, this)
-            } else {
-                //TODO: UIMenuController.showMenuFromView is Deprecated since iOS 17
-                // and not available on iOS 12
-                menu.showMenuFromView(this, cgRect)
-            }
-        } else {
-            if (menu.isMenuVisible()) {
-                //TODO: UIMenuController.hideMenu is Deprecated since iOS 17
-                // and not available on iOS 12
+            // TODO: UIMenuController is deprecated since iOS 17 and not available on iOS 12
+            val menu: UIMenuController = UIMenuController.sharedMenuController()
+            if (shouldReloadContextMenuItems(textActions)) {
                 menu.hideMenu()
             }
+            cancelContextMenuUpdate()
+            CoroutineScope(Dispatchers.Main + menuMonitoringJob).launch {
+                delay(viewConfiguration.doubleTapTimeoutMillis)
+                menu.showMenuFromView(targetView = this@IntermediateTextInputUIView, cgRect)
+            }
+            _currentTextMenuActions = textActions
+        } else {
+            hideTextMenu()
         }
     }
 
     fun hideTextMenu() {
+        cancelContextMenuUpdate()
+
         _currentTextMenuActions = null
         val menu: UIMenuController = UIMenuController.sharedMenuController()
         menu.hideMenu()
@@ -529,117 +555,8 @@ internal class IntermediateTextInputUIView(
         _currentTextMenuActions?.selectAll?.invoke()
     }
 
-    override fun tokenizer(): UITextInputTokenizerProtocol = object : UITextInputStringTokenizer() {
-
-        /**
-         * Return whether a text position is at a boundary of a text unit of a specified granularity in a specified direction.
-         * https://developer.apple.com/documentation/uikit/uitextinputtokenizer/1614553-isposition?language=objc
-         * @param position
-         * A text-position object that represents a location in a document.
-         * @param atBoundary
-         * A constant that indicates a certain granularity of text unit.
-         * @param inDirection
-         * A constant that indicates a direction relative to position. The constant can be of type UITextStorageDirection or UITextLayoutDirection.
-         * @return
-         * TRUE if the text position is at the given text-unit boundary in the given direction; FALSE if it is not at the boundary.
-         */
-        override fun isPosition(
-            position: UITextPosition, // Attention! position may be null.
-            atBoundary: UITextGranularity,
-            inDirection: UITextDirection
-        ): Boolean {
-            if (position !is IntermediateTextPosition) {
-                return false
-            }
-            return input?.isPositionAtBoundary(
-                position = position.position.toInt(),
-                atBoundary = atBoundary,
-                inDirection = inDirection,
-            ) ?: false
-        }
-
-        /**
-         * Return whether a text position is within a text unit of a specified granularity in a specified direction.
-         * https://developer.apple.com/documentation/uikit/uitextinputtokenizer/1614491-isposition?language=objc
-         * @param position
-         * A text-position object that represents a location in a document.
-         * @param withinTextUnit
-         * A constant that indicates a certain granularity of text unit.
-         * @param inDirection
-         * A constant that indicates a direction relative to position. The constant can be of type UITextStorageDirection or UITextLayoutDirection.
-         * @return
-         * TRUE if the text position is within a text unit of the specified granularity in the specified direction; otherwise, return FALSE.
-         * If the text position is at a boundary, return TRUE only if the boundary is part of the text unit in the given direction.
-         */
-        override fun isPosition(
-            position: UITextPosition, // Attention! position may be null.
-            withinTextUnit: UITextGranularity,
-            inDirection: UITextDirection
-        ): Boolean {
-            if (position !is IntermediateTextPosition) {
-                return false
-            }
-            return input?.isPositionWithingTextUnit(
-                position = position.position.toInt(),
-                withinTextUnit = withinTextUnit,
-                inDirection = inDirection,
-            ) ?: false
-        }
-
-        /**
-         * Return the next text position at a boundary of a text unit of the given granularity in a given direction.
-         * https://developer.apple.com/documentation/uikit/uitextinputtokenizer/1614513-positionfromposition?language=objc
-         * @param position
-         * A text-position object that represents a location in a document.
-         * @param toBoundary
-         * A constant that indicates a certain granularity of text unit.
-         * @param inDirection
-         * A constant that indicates a direction relative to position. The constant can be of type UITextStorageDirection or UITextLayoutDirection.
-         * @return
-         * The next boundary position of a text unit of the given granularity in the given direction, or nil if there is no such position.
-         */
-        override fun positionFromPosition(
-            position: UITextPosition,
-            toBoundary: UITextGranularity,
-            inDirection: UITextDirection
-        ): UITextPosition? {
-            //TODO: Need to implement
-            return null
-            if (position !is IntermediateTextPosition) {
-                error("position !is IntermediateTextPosition")
-            }
-        }
-
-        /**
-         * Return the range for the text enclosing a text position in a text unit of a given granularity in a given direction.
-         * https://developer.apple.com/documentation/uikit/uitextinputtokenizer/1614464-rangeenclosingposition?language=objc
-         * @param position
-         * A text-position object that represents a location in a document.
-         * @param withGranularity
-         * A constant that indicates a certain granularity of text unit.
-         * @param inDirection
-         * A constant that indicates a direction relative to position. The constant can be of type UITextStorageDirection or UITextLayoutDirection.
-         * @return
-         * A text-range representing a text unit of the given granularity in the given direction, or nil if there is no such enclosing unit.
-         * Whether a boundary position is enclosed depends on the given direction, using the same rule as the isPosition:withinTextUnit:inDirection: method.
-         */
-        override fun rangeEnclosingPosition(
-            position: UITextPosition,
-            withGranularity: UITextGranularity,
-            inDirection: UITextDirection
-        ): UITextRange? {
-            if (position !is IntermediateTextPosition) {
-                error("position !is IntermediateTextPosition")
-            }
-            return input?.rangeEnclosingPosition(
-                position = position.position.toInt(),
-                withGranularity = withGranularity,
-                inDirection = inDirection
-            )?.toUITextRange()
-        }
-
-    }
-
+    override fun tokenizer(): UITextInputTokenizerProtocol =
+        UITextInputStringTokenizer(textInput = this)
 }
 
 private class IntermediateTextPosition(val position: Long = 0) : UITextPosition()

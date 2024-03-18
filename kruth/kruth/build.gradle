@@ -14,26 +14,40 @@
  * limitations under the License.
  */
 
-import androidx.build.KmpPlatformsKt
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 import androidx.build.Publish
 import androidx.build.RunApiTasks
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
 }
 
-def macEnabled = KmpPlatformsKt.enableMac(project)
-def linuxEnabled = KmpPlatformsKt.enableLinux(project)
-
 androidXMultiplatform {
-    jvm {}
+    jvm {
+        withJava()
+    }
     mac()
     linux()
     ios()
 
     defaultPlatform(PlatformIdentifier.JVM)
+}
+
+kotlin {
+    js {
+        browser()
+    }
+    wasmJs()
 
     sourceSets {
         commonMain {
@@ -45,7 +59,6 @@ androidXMultiplatform {
 
         commonTest {
             dependencies {
-                implementation(libs.kotlinTestCommon)
                 implementation(libs.kotlinTestAnnotationsCommon)
             }
         }
@@ -56,24 +69,37 @@ androidXMultiplatform {
                 api(libs.kotlinStdlib)
                 api(libs.kotlinTest)
                 implementation(libs.guavaAndroid)
+                implementation(libs.junit)
             }
         }
 
         jvmTest {
             dependencies {
-                implementation(libs.kotlinStdlib)
-                implementation(libs.kotlinTest)
+                api(libs.kotlinCoroutinesTest)
             }
         }
 
-        if (macEnabled || linuxEnabled) {
-            nativeMain {
-                dependsOn(commonMain)
+        nonJvmMain.dependsOn(commonMain)
+        nonJvmTest.dependsOn(commonTest)
+        nativeMain.dependsOn(nonJvmMain)
+        webMain.dependsOn(nonJvmMain)
+
+        jsMain {
+            dependsOn(webMain)
+            dependencies {
+                api(libs.kotlinTestJs)
+            }
+        }
+
+        wasmJsMain {
+            dependsOn(webMain)
+            dependencies {
+                api(libs.kotlinTestWasm)
             }
         }
 
         targets.all { target ->
-            if (target.platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.native) {
+            if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     dependsOn(nativeMain)
                 }
@@ -93,4 +119,9 @@ androidx {
     publish = Publish.SNAPSHOT_ONLY
     runApiTasks = new RunApiTasks.Yes() // Used to diff against Google Truth
     type = LibraryType.INTERNAL_TEST_LIBRARY
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
