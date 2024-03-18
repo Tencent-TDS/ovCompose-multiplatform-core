@@ -41,9 +41,11 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import kotlin.math.roundToInt
 import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.getAndUpdate
 import kotlinx.atomicfu.update
 import kotlinx.atomicfu.updateAndGet
 import kotlinx.cinterop.cValue
+import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIColor
@@ -170,17 +172,13 @@ internal object PlatformMagnifierFactoryIos17Impl : PlatformMagnifierFactory {
 
             session?.moveToPoint(
                 point = magnifierCenterPoint,
-                withCaretRect = cValue { CGRectZero },
+                withCaretRect = CGRectZero.readValue(),
                 trackingCaret = false
             )
         }
 
         override fun dismiss() {
-            loupeSession.update {
-                it?.invalidate()
-                null
-            }
+            loupeSession.getAndUpdate { null }?.invalidate()
         }
-
     }
 }
