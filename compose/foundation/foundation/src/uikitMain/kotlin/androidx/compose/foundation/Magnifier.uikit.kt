@@ -16,17 +16,17 @@
 
 package androidx.compose.foundation
 
+import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
-import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.interop.LocalLayerContainer
+import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -142,6 +142,7 @@ internal class MagnifierElement(
         if (sourceCenter != other.sourceCenter) return false
         if (magnifierCenter != other.magnifierCenter) return false
         if (onSizeChanged != other.onSizeChanged) return false
+        if (color != other.color) return false
         if (platformMagnifierFactory != other.platformMagnifierFactory) return false
 
         return true
@@ -151,6 +152,7 @@ internal class MagnifierElement(
         var result = sourceCenter.hashCode()
         result = 31 * result + magnifierCenter.hashCode()
         result = 31 * result + (onSizeChanged?.hashCode() ?: 0)
+        result = 31 * result + color.hashCode()
         result = 31 * result + platformMagnifierFactory.hashCode()
         return result
     }
@@ -245,11 +247,10 @@ internal class MagnifierNode(
         magnifier = null
     }
 
-    @OptIn(InternalComposeUiApi::class)
     override fun onObservedReadsChanged() {
         observeReads {
             val previousView = view
-            val view = currentValueOf(LocalLayerContainer).also { this.view = it }
+            val view = currentValueOf(LocalUIViewController).view.also { this.view = it }
             val previousDensity = density
             val density = currentValueOf(LocalDensity).also { this.density = it }
 
