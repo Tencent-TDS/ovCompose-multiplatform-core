@@ -46,6 +46,9 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.skiko.SkiaLayer
+import org.jetbrains.skiko.SkikoInputModifiers
+import org.jetbrains.skiko.SkikoKey
+import org.jetbrains.skiko.SkikoKeyboardEvent
 import org.jetbrains.skiko.SkikoKeyboardEventKind
 import org.jetbrains.skiko.SkikoPointerEventKind
 import org.w3c.dom.AddEventListenerOptions
@@ -219,7 +222,13 @@ private class ComposeWindow(
             event.preventDefault()
         })
 
+        val setOfClipboardKeys = setOf(SkikoKey.KEY_V, SkikoKey.KEY_C, SkikoKey.KEY_X)
         addTypedEvent<KeyboardEvent>("keydown") { event ->
+            val skikoEvent: SkikoKeyboardEvent = event.toSkikoEvent(SkikoKeyboardEventKind.DOWN)
+            if (skikoEvent.key in setOfClipboardKeys && skikoEvent.modifiers != SkikoInputModifiers.EMPTY) {
+                // we let a browser dispatch a clipboard event
+                return@addTypedEvent
+            }
             val processed = layer.view.onKeyboardEventWithResult(event.toSkikoEvent(SkikoKeyboardEventKind.DOWN))
             if (processed) event.preventDefault()
         }

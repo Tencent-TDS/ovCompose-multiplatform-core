@@ -304,6 +304,8 @@ internal fun CoreTextField(
     val coroutineScope = rememberCoroutineScope()
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
+    rememberClipboardEventsHandler(manager, state.hasFocus)
+
     // Focus
     val focusModifier = Modifier.textFieldFocusModifier(
         enabled = enabled,
@@ -1191,3 +1193,9 @@ private fun notifyFocusedRect(
 internal const val USE_WINDOW_FOCUS_ENABLED = false
 internal fun isWindowFocusedBehindFlag(windowInfo: WindowInfo) =
     if (USE_WINDOW_FOCUS_ENABLED) windowInfo.isWindowFocused else true
+
+@Composable
+internal expect inline fun rememberClipboardEventsHandler(
+    textFieldSelectionManager: TextFieldSelectionManager,
+    isFocused: Boolean
+)
