@@ -16,13 +16,14 @@
 
 package androidx.compose.foundation.text
 
-import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.runtime.Composable
 
 @Composable
 internal actual inline fun rememberClipboardEventsHandler(
-    textFieldSelectionManager: TextFieldSelectionManager,
-    isFocused: Boolean
+    crossinline onPaste: (String) -> Unit,
+    crossinline onCopy: () -> String?,
+    crossinline onCut: () -> String?,
+    isEnabled: Boolean
 ) {
     // nothing to do
 }

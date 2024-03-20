@@ -33,9 +33,7 @@ import androidx.compose.foundation.text.selection.SimpleLayout
 import androidx.compose.foundation.text.selection.TextFieldSelectionHandle
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.foundation.text.selection.isSelectionHandleInVisibleBound
-import androidx.compose.foundation.text.selection.selectionGestureInput
 import androidx.compose.foundation.text.selection.textFieldMagnifier
-import androidx.compose.foundation.text.selection.updateSelectionTouchMode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -63,7 +61,6 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.IntrinsicMeasurable
@@ -304,7 +301,12 @@ internal fun CoreTextField(
     val coroutineScope = rememberCoroutineScope()
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
-    rememberClipboardEventsHandler(manager, state.hasFocus)
+    rememberClipboardEventsHandler(
+        isEnabled = state.hasFocus,
+        onCopy = { manager.onCopyWithResult() },
+        onCut = { manager.onCutWithResult() },
+        onPaste = { manager.paste(AnnotatedString(it)) }
+    )
 
     // Focus
     val focusModifier = Modifier.textFieldFocusModifier(
@@ -1193,9 +1195,3 @@ private fun notifyFocusedRect(
 internal const val USE_WINDOW_FOCUS_ENABLED = false
 internal fun isWindowFocusedBehindFlag(windowInfo: WindowInfo) =
     if (USE_WINDOW_FOCUS_ENABLED) windowInfo.isWindowFocused else true
-
-@Composable
-internal expect inline fun rememberClipboardEventsHandler(
-    textFieldSelectionManager: TextFieldSelectionManager,
-    isFocused: Boolean
-)

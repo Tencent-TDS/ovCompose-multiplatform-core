@@ -14,16 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation.text
+package androidx.compose.foundation.text.selection
 
-import androidx.compose.runtime.Composable
-
-@Composable
-internal actual inline fun rememberClipboardEventsHandler(
-    crossinline onPaste: (String) -> Unit,
-    crossinline onCopy: () -> String?,
-    crossinline onCut: () -> String?,
-    isEnabled: Boolean
-) {
-    // nothing to do
-}
+internal actual val SelectionManager.skipCopyKeyEvent: Boolean
+    get() = false

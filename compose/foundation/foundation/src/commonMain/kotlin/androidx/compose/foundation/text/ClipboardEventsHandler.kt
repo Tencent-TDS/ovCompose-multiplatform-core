@@ -19,11 +19,9 @@ package androidx.compose.foundation.text
 import androidx.compose.runtime.Composable
 
 @Composable
-internal actual inline fun rememberClipboardEventsHandler(
-    crossinline onPaste: (String) -> Unit,
-    crossinline onCopy: () -> String?,
-    crossinline onCut: () -> String?,
+internal expect inline fun rememberClipboardEventsHandler(
+    crossinline onPaste: (String) -> Unit = {},
+    crossinline onCopy: () -> String? = { null },
+    crossinline onCut: () -> String? = { null },
     isEnabled: Boolean
-) {
-    // nothing to do
-}
+)

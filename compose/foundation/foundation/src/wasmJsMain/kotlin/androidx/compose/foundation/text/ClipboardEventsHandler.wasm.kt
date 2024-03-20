@@ -16,11 +16,9 @@
 
 package androidx.compose.foundation.text
 
-import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.NonRestartableComposable
-import androidx.compose.ui.text.AnnotatedString
 import kotlinx.browser.document
 import org.w3c.dom.clipboard.ClipboardEvent
 import org.w3c.dom.events.Event
@@ -29,44 +27,45 @@ import org.w3c.dom.events.EventListener as EventListenerInterface
 @Composable
 @NonRestartableComposable
 internal actual inline fun rememberClipboardEventsHandler(
-    textFieldSelectionManager: TextFieldSelectionManager,
-    isFocused: Boolean
+    crossinline onPaste: (String) -> Unit,
+    crossinline onCopy: () -> String?,
+    crossinline onCut: () -> String?,
+    isEnabled: Boolean
 ) {
-    if (isFocused) {
-        DisposableEffect(textFieldSelectionManager) {
-
-            val onCopy = EventListener { event ->
-                val textToCopy = textFieldSelectionManager.onCopyWithResult()
+    if (isEnabled) {
+        DisposableEffect(Unit) {
+            val copyListener = EventListener { event ->
+                val textToCopy = onCopy()
                 if (textToCopy != null && event is ClipboardEvent) {
                     event.clipboardData?.setData("text/plain", textToCopy)
                     event.preventDefault()
                 }
             }
 
-            val onPaste = EventListener { event ->
+            val pasteListener = EventListener { event ->
                 if (event is ClipboardEvent) {
                     val textToPaste = event.clipboardData?.getData("text/plain") ?: ""
-                    event.preventDefault()
-                    textFieldSelectionManager.paste(AnnotatedString(textToPaste))
-                }
-            }
-
-            val onCut = EventListener { event ->
-                if (event is ClipboardEvent) {
-                    val cutText = textFieldSelectionManager.onCutWithResult()
-                    event.clipboardData?.setData("text/plain", cutText ?: "")
+                    onPaste(textToPaste)
                     event.preventDefault()
                 }
             }
 
-            document.addEventListener("copy", onCopy)
-            document.addEventListener("paste", onPaste)
-            document.addEventListener("cut", onCut)
+            val cutListener = EventListener { event ->
+                val cutText = onCut()
+                if (cutText != null && event is ClipboardEvent) {
+                    event.clipboardData?.setData("text/plain", cutText)
+                    event.preventDefault()
+                }
+            }
+
+            document.addEventListener("copy", copyListener)
+            document.addEventListener("paste", pasteListener)
+            document.addEventListener("cut", cutListener)
 
             onDispose {
-                document.removeEventListener("copy", onCopy)
-                document.removeEventListener("paste", onPaste)
-                document.removeEventListener("cut", onCut)
+                document.removeEventListener("copy", copyListener)
+                document.removeEventListener("paste", pasteListener)
+                document.removeEventListener("cut", cutListener)
             }
         }
     }
