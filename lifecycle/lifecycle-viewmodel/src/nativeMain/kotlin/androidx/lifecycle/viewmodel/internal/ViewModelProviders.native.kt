@@ -14,18 +14,9 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.platform
+package androidx.lifecycle.viewmodel.internal
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
+import kotlin.reflect.KClass
 
-@Composable
-internal actual fun ProvidePlatformCompositionLocals(
-    content: @Composable () -> Unit
-) {
-    CompositionLocalProvider(
-        // See https://issuetracker.google.com/issues/330036209 for why `arrayOf` is used.
-        values = arrayOf(LocalLocalization providesDefault defaultPlatformLocalization()),
-        content = content
-    )
-}
+internal actual val <T : Any> KClass<T>.canonicalName: String?
+    get() = qualifiedName
