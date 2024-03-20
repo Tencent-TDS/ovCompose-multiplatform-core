@@ -16,14 +16,31 @@
 
 package androidx.compose.foundation.text
 
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.hostOs
 
 internal actual val platformDefaultKeyMapping: KeyMapping = createPlatformDefaultKeyMapping(hostOs)
 
 internal fun createPlatformDefaultKeyMapping(platform: OS): KeyMapping {
-    return when (platform) {
+    val keyMapping = when (platform) {
         OS.MacOS -> createMacosDefaultKeyMapping()
         else -> defaultKeyMapping
+    }
+    return object : KeyMapping {
+        private val clipboardKeys = setOf(Key.C, Key.V, Key.X)
+
+        override fun map(event: KeyEvent): KeyCommand? {
+            val isCtrlOrCmd = if (hostOs.isMacOS) event.isMetaPressed else event.isCtrlPressed
+            if (isCtrlOrCmd && event.key in clipboardKeys) {
+                // we let a browser dispatch a clipboard event
+                return null
+            }
+            return keyMapping.map(event)
+        }
     }
 }

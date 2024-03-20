@@ -222,13 +222,7 @@ private class ComposeWindow(
             event.preventDefault()
         })
 
-        val setOfClipboardKeys = setOf(SkikoKey.KEY_V, SkikoKey.KEY_C, SkikoKey.KEY_X)
         addTypedEvent<KeyboardEvent>("keydown") { event ->
-            val skikoEvent: SkikoKeyboardEvent = event.toSkikoEvent(SkikoKeyboardEventKind.DOWN)
-            if (skikoEvent.key in setOfClipboardKeys && skikoEvent.modifiers != SkikoInputModifiers.EMPTY) {
-                // we let a browser dispatch a clipboard event
-                return@addTypedEvent
-            }
             val processed = layer.view.onKeyboardEventWithResult(event.toSkikoEvent(SkikoKeyboardEventKind.DOWN))
             if (processed) event.preventDefault()
         }
