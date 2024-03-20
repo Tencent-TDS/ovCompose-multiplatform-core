@@ -24,7 +24,7 @@ import androidx.compose.ui.text.AnnotatedString
 import kotlinx.browser.document
 import org.w3c.dom.clipboard.ClipboardEvent
 import org.w3c.dom.events.Event
-import org.w3c.dom.events.EventListener
+import org.w3c.dom.events.EventListener as EventListenerInterface
 
 @Composable
 @NonRestartableComposable
@@ -35,7 +35,7 @@ internal actual inline fun rememberClipboardEventsHandler(
     if (isFocused) {
         DisposableEffect(textFieldSelectionManager) {
 
-            val onCopy = EventListenerWrapper { event ->
+            val onCopy = EventListener { event ->
                 val textToCopy = textFieldSelectionManager.onCopyWithResult()
                 if (textToCopy != null && event is ClipboardEvent) {
                     event.clipboardData?.setData("text/plain", textToCopy)
@@ -43,7 +43,7 @@ internal actual inline fun rememberClipboardEventsHandler(
                 }
             }
 
-            val onPaste = EventListenerWrapper { event ->
+            val onPaste = EventListener { event ->
                 if (event is ClipboardEvent) {
                     val textToPaste = event.clipboardData?.getData("text/plain") ?: ""
                     event.preventDefault()
@@ -51,7 +51,7 @@ internal actual inline fun rememberClipboardEventsHandler(
                 }
             }
 
-            val onCut = EventListenerWrapper { event ->
+            val onCut = EventListener { event ->
                 if (event is ClipboardEvent) {
                     val cutText = textFieldSelectionManager.onCutWithResult()
                     event.clipboardData?.setData("text/plain", cutText ?: "")
@@ -63,7 +63,7 @@ internal actual inline fun rememberClipboardEventsHandler(
             document.addEventListener("paste", onPaste)
             document.addEventListener("cut", onCut)
 
-            return@DisposableEffect onDispose {
+            onDispose {
                 document.removeEventListener("copy", onCopy)
                 document.removeEventListener("paste", onPaste)
                 document.removeEventListener("cut", onCut)
@@ -72,5 +72,5 @@ internal actual inline fun rememberClipboardEventsHandler(
     }
 }
 
-private fun EventListenerWrapper(handler: (Event) -> Unit): EventListener =
+private fun EventListener(handler: (Event) -> Unit): EventListenerInterface =
     js("(event) => { handler(event) }")
