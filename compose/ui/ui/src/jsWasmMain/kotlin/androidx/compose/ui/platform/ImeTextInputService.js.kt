@@ -30,11 +30,13 @@ import org.w3c.dom.asList
 import org.w3c.dom.events.*
 import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.events.MouseEvent
+import org.w3c.dom.HTMLCanvasElement
 
 internal open class ImeTextInputService(
-    private val canvasId: String,
+    private val canvas: HTMLCanvasElement,
     private val density: Density
 ) {
+    private val canvasId = canvas.id.takeIf { it.isNotBlank() } ?: canvas.hashCode().toString()
     private val inputId = "compose-software-input-$canvasId"
 
     private val imeKeyboardListener = ImeKeyboardListenerImpl()
@@ -175,7 +177,7 @@ internal open class ImeTextInputService(
 
     fun updatePosition(rect: Rect) {
         val scale = density.density
-        document.getElementById(canvasId)?.getBoundingClientRect()?.let { offset ->
+        canvas.getBoundingClientRect()?.let { offset ->
             val offsetX = offset.left.toFloat().coerceAtLeast(0f) + (rect.left / scale)
             val offsetY = offset.top.toFloat().coerceAtLeast(0f) + (rect.top / scale)
 

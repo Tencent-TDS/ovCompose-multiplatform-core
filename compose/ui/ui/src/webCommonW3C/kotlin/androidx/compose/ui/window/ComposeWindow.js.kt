@@ -147,7 +147,7 @@ private class ComposeWindow(
 
     private val imeTextInputService =
         ImeTextInputService(
-            canvas.id.takeIf { it.isNotBlank() } ?: canvas.hashCode().toString(),
+            canvas,
             density
         )
 
