@@ -30,19 +30,13 @@ import org.tomlj.TomlTable
  */
 abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Parameters> {
 
-    data class JetBrainsLibPublicationInfo(
-        val originalGroupId: String,
-        val newGroupId: String,
-        val newVersion: String
-    ) : Serializable
-
     interface Parameters : BuildServiceParameters {
         var tomlFileName: String
         var tomlFileContents: Provider<String>
         var composeCustomVersion: Provider<String>
         var composeCustomGroup: Provider<String>
         var useMultiplatformGroupVersions: Provider<Boolean>
-        var libsGroupsAndVersions: Provider<Map<String, JetBrainsLibPublicationInfo>>
+        var libsOverrideVersions: Provider<Map<String, String>>
     }
 
     private val parsedTomlFile: TomlParseResult by lazy {
@@ -67,10 +61,10 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
     // map from name of constant to Version
     val libraryVersions: Map<String, Version> by lazy {
         val versions = getTable("versions")
-        val libsGroupsAndVersions = parameters.libsGroupsAndVersions.get()
+        val libsGroupsAndVersions = parameters.libsOverrideVersions.get()
         versions.keySet().associateWith { versionName ->
             val tagName = libsGroupsAndVersions.keys.firstOrNull { versionName.startsWith(it) }
-            val versionForTag = libsGroupsAndVersions[tagName]?.newVersion
+            val versionForTag = libsGroupsAndVersions[tagName]
             val versionValue =
                 if (versionName.startsWith("COMPOSE") &&
                     parameters.composeCustomVersion.isPresent
@@ -131,7 +125,6 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
     }
 
     private val libraryGroupAssociations: List<LibraryGroupAssociation> by lazy {
-        val libsGroupsAndVersions = parameters.libsGroupsAndVersions.get()
         val groups = getTable("groups")
         val useMultiplatformGroupVersion =
             parameters.useMultiplatformGroupVersions.orElse(false).get()
@@ -154,8 +147,6 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
         }
         val result = mutableListOf<LibraryGroupAssociation>()
         for (name in groups.keySet()) {
-            val tagName = libsGroupsAndVersions.keys.firstOrNull { name.startsWith(it) }
-            val info = libsGroupsAndVersions[tagName]
             // get group name
             val groupDefinition = groups.getTable(name)!!
             val groupName = groupDefinition.getString("group")!!
@@ -163,8 +154,6 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
                 parameters.composeCustomGroup.isPresent
             ) {
                 groupName.replace("androidx.compose", parameters.composeCustomGroup.get())
-            } else if (tagName != null && info != null) {
-                groupName.replace(info.originalGroupId, info.newGroupId)
             } else {
                 groupName
             }
