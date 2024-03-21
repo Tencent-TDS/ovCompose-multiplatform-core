@@ -79,19 +79,6 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
             ComposePlatforms.MingwX64,
         )
 
-        // Let's not publish those for some libs until we have a reason to do so
-        // For example: lifecycle
-        val SKIP_EXTRA_TARGETS = EnumSet.of(
-            ComposePlatforms.TvosArm64,
-            ComposePlatforms.TvosX64,
-            ComposePlatforms.TvosSimulatorArm64,
-            ComposePlatforms.WatchosArm64,
-            ComposePlatforms.WatchosArm32,
-            ComposePlatforms.WatchosX64,
-            ComposePlatforms.WatchosSimulatorArm64,
-            ComposePlatforms.MingwX64,
-        )
-
         /**
          * Maps comma separated list of platforms into a set of [ComposePlatforms]
          * The function is case- and whitespace-insensetive.

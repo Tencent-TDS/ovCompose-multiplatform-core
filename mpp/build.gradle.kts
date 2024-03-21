@@ -25,8 +25,9 @@ open class ComposePublishingTask : AbstractComposePublishingTask() {
 val composeProperties = ComposeProperties(project)
 
 val PublishedLifecyclePlatforms = ComposePlatforms.ALL -
-    ComposePlatforms.SKIP_EXTRA_TARGETS -
-    ComposePlatforms.LinuxArm64 // not published by androidx too
+    ComposePlatforms.NO_SKIKO +
+    ComposePlatforms.LinuxX64 +
+    ComposePlatforms.LinuxArm64
 
 val mainComponents =
     listOf(
