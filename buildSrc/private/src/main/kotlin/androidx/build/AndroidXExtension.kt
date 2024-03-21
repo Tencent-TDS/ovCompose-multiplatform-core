@@ -73,6 +73,37 @@ abstract class AndroidXExtension(val project: Project) : ExtensionAware {
             spec.parameters.useMultiplatformGroupVersions = project.provider {
                 Multiplatform.isKotlinNativeEnabled(project)
             }
+            spec.parameters.libsGroupsAndVersions = project.provider {
+                val configuration = project.property("jetbrains.publication.configuration") as String
+                val configurationPattern = "(\\w+):group=([\\w.]+),newGroup=([\\w.]+)".toRegex()
+
+                // Converting to a Map of 'TAG to JetBrainsLibPublicationInfo'
+                // e.g: COMPOSE:group=androidx.compose,newGroup=org.jetbrains.compose
+                // where COMPOSE is the TAG
+                val result: Map<String, LibraryVersionsService.JetBrainsLibPublicationInfo> =
+                    configuration.split(";").map {
+                        it.trim().replace(";", "")
+                    }.filter { it.isNotBlank() }.associate {
+                        val matchResult = configurationPattern.find(it)
+                        if (matchResult != null) {
+                            val (tag, group, newGroup) = matchResult.destructured
+                            val versionForTag = project.property(
+                                "jetbrains.publication.version.$tag"
+                            ) as String
+
+                            val info = LibraryVersionsService.JetBrainsLibPublicationInfo(
+                                originalGroupId = group,
+                                newGroupId = newGroup,
+                                newVersion = versionForTag
+                            )
+                            tag to info
+                        } else {
+                            error("No match found in $it")
+                        }
+                    }
+
+                result
+            }
         }.get()
         AllLibraryGroups = versionService.libraryGroups.values.toList()
         LibraryVersions = versionService.libraryVersions

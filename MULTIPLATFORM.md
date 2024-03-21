@@ -64,6 +64,15 @@ Compose Multiplatform core libraries can be published to local Maven with the fo
 ```bash
 export COMPOSE_CUSTOM_VERSION=0.0.0-custom-version
 ```
+
+*Note:* instead of using an environment variable, it's possible to use new gradle properties:
+`-Pjetbrains.publication.version.COMPOSE=0.1.0-SNAPSHOT`,
+`-Pjetbrains.publication.version.LIFECYCLE=0.1.0-SNAPSHOT`
+
+The environment variable has a higher priority than the gradle property.
+There is no environment variable for LIFECYCLE custom version.
+Also, check `gradle.properties` file to learn more.
+
 2. Publish core libraries
 ```bash
 ./gradlew :mpp:publishComposeJbToMavenLocal -Pcompose.platforms=all
