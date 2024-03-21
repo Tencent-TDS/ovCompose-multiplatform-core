@@ -25,7 +25,9 @@ open class ComposePublishingTask : AbstractComposePublishingTask() {
 val composeProperties = ComposeProperties(project)
 
 val PublishedLifecyclePlatforms = ComposePlatforms.ALL -
-    ComposePlatforms.NO_SKIKO +
+    ComposePlatforms.NO_SKIKO -
+    ComposePlatforms.UIKIT + // the target names in Lifecycle are ios, not uikit
+    ComposePlatforms.IOS +
     ComposePlatforms.LinuxX64 +
     ComposePlatforms.LinuxArm64
 
@@ -78,7 +80,7 @@ val mainComponents =
         ),
         ComposeComponent(
             ":compose:ui:ui-uikit",
-            supportedPlatforms = ComposePlatforms.IOS
+            supportedPlatforms = ComposePlatforms.UIKIT
         ),
         ComposeComponent(":compose:ui:ui-unit"),
         ComposeComponent(":compose:ui:ui-util"),
