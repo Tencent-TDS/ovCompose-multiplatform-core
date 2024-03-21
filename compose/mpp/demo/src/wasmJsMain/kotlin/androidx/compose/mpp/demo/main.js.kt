@@ -23,7 +23,10 @@ import androidx.compose.ui.window.ComposeViewport
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-
+    ComposeViewport(viewportContainer = "composeApplication") {
+        val app = remember { App() }
+        app.Content()
+    }
 }
 
 
