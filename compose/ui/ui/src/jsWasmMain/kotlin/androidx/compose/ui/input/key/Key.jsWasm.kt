@@ -19,7 +19,7 @@ package androidx.compose.ui.input.key
 import androidx.compose.ui.input.key.Key.Companion.Number
 
 /**
- * Actual implementation of [Key] for JS and Native.
+ * Actual implementation of [Key] for JS.
  *
  * @param keyCode an integer code representing the key pressed. Note: This keycode can be used to
  * uniquely identify a hardware key.
@@ -557,4 +557,3 @@ actual value class Key(val keyCode: Long) {
 
     actual override fun toString() = "Key keyCode: $keyCode"
 }
-
