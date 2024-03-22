@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ internal class CustomUsage(
 }
 
 @OptIn(InternalKotlinGradlePluginApi::class)
-internal fun Project.publishAndroidxReference(target: KotlinOnlyTarget<*>, newRootComponent: CustomRootComponent) {
+internal fun Project.publishAndroidxReference(target: AbstractKotlinTarget, newRootComponent: CustomRootComponent) {
     afterEvaluate {
         extensions.getByType(PublishingExtension::class.java).apply {
             val kotlinMultiplatform = publications
@@ -101,6 +101,7 @@ internal fun Project.publishAndroidxReference(target: KotlinOnlyTarget<*>, newRo
             val usages = when (component) {
                 is KotlinVariant -> component.usages
                 is KotlinVariantWithMetadataVariant -> component.usages
+                is JointAndroidKotlinTargetComponent -> component.usages
                 else -> emptyList()
             }
 
@@ -118,7 +119,7 @@ internal fun Project.publishAndroidxReference(target: KotlinOnlyTarget<*>, newRo
 
 internal class CustomRootComponent(
     val rootComponent: KotlinSoftwareComponentWithCoordinatesAndPublication,
-    val newDependency: ModuleDependency
+    val customizeDependencyPerConfiguration: (Configuration) -> ModuleDependency
 ) : SoftwareComponentInternal, ComponentWithVariants, ComponentWithCoordinates {
     override fun getName(): String = "kotlinDecoratedRootComponent"
     override fun getVariants(): Set<SoftwareComponent> = rootComponent.variants
@@ -130,6 +131,8 @@ internal class CustomRootComponent(
     private val extraUsages = mutableSetOf<UsageContext>()
 
     fun addUsageFromConfiguration(configuration: Configuration) {
+        val newDependency = customizeDependencyPerConfiguration(configuration)
+
         extraUsages.add(
             CustomUsage(
                 name = configuration.name,

@@ -90,7 +90,7 @@ LEANBACK_PREFERENCE = "1.2.0-alpha03"
 LEANBACK_TAB = "1.1.0-beta01"
 LEGACY = "1.1.0-alpha01"
 LIBYUV = "0.1.0-dev01"
-LIFECYCLE = "2.7.0-rc01"
+LIFECYCLE = "2.8.0-alpha02"
 LIFECYCLE_EXTENSIONS = "2.2.0"
 LOADER = "1.2.0-alpha01"
 MEDIA = "1.7.0-rc01"
@@ -235,7 +235,7 @@ KRUTH = { group = "androidx.kruth", atomicGroupVersion = "versions.KRUTH" }
 LEANBACK = { group = "androidx.leanback" }
 LEGACY = { group = "androidx.legacy" }
 LIBYUV = { group = "libyuv", atomicGroupVersion = "versions.LIBYUV" }
-LIFECYCLE = { group = "androidx.lifecycle", atomicGroupVersion = "versions.LIFECYCLE" }
+LIFECYCLE = { group = "org.jetbrains.androidx.lifecycle", atomicGroupVersion = "versions.LIFECYCLE" , overrideInclude = [ ":lifecycle:lifecycle-common", ":lifecycle:lifecycle-runtime", ":lifecycle:lifecycle-runtime-compose" ]}
 LIFECYCLE_EXTENSIONS = { group = "androidx.lifecycle", atomicGroupVersion = "versions.LIFECYCLE_EXTENSIONS", overrideInclude = [ ":lifecycle:lifecycle-extensions" ] }
 LOADER = { group = "androidx.loader", atomicGroupVersion = "versions.LOADER" }
 MEDIA = { group = "androidx.media" }
