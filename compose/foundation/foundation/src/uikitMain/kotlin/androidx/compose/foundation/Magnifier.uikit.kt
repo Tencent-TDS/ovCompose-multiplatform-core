@@ -242,6 +242,7 @@ internal class MagnifierNode(
         onObservedReadsChanged()
     }
 
+
     override fun onDetach() {
         magnifier?.dismiss()
         magnifier = null
@@ -250,7 +251,13 @@ internal class MagnifierNode(
     override fun onObservedReadsChanged() {
         observeReads {
             val previousView = view
-            val view = currentValueOf(LocalUIViewController).view.also { this.view = it }
+
+            val view = kotlin.runCatching {
+                currentValueOf(LocalUIViewController).view.also { this.view = it }
+            }.getOrElse {
+                // LocalUIViewController is not provided for unit tests - do nothing
+                return@observeReads
+            }
             val previousDensity = density
             val density = currentValueOf(LocalDensity).also { this.density = it }
 
@@ -261,6 +268,7 @@ internal class MagnifierNode(
             updateMagnifier()
         }
     }
+
 
     private fun recreateMagnifier() {
         magnifier?.dismiss()
