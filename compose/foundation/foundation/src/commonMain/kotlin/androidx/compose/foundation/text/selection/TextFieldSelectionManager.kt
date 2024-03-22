@@ -451,7 +451,10 @@ internal class TextFieldSelectionManager(
                 updateFloatingToolbar(show = true)
             }
 
-            override fun onCancel() {}
+            override fun onCancel() {
+                draggingHandle = null
+                currentDragPosition = null
+            }
         }
 
     /**
