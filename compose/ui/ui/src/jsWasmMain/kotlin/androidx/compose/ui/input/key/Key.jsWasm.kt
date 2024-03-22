@@ -210,7 +210,7 @@ actual value class Key(val keyCode: Long) {
          *
          * Deletes characters before the insertion point, unlike [Delete].
          */
-        actual val Backspace = Key(8) // Key(KeyEvent.VK_BACK_SPACE)
+        actual val Backspace = Key(8)
 
         /**
          * Delete key.
