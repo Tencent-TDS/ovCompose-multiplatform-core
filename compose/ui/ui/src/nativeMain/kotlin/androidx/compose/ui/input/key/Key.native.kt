@@ -204,7 +204,7 @@ actual value class Key(val keyCode: Long) {
         actual val Spacebar = Key(UIKeyboardHIDUsageKeyboardSpacebar)
 
         /** Enter key. */
-        actual val Enter = Key(40)
+        actual val Enter = Key(UIKeyboardHIDUsageKeyboardReturnOrEnter)
 
         /**
          * Backspace key.
@@ -237,10 +237,10 @@ actual value class Key(val keyCode: Long) {
         actual val ScrollLock = Key(UIKeyboardHIDUsageKeyboardScrollLock)
 
         /** Left Meta modifier key. */
-        actual val MetaLeft = Key(227)
+        actual val MetaLeft = Key(UIKeyboardHIDUsageKeyboardLeftGUI)
 
         /** Right Meta modifier key. */
-        actual val MetaRight = Key(231)
+        actual val MetaRight = Key(UIKeyboardHIDUsageKeyboardRightGUI)
 
         /** System Request / Print Screen key. */
         actual val PrintScreen = Key(104)
@@ -253,7 +253,7 @@ actual value class Key(val keyCode: Long) {
         actual val Insert = Key(117)
 
         /** '`' (backtick) key. */
-        actual val Grave = Key(53)
+        actual val Grave = Key(UIKeyboardHIDUsageKeyboardGraveAccentAndTilde)
 
         /** '[' key. */
         actual val LeftBracket = Key(UIKeyboardHIDUsageKeyboardOpenBracket)
@@ -327,25 +327,25 @@ actual value class Key(val keyCode: Long) {
         actual val NumPad1 = Key(UIKeyboardHIDUsageKeypad1)
 
         /** Numeric keypad '2' key. */
-        actual val NumPad2 = Key(90)
+        actual val NumPad2 = Key(UIKeyboardHIDUsageKeypad2)
 
         /** Numeric keypad '3' key. */
         actual val NumPad3 = Key(UIKeyboardHIDUsageKeypad3)
 
         /** Numeric keypad '4' key. */
-        actual val NumPad4 = Key(92)
+        actual val NumPad4 = Key(UIKeyboardHIDUsageKeypad4)
 
         /** Numeric keypad '5' key. */
         actual val NumPad5 = Key(UIKeyboardHIDUsageKeypad5)
 
         /** Numeric keypad '6' key. */
-        actual val NumPad6 = Key(94)
+        actual val NumPad6 = Key(UIKeyboardHIDUsageKeypad6)
 
         /** Numeric keypad '7' key. */
         actual val NumPad7 = Key(UIKeyboardHIDUsageKeypad7)
 
         /** Numeric keypad '8' key. */
-        actual val NumPad8 = Key(96)
+        actual val NumPad8 = Key(UIKeyboardHIDUsageKeypad8)
 
         /** Numeric keypad '9' key. */
         actual val NumPad9 = Key(UIKeyboardHIDUsageKeypad9)
@@ -357,10 +357,10 @@ actual value class Key(val keyCode: Long) {
         actual val NumPadMultiply = Key(UIKeyboardHIDUsageKeypadAsterisk)
 
         /** Numeric keypad '-' key (for subtraction). */
-        actual val NumPadSubtract = Key(86)
+        actual val NumPadSubtract = Key(UIKeyboardHIDUsageKeypadHyphen)
 
         /** Numeric keypad '+' key (for addition). */
-        actual val NumPadAdd = Key(87)
+        actual val NumPadAdd = Key(UIKeyboardHIDUsageKeypadPlus)
 
         /** Numeric keypad Enter key. */
         actual val NumPadEnter = Key(UIKeyboardHIDUsageKeypadEnter)
