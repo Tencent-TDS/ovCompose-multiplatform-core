@@ -41,27 +41,21 @@ internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManag
 
         val color = LocalTextSelectionColors.current
 
-        animatedSelectionMagnifier(
-            magnifierCenter = {
+        magnifier(
+            sourceCenter = {
+                // Don't animate position as it is automatically animated by the framework
                 calculateSelectionMagnifierCenterIOS(
                     manager = manager,
                     magnifierSize = magnifierSize,
                     density = density.density
                 )
             },
-            platformMagnifier = { center ->
-                Modifier.magnifier(
-                    sourceCenter = {
-                        center()
-                    },
-                    onSizeChanged = { size ->
-                        magnifierSize = with(density) {
-                            IntSize(size.width.roundToPx(), size.height.roundToPx())
-                        }
-                    },
-                    color = color.handleColor, // align magnifier border color with selection handleColor
-                )
-            }
+            onSizeChanged = { size ->
+                magnifierSize = with(density) {
+                    IntSize(size.width.roundToPx(), size.height.roundToPx())
+                }
+            },
+            color = color.handleColor, // align magnifier border color with selection handleColor
         )
     }
 }

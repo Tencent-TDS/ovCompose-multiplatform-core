@@ -39,20 +39,19 @@ internal actual fun Modifier.selectionMagnifier(manager: SelectionManager): Modi
     return composed {
         val density = LocalDensity.current
         var magnifierSize by remember { mutableStateOf(IntSize.Zero) }
-        animatedSelectionMagnifier(
-            magnifierCenter = {
+        val color = LocalTextSelectionColors.current
+
+        magnifier(
+            sourceCenter = {
+                // Don't animate position as it is automatically animated by the framework
                 calculateSelectionMagnifierCenterAndroid(manager, magnifierSize)
             },
-            platformMagnifier = { center ->
-                Modifier.magnifier(
-                    sourceCenter = { center() },
-                    onSizeChanged = { size ->
-                        magnifierSize = with(density) {
-                            IntSize(size.width.roundToPx(), size.height.roundToPx())
-                        }
-                    },
-                )
-            }
+            onSizeChanged = { size ->
+                magnifierSize = with(density) {
+                    IntSize(size.width.roundToPx(), size.height.roundToPx())
+                }
+            },
+            color = color.handleColor // align magnifier border color with selection handleColor
         )
     }
 }

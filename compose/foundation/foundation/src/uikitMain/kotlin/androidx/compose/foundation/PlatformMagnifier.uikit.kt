@@ -16,22 +16,6 @@
 
 package androidx.compose.foundation
 
-/*
- * Copyright 2024 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isUnspecified
@@ -42,9 +26,7 @@ import androidx.compose.ui.unit.IntSize
 import kotlin.math.roundToInt
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.getAndUpdate
-import kotlinx.atomicfu.update
 import kotlinx.atomicfu.updateAndGet
-import kotlinx.cinterop.cValue
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectZero
@@ -123,7 +105,7 @@ internal object PlatformMagnifierFactoryIos17Impl : PlatformMagnifierFactory {
                     view.tintColor = tint
                 }
 
-                requireNotNull(
+                checkNotNull(
                     UITextLoupeSession.beginLoupeSessionAtPoint(
                         point = CGPointMake(it.x.toDouble(), it.y.toDouble()),
                         fromSelectionWidgetView = null,
@@ -161,17 +143,16 @@ internal object PlatformMagnifierFactoryIos17Impl : PlatformMagnifierFactory {
 
             val sourceCenterDp = sourceCenter / density
 
-            val session = loupeSession
-                .updateAndGet { it ?: loupeSessionFactory(sourceCenterDp) }
+            val session = loupeSession.value
+                ?: loupeSession.updateAndGet { it ?: loupeSessionFactory(sourceCenterDp) }
 
-            val magnifierCenterPoint = CGPointMake(
+            val sourceCenterPoint = CGPointMake(
                 sourceCenterDp.x.toDouble(),
                 sourceCenterDp.y.toDouble()
             )
 
-
             session?.moveToPoint(
-                point = magnifierCenterPoint,
+                point = sourceCenterPoint,
                 withCaretRect = CGRectZero.readValue(),
                 trackingCaret = false
             )
