@@ -49,7 +49,7 @@ internal interface PlatformMagnifierFactory {
             when {
                 !isPlatformMagnifierSupported() -> {
                     throw UnsupportedOperationException(
-                        "Magnifier is only supported on API level 28 and higher."
+                        "Magnifier is only supported on iOS 17 and higher."
                     )
                 }
                 else -> PlatformMagnifierFactoryIos17Impl

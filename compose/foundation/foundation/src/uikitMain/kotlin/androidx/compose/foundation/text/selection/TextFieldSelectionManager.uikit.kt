@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.text.selection
 
+import androidx.compose.foundation.PlatformMagnifierFactory
 import androidx.compose.foundation.isPlatformMagnifierSupported
 import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.text.Handle
@@ -56,6 +57,7 @@ internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManag
                 }
             },
             color = color.handleColor, // align magnifier border color with selection handleColor
+            platformMagnifierFactory = PlatformMagnifierFactory.getForCurrentPlatform()
         )
     }
 }
