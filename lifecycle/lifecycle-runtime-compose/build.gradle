@@ -48,10 +48,9 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(project(":annotation:annotation"))
+                api(project(":annotation:annotation"))
                 implementation(project(":lifecycle:lifecycle-common"))
                 api project(":lifecycle:lifecycle-runtime")
-                api("androidx.annotation:annotation-experimental:1.4.0")
                 api(project(":compose:runtime:runtime"))
                 api(project(":compose:ui:ui"))
 
