@@ -340,8 +340,7 @@ actual value class Key(val keyCode: Long) {
         actual val NumPad6 = Key(88)
 
         /** Numeric keypad '7' key. */
-        // TODO: this is an error in Skiko, fix either this or NumPad6
-        actual val NumPad7 = Key(88)
+        actual val NumPad7 = Key(89)
 
         /** Numeric keypad '8' key. */
         actual val NumPad8 = Key(91)
