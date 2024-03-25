@@ -300,8 +300,8 @@ WORK = { group = "androidx.work", atomicGroupVersion = "versions.WORK" }
 ANNOTATION_JETBRAINS = { group = "org.jetbrains.compose.annotation-internal", atomicGroupVersion = "versions.COMPOSE", overrideInclude = [ ":annotation:annotation" ] }
 COLLECTION_JETBRAINS = { group = "org.jetbrains.compose.collection-internal", atomicGroupVersion = "versions.COMPOSE", overrideInclude = [ ":collection:collection" ] }
 
-CORE_BUNDLE_JETBRAINS = { group = "org.jetbrains.androidx.core-internal", atomicGroupVersion = "versions.CORE_BUNDLE", overrideInclude = [ ":core:core-bundle" ] }
-SAVEDSTATE_JETBRAINS = { group = "org.jetbrains.androidx.savedstate-internal", atomicGroupVersion = "versions.SAVEDSTATE", overrideInclude = [ ":savedstate:savedstate" ] }
+CORE_BUNDLE_JETBRAINS = { group = "org.jetbrains.androidx.core", atomicGroupVersion = "versions.CORE_BUNDLE", overrideInclude = [ ":core:core-bundle" ] }
+SAVEDSTATE_JETBRAINS = { group = "org.jetbrains.androidx.savedstate", atomicGroupVersion = "versions.SAVEDSTATE", overrideInclude = [ ":savedstate:savedstate" ] }
 
 [groups.LIFECYCLE_JETBRAINS]
 group = "org.jetbrains.androidx.lifecycle"
