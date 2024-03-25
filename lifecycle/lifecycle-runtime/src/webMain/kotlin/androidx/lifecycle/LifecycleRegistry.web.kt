@@ -16,11 +16,5 @@
 
 package androidx.lifecycle
 
-internal actual class WeakReference<T : Any> actual constructor(
-    private val reference: T
-) {
-    actual fun get(): T? = reference
-}
-
 internal actual fun isMainThread(): Boolean =
     true

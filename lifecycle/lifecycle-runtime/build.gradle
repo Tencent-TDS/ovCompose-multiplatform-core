@@ -42,6 +42,7 @@ kotlin {
         browser()
     }
     wasmJs()
+    linuxArm64()
 
     explicitApi = ExplicitApiMode.Strict
 
@@ -71,6 +72,12 @@ kotlin {
 
         desktopMain {
             dependsOn(jvmMain)
+        }
+
+        desktopTest {
+            dependencies {
+                implementation(libs.kotlinCoroutinesSwing)
+            }
         }
 
         androidMain {
