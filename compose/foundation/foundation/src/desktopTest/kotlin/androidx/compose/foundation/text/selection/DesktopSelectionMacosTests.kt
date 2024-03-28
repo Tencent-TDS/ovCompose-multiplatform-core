@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation.text
+package androidx.compose.foundation.text.selection
 
-import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.key.isMetaPressed
-import org.jetbrains.skiko.SkikoKeyboardEventKind
-import org.jetbrains.skiko.SkikoPlatformKeyboardEvent
+import androidx.compose.foundation.text.KeyMapping
+import androidx.compose.foundation.text.createMacosDefaultKeyMapping
+import androidx.compose.foundation.text.overriddenDefaultKeyMapping
 
-actual val KeyEvent.isTypedEvent: Boolean
-    get() = nativeKeyEvent.kind == SkikoKeyboardEventKind.DOWN && !isMetaPressed && nativeKeyEvent.platform?.isPrintable() == true
+internal class DesktopSelectionMacosTests :
+    CommonSelectionTests(
+        MacosKeyboardActions, createMacosDefaultKeyMapping()
+    ) {
 
-private fun SkikoPlatformKeyboardEvent.isPrintable(): Boolean {
-    return key.firstOrNull()?.toString() == key
+    override fun setPlatformDefaultKeyMapping(value: KeyMapping) {
+        overriddenDefaultKeyMapping = value
+    }
 }
