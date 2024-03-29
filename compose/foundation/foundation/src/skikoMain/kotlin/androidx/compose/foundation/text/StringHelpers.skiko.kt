@@ -123,7 +123,7 @@ internal fun findNextNonWhitespaceSymbolsSubsequenceStartOffset(
 
     nextOffset = charIterator.next()
 
-    while (nextOffset != BreakIterator.DONE) {
+    while (nextOffset < charIterator.last()) {
         if (currentText.codePointAt(currentOffset).isWhitespace() && !currentText.codePointAt(
                 nextOffset
             ).isWhitespace()
