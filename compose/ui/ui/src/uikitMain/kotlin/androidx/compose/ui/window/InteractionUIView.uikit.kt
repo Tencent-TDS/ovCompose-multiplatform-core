@@ -147,7 +147,7 @@ internal fun handleUIViewPressesBegan(
         for (press in withEvent.allPresses) {
             if (press is UIPress) {
                 keyboardEventHandler.onKeyboardEvent(
-                    toSkikoKeyboardEvent(press, KeyEventType.KeyDown)
+                    press.toNativeKeyEvent(KeyEventType.KeyDown)
                 )
             }
         }
@@ -163,41 +163,46 @@ internal fun handleUIViewPressesEnded(
         for (press in withEvent.allPresses) {
             if (press is UIPress) {
                 keyboardEventHandler.onKeyboardEvent(
-                    toSkikoKeyboardEvent(press, KeyEventType.KeyUp)
+                    press.toNativeKeyEvent(KeyEventType.KeyUp)
                 )
             }
         }
     }
 }
 
-private fun toSkikoKeyboardEvent(
-    event: UIPress,
-    kind: KeyEventType
-): NativeKeyEvent {
-    val timestamp = (event.timestamp * 1_000).toLong()
+private fun UIPress.toNativeKeyEvent(kind: KeyEventType): NativeKeyEvent {
+    val timestamp = (timestamp * 1_000).toLong()
+
+    // TODO: https://developer.apple.com/documentation/uikit/uipress/3526315-key
+    //  can be potentially nil on TVOS, this will cause a crash
+    val key = requireNotNull(key) {
+        "UIPress with null key is not supported"
+    }
+
+    val inputModifiers = key.modifierFlags.let { modifiers ->
+        var result = InputModifiers.EMPTY.value
+
+        if (modifiers and UIKeyModifierAlternate != 0L) {
+            result = result.or(InputModifiers.ALT.value)
+        }
+        if (modifiers and UIKeyModifierShift != 0L) {
+            result = result.or(InputModifiers.SHIFT.value)
+        }
+        if (modifiers and UIKeyModifierControl != 0L) {
+            result = result.or(InputModifiers.CONTROL.value)
+        }
+        if (modifiers and UIKeyModifierCommand != 0L) {
+            result = result.or(InputModifiers.META.value)
+        }
+
+        InputModifiers(result)
+    }
+
     return NativeKeyEvent(
-        Key(event.key!!.keyCode),
-        toSkikoModifiers(event),
+        Key(key.keyCode),
+        inputModifiers,
         kind,
         timestamp,
-        event
+        this
     )
-}
-
-private fun toSkikoModifiers(event: UIPress): InputModifiers {
-    var result = 0
-    val modifiers = event.key!!.modifierFlags
-    if (modifiers and UIKeyModifierAlternate != 0L) {
-        result = result.or(InputModifiers.ALT.value)
-    }
-    if (modifiers and UIKeyModifierShift != 0L) {
-        result = result.or(InputModifiers.SHIFT.value)
-    }
-    if (modifiers and UIKeyModifierControl != 0L) {
-        result = result.or(InputModifiers.CONTROL.value)
-    }
-    if (modifiers and UIKeyModifierCommand != 0L) {
-        result = result.or(InputModifiers.META.value)
-    }
-    return InputModifiers(result)
 }
