@@ -67,6 +67,7 @@ internal val String.codePoints
  * Returns the character (Unicode code point) at the specified index.
  */
 internal fun CharSequence.codePointAt(index: Int): CodePoint {
+    println("CharSequence.codePointAt(index: ${index}), this.lastIndex = ${this.lastIndex}")
     val high = this[index]
     if (high.isHighSurrogate() && index + 1 < this.length) {
         val low = this[index + 1]
@@ -123,7 +124,7 @@ internal fun findNextNonWhitespaceSymbolsSubsequenceStartOffset(
 
     nextOffset = charIterator.next()
 
-    while (nextOffset < charIterator.last()) {
+    while (nextOffset < currentText.length) { // iterator.next() works one more time than needed, better use this
         if (currentText.codePointAt(currentOffset).isWhitespace() && !currentText.codePointAt(
                 nextOffset
             ).isWhitespace()
