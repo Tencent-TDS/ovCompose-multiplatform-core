@@ -96,7 +96,7 @@ internal fun determineCursorDesiredOffset(
 
         textLayoutResult.isRightEdgeTapped(offset) -> {
             val lineNumber = textLayoutResult.value.getLineForOffset(offset)
-            textLayoutResult.value.getLineEnd(lineNumber, visibleEnd = true)
+            textLayoutResult.value.getLineEnd(lineNumber)
         }
 
         currentText.isWhitespaceOrPunctuation(offset) -> findNextNonWhitespaceSymbolsSubsequenceStartOffset(
@@ -133,6 +133,6 @@ private fun TextLayoutResultProxy.isLeftEdgeTapped(caretOffset: Int): Boolean {
 
 private fun TextLayoutResultProxy.isRightEdgeTapped(caretOffset: Int): Boolean {
     val lineNumber = value.getLineForOffset(caretOffset)
-    val lineEndOffset = value.getLineEnd(lineNumber, visibleEnd = true)
+    val lineEndOffset = value.getLineEnd(lineNumber)
     return lineEndOffset == caretOffset
 }
