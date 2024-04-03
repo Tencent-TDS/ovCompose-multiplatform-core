@@ -41,8 +41,9 @@ private fun KeyboardEvent.toKey(): Long {
             key == Key.CtrlLeft.keyCode ||
             key == Key.ShiftLeft.keyCode ||
             key == Key.MetaLeft.keyCode
-        )
+        ) {
             key = key.or(0x80000000)
+        }
     }
     return key
 }
