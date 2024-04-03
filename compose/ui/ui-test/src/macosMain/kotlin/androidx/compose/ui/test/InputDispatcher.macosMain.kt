@@ -16,7 +16,6 @@
 package androidx.compose.ui.test
 
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.input.key.InputModifiers
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -36,7 +35,7 @@ internal actual fun keyEvent(
         NativeKeyEvent(
             key = key,
             value = null,
-            modifiers = InputModifiers(modifiers),
+            modifiers = modifiers,
             kind = keyEventType,
             timestamp = 0L
         )

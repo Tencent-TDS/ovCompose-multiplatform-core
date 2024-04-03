@@ -16,43 +16,37 @@
 
 package androidx.compose.ui.input.key
 
+import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+
 actual class NativeKeyEvent(
     val key: Key,
     val value: String?,
-    val modifiers: InputModifiers = InputModifiers.EMPTY,
+    val modifiers: PointerKeyboardModifiers = PointerKeyboardModifiers(0),
     val kind: KeyEventType,
     val timestamp: Long = 0
-)
+) {
+    constructor(
+        key: Key,
+        value: String?,
+        modifiers: Int,
+        kind: KeyEventType,
+        timestamp: Long
+    ) : this(key, value, modifiers.convertToKeyboardModifiers(), kind, timestamp)
+}
 
-value class InputModifiers(val value: Int) {
-    companion object {
-        val EMPTY = InputModifiers(0)
-        val META = InputModifiers(1)
-        val CONTROL = InputModifiers(2)
-        val ALT = InputModifiers(4)
-        val SHIFT = InputModifiers(8)
+
+private fun Int.convertToKeyboardModifiers(): PointerKeyboardModifiers {
+    val keyboardModifiers = object {
+        val META = 1
+        val CONTROL = 2
+        val ALT = 4
+        val SHIFT = 8
     }
 
-    fun has(value: InputModifiers): Boolean {
-        return value.value and this.value != 0
-    }
-
-    override fun toString(): String {
-        val result = mutableListOf<String>().apply {
-            if (has(META)) {
-                add("META")
-            }
-            if (has(CONTROL)) {
-                add("CONTROL")
-            }
-            if (has(ALT)) {
-                add("ALT")
-            }
-            if (has(SHIFT)) {
-                add("SHIFT")
-            }
-        }
-
-        return if (result.isNotEmpty()) result.toString() else ""
-    }
+    return PointerKeyboardModifiers(
+        isMetaPressed = this and keyboardModifiers.META != 0,
+        isCtrlPressed = this and keyboardModifiers.CONTROL != 0,
+        isShiftPressed = this and keyboardModifiers.SHIFT != 0,
+        isAltPressed = this and keyboardModifiers.ALT != 0,
+    )
 }

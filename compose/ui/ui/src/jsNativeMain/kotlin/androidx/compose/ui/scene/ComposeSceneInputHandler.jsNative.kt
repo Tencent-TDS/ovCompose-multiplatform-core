@@ -16,16 +16,7 @@
 
 package androidx.compose.ui.scene
 
-import androidx.compose.ui.input.key.InputModifiers
 import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 
-internal actual fun NativeKeyEvent.toPointerKeyboardModifiers(): PointerKeyboardModifiers {
-    return PointerKeyboardModifiers(
-        isCtrlPressed = modifiers.has(InputModifiers.CONTROL),
-        isShiftPressed = modifiers.has(InputModifiers.SHIFT),
-        isAltPressed = modifiers.has(InputModifiers.ALT),
-        isMetaPressed = modifiers.has(InputModifiers.META),
-        // TODO: add other modifiers when they are available in SkikoInputModifiers
-    )
-}
+internal actual fun NativeKeyEvent.toPointerKeyboardModifiers(): PointerKeyboardModifiers = modifiers

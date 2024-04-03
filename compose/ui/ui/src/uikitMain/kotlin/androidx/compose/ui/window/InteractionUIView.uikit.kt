@@ -16,10 +16,10 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.ui.input.key.InputModifiers
 import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGPoint
@@ -179,24 +179,13 @@ private fun UIPress.toNativeKeyEvent(kind: KeyEventType): NativeKeyEvent {
         "UIPress with null key is not supported"
     }
 
-    val inputModifiers = key.modifierFlags.let { modifiers ->
-        var result = InputModifiers.EMPTY.value
-
-        if (modifiers and UIKeyModifierAlternate != 0L) {
-            result = result.or(InputModifiers.ALT.value)
-        }
-        if (modifiers and UIKeyModifierShift != 0L) {
-            result = result.or(InputModifiers.SHIFT.value)
-        }
-        if (modifiers and UIKeyModifierControl != 0L) {
-            result = result.or(InputModifiers.CONTROL.value)
-        }
-        if (modifiers and UIKeyModifierCommand != 0L) {
-            result = result.or(InputModifiers.META.value)
-        }
-
-        InputModifiers(result)
-    }
+    val modifiers = key.modifierFlags
+    val inputModifiers = PointerKeyboardModifiers(
+        isAltPressed = modifiers and UIKeyModifierAlternate != 0L,
+        isShiftPressed = modifiers and UIKeyModifierShift != 0L,
+        isCtrlPressed = modifiers and UIKeyModifierControl != 0L,
+        isMetaPressed = modifiers and UIKeyModifierCommand != 0L,
+    )
 
     return NativeKeyEvent(
         Key(key.keyCode),

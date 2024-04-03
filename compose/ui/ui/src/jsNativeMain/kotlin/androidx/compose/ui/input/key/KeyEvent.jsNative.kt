@@ -16,6 +16,11 @@
 
 package androidx.compose.ui.input.key
 
+import androidx.compose.ui.input.pointer.isAltPressed
+import androidx.compose.ui.input.pointer.isCtrlPressed
+import androidx.compose.ui.input.pointer.isMetaPressed
+import androidx.compose.ui.input.pointer.isShiftPressed
+
 /**
  * The key that was pressed.
  */
@@ -32,22 +37,22 @@ actual val KeyEvent.type: KeyEventType
  * Indicates whether the Alt key is pressed.
  */
 actual val KeyEvent.isAltPressed: Boolean
-    get() = this.nativeKeyEvent.modifiers.has(InputModifiers.ALT)
+    get() = this.nativeKeyEvent.modifiers.isAltPressed
 
 /**
  * Indicates whether the Ctrl key is pressed.
  */
 actual val KeyEvent.isCtrlPressed: Boolean
-    get() = this.nativeKeyEvent.modifiers.has(InputModifiers.CONTROL)
+    get() = this.nativeKeyEvent.modifiers.isCtrlPressed
 
 /**
  * Indicates whether the Meta key is pressed.
  */
 actual val KeyEvent.isMetaPressed: Boolean
-    get() = this.nativeKeyEvent.modifiers.has(InputModifiers.META)
+    get() = this.nativeKeyEvent.modifiers.isMetaPressed
 
 /**
  * Indicates whether the Shift key is pressed.
  */
 actual val KeyEvent.isShiftPressed: Boolean
-    get() = this.nativeKeyEvent.modifiers.has(InputModifiers.SHIFT)
+    get() = this.nativeKeyEvent.modifiers.isShiftPressed

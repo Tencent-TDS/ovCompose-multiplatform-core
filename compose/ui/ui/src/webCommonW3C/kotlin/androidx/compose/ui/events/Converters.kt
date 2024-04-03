@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.events
 
-import androidx.compose.ui.input.key.InputModifiers
 import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.input.key.MouseButtons
 import androidx.compose.ui.input.key.NativePointerEvent
@@ -24,6 +23,7 @@ import androidx.compose.ui.input.key.PointerEventRecord
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import org.jetbrains.skiko.currentNanoTime
 import org.w3c.dom.TouchEvent
@@ -47,22 +47,13 @@ private fun KeyboardEvent.toKey(): Long {
     return key
 }
 
-private fun KeyboardEvent.toInputModifiers(): InputModifiers {
-    var result = 0
-    if (altKey) {
-        result = result.or(InputModifiers.ALT.value)
-    }
-    if (shiftKey) {
-        result = result.or(InputModifiers.SHIFT.value)
-    }
-    if (ctrlKey) {
-        result = result.or(InputModifiers.CONTROL.value)
-    }
-    if (metaKey) {
-        result = result.or(InputModifiers.META.value)
-    }
-
-    return InputModifiers(result)
+private fun KeyboardEvent.toInputModifiers(): PointerKeyboardModifiers {
+    return PointerKeyboardModifiers(
+        isAltPressed = altKey,
+        isShiftPressed = shiftKey,
+        isCtrlPressed = ctrlKey,
+        isMetaPressed = metaKey
+    )
 }
 
 internal fun KeyboardEvent.toNativePointerEvent(
