@@ -329,8 +329,8 @@ internal class ComposeSceneMediator(
                     KeyEvent(
                         NativeKeyEvent(
                             Key.Escape,
-                            kind = KeyEventType.KeyDown,
-                            platform = null
+                            value = null,
+                            kind = KeyEventType.KeyDown
                         )
                     )
                 )
@@ -339,8 +339,8 @@ internal class ComposeSceneMediator(
                     KeyEvent(
                         NativeKeyEvent(
                             Key.Escape,
-                            kind = KeyEventType.KeyUp,
-                            platform = null
+                            value = null,
+                            kind = KeyEventType.KeyUp
                         )
                     )
                 )

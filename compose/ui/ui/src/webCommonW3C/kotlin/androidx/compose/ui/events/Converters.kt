@@ -68,13 +68,12 @@ private fun KeyboardEvent.toInputModifiers(): InputModifiers {
 internal fun KeyboardEvent.toNativePointerEvent(
     kind: KeyEventType
 ): NativeKeyEvent {
-    val skikoKey = toKey()
     return NativeKeyEvent(
-        Key(skikoKey),
+        Key(toKey()),
+        key,
         toInputModifiers(),
         kind,
-        timeStamp.toInt().toLong(),
-        this
+        timeStamp.toInt().toLong()
     )
 }
 

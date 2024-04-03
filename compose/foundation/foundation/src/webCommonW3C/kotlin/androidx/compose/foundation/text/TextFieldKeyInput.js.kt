@@ -20,12 +20,8 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isMetaPressed
 
-import org.jetbrains.skiko.*
-
 actual val KeyEvent.isTypedEvent: Boolean
-    get() = nativeKeyEvent.kind == KeyEventType.KeyDown && !isMetaPressed && nativeKeyEvent.platform?.isPrintable() == true
-
-
-private fun SkikoPlatformKeyboardEvent.isPrintable(): Boolean {
-    return key.firstOrNull()?.toChar()?.toString() == key
-}
+    get() {
+        val value = nativeKeyEvent.value?.firstOrNull()?.toString()
+        return nativeKeyEvent.kind == KeyEventType.KeyDown && !isMetaPressed && value != null && value == nativeKeyEvent.value
+    }

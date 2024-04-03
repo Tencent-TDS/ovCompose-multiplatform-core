@@ -200,9 +200,9 @@ private fun UIPress.toNativeKeyEvent(kind: KeyEventType): NativeKeyEvent {
 
     return NativeKeyEvent(
         Key(key.keyCode),
+        key()?.characters(),
         inputModifiers,
         kind,
-        timestamp,
-        this
+        timestamp
     )
 }

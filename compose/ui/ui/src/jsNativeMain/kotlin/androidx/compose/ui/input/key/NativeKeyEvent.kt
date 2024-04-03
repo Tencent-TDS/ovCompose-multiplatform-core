@@ -16,13 +16,12 @@
 
 package androidx.compose.ui.input.key
 
-expect class PlatformKeyboardEvent
-actual data class NativeKeyEvent(
+actual class NativeKeyEvent(
     val key: Key,
+    val value: String?,
     val modifiers: InputModifiers = InputModifiers.EMPTY,
     val kind: KeyEventType,
-    val timestamp: Long = 0,
-    val platform: PlatformKeyboardEvent?
+    val timestamp: Long = 0
 )
 
 value class InputModifiers(val value: Int) {

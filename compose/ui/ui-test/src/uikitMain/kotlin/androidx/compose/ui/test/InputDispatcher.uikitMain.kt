@@ -33,10 +33,10 @@ internal actual fun keyEvent(
     return KeyEvent(
         NativeKeyEvent(
             key = key,
+            value = null,
             modifiers = InputModifiers(modifiers),
             kind = keyEventType,
-            timestamp = 0L,
-            platform = null
+            timestamp = 0L
         )
     )
 }
