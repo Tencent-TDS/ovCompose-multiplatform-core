@@ -20,7 +20,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.NativeKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
@@ -185,17 +186,16 @@ internal class UIKitTextInputService(
     }
 
     fun onPreviewKeyEvent(event: KeyEvent): Boolean {
-        val nativeKeyEvent = event.nativeKeyEvent
-        return when (nativeKeyEvent.key) {
-            Key.Enter -> handleEnterKey(nativeKeyEvent)
-            Key.Backspace -> handleBackspace(nativeKeyEvent)
+        return when (event.key) {
+            Key.Enter -> handleEnterKey(event)
+            Key.Backspace -> handleBackspace(event)
             else -> false
         }
     }
 
-    private fun handleEnterKey(event: NativeKeyEvent): Boolean {
+    private fun handleEnterKey(event: KeyEvent): Boolean {
         _tempImeActionIsCalledWithHardwareReturnKey = false
-        return when (event.kind) {
+        return when (event.type) {
             KeyEventType.KeyUp -> {
                 _tempHardwareReturnKeyPressed = false
                 false
@@ -211,9 +211,9 @@ internal class UIKitTextInputService(
         }
     }
 
-    private fun handleBackspace(event: NativeKeyEvent): Boolean {
+    private fun handleBackspace(event: KeyEvent): Boolean {
         // This prevents two characters from being removed for one hardware backspace key press.
-        return event.kind == KeyEventType.KeyDown
+        return event.type == KeyEventType.KeyDown
     }
 
     private fun sendEditCommand(vararg commands: EditCommand) {
