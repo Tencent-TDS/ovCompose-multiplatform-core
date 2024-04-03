@@ -25,7 +25,6 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerType
-import org.jetbrains.skiko.SkikoPlatformPointerEvent
 import org.jetbrains.skiko.currentNanoTime
 import org.w3c.dom.TouchEvent
 import org.w3c.dom.asList
@@ -114,8 +113,7 @@ internal fun MouseEvent.toNativePointerEvent(
         y = offsetY,
         pressedButtons = resolvePressedMouseButtons(kind),
         kind = kind,
-        timestamp = timeStamp.toInt().toLong(),
-        platform = this
+        timestamp = timeStamp.toInt().toLong()
     )
 }
 
@@ -125,8 +123,7 @@ internal fun MouseEvent.toNativeDragEvent(): NativePointerEvent {
         y = offsetY,
         pressedButtons = MouseButtons(buttonsFlags),
         kind = PointerEventType.Move,
-        timestamp = timeStamp.toInt().toLong(),
-        platform = this
+        timestamp = timeStamp.toInt().toLong()
     )
 }
 
@@ -138,8 +135,7 @@ internal fun WheelEvent.toNativeScrollEvent(): NativePointerEvent {
         deltaY = deltaY,
         pressedButtons = MouseButtons(buttonsFlags),
         kind = PointerEventType.Scroll,
-        timestamp = timeStamp.toInt().toLong(),
-        platform = this
+        timestamp = timeStamp.toInt().toLong()
     )
 }
 
@@ -175,7 +171,6 @@ internal fun TouchEvent.toNativePointerEvent(
         y = pointers.map { it.y }.average(),
         kind = kind,
         timestamp = (currentNanoTime() / 1E6).toLong(),
-        pointers = pointers,
-        platform = this.unsafeCast<SkikoPlatformPointerEvent>()
+        pointers = pointers
     )
 }

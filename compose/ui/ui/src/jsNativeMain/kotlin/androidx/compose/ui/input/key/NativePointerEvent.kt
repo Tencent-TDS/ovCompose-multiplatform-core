@@ -20,7 +20,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerType
 
-expect class PlatformPointerEvent
 internal data class NativePointerEvent(
     /**
      * X position in points (scaled pixels that depend on the scale factor of the current display).
@@ -51,7 +50,6 @@ internal data class NativePointerEvent(
     val pointers: List<PointerEventRecord> = listOf(
         PointerEventRecord(0, x, y, pressedButtons.has(MouseButtons.LEFT))
     ),
-    val platform: PlatformPointerEvent? = null
 )
 
 /**
@@ -104,7 +102,7 @@ internal fun NativePointerEvent.getScrollDelta(): Offset {
     } ?: Offset.Zero
 }
 
-value class MouseButtons(val value: Int) {
+internal value class MouseButtons(val value: Int) {
     companion object {
         val NONE = MouseButtons(0)
         val LEFT = MouseButtons(1)
