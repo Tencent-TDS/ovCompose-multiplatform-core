@@ -171,7 +171,7 @@ private fun currentMillis() = (currentNanoTime() / 1E6).toLong()
 
 internal expect val supportsMultitouch: Boolean
 
-interface ComposeEventHandler {
+internal interface ComposeEventHandler {
     fun onKeyboardEvent(event: NativeKeyEvent): Boolean
     fun onPointerEvent(event: NativePointerEvent) = Unit
 }

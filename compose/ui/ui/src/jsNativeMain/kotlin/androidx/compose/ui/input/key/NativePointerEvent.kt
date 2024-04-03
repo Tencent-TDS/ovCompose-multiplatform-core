@@ -21,7 +21,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerType
 
 expect class PlatformPointerEvent
-data class NativePointerEvent(
+internal data class NativePointerEvent(
     /**
      * X position in points (scaled pixels that depend on the scale factor of the current display).
      *
@@ -58,7 +58,7 @@ data class NativePointerEvent(
  * Represents pointer such as mouse cursor, or touch/stylus press.
  * There can be multiple pointers on the screen at the same time.
  */
-data class PointerEventRecord(
+internal data class PointerEventRecord(
     /**
      * Unique id associated with the pointer. Used to distinguish between multiple pointers that can exist
      * at the same time (i.e. multiple pressed touches).

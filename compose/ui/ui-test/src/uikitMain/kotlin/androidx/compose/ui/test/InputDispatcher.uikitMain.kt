@@ -32,7 +32,6 @@ internal actual fun keyEvent(
 ): KeyEvent {
     return KeyEvent(
         NativeKeyEvent(
-// TODO replace  `enum class SkikoKey` by `class SkikoKey` in skiko, change code here to `SkikoKey(it.platformKeyCode)`
             key = key,
             modifiers = InputModifiers(modifiers),
             kind = keyEventType,
