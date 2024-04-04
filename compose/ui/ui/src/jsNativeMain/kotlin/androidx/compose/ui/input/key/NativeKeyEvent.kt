@@ -32,6 +32,30 @@ actual class NativeKeyEvent(
         kind: KeyEventType,
         timestamp: Long
     ) : this(key, value, modifiers.convertToKeyboardModifiers(), kind, timestamp)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as NativeKeyEvent
+
+        if (key != other.key) return false
+        if (value != other.value) return false
+        if (modifiers != other.modifiers) return false
+        if (kind != other.kind) return false
+        if (timestamp != other.timestamp) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = key.hashCode()
+        result = 31 * result + (value?.hashCode() ?: 0)
+        result = 31 * result + modifiers.hashCode()
+        result = 31 * result + kind.hashCode()
+        result = 31 * result + timestamp.hashCode()
+        return result
+    }
 }
 
 
