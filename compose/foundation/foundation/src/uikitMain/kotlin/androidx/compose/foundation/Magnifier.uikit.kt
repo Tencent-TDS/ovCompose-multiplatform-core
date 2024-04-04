@@ -60,7 +60,6 @@ import platform.UIKit.UIView
 internal val MagnifierPositionInRoot =
     SemanticsPropertyKey<() -> Offset>("MagnifierPositionInRoot")
 
-// internal for now. should eventually become public and common
 internal fun Modifier.magnifier(
     sourceCenter: Density.() -> Offset,
     magnifierCenter: (Density.() -> Offset)? = null,
