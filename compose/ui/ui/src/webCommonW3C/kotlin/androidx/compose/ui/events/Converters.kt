@@ -59,9 +59,11 @@ private fun KeyboardEvent.toInputModifiers(): PointerKeyboardModifiers {
 internal fun KeyboardEvent.toNativePointerEvent(
     kind: KeyEventType
 ): NativeKeyEvent {
+    val firstChar = key.firstOrNull().toString()
+
     return NativeKeyEvent(
         Key(toKey()),
-        key,
+        if (firstChar == key) key else null,
         toInputModifiers(),
         kind,
         timeStamp.toInt().toLong()
