@@ -68,7 +68,7 @@ internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManag
 // 2) moves among the text field (not among text)
 // 3) hides when drag goes below the text field
 //
-// TODO: native magnifier also hides when selection goes to the next line in multiline text field
+// native magnifier also hides when selection goes to the next line in multiline text field
 // But! Compose text selection is a bit different from iOS:
 // when we select multiple lines below the selection start on iOS - we always see the caret / handle.
 // Compose caret in such scenario is always covered by finger so we don't actually see what do we select.
