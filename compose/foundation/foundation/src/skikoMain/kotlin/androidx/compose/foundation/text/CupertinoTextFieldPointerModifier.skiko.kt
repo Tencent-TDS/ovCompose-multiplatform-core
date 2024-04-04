@@ -189,8 +189,8 @@ private fun getLongPressHandlerModifier(
                 var dragBeginOffset = Offset.Zero
 
                 override fun onStart(startPoint: Offset) {
-                    currentManager.draggingHandle = Handle.SelectionEnd // required for magnifier
-                    currentManager.currentDragPosition = startPoint // required for magnifier
+                    currentManager.draggingHandle = Handle.SelectionEnd
+                    currentManager.currentDragPosition = startPoint
 
                     currentState.layoutResult?.let { layoutResult ->
                         TextFieldDelegate.setCursorOffset(
@@ -209,7 +209,7 @@ private fun getLongPressHandlerModifier(
                     dragTotalDistance += delta
                     currentState.layoutResult?.let { layoutResult ->
                         val currentDragPosition = dragBeginOffset + dragTotalDistance
-                        currentManager.currentDragPosition = currentDragPosition // required for magnifier
+                        currentManager.currentDragPosition = currentDragPosition
                         TextFieldDelegate.setCursorOffset(
                             currentDragPosition,
                             layoutResult,
@@ -226,13 +226,13 @@ private fun getLongPressHandlerModifier(
                 override fun onUp() {}
 
                 override fun onStop() {
-                    currentManager.draggingHandle = null // required for magnifier
-                    currentManager.currentDragPosition = null // required for magnifier
+                    currentManager.draggingHandle = null
+                    currentManager.currentDragPosition = null
                 }
 
                 override fun onCancel() {
-                    currentManager.draggingHandle = null // required for magnifier
-                    currentManager.currentDragPosition = null // required for magnifier
+                    currentManager.draggingHandle = null
+                    currentManager.currentDragPosition = null
                 }
             }
 
