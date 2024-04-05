@@ -73,7 +73,7 @@ internal class InteropWrappingView: CMPInteropWrappingView(frame = CGRectZero.re
     }
 }
 
-internal val NativeViewSemanticsKey = AccessibilityKey<CMPInteropWrappingView>(
+internal val NativeViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
     name = "InteropView",
     mergePolicy = { _, _ ->
         throw IllegalStateException(

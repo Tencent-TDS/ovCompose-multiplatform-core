@@ -133,6 +133,7 @@ private fun NativeNavigationPage() {
                 UIKitView(
                     factory = {
                         val view = UIImageView()
+                        view.isAccessibilityElement = true
                         view.accessibilityLabel = "Cat image $index"
                         view.contentMode = UIViewContentMode.UIViewContentModeScaleAspectFill
                         view.clipsToBounds = true
