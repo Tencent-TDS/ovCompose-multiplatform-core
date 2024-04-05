@@ -19,11 +19,11 @@ package androidx.compose.ui.events
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.EventTarget
 
-internal fun interface DisposableEventListener {
+private fun interface DisposableEventListener {
     fun dispose()
 }
 
-internal fun EventTarget.addDisposableEvent(eventName: String, handler: (Event) -> Unit): DisposableEventListener {
+private fun EventTarget.addDisposableEvent(eventName: String, handler: (Event) -> Unit): DisposableEventListener {
     addEventListener(eventName, handler)
     return DisposableEventListener { removeEventListener(eventName, handler) }
 }
