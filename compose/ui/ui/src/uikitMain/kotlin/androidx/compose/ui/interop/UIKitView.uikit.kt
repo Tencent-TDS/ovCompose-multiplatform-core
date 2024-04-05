@@ -57,12 +57,23 @@ import platform.UIKit.addChildViewController
 import platform.UIKit.didMoveToParentViewController
 import platform.UIKit.removeFromParentViewController
 import platform.UIKit.willMoveToParentViewController
+import androidx.compose.ui.uikit.utils.CMPInteropWrappingView
+import kotlinx.cinterop.readValue
+import platform.CoreGraphics.CGRectZero
 
 private val STUB_CALLBACK_WITH_RECEIVER: Any.() -> Unit = {}
 private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { rect -> this.setFrame(rect) }
 private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Unit = { rect -> this.view.setFrame(rect) }
 
-internal val NativeViewSemanticsKey = AccessibilityKey<UIView>(
+internal class InteropWrappingView: CMPInteropWrappingView(frame = CGRectZero.readValue()) {
+    var actualAccessibilityContainer: Any? = null
+
+    override fun accessibilityContainer(): Any? {
+        return actualAccessibilityContainer
+    }
+}
+
+internal val NativeViewSemanticsKey = AccessibilityKey<CMPInteropWrappingView>(
     name = "InteropView",
     mergePolicy = { _, _ ->
         throw IllegalStateException(
@@ -278,7 +289,7 @@ private abstract class EmbeddedInteropComponent<T : Any>(
     val interopContainer: UIKitInteropContainer,
     val onRelease: (T) -> Unit
 ) {
-    val wrappingView = UIView()
+    val wrappingView = InteropWrappingView()
     lateinit var component: T
     lateinit var updater: Updater<T>
 
