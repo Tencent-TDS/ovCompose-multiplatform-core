@@ -93,7 +93,6 @@ private interface ComposeWindowState {
     }
 }
 
-
 private class DefaultWindowState(private val viewportContainer: Element) : ComposeWindowState {
     private val channel = Channel<IntSize>(CONFLATED)
 
