@@ -225,6 +225,24 @@ class ComposeDialog : JDialog {
         super.dispose()
     }
 
+    /**
+     * We cannot call [ComposeDialog.setUndecorated] if window is showing - AWT will throw an exception.
+     * But we can call [ComposeDialog.super.dispose], [ComposeDialog.setUndecorated] and re-show it.
+     */
+    internal fun setUndecoratedSafely(value: Boolean) {
+        if (isDisplayable) {
+            val visible = isVisible
+            /**
+             * we only need set decorate state here, so it's no need to dispose [composePanel]
+             */
+            super.dispose()
+            isUndecorated = value
+            isVisible = visible
+        } else {
+            isUndecorated = value
+        }
+    }
+
     override fun setUndecorated(value: Boolean) {
         super.setUndecorated(value)
         undecoratedWindowResizer.enabled = isUndecorated && isResizable

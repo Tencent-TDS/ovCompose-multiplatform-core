@@ -36,7 +36,6 @@ import androidx.compose.ui.util.componentListenerRef
 import androidx.compose.ui.util.setIcon
 import androidx.compose.ui.util.setPositionSafely
 import androidx.compose.ui.util.setSizeSafely
-import androidx.compose.ui.util.setUndecoratedSafely
 import androidx.compose.ui.util.windowListenerRef
 import java.awt.Dialog.ModalityType
 import java.awt.Window
