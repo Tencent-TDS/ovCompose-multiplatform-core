@@ -220,6 +220,23 @@ class ComposeDialog : JDialog {
         }
     }
 
+    /**
+     * For users familiar with Java Swing:
+     *
+     * If you want to [setUndecorated] at runtime, do not call this function!
+     * Use code below:
+     *
+     * ```kotlin
+     * fun main() = application {
+     *     var undecorated by remember { mutableStateOf(false) }
+     *     Window(onCloseRequest = {}, undecorated = undecorated) {
+     *         Button(onClick = { undecorated = !undecorated }) {
+     *             Text("Toggle Decorated")
+     *         }
+     *     }
+     * }
+     * ```
+     */
     override fun dispose() {
         composePanel.dispose()
         super.dispose()
