@@ -242,6 +242,8 @@ actual class PointerEvent internal constructor(
     }
 }
 
+// It matches to browser spec, so JS/WASM uses browser values as is.
+// Do not change this masks without [MouseEvent.composeButtons]
 private object ButtonMasks {
     const val Primary = 1 shl 0
     const val Secondary = 1 shl 1

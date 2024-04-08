@@ -16,8 +16,14 @@
 
 package androidx.compose.ui.uikit
 
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.internal
 import androidx.compose.ui.input.pointer.PointerEvent
 import platform.UIKit.UIEvent
+import platform.UIKit.UIPress
+
+@Deprecated("Renamed to uiEventOrNull", ReplaceWith("uiEventOrNull"))
+val PointerEvent.uikitEventOrNull: UIEvent? get() = uiEventOrNull
 
 /**
  * The original raw native event from UIKit framework.
@@ -28,6 +34,17 @@ import platform.UIKit.UIEvent
  *
  * Always check for null, when you want to handle the native event
  */
-val PointerEvent.uikitEventOrNull: UIEvent? get() {
-    return nativeEvent as? UIEvent?
-}
+val PointerEvent.uiEventOrNull: UIEvent?
+    get() = nativeEvent as? UIEvent?
+
+/**
+ * The original raw native event from UIKit framework.
+ *
+ * Null if:
+ * - the native event is sent by another framework (when Compose UI is embed into it)
+ * - there is no native event (in tests, for example, or when Compose sends a synthetic events)
+ *
+ * Always check for null, when you want to handle the native event
+ */
+val KeyEvent.uiPressOrNull: UIPress?
+    get() = internal.nativeEvent as? UIPress?

@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
+import androidx.compose.ui.input.key.internal
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -170,7 +171,7 @@ private class DefaultPointerStateTracker {
     }
 
     fun onKeyEvent(keyEvent: KeyEvent) {
-        keyboardModifiers = keyEvent.nativeKeyEvent.toPointerKeyboardModifiers()
+        keyboardModifiers = keyEvent.internal.modifiers
     }
 
     var buttons = PointerButtons()
@@ -179,5 +180,3 @@ private class DefaultPointerStateTracker {
     var keyboardModifiers = PointerKeyboardModifiers()
         private set
 }
-
-internal expect fun NativeKeyEvent.toPointerKeyboardModifiers(): PointerKeyboardModifiers
