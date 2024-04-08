@@ -19,14 +19,16 @@ package androidx.compose.foundation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.internal.keyEvent
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithTag
@@ -37,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-@OptIn(ExperimentalTestApi::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalTestApi::class)
 class ToggleableTest {
 
     @Test
@@ -79,4 +81,18 @@ class ToggleableTest {
             assertEquals(false, state)
         }
     }
+}
+
+@OptIn(InternalComposeUiApi::class)
+private fun keyEvent(
+    key: Key,
+    keyEventType: KeyEventType,
+): KeyEvent {
+    return KeyEvent(
+        nativeKeyEvent = NativeKeyEvent(
+            key = key,
+            type = keyEventType,
+            codePoint = 0
+        )
+    )
 }

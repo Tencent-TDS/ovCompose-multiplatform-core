@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
@@ -55,7 +56,6 @@ internal class SkikoInputDispatcher(
 
     private var currentClockTime = currentTime
     private var batchedEvents = mutableListOf<TestInputEvent>()
-    private var modifiers = 0
 
     override fun PartialGesture.enqueueDown(pointerId: Int) {
         val timeMillis = currentTime
@@ -211,22 +211,28 @@ internal class SkikoInputDispatcher(
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
-    private fun updateModifiers(key: Key, down: Boolean) {
-        modifiers = modifiers.updatedKeyboardModifiers(key, down)
-    }
-
+    @OptIn(InternalComposeUiApi::class)
     override fun KeyInputState.enqueueDown(key: Key) {
         enqueue(currentTime) {
-            updateModifiers(key = key, down = true)
-            root.sendKeyEvent(keyEvent(key, KeyEventType.KeyDown, modifiers))
+            root.sendKeyEvent(KeyEvent(
+                nativeKeyEvent = NativeKeyEvent(
+                    key = key,
+                    type = KeyEventType.KeyDown,
+                    codePoint = key.codePoint
+                )
+            ))
         }
     }
 
     override fun KeyInputState.enqueueUp(key: Key) {
         enqueue(currentTime) {
-            updateModifiers(key = key, down = false)
-            root.sendKeyEvent(keyEvent(key, KeyEventType.KeyUp, modifiers))
+            root.sendKeyEvent(KeyEvent(
+                nativeKeyEvent = NativeKeyEvent(
+                    key = key,
+                    type = KeyEventType.KeyUp,
+                    codePoint = key.codePoint
+                )
+            ))
         }
     }
 
@@ -265,13 +271,22 @@ internal class SkikoInputDispatcher(
     }
 }
 
-/**
- * The [KeyEvent] is usually created by the system. This function creates an instance of
- * [KeyEvent] that can be used in tests.
- */
-internal expect fun keyEvent(
-    key: Key, keyEventType: KeyEventType, modifiers: Int = 0
-): KeyEvent
+// Basically this is what we've tried to avoid in isTypedEvent implementation, but in tests it's totally fine
+// Just add any non-printable key you need for tests here
+private val NonPrintableKeys = setOf(
+    Key.AltLeft,
+    Key.MetaLeft,
+    Key.ShiftLeft,
+    Key.CtrlLeft,
+    Key.Delete,
+    Key.DirectionLeft,
+    Key.DirectionRight,
+    Key.DirectionDown,
+    Key.DirectionUp,
+    Key.Home,
+    Key.MoveEnd
+)
 
-// The receiver (Int) is the current keyboard modifiers state
-internal expect fun Int.updatedKeyboardModifiers(key: Key, down: Boolean): Int
+private val Key.codePoint: Int get () {
+    return if (!NonPrintableKeys.contains(this)) keyCode.toInt().toChar().code else 0
+}
