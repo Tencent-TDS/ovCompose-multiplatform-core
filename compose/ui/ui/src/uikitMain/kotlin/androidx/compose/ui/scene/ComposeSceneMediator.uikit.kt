@@ -325,13 +325,8 @@ internal class ComposeSceneMediator(
                    .asCGRect()
             },
             performEscape = {
-                val down = onKeyboardEvent(
-                    KeyEvent(NativeKeyEvent(Key.Escape, KeyEventType.KeyDown, codePoint = 0))
-                )
-
-                val up = onKeyboardEvent(
-                    KeyEvent(NativeKeyEvent(Key.Escape, KeyEventType.KeyUp, codePoint = 0))
-                )
+                val down = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyDown))
+                val up = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyUp))
 
                 down || up
             }

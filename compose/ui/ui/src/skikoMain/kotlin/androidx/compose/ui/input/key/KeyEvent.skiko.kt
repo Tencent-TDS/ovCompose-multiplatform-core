@@ -60,26 +60,28 @@ actual val KeyEvent.isShiftPressed: Boolean
     get() = internal.modifiers.isShiftPressed
 
 @InternalComposeUiApi
-fun NativeKeyEvent(
+fun KeyEvent(
     key: Key,
     type: KeyEventType,
-    codePoint: Int,
+    codePoint: Int = 0,
     isCtrlPressed: Boolean = false,
     isMetaPressed: Boolean = false,
     isAltPressed: Boolean = false,
     isShiftPressed: Boolean = false,
     nativeEvent: Any? = null
-): NativeKeyEvent = InternalKeyEvent(
-    key = key,
-    type = type,
-    codePoint = codePoint,
-    modifiers = PointerKeyboardModifiers(
-        isCtrlPressed = isCtrlPressed,
-        isMetaPressed = isMetaPressed,
-        isAltPressed = isAltPressed,
-        isShiftPressed = isShiftPressed
-    ),
-    nativeEvent = nativeEvent as? InternalKeyEvent
+) = KeyEvent(
+    nativeKeyEvent = InternalKeyEvent(
+        key = key,
+        type = type,
+        codePoint = codePoint,
+        modifiers = PointerKeyboardModifiers(
+            isCtrlPressed = isCtrlPressed,
+            isMetaPressed = isMetaPressed,
+            isAltPressed = isAltPressed,
+            isShiftPressed = isShiftPressed
+        ),
+        nativeEvent = nativeEvent as? InternalKeyEvent
+    )
 )
 
 internal fun KeyEvent.copy(

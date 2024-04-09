@@ -21,7 +21,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
@@ -214,25 +213,13 @@ internal class SkikoInputDispatcher(
     @OptIn(InternalComposeUiApi::class)
     override fun KeyInputState.enqueueDown(key: Key) {
         enqueue(currentTime) {
-            root.sendKeyEvent(KeyEvent(
-                nativeKeyEvent = NativeKeyEvent(
-                    key = key,
-                    type = KeyEventType.KeyDown,
-                    codePoint = key.codePoint
-                )
-            ))
+            root.sendKeyEvent(KeyEvent(key, KeyEventType.KeyDown, codePoint = key.codePoint))
         }
     }
 
     override fun KeyInputState.enqueueUp(key: Key) {
         enqueue(currentTime) {
-            root.sendKeyEvent(KeyEvent(
-                nativeKeyEvent = NativeKeyEvent(
-                    key = key,
-                    type = KeyEventType.KeyUp,
-                    codePoint = key.codePoint
-                )
-            ))
+            root.sendKeyEvent(KeyEvent(key, KeyEventType.KeyUp, codePoint = key.codePoint))
         }
     }
 

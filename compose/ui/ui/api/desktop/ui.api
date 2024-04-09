@@ -1655,8 +1655,8 @@ public final class androidx/compose/ui/input/key/KeyEventType$Companion {
 }
 
 public final class androidx/compose/ui/input/key/KeyEvent_skikoKt {
-	public static final fun NativeKeyEvent-4Zc56iI (JIIZZZZLjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun NativeKeyEvent-4Zc56iI$default (JIIZZZZLjava/lang/Object;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun KeyEvent-4Zc56iI (JIIZZZZLjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun KeyEvent-4Zc56iI$default (JIIZZZZLjava/lang/Object;ILjava/lang/Object;)Ljava/lang/Object;
 	public static final fun getKey-ZmokQxo (Ljava/lang/Object;)J
 	public static final fun getType-ZmokQxo (Ljava/lang/Object;)I
 	public static final fun getUtf16CodePoint-ZmokQxo (Ljava/lang/Object;)I
