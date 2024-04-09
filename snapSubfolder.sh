@@ -1,4 +1,4 @@
-## This script snaps a subfolder to the state of some commit, creating a merge commit.
+## This script set the state of a subfolder to the state in some commit, creating a merge commit.
 ## Warning!!! Snapping subfolders breaks the base commit and future merges of the destination branch. To fix it, merge the destination branch back to the source branch, discarding all changes
 
 #!/bin/bash
