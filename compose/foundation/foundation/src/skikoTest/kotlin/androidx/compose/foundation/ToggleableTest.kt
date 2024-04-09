@@ -87,12 +87,10 @@ class ToggleableTest {
 private fun keyEvent(
     key: Key,
     keyEventType: KeyEventType,
-): KeyEvent {
-    return KeyEvent(
-        nativeKeyEvent = NativeKeyEvent(
-            key = key,
-            type = keyEventType,
-            codePoint = 0
-        )
+) = KeyEvent(
+    nativeKeyEvent = NativeKeyEvent(
+        key = key,
+        type = keyEventType,
+        codePoint = 0
     )
-}
+)
