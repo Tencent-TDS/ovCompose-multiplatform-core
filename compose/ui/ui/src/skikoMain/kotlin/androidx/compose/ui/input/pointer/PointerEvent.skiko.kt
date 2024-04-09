@@ -17,6 +17,8 @@
 package androidx.compose.ui.input.pointer
 
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.util.fastForEach
 import kotlin.jvm.JvmStatic
 
@@ -341,17 +343,71 @@ actual val PointerKeyboardModifiers.isScrollLockOn: Boolean
 actual val PointerKeyboardModifiers.isNumLockOn: Boolean
     get() = (packedValue and KeyboardModifierMasks.NumLockOn) != 0
 
-@OptIn(ExperimentalComposeUiApi::class)
-internal fun PointerButtons.copyFor(
+internal fun PointerKeyboardModifiers.update(
+    key: Key,
+    eventType: KeyEventType,
+): PointerKeyboardModifiers {
+    val pressed = when (eventType) {
+        KeyEventType.KeyDown -> true
+        KeyEventType.KeyUp -> false
+        else -> return this
+    }
+    return when (key) {
+        Key.CtrlLeft, Key.CtrlRight -> copy(isCtrlPressed = pressed)
+        Key.MetaLeft, Key.MetaRight -> copy(isMetaPressed = pressed)
+        Key.AltLeft, Key.AltRight -> copy(isAltPressed = pressed)
+        Key.ShiftLeft, Key.ShiftRight -> copy(isShiftPressed = pressed)
+        // There is no binding in common for AltGraph
+        Key.Symbol -> copy(isSymPressed = pressed)
+        Key.Function -> copy(isFunctionPressed = pressed)
+        Key.CapsLock -> copy(isCapsLockOn = pressed)
+        Key.ScrollLock -> copy(isScrollLockOn = pressed)
+        Key.NumLock -> copy(isNumLockOn = pressed)
+        else -> this
+    }
+}
+
+internal fun PointerKeyboardModifiers.copy(
+    isCtrlPressed: Boolean = this.isCtrlPressed,
+    isMetaPressed: Boolean = this.isMetaPressed,
+    isAltPressed: Boolean = this.isAltPressed,
+    isShiftPressed: Boolean = this.isShiftPressed,
+    isAltGraphPressed: Boolean = this.isAltGraphPressed,
+    isSymPressed: Boolean = this.isSymPressed,
+    isFunctionPressed: Boolean = this.isFunctionPressed,
+    isCapsLockOn: Boolean = this.isCapsLockOn,
+    isScrollLockOn: Boolean = this.isScrollLockOn,
+    isNumLockOn: Boolean = this.isNumLockOn
+) = PointerKeyboardModifiers(
+    isCtrlPressed = isCtrlPressed,
+    isMetaPressed = isMetaPressed,
+    isAltPressed = isAltPressed,
+    isShiftPressed = isShiftPressed,
+    isAltGraphPressed = isAltGraphPressed,
+    isSymPressed = isSymPressed,
+    isFunctionPressed = isFunctionPressed,
+    isCapsLockOn = isCapsLockOn,
+    isScrollLockOn = isScrollLockOn,
+    isNumLockOn = isNumLockOn
+)
+
+internal fun PointerButtons.update(
     button: PointerButton,
-    pressed: Boolean
-): PointerButtons = when (button) {
-    PointerButton.Primary -> copy(isPrimaryPressed = pressed)
-    PointerButton.Secondary -> copy(isSecondaryPressed = pressed)
-    PointerButton.Tertiary -> copy(isTertiaryPressed = pressed)
-    PointerButton.Forward -> copy(isForwardPressed = pressed)
-    PointerButton.Back -> copy(isBackPressed = pressed)
-    else -> copy()
+    eventType: PointerEventType,
+): PointerButtons {
+    val pressed = when (eventType) {
+        PointerEventType.Press -> true
+        PointerEventType.Release -> false
+        else -> return this
+    }
+    return when (button) {
+        PointerButton.Primary -> copy(isPrimaryPressed = pressed)
+        PointerButton.Secondary -> copy(isSecondaryPressed = pressed)
+        PointerButton.Tertiary -> copy(isTertiaryPressed = pressed)
+        PointerButton.Forward -> copy(isForwardPressed = pressed)
+        PointerButton.Back -> copy(isBackPressed = pressed)
+        else -> this
+    }
 }
 
 internal fun PointerButtons.copy(
@@ -360,10 +416,10 @@ internal fun PointerButtons.copy(
     isTertiaryPressed: Boolean = this.isTertiaryPressed,
     isBackPressed: Boolean = this.isBackPressed,
     isForwardPressed: Boolean = this.isForwardPressed
-): PointerButtons = PointerButtons(
-    isPrimaryPressed,
-    isSecondaryPressed,
-    isTertiaryPressed,
-    isBackPressed,
-    isForwardPressed,
+) = PointerButtons(
+    isPrimaryPressed = isPrimaryPressed,
+    isSecondaryPressed = isSecondaryPressed,
+    isTertiaryPressed = isTertiaryPressed,
+    isBackPressed = isBackPressed,
+    isForwardPressed = isForwardPressed,
 )

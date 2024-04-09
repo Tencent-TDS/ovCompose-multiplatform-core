@@ -81,3 +81,19 @@ fun NativeKeyEvent(
     ),
     nativeEvent = nativeEvent as? InternalKeyEvent
 )
+
+internal fun KeyEvent.copy(
+    key: Key = this.internal.key,
+    type: KeyEventType = this.internal.type,
+    codePoint: Int = this.internal.codePoint,
+    modifiers: PointerKeyboardModifiers = this.internal.modifiers,
+    nativeEvent: Any? = this.internal.nativeEvent
+) = KeyEvent(
+    nativeKeyEvent = InternalKeyEvent(
+        key = key,
+        type = type,
+        codePoint = codePoint,
+        modifiers = modifiers,
+        nativeEvent = nativeEvent
+    )
+)
