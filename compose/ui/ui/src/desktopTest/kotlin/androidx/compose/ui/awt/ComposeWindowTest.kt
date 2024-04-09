@@ -21,6 +21,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,6 +41,7 @@ import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.density
 import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
@@ -289,6 +294,45 @@ class ComposeWindowTest {
         } finally {
             window.dispose()
         }
+    }
+
+    // bug https://github.com/JetBrains/compose-multiplatform/issues/4579
+    @Test
+    fun `change window decorate state should success`() = runApplicationTest(timeoutMillis = Long.MAX_VALUE) {
+        var window: ComposeWindow? = null
+        var isClickHappened = false
+        launchTestApplication {
+            var undecorated by remember { mutableStateOf(true) }
+            Window(onCloseRequest = ::exitApplication, undecorated = undecorated) {
+                window = this.window
+                Box(modifier = Modifier.fillMaxSize().background(Color.Blue).clickable {
+                    undecorated = !undecorated
+                    isClickHappened = true
+                })
+            }
+        }
+        awaitIdle()
+        window!!.sendMouseEvent(MOUSE_ENTERED, 100, 50)
+        awaitIdle()
+        window!!.sendMouseEvent(MOUSE_MOVED, 100, 50)
+        awaitIdle()
+        window!!.sendMousePress(BUTTON1, 100, 50)
+        awaitIdle()
+        window!!.sendMouseRelease(BUTTON1, 100, 50)
+        awaitIdle()
+        assertThat(isClickHappened).isTrue()
+        assertThat(window!!.isUndecorated).isFalse()
+
+        awaitIdle()
+        window!!.sendMouseEvent(MOUSE_ENTERED, 100, 50)
+        awaitIdle()
+        window!!.sendMouseEvent(MOUSE_MOVED, 100, 50)
+        awaitIdle()
+        window!!.sendMousePress(BUTTON1, 100, 50)
+        awaitIdle()
+        window!!.sendMouseRelease(BUTTON1, 100, 50)
+        awaitIdle()
+        assertThat(window!!.isUndecorated).isTrue()
     }
 
     private class TestException : Exception()

@@ -220,9 +220,44 @@ class ComposeDialog : JDialog {
         }
     }
 
+    /**
+     * For users familiar with Java Swing:
+     *
+     * If you want to [setUndecorated] at runtime, do not call this function!
+     * Use code below:
+     *
+     * ```kotlin
+     * fun main() = application {
+     *     var undecorated by remember { mutableStateOf(false) }
+     *     Window(onCloseRequest = {}, undecorated = undecorated) {
+     *         Button(onClick = { undecorated = !undecorated }) {
+     *             Text("Toggle Decorated")
+     *         }
+     *     }
+     * }
+     * ```
+     */
     override fun dispose() {
         composePanel.dispose()
         super.dispose()
+    }
+
+    /**
+     * We cannot call [ComposeDialog.setUndecorated] if window is showing - AWT will throw an exception.
+     * But we can call [ComposeDialog.super.dispose], [ComposeDialog.setUndecorated] and re-show it.
+     */
+    internal fun setUndecoratedSafely(value: Boolean) {
+        if (isDisplayable) {
+            val visible = isVisible
+            /**
+             * we only need set decorate state here, so it's no need to dispose [composePanel]
+             */
+            super.dispose()
+            isUndecorated = value
+            isVisible = visible
+        } else {
+            isUndecorated = value
+        }
     }
 
     override fun setUndecorated(value: Boolean) {

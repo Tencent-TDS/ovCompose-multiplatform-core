@@ -27,12 +27,9 @@ import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.density
-import androidx.compose.ui.window.layoutDirection
 import androidx.compose.ui.window.layoutDirectionFor
 import java.awt.Component
-import java.awt.Dialog
 import java.awt.Dimension
-import java.awt.Frame
 import java.awt.Point
 import java.awt.Toolkit
 import java.awt.Window
@@ -149,26 +146,6 @@ internal fun Window.align(alignment: Alignment) {
         screenBounds.x + screenInsets.left + location.x,
         screenBounds.y + screenInsets.top + location.y
     )
-}
-
-/**
- * We cannot call [Frame.setUndecorated] if window is showing - AWT will throw an exception.
- * But we can call [Frame.setUndecoratedSafely] if isUndecorated isn't changed.
- */
-internal fun Frame.setUndecoratedSafely(value: Boolean) {
-    if (this.isUndecorated != value) {
-        this.isUndecorated = value
-    }
-}
-
-/**
- * We cannot change call [Dialog.setUndecorated] if window is showing - AWT will throw an exception.
- * But we can call [Dialog.setUndecoratedSafely] if isUndecorated isn't changed.
- */
-internal fun Dialog.setUndecoratedSafely(value: Boolean) {
-    if (this.isUndecorated != value) {
-        this.isUndecorated = value
-    }
 }
 
 // We specify this to support Painter's with unspecified intrinsicSize

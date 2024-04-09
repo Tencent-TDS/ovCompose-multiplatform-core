@@ -29,7 +29,6 @@ import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.scene.BaseComposeScene
 import androidx.compose.ui.scene.LocalComposeScene
 import androidx.compose.ui.scene.platformContext
 import androidx.compose.ui.unit.DpSize
@@ -39,7 +38,6 @@ import androidx.compose.ui.util.componentListenerRef
 import androidx.compose.ui.util.setIcon
 import androidx.compose.ui.util.setPositionSafely
 import androidx.compose.ui.util.setSizeSafely
-import androidx.compose.ui.util.setUndecoratedSafely
 import androidx.compose.ui.util.windowListenerRef
 import androidx.compose.ui.util.windowStateListenerRef
 import java.awt.Window
