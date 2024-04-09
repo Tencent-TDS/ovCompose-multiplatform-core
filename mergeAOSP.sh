@@ -1,8 +1,12 @@
+## This script simplifies merge of AOSP branches to the JetBrains fork.
+## The JetBrains fork contains multiple files/folders that are fully developed independently of AOSP,
+## and should not be updated by the upstream version
+
 #!/bin/bash
 set -e
 
 if [ -z "$1" ]; then
-echo "Specify the commit. For example: ./mergeAOSP.sh jetpack-compose/1.5.1"
+echo "Specify the commit. For example: ./mergeAOSP.sh androidx/compose-ui/1.6.0-alpha08"
 exit 1
 fi
 
