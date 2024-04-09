@@ -24,7 +24,7 @@ import platform.AppKit.NSEvent
  *
  * Null if:
  * - the native event is sent by another framework (when Compose UI is embed into it)
- * - there is no native event (in tests, for example, or when Compose sends a synthetic events)
+ * - there is no native event (in tests, for example, or when Compose sends a synthetic event)
  *
  * Always check for null, when you want to handle the native event
  */
