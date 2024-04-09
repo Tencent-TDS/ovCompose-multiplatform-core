@@ -28,5 +28,5 @@ import platform.AppKit.NSEvent
  *
  * Always check for null, when you want to handle the native event
  */
-val PointerEvent.nsEventOrNull: NSEvent?
+val PointerEvent.appkitEventOrNull: NSEvent?
     get() = nativeEvent as? NSEvent?

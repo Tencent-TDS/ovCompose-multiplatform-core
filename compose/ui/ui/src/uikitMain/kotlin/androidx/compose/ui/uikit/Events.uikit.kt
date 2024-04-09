@@ -22,9 +22,6 @@ import androidx.compose.ui.input.pointer.PointerEvent
 import platform.UIKit.UIEvent
 import platform.UIKit.UIPress
 
-@Deprecated("Renamed to uiEventOrNull", ReplaceWith("uiEventOrNull"))
-val PointerEvent.uikitEventOrNull: UIEvent? get() = uiEventOrNull
-
 /**
  * The original raw native event from UIKit framework.
  *
@@ -34,7 +31,7 @@ val PointerEvent.uikitEventOrNull: UIEvent? get() = uiEventOrNull
  *
  * Always check for null, when you want to handle the native event
  */
-val PointerEvent.uiEventOrNull: UIEvent?
+val PointerEvent.uikitEventOrNull: UIEvent?
     get() = nativeEvent as? UIEvent?
 
 /**
@@ -46,5 +43,5 @@ val PointerEvent.uiEventOrNull: UIEvent?
  *
  * Always check for null, when you want to handle the native event
  */
-val KeyEvent.uiPressOrNull: UIPress?
+val KeyEvent.uikitEventOrNull: UIPress?
     get() = internal.nativeEvent as? UIPress?
