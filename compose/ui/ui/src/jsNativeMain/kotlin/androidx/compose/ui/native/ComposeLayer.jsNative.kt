@@ -39,6 +39,7 @@ import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.SkiaLayer
 import org.jetbrains.skiko.SkikoRenderDelegate
 
+// TODO: Align with Container/Mediator architecture
 internal class ComposeLayer(
     internal val layer: SkiaLayer,
     platformContext: PlatformContext,
@@ -51,6 +52,16 @@ internal class ComposeLayer(
     init {
         layer.renderDelegate = object : SkikoRenderDelegate {
             override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
+
+                // Skiko subscribes to resize events itself, so make sure that
+                // the size is up-to-date during rendering.
+                val currentSceneSize = scene.size
+                if (currentSceneSize == null ||
+                    currentSceneSize.width != width ||
+                    currentSceneSize.height != height) {
+                    setSize(width, height)
+                }
+
                 scene.render(canvas.asComposeCanvas(), nanoTime)
             }
         }

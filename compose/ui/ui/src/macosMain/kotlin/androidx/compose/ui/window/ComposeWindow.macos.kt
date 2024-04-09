@@ -19,6 +19,7 @@ package androidx.compose.ui.window
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.toComposeEvent
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.native.ComposeLayer
@@ -50,18 +51,30 @@ import platform.AppKit.NSWindowStyleMaskResizable
 import platform.AppKit.NSWindowStyleMaskTitled
 import platform.Foundation.NSMakeRect
 
+interface WindowScope {
+    /**
+     * [NSWindow] that was created inside [androidx.compose.ui.window.Window]
+     */
+    val window: NSWindow
+}
+
 fun Window(
     title: String = "ComposeWindow",
-    content: @Composable () -> Unit,
+    size: IntSize = IntSize(800, 600),
+    content: @Composable WindowScope.() -> Unit,
 ) {
     ComposeWindow(
+        title = title,
+        size = size,
         content = content,
     )
 }
 
 private class ComposeWindow(
-    content: @Composable () -> Unit,
-) : LifecycleOwner {
+    title: String,
+    size: IntSize,
+    content: @Composable WindowScope.() -> Unit,
+) : LifecycleOwner, WindowScope {
     private val macosTextInputService = MacosTextInputService()
     private val _windowInfo = WindowInfoImpl().apply {
         isWindowFocused = true
@@ -85,16 +98,17 @@ private class ComposeWindow(
         NSWindowStyleMaskClosable or
         NSWindowStyleMaskResizable
 
-    private val contentRect = NSMakeRect(0.0, 0.0, 640.0, 480.0)
-
-    private val nsWindow = NSWindow(
-        contentRect = contentRect,
+    override val window = object : NSWindow(
+        contentRect = NSMakeRect(0.0, 0.0, size.width.toDouble(), size.height.toDouble()),
         styleMask = windowStyle,
         backing = NSBackingStoreBuffered,
         defer = true
-    )
+    ) {
+        override fun canBecomeKeyWindow() = true
+        override fun canBecomeMainWindow() = true
+    }
 
-    private val nsView = object : NSView(nsWindow.frame) {
+    private val view = object : NSView(window.frame) {
         private var trackingArea : NSTrackingArea? = null
         override fun wantsUpdateLayer() = true
         override fun acceptsFirstResponder() = true
@@ -143,40 +157,51 @@ private class ComposeWindow(
         override fun scrollWheel(event: NSEvent) {
             composeLayer.onMouseEvent(event, PointerEventType.Scroll)
         }
-//        override fun keyDown(event: NSEvent) {
-//            composeLayer.onKeyboardEvent(toSkikoEvent(event, SkikoKeyboardEventKind.DOWN))
-//            interpretKeyEvents(listOf(event))
-//        }
-//        override fun flagsChanged(event: NSEvent) {
-//            composeLayer.onKeyboardEvent(toSkikoEvent(event))
-//        }
-//        override fun keyUp(event: NSEvent) {
-//            composeLayer.onKeyboardEvent(toSkikoEvent(event, SkikoKeyboardEventKind.UP))
-//        }
+        override fun keyDown(event: NSEvent) {
+            val consumed = composeLayer.onKeyboardEvent(event.toComposeEvent())
+            if (!consumed) {
+                // Pass only unconsumed event to system handler.
+                // It will trigger the system's "beep" sound for unconsumed events.
+                super.keyDown(event)
+            }
+        }
+        override fun keyUp(event: NSEvent) {
+            composeLayer.onKeyboardEvent(event.toComposeEvent())
+        }
     }
 
+    private val density: Float
+        get() = window.backingScaleFactor.toFloat()
+
     init {
-        nsWindow.contentView = nsView
-        skiaLayer.attachTo(nsView)
-        nsWindow.orderFrontRegardless()
-        val scale = nsWindow.backingScaleFactor.toFloat()
-        val size = contentRect.useContents {
-            IntSize(
-                width = (size.width * scale).toInt(),
-                height = (size.height * scale).toInt()
-            )
-        }
-        _windowInfo.containerSize = size
-        composeLayer.setDensity(Density(scale))
-        composeLayer.setSize(size.width, size.height)
+        window.title = title
+        window.contentView = view
+
+        skiaLayer.attachTo(view) // Should be called after attaching to window
+
+        // TODO: Expose some API to control showing outside
+        window.center()
+        window.makeKeyAndOrderFront(null)
+
+        val scaledSize = IntSize(
+            width = (size.width * density).toInt(),
+            height = (size.height * density).toInt()
+        )
+
+        // TODO: Subscribe to window resize events
+        _windowInfo.containerSize = scaledSize
+
+        composeLayer.setDensity(Density(density))
+        composeLayer.setSize(scaledSize.width, scaledSize.height)
         composeLayer.setContent {
             CompositionLocalProvider(
-                LocalLifecycleOwner provides this,
-                content = content
-            )
+                LocalLifecycleOwner provides this
+            ) {
+                content()
+            }
         }
 
-        // TODO: Handle lifecycle events
+        // TODO: Properly handle lifecycle events
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
 
@@ -204,10 +229,10 @@ private class ComposeWindow(
         val position = locationInWindow.useContents {
             Offset(x = x.toFloat(), y = y.toFloat())
         }
-        val height = nsView.frame.useContents { size.height }
+        val height = view.frame.useContents { size.height }
         return Offset(
             x = position.x,
             y = height.toFloat() - position.y,
-        ) * nsWindow.backingScaleFactor.toFloat()
+        ) * density
     }
 }
