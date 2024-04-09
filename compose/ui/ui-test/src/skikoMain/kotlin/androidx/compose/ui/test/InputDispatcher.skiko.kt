@@ -210,16 +210,23 @@ internal class SkikoInputDispatcher(
         }
     }
 
-    @OptIn(InternalComposeUiApi::class)
     override fun KeyInputState.enqueueDown(key: Key) {
         enqueue(currentTime) {
-            root.sendKeyEvent(KeyEvent(key, KeyEventType.KeyDown, codePoint = key.codePoint))
+            root.sendKeyEvent(KeyEvent(
+                key = key,
+                type = KeyEventType.KeyDown,
+                codePoint = key.codePoint
+            ))
         }
     }
 
     override fun KeyInputState.enqueueUp(key: Key) {
         enqueue(currentTime) {
-            root.sendKeyEvent(KeyEvent(key, KeyEventType.KeyUp, codePoint = key.codePoint))
+            root.sendKeyEvent(KeyEvent(
+                key = key,
+                type = KeyEventType.KeyUp,
+                codePoint = key.codePoint
+            ))
         }
     }
 
@@ -256,24 +263,56 @@ internal class SkikoInputDispatcher(
     override fun onDispose() {
         batchedEvents.clear()
     }
-}
 
-// Basically this is what we've tried to avoid in isTypedEvent implementation, but in tests it's totally fine
-// Just add any non-printable key you need for tests here
-private val NonPrintableKeys = setOf(
-    Key.AltLeft,
-    Key.MetaLeft,
-    Key.ShiftLeft,
-    Key.CtrlLeft,
-    Key.Delete,
-    Key.DirectionLeft,
-    Key.DirectionRight,
-    Key.DirectionDown,
-    Key.DirectionUp,
-    Key.Home,
-    Key.MoveEnd
-)
+    private val isUpperCase get() =
+        isCapsLockOn xor (isKeyDown(Key.ShiftLeft) || isKeyDown(Key.ShiftRight))
 
-private val Key.codePoint: Int get () {
-    return if (!NonPrintableKeys.contains(this)) keyCode.toInt().toChar().code else 0
+    // Avoid relying on [keyCode] here - it might be platform dependent bitmasks/codes
+    // Support only basics for now, but it should be ok for tests.
+    private val Key.codePoint get() = when (this) {
+        Key.Zero -> '0'.code
+        Key.One -> '1'.code
+        Key.Two -> '2'.code
+        Key.Three -> '3'.code
+        Key.Four -> '4'.code
+        Key.Five -> '5'.code
+        Key.Six -> '6'.code
+        Key.Seven -> '7'.code
+        Key.Eight -> '8'.code
+        Key.Nine -> '9'.code
+        Key.Plus -> '+'.code
+        Key.Minus -> '-'.code
+        Key.Multiply -> '*'.code
+        Key.Equals -> '='.code
+        Key.Pound -> '#'.code
+        Key.A -> if (isUpperCase) 'A'.code else 'a'.code
+        Key.B -> if (isUpperCase) 'B'.code else 'b'.code
+        Key.C -> if (isUpperCase) 'C'.code else 'c'.code
+        Key.D -> if (isUpperCase) 'D'.code else 'd'.code
+        Key.E -> if (isUpperCase) 'E'.code else 'e'.code
+        Key.F -> if (isUpperCase) 'F'.code else 'f'.code
+        Key.G -> if (isUpperCase) 'G'.code else 'g'.code
+        Key.H -> if (isUpperCase) 'H'.code else 'h'.code
+        Key.I -> if (isUpperCase) 'I'.code else 'i'.code
+        Key.J -> if (isUpperCase) 'J'.code else 'j'.code
+        Key.K -> if (isUpperCase) 'K'.code else 'k'.code
+        Key.L -> if (isUpperCase) 'L'.code else 'l'.code
+        Key.M -> if (isUpperCase) 'M'.code else 'm'.code
+        Key.N -> if (isUpperCase) 'N'.code else 'n'.code
+        Key.O -> if (isUpperCase) 'O'.code else 'o'.code
+        Key.P -> if (isUpperCase) 'P'.code else 'p'.code
+        Key.Q -> if (isUpperCase) 'Q'.code else 'q'.code
+        Key.R -> if (isUpperCase) 'R'.code else 'r'.code
+        Key.S -> if (isUpperCase) 'S'.code else 's'.code
+        Key.T -> if (isUpperCase) 'T'.code else 't'.code
+        Key.U -> if (isUpperCase) 'U'.code else 'u'.code
+        Key.V -> if (isUpperCase) 'V'.code else 'v'.code
+        Key.W -> if (isUpperCase) 'W'.code else 'w'.code
+        Key.X -> if (isUpperCase) 'X'.code else 'x'.code
+        Key.Y -> if (isUpperCase) 'Y'.code else 'y'.code
+        Key.Z -> if (isUpperCase) 'Z'.code else 'z'.code
+        Key.Comma -> ','.code
+        Key.Period -> '.'.code
+        else -> 0
+    }
 }
