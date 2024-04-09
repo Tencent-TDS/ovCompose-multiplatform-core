@@ -18,7 +18,9 @@ package androidx.compose.ui.scene
 
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.copy
 import androidx.compose.ui.input.key.internal
 import androidx.compose.ui.input.key.key
@@ -32,7 +34,7 @@ import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.SyntheticEventSender
 import androidx.compose.ui.input.pointer.areAnyPressed
-import androidx.compose.ui.input.pointer.update
+import androidx.compose.ui.input.pointer.copy
 import androidx.compose.ui.node.RootNodeOwner
 import androidx.compose.ui.util.trace
 import org.jetbrains.skiko.currentNanoTime
@@ -196,4 +198,47 @@ private class DefaultPointerStateTracker {
 
     var keyboardModifiers = PointerKeyboardModifiers()
         private set
+}
+
+private fun PointerKeyboardModifiers.update(
+    key: Key,
+    eventType: KeyEventType,
+): PointerKeyboardModifiers {
+    val pressed = when (eventType) {
+        KeyEventType.KeyDown -> true
+        KeyEventType.KeyUp -> false
+        else -> return this
+    }
+    return when (key) {
+        Key.CtrlLeft, Key.CtrlRight -> copy(isCtrlPressed = pressed)
+        Key.MetaLeft, Key.MetaRight -> copy(isMetaPressed = pressed)
+        Key.AltLeft, Key.AltRight -> copy(isAltPressed = pressed)
+        Key.ShiftLeft, Key.ShiftRight -> copy(isShiftPressed = pressed)
+        // There is no binding in common for AltGraph
+        Key.Symbol -> copy(isSymPressed = pressed)
+        Key.Function -> copy(isFunctionPressed = pressed)
+        Key.CapsLock -> copy(isCapsLockOn = pressed)
+        Key.ScrollLock -> copy(isScrollLockOn = pressed)
+        Key.NumLock -> copy(isNumLockOn = pressed)
+        else -> this
+    }
+}
+
+private fun PointerButtons.update(
+    button: PointerButton,
+    eventType: PointerEventType,
+): PointerButtons {
+    val pressed = when (eventType) {
+        PointerEventType.Press -> true
+        PointerEventType.Release -> false
+        else -> return this
+    }
+    return when (button) {
+        PointerButton.Primary -> copy(isPrimaryPressed = pressed)
+        PointerButton.Secondary -> copy(isSecondaryPressed = pressed)
+        PointerButton.Tertiary -> copy(isTertiaryPressed = pressed)
+        PointerButton.Forward -> copy(isForwardPressed = pressed)
+        PointerButton.Back -> copy(isBackPressed = pressed)
+        else -> this
+    }
 }

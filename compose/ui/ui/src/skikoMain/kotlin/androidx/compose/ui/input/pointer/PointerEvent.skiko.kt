@@ -17,8 +17,6 @@
 package androidx.compose.ui.input.pointer
 
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.util.fastForEach
 import kotlin.jvm.JvmStatic
 
@@ -343,30 +341,6 @@ actual val PointerKeyboardModifiers.isScrollLockOn: Boolean
 actual val PointerKeyboardModifiers.isNumLockOn: Boolean
     get() = (packedValue and KeyboardModifierMasks.NumLockOn) != 0
 
-internal fun PointerKeyboardModifiers.update(
-    key: Key,
-    eventType: KeyEventType,
-): PointerKeyboardModifiers {
-    val pressed = when (eventType) {
-        KeyEventType.KeyDown -> true
-        KeyEventType.KeyUp -> false
-        else -> return this
-    }
-    return when (key) {
-        Key.CtrlLeft, Key.CtrlRight -> copy(isCtrlPressed = pressed)
-        Key.MetaLeft, Key.MetaRight -> copy(isMetaPressed = pressed)
-        Key.AltLeft, Key.AltRight -> copy(isAltPressed = pressed)
-        Key.ShiftLeft, Key.ShiftRight -> copy(isShiftPressed = pressed)
-        // There is no binding in common for AltGraph
-        Key.Symbol -> copy(isSymPressed = pressed)
-        Key.Function -> copy(isFunctionPressed = pressed)
-        Key.CapsLock -> copy(isCapsLockOn = pressed)
-        Key.ScrollLock -> copy(isScrollLockOn = pressed)
-        Key.NumLock -> copy(isNumLockOn = pressed)
-        else -> this
-    }
-}
-
 internal fun PointerKeyboardModifiers.copy(
     isCtrlPressed: Boolean = this.isCtrlPressed,
     isMetaPressed: Boolean = this.isMetaPressed,
@@ -390,25 +364,6 @@ internal fun PointerKeyboardModifiers.copy(
     isScrollLockOn = isScrollLockOn,
     isNumLockOn = isNumLockOn
 )
-
-internal fun PointerButtons.update(
-    button: PointerButton,
-    eventType: PointerEventType,
-): PointerButtons {
-    val pressed = when (eventType) {
-        PointerEventType.Press -> true
-        PointerEventType.Release -> false
-        else -> return this
-    }
-    return when (button) {
-        PointerButton.Primary -> copy(isPrimaryPressed = pressed)
-        PointerButton.Secondary -> copy(isSecondaryPressed = pressed)
-        PointerButton.Tertiary -> copy(isTertiaryPressed = pressed)
-        PointerButton.Forward -> copy(isForwardPressed = pressed)
-        PointerButton.Back -> copy(isBackPressed = pressed)
-        else -> this
-    }
-}
 
 internal fun PointerButtons.copy(
     isPrimaryPressed: Boolean = this.isPrimaryPressed,
