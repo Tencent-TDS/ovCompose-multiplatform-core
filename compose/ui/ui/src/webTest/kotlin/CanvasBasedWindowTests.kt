@@ -114,8 +114,10 @@ class CanvasBasedWindowTests {
 
         val fr = FocusRequester()
         var mapping = ""
+        var k: Key? = null
         CanvasBasedWindow(canvasElementId = canvasId) {
             Box(Modifier.size(1000.dp).background(Color.Red).focusRequester(fr).focusTarget().onKeyEvent {
+                k = it.key
                 mapping = it.key.toString()
                 println(mapping)
                 false
@@ -127,11 +129,27 @@ class CanvasBasedWindowTests {
             }
         }
 
-        canvasElement.dispatchEvent(createTypedEvent('t'))
-        assertEquals("Key keyCode: 84", mapping)
+        val listOfKeys = listOf(
+            Key.A, Key.B, Key.C, Key.D, Key.E, Key.F, Key.G,
+            Key.H, Key.I, Key.J, Key.K, Key.L, Key.M, Key.N,
+            Key.O, Key.P, Key.Q, Key.R, Key.S, Key.T, Key.U,
+            Key.V, Key.W, Key.X, Key.Y, Key.Z
+        )
 
-        canvasElement.dispatchEvent(createTypedEvent('6'))
-        assertEquals("Key keyCode: 54", mapping)
+        ('a'..'z').forEachIndexed { index, c ->
+            canvasElement.dispatchEvent(createTypedEvent(c))
+            assertEquals(listOfKeys[index], k)
+        }
+
+        val listOfNumbers = listOf(
+            Key.Zero, Key.One, Key.Two, Key.Three, Key.Four,
+            Key.Five, Key.Six, Key.Seven, Key.Eight, Key.Nine
+        )
+
+        ('0'..'9').forEachIndexed { index, c ->
+            canvasElement.dispatchEvent(createTypedEvent(c))
+            assertEquals(listOfNumbers[index], k)
+        }
     }
 
     @Test
@@ -162,9 +180,6 @@ class CanvasBasedWindowTests {
         }
 
         canvasElement.dispatchEvent(createTypedEvent('t'))
-        canvasElement.dispatchEvent(createTypedEvent('e'))
-        canvasElement.dispatchEvent(createTypedEvent('s'))
-        canvasElement.dispatchEvent(createTypedEvent('t'))
         assertEquals(Key.T, lastKeyEvent!!.key)
         assertEquals("", textValue.value)
 
@@ -173,8 +188,9 @@ class CanvasBasedWindowTests {
         canvasElement.dispatchEvent(createTypedEvent('e'))
         canvasElement.dispatchEvent(createTypedEvent('s'))
         canvasElement.dispatchEvent(createTypedEvent('t'))
-        assertEquals(Key.T, lastKeyEvent!!.key)
-        assertEquals("test", textValue.value)
+        canvasElement.dispatchEvent(createTypedEvent('x'))
+        assertEquals(Key.X, lastKeyEvent!!.key)
+        assertEquals("testx", textValue.value)
     }
 }
 
