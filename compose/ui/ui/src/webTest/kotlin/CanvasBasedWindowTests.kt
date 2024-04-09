@@ -21,21 +21,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlinx.browser.document
 import org.w3c.dom.HTMLCanvasElement
 import androidx.compose.ui.window.*
 import kotlin.test.AfterTest
-import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
@@ -130,6 +132,49 @@ class CanvasBasedWindowTests {
 
         canvasElement.dispatchEvent(createTypedEvent('6'))
         assertEquals("Key keyCode: 54", mapping)
+    }
+
+    @Test
+    // https://github.com/JetBrains/compose-multiplatform/issues/2296
+    fun onPreviewKeyEventShouldWork() {
+        if (isHeadlessBrowser()) return
+        val canvasElement = document.createElement("canvas") as HTMLCanvasElement
+        canvasElement.setAttribute("id", canvasId)
+        document.body!!.appendChild(canvasElement)
+
+        val fr = FocusRequester()
+        val textValue = mutableStateOf("")
+        var lastKeyEvent: KeyEvent? = null
+        var stopPropagation = true
+
+        CanvasBasedWindow(canvasElementId = canvasId) {
+            TextField(
+                value = textValue.value,
+                onValueChange = { textValue.value = it },
+                modifier = Modifier.fillMaxSize().focusRequester(fr).onPreviewKeyEvent {
+                    lastKeyEvent = it
+                    return@onPreviewKeyEvent stopPropagation
+                }
+            )
+            SideEffect {
+                fr.requestFocus()
+            }
+        }
+
+        canvasElement.dispatchEvent(createTypedEvent('t'))
+        canvasElement.dispatchEvent(createTypedEvent('e'))
+        canvasElement.dispatchEvent(createTypedEvent('s'))
+        canvasElement.dispatchEvent(createTypedEvent('t'))
+        assertEquals(Key.T, lastKeyEvent!!.key)
+        assertEquals("", textValue.value)
+
+        stopPropagation = false
+        canvasElement.dispatchEvent(createTypedEvent('t'))
+        canvasElement.dispatchEvent(createTypedEvent('e'))
+        canvasElement.dispatchEvent(createTypedEvent('s'))
+        canvasElement.dispatchEvent(createTypedEvent('t'))
+        assertEquals(Key.T, lastKeyEvent!!.key)
+        assertEquals("test", textValue.value)
     }
 }
 
