@@ -1,8 +1,9 @@
+#!/bin/bash
+
 ## This script simplifies merge of AOSP branches to the JetBrains fork.
 ## The JetBrains fork contains multiple files/folders that are fully developed independently of AOSP,
 ## and should not be updated by the upstream version
 
-#!/bin/bash
 set -e
 
 if [ -z "$1" ]; then
