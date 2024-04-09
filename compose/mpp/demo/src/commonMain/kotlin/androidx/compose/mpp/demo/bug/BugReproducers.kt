@@ -28,5 +28,4 @@ val BugReproducers = Screen.Selection(
     NoPressInteractionInOutlinedTextField,
     WebBaselineAlways0,
     ResizePopupCrashOnJS,
-    KeyEventMappingsBugReproducer
 )
