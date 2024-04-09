@@ -14,12 +14,22 @@
  * limitations under the License.
  */
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusTarget
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlinx.browser.document
 import org.w3c.dom.HTMLCanvasElement
@@ -77,18 +87,49 @@ class CanvasBasedWindowTests {
         })
 
         // dispatchEvent synchronously invokes all the listeners
-        canvasElement.dispatchEvent(createCopyKeyboardEvent())
+        canvasElement.dispatchEvent(createTypedEvent())
         assertEquals(1, stack.size)
         assertTrue(stack.last())
 
-        canvasElement.dispatchEvent(createTypedEvent())
-        assertEquals(2, stack.size)
-        assertTrue( stack.last())
-        assertEquals("c", changedValue)
-
         canvasElement.dispatchEvent(createEventShouldNotBePrevented())
+        assertEquals(2, stack.size)
+        assertFalse(stack.last())
+
+        // copy shortcut should not be prevented (we let browser create a corresponding event)
+        canvasElement.dispatchEvent(createCopyKeyboardEvent())
         assertEquals(3, stack.size)
         assertFalse(stack.last())
+    }
+
+    @Test
+    // https://github.com/JetBrains/compose-multiplatform/issues/3644
+    fun keyMappingIsValid() {
+        if (isHeadlessBrowser()) return
+
+        val canvasElement = document.createElement("canvas") as HTMLCanvasElement
+        canvasElement.setAttribute("id", canvasId)
+        document.body!!.appendChild(canvasElement)
+
+        val fr = FocusRequester()
+        var mapping = ""
+        CanvasBasedWindow(canvasElementId = canvasId) {
+            Box(Modifier.size(1000.dp).background(Color.Red).focusRequester(fr).focusTarget().onKeyEvent {
+                mapping = it.key.toString()
+                println(mapping)
+                false
+            }) {
+                Text("Try to press different keys and look at the console...")
+            }
+            SideEffect {
+                fr.requestFocus()
+            }
+        }
+
+        canvasElement.dispatchEvent(createTypedEvent('t'))
+        assertEquals("Key keyCode: 84", mapping)
+
+        canvasElement.dispatchEvent(createTypedEvent('6'))
+        assertEquals("Key keyCode: 54", mapping)
     }
 }
 
@@ -106,8 +147,8 @@ internal fun createCopyKeyboardEvent(): KeyboardEvent =
         .withKeyCode()
         .keyDownEvent()
 
-internal fun createTypedEvent(): KeyboardEvent =
-    KeyboardEventInit(key = "c", code = "KeyC", cancelable = true)
+internal fun createTypedEvent(c: Char = 'c'): KeyboardEvent =
+    KeyboardEventInit(key = "$c", code = "Key${c.uppercase()}", cancelable = true)
         .withKeyCode()
         .keyDownEvent()
 
