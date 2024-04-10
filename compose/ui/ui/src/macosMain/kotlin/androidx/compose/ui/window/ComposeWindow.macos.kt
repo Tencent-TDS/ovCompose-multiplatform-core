@@ -19,23 +19,31 @@ package androidx.compose.ui.window
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.asComposeCanvas
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.toComposeEvent
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.MacosTextInputService
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfoImpl
+import androidx.compose.ui.scene.ComposeSceneContext
+import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toOffset
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import kotlinx.cinterop.useContents
+import kotlinx.coroutines.Dispatchers
+import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.SkiaLayer
+import org.jetbrains.skiko.SkikoRenderDelegate
 import platform.AppKit.NSBackingStoreBuffered
 import platform.AppKit.NSEvent
 import platform.AppKit.NSTrackingActiveAlways
@@ -77,6 +85,7 @@ private class ComposeWindow(
     size: DpSize,
     content: @Composable WindowScope.() -> Unit,
 ) : LifecycleOwner, WindowScope {
+    private var isDisposed = false
     private val macosTextInputService = MacosTextInputService()
     private val _windowInfo = WindowInfoImpl().apply {
         isWindowFocused = true
@@ -87,10 +96,21 @@ private class ComposeWindow(
             override val textInputService get() = macosTextInputService
         }
     private val skiaLayer = SkiaLayer()
-    private val composeLayer = ComposeLayer(
-        layer = skiaLayer,
-        platformContext = platformContext
+    private val scene = MultiLayerComposeScene(
+        coroutineContext = Dispatchers.Main,
+        composeSceneContext = object : ComposeSceneContext {
+            override val platformContext get() = this@ComposeWindow.platformContext
+        },
+        invalidate = skiaLayer::needRedraw,
     )
+    private val renderDelegate = object : SkikoRenderDelegate {
+        override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
+            val sizeInPx = IntSize(width, height)
+            _windowInfo.containerSize = sizeInPx
+            scene.size = sizeInPx // TODO: Move it out from onRender to avoid extra invalidation
+            scene.render(canvas.asComposeCanvas(), nanoTime)
+        }
+    }
 
     override val lifecycle = LifecycleRegistry(this)
 
@@ -138,34 +158,34 @@ private class ComposeWindow(
         }
 
         override fun mouseDown(event: NSEvent) {
-            composeLayer.onMouseEvent(event, PointerEventType.Press, PointerButton.Primary)
+            onMouseEvent(event, PointerEventType.Press, PointerButton.Primary)
         }
         override fun mouseUp(event: NSEvent) {
-            composeLayer.onMouseEvent(event, PointerEventType.Release, PointerButton.Primary)
+            onMouseEvent(event, PointerEventType.Release, PointerButton.Primary)
         }
         override fun rightMouseDown(event: NSEvent) {
-            composeLayer.onMouseEvent(event, PointerEventType.Press, PointerButton.Secondary)
+            onMouseEvent(event, PointerEventType.Press, PointerButton.Secondary)
         }
         override fun rightMouseUp(event: NSEvent) {
-            composeLayer.onMouseEvent(event, PointerEventType.Release, PointerButton.Secondary)
+            onMouseEvent(event, PointerEventType.Release, PointerButton.Secondary)
         }
         override fun otherMouseDown(event: NSEvent) {
-            composeLayer.onMouseEvent(event, PointerEventType.Release, PointerButton(event.buttonNumber.toInt()))
+            onMouseEvent(event, PointerEventType.Release, PointerButton(event.buttonNumber.toInt()))
         }
         override fun otherMouseUp(event: NSEvent) {
-            composeLayer.onMouseEvent(event, PointerEventType.Press, PointerButton(event.buttonNumber.toInt()))
+            onMouseEvent(event, PointerEventType.Press, PointerButton(event.buttonNumber.toInt()))
         }
         override fun mouseMoved(event: NSEvent) {
-            composeLayer.onMouseEvent(event, PointerEventType.Move)
+            onMouseEvent(event, PointerEventType.Move)
         }
         override fun mouseDragged(event: NSEvent) {
-            composeLayer.onMouseEvent(event, PointerEventType.Move)
+            onMouseEvent(event, PointerEventType.Move)
         }
         override fun scrollWheel(event: NSEvent) {
-            composeLayer.onMouseEvent(event, PointerEventType.Scroll)
+            onMouseEvent(event, PointerEventType.Scroll)
         }
         override fun keyDown(event: NSEvent) {
-            val consumed = composeLayer.onKeyboardEvent(event.toComposeEvent())
+            val consumed = onKeyboardEvent(event.toComposeEvent())
             if (!consumed) {
                 // Pass only unconsumed event to system handler.
                 // It will trigger the system's "beep" sound for unconsumed events.
@@ -173,37 +193,23 @@ private class ComposeWindow(
             }
         }
         override fun keyUp(event: NSEvent) {
-            composeLayer.onKeyboardEvent(event.toComposeEvent())
+            onKeyboardEvent(event.toComposeEvent())
         }
     }
-
-    private val density: Float
-        get() = window.backingScaleFactor.toFloat()
 
     init {
         window.title = title
         window.contentView = view
 
+        skiaLayer.renderDelegate = renderDelegate
         skiaLayer.attachTo(view) // Should be called after attaching to window
 
         // TODO: Expose some API to control showing outside
         window.center()
         window.makeKeyAndOrderFront(null)
 
-        val density = Density(this.density)
-        val sizeInPx = with(density) {
-            IntSize(
-                width = size.width.roundToPx(),
-                height = size.height.roundToPx()
-            )
-        }
-
-        // TODO: Subscribe to window resize events
-        _windowInfo.containerSize = sizeInPx
-
-        composeLayer.setDensity(density)
-        composeLayer.setSize(sizeInPx.width, sizeInPx.height)
-        composeLayer.setContent {
+        scene.density = Density(window.backingScaleFactor.toFloat())
+        scene.setContent {
             CompositionLocalProvider(
                 LocalLifecycleOwner provides this
             ) {
@@ -217,32 +223,41 @@ private class ComposeWindow(
 
     // TODO: need to call .dispose() on window close.
     fun dispose() {
+        check(!isDisposed) { "ComposeWindow is already disposed" }
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-        composeLayer.dispose()
+        skiaLayer.detach()
+        scene.close()
+        isDisposed = true
     }
 
-    private fun ComposeLayer.onMouseEvent(
+    private fun onKeyboardEvent(event: KeyEvent): Boolean {
+        if (isDisposed) return false
+        return scene.sendKeyEvent(event)
+    }
+
+    private fun onMouseEvent(
         event: NSEvent,
         eventType: PointerEventType,
         button: PointerButton? = null,
     ) {
-        onMouseEvent(
+        if (isDisposed) return
+        scene.sendPointerEvent(
             eventType = eventType,
-            position = event.offset,
+            position = event.offset.toOffset(scene.density),
             scrollDelta = Offset(x = event.deltaX.toFloat(), y = event.deltaY.toFloat()),
             nativeEvent = event,
             button = button,
         )
     }
 
-    private val NSEvent.offset: Offset get() {
+    private val NSEvent.offset: DpOffset get() {
         val position = locationInWindow.useContents {
-            Offset(x = x.toFloat(), y = y.toFloat())
+            DpOffset(x = x.dp, y = y.dp)
         }
-        val height = view.frame.useContents { size.height }
-        return Offset(
+        val height = view.frame.useContents { size.height.dp }
+        return DpOffset(
             x = position.x,
-            y = height.toFloat() - position.y,
-        ) * density
+            y = height - position.y,
+        )
     }
 }

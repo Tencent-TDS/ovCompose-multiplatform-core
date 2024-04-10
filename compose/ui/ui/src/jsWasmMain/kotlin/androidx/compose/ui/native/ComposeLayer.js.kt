@@ -25,7 +25,6 @@ import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
-import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeScenePointer
@@ -33,7 +32,6 @@ import androidx.compose.ui.scene.MultiLayerComposeScene
 import androidx.compose.ui.scene.platformContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.util.fastAny
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.SkiaLayer
@@ -52,16 +50,6 @@ internal class ComposeLayer(
     init {
         layer.renderDelegate = object : SkikoRenderDelegate {
             override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
-
-                // Skiko subscribes to resize events itself, so make sure that
-                // the size is up-to-date during rendering.
-                val currentSceneSize = scene.size
-                if (currentSceneSize == null ||
-                    currentSceneSize.width != width ||
-                    currentSceneSize.height != height) {
-                    setSize(width, height)
-                }
-
                 scene.render(canvas.asComposeCanvas(), nanoTime)
             }
         }
@@ -167,5 +155,3 @@ internal class ComposeLayer(
         )
     }
 }
-
-internal expect val supportsMultitouch: Boolean
