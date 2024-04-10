@@ -25,7 +25,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
-import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.CupertinoHapticFeedback
 import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -98,6 +98,7 @@ internal class ComposeContainer(
     private val content: @Composable () -> Unit,
 ) : CMPViewController(nibName = null, bundle = null) {
     val lifecycleOwner = ViewControllerBasedLifecycleOwner()
+    val hapticFeedback = CupertinoHapticFeedback()
 
     private var isInsideSwiftUI = false
     private var mediator: ComposeSceneMediator? = null
@@ -428,7 +429,7 @@ internal fun ProvideContainerCompositionLocals(
     content: @Composable () -> Unit,
 ) = with(composeContainer) {
     CompositionLocalProvider(
-        LocalHapticFeedback provides HapticFeedback(),
+        LocalHapticFeedback provides hapticFeedback,
         LocalUIViewController provides this,
         LocalInterfaceOrientation provides interfaceOrientationState.value,
         LocalSystemTheme provides systemThemeState.value,
