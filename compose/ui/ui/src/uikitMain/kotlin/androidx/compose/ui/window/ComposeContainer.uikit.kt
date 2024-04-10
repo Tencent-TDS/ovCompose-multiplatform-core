@@ -25,8 +25,10 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
+import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.interop.UIKitInteropContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
@@ -426,6 +428,7 @@ internal fun ProvideContainerCompositionLocals(
     content: @Composable () -> Unit,
 ) = with(composeContainer) {
     CompositionLocalProvider(
+        LocalHapticFeedback provides HapticFeedback(),
         LocalUIViewController provides this,
         LocalInterfaceOrientation provides interfaceOrientationState.value,
         LocalSystemTheme provides systemThemeState.value,
