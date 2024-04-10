@@ -19,8 +19,8 @@ package androidx.compose.ui.hapticfeedback
 import platform.UIKit.UIImpactFeedbackGenerator
 import platform.UIKit.UISelectionFeedbackGenerator
 
-// TODO: minor UX improvement, add `prepare()` calls when internal APIs that use HapticFeedback
-//  to reduce haptic feedback latency
+// TODO: minor UX improvement, add `prepare()` calls when internal APIs are likely to use HapticFeedback
+//  (e.g. pan started during the text selection) to reduce haptic feedback latency
 //  see https://developer.apple.com/documentation/uikit/uifeedbackgenerator
 internal fun HapticFeedback() = object : HapticFeedback {
     private val impactGenerator = UIImpactFeedbackGenerator()
