@@ -28,7 +28,9 @@ import androidx.compose.ui.platform.MacosTextInputService
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -60,7 +62,7 @@ interface WindowScope {
 
 fun Window(
     title: String = "ComposeWindow",
-    size: IntSize = IntSize(800, 600),
+    size: DpSize = DpSize(800.dp, 600.dp),
     content: @Composable WindowScope.() -> Unit,
 ) {
     ComposeWindow(
@@ -72,7 +74,7 @@ fun Window(
 
 private class ComposeWindow(
     title: String,
-    size: IntSize,
+    size: DpSize,
     content: @Composable WindowScope.() -> Unit,
 ) : LifecycleOwner, WindowScope {
     private val macosTextInputService = MacosTextInputService()
@@ -99,7 +101,12 @@ private class ComposeWindow(
         NSWindowStyleMaskResizable
 
     override val window = object : NSWindow(
-        contentRect = NSMakeRect(0.0, 0.0, size.width.toDouble(), size.height.toDouble()),
+        contentRect = NSMakeRect(
+            x = 0.0,
+            y = 0.0,
+            w = size.width.value.toDouble(),
+            h = size.height.value.toDouble()
+        ),
         styleMask = windowStyle,
         backing = NSBackingStoreBuffered,
         defer = true
@@ -183,16 +190,19 @@ private class ComposeWindow(
         window.center()
         window.makeKeyAndOrderFront(null)
 
-        val scaledSize = IntSize(
-            width = (size.width * density).toInt(),
-            height = (size.height * density).toInt()
-        )
+        val density = Density(this.density)
+        val sizeInPx = with(density) {
+            IntSize(
+                width = size.width.roundToPx(),
+                height = size.height.roundToPx()
+            )
+        }
 
         // TODO: Subscribe to window resize events
-        _windowInfo.containerSize = scaledSize
+        _windowInfo.containerSize = sizeInPx
 
-        composeLayer.setDensity(Density(density))
-        composeLayer.setSize(scaledSize.width, scaledSize.height)
+        composeLayer.setDensity(density)
+        composeLayer.setSize(sizeInPx.width, sizeInPx.height)
         composeLayer.setContent {
             CompositionLocalProvider(
                 LocalLifecycleOwner provides this
