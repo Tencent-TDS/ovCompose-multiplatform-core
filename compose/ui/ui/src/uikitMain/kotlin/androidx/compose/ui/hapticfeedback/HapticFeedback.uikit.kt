@@ -19,7 +19,7 @@ package androidx.compose.ui.hapticfeedback
 import platform.UIKit.UIImpactFeedbackGenerator
 import platform.UIKit.UISelectionFeedbackGenerator
 
-// TODO: add `prepare()` calls when it makes sense on internal APIs that use HapticFeedback
+// TODO: minor UX improvement, add `prepare()` calls when internal APIs that use HapticFeedback
 //  to reduce haptic feedback latency
 //  see https://developer.apple.com/documentation/uikit/uifeedbackgenerator
 internal fun HapticFeedback() = object : HapticFeedback {
