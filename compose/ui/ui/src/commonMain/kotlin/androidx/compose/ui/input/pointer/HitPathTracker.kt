@@ -17,6 +17,9 @@
 package androidx.compose.ui.input.pointer
 
 import androidx.collection.LongSparseArray
+import androidx.collection.MutableLongObjectMap
+import androidx.collection.MutableObjectList
+import androidx.collection.mutableObjectListOf
 import androidx.compose.runtime.collection.MutableVector
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -43,6 +46,8 @@ internal class HitPathTracker(private val rootCoordinates: LayoutCoordinates) {
     /*@VisibleForTesting*/
     internal val root: NodeParent = NodeParent()
 
+    private val hitPointerIdsAndNodes = MutableLongObjectMap<MutableObjectList<Node>>(10)
+
     /**
      * Associates a [pointerId] to a list of hit [pointerInputNodes] and keeps track of them.
      *
@@ -54,19 +59,34 @@ internal class HitPathTracker(private val rootCoordinates: LayoutCoordinates) {
      * @param pointerId The id of the pointer that was hit tested against [PointerInputFilter]s
      * @param pointerInputNodes The [PointerInputFilter]s that were hit by [pointerId].  Must be
      * ordered from ancestor to descendant.
+     * @param prunePointerIdsAndChangesNotInNodesList Prune [PointerId]s (and associated changes)
+     * that are NOT in the pointerInputNodes parameter from the cached tree of ParentNode/Node.
      */
-    fun addHitPath(pointerId: PointerId, pointerInputNodes: List<Modifier.Node>) {
+    fun addHitPath(
+        pointerId: PointerId,
+        pointerInputNodes: List<Modifier.Node>,
+        prunePointerIdsAndChangesNotInNodesList: Boolean = false
+    ) {
         var parent: NodeParent = root
+        hitPointerIdsAndNodes.clear()
         var merging = true
+
         eachPin@ for (i in pointerInputNodes.indices) {
             val pointerInputNode = pointerInputNodes[i]
+
             if (merging) {
                 val node = parent.children.firstOrNull {
                     it.modifierNode == pointerInputNode
                 }
+
                 if (node != null) {
                     node.markIsIn()
                     node.pointerIds.add(pointerId)
+
+                    val mutableObjectList =
+                        hitPointerIdsAndNodes.getOrPut(pointerId.value) { mutableObjectListOf() }
+
+                    mutableObjectList.add(node)
                     parent = node
                     continue@eachPin
                 } else {
@@ -77,9 +97,29 @@ internal class HitPathTracker(private val rootCoordinates: LayoutCoordinates) {
             val node = Node(pointerInputNode).apply {
                 pointerIds.add(pointerId)
             }
+
+            val mutableObjectList =
+                hitPointerIdsAndNodes.getOrPut(pointerId.value) { mutableObjectListOf() }
+
+            mutableObjectList.add(node)
+
             parent.children.add(node)
             parent = node
         }
+
+        if (prunePointerIdsAndChangesNotInNodesList) {
+            hitPointerIdsAndNodes.forEach { key, value ->
+                removeInvalidPointerIdsAndChanges(key, value)
+            }
+        }
+    }
+
+    // Removes pointers/changes that are not in the latest hit test
+    private fun removeInvalidPointerIdsAndChanges(
+        pointerId: Long,
+        hitNodes: MutableObjectList<Node>
+    ) {
+        root.removeInvalidPointerIdsAndChanges(pointerId, hitNodes)
     }
 
     /**
@@ -126,13 +166,13 @@ internal class HitPathTracker(private val rootCoordinates: LayoutCoordinates) {
     }
 
     /**
-     * Removes [PointerInputFilter]s that have been removed from the component tree.
+     * Removes detached Pointer Input Modifier Nodes.
      */
     // TODO(shepshapard): Ideally, we can process the detaching of PointerInputFilters at the time
     //  that either their associated LayoutNode is removed from the three, or their
     //  associated PointerInputModifier is removed from a LayoutNode.
-    fun removeDetachedPointerInputFilters() {
-        root.removeDetachedPointerInputFilters()
+    fun removeDetachedPointerInputNodes() {
+        root.removeDetachedPointerInputModifierNodes()
     }
 }
 
@@ -224,19 +264,29 @@ internal open class NodeParent {
         children.clear()
     }
 
+    open fun removeInvalidPointerIdsAndChanges(
+        pointerIdValue: Long,
+        hitNodes: MutableObjectList<Node>
+    ) {
+        children.forEach {
+            it.removeInvalidPointerIdsAndChanges(pointerIdValue, hitNodes)
+        }
+    }
+
     /**
      * Removes all child [Node]s that are no longer attached to the compose tree.
      */
-    fun removeDetachedPointerInputFilters() {
+    fun removeDetachedPointerInputModifierNodes() {
         var index = 0
         while (index < children.size) {
             val child = children[index]
+
             if (!child.modifierNode.isAttached) {
-                children.removeAt(index)
                 child.dispatchCancel()
+                children.removeAt(index)
             } else {
                 index++
-                child.removeDetachedPointerInputFilters()
+                child.removeDetachedPointerInputModifierNodes()
             }
         }
     }
@@ -285,7 +335,22 @@ internal class Node(val modifierNode: Modifier.Node) : NodeParent() {
     private var coordinates: LayoutCoordinates? = null
     private var pointerEvent: PointerEvent? = null
 
-    val vec = mutableVectorOf<Long>()
+    override fun removeInvalidPointerIdsAndChanges(
+        pointerIdValue: Long,
+        hitNodes: MutableObjectList<Node>
+    ) {
+        if (this.pointerIds.contains(pointerIdValue)) {
+            if (!hitNodes.contains(this)) {
+                this.pointerIds.remove(pointerIdValue)
+                this.relevantChanges.remove(pointerIdValue)
+            }
+        }
+
+        children.forEach {
+            it.removeInvalidPointerIdsAndChanges(pointerIdValue, hitNodes)
+        }
+    }
+
     override fun dispatchMainEventPass(
         changes: LongSparseArray<PointerInputChange>,
         parentCoordinates: LayoutCoordinates,
@@ -301,6 +366,7 @@ internal class Node(val modifierNode: Modifier.Node) : NodeParent() {
         return dispatchIfNeeded {
             val event = pointerEvent!!
             val size = coordinates!!.size
+
             // Dispatch on the tunneling pass.
             modifierNode.dispatchForKind(Nodes.PointerInput) {
                 it.onPointerEvent(event, PointerEventPass.Initial, size)
