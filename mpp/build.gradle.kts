@@ -1,3 +1,5 @@
+import androidx.build.jetbrains.ArtifactRedirecting
+import androidx.build.jetbrains.artifactRedirecting
 import org.jetbrains.compose.internal.publishing.*
 
 plugins {
@@ -277,3 +279,29 @@ fun readComposeModules(
 
 fun allTasksWith(name: String) =
     rootProject.subprojects.flatMap { it.tasks.filter { it.name == name } }
+
+
+val printAllArtifactRedirectingVersions = tasks.register("printAllArtifactRedirectingVersions") {
+    val map = mainComponents.map {
+        val p = rootProject.findProject(it.path)!!
+        it.path + " --> \n" + p.artifactRedirecting().prettyText()
+    }.joinToString("\n\n", prefix = "\n")
+
+
+    println(map)
+}
+
+fun ArtifactRedirecting.prettyText(): String {
+    fun formatLine(line: String): String {
+        return "   $line\n"
+    }
+
+    val allLines = arrayOf(
+        "redirectGroupId = ${this.groupId}",
+        "redirectDefaultVersion = ${this.defaultVersion}",
+        "redirectForTargets = [${this.targetNames.joinToString().takeIf { it.isNotBlank() } ?: "android"}]",
+        "redirectTargetVersions = ${this.targetVersions}"
+    )
+
+    return allLines.joinToString("") { formatLine(it) }
+}
