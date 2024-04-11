@@ -281,14 +281,19 @@ fun allTasksWith(name: String) =
     rootProject.subprojects.flatMap { it.tasks.filter { it.name == name } }
 
 
+// ./gradlew printAllArtifactRedirectingVersions -PfilterProjectPath=lifecycle
+// or just ./gradlew printAllArtifactRedirectingVersions
 val printAllArtifactRedirectingVersions = tasks.register("printAllArtifactRedirectingVersions") {
-    val map = mainComponents.map {
-        val p = rootProject.findProject(it.path)!!
-        it.path + " --> \n" + p.artifactRedirecting().prettyText()
-    }.joinToString("\n\n", prefix = "\n")
+    val filter = project.property("filterProjectPath") as? String ?: ""
+    doLast {
+        val map = mainComponents.filter { it.path.contains(filter) }
+            .joinToString("\n\n", prefix = "\n") {
+            val p = rootProject.findProject(it.path)!!
+            it.path + " --> \n" + p.artifactRedirecting().prettyText()
+        }
 
-
-    println(map)
+        println(map)
+    }
 }
 
 fun ArtifactRedirecting.prettyText(): String {
