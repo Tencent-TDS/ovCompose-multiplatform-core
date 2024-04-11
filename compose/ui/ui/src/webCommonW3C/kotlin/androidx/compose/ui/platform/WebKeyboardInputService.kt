@@ -22,7 +22,7 @@ import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
 
-class WebKeyboardInputService : PlatformTextInputService {
+internal class WebKeyboardInputService : PlatformTextInputService {
     override fun startInput(
         value: TextFieldValue,
         imeOptions: ImeOptions,

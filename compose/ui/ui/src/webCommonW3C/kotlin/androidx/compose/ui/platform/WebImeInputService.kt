@@ -25,7 +25,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 
 internal class WebImeInputService(parentInputService: InputAwareInputService) : PlatformTextInputService, InputAwareInputService by parentInputService {
 
-    private var synchronizedTextArea: SynchronizedTextArea? = null
+    private var backingTextArea: BackingTextArea? = null
         set(value) {
             field?.dispose()
             field = value
@@ -37,31 +37,31 @@ internal class WebImeInputService(parentInputService: InputAwareInputService) : 
         onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
-        synchronizedTextArea = SynchronizedTextArea(imeOptions, onEditCommand, onImeActionPerformed)
-        synchronizedTextArea?.register()
+        backingTextArea = BackingTextArea(imeOptions, onEditCommand, onImeActionPerformed)
+        backingTextArea?.register()
 
         showSoftwareKeyboard()
     }
 
     override fun stopInput() {
-        synchronizedTextArea?.dispose()
+        backingTextArea?.dispose()
     }
 
     override fun showSoftwareKeyboard() {
-        synchronizedTextArea?.focus()
+        backingTextArea?.focus()
     }
 
     override fun hideSoftwareKeyboard() {
-        synchronizedTextArea?.blur()
+        backingTextArea?.blur()
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        synchronizedTextArea?.updateState(newValue)
+        backingTextArea?.updateState(newValue)
     }
 
     override fun notifyFocusedRect(rect: Rect) {
         super.notifyFocusedRect(rect)
-        synchronizedTextArea?.updateHtmlInputPosition(getOffset(rect))
+        backingTextArea?.updateHtmlInputPosition(getOffset(rect))
     }
 
 }

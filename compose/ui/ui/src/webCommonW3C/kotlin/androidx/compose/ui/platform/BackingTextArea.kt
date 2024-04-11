@@ -28,7 +28,12 @@ import kotlinx.browser.document
 import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.events.KeyboardEvent
 
-internal class SynchronizedTextArea(
+/**
+* The purpose of this entity is to isolate synchronization between a TextFieldValue
+* and the DOM HTMLTextAreaElement we are actually listening events on in order to show
+* the virtual keyboard.
+*/
+internal class BackingTextArea(
     private val imeOptions: ImeOptions,
     private val onEditCommand: (List<EditCommand>) -> Unit,
     private val onImeActionPerformed: (ImeAction) -> Unit
