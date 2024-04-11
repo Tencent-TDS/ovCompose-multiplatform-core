@@ -999,7 +999,7 @@ internal class AccessibilityMediator(
     private var isAlive = true
 
     private var inflightScrollsCount = 0
-    private val needsRefocusingDueToScroll: Boolean
+    private val needsRedundantRefocusingOnSameElement: Boolean
         get() = inflightScrollsCount > 0
 
     /**
@@ -1278,7 +1278,7 @@ internal class AccessibilityMediator(
 
         val isFocusedElementDead = !isFocusedElementAlive
 
-        val needsRefocusing = needsInitialRefocusing || isFocusedElementDead || needsRefocusingDueToScroll
+        val needsRefocusing = needsInitialRefocusing || isFocusedElementDead
 
         val newElementToFocus = if (needsRefocusing) {
             debugLogger?.log("Needs refocusing")
@@ -1294,7 +1294,13 @@ internal class AccessibilityMediator(
 
             refocusedElement
         } else {
-            null // No need to refocus to anything
+            if (needsRedundantRefocusingOnSameElement) {
+                focusedElement?.semanticsNodeId?.let {
+                    accessibilityElementsMap[it]
+                }
+            } else {
+                null // No need to refocus to anything
+            }
         }
 
         return NodesSyncResult(newElementToFocus)
