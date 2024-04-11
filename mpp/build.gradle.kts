@@ -284,7 +284,7 @@ fun allTasksWith(name: String) =
 // ./gradlew printAllArtifactRedirectingVersions -PfilterProjectPath=lifecycle
 // or just ./gradlew printAllArtifactRedirectingVersions
 val printAllArtifactRedirectingVersions = tasks.register("printAllArtifactRedirectingVersions") {
-    val filter = project.property("filterProjectPath") as? String ?: ""
+    val filter = project.properties["filterProjectPath"] as? String ?: ""
     doLast {
         val map = mainComponents.filter { it.path.contains(filter) }
             .joinToString("\n\n", prefix = "\n") {
