@@ -297,10 +297,6 @@ val printAllArtifactRedirectingVersions = tasks.register("printAllArtifactRedire
 }
 
 fun ArtifactRedirecting.prettyText(): String {
-    fun formatLine(line: String): String {
-        return "   $line\n"
-    }
-
     val allLines = arrayOf(
         "redirectGroupId = ${this.groupId}",
         "redirectDefaultVersion = ${this.defaultVersion}",
@@ -308,5 +304,5 @@ fun ArtifactRedirecting.prettyText(): String {
         "redirectTargetVersions = ${this.targetVersions}"
     )
 
-    return allLines.joinToString("") { formatLine(it) }
+    return allLines.joinToString("") { " ".repeat(3) + "$it\n" }
 }
