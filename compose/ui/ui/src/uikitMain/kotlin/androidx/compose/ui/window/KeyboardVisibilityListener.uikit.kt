@@ -59,6 +59,12 @@ internal interface KeyboardVisibilityObserver {
 
 internal object KeyboardVisibilityListener {
     private val listener = NativeKeyboardVisibilityListener()
+    private var initOnce = false
+    fun initialize() {
+        if (initOnce) { return }
+        initOnce = true
+        listener.startKeyboardChangesObserving()
+    }
 
     fun addObserver(observer: KeyboardVisibilityObserver) = listener.observers.add(observer)
 
@@ -70,7 +76,7 @@ internal object KeyboardVisibilityListener {
 private class NativeKeyboardVisibilityListener : NSObject() {
     val observers = mutableSetOf<KeyboardVisibilityObserver>()
 
-    init {
+    fun startKeyboardChangesObserving() {
         NSNotificationCenter.defaultCenter.addObserver(
             observer = this,
             selector = NSSelectorFromString(::keyboardWillShow.name + ":"),

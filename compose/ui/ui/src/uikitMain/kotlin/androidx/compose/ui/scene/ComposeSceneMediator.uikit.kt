@@ -71,6 +71,7 @@ import androidx.compose.ui.window.ComposeSceneKeyboardOffsetManager
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.InteractionUIView
 import androidx.compose.ui.window.KeyboardEventHandler
+import androidx.compose.ui.window.KeyboardVisibilityListener
 import androidx.compose.ui.window.RenderingUIView
 import androidx.compose.ui.window.UITouchesEventPhase
 import kotlin.coroutines.CoroutineContext
@@ -332,10 +333,10 @@ internal class ComposeSceneMediator(
         ComposeSceneKeyboardOffsetManager(
             configuration = configuration,
             keyboardOverlapHeightState = keyboardOverlapHeightState,
-            viewProvider = { rootView },
+            viewProvider = { viewForKeyboardOffsetTransform },
             composeSceneMediatorProvider = { this },
             onComposeSceneOffsetChanged = { offset ->
-                rootView.layer.setAffineTransform(CGAffineTransformMakeTranslation(0.0, -offset))
+                viewForKeyboardOffsetTransform.layer.setAffineTransform(CGAffineTransformMakeTranslation(0.0, -offset))
                 scene.invalidatePositionInWindow()
             }
         )
@@ -360,7 +361,9 @@ internal class ComposeSceneMediator(
             viewConfiguration = viewConfiguration,
             focusStack = focusStack,
             keyboardEventHandler = keyboardEventHandler
-        )
+        ).also {
+            KeyboardVisibilityListener.initialize()
+        }
     }
 
     private val touchesDelegate: InteractionUIView.Delegate by lazy {
@@ -662,14 +665,18 @@ internal class ComposeSceneMediator(
             || scene.sendKeyEvent(keyEvent)
             || _onKeyEvent(keyEvent)
 
+    @OptIn(ExperimentalComposeApi::class)
+    private var viewForKeyboardOffsetTransform = if (configuration.platformLayers)
+        rootView else container
+
     private inner class IOSPlatformContext : PlatformContext by PlatformContext.Empty {
         override val windowInfo: WindowInfo get() = windowContext.windowInfo
 
         override fun calculatePositionInWindow(localPosition: Offset): Offset =
-            windowContext.calculatePositionInWindow(rootView, localPosition)
+            windowContext.calculatePositionInWindow(viewForKeyboardOffsetTransform, localPosition)
 
         override fun calculateLocalPosition(positionInWindow: Offset): Offset =
-            windowContext.calculateLocalPosition(rootView, positionInWindow)
+            windowContext.calculateLocalPosition(viewForKeyboardOffsetTransform, positionInWindow)
 
         override val measureDrawLayerBounds get() = this@ComposeSceneMediator.measureDrawLayerBounds
         override val viewConfiguration get() = this@ComposeSceneMediator.viewConfiguration
