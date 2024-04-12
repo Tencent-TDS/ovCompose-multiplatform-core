@@ -305,6 +305,7 @@ internal class UIKitTextInputService(
                 NSLayoutConstraint.activateConstraints(
                     getConstraintsToFillParent(it, rootView)
                 )
+                it.becomeFirstResponder()
             }
 
             updateView()
@@ -342,7 +343,8 @@ internal class UIKitTextInputService(
      */
     override fun hide() {
         textUIView?.hideTextMenu()
-        if ((textUIView != null) && (currentInput == null)) {
+        if ((textUIView != null) && (currentInput == null)) { // means that editing context menu shown in selection container
+            textUIView?.resignFirstResponder()
             textUIView?.removeFromSuperview()
             textUIView = null
         }
