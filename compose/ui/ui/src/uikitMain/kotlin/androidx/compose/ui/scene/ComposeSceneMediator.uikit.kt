@@ -260,7 +260,7 @@ internal class ComposeSceneMediator(
         // mismatch between visual state and application state. This can be fixed by forcing
         // a redraw when app returns to foreground, which will ensure that the visual state is in
         // sync with the application state even if such sequence of events took a place.
-        onComposeSceneInvalidate()
+        renderingView.needRedraw()
     }
 
     /**
