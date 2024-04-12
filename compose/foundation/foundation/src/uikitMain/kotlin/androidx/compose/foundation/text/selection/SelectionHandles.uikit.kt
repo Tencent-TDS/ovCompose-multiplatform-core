@@ -24,7 +24,6 @@ import androidx.compose.foundation.text.selection.HandleReferencePoint.TopLeft
 import androidx.compose.foundation.text.selection.HandleReferencePoint.TopMiddle
 import androidx.compose.foundation.text.selection.HandleReferencePoint.TopRight
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -61,7 +60,6 @@ private val RADIUS = 6.dp
  */
 private val THICKNESS = 2.dp
 
-@OptIn(InternalComposeApi::class)
 @Composable
 internal actual fun SelectionHandle(
     offsetProvider: OffsetProvider,

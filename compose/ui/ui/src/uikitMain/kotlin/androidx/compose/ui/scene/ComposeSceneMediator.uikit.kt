@@ -246,7 +246,6 @@ internal class ComposeSceneMediator(
         set(value) {
             scene.compositionLocalContext = value
         }
-    val focusManager get() = scene.focusManager
 
     private val renderingView by lazy {
         renderingUIViewFactory(interopContext, renderDelegate)
@@ -649,8 +648,11 @@ internal class ComposeSceneMediator(
             || _onKeyEvent(keyEvent)
 
     @OptIn(ExperimentalComposeApi::class)
-    private var viewForKeyboardOffsetTransform = if (configuration.platformLayers)
-        rootView else container
+    private var viewForKeyboardOffsetTransform = if (configuration.platformLayers) {
+        rootView
+    } else {
+        container
+    }
 
     private inner class IOSPlatformContext : PlatformContext by PlatformContext.Empty {
         override val windowInfo: WindowInfo get() = windowContext.windowInfo
