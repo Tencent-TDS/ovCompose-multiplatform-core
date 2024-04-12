@@ -306,7 +306,7 @@ internal class ComposeWindow(
 
     fun resize(boxSize: IntSize) {
         // FIXME: density is not integer
-        val scaledDensity = density.density
+        val scale = density.density
 
         val width = (boxSize.width * scaledDensity).toInt()
         val height = (boxSize.height * scaledDensity).toInt()
