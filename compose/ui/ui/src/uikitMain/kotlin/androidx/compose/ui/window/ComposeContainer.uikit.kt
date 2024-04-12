@@ -338,7 +338,7 @@ internal class ComposeContainer(
             windowContext = windowContext,
             coroutineContext = coroutineDispatcher,
             renderingUIViewFactory = ::createSkikoUIView,
-            composeSceneFactory = ::createComposeScene
+            composeSceneFactory = ::createComposeScene,
         )
         mediator.setContent {
             ProvideContainerCompositionLocals(this, content)

@@ -214,7 +214,7 @@ internal class ComposeSceneMediator(
         coroutineContext: CoroutineContext
     ) -> ComposeScene
 ) {
-    private val keyboardOverlapHeightState: MutableState<Dp> = mutableStateOf(0f.dp)
+    private val keyboardOverlapHeightState: MutableState<Dp> = mutableStateOf(0.dp)
     private var _layout: SceneLayout = SceneLayout.Undefined
     private var constraints: List<NSLayoutConstraint> = emptyList()
         set(value) {
@@ -234,7 +234,7 @@ internal class ComposeSceneMediator(
                 }
         }
 
-    internal val scene: ComposeScene by lazy {
+    private val scene: ComposeScene by lazy {
         composeSceneFactory(
             ::onComposeSceneInvalidate,
             IOSPlatformContext(),

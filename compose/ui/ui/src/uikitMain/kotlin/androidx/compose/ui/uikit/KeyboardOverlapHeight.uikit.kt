@@ -25,4 +25,4 @@ import androidx.compose.ui.unit.dp
  * Composition local for height that is overlapped with keyboard over Compose view.
  */
 @InternalComposeApi
-val LocalKeyboardOverlapHeight = compositionLocalOf { 0f.dp }
+val LocalKeyboardOverlapHeight = compositionLocalOf { 0.dp }
