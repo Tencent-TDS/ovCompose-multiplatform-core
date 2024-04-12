@@ -308,8 +308,8 @@ internal class ComposeWindow(
         // FIXME: density is not integer
         val scale = density.density
 
-        val width = (boxSize.width * scaledDensity).toInt()
-        val height = (boxSize.height * scaledDensity).toInt()
+        val width = (boxSize.width * scale).toInt()
+        val height = (boxSize.height * scale).toInt()
 
         canvas.width = width
         canvas.height = height
