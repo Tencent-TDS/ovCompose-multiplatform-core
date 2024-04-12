@@ -99,16 +99,12 @@ internal class IntermediateTextInputUIView(
     override fun canBecomeFirstResponder() = true
 
     override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {
-        keyboardEventHandler?.let {
-            handleUIViewPressesBegan(it, presses, withEvent)
-        }
+        keyboardEventHandler?.pressesBegan(presses, withEvent)
         super.pressesBegan(presses, withEvent)
     }
 
     override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {
-        keyboardEventHandler?.let {
-            handleUIViewPressesEnded(it, presses, withEvent)
-        }
+        keyboardEventHandler?.pressesEnded(presses, withEvent)
         super.pressesEnded(presses, withEvent)
     }
 

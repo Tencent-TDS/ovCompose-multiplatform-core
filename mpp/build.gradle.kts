@@ -1,3 +1,5 @@
+import androidx.build.jetbrains.ArtifactRedirecting
+import androidx.build.jetbrains.artifactRedirecting
 import org.jetbrains.compose.internal.publishing.*
 
 plugins {
@@ -205,6 +207,7 @@ tasks.register("testComposeModules") { // used in https://github.com/JetBrains/a
 
 val mavenCentral = MavenCentralProperties(project)
 val mavenCentralGroup = project.providers.gradleProperty("maven.central.group")
+val mavenCentralStage = project.providers.gradleProperty("maven.central.stage")
 if (mavenCentral.signArtifacts) {
     signing.useInMemoryPgpKeys(
         mavenCentral.signArtifactsKey.get(),
@@ -255,7 +258,7 @@ val reuploadArtifactsToMavenCentral by tasks.registering(UploadToSonatypeTask::c
     user.set(mavenCentral.user)
     password.set(mavenCentral.password)
     autoCommitOnSuccess.set(mavenCentral.autoCommitOnSuccess)
-    stagingProfileName.set(mavenCentralGroup)
+    stagingProfileName.set(mavenCentralStage)
 }
 
 fun readComposeModules(
@@ -276,3 +279,30 @@ fun readComposeModules(
 
 fun allTasksWith(name: String) =
     rootProject.subprojects.flatMap { it.tasks.filter { it.name == name } }
+
+
+// ./gradlew printAllArtifactRedirectingVersions -PfilterProjectPath=lifecycle
+// or just ./gradlew printAllArtifactRedirectingVersions
+val printAllArtifactRedirectingVersions = tasks.register("printAllArtifactRedirectingVersions") {
+    val filter = project.properties["filterProjectPath"] as? String ?: ""
+    doLast {
+        val map = mainComponents.filter { it.path.contains(filter) }
+            .joinToString("\n\n", prefix = "\n") {
+            val p = rootProject.findProject(it.path)!!
+            it.path + " --> \n" + p.artifactRedirecting().prettyText()
+        }
+
+        println(map)
+    }
+}
+
+fun ArtifactRedirecting.prettyText(): String {
+    val allLines = arrayOf(
+        "redirectGroupId = ${this.groupId}",
+        "redirectDefaultVersion = ${this.defaultVersion}",
+        "redirectForTargets = [${this.targetNames.joinToString().takeIf { it.isNotBlank() } ?: "android"}]",
+        "redirectTargetVersions = ${this.targetVersions}"
+    )
+
+    return allLines.joinToString("") { " ".repeat(3) + "$it\n" }
+}

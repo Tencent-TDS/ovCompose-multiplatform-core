@@ -304,25 +304,8 @@ internal class ComposeSceneMediator(
                    .asCGRect()
             },
             performEscape = {
-                val down = onKeyboardEvent(
-                    KeyEvent(
-                        NativeKeyEvent(
-                            Key.Escape,
-                            value = null,
-                            kind = KeyEventType.KeyDown
-                        )
-                    )
-                )
-
-                val up = onKeyboardEvent(
-                    KeyEvent(
-                        NativeKeyEvent(
-                            Key.Escape,
-                            value = null,
-                            kind = KeyEventType.KeyUp
-                        )
-                    )
-                )
+                val down = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyDown))
+                val up = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyUp))
 
                 down || up
             }
@@ -344,8 +327,8 @@ internal class ComposeSceneMediator(
 
     private val keyboardEventHandler: KeyboardEventHandler by lazy {
         object : KeyboardEventHandler {
-            override fun onKeyboardEvent(event: NativeKeyEvent) {
-                onKeyboardEvent(KeyEvent(event))
+            override fun onKeyboardEvent(event: KeyEvent) {
+                this@ComposeSceneMediator.onKeyboardEvent(event)
             }
         }
     }
