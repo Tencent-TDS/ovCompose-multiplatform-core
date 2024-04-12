@@ -309,9 +309,6 @@ internal class UIKitTextInputService(
             }
 
             updateView()
-            rootView.layoutIfNeeded()
-            rootView.reloadInputViews()
-            textUIView?.reloadInputViews()
 
             textUIView?.let {
                 val skiaRect = with(densityProvider()) {
