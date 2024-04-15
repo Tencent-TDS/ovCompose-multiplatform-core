@@ -174,11 +174,6 @@ internal class ComposeSceneKeyboardOffsetManager(
             keyboardOverlapHeightState.value = currentOverlapHeight.dp
         }
 
-        fun completeAnimation() {
-            animationView.removeFromSuperview()
-            updateAnimationValues(1.0)
-        }
-
         //attach to root view if needed
         if (animationView.superview == null) {
             view.addSubview(animationView)
@@ -205,6 +200,15 @@ internal class ComposeSceneKeyboardOffsetManager(
             selector = sel_registerName("animationDidUpdate")
         )
         keyboardAnimationListener = keyboardDisplayLink
+
+        fun completeAnimation() {
+            animationView.removeFromSuperview()
+            if (keyboardAnimationListener == keyboardDisplayLink) {
+                keyboardAnimationListener = null
+            }
+            updateAnimationValues(1.0)
+        }
+
         UIView.animateWithDuration(
             duration = duration,
             delay = 0.0,
