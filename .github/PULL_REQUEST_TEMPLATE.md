@@ -1,16 +1,16 @@
-## Proposed Changes
+[Optional] Fixes $linkToTheIssue
 
-  -
-  -
-  -
+[Optional] Fixes "Description of the issue"
+
+[Optional] RelNote [Section\Subsection] Adds a feature
+
+Describe the issue and proposed changes
 
 ## Testing
 
-Test: Describe how you tested your changes. Note that this line (with `Test:`) is required, your PR will not build without it!
+Describe how you tested your changes
 
-## Issues Fixed
-
-Fixes: [Optional] The bug on [https://issuetracker.google.com](https://issuetracker.google.com) being fixed
+[Optional] This should be tested by QA
 
 ## Google CLA
 You need to sign the Google Contributor’s License Agreement at https://cla.developers.google.com/.
