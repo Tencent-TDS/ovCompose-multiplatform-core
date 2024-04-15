@@ -1,6 +1,4 @@
-[Optional] Fixes $linkToTheIssue
-
-[Optional] Fixes "Description of the issue"
+[Optional] Fixes "Description of the issue" or $linkToTheIssue
 
 [Optional] RelNote [Section\Subsection] Adds a feature
 
