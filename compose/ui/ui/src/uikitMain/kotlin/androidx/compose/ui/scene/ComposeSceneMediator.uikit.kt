@@ -247,6 +247,8 @@ internal class ComposeSceneMediator(
             scene.compositionLocalContext = value
         }
 
+    val focusManager get() = scene.focusManager
+
     private val renderingView by lazy {
         renderingUIViewFactory(interopContext, renderDelegate)
     }
