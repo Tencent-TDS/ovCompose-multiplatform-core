@@ -16,12 +16,12 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.PointerMatcher
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.SideEffect
+import androidx.compose.foundation.onClick
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -29,9 +29,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlinx.browser.document
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.NonCancellable.isActive
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.MouseEventInit
@@ -46,8 +47,8 @@ class MouseEventsTest {
     }
 
     @Test
-    fun testPointerEvents() = runTest {
-        if (isHeadlessBrowser()) return@runTest
+    fun testPointerEvents()  {
+        if (isHeadlessBrowser()) return
         val canvasElement = document.createElement("canvas") as HTMLCanvasElement
         canvasElement.setAttribute("id", canvasId)
         document.body!!.appendChild(canvasElement)
@@ -91,5 +92,39 @@ class MouseEventsTest {
         assertEquals(PointerButton.Secondary, pointerEvents[3].button)
         assertEquals(PointerEventType.Release, pointerEvents[4].type)
         assertEquals(PointerButton.Secondary, pointerEvents[4].button)
+    }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    @Test
+    fun testOnClickWithPointerMatchers() {
+        if (isHeadlessBrowser()) return
+        val canvasElement = document.createElement("canvas") as HTMLCanvasElement
+        canvasElement.setAttribute("id", canvasId)
+        document.body!!.appendChild(canvasElement)
+
+        var primaryClickedCounter = 0
+        var secondaryClickedCounter = 0
+
+        CanvasBasedWindow(canvasElementId = canvasId) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onClick(matcher = PointerMatcher.Primary) { primaryClickedCounter++ }
+                    .onClick(matcher = PointerMatcher.mouse(PointerButton.Secondary)) { secondaryClickedCounter++ }
+            ) {}
+        }
+
+        canvasElement.dispatchEvent(MouseEvent("mouseenter", MouseEventInit(100, 100)))
+        canvasElement.dispatchEvent(MouseEvent("mousedown", MouseEventInit(100, 100, button = 0, buttons = 1)))
+        canvasElement.dispatchEvent(MouseEvent("mouseup", MouseEventInit(100, 100, button = 0, buttons = 0)))
+
+        assertEquals(1, primaryClickedCounter)
+        assertEquals(0, secondaryClickedCounter)
+
+        canvasElement.dispatchEvent(MouseEvent("mousedown", MouseEventInit(100, 100, button = 2, buttons = 2)))
+        canvasElement.dispatchEvent(MouseEvent("mouseup", MouseEventInit(100, 100, button = 2, buttons = 0)))
+
+        assertEquals(1, primaryClickedCounter)
+        assertEquals(1, secondaryClickedCounter)
     }
 }
