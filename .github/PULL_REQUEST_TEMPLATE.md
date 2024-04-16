@@ -6,7 +6,10 @@ Describe the issue and proposed changes
 
 ## Testing
 
-Describe how you tested your changes
+Describe how you tested your changes. If possible and needed:
+[ ] Test it on a sample project
+[ ] Write unit tests
+[ ] Provide a code snippet
 
 [Optional] This should be tested by QA
 
