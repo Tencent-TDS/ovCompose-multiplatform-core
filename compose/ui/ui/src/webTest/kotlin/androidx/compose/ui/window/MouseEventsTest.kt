@@ -29,8 +29,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import kotlinx.browser.document
 import kotlinx.coroutines.NonCancellable.isActive
 import org.w3c.dom.HTMLCanvasElement
@@ -129,7 +127,7 @@ class MouseEventsTest {
     }
 
     @Test
-    fun testPointerButtonForNoClickEvents() {
+    fun testPointerButtonIsNullForNoClickEvents() {
         if (isHeadlessBrowser()) return
         val canvasElement = document.createElement("canvas") as HTMLCanvasElement
         canvasElement.setAttribute("id", canvasId)
