@@ -197,7 +197,7 @@ internal fun rememberComposeSceneLayer(
  * Sets the content of the layer to [content].
  */
 @Composable
-internal fun ComposeSceneLayer.applyContent(content: @Composable () -> Unit) {
+internal fun ComposeSceneLayer.Content(content: @Composable () -> Unit) {
     val currentContent by rememberUpdatedState(content)
     DisposableEffect(this) {
         setContent {
