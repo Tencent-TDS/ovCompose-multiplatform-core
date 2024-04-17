@@ -127,4 +127,43 @@ class MouseEventsTest {
         assertEquals(1, primaryClickedCounter)
         assertEquals(1, secondaryClickedCounter)
     }
+
+    @Test
+    fun testPointerButtonForNoClickEvents() {
+        if (isHeadlessBrowser()) return
+        val canvasElement = document.createElement("canvas") as HTMLCanvasElement
+        canvasElement.setAttribute("id", canvasId)
+        document.body!!.appendChild(canvasElement)
+
+
+        var event: PointerEvent? = null
+
+        CanvasBasedWindow(canvasElementId = canvasId) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (isActive) {
+                                event = awaitPointerEvent()
+                            }
+                        }
+                    }
+            ) {}
+        }
+
+        assertEquals(null, event)
+
+        canvasElement.dispatchEvent(MouseEvent("mouseenter", MouseEventInit(100, 100)))
+        assertEquals(PointerEventType.Enter, event!!.type)
+        assertEquals(null, event!!.button)
+
+        canvasElement.dispatchEvent(MouseEvent("mousemove", MouseEventInit(101, 101, clientX = 101, clientY = 101)))
+        assertEquals(PointerEventType.Move, event!!.type)
+        assertEquals(null, event!!.button)
+
+        canvasElement.dispatchEvent(MouseEvent("mouseleave", MouseEventInit(0, 0, clientX = 0, clientY = 0)))
+        assertEquals(PointerEventType.Exit, event!!.type)
+        assertEquals(null, event!!.button)
+    }
 }

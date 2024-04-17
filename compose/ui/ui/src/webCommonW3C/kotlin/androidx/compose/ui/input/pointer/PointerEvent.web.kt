@@ -18,9 +18,16 @@ package androidx.compose.ui.input.pointer
 
 import org.w3c.dom.events.MouseEvent
 
-internal val MouseEvent.composeButton get() =
+internal val MouseEvent.composeButton get(): PointerButton? {
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
-    when (button.toInt()) {
+    // `MouseEvent.button` property only guarantees to indicate which buttons are pressed during
+    // events caused by pressing or releasing one or multiple buttons
+
+    val eventType = type
+    if (eventType != "mousedown" && eventType != "mouseup") {
+        return null
+    }
+    return when (button.toInt()) {
         // Main button pressed, usually the left button or the un-initialized state
         0 -> PointerButton.Primary
         // Auxiliary button pressed, usually the wheel button or the middle button (if present)
@@ -33,6 +40,7 @@ internal val MouseEvent.composeButton get() =
         4 -> PointerButton.Forward
         else -> PointerButton(-1)
     }
+}
 
 internal val MouseEvent.composeButtons get() =
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons
