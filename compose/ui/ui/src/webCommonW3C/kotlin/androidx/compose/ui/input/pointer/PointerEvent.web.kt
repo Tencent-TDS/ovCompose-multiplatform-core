@@ -22,7 +22,8 @@ internal val MouseEvent.composeButton get(): PointerButton? {
     // `MouseEvent.button` property only guarantees to indicate which buttons are pressed during
     // events caused by pressing or releasing one or multiple buttons
     when (type) {
-        "mousedown", "mouseup" -> return null
+        "mousedown", "mouseup" -> Unit
+        else -> return null
     }
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
     return when (val buttonIndex = button.toInt()) {
