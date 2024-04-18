@@ -18,7 +18,9 @@ package androidx.compose.ui.window
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
@@ -41,7 +43,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.center
-import androidx.compose.ui.unit.dp
 
 /**
  * The default scrim opacity.
@@ -142,10 +143,12 @@ actual fun Dialog(
     properties: DialogProperties,
     content: @Composable () -> Unit
 ) {
+    val currentOnDismissRequest by rememberUpdatedState(onDismissRequest)
+
     val onKeyEvent = if (properties.dismissOnBackPress) {
         { event: KeyEvent ->
             if (event.isDismissRequest()) {
-                onDismissRequest()
+                currentOnDismissRequest()
                 true
             } else {
                 false
@@ -157,7 +160,7 @@ actual fun Dialog(
     val onOutsidePointerEvent = if (properties.dismissOnClickOutside) {
         { eventType: PointerEventType ->
             if (eventType == PointerEventType.Release) {
-                onDismissRequest()
+                currentOnDismissRequest()
             }
         }
     } else {
