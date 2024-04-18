@@ -343,6 +343,14 @@ internal class AccessibilityController(
         private var lastUseTimeNanos: Long = System.nanoTime() - (MaxIdleTimeNanos + 1)
 
         /**
+         * Resets this object to its initial state. This is needed for tests.
+         */
+        internal fun reset() {
+            assert(activeControllers.isEmpty())
+            lastUseTimeNanos = System.nanoTime() - (MaxIdleTimeNanos + 1)
+        }
+
+        /**
          * Called to notify us when an accessibility query is received from the system.
          *
          * This starts a process that actively synchronized the [ComposeAccessible]s with the

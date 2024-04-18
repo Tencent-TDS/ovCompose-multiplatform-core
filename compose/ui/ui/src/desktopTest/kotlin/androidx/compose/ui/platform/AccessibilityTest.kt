@@ -239,6 +239,9 @@ private fun runDesktopA11yTest(block: ComposeA11yTestScope.() -> Unit) {
         semanticsOwnerListener.accessibilityControllers
     }
 
+    // Reset the a11y usage, to avoid having one test affect the next
+    AccessibilityController.AccessibilityUsage.reset()
+
     val testDispatcher = StandardTestDispatcher()
     runInternalSkikoComposeUiTest(
         semanticsOwnerListener = semanticsOwnerListener,
