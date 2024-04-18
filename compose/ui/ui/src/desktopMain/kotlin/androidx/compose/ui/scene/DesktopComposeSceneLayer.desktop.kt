@@ -188,7 +188,7 @@ internal abstract class DesktopComposeSceneLayer(
      * @param event the mouse event
      */
     fun onMouseEventOutside(event: MouseEvent) {
-        if (isClosed || !event.isMainAction() || inBounds(event)) {
+        if (isClosed || inBounds(event)) {
             return
         }
         val eventType = when (event.id) {
@@ -262,9 +262,6 @@ internal abstract class DesktopComposeSceneLayer(
         }
     }
 }
-
-private fun MouseEvent.isMainAction() =
-    button == MouseEvent.BUTTON1
 
 private fun maxInflate(baseBounds: IntRect, currentBounds: IntRect, maxInflate: IntRect) = IntRect(
     left = max(baseBounds.left - currentBounds.left, maxInflate.left),
