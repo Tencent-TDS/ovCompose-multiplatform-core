@@ -20,7 +20,13 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.key.utf16CodePoint
+import androidx.compose.ui.input.key.webEventOrNull
+import org.w3c.dom.events.KeyboardEvent
 
 actual val KeyEvent.isTypedEvent: Boolean
-    get() = type == KeyEventType.KeyDown && !isMetaPressed && utf16CodePoint != 0
+    get() = type == KeyEventType.KeyDown && !isMetaPressed && webEventOrNull?.isPrintable() == true
+
+fun KeyboardEvent.isPrintable(): Boolean {
+    return key.firstOrNull()?.toString() == key
+}
+
