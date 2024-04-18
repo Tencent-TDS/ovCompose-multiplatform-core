@@ -16,7 +16,7 @@ This should be tested by QA
 
 ## Release Notes
 <!--
-If omitted - it won't be included in the changelog
+Optional, if omitted - it won't be included in the changelog
 
 Sections:
 - Highlights
