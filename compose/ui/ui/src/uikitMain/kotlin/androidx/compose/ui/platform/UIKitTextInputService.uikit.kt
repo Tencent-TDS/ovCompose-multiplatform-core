@@ -314,7 +314,6 @@ internal class UIKitTextInputService(
             NSLayoutConstraint.activateConstraints(
                 getConstraintsToFillParent(it, rootView)
             )
-            it.backgroundColor = UIColor.redColor.colorWithAlphaComponent(0.5)
         }
     }
 
