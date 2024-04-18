@@ -18,6 +18,7 @@ package androidx.navigation
 
 import androidx.annotation.RestrictTo
 import androidx.core.bundle.Bundle
+import androidx.navigation.internal.UriCodec
 import kotlin.jvm.JvmStatic
 
 public actual class NavDeepLink internal actual constructor(
@@ -39,10 +40,26 @@ public actual class NavDeepLink internal actual constructor(
     private val queryArgsMap by lazy(LazyThreadSafetyMode.NONE) { parseQuery() }
     private var isSingleQueryParamValueOnly = false
 
+    // fragment
+    private val fragArgsAndRegex: Pair<MutableList<String>, String>? by
+    lazy(LazyThreadSafetyMode.NONE) { parseFragment() }
+    private val fragArgs by lazy(LazyThreadSafetyMode.NONE) {
+        fragArgsAndRegex?.first ?: mutableListOf()
+    }
+    private val fragRegex by lazy(LazyThreadSafetyMode.NONE) {
+        fragArgsAndRegex?.second
+    }
+    private val fragPattern by lazy {
+        fragRegex?.let { Regex(it, RegexOption.IGNORE_CASE) }
+    }
+
     public actual var isExactDeepLink: Boolean = false
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         get
         internal set
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public actual constructor(uri: String) : this(uri, null, null)
 
     private fun buildRegex(
         uri: String,
@@ -68,6 +85,19 @@ public actual class NavDeepLink internal actual constructor(
         }
     }
 
+    internal fun matches(uri: String): Boolean {
+        return matchUri(uri)
+        // TODO: matchAction + matchMimeType
+    }
+
+    private fun matchUri(uri: String?): Boolean {
+        // If the null status of both are not the same return false.
+        return if (uri == null == (pathPattern != null)) {
+            false
+        } else uri == null || pathPattern!!.matches(uri)
+        // If both are null return true, otherwise see if they match
+    }
+
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public fun getMatchingArguments(
         deepLink: String,
@@ -82,8 +112,8 @@ public actual class NavDeepLink internal actual constructor(
         if (isParameterizedQuery && !getMatchingQueryArguments(deepLink, bundle, arguments)) {
             return null
         }
-
-        // TODO: Extract arguments from fragment part
+        // no match on optional fragment should not prevent a link from matching otherwise
+        getMatchingUriFragment(deepLink, bundle, arguments)
 
         // Check that all required arguments are present in bundle
         val missingRequiredArguments = arguments.missingRequiredArguments { argName ->
@@ -94,14 +124,37 @@ public actual class NavDeepLink internal actual constructor(
         return bundle
     }
 
+    private fun getMatchingUriFragment(
+        deepLink: String,
+        bundle: Bundle,
+        arguments: Map<String, NavArgument?>
+    ) {
+        val fragment = getFragment(deepLink) ?: return
+        // Base condition of a matching fragment is a complete match on regex pattern. If a
+        // required fragment arg is present while regex does not match, this will be caught later
+        // on as a non-match when we check for presence of required args in the bundle.
+        val result = fragPattern?.find(fragment) ?: return
+
+        this.fragArgs.mapIndexed { index, argumentName ->
+            val value = result.groups[index + 1]?.value?.let { UriCodec.decode(it) } ?: ""
+            val argument = arguments[argumentName]
+            try {
+                if (parseArgument(bundle, argumentName, value, argument)) {
+                    return
+                }
+            } catch (e: IllegalArgumentException) {
+                return
+            }
+        }
+    }
+
     private fun getMatchingPathArguments(
         result: MatchResult,
         bundle: Bundle,
         arguments: Map<String, NavArgument?>
     ): Boolean {
         this.pathArgs.mapIndexed { index, argumentName ->
-            // TODO: Decode Uri
-            val value = result.groups[index + 1]!!.value
+            val value = result.groups[index + 1]?.value?.let { UriCodec.decode(it) } ?: ""
             val argument = arguments[argumentName]
             try {
                 if (parseArgument(bundle, argumentName, value, argument)) {
@@ -131,7 +184,7 @@ public actual class NavDeepLink internal actual constructor(
             if (isSingleQueryParamValueOnly) {
                 // If the deep link contains a single query param with no value,
                 // we will treat everything after the '?' as the input parameter
-                val argValue = QUERY_PATTERN.find(deepLink)?.value
+                val argValue = getQuery(deepLink)
                 if (argValue != null && argValue != deepLink) {
                     inputParams = listOf(argValue)
                 }
@@ -151,6 +204,8 @@ public actual class NavDeepLink internal actual constructor(
     ): Boolean {
         inputParams?.forEach { inputParam ->
             val argMatchResult = storedParam.paramRegex?.let {
+                // TODO: Use [RegexOption.DOT_MATCHES_ALL] once available in common
+                //  https://youtrack.jetbrains.com/issue/KT-67574
                 Regex(it).find(inputParam)
             } ?: return false
 
@@ -304,7 +359,8 @@ public actual class NavDeepLink internal actual constructor(
     private companion object {
         private val SCHEME_PATTERN = Regex("^[a-zA-Z]+[+\\w\\-.]*:")
         private val FILL_IN_PATTERN = Regex("\\{(.+?)\\}")
-        private val QUERY_PATTERN = Regex("^[^?#]+\\?([^#]+)")
+        private val QUERY_PATTERN = Regex("^[^?#]+\\?([^#]+).*")
+        private val FRAGMENT_PATTERN = Regex("#(.+)")
     }
 
     private fun parsePath() {
@@ -335,7 +391,7 @@ public actual class NavDeepLink internal actual constructor(
         val queryParameters = parseQueryParameters(uriPattern)
 
         for ((paramName, queryParams) in queryParameters) {
-            val argRegex = StringBuilder()
+            val argRegex = StringBuilder("^")
             require(queryParams.size <= 1) {
                 "Query parameter $paramName must only be present once in $uriPattern. " +
                     "To support repeated query parameters, use an array type for your " +
@@ -351,21 +407,20 @@ public actual class NavDeepLink internal actual constructor(
             while (result != null) {
                 // matcher.group(1) as String = "tab" (the extracted param arg from {tab})
                 param.addArgumentName(result.groups[1]!!.value)
-                argRegex.append(
-                    Regex.escape(
-                        queryParam.substring(
-                            appendPos,
-                            result.range.first
-                        )
-                    )
-                )
-                argRegex.append("(.+?)?")
+                if (result.range.first > appendPos) {
+                    val inputLiteral = queryParam.substring(appendPos, result.range.first)
+                    argRegex.append(Regex.escape(inputLiteral))
+                }
+                // TODO: Revert to "(.+?)?" when [RegexOption.DOT_MATCHES_ALL] will be available
+                //  https://youtrack.jetbrains.com/issue/KT-67574
+                argRegex.append("([\\s\\S]+?)?")
                 appendPos = result.range.last + 1
                 result = result.next()
             }
             if (appendPos < queryParam.length) {
                 argRegex.append(Regex.escape(queryParam.substring(appendPos)))
             }
+            argRegex.append("$")
 
             // Save the regex with wildcards unquoted, and add the param to the map with its
             // name as the key
@@ -375,14 +430,32 @@ public actual class NavDeepLink internal actual constructor(
         return paramArgMap
     }
 
+    private fun getQuery(uri: String) = QUERY_PATTERN.find(uri)?.groups?.get(1)?.value
+
     private fun parseQueryParameters(uri: String): Map<String, List<String>> {
-        val query = QUERY_PATTERN.find(uri)?.value ?: return emptyMap()
+        val query = getQuery(uri) ?: return emptyMap()
         return query.split("&")
             .map { it.split("=") }
             .groupBy(
                 keySelector = { it[0] },
-                valueTransform = { it.getOrNull(1) ?: "" }
+                valueTransform = { split ->
+                    split.getOrNull(1)?.let { UriCodec.decode(it) }
+                }
             )
+            .mapValues { it.value.filterNotNull() }
+    }
+
+    private fun getFragment(uri: String) = FRAGMENT_PATTERN.find(uri)?.groups?.get(1)?.value
+
+    private fun parseFragment(): Pair<MutableList<String>, String>? {
+        if (uriPattern == null) return null
+
+        val fragArgs = mutableListOf<String>()
+        val fragment = getFragment(uriPattern) ?: return null
+        val fragRegex = StringBuilder("^")
+        buildRegex(fragment, fragArgs, fragRegex)
+        fragRegex.append("$")
+        return fragArgs to fragRegex.toString()
     }
 
     init {
