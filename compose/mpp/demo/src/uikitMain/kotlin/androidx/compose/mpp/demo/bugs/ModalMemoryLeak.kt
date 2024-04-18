@@ -34,8 +34,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import platform.posix.free
 import platform.posix.malloc
+
+private var modalsOpen = 0
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 val ModalMemoryLeak = Screen.Example("ModalMemoryLeak") {
@@ -56,13 +59,9 @@ val ModalMemoryLeak = Screen.Example("ModalMemoryLeak") {
                 },
                 sheetState = sheetState,
             ) {
-                DisposableEffect(Unit) {
-                    val a = malloc((20_000 * 1024).toULong())
-
-                    onDispose {
-                        println("Disposed")
-                        free(a)
-                    }
+                SideEffect {
+                    modalsOpen++
+                    println("Modal opened: $modalsOpen")
                 }
                 Text("ModalBottomSheet3", Modifier.height(500.dp))
             }
