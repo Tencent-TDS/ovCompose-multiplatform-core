@@ -22,18 +22,32 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.text.input.*
+import androidx.compose.ui.scene.getConstraintsToFillParent
+import androidx.compose.ui.text.input.CommitTextCommand
+import androidx.compose.ui.text.input.EditCommand
+import androidx.compose.ui.text.input.EditProcessor
+import androidx.compose.ui.text.input.FinishComposingTextCommand
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.ImeOptions
+import androidx.compose.ui.text.input.PlatformTextInputService
+import androidx.compose.ui.text.input.SetComposingRegionCommand
+import androidx.compose.ui.text.input.SetComposingTextCommand
+import androidx.compose.ui.text.input.SetSelectionCommand
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.asCGRect
+import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import androidx.compose.ui.window.KeyboardEventHandler
-import androidx.compose.ui.scene.getConstraintsToFillParent
-import androidx.compose.ui.unit.Density
 import kotlin.math.absoluteValue
 import kotlin.math.min
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
-import platform.UIKit.*
+import platform.UIKit.NSLayoutConstraint
+import platform.UIKit.UIView
+import platform.UIKit.reloadInputViews
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
@@ -257,16 +271,7 @@ internal class UIKitTextInputService(
         onCutRequested: (() -> Unit)?,
         onSelectAllRequested: (() -> Unit)?
     ) {
-        val skiaRect = with(densityProvider()) {
-            org.jetbrains.skia.Rect.makeLTRB(
-                l = rect.left / density,
-                t = rect.top / density,
-                r = rect.right / density,
-                b = rect.bottom / density,
-            )
-        }
-
-        if (textUIView == null ) {
+        if (textUIView == null) {
             // If showMenu() is called and textUIView is not created,
             // then it means that showMenu() called in SelectionContainer without any textfields,
             // and IntermediateTextInputView must be created to show an editing menu
@@ -274,9 +279,8 @@ internal class UIKitTextInputService(
             textUIView?.becomeFirstResponder()
             updateView()
         }
-
         textUIView?.showTextMenu(
-            targetRect = skiaRect,
+            targetRect = rect.toDpRect(densityProvider()).asCGRect(),
             textActions = object : TextActions {
                 override val copy: (() -> Unit)? = onCopyRequested
                 override val cut: (() -> Unit)? = onCutRequested
