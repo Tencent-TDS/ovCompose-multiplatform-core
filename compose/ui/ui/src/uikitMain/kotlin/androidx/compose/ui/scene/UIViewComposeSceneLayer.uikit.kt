@@ -43,7 +43,6 @@ import androidx.compose.ui.window.RenderingUIView
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.max
 import kotlinx.cinterop.CValue
-import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import org.jetbrains.skiko.SkikoRenderDelegate
@@ -55,12 +54,6 @@ import platform.UIKit.UIEvent
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
-import platform.darwin.NSObject
-
-@ExportObjCClass
-class SceneLayerMarker: NSObject() {
-
-}
 
 internal class UIViewComposeSceneLayer(
     private val composeContainer: ComposeContainer,
@@ -71,7 +64,7 @@ internal class UIViewComposeSceneLayer(
     windowContext: PlatformWindowContext,
     compositionContext: CompositionContext,
 ) : ComposeSceneLayer {
-    private val marker = SceneLayerMarker()
+
     override var focusable: Boolean = focusStack != null
     private var onOutsidePointerEvent: ((eventType: PointerEventType) -> Unit)? = null
     private val rootView = composeContainer.view.window ?: composeContainer.view

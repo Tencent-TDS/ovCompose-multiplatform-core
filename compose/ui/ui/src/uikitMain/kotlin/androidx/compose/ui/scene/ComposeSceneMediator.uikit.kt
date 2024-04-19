@@ -78,7 +78,6 @@ import androidx.compose.ui.window.UITouchesEventPhase
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
-import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import org.jetbrains.skia.Canvas
@@ -99,7 +98,6 @@ import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.UIKit.UIWindow
-import platform.darwin.NSObject
 
 /**
  * Layout of sceneView on the screen
@@ -111,10 +109,6 @@ internal sealed interface SceneLayout {
     class Bounds(val renderBounds: IntRect, val interactionBounds: IntRect) : SceneLayout
 }
 
-@ExportObjCClass
-class ComposeSceneMediatorMarker: NSObject() {
-
-}
 /**
  * iOS specific-implementation of [PlatformContext.SemanticsOwnerListener] used to track changes in [SemanticsOwner].
  *
@@ -221,7 +215,6 @@ internal class ComposeSceneMediator(
         coroutineContext: CoroutineContext
     ) -> ComposeScene
 ) {
-    private val marker = ComposeSceneMediatorMarker()
     private val keyboardOverlapHeightState: MutableState<Dp> = mutableStateOf(0.dp)
     private var _layout: SceneLayout = SceneLayout.Undefined
     private var constraints: List<NSLayoutConstraint> = emptyList()
@@ -506,8 +499,6 @@ internal class ComposeSceneMediator(
         )
 
     fun dispose() {
-        println("Disposed")
-
         uiKitTextInputService.stopInput()
         applicationStateListener.dispose()
         focusStack?.popUntilNext(renderingView)
