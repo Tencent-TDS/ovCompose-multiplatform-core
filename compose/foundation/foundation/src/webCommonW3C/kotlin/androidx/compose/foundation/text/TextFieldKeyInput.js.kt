@@ -26,7 +26,7 @@ import org.w3c.dom.events.KeyboardEvent
 actual val KeyEvent.isTypedEvent: Boolean
     get() = type == KeyEventType.KeyDown && !isMetaPressed && domEventOrNull?.isPrintable() == true
 
-fun KeyboardEvent.isPrintable(): Boolean {
+private fun KeyboardEvent.isPrintable(): Boolean {
     return key.firstOrNull()?.toString() == key
 }
 
