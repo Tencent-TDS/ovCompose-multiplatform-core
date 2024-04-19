@@ -26,6 +26,7 @@ import androidx.compose.ui.events.EventTargetListener
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.InputModeManager
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.toComposeEvent
 import androidx.compose.ui.input.pointer.BrowserCursor
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -183,6 +184,10 @@ internal class ComposeWindow(
                 val offsetX = viewportRect.left.toFloat().coerceAtLeast(0f) + (rect.left / density.density)
                 val offsetY = viewportRect.top.toFloat().coerceAtLeast(0f) + (rect.top / density.density)
                 return Offset(offsetX, offsetY)
+            }
+
+            override fun sendKeyEvent(event: KeyEvent) {
+                layer.onKeyboardEvent(event)
             }
         }
 
