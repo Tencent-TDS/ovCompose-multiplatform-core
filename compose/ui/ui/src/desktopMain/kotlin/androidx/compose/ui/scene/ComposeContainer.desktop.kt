@@ -28,7 +28,7 @@ import androidx.compose.ui.awt.AwtEventListener
 import androidx.compose.ui.awt.AwtEventListeners
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.platform.LocalViewModelStoreOwner
+import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
@@ -494,6 +494,6 @@ private fun ProvideContainerCompositionLocals(
     content: @Composable () -> Unit,
 ) = CompositionLocalProvider(
     LocalLifecycleOwner provides composeContainer,
-    LocalViewModelStoreOwner provides composeContainer,
+    LocalInternalViewModelStoreOwner provides composeContainer,
     content = content
 )

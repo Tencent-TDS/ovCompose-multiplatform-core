@@ -27,9 +27,11 @@ import androidx.lifecycle.ViewModelStoreOwner
  *
  * @hide
  */
-internal val LocalViewModelStoreOwner = staticCompositionLocalOf<ViewModelStoreOwner?> { null }
+internal val LocalInternalViewModelStoreOwner = staticCompositionLocalOf<ViewModelStoreOwner?> {
+    null
+}
 
 @InternalComposeApi
 @Composable
 fun findComposeDefaultViewModelStoreOwner(): ViewModelStoreOwner? =
-    LocalViewModelStoreOwner.current
+    LocalInternalViewModelStoreOwner.current

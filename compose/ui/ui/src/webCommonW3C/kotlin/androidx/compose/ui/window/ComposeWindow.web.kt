@@ -39,7 +39,7 @@ import androidx.compose.ui.native.ComposeLayer
 import androidx.compose.ui.platform.DefaultInputModeManager
 import androidx.compose.ui.platform.WebTextInputService
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.platform.LocalViewModelStoreOwner
+import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfoImpl
@@ -64,8 +64,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.skiko.SkiaLayer
 import org.w3c.dom.AddEventListenerOptions
-import org.w3c.dom.DOMRect
-import org.w3c.dom.DOMRectReadOnly
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLStyleElement
@@ -293,7 +291,7 @@ internal class ComposeWindow(
             CompositionLocalProvider(
                 LocalSystemTheme provides systemThemeObserver.currentSystemTheme.value,
                 LocalLifecycleOwner provides this,
-                LocalViewModelStoreOwner provides this,
+                LocalInternalViewModelStoreOwner provides this,
                 content = {
                     content()
                     rememberCoroutineScope().launch {

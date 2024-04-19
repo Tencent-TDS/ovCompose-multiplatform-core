@@ -30,7 +30,7 @@ import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.interop.UIKitInteropContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.platform.LocalViewModelStoreOwner
+import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.scene.ComposeScene
@@ -444,7 +444,7 @@ internal fun ProvideContainerCompositionLocals(
         LocalInterfaceOrientation provides interfaceOrientationState.value,
         LocalSystemTheme provides systemThemeState.value,
         LocalLifecycleOwner provides lifecycleOwner,
-        LocalViewModelStoreOwner provides lifecycleOwner,
+        LocalInternalViewModelStoreOwner provides lifecycleOwner,
         content = content
     )
 }
