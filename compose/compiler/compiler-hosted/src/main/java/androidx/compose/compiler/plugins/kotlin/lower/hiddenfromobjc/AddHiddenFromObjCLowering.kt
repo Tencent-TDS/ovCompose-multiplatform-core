@@ -49,7 +49,7 @@ class AddHiddenFromObjCLowering(
     private val pluginContext: IrPluginContext,
     symbolRemapper: ComposableSymbolRemapper,
     metrics: ModuleMetrics,
-    private val hideFromObjCDeclarationsSet: HideFromObjCDeclarationsSet,
+    private val hideFromObjCDeclarationsSet: HideFromObjCDeclarationsSet?,
     stabilityInferencer: StabilityInferencer,
 ) : AbstractComposeLowering(pluginContext, symbolRemapper, metrics, stabilityInferencer) {
 
@@ -79,7 +79,7 @@ class AddHiddenFromObjCLowering(
         // data classes can't be open, so it should work.
         if (currentShouldAnnotateClass && cls.isData) {
             cls.addHiddenFromObjCAnnotation()
-            hideFromObjCDeclarationsSet.add(cls)
+            hideFromObjCDeclarationsSet?.add(cls)
         }
 
         currentShouldAnnotateClass = shouldAnnotateClass.pop()
@@ -95,7 +95,7 @@ class AddHiddenFromObjCLowering(
 
         if (f.hasComposableAnnotation() || f.needsComposableRemapping()) {
             f.addHiddenFromObjCAnnotation()
-            hideFromObjCDeclarationsSet.add(f)
+            hideFromObjCDeclarationsSet?.add(f)
             currentShouldAnnotateClass = true
         }
 
@@ -112,7 +112,7 @@ class AddHiddenFromObjCLowering(
 
         if (shouldAdd) {
             p.addHiddenFromObjCAnnotation()
-            hideFromObjCDeclarationsSet.add(p)
+            hideFromObjCDeclarationsSet?.add(p)
             currentShouldAnnotateClass = true
         }
 

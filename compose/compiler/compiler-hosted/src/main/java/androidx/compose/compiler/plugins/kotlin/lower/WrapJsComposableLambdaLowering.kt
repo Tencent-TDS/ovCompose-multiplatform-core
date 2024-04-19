@@ -87,7 +87,6 @@ class WrapJsComposableLambdaLowering(
     context: IrPluginContext,
     symbolRemapper: DeepCopySymbolRemapper,
     metrics: ModuleMetrics,
-    signatureBuilder: IdSignatureFactory,
     stabilityInferencer: StabilityInferencer,
 ) : AbstractComposeLowering(
     context = context,
