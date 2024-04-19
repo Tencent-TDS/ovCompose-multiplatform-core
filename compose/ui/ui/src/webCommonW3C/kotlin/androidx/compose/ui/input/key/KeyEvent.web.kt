@@ -41,18 +41,6 @@ private fun KeyboardEvent.toInputModifiers(): PointerKeyboardModifiers {
     )
 }
 
-/**
- * The original raw native KeyboardEvent event
- *
- * Null if:
- * - the native event is sent by another framework (when Compose UI is embed into it)
- * - there is no native event (in tests, for example, or when Compose sends a synthetic event)
- *
- */
-val KeyEvent.webEventOrNull: KeyboardEvent?
-    get() = internal.nativeEvent as? KeyboardEvent?
-
-
 internal fun KeyboardEvent.toComposeEvent(): KeyEvent {
     return KeyEvent(
         nativeKeyEvent = InternalKeyEvent(
