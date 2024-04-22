@@ -36,20 +36,33 @@ class IsTypedEventTests {
 
     @Test
     fun standardLatin() {
-        val latin = listOf(
+        val chars = listOf(
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
             'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
         )
-        latin.forEach { keyDownEvent(it).assertIsTyped() }
+
+        chars.forEach { char -> keyDownEvent(char).assertIsTyped() }
     }
 
     @Test
     fun standardCyrillic() {
-        val latin = listOf(
+        val chars = listOf(
             'a', 'б', 'в', 'г', 'д', 'е', 'ё', 'ж', 'з', 'и', 'й', 'к',
             'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц',
             'ш', 'щ', 'ь', 'ъ', 'э', 'ю', 'я'
         )
-        latin.forEach { keyDownEvent(it).assertIsTyped() }
+
+        chars.forEach { char -> keyDownEvent(char).assertIsTyped() }
+    }
+
+    @Test
+    fun shortCutsAreNotTyped() {
+        val keyDownEvents = listOf(
+            keyDownEvent('c', metaKey = true, ctrlKey = true),
+            keyDownEvent('p', metaKey = true, ctrlKey = true),
+            keyDownEvent('v', metaKey = true, ctrlKey = true)
+        )
+
+        keyDownEvents.forEach { event -> event.assertIsNotTyped() }
     }
 }
