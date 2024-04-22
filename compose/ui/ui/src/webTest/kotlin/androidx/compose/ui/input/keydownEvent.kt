@@ -61,5 +61,5 @@ internal fun keyDownEvent(
 ) = keyDownEvent("$c", code, ctrlKey, metaKey, altKey, shiftKey, cancelable)
 
 internal fun keyDownEventUnprevented(): KeyboardEvent =
-    KeyboardEventInit(ctrlKey = true, cancelable = true)
+    KeyboardEventInit(ctrlKey = true, cancelable = true, key = "Control")
         .keyDownEvent()
