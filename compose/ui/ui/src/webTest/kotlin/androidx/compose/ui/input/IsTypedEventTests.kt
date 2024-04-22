@@ -42,4 +42,14 @@ class IsTypedEventTests {
         )
         latin.forEach { keyDownEvent(it).assertIsTyped() }
     }
+
+    @Test
+    fun standardCyrillic() {
+        val latin = listOf(
+            'a', 'б', 'в', 'г', 'д', 'е', 'ё', 'ж', 'з', 'и', 'й', 'к',
+            'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц',
+            'ш', 'щ', 'ь', 'ъ', 'э', 'ю', 'я'
+        )
+        latin.forEach { keyDownEvent(it).assertIsTyped() }
+    }
 }
