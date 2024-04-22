@@ -17,6 +17,8 @@
 package androidx.compose.ui.window
 
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -24,6 +26,7 @@ import kotlin.test.assertTrue
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -55,28 +58,27 @@ class ComposeWindowLifecycleTest {
             state = DefaultWindowState(document.documentElement!!)
         )
 
-        assertEquals(Lifecycle.State.RESUMED, lifecycleOwner.lifecycle.currentState)
+        val eventsChannel = Channel<Lifecycle.Event>(10)
+
+        lifecycleOwner.lifecycle.addObserver(object : LifecycleEventObserver {
+            override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+                eventsChannel.trySend(event)
+            }
+        })
+
+        assertEquals(Lifecycle.State.CREATED, eventsChannel.receive().targetState)
+        assertEquals(Lifecycle.State.STARTED, eventsChannel.receive().targetState)
+        assertEquals(Lifecycle.State.RESUMED, eventsChannel.receive().targetState)
 
         // Browsers don't allow to blur the window from code:
         // https://developer.mozilla.org/en-US/docs/Web/API/Window/blur
         // So we simulate a new tab being open:
-        val anotherWindow = window.open("http://localhost:80")
+        val anotherWindow = window.open("about:config")
         assertTrue(anotherWindow != null)
-
-        realDelay(100)
-        assertEquals(Lifecycle.State.STARTED, lifecycleOwner.lifecycle.currentState)
+        assertEquals(Lifecycle.State.STARTED, eventsChannel.receive().targetState)
 
         // Now go back to the original window
         anotherWindow.close()
-
-        realDelay(100)
-        assertEquals(Lifecycle.State.RESUMED, lifecycleOwner.lifecycle.currentState)
-    }
-}
-
-private suspend fun TestScope.realDelay(ms: Long) {
-    // To make sure the delay is not skipped by TestScheduler, we change the Dispatcher
-    withContext(Dispatchers.Default) {
-        delay(100)
+        assertEquals(Lifecycle.State.RESUMED, eventsChannel.receive().targetState)
     }
 }
