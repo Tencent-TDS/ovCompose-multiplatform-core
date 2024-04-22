@@ -62,4 +62,5 @@ internal fun keyDownEvent(
 
 internal fun keyDownEventUnprevented(): KeyboardEvent =
     KeyboardEventInit(ctrlKey = true, cancelable = true, key = "Control")
+        .withKeyCode()
         .keyDownEvent()
