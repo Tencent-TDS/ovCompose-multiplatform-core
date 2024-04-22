@@ -29,7 +29,7 @@ private fun KeyboardEventInit.withKeyCode() = (this as KeyboardEventInitExtended
 }
 
 internal fun keyDownEvent(
-    c: Char = 'c',
+    c: String,
     code: String = "Key${c.uppercase()}",
     ctrlKey: Boolean = false,
     metaKey: Boolean = false,
@@ -38,7 +38,7 @@ internal fun keyDownEvent(
     cancelable: Boolean = true
 ): KeyboardEvent =
     KeyboardEventInit(
-        key = "$c",
+        key = c,
         code = code,
         ctrlKey = ctrlKey,
         metaKey = metaKey,
@@ -48,6 +48,17 @@ internal fun keyDownEvent(
     )
         .withKeyCode()
         .keyDownEvent()
+
+
+internal fun keyDownEvent(
+    c: Char = 'c',
+    code: String = "Key${c.uppercase()}",
+    ctrlKey: Boolean = false,
+    metaKey: Boolean = false,
+    altKey: Boolean = false,
+    shiftKey: Boolean = false,
+    cancelable: Boolean = true
+) = keyDownEvent("$c", code, ctrlKey, metaKey, altKey, shiftKey, cancelable)
 
 internal fun keyDownEventUnprevented(): KeyboardEvent =
     KeyboardEventInit(ctrlKey = true, cancelable = true)
