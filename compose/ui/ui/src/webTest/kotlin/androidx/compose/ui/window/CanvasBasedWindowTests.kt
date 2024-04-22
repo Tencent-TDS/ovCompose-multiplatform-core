@@ -99,7 +99,7 @@ class CanvasBasedWindowTests {
         assertFalse(stack.last())
 
         // copy shortcut should not be prevented (we let browser create a corresponding event)
-        canvasElement.dispatchEvent(keyDownEvent(c = 'c', metaKey = true))
+        canvasElement.dispatchEvent(keyDownEvent(c = 'c', metaKey = true, ctrlKey = true))
         assertEquals(3, stack.size)
         assertFalse(stack.last())
     }
