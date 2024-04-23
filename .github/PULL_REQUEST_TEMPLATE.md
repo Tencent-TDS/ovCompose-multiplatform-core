@@ -24,6 +24,7 @@ Sections:
 - Features
 - Fixes
 - Prerelease fixes
+> Prerelease fixes are fixes of bugs introduced in a previous prerelease version (dev/beta). It will be excluded from the stable changelog
 
 Subsections:
 - Multiple Platforms
