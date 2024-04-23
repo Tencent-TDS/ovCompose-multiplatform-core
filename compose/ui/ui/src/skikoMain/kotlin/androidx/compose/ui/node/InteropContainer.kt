@@ -18,9 +18,8 @@ package androidx.compose.ui.node
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.areObjectsOfSameType
 import androidx.compose.ui.layout.OverlayLayout
-import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAction.CancelTraversal
-import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAction.ContinueTraversal
 
 /**
  * An interface for container that controls interop views/components.
@@ -43,17 +42,19 @@ internal interface InteropContainer<T> {
  */
 internal fun <T> InteropContainer<T>.countInteropComponentsBefore(nativeView: T): Int {
     var componentsBefore = 0
-    rootModifier?.traverseDescendants {
-        if (it.nativeView != nativeView) {
+    rootModifier?.visitSubtreeIf(Nodes.Traversable, zOrder = true) {
+        if (TRAVERSAL_NODE_KEY == it.traverseKey && areObjectsOfSameType(this, it)) {
+            @Suppress("UNCHECKED_CAST")
+            val interopModifierNode = it as TrackInteropModifierNode<T>
+            if (interopModifierNode.nativeView == nativeView) return componentsBefore
+
             // It might be inside Compose tree before adding in InteropContainer in case
             // if it was initiated out of scroll visible bounds for example.
             if (it.nativeView in interopViews) {
                 componentsBefore++
             }
-            ContinueTraversal
-        } else {
-            CancelTraversal
         }
+        true
     }
     return componentsBefore
 }
