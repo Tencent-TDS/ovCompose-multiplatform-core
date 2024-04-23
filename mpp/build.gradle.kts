@@ -164,7 +164,6 @@ tasks.register("testWeb") {
     dependsOn(":compose:foundation:foundation:wasmJsBrowserTest")
     dependsOn(":compose:material3:material3:wasmJsBrowserTest")
     dependsOn(":compose:ui:ui-text:wasmJsBrowserTest")
-    dependsOn(":compose:ui:ui-text:wasmJsBrowserTest")
     dependsOn(":compose:ui:ui:wasmJsBrowserTest")
 }
 
