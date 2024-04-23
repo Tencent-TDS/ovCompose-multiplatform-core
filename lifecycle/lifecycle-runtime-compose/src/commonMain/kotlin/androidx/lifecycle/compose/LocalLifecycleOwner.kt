@@ -14,9 +14,17 @@
  * limitations under the License.
  */
 
-package androidx.lifecycle.viewmodel.internal
+package androidx.lifecycle.compose
 
-internal actual class Lock actual constructor() {
-    actual inline fun <T> withLockImpl(crossinline block: () -> T): T =
-        synchronized(lock = this, block = block)
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.lifecycle.LifecycleOwner
+
+/**
+ * The CompositionLocal containing the current [LifecycleOwner].
+ *
+ * Note: On Android, it works only with Compose UI 1.7.0-alpha05 or above.
+ *  Please use [androidx.compose.ui.platform.LocalLifecycleOwner] on Compose 1.6.*
+ */
+val LocalLifecycleOwner = staticCompositionLocalOf<LifecycleOwner> {
+    error("CompositionLocal LocalLifecycleOwner not present")
 }
