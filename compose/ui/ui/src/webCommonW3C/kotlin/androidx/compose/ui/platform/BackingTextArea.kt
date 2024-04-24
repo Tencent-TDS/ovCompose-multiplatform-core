@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.browser.document
 import org.w3c.dom.HTMLTextAreaElement
@@ -102,18 +103,33 @@ internal class BackingTextArea(
         htmlInput.addEventListener("input", { evt ->
             evt.preventDefault()
             evt as InputEventExtended
-            val data = evt.data
 
-            if (evt.inputType == "insertLineBreak") {
-                if (imeOptions.singleLine) {
-                    onImeActionPerformed(imeOptions.imeAction)
+            when (evt.inputType) {
+                "insertLineBreak" -> {
+                    if (imeOptions.singleLine) {
+                        onImeActionPerformed(imeOptions.imeAction)
+                    }
                 }
-            } else if ((data != null) && (data.length > 1)) {
-                sendImeValueToCompose(data)
-            } else {
-                val keyboardEvent = evt.toKeyboardEvent()?.toComposeEvent()
-                if (keyboardEvent != null) {
-                    sendKey(keyboardEvent)
+                "insertCompositionText" -> {
+                    onEditCommand(listOf(SetComposingTextCommand(evt.data!!, 1)))
+                }
+                "insertText" -> {
+                    println(evt)
+                    val data = evt.data!! ?: return@addEventListener
+                    if ((data.length == 1)) {
+                        sendKey(KeyboardEvent(
+                            "keydown",
+                            KeyboardEventInit(key = data)
+                        ).toComposeEvent())
+                    } else if (data.length > 1) {
+                        onEditCommand(listOf(CommitTextCommand(data, 1)))
+                    }
+                }
+                "deleteContentBackward" -> {
+                    sendKey(KeyboardEvent(
+                        "keydown",
+                        KeyboardEventInit(key = "Backspace", code="Backspace").withKeyCode(8)
+                    ).toComposeEvent())
                 }
             }
         })
@@ -150,27 +166,6 @@ internal class BackingTextArea(
         textArea.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
     }
 
-    private fun sendImeValueToCompose(
-        text: String,
-        newCursorPosition: Int? = null
-    ) {
-        if (newCursorPosition != null) {
-            onEditCommand(
-                listOf(
-                    DeleteAllCommand(),
-                    CommitTextCommand(text, newCursorPosition),
-                )
-            )
-        } else {
-            onEditCommand(
-                listOf(
-                    CommitTextCommand(text, 1)
-                )
-            )
-        }
-    }
-
-
     fun dispose() {
         textArea.remove()
     }
@@ -189,21 +184,4 @@ private external interface KeyboardEventInitExtended : KeyboardEventInit {
 @Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
 private fun KeyboardEventInit.withKeyCode(keyCode: Int) = (this as KeyboardEventInitExtended).apply {
     this.keyCode = keyCode
-}
-
-
-private fun InputEventExtended.toKeyboardEvent(): KeyboardEvent? {
-    if (inputType == "insertText") {
-        val key = data ?: return null
-        return KeyboardEvent(
-            "keydown",
-            KeyboardEventInit(key = key)
-        )
-    } else if (inputType == "deleteContentBackward") {
-        return  KeyboardEvent(
-            "keydown",
-            KeyboardEventInit(key = "Backspace", code="Backspace").withKeyCode(8)
-        )
-    }
-    return null
 }
