@@ -16,9 +16,13 @@
 
 package androidx.compose.ui
 
+import kotlin.math.abs
 import kotlinx.browser.document
 import org.w3c.dom.HTMLCanvasElement
 
+/**
+ * An interface with helper functions to initialise the tests
+ */
 internal interface OnCanvasTests {
 
     val canvasId: String
@@ -35,5 +39,11 @@ internal interface OnCanvasTests {
 
     fun commonAfterTest() {
         document.getElementById(canvasId)?.remove()
+    }
+
+    fun assertApproximatelyEqual(expected: Float, actual: Float, tolerance: Float = 1f) {
+        if (abs(expected - actual) > tolerance) {
+            throw AssertionError("Expected $expected but got $actual. Difference is more than the allowed delta $tolerance")
+        }
     }
 }

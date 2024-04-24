@@ -21,14 +21,12 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.window.CanvasBasedWindow
-import androidx.compose.ui.window.ComposeWindow
-import androidx.compose.ui.window.DefaultWindowState
 import kotlin.test.AfterTest
-import kotlin.test.Ignore
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlinx.browser.document
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.runTest
 
@@ -44,18 +42,18 @@ class TextTests : OnCanvasTests {
     fun baselineShouldBeNotZero() = runTest {
         val canvas = createCanvasAndAttach()
 
-        val headingOnPositioned = Channel<Int>(10)
-        val subtitleOnPositioned = Channel<Int>(10)
+        val headingOnPositioned = Channel<Float>(10)
+        val subtitleOnPositioned = Channel<Float>(10)
         CanvasBasedWindow(
             canvasElementId = canvasId,
             content = {
+                val density = LocalDensity.current.density
                 Row {
                     Text(
                         "Heading",
                         modifier = Modifier.alignByBaseline()
                             .onGloballyPositioned {
-                                headingOnPositioned.trySend(it[FirstBaseline])
-                                println("The heading alignment line is ${it[FirstBaseline]}\n")
+                                headingOnPositioned.trySend(it[FirstBaseline] / density)
                             },
                         style = MaterialTheme.typography.h4
                     )
@@ -63,7 +61,7 @@ class TextTests : OnCanvasTests {
                         " — Subtitle",
                         modifier = Modifier.alignByBaseline()
                             .onGloballyPositioned {
-                                subtitleOnPositioned.trySend(it[FirstBaseline])
+                                subtitleOnPositioned.trySend(it[FirstBaseline] / density)
                                 println("The subtitle alignment line is ${it[FirstBaseline]}\n")
                             },
                         style = MaterialTheme.typography.subtitle1
@@ -75,8 +73,7 @@ class TextTests : OnCanvasTests {
         val headingAlignment = headingOnPositioned.receive()
         val subtitleAlignment = subtitleOnPositioned.receive()
 
-        assertTrue(headingAlignment > 0)
-        assertTrue(subtitleAlignment > 0)
-        assertTrue(headingAlignment > subtitleAlignment)
+        assertApproximatelyEqual(29f, headingAlignment)
+        assertApproximatelyEqual(19f, subtitleAlignment)
     }
 }
