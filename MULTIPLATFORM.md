@@ -140,7 +140,6 @@ Run native macos Arm64 sample:
 - Update `gradle/libs.versions.toml` by setting `compose-plugin` to the version you've published.
 - Sync gradle, now the project will build with the locally published Compose.
 
-
 ### Run mpp/demo-uikit sample on iOS
  - Install plugin **Kotlin Multiplatform Mobile** for AppCode
  - Disable Android Plugin in IDE preferences
