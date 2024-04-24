@@ -109,10 +109,8 @@ internal interface ComposeWindowState {
 }
 
 private sealed interface KeyboardModeState {
-    companion object {
-        object Virtual: KeyboardModeState
-        object Hardware: KeyboardModeState
-    }
+    object Virtual: KeyboardModeState
+    object Hardware: KeyboardModeState
 }
 
 internal class DefaultWindowState(private val viewportContainer: Element) : ComposeWindowState {
@@ -169,7 +167,7 @@ internal class ComposeWindow(
 
     private val canvasEvents = EventTargetListener(canvas)
 
-    private var keyboardModeState: KeyboardModeState = KeyboardModeState.Companion.Hardware
+    private var keyboardModeState: KeyboardModeState = KeyboardModeState.Hardware
 
     private val platformContext: PlatformContext = object : PlatformContext {
         override val windowInfo get() = _windowInfo
@@ -177,7 +175,7 @@ internal class ComposeWindow(
         override val inputModeManager: InputModeManager = DefaultInputModeManager()
 
         override val textInputService = object : WebTextInputService() {
-            override fun isVirtualKeyboard() = keyboardModeState == KeyboardModeState.Companion.Virtual
+            override fun isVirtualKeyboard() = keyboardModeState == KeyboardModeState.Virtual
 
             override fun getOffset(rect: Rect): Offset {
                 val viewportRect = canvas.getBoundingClientRect()
@@ -359,7 +357,7 @@ internal class ComposeWindow(
         event: TouchEvent,
         offset: Offset,
     ) {
-        keyboardModeState = KeyboardModeState.Companion.Virtual
+        keyboardModeState = KeyboardModeState.Virtual
         val eventType = when (event.type) {
             "touchstart" -> PointerEventType.Press
             "touchmove" -> PointerEventType.Move
@@ -391,7 +389,7 @@ internal class ComposeWindow(
     private fun ComposeLayer.onMouseEvent(
         event: MouseEvent,
     ) {
-        keyboardModeState = KeyboardModeState.Companion.Hardware
+        keyboardModeState = KeyboardModeState.Hardware
         val eventType = when (event.type) {
             "mousedown" -> PointerEventType.Press
             "mousemove" -> PointerEventType.Move
@@ -418,7 +416,7 @@ internal class ComposeWindow(
     private fun ComposeLayer.onWheelEvent(
         event: WheelEvent,
     ) {
-        keyboardModeState = KeyboardModeState.Companion.Hardware
+        keyboardModeState = KeyboardModeState.Hardware
         onMouseEvent(
             eventType = PointerEventType.Scroll,
             position = event.offset,
