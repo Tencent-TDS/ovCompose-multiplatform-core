@@ -23,8 +23,6 @@ Sections:
 - Breaking changes
 - Features
 - Fixes
-- Prerelease fixes
-> Prerelease fixes are fixes of bugs introduced in a previous prerelease version (dev/beta). It will be excluded from the stable changelog
 
 Subsections:
 - Multiple Platforms
@@ -33,6 +31,10 @@ Subsections:
 - Web
 - Resources
 - Gradle Plugin
+
+If the fix fixes a bug introduced in a previous prerelease version (dev/beta), add _(prerelease fix)_:
+- _(prerelease fix)_ Fix something
+It will be included in dev/beta changelog, but excluded from the stable changelog
 -->
 > Section - Subsection
 - Describe a change for adding it to https://github.com/JetBrains/compose-multiplatform/blob/master/CHANGELOG.md
