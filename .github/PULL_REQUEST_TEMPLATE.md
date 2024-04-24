@@ -31,13 +31,13 @@ Subsections:
 - Web
 - Resources
 - Gradle Plugin
-
-If the fix fixes a bug introduced in a previous prerelease version (dev/beta), add _(prerelease fix)_:
-- _(prerelease fix)_ Fix something
-It will be included in dev/beta changelog, but excluded from the stable changelog
 -->
 > Section - Subsection
 - Describe a change for adding it to https://github.com/JetBrains/compose-multiplatform/blob/master/CHANGELOG.md
+- _(prerelease fix)_ Fix some bug that introduced in prerelease version (dev/beta). It will be included in dev/beta changelog, but excluded from the stable changelog
+
+> Section - Subsection
+- Describe another change if needed
 
 ## Google CLA
 You need to sign the Google Contributor’s License Agreement at https://cla.developers.google.com/.
