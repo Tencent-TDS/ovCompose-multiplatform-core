@@ -21,6 +21,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.window.CanvasBasedWindow
 import androidx.compose.ui.window.ComposeWindow
 import androidx.compose.ui.window.DefaultWindowState
 import kotlin.test.AfterTest
@@ -39,15 +40,14 @@ class TextTests : OnCanvasTests {
     }
 
     @Test
-    @Ignore // just trying to understand why CI can't suddenly open Chrome after adding this test
     // https://github.com/JetBrains/compose-multiplatform/issues/4078
     fun baselineShouldBeNotZero() = runTest {
         val canvas = createCanvasAndAttach()
 
         val headingOnPositioned = Channel<Int>(10)
         val subtitleOnPositioned = Channel<Int>(10)
-        ComposeWindow(
-            canvas = canvas,
+        CanvasBasedWindow(
+            canvasElementId = canvasId,
             content = {
                 Row {
                     Text(
@@ -69,8 +69,7 @@ class TextTests : OnCanvasTests {
                         style = MaterialTheme.typography.subtitle1
                     )
                 }
-            },
-            state = DefaultWindowState(document.documentElement!!)
+            }
         )
 
         val headingAlignment = headingOnPositioned.receive()
