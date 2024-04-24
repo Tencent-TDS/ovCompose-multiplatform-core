@@ -76,10 +76,6 @@ Default value for the version is `0.0.0-SNAPSHOT`
 ```
 `-Pcompose.platforms=all` could be replace with comma-separated list of platforms, such as `js,jvm,androidDebug,androidRelease,macosx64,uikit`.
 
-, "compose" in lib.verions.toml is not what it seems. The actual implementation version is defined by Gradle Plugin.
-To change it you need to update gradle.properties files in `compose-multiplatform/gradle-plugins`, the properties are `compose.version` and `deploy.version` and run ./gradlew publishToMavenLocal
-Same with `compos-multiplatform/components`, and set compose.useMavenLocal to true.
-
 3. Publish extended icons
 ```bash
 ./gradlew :mpp:publishComposeJbExtendedIconsToMavenLocal -Pcompose.platforms=all --max-workers=1
