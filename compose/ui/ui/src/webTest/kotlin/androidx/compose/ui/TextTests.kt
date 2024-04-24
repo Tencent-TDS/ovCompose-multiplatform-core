@@ -24,6 +24,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.window.ComposeWindow
 import androidx.compose.ui.window.DefaultWindowState
 import kotlin.test.AfterTest
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlinx.browser.document
@@ -38,6 +39,7 @@ class TextTests : OnCanvasTests {
     }
 
     @Test
+    @Ignore // just trying to understand why CI can't suddenly open Chrome after adding this test
     // https://github.com/JetBrains/compose-multiplatform/issues/4078
     fun baselineShouldBeNotZero() = runTest {
         val canvas = createCanvasAndAttach()
