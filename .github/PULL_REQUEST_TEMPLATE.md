@@ -34,7 +34,7 @@ Subsections:
 -->
 > Section - Subsection
 - Describe a change for adding it to https://github.com/JetBrains/compose-multiplatform/blob/master/CHANGELOG.md
-- _(prerelease fix)_ Fix some bug that introduced in prerelease version (dev/beta). It will be included in dev/beta changelog, but excluded from the stable changelog
+- _(prerelease fix)_ Fix some bug that introduced in a prerelease version (dev/beta). It will be included in a dev/beta changelog, but excluded from a stable changelog
 
 > Section - Subsection
 - Describe another change if needed
