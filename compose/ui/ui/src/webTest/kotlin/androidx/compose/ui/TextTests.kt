@@ -51,8 +51,6 @@ class TextTests : OnCanvasTests {
                     Text(
                         "Heading",
                         modifier = Modifier.alignByBaseline()
-                            // Desktop: The heading alignment line is 66
-                            // Web: The heading alignment line is 0
                             .onGloballyPositioned {
                                 headingOnPositioned.trySend(it[FirstBaseline])
                                 println("The heading alignment line is ${it[FirstBaseline]}\n")
@@ -62,8 +60,6 @@ class TextTests : OnCanvasTests {
                     Text(
                         " — Subtitle",
                         modifier = Modifier.alignByBaseline()
-                            // Desktop: The subtitle alignment line is 31
-                            // Web: The subtitle alignment line is 0
                             .onGloballyPositioned {
                                 subtitleOnPositioned.trySend(it[FirstBaseline])
                                 println("The subtitle alignment line is ${it[FirstBaseline]}\n")
