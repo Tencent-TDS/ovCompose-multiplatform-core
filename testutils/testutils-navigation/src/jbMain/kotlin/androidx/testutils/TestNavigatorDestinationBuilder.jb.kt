@@ -13,22 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package androidx.navigation
 
-import androidx.annotation.RestrictTo
-import androidx.core.bundle.Bundle
+package androidx.testutils
 
-/** A [Navigator] that only supports creating destinations. */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public expect class NoOpNavigator() : Navigator<NavDestination> {
-    override fun createDestination(): NavDestination
+import androidx.navigation.NavDestinationBuilder
+import androidx.navigation.NavDestinationDsl
 
-    override fun navigate(
-        destination: NavDestination,
-        args: Bundle?,
-        navOptions: NavOptions?,
-        navigatorExtras: Extras?
-    ): NavDestination
-
-    override fun popBackStack(): Boolean
+@NavDestinationDsl
+actual class TestNavigatorDestinationBuilder : NavDestinationBuilder<TestNavigator.Destination> {
+    @Suppress("ConvertSecondaryConstructorToPrimary")
+    actual constructor(navigator: TestNavigator, route: String) : super(navigator, route)
 }
