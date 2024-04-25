@@ -20,12 +20,14 @@ import kotlinx.cinterop.ObjCAction
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSSelectorFromString
 import platform.UIKit.UIApplication
+import platform.UIKit.UIApplicationDidBecomeActiveNotification
 import platform.UIKit.UIApplicationDidEnterBackgroundNotification
 import platform.UIKit.UIApplicationState
 import platform.UIKit.UIApplicationWillEnterForegroundNotification
+import platform.UIKit.UIApplicationWillResignActiveNotification
 import platform.darwin.NSObject
 
-internal class ApplicationStateListener(
+internal class ApplicationActiveStateListener(
     /**
      * [NSNotificationCenter] to listen to, can be customized for tests purposes
      */
@@ -33,44 +35,39 @@ internal class ApplicationStateListener(
     /**
      * Callback which will be called with `true` when the app becomes active, and `false` when the app goes background
      */
-    private val onApplicationStateChanged: (Boolean) -> Unit
+    private val onApplicationActiveStateChanged: (Boolean) -> Unit
 ) : NSObject() {
     init {
         notificationCenter.addObserver(
             this,
-            NSSelectorFromString(::applicationWillEnterForeground.name),
-            UIApplicationWillEnterForegroundNotification,
+            NSSelectorFromString(::applicationDidBecomeActive.name),
+            UIApplicationDidBecomeActiveNotification,
             null
         )
 
         notificationCenter.addObserver(
             this,
-            NSSelectorFromString(::applicationDidEnterBackground.name),
-            UIApplicationDidEnterBackgroundNotification,
+            NSSelectorFromString(::applicationWillResignActive.name),
+            UIApplicationWillResignActiveNotification,
             null
         )
     }
 
     @ObjCAction
-    fun applicationWillEnterForeground() {
-        onApplicationStateChanged(true)
+    fun applicationDidBecomeActive() {
+        onApplicationActiveStateChanged(true)
     }
 
     @ObjCAction
-    fun applicationDidEnterBackground() {
-        onApplicationStateChanged(false)
+    fun applicationWillResignActive() {
+        onApplicationActiveStateChanged(false)
     }
 
     /**
      * Deregister from [NSNotificationCenter]
      */
     fun dispose() {
-        notificationCenter.removeObserver(this, UIApplicationWillEnterForegroundNotification, null)
-        notificationCenter.removeObserver(this, UIApplicationDidEnterBackgroundNotification, null)
-    }
-
-    companion object {
-        val isApplicationActive: Boolean
-            get() = UIApplication.sharedApplication.applicationState != UIApplicationState.UIApplicationStateBackground
+        notificationCenter.removeObserver(this, UIApplicationDidBecomeActiveNotification, null)
+        notificationCenter.removeObserver(this, UIApplicationWillResignActiveNotification, null)
     }
 }
