@@ -36,6 +36,8 @@ androidXMultiplatform {
     mac()
     linux()
     ios()
+    js { browser() }
+    wasm()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
@@ -64,7 +66,44 @@ androidXMultiplatform {
                 implementation(libs.kotlinCoroutinesTest)
             }
         }
+
+        jvmMain.dependsOn(commonMain)
+        jbMain.dependsOn(commonMain)
+        androidMain.dependsOn(jvmMain)
+        desktopMain.dependsOn(jvmMain)
+        desktopMain.dependsOn(jbMain)
+        nativeMain.dependsOn(jbMain)
+        webMain.dependsOn(jbMain)
+        jsMain.dependsOn(webMain)
+        wasmJsMain.dependsOn(webMain)
+
+        jvmTest.dependsOn(commonTest)
+        androidUnitTest.dependsOn(jvmTest)
+        jbTest.dependsOn(commonTest)
+        desktopTest.dependsOn(jvmTest)
+        desktopTest.dependsOn(jbTest)
+        nativeTest.dependsOn(jbTest)
+        webTest.dependsOn(jbTest)
+        jsTest.dependsOn(webTest)
+        wasmJsTest.dependsOn(webTest)
+
+        targets.all { target ->
+            if (target.platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.native) {
+                target.compilations["main"].defaultSourceSet.dependsOn(nativeMain)
+                target.compilations["test"].defaultSourceSet.dependsOn(nativeTest)
+            }
+        }
     }
+}
+
+kotlin {
+    watchosArm64()
+    watchosArm32()
+    watchosX64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosX64()
+    tvosSimulatorArm64()
 }
 
 dependencies {
