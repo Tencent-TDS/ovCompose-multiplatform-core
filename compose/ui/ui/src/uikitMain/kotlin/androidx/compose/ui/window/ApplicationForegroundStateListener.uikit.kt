@@ -37,17 +37,17 @@ internal class ApplicationForegroundStateListener(
 ) : NSObject() {
     init {
         notificationCenter.addObserver(
-            this,
-            NSSelectorFromString(::applicationWillEnterForeground.name),
-            UIApplicationWillEnterForegroundNotification,
-            null
+            observer = this,
+            selector = NSSelectorFromString(::applicationWillEnterForeground.name),
+            name = UIApplicationWillEnterForegroundNotification,
+            `object` = null
         )
 
         notificationCenter.addObserver(
-            this,
-            NSSelectorFromString(::applicationDidEnterBackground.name),
-            UIApplicationDidEnterBackgroundNotification,
-            null
+            observer = this,
+            selector = NSSelectorFromString(::applicationDidEnterBackground.name),
+            name = UIApplicationDidEnterBackgroundNotification,
+            `object` = null
         )
     }
 
@@ -65,8 +65,8 @@ internal class ApplicationForegroundStateListener(
      * Deregister from [NSNotificationCenter]
      */
     fun dispose() {
-        notificationCenter.removeObserver(this, UIApplicationWillEnterForegroundNotification, null)
-        notificationCenter.removeObserver(this, UIApplicationDidEnterBackgroundNotification, null)
+        notificationCenter.removeObserver(observer = this, name = UIApplicationWillEnterForegroundNotification, `object` = null)
+        notificationCenter.removeObserver(observer = this, name = UIApplicationDidEnterBackgroundNotification, `object` = null)
     }
 
     companion object {

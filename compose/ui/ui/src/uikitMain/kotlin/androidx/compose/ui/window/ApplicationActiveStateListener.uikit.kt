@@ -39,17 +39,17 @@ internal class ApplicationActiveStateListener(
 ) : NSObject() {
     init {
         notificationCenter.addObserver(
-            this,
-            NSSelectorFromString(::applicationDidBecomeActive.name),
-            UIApplicationDidBecomeActiveNotification,
-            null
+            observer = this,
+            selector = NSSelectorFromString(::applicationDidBecomeActive.name),
+            name = UIApplicationDidBecomeActiveNotification,
+            `object` = null
         )
 
         notificationCenter.addObserver(
-            this,
-            NSSelectorFromString(::applicationWillResignActive.name),
-            UIApplicationWillResignActiveNotification,
-            null
+            observer = this,
+            selector = NSSelectorFromString(::applicationWillResignActive.name),
+            name = UIApplicationWillResignActiveNotification,
+            `object` = null
         )
     }
 
@@ -67,7 +67,7 @@ internal class ApplicationActiveStateListener(
      * Deregister from [NSNotificationCenter]
      */
     fun dispose() {
-        notificationCenter.removeObserver(this, UIApplicationDidBecomeActiveNotification, null)
-        notificationCenter.removeObserver(this, UIApplicationWillResignActiveNotification, null)
+        notificationCenter.removeObserver(observer = this, name = UIApplicationDidBecomeActiveNotification, `object` = null)
+        notificationCenter.removeObserver(observer = this, name = UIApplicationWillResignActiveNotification, `object` = null)
     }
 }
