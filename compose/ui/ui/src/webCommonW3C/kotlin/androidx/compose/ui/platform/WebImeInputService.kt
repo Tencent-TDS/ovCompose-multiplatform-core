@@ -37,9 +37,10 @@ internal class WebImeInputService(parentInputService: InputAwareInputService) : 
         onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
-        backingTextArea = BackingTextArea(imeOptions, onEditCommand, onImeActionPerformed) { evt ->
-            sendKeyEvent(evt)
-        }
+        backingTextArea =
+            BackingTextArea(imeOptions, onEditCommand, onImeActionPerformed, sendKey = { evt ->
+                sendKeyEvent(evt)
+            })
         backingTextArea?.register()
 
         showSoftwareKeyboard()
