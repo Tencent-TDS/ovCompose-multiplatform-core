@@ -31,11 +31,11 @@ internal class ViewControllerBasedLifecycleOwner(
     override val viewModelStore = ViewModelStore()
 
     private var isViewAppeared = false
-    private var isAppForeground = ApplicationStateListener.isApplicationActive
+    private var isAppForeground = ApplicationForegroundStateListener.isApplicationForeground
     private var isAppActive = isAppForeground
     private var isDisposed = false
 
-    private val applicationStateListener = ApplicationStateListener(notificationCenter) { isForeground ->
+    private val applicationForegroundStateListener = ApplicationForegroundStateListener(notificationCenter) { isForeground ->
         isAppForeground = isForeground
         updateLifecycleState()
     }
@@ -50,7 +50,7 @@ internal class ViewControllerBasedLifecycleOwner(
     }
 
     fun dispose() {
-        applicationStateListener.dispose()
+        applicationForegroundStateListener.dispose()
         applicationActiveStateListener.dispose()
         viewModelStore.clear()
         isDisposed = true

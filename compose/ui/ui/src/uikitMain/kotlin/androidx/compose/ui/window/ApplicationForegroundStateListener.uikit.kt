@@ -25,7 +25,7 @@ import platform.UIKit.UIApplicationState
 import platform.UIKit.UIApplicationWillEnterForegroundNotification
 import platform.darwin.NSObject
 
-internal class ApplicationStateListener(
+internal class ApplicationForegroundStateListener(
     /**
      * [NSNotificationCenter] to listen to, can be customized for tests purposes
      */
@@ -33,7 +33,7 @@ internal class ApplicationStateListener(
     /**
      * Callback which will be called with `true` when the app becomes active, and `false` when the app goes background
      */
-    private val onApplicationStateChanged: (Boolean) -> Unit
+    private val onApplicationForegroundStateChanged: (Boolean) -> Unit
 ) : NSObject() {
     init {
         notificationCenter.addObserver(
@@ -53,12 +53,12 @@ internal class ApplicationStateListener(
 
     @ObjCAction
     fun applicationWillEnterForeground() {
-        onApplicationStateChanged(true)
+        onApplicationForegroundStateChanged(true)
     }
 
     @ObjCAction
     fun applicationDidEnterBackground() {
-        onApplicationStateChanged(false)
+        onApplicationForegroundStateChanged(false)
     }
 
     /**
@@ -70,7 +70,7 @@ internal class ApplicationStateListener(
     }
 
     companion object {
-        val isApplicationActive: Boolean
+        val isApplicationForeground: Boolean
             get() = UIApplication.sharedApplication.applicationState != UIApplicationState.UIApplicationStateBackground
     }
 }
