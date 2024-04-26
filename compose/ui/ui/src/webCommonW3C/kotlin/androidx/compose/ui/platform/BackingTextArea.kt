@@ -114,8 +114,7 @@ internal class BackingTextArea(
                     onEditCommand(listOf(SetComposingTextCommand(evt.data!!, 1)))
                 }
                 "insertText" -> {
-                    println(evt)
-                    val data = evt.data!! ?: return@addEventListener
+                    val data = evt.data ?: return@addEventListener
                     if ((data.length == 1)) {
                         sendKey(KeyboardEvent(
                             "keydown",
