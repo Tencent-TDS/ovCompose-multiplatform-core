@@ -17,10 +17,10 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.toComposeEvent
 import androidx.compose.ui.text.input.CommitTextCommand
-import androidx.compose.ui.text.input.DeleteAllCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
@@ -33,10 +33,10 @@ import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.events.KeyboardEventInit
 
 /**
-* The purpose of this entity is to isolate synchronization between a TextFieldValue
-* and the DOM HTMLTextAreaElement we are actually listening events on in order to show
-* the virtual keyboard.
-*/
+ * The purpose of this entity is to isolate synchronization between a TextFieldValue
+ * and the DOM HTMLTextAreaElement we are actually listening events on in order to show
+ * the virtual keyboard.
+ */
 internal class BackingTextArea(
     private val imeOptions: ImeOptions,
     private val onEditCommand: (List<EditCommand>) -> Unit,
@@ -110,25 +110,32 @@ internal class BackingTextArea(
                         onImeActionPerformed(imeOptions.imeAction)
                     }
                 }
+
                 "insertCompositionText" -> {
-                    onEditCommand(listOf(SetComposingTextCommand(evt.data!!, 1)))
+                    val data = evt.data ?: return@addEventListener
+                    onEditCommand(listOf(SetComposingTextCommand(data, 1)))
                 }
+
                 "insertText" -> {
                     val data = evt.data ?: return@addEventListener
-                    if ((data.length == 1)) {
-                        sendKey(KeyboardEvent(
-                            "keydown",
-                            KeyboardEventInit(key = data)
-                        ).toComposeEvent())
+                    if (data.length == 1) {
+                        sendKey(
+                            KeyboardEvent(
+                                "keydown", KeyboardEventInit(key = data)
+                            ).toComposeEvent()
+                        )
                     } else if (data.length > 1) {
                         onEditCommand(listOf(CommitTextCommand(data, 1)))
                     }
                 }
+
                 "deleteContentBackward" -> {
-                    sendKey(KeyboardEvent(
-                        "keydown",
-                        KeyboardEventInit(key = "Backspace", code="Backspace").withKeyCode(8)
-                    ).toComposeEvent())
+                    sendKey(
+                        KeyboardEvent(
+                            "keydown",
+                            KeyboardEventInit(key = "Backspace", code = "Backspace").withKeyCode(Key.Backspace)
+                        ).toComposeEvent()
+                    )
                 }
             }
         })
@@ -181,6 +188,7 @@ private external interface KeyboardEventInitExtended : KeyboardEventInit {
 }
 
 @Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
-private fun KeyboardEventInit.withKeyCode(keyCode: Int) = (this as KeyboardEventInitExtended).apply {
-    this.keyCode = keyCode
-}
+private fun KeyboardEventInit.withKeyCode(key: Key) =
+    (this as KeyboardEventInitExtended).apply {
+        this.keyCode = key.keyCode.toInt()
+    }
