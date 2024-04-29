@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,9 @@
 
 package androidx.lifecycle
 
-import com.google.common.truth.Truth
-import java.util.concurrent.atomic.AtomicInteger
+import androidx.kruth.assertThat
+import kotlinx.atomicfu.atomic
+
 
 /**
  * Partial copy from
@@ -25,11 +26,11 @@ import java.util.concurrent.atomic.AtomicInteger
  * to track execution order.
  */
 class Expectations {
-    private val counter = AtomicInteger(0)
+    private val counter = atomic(0)
 
     fun expect(expected: Int) {
         val order = counter.incrementAndGet()
-        Truth.assertThat(order).isEqualTo(expected)
+        assertThat(order).isEqualTo(expected)
     }
 
     fun expectUnreached() {
@@ -37,6 +38,6 @@ class Expectations {
     }
 
     fun expectTotal(total: Int) {
-        Truth.assertThat(counter.get()).isEqualTo(total)
+        assertThat(counter.value).isEqualTo(total)
     }
 }
