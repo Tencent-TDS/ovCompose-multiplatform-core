@@ -62,7 +62,6 @@ class TextTests : OnCanvasTests {
                         modifier = Modifier.alignByBaseline()
                             .onGloballyPositioned {
                                 subtitleOnPositioned.trySend(it[FirstBaseline] / density)
-                                println("The subtitle alignment line is ${it[FirstBaseline]}\n")
                             },
                         style = MaterialTheme.typography.subtitle1
                     )
