@@ -136,3 +136,39 @@ private fun calculateSelectionMagnifierCenterIOS(
 }
 
 private const val HideThresholdDp = 36
+
+/**
+ * Whether the selection handle is in the visible bound of the TextField.
+ */
+internal actual fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
+    isStartHandle: Boolean
+): Boolean {
+    fun getSelectionHandleVisibilityPointPosition(isStartHandle: Boolean): Offset {
+        val textLayoutResult = state?.layoutResult?.value ?: return Offset.Unspecified
+
+        // If layout and value are out of sync, return unspecified.
+        // This will be called again once they are in sync.
+        val transformedText = transformedText ?: return Offset.Unspecified
+        val layoutInputText = textLayoutResult.layoutInput.text.text
+        if (transformedText.text != layoutInputText) return Offset.Unspecified
+
+        val offset = if (isStartHandle) value.selection.start else value.selection.end
+        val line = textLayoutResult.getLineForOffset(offset)
+        // This happens if maxLines is set but the offset is on a line >= maxLines.
+        if (line >= textLayoutResult.lineCount) return Offset.Unspecified
+
+        val x = textLayoutResult.getHorizontalPosition(offset, isStartHandle, value.selection.reversed)
+        // iOS has different location for the knobs of selection handles (leading - top, trailing - bottom),
+        // and they might be not seen in mixed LTR + RTL text, so this tolerance is required for their visibility in this case
+        val heightTolerance = textLayoutResult.multiParagraph.getLineHeight(line) * 0.2f
+        // if more than 80% of selection handle is visible, it should be shown
+        val y = if (isStartHandle) textLayoutResult.getLineTop(line) + heightTolerance else textLayoutResult.getLineBottom(line) - heightTolerance
+
+        return Offset(x, y)
+    }
+
+    val visibleBounds = state?.layoutCoordinates?.visibleBounds()
+    val handlePosition = getSelectionHandleVisibilityPointPosition(isStartHandle)
+
+    return visibleBounds?.containsInclusive(handlePosition) ?: false
+}
