@@ -15,23 +15,33 @@ COMMIT=$1
 
 git merge $COMMIT --no-commit --no-ff || true
 
-git checkout --no-overlay HEAD --ours -- './buildSrc' || true
-git checkout --no-overlay HEAD --ours -- './compose/*/build.gradle' || true
-git checkout --no-overlay HEAD --ours -- './.github' || true
-git checkout --no-overlay HEAD --ours -- './.idea' || true
-git checkout --no-overlay HEAD --ours -- './.run' || true
-git checkout --no-overlay HEAD --ours -- 'CONTRIBUTING.md' || true
-git checkout --no-overlay HEAD --ours -- 'README.md' || true
-git checkout --no-overlay HEAD --ours -- 'gradlew' || true
-git checkout --no-overlay HEAD --ours -- 'gradlew.bat' || true
-git checkout --no-overlay HEAD --ours -- 'gradle.properties' || true
-git checkout --no-overlay HEAD --ours -- './gradle/*' || true
-git checkout --no-overlay HEAD --ours -- 'build.gradle' || true
-git checkout --no-overlay HEAD --ours -- 'settings.gradle' || true
-git checkout --no-overlay HEAD --ours -- './collection/*/jvmMain/*' || true
-git checkout --no-overlay HEAD --ours -- './collection/*/jvmTest/*' || true
-git checkout --no-overlay HEAD --ours -- './compose/*/skikoMain/*' || true
-git checkout --no-overlay HEAD --ours -- './compose/*/desktopMain/*' || true
-git checkout --no-overlay HEAD --ours -- './compose/*/skikoTest/*' || true
-git checkout --no-overlay HEAD --ours -- './compose/*/desktopTest/*' || true
-git checkout --no-overlay HEAD --ours -- './compose/desktop/*' || true
+# reset subfolder to the HEAD state
+resetSubFolder() {
+    git reset -- "$1" >/dev/null || true       # resets MERGE state
+    git checkout --no-overlay -- "$1" >/dev/null || true    # sets state to the HEAD
+    git clean -fdx -- "$1" >/dev/null || true  # removes new files
+}
+
+resetSubFolder "./buildSrc"
+resetSubFolder "./compose/**/build.gradle"	
+resetSubFolder "./lifecycle/**/build.gradle"
+resetSubFolder "./navigation/**/build.gradle"
+resetSubFolder "./.github"	
+resetSubFolder "./.idea"	
+resetSubFolder "./.run"	
+resetSubFolder "CONTRIBUTING.md"	
+resetSubFolder "README.md"	
+resetSubFolder "gradlew"	
+resetSubFolder "gradlew.bat"	
+resetSubFolder "gradle.properties"	
+resetSubFolder "./gradle/**"	
+resetSubFolder "build.gradle"	
+resetSubFolder "settings.gradle"	
+resetSubFolder "./collection/**/jvmMain/**"	
+resetSubFolder "./collection/**/jvmTest/**"	
+resetSubFolder "./compose/**/nativeMain/**"	
+resetSubFolder "./compose/**/skikoMain/**"	
+resetSubFolder "./compose/**/desktopMain/**"	
+resetSubFolder "./compose/**/skikoTest/**"	
+resetSubFolder "./compose/**/desktopTest/**"	
+resetSubFolder "./compose/desktop/**"	
