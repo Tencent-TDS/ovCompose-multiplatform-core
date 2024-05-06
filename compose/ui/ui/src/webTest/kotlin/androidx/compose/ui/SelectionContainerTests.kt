@@ -29,8 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
-import androidx.compose.ui.window.ComposeViewport
-import kotlin.test.AfterTest
+import androidx.compose.ui.window.CanvasBasedWindow
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -43,28 +42,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.w3c.dom.HTMLCanvasElement
-import org.w3c.dom.HTMLDivElement
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.MouseEventInit
 import org.w3c.dom.get
 
 class SelectionContainerTests : OnCanvasTests {
 
-    private val containerDivId = "composeApplication"
-
-    @AfterTest
-    fun cleanup() {
-        commonAfterTest()
-    }
-
     @BeforeTest
     fun setup() {
-        // add container
-        val containerDiv = document.createElement("div") as HTMLDivElement
-        containerDiv.id = containerDivId
-        containerDiv.style.width = "100%"
-        containerDiv.style.height = "100%"
-        document.body!!.appendChild(containerDiv)
+        // Because AfterTest is fixed only in kotlin 2.0
+        // https://youtrack.jetbrains.com/issue/KT-61888
+        document.getElementById(canvasId)?.remove()
     }
 
     fun HTMLCanvasElement.doClick() {
@@ -74,13 +62,14 @@ class SelectionContainerTests : OnCanvasTests {
 
     @Test
     fun canSelectOneWordUsingDoubleClick() = runTest {
+        createCanvasAndAttach()
         val syncChannel = Channel<Selection?>(
             1, onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
 
         var viewConfiguration: ViewConfiguration? = null
 
-        ComposeViewport(containerDivId) {
+        CanvasBasedWindow(canvasElementId = canvasId) {
             var selection by remember { mutableStateOf<Selection?>(null) }
 
             androidx.compose.foundation.text.selection.SelectionContainer(
@@ -88,7 +77,6 @@ class SelectionContainerTests : OnCanvasTests {
                 selection = selection,
                 onSelectionChange = {
                     selection = it
-                    println("Selection = ${it?.start}-${it?.end}\n")
                     syncChannel.trySend(it)
                 },
                 children = {
@@ -102,7 +90,7 @@ class SelectionContainerTests : OnCanvasTests {
             )
         }
 
-        val canvas = document.getElementById(containerDivId)!!.children[0] as HTMLCanvasElement
+        val canvas = document.getElementById(canvasId) as HTMLCanvasElement
         canvas.dispatchEvent(MouseEvent("mouseenter"))
 
         // single click - no selection expected
@@ -137,13 +125,15 @@ class SelectionContainerTests : OnCanvasTests {
 
     @Test
     fun canSelectOneLineUsingTrippleClick() = runTest {
+        createCanvasAndAttach()
+
         val syncChannel = Channel<Selection?>(
             1, onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
 
         var viewConfiguration: ViewConfiguration? = null
 
-        ComposeViewport(containerDivId) {
+        CanvasBasedWindow(canvasElementId = canvasId) {
             var selection by remember { mutableStateOf<Selection?>(null) }
 
             androidx.compose.foundation.text.selection.SelectionContainer(
@@ -151,12 +141,11 @@ class SelectionContainerTests : OnCanvasTests {
                 selection = selection,
                 onSelectionChange = {
                     selection = it
-                    println("Selection = ${it?.start}-${it?.end}\n")
                     syncChannel.trySend(it)
                 },
                 children = {
                     Column {
-                        Text("qwerty uiopasdfghjklzxcvbnm")
+                        Text("012345 uiopasdfghjklzxcvbnm")
                         Text("mnbvcxzlkjhgfdsapoiuytrewq")
                     }
 
@@ -165,7 +154,7 @@ class SelectionContainerTests : OnCanvasTests {
             )
         }
 
-        val canvas = document.getElementById(containerDivId)!!.children[0] as HTMLCanvasElement
+        val canvas = document.getElementById(canvasId) as HTMLCanvasElement
         canvas.dispatchEvent(MouseEvent("mouseenter"))
 
         // triple click
@@ -185,5 +174,61 @@ class SelectionContainerTests : OnCanvasTests {
         canvas.doClick()
         selection = syncChannel.receive()
         assertEquals(null, selection)
+    }
+
+    @Test
+    fun twoSingleClicksDoNotTriggerSelection() = runTest {
+        createCanvasAndAttach()
+
+        val syncChannel = Channel<Selection?>(
+            5, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+        var selectionCallbackCounter = 0
+
+        var viewConfiguration: ViewConfiguration? = null
+
+        CanvasBasedWindow(canvasElementId = canvasId) {
+            var selection by remember { mutableStateOf<Selection?>(null) }
+
+            androidx.compose.foundation.text.selection.SelectionContainer(
+                modifier = Modifier.fillMaxSize(),
+                selection = selection,
+                onSelectionChange = {
+                    selection = it
+                    syncChannel.trySend(it)
+                    selectionCallbackCounter++
+                },
+                children = {
+                    Column {
+                        Text("asdfgh uiopasdfghjklzxcvbnm")
+                        Text("mnbvcxzlkjhgfdsapoiuytrewq")
+                    }
+
+                    viewConfiguration = LocalViewConfiguration.current
+                }
+            )
+        }
+
+        val canvas = document.getElementById(canvasId) as HTMLCanvasElement
+        canvas.dispatchEvent(MouseEvent("mouseenter"))
+
+        // first single click
+        canvas.doClick()
+        // pause to ensure no double-click
+        withContext(Dispatchers.Default) {
+            delay(viewConfiguration!!.doubleTapTimeoutMillis)
+        }
+        // second single click
+        canvas.doClick()
+        withContext(Dispatchers.Default) {
+            delay(viewConfiguration!!.doubleTapTimeoutMillis)
+        }
+
+        repeat(selectionCallbackCounter) {
+            val selection = syncChannel.receive()
+            val actualSelectionLength =
+                (selection?.end?.offset ?: 0) - (selection?.start?.offset ?: 0)
+            assertEquals(0, actualSelectionLength)
+        }
     }
 }
