@@ -13,13 +13,18 @@ fi
 
 COMMIT=$1
 
-git merge $COMMIT --no-commit --no-ff || true
+ROOT_DIR="$(dirname "$0")/.."
+
+(cd $ROOT_DIR; git merge $COMMIT --no-commit --no-ff || true)
 
 # reset subfolder to the HEAD state
 resetSubFolder() {
-    git reset -- "$1" >/dev/null || true       # resets MERGE state
-    git checkout --no-overlay -- "$1" >/dev/null || true    # sets state to the HEAD
-    git clean -fdx -- "$1" >/dev/null || true  # removes new files
+    (
+        cd $ROOT_DIR;
+        git reset -- "$1" >/dev/null || true;                    # resets MERGE state
+        git checkout --no-overlay -- "$1" >/dev/null || true;    # sets state to the HEAD
+        git clean -fdx -- "$1" >/dev/null || true;               # removes new files
+    )
 }
 
 resetSubFolder "./buildSrc"
@@ -45,3 +50,4 @@ resetSubFolder "./compose/**/desktopMain/**"
 resetSubFolder "./compose/**/skikoTest/**"	
 resetSubFolder "./compose/**/desktopTest/**"	
 resetSubFolder "./compose/desktop/**"	
+

@@ -12,5 +12,10 @@ fi
 
 COMMIT=$1
 
-NEW_COMMIT=$(git commit-tree -p HEAD -p $COMMIT -m"Merge empty $COMMIT" $(git write-tree))
-git reset --hard $NEW_COMMIT
+ROOT_DIR="$(dirname "$0")/.."
+
+(
+    cd $ROOT_DIR; 
+    NEW_COMMIT=$(git commit-tree -p HEAD -p $COMMIT -m"Merge empty $COMMIT" $(git write-tree));
+    git reset --hard $NEW_COMMIT;
+)
