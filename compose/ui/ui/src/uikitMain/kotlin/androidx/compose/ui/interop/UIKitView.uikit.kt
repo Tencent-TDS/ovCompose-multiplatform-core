@@ -79,7 +79,10 @@ internal val InteropViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
         if (parentValue == null) {
             childValue
         } else {
-            println("Warning:  Multiple interop views are in the subtree of [SemanticsNode] that requires merging. It means that they are contained in a widget that has [shouldMergeDescendantSemantics] set to true. Only the first found one can be seen by the accessibility system. It's needed to represent a group of elements (e.g. content of a button) as a single element. Merging multiple interop views is not supported. If you still need multiple interop views for accessibility, consider constructing the hierarchy natively inside a single [UIKitView].")
+            println("Warning: Merging accessibility for multiple interop views is not supported. " +
+                "Multiple [UIKitView] are grouped under one node that should be represented as a single accessibility element." +
+                "It isn't recommended because the accessibility system can only recognize the first one. " +
+                "If you need multiple native views for accessibility, make sure to place them inside a single [UIKitView].")
 
             parentValue
         }
