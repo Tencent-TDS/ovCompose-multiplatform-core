@@ -73,26 +73,23 @@ internal class InteropWrappingView: CMPInteropWrappingView(frame = CGRectZero.re
     }
 }
 
-private var hasIssuedInteropViewMergingWarning = false
 internal val InteropViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
     name = "InteropView",
     mergePolicy = { parentValue, childValue ->
         if (parentValue == null) {
             childValue
         } else {
-            if (!hasIssuedInteropViewMergingWarning) {
-                hasIssuedInteropViewMergingWarning = true
-                println(
-                    """
-                    Warning: multiple interop views are in the subtree of [SemanticsNode] that requires merging.
-                    Only the first found one can be seen by the accessibility system.
-                    It means that they are contained in a widget that has [shouldMergeDescendantSemantics] set to true.
-                    It's needed to represent a group of elements (e.g. content of a button) as a single element.
-                    Merging multiple interop views is not supported.
-                    If you still need multiple interop views for accessibility, consider constructing the hierarchy natively inside a single [UIKitView].
+            println(
+                """
+                    Warning: 
+                        Multiple interop views are in the subtree of [SemanticsNode] that requires merging.
+                        Only the first found one can be seen by the accessibility system.
+                        It means that they are contained in a widget that has [shouldMergeDescendantSemantics] set to true.
+                        It's needed to represent a group of elements (e.g. content of a button) as a single element.
+                        Merging multiple interop views is not supported.
+                        If you still need multiple interop views for accessibility, consider constructing the hierarchy natively inside a single [UIKitView].
                 """.trimIndent()
-                )
-            }
+            )
 
             parentValue
         }

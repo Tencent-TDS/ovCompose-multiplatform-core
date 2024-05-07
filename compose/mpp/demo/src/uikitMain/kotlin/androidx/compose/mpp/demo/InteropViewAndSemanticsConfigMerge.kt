@@ -16,6 +16,7 @@
 
 package androidx.compose.mpp.demo
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
@@ -27,40 +28,42 @@ import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UILabel
 
 val InteropViewAndSemanticsConfigMerge = Screen.Example("InteropViewAndSemanticsConfigMerge") {
-    Button(onClick = {
-        println("Clicked")
-    }) {
-        UIKitView(
-            factory = {
-                val view = UILabel(frame = CGRectZero.readValue())
-                view.text = "UILabel"
-                view
-            },
-            modifier = Modifier.size(80.dp, 40.dp)
-        )
-    }
-
-    Button(onClick = {
-        println("Clicked")
-    }) {
-        Row {
+    Column {
+        Button(onClick = {
+            println("Clicked")
+        }) {
             UIKitView(
                 factory = {
                     val view = UILabel(frame = CGRectZero.readValue())
-                    view.text = "Illegal"
+                    view.text = "UILabel"
                     view
                 },
                 modifier = Modifier.size(80.dp, 40.dp)
             )
+        }
 
-            UIKitView(
-                factory = {
-                    val view = UILabel(frame = CGRectZero.readValue())
-                    view.text = "Merge"
-                    view
-                },
-                modifier = Modifier.size(80.dp, 40.dp)
-            )
+        Button(onClick = {
+            println("Clicked")
+        }) {
+            Row {
+                UIKitView(
+                    factory = {
+                        val view = UILabel(frame = CGRectZero.readValue())
+                        view.text = "Illegal"
+                        view
+                    },
+                    modifier = Modifier.size(80.dp, 40.dp)
+                )
+
+                UIKitView(
+                    factory = {
+                        val view = UILabel(frame = CGRectZero.readValue())
+                        view.text = "Merge"
+                        view
+                    },
+                    modifier = Modifier.size(80.dp, 40.dp)
+                )
+            }
         }
     }
 }
