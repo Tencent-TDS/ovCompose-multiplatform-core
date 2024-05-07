@@ -73,16 +73,32 @@ internal class InteropWrappingView: CMPInteropWrappingView(frame = CGRectZero.re
     }
 }
 
-internal val NativeViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
+private var hasIssuedInteropViewMergingWarning = false
+internal val InteropViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
     name = "InteropView",
-    mergePolicy = { _, _ ->
-        throw IllegalStateException(
-            "Can't merge NativeView semantics property."
-        )
+    mergePolicy = { parentValue, childValue ->
+        if (parentValue == null) {
+            childValue
+        } else {
+            if (!hasIssuedInteropViewMergingWarning) {
+                hasIssuedInteropViewMergingWarning = true
+                println(
+                    """
+                    Warning: multiple interop views are in the subtree of [SemanticsNode] that requires merging.
+                    Only the first found one can be seen by the accessibility system.
+                    It means that it's contained in a widget that has [shouldMergeDescendantSemantics] set to true.
+                    It's needed to represent a group of elements (e.g. content of a button) as a single element.
+                    Merging multiple interop views is not supported.
+                """.trimIndent()
+                )
+            }
+
+            parentValue
+        }
     }
 )
 
-private var SemanticsPropertyReceiver.nativeView by NativeViewSemanticsKey
+private var SemanticsPropertyReceiver.interopView by InteropViewSemanticsKey
 
 /**
  * @param factory The block creating the [UIView] to be composed.
@@ -151,7 +167,7 @@ fun <T : UIView> UIKitView(
                 it
             }
         }.semantics {
-            nativeView = embeddedInteropComponent.wrappingView
+            interopView = embeddedInteropComponent.wrappingView
         }
     )
 
@@ -253,7 +269,7 @@ fun <T : UIViewController> UIKitViewController(
                 it
             }
         }.semantics {
-            nativeView = embeddedInteropComponent.wrappingView
+            interopView = embeddedInteropComponent.wrappingView
         }
     )
 
