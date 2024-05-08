@@ -129,7 +129,7 @@ private fun Modifier.interopSemantics(enabled: Boolean, wrappingView: InteropWra
  * Consider using a single [UIKitView] or [UIKitViewController] with multiple views inside it if you need multiple accessible views.
  *
  * In general, [accessibilityEnabled] set to `true` is not recommended to use in such cases.
- * Consider using [Modifier.semantics] on outer Composable instead.
+ * Consider using [Modifier.semantics] on Composable that merges its semantics instead.
  *
  * @see Modifier.semantics
  */
@@ -245,7 +245,7 @@ fun <T : UIView> UIKitView(
  * Consider using a single [UIKitView] or [UIKitViewController] with multiple views inside it if you need multiple accessible views.
  *
  * In general, [accessibilityEnabled] set to `true` is not recommended to use in such cases.
- * Consider using [Modifier.semantics] on outer Composable instead.
+ * Consider using [Modifier.semantics] on Composable that merges its semantics instead.
  *
  * @see Modifier.semantics
  */
