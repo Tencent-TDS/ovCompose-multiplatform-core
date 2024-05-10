@@ -167,23 +167,15 @@ private fun <T : Any> UIKitInteropLayout(
     )
 
     DisposableEffect(Unit) {
-        componentHandler.initialize(update)
-
-        interopContainer.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
-            componentHandler.addToHierarchy()
-        }
+        componentHandler.onStart(update)
 
         onDispose {
-            interopContainer.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
-                componentHandler.removeFromHierarchy()
-            }
+            componentHandler.onStop()
         }
     }
 
     LaunchedEffect(background) {
-        interopContainer.deferAction {
-            componentHandler.setBackgroundColor(background)
-        }
+        componentHandler.onBackgroundColorChange(background)
     }
 
     SideEffect {
@@ -363,14 +355,24 @@ private abstract class InteropComponentHandler<T : Any>(
         }
     }
 
-    fun initialize(update: (T) -> Unit) {
+    fun onStart(initialUpdateBlock: (T) -> Unit) {
         component = createComponent()
-        updater = Updater(component, update) {
+        updater = Updater(component, initialUpdateBlock) {
             interopContainer.deferAction(action = it)
+        }
+
+        interopContainer.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
+            addToHierarchy()
         }
     }
 
-    fun setBackgroundColor(color: Color) {
+    fun onStop() {
+        interopContainer.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
+            removeFromHierarchy()
+        }
+    }
+
+    fun onBackgroundColorChange(color: Color) = interopContainer.deferAction {
         if (color == Color.Unspecified) {
             wrappingView.backgroundColor = interopContainer.containerView.backgroundColor
         } else {
