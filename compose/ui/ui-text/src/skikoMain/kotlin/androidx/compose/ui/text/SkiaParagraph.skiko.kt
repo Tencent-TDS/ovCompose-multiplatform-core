@@ -27,6 +27,7 @@ import androidx.compose.ui.text.platform.SkiaParagraphIntrinsics
 import androidx.compose.ui.text.platform.cursorHorizontalPosition
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.ResolvedTextDirection
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.isUnspecified
@@ -56,6 +57,8 @@ internal class SkiaParagraph(
 
     internal val defaultFont
         get() = layouter.defaultFont
+
+    private val textAlign: TextAlign = layouter.textStyle.textAlign
 
     /**
      * Paragraph isn't always immutable, it could be changed via [paint] method without
@@ -247,7 +250,7 @@ internal class SkiaParagraph(
         val isRtl = paragraphIntrinsics.textDirection == ResolvedTextDirection.Rtl
         val isLtr = !isRtl
         return when {
-            prevBox == null && nextBox == null -> if (isRtl) width else 0f
+            prevBox == null && nextBox == null -> getAlignedStartingPosition(isRtl)
             prevBox == null -> nextBox!!.cursorHorizontalPosition(true)
             nextBox == null -> prevBox.cursorHorizontalPosition()
             nextBox.direction == prevBox.direction -> nextBox.cursorHorizontalPosition(true)
@@ -258,6 +261,19 @@ internal class SkiaParagraph(
             usePrimaryDirection -> prevBox.cursorHorizontalPosition()
             else -> nextBox.cursorHorizontalPosition(true)
         }
+    }
+
+    private fun getAlignedStartingPosition(isRtl: Boolean) = when {
+        textAlign == TextAlign.Center -> width / 2
+        isRtl && textAlign == TextAlign.Start -> width
+        isRtl && textAlign == TextAlign.Right -> width
+        isRtl && textAlign == TextAlign.Left -> 0f
+        isRtl && textAlign == TextAlign.End -> 0f
+        !isRtl && textAlign == TextAlign.Start -> 0f
+        !isRtl && textAlign == TextAlign.Right -> width
+        !isRtl && textAlign == TextAlign.Left -> 0f
+        !isRtl && textAlign == TextAlign.End -> width
+        else -> 0f
     }
 
     private var _lineMetrics: Array<LineMetrics>? = null
