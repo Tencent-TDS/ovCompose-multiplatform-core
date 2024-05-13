@@ -138,6 +138,14 @@ private fun calculateSelectionMagnifierCenterIOS(
 private const val HideThresholdDp = 36
 
 /**
+ * Multiplier for height tolerance calculation.
+ * iOS has different location for the knobs of selection handles (leading - top, trailing - bottom),
+ * and they might be not seen in mixed BiDi text, so this tolerance is required for their visibility in this case
+ * if more than 80% of selection handle is visible, it should be shown
+ */
+private const val HeightToleranceFactor = 0.2f
+
+/**
  * Whether the selection handle is in the visible bound of the TextField.
  */
 internal actual fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
@@ -158,10 +166,8 @@ internal actual fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
         if (line >= textLayoutResult.lineCount) return Offset.Unspecified
 
         val x = textLayoutResult.getHorizontalPosition(offset, isStartHandle, value.selection.reversed)
-        // iOS has different location for the knobs of selection handles (leading - top, trailing - bottom),
-        // and they might be not seen in mixed LTR + RTL text, so this tolerance is required for their visibility in this case
-        val heightTolerance = textLayoutResult.multiParagraph.getLineHeight(line) * 0.2f
-        // if more than 80% of selection handle is visible, it should be shown
+
+        val heightTolerance = textLayoutResult.multiParagraph.getLineHeight(line) * HeightToleranceFactor
         val y = if (isStartHandle) textLayoutResult.getLineTop(line) + heightTolerance else textLayoutResult.getLineBottom(line) - heightTolerance
 
         return Offset(x, y)
