@@ -58,8 +58,6 @@ internal class SkiaParagraph(
     internal val defaultFont
         get() = layouter.defaultFont
 
-    private val textAlign: TextAlign = layouter.textStyle.textAlign
-
     /**
      * Paragraph isn't always immutable, it could be changed via [paint] method without
      * rerunning layout
@@ -263,18 +261,15 @@ internal class SkiaParagraph(
         }
     }
 
-    private fun getAlignedStartingPosition(isRtl: Boolean) = when {
-        textAlign == TextAlign.Center -> width / 2
-        isRtl && textAlign == TextAlign.Start -> width
-        isRtl && textAlign == TextAlign.Right -> width
-        isRtl && textAlign == TextAlign.Left -> 0f
-        isRtl && textAlign == TextAlign.End -> 0f
-        !isRtl && textAlign == TextAlign.Start -> 0f
-        !isRtl && textAlign == TextAlign.Right -> width
-        !isRtl && textAlign == TextAlign.Left -> 0f
-        !isRtl && textAlign == TextAlign.End -> width
-        else -> 0f
-    }
+    private fun getAlignedStartingPosition(isRtl: Boolean): Float =
+        when (layouter.textStyle.textAlign) {
+            TextAlign.Center -> width / 2
+            TextAlign.Start -> if (isRtl) width else 0f
+            TextAlign.Right -> width
+            TextAlign.Left -> 0f
+            TextAlign.End -> if (isRtl) 0f else width
+            else -> 0f
+        }
 
     private var _lineMetrics: Array<LineMetrics>? = null
     private val lineMetrics: Array<LineMetrics>
@@ -354,7 +349,7 @@ internal class SkiaParagraph(
                             TextBox(rect, box.direction)
                         } else {
                             // TODO: Use unicode code points (CodePoint.charCount() instead of +1)
-                            val nextBox =  paragraph.getRectsForRange(
+                            val nextBox = paragraph.getRectsForRange(
                                 offset, offset + 1,
                                 RectHeightMode.STRUT, RectWidthMode.TIGHT
                             ).first()
@@ -366,6 +361,7 @@ internal class SkiaParagraph(
                         }
                     }
                 }
+
                 else -> return box
             }
         }
@@ -405,7 +401,8 @@ internal class SkiaParagraph(
 
         // expectedLine is the line which lays at position.y
         val expectedLine = getLineMetricsForVerticalPosition(position.y) ?: return glyphPosition
-        val isNotEmptyLine = expectedLine.startIndex < expectedLine.endIndex // a line with only whitespaces considered to be not empty
+        val isNotEmptyLine =
+            expectedLine.startIndex < expectedLine.endIndex // a line with only whitespaces considered to be not empty
 
         // No need to apply the workaround if the clicked position is within the line bounds (but doesn't include whitespaces)
         if (position.x > expectedLine.left && position.x < expectedLine.right) {
@@ -434,9 +431,11 @@ internal class SkiaParagraph(
         var correctedGlyphPosition = glyphPosition
 
         if (position.x <= leftX) { // when clicked to the left of a text line
-            correctedGlyphPosition = paragraph.getGlyphPositionAtCoordinate(leftX + 1f, position.y).position
+            correctedGlyphPosition =
+                paragraph.getGlyphPositionAtCoordinate(leftX + 1f, position.y).position
         } else if (position.x >= rightX) { // when clicked to the right of a text line
-            correctedGlyphPosition = paragraph.getGlyphPositionAtCoordinate(rightX - 1f, position.y).position
+            correctedGlyphPosition =
+                paragraph.getGlyphPositionAtCoordinate(rightX - 1f, position.y).position
             val isNeutralChar = if (correctedGlyphPosition in text.indices) {
                 text.codePointAt(correctedGlyphPosition).isNeutralDirection()
             } else false
@@ -460,8 +459,10 @@ internal class SkiaParagraph(
         array: FloatArray,
         arrayStart: Int
     ) {
-        println("Compose Multiplatform doesn't support fillBoundingBoxes` yet. " +
-            "Follow https://github.com/JetBrains/compose-multiplatform/issues/4236")
+        println(
+            "Compose Multiplatform doesn't support fillBoundingBoxes` yet. " +
+                "Follow https://github.com/JetBrains/compose-multiplatform/issues/4236"
+        )
         // TODO(https://youtrack.jetbrains.com/issue/COMPOSE-720/Implement-Paragraph.fillBoundingBoxes) implement fillBoundingBoxes
     }
 
@@ -637,8 +638,8 @@ private fun IRange.toTextRange() = TextRange(start, end)
  * Returns `null` if the array is empty.
  */
 private inline fun <T> Array<out T>.binarySearchFirstMatchingOrLast(
-    crossinline predicate: (T) -> Boolean): T?
-{
+    crossinline predicate: (T) -> Boolean
+): T? {
     if (this.isEmpty()) {
         return null
     }
