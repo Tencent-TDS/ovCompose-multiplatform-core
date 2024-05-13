@@ -56,7 +56,7 @@ internal abstract class BaseComposeScene(
     val composeSceneContext: ComposeSceneContext,
     private val invalidate: () -> Unit,
 ) : ComposeScene {
-    protected val snapshotInvalidationTracker = SnapshotInvalidationTracker(::invalidateIfNeeded)
+    protected val snapshotInvalidationTracker = SnapshotInvalidationTracker(::updateInvalidations)
     protected val inputHandler: ComposeSceneInputHandler =
         ComposeSceneInputHandler(
             prepareForPointerInputEvent = ::doMeasureAndLayout,
@@ -67,7 +67,7 @@ internal abstract class BaseComposeScene(
     // Store this to avoid creating a lambda every frame
     private val updatePointerPosition = inputHandler::updatePointerPosition
 
-    private val frameClock = BroadcastFrameClock(onNewAwaiters = ::invalidateIfNeeded)
+    private val frameClock = BroadcastFrameClock(onNewAwaiters = ::updateInvalidations)
     private val recomposer: ComposeSceneRecomposer =
         ComposeSceneRecomposer(coroutineContext, frameClock)
     private var composition: Composition? = null
@@ -91,13 +91,13 @@ internal abstract class BaseComposeScene(
         } finally {
             isInvalidationDisabled = false
         }.also {
-            invalidateIfNeeded()
+            updateInvalidations()
         }
     }
 
     @Volatile
     private var hasPendingDraws = true
-    protected fun invalidateIfNeeded() {
+    protected fun updateInvalidations() {
         hasPendingDraws = frameClock.hasAwaiters ||
             snapshotInvalidationTracker.hasInvalidations
         if (hasPendingDraws && !isInvalidationDisabled && !isClosed && composition != null) {
