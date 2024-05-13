@@ -25,6 +25,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
@@ -166,7 +167,18 @@ internal abstract class BaseComposeScene(
                 recomposer.scheduleAsEffect(updatePointerPosition)
             }
 
-            // Draw
+            // Between layout and draw, Android's Choreographer flushes the main dispatcher.
+            // We can't do quite that, but an important side effect of that is that the
+            // GlobalSnapshotManager gets to run and call `Snapshot.sendApplyNotifications()`, which
+            // we can (and must) do.
+            Snapshot.sendApplyNotifications()
+
+            // The drawing phase.
+            // Android calls these two before drawing (AndroidComposeView.dispatchDraw)
+            doMeasureAndLayout()
+            Snapshot.sendApplyNotifications()
+
+            // Actually draw
             snapshotInvalidationTracker.onDraw()
             draw(canvas)
         }
