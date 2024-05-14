@@ -76,7 +76,7 @@ internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManag
 private fun calculateSelectionMagnifierCenterIOS(
     manager: TextFieldSelectionManager,
     magnifierSize: IntSize,
-    density : Float,
+    density: Float,
 ): Offset {
 
     // state read of currentDragPosition so that we always recompose on drag position changes
@@ -151,30 +151,19 @@ private const val HeightToleranceFactor = 0.2f
 internal actual fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
     isStartHandle: Boolean
 ): Boolean {
-    fun getSelectionHandleVisibilityPointPosition(isStartHandle: Boolean): Offset {
-        val textLayoutResult = state?.layoutResult?.value ?: return Offset.Unspecified
+    val visibleBounds = state?.layoutCoordinates?.visibleBounds() ?: return false
 
-        // If layout and value are out of sync, return unspecified.
-        // This will be called again once they are in sync.
-        val transformedText = transformedText ?: return Offset.Unspecified
-        val layoutInputText = textLayoutResult.layoutInput.text.text
-        if (transformedText.text != layoutInputText) return Offset.Unspecified
+    val handlePositionInText = if (isStartHandle) value.selection.start else value.selection.end
+    val line = state?.layoutResult?.value?.getLineForOffset(handlePositionInText) ?: 0
+    val selectionHandleHeight =
+        state?.layoutResult?.value?.multiParagraph?.getLineHeight(line) ?: 0f
+    val handleOffset = getHandlePosition(isStartHandle)
 
-        val offset = if (isStartHandle) value.selection.start else value.selection.end
-        val line = textLayoutResult.getLineForOffset(offset)
-        // This happens if maxLines is set but the offset is on a line >= maxLines.
-        if (line >= textLayoutResult.lineCount) return Offset.Unspecified
+    val containsHorizontal = handleOffset.x in visibleBounds.left..visibleBounds.right
+    val heightTolerance = selectionHandleHeight * HeightToleranceFactor
+    val toleratedY =
+        if (isStartHandle) handleOffset.y - selectionHandleHeight + heightTolerance else handleOffset.y - heightTolerance
+    val containsVertical = toleratedY in visibleBounds.top..visibleBounds.bottom
 
-        val x = textLayoutResult.getHorizontalPosition(offset, isStartHandle, value.selection.reversed)
-
-        val heightTolerance = textLayoutResult.multiParagraph.getLineHeight(line) * HeightToleranceFactor
-        val y = if (isStartHandle) textLayoutResult.getLineTop(line) + heightTolerance else textLayoutResult.getLineBottom(line) - heightTolerance
-
-        return Offset(x, y)
-    }
-
-    val visibleBounds = state?.layoutCoordinates?.visibleBounds()
-    val handlePosition = getSelectionHandleVisibilityPointPosition(isStartHandle)
-
-    return visibleBounds?.containsInclusive(handlePosition) ?: false
+    return containsHorizontal && containsVertical
 }
