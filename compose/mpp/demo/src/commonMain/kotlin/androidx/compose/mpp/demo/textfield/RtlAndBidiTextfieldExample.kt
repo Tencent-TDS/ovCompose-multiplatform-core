@@ -39,19 +39,19 @@ fun RtlAndBidiTextfieldExample() {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Column {
-            BasicText("BasicTextField, LTR Text")
+            BasicText("OutlinedTextField, LTR Text")
             OutlinedTextField(
                 value = ltrTextValue.value,
                 onValueChange = { ltrTextValue.value = it })
         }
         Column {
-            BasicText("BasicTextField, RTL Text")
+            BasicText("OutlinedTextField, RTL Text")
             OutlinedTextField(
                 value = rtlTextValue.value,
                 onValueChange = { ltrTextValue.value = it })
         }
         Column {
-            BasicText("BasicTextField, BiDi Text")
+            BasicText("OutlinedTextField, BiDi Text")
             OutlinedTextField(
                 value = bidiTextValue.value,
                 onValueChange = { ltrTextValue.value = it })
