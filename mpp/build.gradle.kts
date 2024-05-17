@@ -33,34 +33,34 @@ val mainComponents =
     listOf(
         ComposeComponent(":annotation:annotation", supportedPlatforms = ComposePlatforms.ALL - ComposePlatforms.ANDROID),
         ComposeComponent(":collection:collection", supportedPlatforms = ComposePlatforms.ALL - ComposePlatforms.ANDROID),
-        ComposeComponent(
-            path = ":lifecycle:lifecycle-common",
-            // No android target here - jvm artefact will be used for android apps as well
-            supportedPlatforms = ComposePlatforms.ALL_AOSP - ComposePlatforms.ANDROID
-        ),
-        ComposeComponent(
-            path = ":lifecycle:lifecycle-runtime",
-            supportedPlatforms = ComposePlatforms.ALL_AOSP
-        ),
-        ComposeComponent(
-            path = ":lifecycle:lifecycle-viewmodel",
-            supportedPlatforms = viewModelPlatforms
-        ),
-
-        ComposeComponent(
-            path = ":core:core-bundle",
-            supportedPlatforms = ComposePlatforms.ALL_AOSP,
-            neverRedirect = true
-        ),
-        ComposeComponent(":savedstate:savedstate", viewModelPlatforms),
-        ComposeComponent(":lifecycle:lifecycle-viewmodel-savedstate", viewModelPlatforms),
-
-        ComposeComponent(":navigation:navigation-common", viewModelPlatforms),
-        ComposeComponent(":navigation:navigation-runtime", viewModelPlatforms),
-
-        ComposeComponent(":lifecycle:lifecycle-runtime-compose", supportedPlatforms = ComposePlatforms.ALL),
-        ComposeComponent(":lifecycle:lifecycle-viewmodel-compose"),
-        ComposeComponent(":navigation:navigation-compose"),
+//        ComposeComponent(
+//            path = ":lifecycle:lifecycle-common",
+//            // No android target here - jvm artefact will be used for android apps as well
+//            supportedPlatforms = ComposePlatforms.ALL_AOSP - ComposePlatforms.ANDROID
+//        ),
+//        ComposeComponent(
+//            path = ":lifecycle:lifecycle-runtime",
+//            supportedPlatforms = ComposePlatforms.ALL_AOSP
+//        ),
+//        ComposeComponent(
+//            path = ":lifecycle:lifecycle-viewmodel",
+//            supportedPlatforms = viewModelPlatforms
+//        ),
+//
+//        ComposeComponent(
+//            path = ":core:core-bundle",
+//            supportedPlatforms = ComposePlatforms.ALL_AOSP,
+//            neverRedirect = true
+//        ),
+//        ComposeComponent(":savedstate:savedstate", viewModelPlatforms),
+//        ComposeComponent(":lifecycle:lifecycle-viewmodel-savedstate", viewModelPlatforms),
+//
+//        ComposeComponent(":navigation:navigation-common", viewModelPlatforms),
+//        ComposeComponent(":navigation:navigation-runtime", viewModelPlatforms),
+//
+//        ComposeComponent(":lifecycle:lifecycle-runtime-compose", supportedPlatforms = ComposePlatforms.ALL),
+//        ComposeComponent(":lifecycle:lifecycle-viewmodel-compose"),
+//        ComposeComponent(":navigation:navigation-compose"),
 
         ComposeComponent(":compose:animation:animation"),
         ComposeComponent(":compose:animation:animation-core"),

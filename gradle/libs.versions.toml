@@ -20,6 +20,8 @@ androidxTestMonitor = "1.7.0-alpha01"
 androidxTestCore = "1.6.0-alpha01"
 androidxTestExtJunit = "1.2.0-alpha01"
 androidxTestExtTruth = "1.6.0-alpha01"
+androidxLifecycle = "2.8.0"
+androidxNavigation = "2.7.0-alpha07"
 atomicFu = "0.23.2"
 autoService = "1.0-rc6"
 autoValue = "1.6.3"
@@ -283,6 +285,10 @@ wireRuntime = { module = "com.squareup.wire:wire-runtime", version.ref = "wire" 
 xerces = { module = "xerces:xercesImpl", version = "2.12.0" }
 xpp3 = { module = "xpp3:xpp3", version = "1.1.4c" }
 xmlpull = { module = "xmlpull:xmlpull", version = "1.1.3.1" }
+
+lifecycleRuntimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
+lifecycleViewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "androidxLifecycle" }
+navigationCompose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "androidxNavigation" }
 
 [plugins]
 kotlinBenchmark = { id = "org.jetbrains.kotlinx.benchmark", version.ref = "kotlinBenchmark" }
