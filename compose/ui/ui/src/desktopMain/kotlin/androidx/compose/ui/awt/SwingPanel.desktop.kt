@@ -89,52 +89,35 @@ public fun <T : Component> SwingPanel(
 ) {
     val interopContainer = LocalSwingInteropContainer.current
     val compositeKey = currentCompositeKeyHash
-    val componentInfo = remember {
-        ComponentInfo<T>(
+    val interopComponent = remember {
+        SwingInteropComponent(
             container = SwingPanelContainer(
                 key = compositeKey,
                 focusComponent = interopContainer.container,
-            )
+            ),
+            update = update,
         )
     }
 
     val density = LocalDensity.current
     val focusManager = LocalFocusManager.current
-    val focusSwitcher = remember { FocusSwitcher(componentInfo, focusManager) }
+    val focusSwitcher = remember { FocusSwitcher(interopComponent, focusManager) }
 
     OverlayLayout(
         modifier = modifier.onGloballyPositioned { coordinates ->
             val rootCoordinates = coordinates.findRootCoordinates()
-            val clipedBounds = rootCoordinates
+            val clippedBounds = rootCoordinates
                 .localBoundingBoxOf(coordinates, clipBounds = true).round(density)
             val bounds = rootCoordinates
                 .localBoundingBoxOf(coordinates, clipBounds = false).round(density)
 
-            // Take care about clipped bounds
-            componentInfo.clipBounds = clipedBounds // Clipping area for skia canvas
-            componentInfo.container.isVisible = !clipedBounds.isEmpty // Hide if it's fully clipped
-            // Swing clips children based on parent's bounds, so use our container for clipping
-            componentInfo.container.setBounds(
-                /* x = */ clipedBounds.left,
-                /* y = */ clipedBounds.top,
-                /* width = */ clipedBounds.width,
-                /* height = */ clipedBounds.height
-            )
-
-            // The real size and position should be based on not-clipped bounds
-            componentInfo.component.setBounds(
-                /* x = */ bounds.left - clipedBounds.left, // Local position relative to container
-                /* y = */ bounds.top - clipedBounds.top,
-                /* width = */ bounds.width,
-                /* height = */ bounds.height
-            )
-            componentInfo.container.validate()
-            componentInfo.container.repaint()
+            interopComponent.setBounds(bounds, clippedBounds)
+            interopContainer.validateComponentsOrder()
         }.drawBehind {
             // Clear interop area to make visible the component under our canvas.
             drawRect(Color.Transparent, blendMode = BlendMode.Clear)
-        }.trackSwingInterop(componentInfo)
-            .then(InteropPointerInputModifier(componentInfo))
+        }.trackSwingInterop(interopContainer, interopComponent)
+            .then(InteropPointerInputModifier(interopComponent))
     ) {
         focusSwitcher.Content()
     }
@@ -142,7 +125,7 @@ public fun <T : Component> SwingPanel(
     DisposableEffect(Unit) {
         val focusListener = object : FocusListener {
             override fun focusGained(e: FocusEvent) {
-                if (componentInfo.container.isParentOf(e.oppositeComponent)) {
+                if (interopComponent.container.isParentOf(e.oppositeComponent)) {
                     when (e.cause) {
                         FocusEvent.Cause.TRAVERSAL_FORWARD -> focusSwitcher.moveForward()
                         FocusEvent.Cause.TRAVERSAL_BACKWARD -> focusSwitcher.moveBackward()
@@ -154,26 +137,22 @@ public fun <T : Component> SwingPanel(
             override fun focusLost(e: FocusEvent) = Unit
         }
         interopContainer.container.addFocusListener(focusListener)
-        interopContainer.addInteropView(componentInfo)
         onDispose {
-            interopContainer.removeInteropView(componentInfo)
+            interopContainer.removeInteropView(interopComponent)
             interopContainer.container.removeFocusListener(focusListener)
         }
     }
 
     DisposableEffect(factory) {
-        componentInfo.component = factory()
-        componentInfo.container.add(componentInfo.component)
-        componentInfo.updater = Updater(componentInfo.component, update)
+        interopComponent.setComponent(factory())
         onDispose {
-            componentInfo.container.remove(componentInfo.component)
-            componentInfo.updater.dispose()
+            interopComponent.dispose()
         }
     }
 
     SideEffect {
-        componentInfo.container.background = background.toAwtColor()
-        componentInfo.updater.update = update
+        interopComponent.container.background = background.toAwtColor()
+        interopComponent.update = update
     }
 }
 
@@ -212,7 +191,7 @@ private class SwingPanelContainer(
 }
 
 private class FocusSwitcher<T : Component>(
-    private val info: ComponentInfo<T>,
+    private val interopComponent: SwingInteropComponent<T>,
     private val focusManager: FocusManager,
 ) {
     private val backwardRequester = FocusRequester()
@@ -248,7 +227,9 @@ private class FocusSwitcher<T : Component>(
                     if (it.isFocused && !isRequesting) {
                         focusManager.clearFocus(force = true)
 
-                        val component = info.container.focusTraversalPolicy.getFirstComponent(info.container)
+                        val component = interopComponent.container.let { container ->
+                            container.focusTraversalPolicy.getFirstComponent(container)
+                        }
                         if (component != null) {
                             component.requestFocus(FocusEvent.Cause.TRAVERSAL_FORWARD)
                         } else {
@@ -265,7 +246,7 @@ private class FocusSwitcher<T : Component>(
                     if (it.isFocused && !isRequesting) {
                         focusManager.clearFocus(force = true)
 
-                        val component = info.container.focusTraversalPolicy.getLastComponent(info.container)
+                        val component = interopComponent.container.focusTraversalPolicy.getLastComponent(interopComponent.container)
                         if (component != null) {
                             component.requestFocus(FocusEvent.Cause.TRAVERSAL_BACKWARD)
                         } else {
@@ -278,11 +259,54 @@ private class FocusSwitcher<T : Component>(
     }
 }
 
-private class ComponentInfo<T : Component>(
-    container: SwingPanelContainer
+private class SwingInteropComponent<T : Component>(
+    container: SwingPanelContainer,
+    var update: (T) -> Unit
 ): InteropComponent(container) {
-    lateinit var component: T
-    lateinit var updater: Updater<T>
+    private var component: T? = null
+    private var updater: Updater<T>? = null
+
+    fun dispose() {
+        container.remove(component)
+        updater?.dispose()
+        component = null
+        updater = null
+    }
+
+    fun setComponent(component: T) {
+        this.component = component
+        container.add(component)
+        updater = Updater(component, update)
+    }
+
+    fun setBounds(
+        bounds: IntRect,
+        clippedBounds: IntRect = bounds
+    ) {
+        clipBounds = clippedBounds // Clipping area for skia canvas
+        container.isVisible = !clippedBounds.isEmpty // Hide if it's fully clipped
+        // Swing clips children based on parent's bounds, so use our container for clipping
+        container.setBounds(
+            /* x = */ clippedBounds.left,
+            /* y = */ clippedBounds.top,
+            /* width = */ clippedBounds.width,
+            /* height = */ clippedBounds.height
+        )
+
+        // The real size and position should be based on not-clipped bounds
+        component?.setBounds(
+            /* x = */ bounds.left - clippedBounds.left, // Local position relative to container
+            /* y = */ bounds.top - clippedBounds.top,
+            /* width = */ bounds.width,
+            /* height = */ bounds.height
+        )
+    }
+
+    fun getDeepestComponentForEvent(event: MouseEvent): Component? {
+        if (component == null) return null
+        val point = SwingUtilities.convertPoint(event.component, event.point, component)
+        return SwingUtilities.getDeepestComponentAt(component, point.x, point.y)
+    }
 }
 
 private class Updater<T : Component>(
@@ -343,7 +367,7 @@ private fun Rect.round(density: Density): IntRect {
 }
 
 private class InteropPointerInputModifier<T : Component>(
-    private val componentInfo: ComponentInfo<T>,
+    private val interopComponent: SwingInteropComponent<T>,
 ) : PointerInputFilter(), PointerInputModifier {
     override val pointerInputFilter: PointerInputFilter = this
 
@@ -380,22 +404,17 @@ private class InteropPointerInputModifier<T : Component>(
             // to original component.
             MouseEvent.MOUSE_ENTERED, MouseEvent.MOUSE_EXITED -> return
         }
-        if (SwingUtilities.isDescendingFrom(e.component, componentInfo.container)) {
+        if (SwingUtilities.isDescendingFrom(e.component, interopComponent.container)) {
             // Do not redispatch the event if it originally from this interop view.
             return
         }
-        val component = getDeepestComponentForEvent(componentInfo.component, e)
+        val component = interopComponent.getDeepestComponentForEvent(e)
         if (component != null) {
             component.dispatchEvent(SwingUtilities.convertMouseEvent(e.component, e, component))
             pointerEvent.changes.fastForEach {
                 it.consume()
             }
         }
-    }
-
-    private fun getDeepestComponentForEvent(parent: Component, event: MouseEvent): Component? {
-        val point = SwingUtilities.convertPoint(event.component, event.point, parent)
-        return SwingUtilities.getDeepestComponentAt(parent, point.x, point.y)
     }
 }
 

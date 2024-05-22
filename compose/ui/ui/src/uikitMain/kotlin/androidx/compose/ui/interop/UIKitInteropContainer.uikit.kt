@@ -41,15 +41,22 @@ internal val LocalUIKitInteropContainer = staticCompositionLocalOf<UIKitInteropC
 /**
  * A container that controls interop views/components.
  */
-internal class UIKitInteropContainer: InteropContainer<UIView> {
+internal class UIKitInteropContainer(
+    private val interopContext: UIKitInteropContext
+): InteropContainer<UIView> {
     val containerView: UIView = UIKitInteropContainerView()
     override var rootModifier: TrackInteropModifierNode<UIView>? = null
     override var interopViews = mutableSetOf<UIView>()
         private set
 
-    override fun addInteropView(nativeView: UIView) {
+    override fun placeInteropView(nativeView: UIView) = interopContext.deferAction {
         val index = countInteropComponentsBefore(nativeView)
-        interopViews.add(nativeView)
+        if (nativeView in interopViews) {
+            // Place might be called multiple times
+            nativeView.removeFromSuperview()
+        } else {
+            interopViews.add(nativeView)
+        }
         containerView.insertSubview(nativeView, index.toLong())
     }
 
@@ -61,8 +68,8 @@ internal class UIKitInteropContainer: InteropContainer<UIView> {
 
 private class UIKitInteropContainerView: UIView(CGRectZero.readValue()) {
     /**
-     * We used simple solution to make only this view not touchable.
-     * Other view added to this container will be touchable.
+     * We used a simple solution to make only this view not touchable.
+     * Another view added to this container will be touchable.
      */
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? =
         super.hitTest(point, withEvent).takeIf {
@@ -76,7 +83,9 @@ private class UIKitInteropContainerView: UIView(CGRectZero.readValue()) {
  * @param view The [UIView] that matches the current node.
  */
 internal fun Modifier.trackUIKitInterop(
+    container: UIKitInteropContainer,
     view: UIView
 ): Modifier = this then TrackInteropModifierElement(
+    container = container,
     nativeView = view
 )

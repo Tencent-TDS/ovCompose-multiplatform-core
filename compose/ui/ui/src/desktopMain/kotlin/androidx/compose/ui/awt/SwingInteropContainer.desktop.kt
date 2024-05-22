@@ -30,6 +30,10 @@ import androidx.compose.ui.scene.ComposeSceneMediator
 import androidx.compose.ui.unit.IntRect
 import java.awt.Component
 import java.awt.Container
+import java.awt.event.ContainerAdapter
+import java.awt.event.ContainerEvent
+import java.awt.event.ContainerListener
+import javax.swing.SwingUtilities
 import org.jetbrains.skiko.ClipRectangle
 
 /**
@@ -54,7 +58,7 @@ internal class SwingInteropContainer(
     private val placeInteropAbove: Boolean
 ): InteropContainer<InteropComponent> {
     /**
-     * @see SwingInteropContainer.addInteropView
+     * @see SwingInteropContainer.placeInteropView
      * @see SwingInteropContainer.removeInteropView
      */
     private var interopComponents = mutableMapOf<Component, InteropComponent>()
@@ -63,12 +67,13 @@ internal class SwingInteropContainer(
     override val interopViews: Set<InteropComponent>
         get() = interopComponents.values.toSet()
 
-    override fun addInteropView(nativeView: InteropComponent) {
+    override fun placeInteropView(nativeView: InteropComponent) = SwingUtilities.invokeLater {
         val component = nativeView.container
         val nonInteropComponents = container.componentCount - interopComponents.size
         // AWT uses the reverse order for drawing and events, so index = size - count
         val index = interopComponents.size - countInteropComponentsBefore(nativeView)
         interopComponents[component] = nativeView
+        container.remove(component)
         container.add(component, if (placeInteropAbove) {
             index
         } else {
@@ -81,13 +86,18 @@ internal class SwingInteropContainer(
         container.repaint()
     }
 
-    override fun removeInteropView(nativeView: InteropComponent) {
+    override fun removeInteropView(nativeView: InteropComponent) = SwingUtilities.invokeLater {
         val component = nativeView.container
         container.remove(component)
         interopComponents.remove(component)
 
         // Sometimes Swing displays the rest of interop views in incorrect order after removing,
         // so we need to force re-validate it.
+        container.validate()
+        container.repaint()
+    }
+
+    fun validateComponentsOrder() = SwingUtilities.invokeLater {
         container.validate()
         container.repaint()
     }
@@ -113,8 +123,10 @@ internal class SwingInteropContainer(
  * @param component The Swing component that matches the current node.
  */
 internal fun Modifier.trackSwingInterop(
+    container: SwingInteropContainer,
     component: InteropComponent
 ): Modifier = this then TrackInteropModifierElement(
+    container = container,
     nativeView = component
 )
 
@@ -126,7 +138,7 @@ internal fun Modifier.trackSwingInterop(
  */
 internal open class InteropComponent(
     val container: Container,
-    var clipBounds: IntRect? = null
+    protected var clipBounds: IntRect? = null
 ) : ClipRectangle {
     override val x: Float
         get() = (clipBounds?.left ?: container.x).toFloat()
