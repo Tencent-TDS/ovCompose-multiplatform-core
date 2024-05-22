@@ -20,7 +20,6 @@ import java.util.concurrent.TimeUnit
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-
 val libs = listOf(
     "https://developer.android.com/jetpack/androidx/releases/compose-ui",
     "https://developer.android.com/jetpack/androidx/releases/compose-material3",
