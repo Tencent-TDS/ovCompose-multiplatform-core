@@ -16,11 +16,10 @@
 @file:Repository("https://repo1.maven.org/maven2/")
 @file:DependsOn("org.jsoup:jsoup:1.17.2")
 
-import java.io.File
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+
 
 val libs = listOf(
     "https://developer.android.com/jetpack/androidx/releases/compose-ui",
@@ -31,6 +30,7 @@ val libs = listOf(
     "https://developer.android.com/jetpack/androidx/releases/navigation",
 )
 
+val tagPattern = "androidx/*"
 fun tagName(libName: String, version: String) = "androidx/$libName/$version"
 
 "git remote add aosp https://android.googlesource.com/platform/frameworks/support".execCommand().apply {
@@ -41,6 +41,9 @@ fun tagName(libName: String, version: String) = "androidx/$libName/$version"
     }
 }
 "git fetch aosp".runCommand()
+"git fetch".runCommand()
+
+val tags = "git tag -l $tagPattern".execCommand()?.split("\n").orEmpty()
 
 for (lib in libs) {
     println("=== Loading $lib")
@@ -50,10 +53,7 @@ for (lib in libs) {
         // <code translate="no" dir="ltr">androidx.compose.ui:ui-*:1.2.0-alpha08</code>
         val text = toString()
         // androidx.compose.ui:ui-*:1.2.0-alpha08
-        val coords = text
-            .substringAfter("<code")
-            .substringAfter(">")
-            .substringBefore("</code>")
+        val coords = select("code").first()?.text().orEmpty()
 
         val group = coords.substringBefore(":") // androidx.compose.ui
         val module = coords.substringAfter(":").substringBefore(":") // ui-*
@@ -85,14 +85,18 @@ for (lib in libs) {
         .map { it.extractNameCommitVersion() }
         .forEach { (name, commit, version) ->
             val tagName = tagName(name, version)
-            println("Creating tag $tagName on $commit")
-            "git tag -f $tagName $commit".runCommand()
+            if (tagName !in tags) {
+                println("Tag $tagName on $commit created")
+                "git tag -f $tagName $commit".runCommand()
+            } else {
+                println("Tag $tagName on $commit already exists")
+            }
         }
 
 }
 
 println("Pushing tags")
-"git push origin tag androidx/*".runCommand()
+"git push origin tag $tagPattern".runCommand()
 
 fun String.validateCommit() = apply {
     check(isNotEmpty() && all { it.isDigit() || it.isLetter() }) {
@@ -112,29 +116,17 @@ fun String.validateLibName() = apply {
     }
 }
 
-// from https://stackoverflow.com/a/41495542
-fun String.runCommand(workingDir: File = File(".")) {
+// from https://stackoverflow.com/a/41495542, redirect output to std
+fun String.runCommand() {
     ProcessBuilder(*split(" ").toTypedArray())
-        .directory(workingDir)
         .redirectOutput(ProcessBuilder.Redirect.INHERIT)
         .redirectError(ProcessBuilder.Redirect.INHERIT)
         .start()
         .waitFor(5, TimeUnit.MINUTES)
 }
 
-fun String.execCommand(workingDir: File = File(".")): String? {
-    try {
-        val parts = this.split("\\s".toRegex())
-        val proc = ProcessBuilder(*parts.toTypedArray())
-            .directory(workingDir)
-            .redirectOutput(ProcessBuilder.Redirect.PIPE)
-            .redirectError(ProcessBuilder.Redirect.PIPE)
-            .start()
-
-        proc.waitFor(60, TimeUnit.MINUTES)
-        return proc.inputStream.bufferedReader().readText()
-    } catch(e: IOException) {
-        e.printStackTrace()
-        return null
-    }
+fun String.execCommand(): String? {
+    val proc = Runtime.getRuntime().exec(this)
+    return proc.inputStream.bufferedReader().readText().ifEmpty { null } ?:
+        proc.errorStream.bufferedReader().readText().ifEmpty { null }
 }
