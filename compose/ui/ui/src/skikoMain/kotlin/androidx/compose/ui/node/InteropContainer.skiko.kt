@@ -18,7 +18,6 @@ package androidx.compose.ui.node
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.areObjectsOfSameType
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.OverlayLayout
 
@@ -56,16 +55,6 @@ internal fun <T> InteropContainer<T>.countInteropComponentsBefore(nativeView: T)
         }
     }
     return componentsBefore
-}
-
-private fun <T> T.traverseDescendantsInDrawOrder(block: (T) -> Boolean) where T : TraversableNode {
-    visitSubtreeIf(Nodes.Traversable, zOrder = true) {
-        if (this.traverseKey == it.traverseKey && areObjectsOfSameType(this, it)) {
-            @Suppress("UNCHECKED_CAST")
-            if (!block(it as T)) return
-        }
-        true
-    }
 }
 
 /**
