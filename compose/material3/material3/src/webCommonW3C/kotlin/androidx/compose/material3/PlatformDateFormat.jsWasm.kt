@@ -143,15 +143,18 @@ internal actual class PlatformDateFormat actual constructor(private val locale: 
         date: String,
         pattern: String
     ): CalendarDate? {
-
-        return LocalDate.parse(
-            input = date,
-            format = LocalDate.Format {
-                byUnicodePattern(pattern)
-            }
-        ).atTime(Midnight)
-            .toInstant(TimeZone.UTC)
-            .toCalendarDate(TimeZone.UTC)
+        return try {
+            LocalDate.parse(
+                input = date,
+                format = LocalDate.Format {
+                    byUnicodePattern(pattern)
+                }
+            ).atTime(Midnight)
+                .toInstant(TimeZone.UTC)
+                .toCalendarDate(TimeZone.UTC)
+        } catch (e: Throwable) {
+            null
+        }
     }
 
     actual fun getDateInputFormat(): DateInputFormat {

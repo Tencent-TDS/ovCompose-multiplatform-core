@@ -123,9 +123,7 @@ internal class KotlinxDatetimeCalendarModel(locale: CalendarLocale) : CalendarMo
     }
 
     override fun parse(date: String, pattern: String): CalendarDate? {
-        return kotlin.runCatching {
-            platformDateFormat.parse(date, pattern)
-        }.getOrNull()
+        return platformDateFormat.parse(date, pattern)
     }
 
     private fun Instant.toCalendarMonth(
