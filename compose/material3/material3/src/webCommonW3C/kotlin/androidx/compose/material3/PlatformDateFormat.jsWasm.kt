@@ -70,7 +70,7 @@ internal actual class PlatformDateFormat actual constructor(private val locale: 
             )
         }
 
-        val (wdNarrow, wdShort, wdLong) = listOf(NARROW, SHORT, LONG).map {
+        val (wdShort, wdLong) = listOf(SHORT, LONG).map {
             jsDate.toLocaleDateString(
                 locales = locale.toLanguageTag(),
                 options = dateLocaleOptions {
@@ -79,15 +79,13 @@ internal actual class PlatformDateFormat actual constructor(private val locale: 
             )
         }
 
-        return date.format(
-            LocalDateTime.Format { byUnicodePattern(pattern) }
-        ).replace("MMMM", monthLong)
+        return date
+            .format(LocalDateTime.Format { byUnicodePattern(pattern) })
+            .replace("MMMM", monthLong)
             .replace("MMM", monthShort)
             .replace("EEEE", wdLong)
             .replace("EEE", wdShort)
-            .replace("E", wdNarrow)
     }
-
 
     actual fun formatWithSkeleton(
         utcTimeMillis: Long,
