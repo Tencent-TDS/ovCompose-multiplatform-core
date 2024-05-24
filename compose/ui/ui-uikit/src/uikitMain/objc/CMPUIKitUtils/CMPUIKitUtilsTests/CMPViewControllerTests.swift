@@ -83,7 +83,7 @@ final class CMPViewControllerTests: XCTestCase {
     @MainActor
     public func testNotAttached() async {
         let viewController = TestViewController()
-        await expect(viewController: viewController, toBeInHierarchy: true)
+        await expect(viewController: viewController, toBeInHierarchy: false)
     }
     
     @MainActor
