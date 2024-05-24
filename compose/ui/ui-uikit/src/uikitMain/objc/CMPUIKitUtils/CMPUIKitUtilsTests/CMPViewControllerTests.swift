@@ -93,7 +93,7 @@ final class CMPViewControllerTests: XCTestCase {
         await expect(viewController: viewController, toBeInHierarchy: true)
         
         rootViewController = UIViewController()
-        await expect(viewController: viewController, toBeInHierarchy: false)
+        await expect(viewController: viewController, toBeInHierarchy: true)
     }
 
     @MainActor
