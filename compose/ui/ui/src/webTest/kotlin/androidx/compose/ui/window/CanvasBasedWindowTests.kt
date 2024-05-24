@@ -90,7 +90,7 @@ class CanvasBasedWindowTests {
         })
 
         // dispatchEvent synchronously invokes all the listeners
-        canvasElement.dispatchEvent(keyDownEvent())
+        canvasElement.dispatchEvent(keyDownEvent("c"))
         assertEquals(1, stack.size)
         assertTrue(stack.last())
 
@@ -99,7 +99,7 @@ class CanvasBasedWindowTests {
         assertFalse(stack.last())
 
         // copy shortcut should not be prevented (we let browser create a corresponding event)
-        canvasElement.dispatchEvent(keyDownEvent(c = 'c', metaKey = true, ctrlKey = true))
+        canvasElement.dispatchEvent(keyDownEvent("c", metaKey = true, ctrlKey = true))
         assertEquals(3, stack.size)
         assertFalse(stack.last())
     }
@@ -137,7 +137,7 @@ class CanvasBasedWindowTests {
         )
 
         ('a'..'z').forEachIndexed { index, c ->
-            canvasElement.dispatchEvent(keyDownEvent(c))
+            canvasElement.dispatchEvent(keyDownEvent(c.toString()))
             assertEquals(listOfKeys[index], k)
         }
 
@@ -147,7 +147,7 @@ class CanvasBasedWindowTests {
         )
 
         ('0'..'9').forEachIndexed { index, c ->
-            canvasElement.dispatchEvent(keyDownEvent(c))
+            canvasElement.dispatchEvent(keyDownEvent(c.toString()))
             assertEquals(listOfNumbers[index], k)
         }
     }
@@ -179,16 +179,16 @@ class CanvasBasedWindowTests {
             }
         }
 
-        canvasElement.dispatchEvent(keyDownEvent('t'))
+        canvasElement.dispatchEvent(keyDownEvent("t"))
         assertEquals(Key.T, lastKeyEvent!!.key)
         assertEquals("", textValue.value)
 
         stopPropagation = false
-        canvasElement.dispatchEvent(keyDownEvent('t'))
-        canvasElement.dispatchEvent(keyDownEvent('e'))
-        canvasElement.dispatchEvent(keyDownEvent('s'))
-        canvasElement.dispatchEvent(keyDownEvent('t'))
-        canvasElement.dispatchEvent(keyDownEvent('x'))
+        canvasElement.dispatchEvent(keyDownEvent("t"))
+        canvasElement.dispatchEvent(keyDownEvent("e"))
+        canvasElement.dispatchEvent(keyDownEvent("s"))
+        canvasElement.dispatchEvent(keyDownEvent("t"))
+        canvasElement.dispatchEvent(keyDownEvent("x"))
         assertEquals(Key.X, lastKeyEvent!!.key)
         assertEquals("testx", textValue.value)
     }
