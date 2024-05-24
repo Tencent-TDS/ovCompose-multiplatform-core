@@ -19,7 +19,7 @@ permissions:
 jobs:
   unit-tests-uikit:
     runs-on: macos-13
-    name: iOS Unit tests on MacOS-13
+    name: iOS UIKit tests (MacOS-13)
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK 17
@@ -31,7 +31,7 @@ jobs:
         run: ./jbdeps/android-sdk/downloadAndroidSdk
       - name: Run UIKit tests
         run: ./gradlew :mpp:testUIKit --info
-      - name: Generate report (Test Reporter)
+      - name: Generate report
         uses: dorny/test-reporter@v1
         if: always()
         with:
@@ -40,16 +40,16 @@ jobs:
           reporter: java-junit
   unit-tests-cmp-utils:
     runs-on: macos-13
-    name: iOS Unit tests on MacOS-13
+    name: iOS CMP Utils tests (MacOS-13)
     steps:
       - uses: actions/checkout@v3
       - name: Run CMPUIKitUtilsTests
         working-directory: compose/ui/ui-uikit/src/uikitMain/objc/CMPUIKitUtils
-        run: xcodebuild test -scheme CMPUIKitUtilsTests -project CMPUIKitUtils.xcodeproj -destination 'platform=iOS Simulator,name=iPhone 15'
-      - name: Generate report (Test Reporter)
+        run: xcodebuild test -scheme CMPUIKitUtilsTests -project CMPUIKitUtils.xcodeproj -destination 'platform=iOS Simulator,name=iPhone 15 -resultBundlePath CMPUIKitUtilsTests.xcresult'
+      - name: Generate report
         uses: kishikawakatsumi/xcresulttool@v1
         if: always()
         with:
-          title: iOS CMPUtils tests results
-          path: 'compose/ui/ui-uikit/src/uikitMain/objc/CMPUIKitUtils/.build/Logs/Test/*.xcresult'
+          title: iOS CMP Utils tests results
+          path: 'compose/ui/ui-uikit/src/uikitMain/objc/CMPUIKitUtils/CMPUIKitUtilsTests.xcresult'
           reporter: java-junit
