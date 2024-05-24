@@ -82,7 +82,7 @@ private def configure(target, isDevice, architecture, testTarget) {
 
     if (!isDevice && testTarget != null) {
         def getTargetDeviceTaskName = "${target.name}GetTargetDevice"
-        def testFrameworkTask = "${target.name}FrameworkTest"
+        def testFrameworkTaskName = "${target.name}FrameworkTest"
 
         def getTargetDeviceTask = project.tasks.register(getTargetDeviceTaskName, Exec) {
             commandLine "xcrun", "simctl", "list", "devices"
@@ -96,7 +96,7 @@ private def configure(target, isDevice, architecture, testTarget) {
             }
         }
 
-        def testFrameworkTask = project.tasks.register(testFrameworkTask) {
+        def testFrameworkTask = project.tasks.register(testFrameworkTaskName) {
             dependsOn getTargetDeviceTask
             doLast {
                 project.exec {
