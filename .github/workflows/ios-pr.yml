@@ -17,7 +17,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  unit-gradle-tests:
+  unit-tests:
     runs-on: macos-13
     name: iOS Unit tests on MacOS-13
     steps:
