@@ -17,7 +17,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  unit-tests:
+  unit-gradle-tests:
     runs-on: macos-13
     name: iOS Unit tests on MacOS-13
     steps:
@@ -38,3 +38,6 @@ jobs:
           name: iOS Unit tests results
           path: out/androidx/compose/**/**/build/test-results/**/TEST*.xml
           reporter: java-junit
+      - name: Run CMPUIKitUtilsTests
+        working-directory: compose/ui/ui-uikit/src/uikitMain/objc/CMPUIKitUtils
+        run: xcodebuild test -scheme CMPUIKitUtilsTests -project CMPUIKitUtils.xcodeproj -destination 'platform=iOS Simulator,name=iPhone 15' | xcpretty && exit ${PIPESTATUS[0]}
