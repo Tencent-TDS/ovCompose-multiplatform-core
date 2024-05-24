@@ -67,7 +67,7 @@ internal class SwingInteropContainer(
     override val interopViews: Set<InteropComponent>
         get() = interopComponents.values.toSet()
 
-    override fun placeInteropView(nativeView: InteropComponent) = SwingUtilities.invokeLater {
+    override fun placeInteropView(nativeView: InteropComponent) {
         val component = nativeView.container
         val nonInteropComponents = container.componentCount - interopComponents.size
         // AWT uses the reverse order for drawing and events, so index = size - count
@@ -86,7 +86,7 @@ internal class SwingInteropContainer(
         container.repaint()
     }
 
-    override fun removeInteropView(nativeView: InteropComponent) = SwingUtilities.invokeLater {
+    override fun removeInteropView(nativeView: InteropComponent) {
         val component = nativeView.container
         container.remove(component)
         interopComponents.remove(component)
@@ -97,7 +97,7 @@ internal class SwingInteropContainer(
         container.repaint()
     }
 
-    fun validateComponentsOrder() = SwingUtilities.invokeLater {
+    fun validateComponentsOrder() {
         container.validate()
         container.repaint()
     }
