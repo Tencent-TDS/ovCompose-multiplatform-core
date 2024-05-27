@@ -71,14 +71,16 @@ internal class SwingInteropContainer(
         val component = nativeView.container
         val nonInteropComponents = container.componentCount - interopComponents.size
         // AWT uses the reverse order for drawing and events, so index = size - count
-        val index = interopComponents.size - countInteropComponentsBefore(nativeView)
-        interopComponents[component] = nativeView
-        container.remove(component)
-        container.add(component, if (placeInteropAbove) {
-            index
+        var index = interopComponents.size - countInteropComponentsBefore(nativeView)
+        if (!placeInteropAbove) {
+            index += nonInteropComponents
+        }
+        if (component in interopComponents) {
+            container.setComponentZOrder(component, index)
         } else {
-            index + nonInteropComponents
-        })
+            interopComponents[component] = nativeView
+            container.add(component, index)
+        }
 
         // Sometimes Swing displays the rest of interop views in incorrect order after adding,
         // so we need to force re-validate it.

@@ -144,9 +144,9 @@ public fun <T : Component> SwingPanel(
     }
 
     DisposableEffect(factory) {
-        interopComponent.setComponent(factory())
+        interopComponent.setupUserComponent(factory())
         onDispose {
-            interopComponent.dispose()
+            interopComponent.cleanUserComponent()
         }
     }
 
@@ -227,9 +227,8 @@ private class FocusSwitcher<T : Component>(
                     if (it.isFocused && !isRequesting) {
                         focusManager.clearFocus(force = true)
 
-                        val component = interopComponent.container.let { container ->
-                            container.focusTraversalPolicy.getFirstComponent(container)
-                        }
+                        val container = interopComponent.container
+                        val component = container.focusTraversalPolicy.getFirstComponent(container)
                         if (component != null) {
                             component.requestFocus(FocusEvent.Cause.TRAVERSAL_FORWARD)
                         } else {
@@ -263,20 +262,21 @@ private class SwingInteropComponent<T : Component>(
     container: SwingPanelContainer,
     var update: (T) -> Unit
 ): InteropComponent(container) {
-    private var component: T? = null
+    private var userComponent: T? = null
     private var updater: Updater<T>? = null
 
-    fun dispose() {
-        container.remove(component)
-        updater?.dispose()
-        component = null
-        updater = null
-    }
-
-    fun setComponent(component: T) {
-        this.component = component
+    fun setupUserComponent(component: T) {
+        check(userComponent == null)
+        userComponent = component
         container.add(component)
         updater = Updater(component, update)
+    }
+
+    fun cleanUserComponent() {
+        container.remove(userComponent)
+        updater?.dispose()
+        userComponent = null
+        updater = null
     }
 
     fun setBounds(
@@ -294,7 +294,7 @@ private class SwingInteropComponent<T : Component>(
         )
 
         // The real size and position should be based on not-clipped bounds
-        component?.setBounds(
+        userComponent?.setBounds(
             /* x = */ bounds.left - clippedBounds.left, // Local position relative to container
             /* y = */ bounds.top - clippedBounds.top,
             /* width = */ bounds.width,
@@ -303,9 +303,9 @@ private class SwingInteropComponent<T : Component>(
     }
 
     fun getDeepestComponentForEvent(event: MouseEvent): Component? {
-        if (component == null) return null
-        val point = SwingUtilities.convertPoint(event.component, event.point, component)
-        return SwingUtilities.getDeepestComponentAt(component, point.x, point.y)
+        if (userComponent == null) return null
+        val point = SwingUtilities.convertPoint(event.component, event.point, userComponent)
+        return SwingUtilities.getDeepestComponentAt(userComponent, point.x, point.y)
     }
 }
 
