@@ -44,7 +44,6 @@ import kotlin.test.AfterTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
-import kotlinx.browser.window
 
 class CanvasBasedWindowTests {
 
