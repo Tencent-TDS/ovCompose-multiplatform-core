@@ -25,15 +25,11 @@ import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.TrackInteropContainer
 import androidx.compose.ui.node.TrackInteropModifierElement
 import androidx.compose.ui.node.TrackInteropModifierNode
-import androidx.compose.ui.node.countInteropComponentsBefore
+import androidx.compose.ui.node.countInteropComponentsBelow
 import androidx.compose.ui.scene.ComposeSceneMediator
 import androidx.compose.ui.unit.IntRect
 import java.awt.Component
 import java.awt.Container
-import java.awt.event.ContainerAdapter
-import java.awt.event.ContainerEvent
-import java.awt.event.ContainerListener
-import javax.swing.SwingUtilities
 import org.jetbrains.skiko.ClipRectangle
 
 /**
@@ -67,19 +63,45 @@ internal class SwingInteropContainer(
     override val interopViews: Set<InteropComponent>
         get() = interopComponents.values.toSet()
 
+    /**
+     * Index of last interop component in [container].
+     *
+     * [ComposeSceneMediator] might keep extra components in the same container.
+     * So based on [placeInteropAbove] they should go below or under all interop views.
+     *
+     * @see ComposeSceneMediator.contentComponent
+     * @see ComposeSceneMediator.invisibleComponent
+     */
+    private val lastInteropIndex: Int
+        get() {
+            var lastInteropIndex = interopComponents.size - 1
+            if (!placeInteropAbove) {
+                val nonInteropComponents = container.componentCount - interopComponents.size
+                lastInteropIndex += nonInteropComponents
+            }
+            return lastInteropIndex
+        }
+
     override fun placeInteropView(nativeView: InteropComponent) {
         val component = nativeView.container
-        val nonInteropComponents = container.componentCount - interopComponents.size
-        // AWT uses the reverse order for drawing and events, so index = size - count
-        var index = interopComponents.size - countInteropComponentsBefore(nativeView)
-        if (!placeInteropAbove) {
-            index += nonInteropComponents
-        }
-        if (component in interopComponents) {
-            container.setComponentZOrder(component, index)
-        } else {
+
+        // Add this component to [interopComponents] to track count and clip rects
+        val alreadyAdded = component in interopComponents
+        if (!alreadyAdded) {
             interopComponents[component] = nativeView
-            container.add(component, index)
+        }
+
+        // Iterate through a Compose layout tree in draw order and count interop view below this one
+        val countBelow = countInteropComponentsBelow(nativeView)
+
+        // AWT/Swing uses the **REVERSE ORDER** for drawing and events
+        val awtIndex = lastInteropIndex - countBelow
+
+        // Update AWT/Swing hierarchy
+        if (alreadyAdded) {
+            container.setComponentZOrder(component, awtIndex)
+        } else {
+            container.add(component, awtIndex)
         }
 
         // Sometimes Swing displays the rest of interop views in incorrect order after adding,

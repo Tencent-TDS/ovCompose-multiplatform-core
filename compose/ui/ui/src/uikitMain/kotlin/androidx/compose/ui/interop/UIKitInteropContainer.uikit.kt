@@ -22,7 +22,7 @@ import androidx.compose.ui.node.InteropContainer
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.TrackInteropModifierElement
 import androidx.compose.ui.node.TrackInteropModifierNode
-import androidx.compose.ui.node.countInteropComponentsBefore
+import androidx.compose.ui.node.countInteropComponentsBelow
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGPoint
@@ -50,7 +50,7 @@ internal class UIKitInteropContainer(
         private set
 
     override fun placeInteropView(nativeView: UIView) = interopContext.deferAction {
-        val index = countInteropComponentsBefore(nativeView)
+        val index = countInteropComponentsBelow(nativeView)
         if (nativeView in interopViews) {
             // Place might be called multiple times
             nativeView.removeFromSuperview()

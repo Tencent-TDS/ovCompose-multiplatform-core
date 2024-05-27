@@ -40,11 +40,11 @@ internal interface InteropContainer<T> {
  * @param nativeView The native view to count interop components before.
  * @return The number of interop components before the given native view.
  */
-internal fun <T> InteropContainer<T>.countInteropComponentsBefore(nativeView: T): Int {
+internal fun <T> InteropContainer<T>.countInteropComponentsBelow(nativeView: T): Int {
     var componentsBefore = 0
     rootModifier?.traverseDescendantsInDrawOrder {
         if (it.nativeView != nativeView) {
-            // It might be inside Compose tree before adding in InteropContainer in case
+            // It might be inside a Compose tree before adding in InteropContainer in case
             // if it was initiated out of scroll visible bounds for example.
             if (it.nativeView in interopViews) {
                 componentsBefore++
