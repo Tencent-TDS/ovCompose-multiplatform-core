@@ -32,22 +32,24 @@ import androidx.compose.compiler.plugins.kotlin.analysis.knownUnstable
 import androidx.compose.compiler.plugins.kotlin.irTrace
 import com.intellij.openapi.progress.ProcessCanceledException
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
+import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
 import org.jetbrains.kotlin.backend.jvm.ir.isInlineClassType
 import org.jetbrains.kotlin.builtins.PrimitiveType
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
+import org.jetbrains.kotlin.ir.builders.declarations.addGetter
 import org.jetbrains.kotlin.ir.builders.declarations.addTypeParameter
 import org.jetbrains.kotlin.ir.builders.declarations.addValueParameter
 import org.jetbrains.kotlin.ir.builders.declarations.buildField
 import org.jetbrains.kotlin.ir.builders.declarations.buildFun
 import org.jetbrains.kotlin.ir.builders.declarations.buildProperty
 import org.jetbrains.kotlin.ir.builders.irBlockBody
+import org.jetbrains.kotlin.ir.builders.irReturn
 import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
 import org.jetbrains.kotlin.ir.declarations.IrAttributeContainer
 import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFile
@@ -377,15 +379,7 @@ abstract class AbstractComposeLowering(
                 null
 
         is Stability.Parameter -> resolve(parameter)
-        is Stability.Runtime -> {
-            val stableField = declaration.makeStabilityField()
-            IrGetFieldImpl(
-                UNDEFINED_OFFSET,
-                UNDEFINED_OFFSET,
-                stableField.symbol,
-                stableField.type
-            )
-        }
+        is Stability.Runtime -> declaration.runtimeStabilityValue()
 
         is Stability.Unknown -> null
     }
@@ -904,42 +898,45 @@ abstract class AbstractComposeLowering(
         }
     }
 
-    private fun IrClass.makeStabilityFieldJvm(): IrField {
+    private fun IrField.stabilityFieldValue(): IrGetField =
+        IrGetFieldImpl(
+            UNDEFINED_OFFSET,
+            UNDEFINED_OFFSET,
+            this.symbol,
+            this.type
+        )
+
+    private fun IrClass.runtimeStabilityValue(): IrExpression {
+        return if (context.platform.isJvm()) {
+            val stableField = this.makeStabilityFieldJvm()
+            stableField.stabilityFieldValue()
+        } else {
+            val stableProp = this.makeStabilityProp()
+            irCall(stableProp.getter!!, SYNTHETIC_OFFSET, SYNTHETIC_OFFSET)
+        }
+    }
+
+    private fun makeStabilityField(fieldName: Name): IrField {
         return context.irFactory.buildField {
             startOffset = SYNTHETIC_OFFSET
             endOffset = SYNTHETIC_OFFSET
-            name = KtxNameConventions.STABILITY_FLAG
+            name = fieldName
             isStatic = true
             isFinal = true
             type = context.irBuiltIns.intType
             visibility = DescriptorVisibilities.PUBLIC
-        }.also { stabilityField ->
+        }
+    }
+
+    private fun IrClass.makeStabilityFieldJvm(): IrField {
+        return makeStabilityField(KtxNameConventions.STABILITY_FLAG).also { stabilityField ->
             stabilityField.parent = this@makeStabilityFieldJvm
         }
     }
 
-    private fun IrClass.makeStabilityFieldNonJvm(): IrField {
-        val stabilityFieldName = this.uniqueStabilityFieldName()
+    private fun IrClass.makeStabilityProp(): IrProperty {
         val fieldParent = this.getPackageFragment()
 
-        return context.irFactory.buildField {
-            startOffset = SYNTHETIC_OFFSET
-            endOffset = SYNTHETIC_OFFSET
-            name = stabilityFieldName
-            isStatic = true
-            isFinal = true
-            type = context.irBuiltIns.intType
-            visibility = DescriptorVisibilities.PUBLIC
-        }.let { stabilityField ->
-            stabilityField.parent = fieldParent
-            makeStabilityProp(stabilityField, fieldParent)
-        }.backingField!!
-    }
-
-    private fun IrClass.makeStabilityProp(
-        stabilityField: IrField,
-        fieldParent: IrDeclarationContainer
-    ): IrProperty {
         val propName = this@makeStabilityProp.uniqueStabilityPropertyName()
         val existingProp = fieldParent.declarations.firstOrNull {
             it is IrProperty && it.name == propName
@@ -947,18 +944,38 @@ abstract class AbstractComposeLowering(
         if (existingProp != null) {
             return existingProp
         }
+
+        val stabilityField = makeStabilityField(this.uniqueStabilityFieldName()).also {
+            it.parent = fieldParent
+        }
         return context.irFactory.buildProperty {
             startOffset = SYNTHETIC_OFFSET
             endOffset = SYNTHETIC_OFFSET
             name = propName
             visibility = DescriptorVisibilities.PUBLIC
-            isConst = true
         }.also { property ->
             property.parent = fieldParent
             stabilityField.correspondingPropertySymbol = property.symbol
             property.backingField = stabilityField
             fieldParent.addChild(property)
+
+            property.addGetter {
+                startOffset = SYNTHETIC_OFFSET
+                endOffset = SYNTHETIC_OFFSET
+                returnType = stabilityField.type
+                visibility = DescriptorVisibilities.PUBLIC
+                origin = IrDeclarationOrigin.DEFAULT_PROPERTY_ACCESSOR
+            }.also { fn ->
+                fn.parent = fieldParent
+                fn.body = DeclarationIrBuilder(context, fn.symbol).irBlockBody {
+                    +irReturn(stabilityField.stabilityFieldValue())
+                }
+            }
         }
+    }
+
+    private fun IrClass.makeStabilityFieldNonJvm(): IrField {
+        return makeStabilityProp().backingField!!
     }
 
     fun IrExpression.isStatic(): Boolean {
