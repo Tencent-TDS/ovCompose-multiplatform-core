@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastForEach
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.ObjCAction
@@ -405,6 +406,7 @@ internal class ComposeContainer(
     }
 }
 
+@OptIn(BetaInteropApi::class)
 private fun UIViewController.checkIfInsideSwiftUI(): Boolean {
     var parent = parentViewController
 
