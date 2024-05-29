@@ -66,18 +66,21 @@ class ComposeUIViewControllerConfiguration {
 interface ComposeUIViewControllerDelegate {
     /**
      * https://developer.apple.com/documentation/uikit/uiviewcontroller/1621416-preferredstatusbarstyle?language=objc
+     * @return null if UIKit default should be used.
      */
     val preferredStatusBarStyle: UIStatusBarStyle?
         get() = null
 
     /**
      * https://developer.apple.com/documentation/uikit/uiviewcontroller/1621434-preferredstatusbarupdateanimatio?language=objc
+     * @return null if UIKit default should be used.
      */
     val preferredStatysBarAnimation: UIStatusBarAnimation?
         get() = null
 
     /**
      * https://developer.apple.com/documentation/uikit/uiviewcontroller/1621440-prefersstatusbarhidden?language=objc
+     * @return null if UIKit default should be used.
      */
     val prefersStatusBarHidden: Boolean?
         get() = null
