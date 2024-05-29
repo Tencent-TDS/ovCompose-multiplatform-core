@@ -52,10 +52,11 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastForEach
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
+import kotlin.native.runtime.GC
+import kotlin.native.runtime.NativeRuntimeApi
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
-import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
@@ -95,6 +96,7 @@ import platform.darwin.dispatch_get_main_queue
 private val coroutineDispatcher = Dispatchers.Main
 
 // TODO: Move to androidx.compose.ui.scene
+@OptIn(BetaInteropApi::class)
 @ExportObjCClass
 internal class ComposeContainer(
     private val configuration: ComposeUIViewControllerConfiguration,
@@ -149,13 +151,16 @@ internal class ComposeContainer(
         }
 
     override fun preferredStatusBarStyle(): UIStatusBarStyle =
-        configuration.delegate.preferredStatusBarStyle ?: super.preferredStatusBarStyle()
+        configuration.delegate.preferredStatusBarStyle
+            ?: super.preferredStatusBarStyle()
 
     override fun preferredStatusBarUpdateAnimation(): UIStatusBarAnimation =
-        configuration.delegate.preferredStatysBarAnimation ?: super.preferredStatusBarUpdateAnimation()
+        configuration.delegate.preferredStatysBarAnimation
+            ?: super.preferredStatusBarUpdateAnimation()
 
     override fun prefersStatusBarHidden(): Boolean =
-        configuration.delegate.prefersStatusBarHidden ?: super.prefersStatusBarHidden()
+        configuration.delegate.prefersStatusBarHidden
+            ?: super.prefersStatusBarHidden()
 
     override fun viewSafeAreaInsetsDidChange() {
         super.viewSafeAreaInsetsDidChange()
@@ -281,11 +286,12 @@ internal class ComposeContainer(
         configuration.delegate.viewWillDisappear(animated)
     }
 
+    @OptIn(NativeRuntimeApi::class)
     override fun viewDidDisappear(animated: Boolean) {
         super.viewDidDisappear(animated)
 
         dispatch_async(dispatch_get_main_queue()) {
-            kotlin.native.internal.GC.collect()
+            GC.collect()
         }
 
         lifecycleOwner.handleViewDidDisappear()
@@ -297,9 +303,10 @@ internal class ComposeContainer(
         dispose()
     }
 
+    @OptIn(NativeRuntimeApi::class)
     override fun didReceiveMemoryWarning() {
         println("didReceiveMemoryWarning")
-        kotlin.native.internal.GC.collect()
+        GC.collect()
         super.didReceiveMemoryWarning()
     }
 
@@ -307,7 +314,10 @@ internal class ComposeContainer(
         ComposeSceneContextImpl(platformContext)
 
     @OptIn(ExperimentalComposeApi::class)
-    private fun createSkikoUIView(interopContext: UIKitInteropContext, renderRelegate: SkikoRenderDelegate): RenderingUIView =
+    private fun createSkikoUIView(
+        interopContext: UIKitInteropContext,
+        renderRelegate: SkikoRenderDelegate
+    ): RenderingUIView =
         RenderingUIView(interopContext, renderRelegate).apply {
             opaque = configuration.opaque
         }
