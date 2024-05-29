@@ -60,28 +60,28 @@ private val hiddenValues = listOf(
 
 private val animationValues = listOf(
     "null" to null,
-    "Fade" to UIStatusBarAnimation.UIStatusBarAnimationFade,
-    "Slide" to UIStatusBarAnimation.UIStatusBarAnimationSlide
+    "UIStatusBarAnimationFade" to UIStatusBarAnimation.UIStatusBarAnimationFade,
+    "UIStatusBarAnimationSlide" to UIStatusBarAnimation.UIStatusBarAnimationSlide
 )
 
 private val styleValues = listOf(
     "null" to null,
-    "Default" to UIStatusBarStyleDefault,
-    "Light Content" to UIStatusBarStyleLightContent,
-    "Dark Content" to UIStatusBarStyleDarkContent
+    "UIStatusBarStyleDefault" to UIStatusBarStyleDefault,
+    "UIStatusBarStyleLightContent" to UIStatusBarStyleLightContent,
+    "UIStatusBarStyleDarkContent" to UIStatusBarStyleDarkContent
 )
 
 val StatusBarStateExample = Screen.Example("StatusBarState") {
     Column(modifier = Modifier.fillMaxSize()) {
-        Dropdown("Status Bar Style", styleValues[statusBarStyleIndex].first, styleValues.map { it.first }) {
+        Dropdown("preferredStatusBarStyle", styleValues[statusBarStyleIndex].first, styleValues.map { it.first }) {
             statusBarStyleIndex = it
         }
 
-        Dropdown("Prefers Status Bar Hidden", hiddenValues[statusBarHiddenIndex].first, hiddenValues.map { it.first }) {
+        Dropdown("prefersStatusBarHidden", hiddenValues[statusBarHiddenIndex].first, hiddenValues.map { it.first }) {
             statusBarHiddenIndex = it
         }
 
-        Dropdown("Preferred Status Bar Animation", animationValues[statusBarAnimationIndex].first, animationValues.map { it.first }) {
+        Dropdown("preferredStatysBarAnimation", animationValues[statusBarAnimationIndex].first, animationValues.map { it.first }) {
             statusBarAnimationIndex = it
         }
     }
