@@ -80,6 +80,8 @@ import platform.UIKit.UIContentSizeCategoryExtraSmall
 import platform.UIKit.UIContentSizeCategoryLarge
 import platform.UIKit.UIContentSizeCategoryMedium
 import platform.UIKit.UIContentSizeCategorySmall
+import platform.UIKit.UIStatusBarAnimation
+import platform.UIKit.UIStatusBarStyle
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
@@ -145,10 +147,18 @@ internal class ComposeContainer(
             }
         }
 
-    @Suppress("unused")
-    @ObjCAction
-    fun viewSafeAreaInsetsDidChange() {
-        // super.viewSafeAreaInsetsDidChange() // TODO: call super after Kotlin 1.8.20
+    override fun preferredStatusBarStyle(): UIStatusBarStyle =
+        configuration.delegate.preferredStatusBarStyle ?: super.preferredStatusBarStyle()
+
+    override fun preferredStatusBarUpdateAnimation(): UIStatusBarAnimation =
+        configuration.delegate.preferredStatysBarAnimation ?: super.preferredStatusBarUpdateAnimation()
+
+    override fun prefersStatusBarHidden(): Boolean =
+        configuration.delegate.prefersStatusBarHidden ?: super.prefersStatusBarHidden()
+
+    override fun viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+
         mediator?.viewSafeAreaInsetsDidChange()
         layers.fastForEach {
             it.viewSafeAreaInsetsDidChange()
