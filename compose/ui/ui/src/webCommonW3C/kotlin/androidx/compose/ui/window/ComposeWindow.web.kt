@@ -187,6 +187,10 @@ internal class ComposeWindow(
             override fun sendKeyEvent(event: KeyEvent) {
                 layer.onKeyboardEvent(event)
             }
+
+            override fun processKeyboardEvent(keyboardEvent: KeyboardEvent) {
+                this@ComposeWindow.processKeyboardEvent(keyboardEvent)
+            }
         }
 
         override val viewConfiguration =
@@ -216,6 +220,11 @@ internal class ComposeWindow(
         handler: (event: T) -> Unit
     ) {
         canvasEvents.addDisposableEvent(type) { event -> handler(event as T) }
+    }
+
+    private fun processKeyboardEvent(keyboardEvent: KeyboardEvent) {
+        val processed = layer.onKeyboardEvent(keyboardEvent.toComposeEvent())
+        if (processed) keyboardEvent.preventDefault()
     }
 
     private fun initEvents(canvas: HTMLCanvasElement) {
@@ -275,13 +284,11 @@ internal class ComposeWindow(
         })
 
         addTypedEvent<KeyboardEvent>("keydown") { event ->
-            val processed = layer.onKeyboardEvent(event.toComposeEvent())
-            if (processed) event.preventDefault()
+            processKeyboardEvent(event)
         }
 
         addTypedEvent<KeyboardEvent>("keyup") { event ->
-            val processed = layer.onKeyboardEvent(event.toComposeEvent())
-            if (processed) event.preventDefault()
+            processKeyboardEvent(event)
         }
 
         state.globalEvents.addDisposableEvent("focus") {
