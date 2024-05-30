@@ -44,7 +44,7 @@ internal class BackingTextArea(
 ) {
     private val textArea: HTMLTextAreaElement = createHtmlInput()
 
-    fun processIdentifiedEvent(evt: Event) {
+    private fun processIdentifiedEvent(evt: Event) {
         if (evt !is KeyboardEvent) return
         // TODO: In theory nothing stops us from passing Unidentified keys but this yet to be investigated:
         // First, this way we will pass (and attempt to process) "dummy" KeyboardEvents that were designed not to have physical representation at all
