@@ -28,7 +28,6 @@ import org.w3c.dom.events.KeyboardEvent
 
 internal interface InputAwareInputService {
     fun getOffset(rect: Rect): Offset
-    fun sendKeyEvent(event: KeyEvent)
     fun processKeyboardEvent(keyboardEvent: KeyboardEvent)
     fun isVirtualKeyboard(): Boolean
 }
