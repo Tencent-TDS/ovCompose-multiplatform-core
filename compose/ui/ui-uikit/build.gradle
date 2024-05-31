@@ -85,14 +85,14 @@ private def configure(target, isDevice, architecture, testTarget) {
         def testFrameworkTaskName = "${target.name}FrameworkTest"
 
         def getTargetDeviceTask = project.tasks.register(getTargetDeviceTaskName, Exec) {
+            ext.device = ""
             commandLine "xcrun", "simctl", "list", "devices"
-
             standardOutput = new ByteArrayOutputStream()
             doLast {
                 def output = standardOutput.toString()
                 def match = output.find("iPhone 1[567][ \\w\\d]* \\(")
-                def device = match.dropRight(2)
-                project.tasks.getByName(getTargetDeviceTaskName).ext.device = device
+                def targetDevice = match.dropRight(2)
+                device = targetDevice
             }
         }
 
@@ -104,7 +104,7 @@ private def configure(target, isDevice, architecture, testTarget) {
                     commandLine "xcodebuild",
                             "test",
                             "-scheme", testSchemeName,
-                            "-destination", "platform=iOS Simulator,name=${getTargetDeviceTask.ext.device}",
+                            "-destination", "platform=iOS Simulator,name=${tasks[getTargetDeviceTaskName].device}",
                             "-sdk", sdkName,
                             "VALID_ARCHS=${architecture}"
                 }
