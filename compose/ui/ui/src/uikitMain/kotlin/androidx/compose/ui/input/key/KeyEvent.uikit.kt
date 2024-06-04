@@ -41,6 +41,7 @@ internal fun UIPress.toComposeEvent(): KeyEvent {
     }
 
     // UIPress has special types for arrow keys and page up/down and has null `key`
+    // For other keys the `type` returns an int value that doesn't match any UIPressType enum case.
     val specialTypeKey = when (type) {
         UIPressTypeUpArrow -> Key.DirectionUp
         UIPressTypeDownArrow -> Key.DirectionDown
