@@ -24,28 +24,51 @@ import platform.UIKit.UIKeyModifierShift
 import platform.UIKit.UIPress
 import platform.UIKit.UIPressPhase.UIPressPhaseBegan
 import platform.UIKit.UIPressPhase.UIPressPhaseEnded
+import platform.UIKit.UIPressTypeDownArrow
+import platform.UIKit.UIPressTypeLeftArrow
+import platform.UIKit.UIPressTypePageDown
+import platform.UIKit.UIPressTypePageUp
+import platform.UIKit.UIPressTypeRightArrow
+import platform.UIKit.UIPressTypeUpArrow
 
 internal fun UIPress.toComposeEvent(): KeyEvent {
-    // TODO: https://developer.apple.com/documentation/uikit/uipress/3526315-key
-    //  can be potentially nil on TVOS, this will cause a crash
-    val uiKey = requireNotNull(key) {
-        "UIPress with null key is not supported"
+    val pressKey = key
+
+    val keyEventType = when (phase) {
+        UIPressPhaseBegan -> KeyEventType.KeyDown
+        UIPressPhaseEnded -> KeyEventType.KeyUp
+        else -> KeyEventType.Unknown
     }
+
+    // UIPress has special types for arrow keys and page up/down and has null `key`
+    val specialTypeKey = when (type) {
+        UIPressTypeUpArrow -> Key.DirectionUp
+        UIPressTypeDownArrow -> Key.DirectionDown
+        UIPressTypeLeftArrow -> Key.DirectionLeft
+        UIPressTypeRightArrow -> Key.DirectionRight
+        UIPressTypePageDown -> Key.PageDown
+        UIPressTypePageUp -> Key.PageUp
+        else -> null
+    }
+
+    val key = specialTypeKey ?: pressKey?.keyCode?.let { Key(it) } ?: Key.Unknown
+    val codePoint = pressKey?.characters?.firstOrNull()?.code ?: 0
+
+    val modifiers = pressKey?.let {
+        PointerKeyboardModifiers(
+            isCtrlPressed = it.modifierFlags and UIKeyModifierControl != 0L,
+            isMetaPressed = it.modifierFlags and UIKeyModifierCommand != 0L,
+            isAltPressed = it.modifierFlags and UIKeyModifierAlternate != 0L,
+            isShiftPressed = it.modifierFlags and UIKeyModifierShift != 0L,
+        )
+    } ?: PointerKeyboardModifiers()
+
     return KeyEvent(
         nativeKeyEvent = InternalKeyEvent(
-            key = Key(uiKey.keyCode),
-            type = when (phase) {
-                UIPressPhaseBegan -> KeyEventType.KeyDown
-                UIPressPhaseEnded -> KeyEventType.KeyUp
-                else -> KeyEventType.Unknown
-            },
-            codePoint = uiKey.characters.firstOrNull()?.code ?: 0,
-            modifiers = PointerKeyboardModifiers(
-                isCtrlPressed = uiKey.modifierFlags and UIKeyModifierControl != 0L,
-                isMetaPressed = uiKey.modifierFlags and UIKeyModifierCommand != 0L,
-                isAltPressed = uiKey.modifierFlags and UIKeyModifierAlternate != 0L,
-                isShiftPressed = uiKey.modifierFlags and UIKeyModifierShift != 0L,
-            ),
+            key = key,
+            type = keyEventType,
+            codePoint = codePoint,
+            modifiers = modifiers,
             nativeEvent = this
         )
     )
