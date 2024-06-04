@@ -55,14 +55,13 @@ internal fun UIPress.toComposeEvent(): KeyEvent {
     val key = specialTypeKey ?: pressKey?.keyCode?.let { Key(it) } ?: Key.Unknown
     val codePoint = pressKey?.characters?.firstOrNull()?.code ?: 0
 
-    val modifiers = pressKey?.let {
-        PointerKeyboardModifiers(
-            isCtrlPressed = it.modifierFlags and UIKeyModifierControl != 0L,
-            isMetaPressed = it.modifierFlags and UIKeyModifierCommand != 0L,
-            isAltPressed = it.modifierFlags and UIKeyModifierAlternate != 0L,
-            isShiftPressed = it.modifierFlags and UIKeyModifierShift != 0L,
-        )
-    } ?: PointerKeyboardModifiers()
+    val modifierFlags = pressKey?.modifierFlags ?: 0L
+    val modifiers = PointerKeyboardModifiers(
+        isCtrlPressed = modifierFlags and UIKeyModifierControl != 0L,
+        isMetaPressed = modifierFlags and UIKeyModifierCommand != 0L,
+        isAltPressed = modifierFlags and UIKeyModifierAlternate != 0L,
+        isShiftPressed = modifierFlags and UIKeyModifierShift != 0L,
+    )
 
     return KeyEvent(
         nativeKeyEvent = InternalKeyEvent(
