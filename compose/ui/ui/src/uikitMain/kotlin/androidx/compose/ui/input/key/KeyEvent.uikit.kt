@@ -32,8 +32,6 @@ import platform.UIKit.UIPressTypeRightArrow
 import platform.UIKit.UIPressTypeUpArrow
 
 internal fun UIPress.toComposeEvent(): KeyEvent {
-    val pressKey = key
-
     val keyEventType = when (phase) {
         UIPressPhaseBegan -> KeyEventType.KeyDown
         UIPressPhaseEnded -> KeyEventType.KeyUp
@@ -52,10 +50,10 @@ internal fun UIPress.toComposeEvent(): KeyEvent {
         else -> null
     }
 
-    val key = specialTypeKey ?: pressKey?.keyCode?.let { Key(it) } ?: Key.Unknown
-    val codePoint = pressKey?.characters?.firstOrNull()?.code ?: 0
+    val internalKey = specialTypeKey ?: key?.keyCode?.let { Key(it) } ?: Key.Unknown
+    val codePoint = key?.characters?.firstOrNull()?.code ?: 0
 
-    val modifierFlags = pressKey?.modifierFlags ?: 0L
+    val modifierFlags = key?.modifierFlags ?: 0L
     val modifiers = PointerKeyboardModifiers(
         isCtrlPressed = modifierFlags and UIKeyModifierControl != 0L,
         isMetaPressed = modifierFlags and UIKeyModifierCommand != 0L,
@@ -65,7 +63,7 @@ internal fun UIPress.toComposeEvent(): KeyEvent {
 
     return KeyEvent(
         nativeKeyEvent = InternalKeyEvent(
-            key = key,
+            key = internalKey,
             type = keyEventType,
             codePoint = codePoint,
             modifiers = modifiers,
