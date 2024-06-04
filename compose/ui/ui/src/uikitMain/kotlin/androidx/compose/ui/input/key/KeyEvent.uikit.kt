@@ -51,6 +51,7 @@ internal fun UIPress.toComposeEvent(): KeyEvent {
     }
 
     val internalKey = specialTypeKey ?: key?.keyCode?.let { Key(it) } ?: Key.Unknown
+    // TODO: review correctness of this code
     val codePoint = key?.characters?.firstOrNull()?.code ?: 0
 
     val modifierFlags = key?.modifierFlags ?: 0L
