@@ -130,9 +130,7 @@ internal class RootNodeOwner(
     var size: IntSize? = size
         set(value) {
             field = value
-            onRootConstrainsChanged(
-                constraints = value?.toConstraints() ?: Constraints()
-            )
+            onRootConstrainsChanged(value?.toConstraints())
         }
     var density by mutableStateOf(density)
 
@@ -155,6 +153,7 @@ internal class RootNodeOwner(
         snapshotObserver.startObserving()
         owner.root.attach(owner)
         platformContext.rootForTestListener?.onRootForTestCreated(rootForTest)
+        onRootConstrainsChanged(size?.toConstraints())
     }
 
     fun dispose() {
@@ -212,7 +211,7 @@ internal class RootNodeOwner(
         owner.root.modifier = rootModifier then modifier
     }
 
-    private fun onRootConstrainsChanged(constraints: Constraints) {
+    private fun onRootConstrainsChanged(constraints: Constraints?) {
         measureAndLayoutDelegate.updateRootConstraintsWithInfinityCheck(constraints)
         if (measureAndLayoutDelegate.hasPendingMeasureOrLayout) {
             snapshotInvalidationTracker.requestMeasureAndLayout()
@@ -582,12 +581,23 @@ internal const val LargeDimension = ConstraintsMinNonFocusMask - 1
  * and pass constraint large enough instead
  */
 private fun MeasureAndLayoutDelegate.updateRootConstraintsWithInfinityCheck(
-    constraints: Constraints
+    constraints: Constraints?
 ) {
-    val maxWidth = if (constraints.hasBoundedWidth) constraints.maxWidth else LargeDimension
-    val maxHeight = if (constraints.hasBoundedHeight) constraints.maxHeight else LargeDimension
     updateRootConstraints(
-        Constraints(constraints.minWidth, maxWidth, constraints.minHeight, maxHeight)
+        constraints = Constraints(
+            minWidth = constraints?.minWidth ?: 0,
+            maxWidth = if (constraints != null && constraints.hasBoundedWidth) {
+                constraints.maxWidth
+            } else {
+                LargeDimension
+            },
+            minHeight = constraints?.minHeight ?: 0,
+            maxHeight = if (constraints != null && constraints.hasBoundedHeight) {
+                constraints.maxHeight
+            } else {
+                LargeDimension
+            }
+        )
     )
 }
 
