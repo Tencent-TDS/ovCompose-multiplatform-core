@@ -600,6 +600,8 @@ internal class SuspendingPointerInputModifierNodeImpl(
                 )
             }
 
+        if (newChanges.isEmpty()) return
+
         val cancelEvent = PointerEvent(newChanges)
 
         currentEvent = cancelEvent
