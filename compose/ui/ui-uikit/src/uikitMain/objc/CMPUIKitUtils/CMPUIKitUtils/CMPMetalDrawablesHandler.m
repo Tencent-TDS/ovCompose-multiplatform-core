@@ -19,7 +19,7 @@
     return self;
 }
 
-- (void * __nullable CMP_OWNED)nextDrawable {
+- (void * CMP_OWNED)nextDrawable {
     id <CAMetalDrawable> drawable = [_metalLayer nextDrawable];
     
     if (drawable) {

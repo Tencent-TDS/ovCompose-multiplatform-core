@@ -17,7 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (instancetype)initWithMetalLayer:(CAMetalLayer *)metalLayer;
 
-- (void * __nullable CMP_OWNED)nextDrawable;
+- (void * CMP_OWNED)nextDrawable;
 - (void)releaseDrawable:(void * CMP_CONSUMED)drawablePtr;
 - (void * CMP_BORROWED)drawableTexture:(void * CMP_BORROWED)drawablePtr;
 - (void)presentDrawable:(void * CMP_CONSUMED)drawablePtr;
