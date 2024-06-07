@@ -48,15 +48,13 @@ import org.jetbrains.skia.paragraph.RectWidthMode
 import org.jetbrains.skia.paragraph.TextBox
 
 internal class SkiaParagraph(
-    intrinsics: ParagraphIntrinsics,
+    private val paragraphIntrinsics: SkiaParagraphIntrinsics,
     val maxLines: Int,
     val ellipsis: Boolean,
     val constraints: Constraints
 ) : Paragraph {
 
     private val ellipsisChar = if (ellipsis) "\u2026" else ""
-
-    private val paragraphIntrinsics = intrinsics as SkiaParagraphIntrinsics
 
     private val layouter = paragraphIntrinsics.layouter().apply {
         setParagraphStyle(
