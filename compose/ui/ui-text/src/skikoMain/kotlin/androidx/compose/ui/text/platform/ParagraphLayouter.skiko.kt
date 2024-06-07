@@ -189,13 +189,22 @@ internal class ParagraphLayouter(
     fun layoutParagraph(width: Float): Paragraph {
         var paragraph = paragraphCache
         return if (paragraph != null) {
-            if (!this.width.sameValueAs(width)) {
-                this.width = width
-                paragraph.layout(width)
-            }
+            var layoutRequired = false
             if (updateForeground) {
                 builder.updateForegroundPaint(paragraph)
                 updateForeground = false
+
+                // Skia caches everything internally, so to actually apply it
+                // markDirty + layout is required.
+                paragraph.markDirty()
+                layoutRequired = true
+            }
+            if (!this.width.sameValueAs(width)) {
+                this.width = width
+                layoutRequired = true
+            }
+            if (layoutRequired) {
+                paragraph.layout(width)
             }
             paragraph
         } else {

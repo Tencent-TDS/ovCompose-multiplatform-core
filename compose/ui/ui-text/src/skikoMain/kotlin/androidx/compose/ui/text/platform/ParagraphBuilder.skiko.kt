@@ -83,7 +83,7 @@ private val DefaultFontSize = 16.sp
 // It's important because density could be changed in runtime, and it should force
 // SkTextStyle to be recalculated. Or we can have different densities in different windows.
 @OptIn(ExperimentalTextApi::class)
-internal data class ComputedStyle(
+private data class ComputedStyle(
     var textForegroundStyle: TextForegroundStyle = TextForegroundStyle.Unspecified,
     var brushSize: Size = Size.Unspecified,
     var fontSize: Float = Float.NaN,
@@ -146,11 +146,16 @@ internal data class ComputedStyle(
         } else null
     }
 
-    private val _foregroundPaint = Paint()
+    private val _foregroundPaint = SkiaTextPaint()
     fun getForegroundPaint(): Paint {
-        _foregroundPaint.reset()
-        _foregroundPaint.apply(this)
-        return _foregroundPaint
+        // `asFrameworkPaint` doesn't create a copy,
+        // so all the changes will be applied to skia paint.
+        val paint = _foregroundPaint.asFrameworkPaint()
+        paint.reset()
+        _foregroundPaint.setBrush(textForegroundStyle.brush, brushSize, textForegroundStyle.alpha)
+        _foregroundPaint.setDrawStyle(drawStyle)
+        _foregroundPaint.blendMode = blendMode
+        return paint
     }
 
     fun toSkTextStyle(fontFamilyResolver: FontFamily.Resolver): SkTextStyle {
@@ -241,12 +246,6 @@ internal data class ComputedStyle(
     }
 }
 
-private fun Paint.apply(style: ComputedStyle) = with(asComposePaint()) {
-    applyBrush(style.textForegroundStyle.brush, style.brushSize, style.textForegroundStyle.alpha)
-    applyDrawStyle(style.drawStyle)
-    blendMode = style.blendMode
-}
-
 // Building of SkTextStyle is a relatively expensive operation. We enable simple caching by
 // mapping SpanStyle to SkTextStyle. To increase the efficiency of this mapping we are making
 // most of the computations before converting Compose paragraph styles to Skia paragraph
@@ -270,14 +269,18 @@ internal class ParagraphBuilder(
     private lateinit var initialStyle: SpanStyle
     private lateinit var ops: List<Op>
 
-    fun updateForegroundPaint(paragraph: SkParagraph?) {
-        if (paragraph == null) return
+    private fun prepareDefaultStyle() {
         initialStyle = textStyle.toSpanStyle().copyWithDefaultFontSize(
             drawStyle = drawStyle
         )
         defaultStyle.set(density, initialStyle, brushSize, blendMode, textStyle.lineHeight)
-        val paint = defaultStyle.getForegroundPaint()
-        paragraph.updateForegroundPaint(0, 0, paint)
+    }
+
+    fun updateForegroundPaint(paragraph: SkParagraph?) {
+        if (paragraph == null) return
+        prepareDefaultStyle()
+        val foregroundPaint = defaultStyle.getForegroundPaint()
+        paragraph.updateForegroundPaint(0, text.length, foregroundPaint)
     }
 
     /**
@@ -291,10 +294,7 @@ internal class ParagraphBuilder(
      * of active styles is being compiled into single SkParagraph's style for every chunk of text
      */
     fun build(): SkParagraph {
-        initialStyle = textStyle.toSpanStyle().copyWithDefaultFontSize(
-            drawStyle = drawStyle
-        )
-        defaultStyle.set(density, initialStyle, brushSize, blendMode, textStyle.lineHeight)
+        prepareDefaultStyle()
         ops = makeOps(
             spanStyles,
             placeholders
