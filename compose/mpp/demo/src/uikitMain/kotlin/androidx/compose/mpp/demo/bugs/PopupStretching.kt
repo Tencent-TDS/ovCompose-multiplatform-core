@@ -41,24 +41,6 @@ import platform.UIKit.UIModalPresentationFormSheet
 import platform.UIKit.UISheetPresentationControllerDetent
 import platform.UIKit.sheetPresentationController
 
-//val bottomSheetUIViewController =
-//    ComposeUIViewController {
-//        VerticalScrollWithIndependentHorizontalRows()
-//    }
-//bottomSheetUIViewController.modalPresentationStyle = UIModalPresentationFormSheet
-//bottomSheetUIViewController.sheetPresentationController?.setDetents(
-//listOf(
-//UISheetPresentationControllerDetent.mediumDetent(),
-//UISheetPresentationControllerDetent.largeDetent(),
-//)
-//)
-//
-//UIApplication.sharedApplication.keyWindow?.rootViewController?.presentViewController(
-//viewControllerToPresent = bottomSheetUIViewController,
-//animated = true,
-//completion = {},
-//)
-
 val PopupStretching = Screen.Example("Popup stretching") {
     val viewController = LocalUIViewController.current
 
