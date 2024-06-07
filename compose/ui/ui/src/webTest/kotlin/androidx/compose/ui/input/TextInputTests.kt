@@ -122,8 +122,12 @@ class TextInputTests : OnCanvasTests  {
 
         assertEquals("step2step3", textInputChannel.receive())
 
-        backingField.dispatchEvent(InputEvent("input", InputEventInit("insertText", "step4")))
+        backingField.dispatchEvent(InputEvent("input", InputEventInit("insertText", "step4XX")))
 
+        assertEquals("step2step3step4XX", textInputChannel.receive())
+
+        backingField.dispatchEvent(InputEvent("input", InputEventInit("deleteContentBackward", "")))
+        backingField.dispatchEvent(InputEvent("input", InputEventInit("deleteContentBackward", "")))
         assertEquals("step2step3step4", textInputChannel.receive())
 
         canvas.dispatchEvent(keyDownEvent("s"))
