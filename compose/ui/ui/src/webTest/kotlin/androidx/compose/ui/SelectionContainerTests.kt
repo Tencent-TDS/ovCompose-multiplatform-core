@@ -52,7 +52,7 @@ class SelectionContainerTests : OnCanvasTests {
     fun setup() {
         // Because AfterTest is fixed only in kotlin 2.0
         // https://youtrack.jetbrains.com/issue/KT-61888
-        document.getElementById(canvasId)?.remove()
+        commonAfterTest()
     }
 
     fun HTMLCanvasElement.doClick() {
