@@ -49,14 +49,14 @@
 - (void)presentDrawable:(void * CMP_CONSUMED)drawablePtr {
     assert(drawablePtr != NULL);
     
-    id <CAMetalDrawable> drawable __unused = (__bridge_transfer id <CAMetalDrawable>)drawablePtr;
+    id <CAMetalDrawable> drawable = (__bridge_transfer id <CAMetalDrawable>)drawablePtr;
     [drawable present];
 }
 
 - (void)scheduleDrawablePresentation:(void * CMP_CONSUMED)drawablePtr onCommandBuffer:(id <MTLCommandBuffer>)commandBuffer {
     assert(drawablePtr != NULL);
     
-    id <CAMetalDrawable> drawable __unused = (__bridge_transfer id <CAMetalDrawable>)drawablePtr;
+    id <CAMetalDrawable> drawable = (__bridge_transfer id <CAMetalDrawable>)drawablePtr;
     [commandBuffer presentDrawable:drawable];
 }
 
