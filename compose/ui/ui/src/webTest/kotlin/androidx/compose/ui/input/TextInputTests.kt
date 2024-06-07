@@ -60,31 +60,24 @@ class TextInputTests : OnCanvasTests  {
 
         val canvas = document.getElementById(canvasId) as HTMLCanvasElement
 
+        val (firstFocusRequester, secondFocusRequester) = FocusRequester.createRefs()
+
         CanvasBasedWindow(canvasElementId = canvasId) {
-            val (firstFocusRequester, secondFocusRequester) = remember { FocusRequester.createRefs() }
 
             TextField(
                 value = "",
                 onValueChange = { value ->
                     textInputChannel.trySend(value)
-                    if (value == "step1") {
-                        canvas.dispatchEvent(createTouchEvent("touchstart"))
-                        secondFocusRequester.requestFocus()
-                    }
                 },
-                modifier = Modifier.fillMaxSize().focusRequester(firstFocusRequester)
+                modifier = Modifier.focusRequester(firstFocusRequester)
             )
 
             TextField(
                 value = "",
                 onValueChange = { value ->
                     textInputChannel.trySend(value)
-                    if (value == "step2step3step4") {
-                        canvas.dispatchEvent(createMouseEvent("mousedown"))
-                        firstFocusRequester.requestFocus()
-                    }
                 },
-                modifier = Modifier.fillMaxSize().focusRequester(secondFocusRequester)
+                modifier = Modifier.focusRequester(secondFocusRequester)
             )
 
             SideEffect {
@@ -102,6 +95,12 @@ class TextInputTests : OnCanvasTests  {
         canvas.dispatchEvent(keyDownEvent("1"))
 
         assertEquals("step1", textInputChannel.receive())
+        assertNull(document.querySelector("textarea"))
+
+        // trigger virtual keyboard
+        canvas.dispatchEvent(createTouchEvent("touchstart"))
+        secondFocusRequester.requestFocus()
+
         assertNotNull(document.querySelector("textarea"))
 
         canvas.dispatchEvent(keyDownEvent("s"))
@@ -129,6 +128,10 @@ class TextInputTests : OnCanvasTests  {
         backingField.dispatchEvent(InputEvent("input", InputEventInit("deleteContentBackward", "")))
         backingField.dispatchEvent(InputEvent("input", InputEventInit("deleteContentBackward", "")))
         assertEquals("step2step3step4", textInputChannel.receive())
+
+        // trigger hardware keyboard
+        canvas.dispatchEvent(createMouseEvent("mousedown"))
+        firstFocusRequester.requestFocus()
 
         canvas.dispatchEvent(keyDownEvent("s"))
         canvas.dispatchEvent(keyDownEvent("t"))
