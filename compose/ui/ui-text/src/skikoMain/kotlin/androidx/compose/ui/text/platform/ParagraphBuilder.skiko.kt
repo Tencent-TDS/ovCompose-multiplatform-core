@@ -152,6 +152,7 @@ private data class ComputedStyle(
         // so all the changes will be applied to skia paint.
         val paint = _foregroundPaint.asFrameworkPaint()
         paint.reset()
+        _foregroundPaint.color = textForegroundStyle.color
         _foregroundPaint.setBrush(textForegroundStyle.brush, brushSize, textForegroundStyle.alpha)
         _foregroundPaint.setDrawStyle(drawStyle)
         _foregroundPaint.blendMode = blendMode
