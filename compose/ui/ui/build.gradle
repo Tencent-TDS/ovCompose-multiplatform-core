@@ -146,6 +146,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         wasm()
 
         configureDarwinFlags()
+        configureTestsRunInIosSimulatorEnvironment()
     }
 
     kotlin {

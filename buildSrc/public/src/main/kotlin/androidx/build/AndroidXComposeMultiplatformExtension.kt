@@ -70,4 +70,9 @@ abstract class AndroidXComposeMultiplatformExtension {
      * Configures native compilation tasks with flags to link required frameworks
      */
     abstract fun configureDarwinFlags(): Unit
+
+    /**
+     * Configures tests to be run on an actual ios simulator.
+     */
+    abstract fun configureTestsRunInIosSimulatorEnvironment(device: String? = null): Unit
 }

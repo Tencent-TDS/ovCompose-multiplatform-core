@@ -16,19 +16,23 @@
 
 package androidx.build
 
+import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.Exec
 import org.gradle.kotlin.dsl.creating
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.getValue
+import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinJsCompilerType
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.tomlj.Toml
 
@@ -260,6 +264,28 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
             iosX64("uikitX64") { configureFreeCompilerArgs() }
             iosArm64("uikitArm64") { configureFreeCompilerArgs() }
             iosSimulatorArm64("uikitSimArm64") { configureFreeCompilerArgs() }
+        }
+    }
+
+    override fun configureTestsRunInIosSimulatorEnvironment(device: String?): Unit = multiplatformExtension.run {
+        val deviceName = device ?: project.findProperty("iosSimulatorName") as? String ?: error("Device is not provided. Use method parameter or -PiosSimulatorName='Device Name' property.")
+        val bootTask = project.tasks.register("bootIosSimulator", Exec::class.java) { task ->
+            task.isIgnoreExitValue = true
+            task.errorOutput = ByteArrayOutputStream()
+            task.doFirst {
+                task.commandLine("xcrun", "simctl", "boot", deviceName)
+            }
+            task.doLast {
+                val result = task.executionResult.get()
+                if (result.exitValue != 148 && result.exitValue != 149) { // ignoring device already booted errors
+                    result.assertNormalExitValue()
+                }
+            }
+        }
+        project.tasks.withType<KotlinNativeSimulatorTest>().configureEach { task ->
+            task.dependsOn(bootTask)
+            task.standalone.set(false)
+            task.device.set(deviceName)
         }
     }
 }
