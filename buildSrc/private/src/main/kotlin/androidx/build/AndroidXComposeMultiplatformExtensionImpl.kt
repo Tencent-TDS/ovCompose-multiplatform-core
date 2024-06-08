@@ -268,12 +268,14 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     }
 
     override fun configureTestsRunInIosSimulatorEnvironment(device: String?): Unit = multiplatformExtension.run {
-        val deviceName = device ?: project.findProperty("iosSimulatorName") as? String ?: error("Device is not provided. Use method parameter or -PiosSimulatorName='Device Name' property.")
+        fun getDeviceName(): String? {
+            return device ?: project.findProperty("iosSimulatorName") as? String
+        }
         val bootTask = project.tasks.register("bootIosSimulator", Exec::class.java) { task ->
             task.isIgnoreExitValue = true
             task.errorOutput = ByteArrayOutputStream()
             task.doFirst {
-                task.commandLine("xcrun", "simctl", "boot", deviceName)
+                task.commandLine("xcrun", "simctl", "boot", getDeviceName())
             }
             task.doLast {
                 val result = task.executionResult.get()
@@ -285,7 +287,7 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         project.tasks.withType<KotlinNativeSimulatorTest>().configureEach { task ->
             task.dependsOn(bootTask)
             task.standalone.set(false)
-            task.device.set(deviceName)
+            task.device.set(getDeviceName())
         }
     }
 }
