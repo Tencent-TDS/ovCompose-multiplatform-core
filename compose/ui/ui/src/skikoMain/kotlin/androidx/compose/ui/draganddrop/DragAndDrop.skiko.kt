@@ -22,7 +22,10 @@ import androidx.compose.ui.geometry.Offset
 
 actual class DragAndDropTransferData
 
-actual class DragAndDropEvent
+actual class DragAndDropEvent(
+    val rootPosition: Offset,
+    val nativeEvent: Any?,
+)
 
 internal actual val DragAndDropEvent.positionInRoot: Offset
-    get() = TODO("Drag&drop isn't implemented")
+    get() = rootPosition
