@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 
@@ -155,14 +156,19 @@ internal actual fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
 
     val handlePositionInText = if (isStartHandle) value.selection.start else value.selection.end
     val line = state?.layoutResult?.value?.getLineForOffset(handlePositionInText) ?: 0
-    val selectionHandleHeight =
+    val handleHeight =
         state?.layoutResult?.value?.multiParagraph?.getLineHeight(line) ?: 0f
     val handleOffset = getHandlePosition(isStartHandle)
 
-    val containsHorizontal = handleOffset.x in visibleBounds.left..visibleBounds.right
-    val heightTolerance = selectionHandleHeight * HeightToleranceFactor
+    return isSelectionHandleIsVisible(isStartHandle, handleOffset, handleHeight, visibleBounds)
+}
+
+internal fun isSelectionHandleIsVisible(isStartHandle: Boolean, position: Offset, height: Float, visibleBounds: Rect): Boolean {
+    println("isSelectionHandleIsVisible: $isStartHandle, (x: ${position.x}, y: ${position.y}), $height, (left: ${visibleBounds.left}, top: ${visibleBounds.top}, right: ${visibleBounds.right}, bottom: ${visibleBounds.bottom})")
+    val containsHorizontal = position.x in visibleBounds.left..visibleBounds.right
+    val heightTolerance = height * HeightToleranceFactor
     val toleratedY =
-        if (isStartHandle) handleOffset.y - selectionHandleHeight + heightTolerance else handleOffset.y - heightTolerance
+        if (isStartHandle) position.y - height + heightTolerance else position.y - heightTolerance
     val containsVertical = toleratedY in visibleBounds.top..visibleBounds.bottom
 
     return containsHorizontal && containsVertical
