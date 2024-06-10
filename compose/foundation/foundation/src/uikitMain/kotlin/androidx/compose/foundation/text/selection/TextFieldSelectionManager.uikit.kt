@@ -164,7 +164,6 @@ internal actual fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
 }
 
 internal fun isSelectionHandleIsVisible(isStartHandle: Boolean, position: Offset, height: Float, visibleBounds: Rect): Boolean {
-    println("isSelectionHandleIsVisible: $isStartHandle, (x: ${position.x}, y: ${position.y}), $height, (left: ${visibleBounds.left}, top: ${visibleBounds.top}, right: ${visibleBounds.right}, bottom: ${visibleBounds.bottom})")
     val containsHorizontal = position.x in visibleBounds.left..visibleBounds.right
     val heightTolerance = height * HeightToleranceFactor
     val toleratedY =
