@@ -24,7 +24,7 @@ import kotlin.test.Test
 @OptIn(ExperimentalNativeApi::class)
 class TextFieldSelectionManagerTest {
     @Test
-    fun selectionHandlesInLtrTextAreVisible() {
+    fun isSelectionHandleIsVisible_ltr_text() {
         // Text = "I am TextField"
         val isStartVisible = isSelectionHandleIsVisible(
             true,
@@ -42,7 +42,7 @@ class TextFieldSelectionManagerTest {
     }
 
     @Test
-    fun selectionHandlesInRtlTextAreVisible() {
+    fun isSelectionHandleIsVisible_rtl_text() {
         // Text = "أنا حقل النص"
         val isStartVisible = isSelectionHandleIsVisible(
             true,
@@ -60,7 +60,7 @@ class TextFieldSelectionManagerTest {
     }
 
     @Test
-    fun selectionHandlesInBiDiTextAreVisible() {
+    fun isSelectionHandleIsVisible_bidi_text() {
         // Text = "I am TextField أنا حقل النص"
         val isStartVisible = isSelectionHandleIsVisible(
             true,
@@ -78,7 +78,7 @@ class TextFieldSelectionManagerTest {
     }
 
     @Test
-    fun selectionHandlesInLtrTextAreInvisible() {
+    fun isSelectionHandleIsVisible_ltr_text_not_visible() {
         // Text = "I am TextField"
         val isStartInvisible = !isSelectionHandleIsVisible(
             true,
@@ -96,7 +96,7 @@ class TextFieldSelectionManagerTest {
     }
 
     @Test
-    fun selectionHandlesInRtlTextAreInvisible() {
+    fun isSelectionHandleIsVisible_rtl_text_not_visible() {
         // Text = "أنا حقل النص"
         val isStartInvisible = !isSelectionHandleIsVisible(
             true,
@@ -114,7 +114,7 @@ class TextFieldSelectionManagerTest {
     }
 
     @Test
-    fun selectionHandlesInBiDiTextAreInvisible() {
+    fun isSelectionHandleIsVisible_bidi_text_not_visible() {
         // Text = "I am TextField أنا حقل النص"
         val isStartInvisible = !isSelectionHandleIsVisible(
             true,
@@ -132,7 +132,7 @@ class TextFieldSelectionManagerTest {
     }
 
     @Test
-    fun selectionHandlesStartIsInvisibleEndIsVisible() {
+    fun isSelectionHandleIsVisible_start_is_invisible_end_is_visible() {
         /* Selected text in multiline scrollable textfield, start handle is located above then visible bounds */
         val isStartInvisible = !isSelectionHandleIsVisible(
             true,
@@ -150,7 +150,7 @@ class TextFieldSelectionManagerTest {
     }
 
     @Test
-    fun selectionHandlesStartIsVisibleEndIsInvisible() {
+    fun isSelectionHandleIsVisible_start_is_visible_end_is_invisible() {
         /* Selected text in multiline scrollable textfield, end handle is located beneath then visible bounds */
         val isStartVisible = isSelectionHandleIsVisible(
             true,
