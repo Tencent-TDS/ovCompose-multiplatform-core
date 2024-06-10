@@ -3496,9 +3496,12 @@ public final class androidx/compose/ui/scene/ComposeSceneContext$Companion {
 	public final fun getEmpty ()Landroidx/compose/ui/scene/ComposeSceneContext;
 }
 
-public abstract interface class androidx/compose/ui/scene/ComposeSceneFocusManager : androidx/compose/ui/focus/FocusManager {
-	public abstract fun getFocusRect ()Landroidx/compose/ui/geometry/Rect;
-	public abstract fun getHasFocus ()Z
+public final class androidx/compose/ui/scene/ComposeSceneFocusManager {
+	public static final field $stable I
+	public final fun getFocusRect ()Landroidx/compose/ui/geometry/Rect;
+	public final fun getHasFocus ()Z
+	public final fun releaseFocus ()V
+	public final fun takeFocus-3ESFkO8 (I)Z
 }
 
 public abstract interface class androidx/compose/ui/scene/ComposeSceneLayer {
