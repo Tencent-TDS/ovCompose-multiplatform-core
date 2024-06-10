@@ -115,7 +115,7 @@ internal class RootNodeOwner(
             owner.registerOnEndApplyChangesListener(it)
         },
         // onMoveFocusInterop's purpose is to move focus inside embed interop views.
-        // We use another logic inside SwingPanel
+        // Another logic is used in our child-interop views (SwingPanel, etc)
         onMoveFocusInterop = { false },
         onFocusRectInterop = { null },
         onLayoutDirection = { _layoutDirection },
