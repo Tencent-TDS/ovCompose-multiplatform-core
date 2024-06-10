@@ -223,7 +223,7 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     ): KotlinSourceSet = multiplatformExtension.run {
         sourceSets.findByName(name)
             ?: sourceSets.create(name).apply {
-                    dependsOn(sourceSets.getByName(dependsOnSourceSetName))
+                dependsOn(sourceSets.getByName(dependsOnSourceSetName))
             }
     }
 
@@ -267,27 +267,31 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         }
     }
 
-    override fun configureTestsRunInIosSimulatorEnvironment(device: String?): Unit = multiplatformExtension.run {
-        fun getDeviceName(): String? {
-            return device ?: project.findProperty("iosSimulatorName") as? String
-        }
-        val bootTask = project.tasks.register("bootIosSimulator", Exec::class.java) { task ->
-            task.isIgnoreExitValue = true
-            task.errorOutput = ByteArrayOutputStream()
-            task.doFirst {
-                task.commandLine("xcrun", "simctl", "boot", getDeviceName())
+    override fun configureTestsRunInIosSimulatorEnvironment(device: String?): Unit =
+        multiplatformExtension.run {
+            fun getDeviceName(): String? {
+                return device ?: project.findProperty("iosSimulatorName") as? String
             }
-            task.doLast {
-                val result = task.executionResult.get()
-                if (result.exitValue != 148 && result.exitValue != 149) { // ignoring device already booted errors
-                    result.assertNormalExitValue()
+
+            val bootTask = project.tasks.register("bootIosSimulator", Exec::class.java) { task ->
+                task.isIgnoreExitValue = true
+                task.errorOutput = ByteArrayOutputStream()
+                task.doFirst {
+                    val simulatorName = getDeviceName()
+                        ?: error("Device is not provided. Use Use the -PiosSimulatorName=<Device name> flag to pass the device.")
+                    task.commandLine("xcrun", "simctl", "boot", simulatorName)
+                }
+                task.doLast {
+                    val result = task.executionResult.get()
+                    if (result.exitValue != 148 && result.exitValue != 149) { // ignoring device already booted errors
+                        result.assertNormalExitValue()
+                    }
                 }
             }
+            project.tasks.withType<KotlinNativeSimulatorTest>().configureEach { task ->
+                task.dependsOn(bootTask)
+                task.standalone.set(false)
+                task.device.set(getDeviceName())
+            }
         }
-        project.tasks.withType<KotlinNativeSimulatorTest>().configureEach { task ->
-            task.dependsOn(bootTask)
-            task.standalone.set(false)
-            task.device.set(getDeviceName())
-        }
-    }
 }
