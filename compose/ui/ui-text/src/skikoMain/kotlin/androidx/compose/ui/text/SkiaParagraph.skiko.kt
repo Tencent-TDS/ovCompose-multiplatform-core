@@ -632,7 +632,8 @@ private fun IRange.toTextRange() = TextRange(start, end)
  * Returns `null` if the array is empty.
  */
 private inline fun <T> Array<out T>.binarySearchFirstMatchingOrLast(
-    crossinline predicate: (T) -> Boolean): T? {
+    crossinline predicate: (T) -> Boolean): T?
+{
     if (this.isEmpty()) {
         return null
     }
