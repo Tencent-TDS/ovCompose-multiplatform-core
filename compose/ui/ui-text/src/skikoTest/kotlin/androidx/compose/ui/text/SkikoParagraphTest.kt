@@ -30,7 +30,6 @@ import kotlin.test.assertFailsWith
 class SkikoParagraphTest {
     private val fontFamilyResolver = createFontFamilyResolver()
     private val defaultDensity = Density(density = 1f)
-    private val minWidthConstraint = 0
     private val maxWidthConstraint = 1000
 
     @Test
@@ -333,7 +332,7 @@ class SkikoParagraphTest {
     fun getHorizontalPosition_cursor_empty_textfield_ltr_start_alignment() {
         val paragraph = simpleParagraph("", TextStyle(textAlign = TextAlign.Start, textDirection = TextDirection.Ltr))
         val cursorHorizontalPosition: Float = paragraph.getHorizontalPosition(0, false)
-        assertEquals(minWidthConstraint.toFloat(), cursorHorizontalPosition)
+        assertEquals(0f, cursorHorizontalPosition)
     }
 
     @Test
@@ -361,14 +360,14 @@ class SkikoParagraphTest {
     fun getHorizontalPosition_cursor_empty_textfield_rtl_end_alignment() {
         val paragraph = simpleParagraph("", TextStyle(textAlign = TextAlign.End, textDirection = TextDirection.Rtl))
         val cursorHorizontalPosition = paragraph.getHorizontalPosition(0, false)
-        assertEquals(minWidthConstraint.toFloat(), cursorHorizontalPosition)
+        assertEquals(0f, cursorHorizontalPosition)
     }
 
     @Test
     fun getHorizontalPosition_cursor_empty_textfield_left_alignment() {
         val paragraph = simpleParagraph("", TextStyle(textAlign = TextAlign.Start))
         val cursorHorizontalPosition: Float = paragraph.getHorizontalPosition(0, false)
-        assertEquals(minWidthConstraint.toFloat(), cursorHorizontalPosition)
+        assertEquals(0f, cursorHorizontalPosition)
     }
 
     @Test
@@ -382,7 +381,7 @@ class SkikoParagraphTest {
     private fun simpleParagraph(text: String, textStyle: TextStyle = TextStyle()) = Paragraph(
         text = text,
         style = textStyle,
-        constraints = Constraints(minWidth = minWidthConstraint, maxWidth = maxWidthConstraint),
+        constraints = Constraints(maxWidth = maxWidthConstraint),
         density = defaultDensity,
         fontFamilyResolver = fontFamilyResolver
     )
