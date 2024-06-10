@@ -146,7 +146,13 @@ internal class MetalRedrawer(
     private val metalLayer: CAMetalLayer,
     private val callbacks: MetalRedrawerCallbacks
 ) {
-    private val metalDrawableHandler = CMPMetalDrawablesHandler(metalLayer)
+    /**
+     * A wrapper around CAMetalLayer that allows to perform operations on its drawables without
+     * exposing the objects to Kotlin/Native runtime and thus allowing explicit lifetime control of them.
+     *
+     * See ObjC implementation of [CMPMetalDrawablesHandler] for more details.
+     */
+    private val metalDrawablesHandler = CMPMetalDrawablesHandler(metalLayer)
     // Workaround for KN compiler bug
     // Type mismatch: inferred type is objcnames.protocols.MTLDeviceProtocol but platform.Metal.MTLDeviceProtocol was expected
     @Suppress("USELESS_CAST")
@@ -318,7 +324,7 @@ internal class MetalRedrawer(
             }
 
             val metalDrawable = trace("MetalRedrawer:draw:nextDrawable") {
-                metalDrawableHandler.nextDrawable()
+                metalDrawablesHandler.nextDrawable()
             }
 
             if (metalDrawable == null) {
@@ -330,7 +336,7 @@ internal class MetalRedrawer(
             }
 
             val renderTarget =
-                BackendRenderTarget.makeMetal(width, height, metalDrawableHandler.drawableTexture(metalDrawable).rawValue)
+                BackendRenderTarget.makeMetal(width, height, metalDrawablesHandler.drawableTexture(metalDrawable).rawValue)
 
             val surface = Surface.makeFromBackendRenderTarget(
                 context,
@@ -346,7 +352,7 @@ internal class MetalRedrawer(
                 // Logger.warn { "'Surface.makeFromBackendRenderTarget' returned null. Skipping the frame." }
                 picture.close()
                 renderTarget.close()
-                metalDrawableHandler.releaseDrawable(metalDrawable)
+                metalDrawablesHandler.releaseDrawable(metalDrawable)
                 dispatch_semaphore_signal(inflightSemaphore)
                 return@autoreleasepool
             }
@@ -377,7 +383,7 @@ internal class MetalRedrawer(
                     if (!presentsWithTransaction) {
                         // scheduleDrawablePresentation consumes metalDrawable
                         // don't use metalDrawable after this call
-                        metalDrawableHandler.scheduleDrawablePresentation(metalDrawable, commandBuffer)
+                        metalDrawablesHandler.scheduleDrawablePresentation(metalDrawable, commandBuffer)
                     }
 
                     commandBuffer.addCompletedHandler {
@@ -395,7 +401,7 @@ internal class MetalRedrawer(
 
                         // presentDrawable consumes metalDrawable
                         // don't use metalDrawable after this call
-                        metalDrawableHandler.presentDrawable(metalDrawable)
+                        metalDrawablesHandler.presentDrawable(metalDrawable)
 
                         interopTransaction.actions.fastForEach {
                             it.invoke()
