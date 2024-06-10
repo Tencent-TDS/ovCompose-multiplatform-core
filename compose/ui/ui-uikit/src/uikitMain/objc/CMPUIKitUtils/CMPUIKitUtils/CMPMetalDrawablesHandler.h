@@ -26,7 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
  A handler class for managing Metal drawables explicitly using raw pointers.
  This class encapsulates the lifecycle management of drawable objects,
  facilitating the use in environments where automatic reference counting (ARC)
- mixed with Kotlin/Native memory model that  leads to violation of practices enstated by Apple, which lead to inadequate memory spikes during drawable size updates across consequent frames.
+ mixed with Kotlin/Native memory model that  leads to violation of practices enstated by Apple (namely, not releasing drawables as soon as possible), which lead to inadequate memory spikes during drawable size updates across consequent frames.
  @see https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
 
  The class methods handle the acquisition, release, and presentation of
