@@ -126,7 +126,7 @@ internal class RootNodeOwner(
     private val rootSemanticsNode = EmptySemanticsModifier()
 
     private val rootModifier = EmptySemanticsElement(rootSemanticsNode)
-        .then(Modifier.focusProperties {
+        .focusProperties {
             exit = {
                 // if focusDirection is forward/backward,
                 // it will move the focus after/before ComposePanel
@@ -136,7 +136,7 @@ internal class RootNodeOwner(
                     FocusRequester.Default
                 }
             }
-        })
+        }
         .then(focusOwner.modifier)
         .semantics {
             // This makes the reported role of the root node "PANEL", which is ignored by VoiceOver

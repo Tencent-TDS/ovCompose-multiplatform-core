@@ -157,7 +157,7 @@ public fun <T : Component> SwingPanel(
 }
 
 /**
- * true, if the event is handled by SwingPanel.
+ * Returns whether the event is handled by SwingPanel.
  *
  * The focus can be switched from the child component inside SwingPanel.
  * In that case, SwingPanel will take care of it.
