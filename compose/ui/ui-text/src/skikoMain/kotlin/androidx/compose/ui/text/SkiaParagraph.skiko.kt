@@ -456,7 +456,7 @@ internal class SkiaParagraph(
         arrayStart: Int
     ) {
         println("Compose Multiplatform doesn't support fillBoundingBoxes` yet. " +
-                "Follow https://github.com/JetBrains/compose-multiplatform/issues/4236")
+            "Follow https://github.com/JetBrains/compose-multiplatform/issues/4236")
         // TODO(https://youtrack.jetbrains.com/issue/COMPOSE-720/Implement-Paragraph.fillBoundingBoxes) implement fillBoundingBoxes
     }
 
