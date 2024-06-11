@@ -196,14 +196,14 @@ class FontLoadResult(val typeface: SkTypeface?, val aliases: List<String>)
 
 internal class FontCache {
     internal val fonts = FontCollection()
-    private val fontProvider = TypefaceFontProvider()
+    private val fontProvider = TypefaceFontProvider.createAsFallbackProvider()
     private val registered: MutableSet<String> = HashSet()
     private val typefacesCache: Cache<String, SkTypeface> = ExpireAfterAccessCache(
         60_000_000_000 // 1 minute
     )
 
     init {
-        fonts.setDefaultFontManager(FontMgr.default)
+        fonts.setDefaultFontManager(FontMgr.defaultWithFallbackFontProvider(fontProvider))
         fonts.setAssetFontManager(fontProvider)
     }
 
