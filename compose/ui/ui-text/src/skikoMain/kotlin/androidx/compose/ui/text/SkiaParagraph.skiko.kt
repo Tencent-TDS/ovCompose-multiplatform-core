@@ -263,10 +263,10 @@ internal class SkiaParagraph(
 
     private fun getAlignedStartingPosition(isRtl: Boolean): Float =
         when (layouter.textStyle.textAlign) {
+            TextAlign.Left -> 0f
+            TextAlign.Right -> width
             TextAlign.Center -> width / 2
             TextAlign.Start -> if (isRtl) width else 0f
-            TextAlign.Right -> width
-            TextAlign.Left -> 0f
             TextAlign.End -> if (isRtl) 0f else width
             else -> 0f
         }
