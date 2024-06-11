@@ -127,6 +127,15 @@ kotlin {
         tvosX64Test.dependsOn(tvOsTest)
         tvosSimulatorArm64Main.dependsOn(tvOsMain)
         tvosSimulatorArm64Test.dependsOn(tvOsTest)
+
+        def commonNonWebTest = sourceSets.create("commonNonWebTest")
+        commonNonWebTest.dependencies {
+            implementation(libs.kotlinTest)
+            implementation(libs.kotlinTestAnnotationsCommon)
+            implementation(libs.kotlinCoroutinesCore)
+        }
+        nativeTest.dependsOn(commonNonWebTest)
+        jvmTest.dependsOn(commonNonWebTest)
     }
 }
 
