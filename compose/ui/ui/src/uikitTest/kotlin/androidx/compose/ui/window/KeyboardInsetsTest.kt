@@ -16,114 +16,92 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.TextField
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.runUIKitComposeUiTest
+import androidx.compose.ui.uikit.OnFocusBehavior
+import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.toDpRect
 import kotlin.test.Test
-import kotlinx.cinterop.ExperimentalForeignApi
-import platform.Foundation.NSDate
-import platform.Foundation.NSRunLoop
-import platform.Foundation.dateWithTimeIntervalSinceNow
-import platform.Foundation.runUntilDate
-import platform.UIKit.UIScreen
-import platform.UIKit.UIWindow
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalTestApi::class)
 class KeyboardInsetsTest {
     @Test
-    fun testBottomIMEInsets() {
-        var viewAppeared = false
+    fun testBottomIMEInsets() = runUIKitComposeUiTest {
+        var contentFrame: DpRect? = null
 
-        val window = UIWindow(frame = UIScreen.mainScreen().bounds())
-        window.makeKeyAndVisible()
-
-        val controller = ComposeUIViewController {
-            MaterialTheme {
-                val focusRequester = remember { FocusRequester() }
-                val text = remember { mutableStateOf("Hello world") }
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.ime)
-                        .safeDrawingPadding()
-                        .onGloballyPositioned { coordinates ->
-                            println(">>>> POS ${coordinates.positionInRoot()} | ${coordinates.size}")
-                        },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Spacer(Modifier.weight(1f))
-                    TextField(
-                        value = text.value,
-                        onValueChange = { text.value = it },
-                        modifier = Modifier.focusRequester(focusRequester),
-                    )
+        setContent {
+            Box(Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.ime)
+                .onGloballyPositioned { coordinates ->
+                    contentFrame = coordinates.boundsInWindow().toDpRect(density)
                 }
-
-                LaunchedEffect(Unit) {
-                    focusRequester.requestFocus()
+            )
+            LaunchedEffect(Unit) {
+                launch {
+                    showKeyboard(animated = false)
                 }
             }
         }
 
-        window.setRootViewController(controller)
+        waitToEquals(screenSize.height - keyboardHeight, { contentFrame?.height })
+    }
 
-        // class FakeController: UIViewController(nibName = null, bundle = null) {
-        //     override fun viewDidAppear(animated: Boolean) {
-        //         super.viewDidAppear(animated)
-//
-        //         println(">>>>> viewDidAppear -- Fake")
-        //     }
-        // }
-//
-        // class Controller: UIViewController(nibName = null, bundle = null) {
-        //     override fun viewDidLoad() {
-        //         super.viewDidLoad()
-//
-        //         println(">>>>> viewDidLoad - CTR -- ${NSStringFromCGRect(view.frame)}")
-        //     }
-        //     override fun viewDidAppear(animated: Boolean) {
-        //         super.viewDidAppear(animated)
-//
-        //         println(">>>>> viewDidAppear - CTR -- ${NSStringFromCGRect(view.frame)}")
-//
-        //         viewAppeared = true
-        //     }
-        // }
-//
-        // //val controller = Controller()
-        // val navigationController = UINavigationController(rootViewController = FakeController())
-        // window.setRootViewController(navigationController)
-//
-        // println(">>>>> Start")
-//
-        // dispatch_after(
-        //     dispatch_time(DISPATCH_TIME_NOW, (0.toULong() * NSEC_PER_SEC).toLong()),
-        //     dispatch_get_main_queue()
-        // ) {
-        //     navigationController.pushViewController(Controller(), true)
-        // }
+    @Test
+    fun testFocusableAboveKeyboardTextFieldLocation() = runUIKitComposeUiTest {
+        var textRectInWindow: DpRect? = null
+        var textRectInRoot: DpRect? = null
 
-        // NSNotificationCenter.defaultCenter().postNotification()
+        val focusRequester = FocusRequester()
+        setContent({
+            this.onFocusBehavior = OnFocusBehavior.FocusableAboveKeyboard
+        }) {
+            Column(Modifier.fillMaxSize()) {
+                Spacer(Modifier.weight(1f))
+                TextField(
+                    value = "",
+                    onValueChange = {},
+                    modifier = Modifier
+                        .focusRequester(focusRequester)
+                        .onGloballyPositioned { coordinates ->
+                            textRectInWindow = coordinates.boundsInWindow().toDpRect(density)
+                            textRectInRoot = coordinates.boundsInRoot().toDpRect(density)
+                        }
+                )
+            }
 
-        val runLoop = NSRunLoop.currentRunLoop()
-        for (i in 0 until 50) {
-            println(">>>>> RUN LOOP")
-            runLoop.runUntilDate(NSDate.dateWithTimeIntervalSinceNow(0.2))
+            LaunchedEffect(Unit) {
+                launch {
+                    focusRequester.requestFocus()
+                    showKeyboard(animated = false)
+                }
+            }
         }
+
+        waitToEquals(screenSize.height - keyboardHeight, { textRectInWindow?.bottom })
+        waitToEquals(screenSize.height, { textRectInRoot?.bottom })
+
+        focusRequester.freeFocus()
+        hideKeyboard(animated = false)
+
+        waitToEquals(screenSize.height, { textRectInWindow?.bottom })
+        waitToEquals(screenSize.height, { textRectInRoot?.bottom })
     }
 }
