@@ -16,6 +16,7 @@
 
 package androidx.collection
 
+import androidx.collection.internal.IgnoreWeb
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -284,6 +285,7 @@ internal class SparseArrayCompatTest {
     }
 
     @Test
+    @IgnoreWeb // TODO: remove ignore when https://youtrack.jetbrains.com/issue/KT-69014 is fixed
     fun valueAt_outOfBounds() {
         val source = SparseArrayCompat<String>(10)
         assertEquals(0, source.size())

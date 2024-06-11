@@ -136,6 +136,11 @@ kotlin {
         }
         nativeTest.dependsOn(commonNonWebTest)
         jvmTest.dependsOn(commonNonWebTest)
+
+        def webTest = sourceSets.create("webTest")
+        webTest.dependsOn(commonTest)
+        jsTest.dependsOn(webTest)
+        wasmJsTest.dependsOn(webTest)
     }
 }
 

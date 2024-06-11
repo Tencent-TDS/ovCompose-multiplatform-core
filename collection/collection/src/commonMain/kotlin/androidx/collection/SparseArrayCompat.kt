@@ -240,24 +240,25 @@ public expect open class SparseArrayCompat<E>
 }
 
 @Suppress("NOTHING_TO_INLINE")
-private inline fun <E, T : E?> SparseArrayCompat<E>.internalGet(key: Int, defaultValue: T): T {
+// TODO: revert the change: this function was changed in JB fork because of https://youtrack.jetbrains.com/issue/KT-65061
+private inline fun SparseArrayCompat<*>.internalGet(key: Int, defaultValue: Any?): Any? {
     val i = binarySearch(keys, size, key)
     return if (i < 0 || values[i] === DELETED) {
         defaultValue
     } else {
         @Suppress("UNCHECKED_CAST")
-        values[i] as T
+        values[i]
     }
 }
 
 @Suppress("NOTHING_TO_INLINE")
 internal fun <E> SparseArrayCompat<E>.commonGet(key: Int): E? {
-    return internalGet(key, null)
+    return internalGet(key, null) as E?
 }
 
 @Suppress("NOTHING_TO_INLINE")
 internal fun <E> SparseArrayCompat<E>.commonGet(key: Int, defaultValue: E): E {
-    return internalGet(key, defaultValue)
+    return internalGet(key, defaultValue) as E
 }
 
 @Suppress("NOTHING_TO_INLINE")
