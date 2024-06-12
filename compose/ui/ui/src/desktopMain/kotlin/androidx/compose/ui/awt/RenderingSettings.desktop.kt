@@ -18,6 +18,7 @@ package androidx.compose.ui.awt
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ComposeFeatureFlags
+import org.jetbrains.skiko.SkikoProperties
 
 /**
  * Configuration class for rendering settings.
@@ -28,6 +29,7 @@ import androidx.compose.ui.ComposeFeatureFlags
  * exchange for a latency increase.
  * When false, the internal implementation will not attempt to synchronize drawable presentations
  * it can reduce latency but may introduce visual artifacts like screen tearing.
+ * When null, the internal implementation will use the global configuration from [SkikoProperties.vsyncEnabled]
  *
  * This flag has no effect if [ComposeFeatureFlags.useSwingGraphics] is true. In this case Compose
  * will render the content to Swing provided offscreen buffer and the presentation will be controlled
@@ -35,5 +37,15 @@ import androidx.compose.ui.ComposeFeatureFlags
  */
 @ExperimentalComposeUiApi
 class RenderingSettings(
-    val isVsyncEnabled: Boolean
-)
+    val isVsyncEnabled: Boolean?
+
+) {
+    companion object {
+        /**
+         * Default rendering settings
+         */
+        val Default = RenderingSettings(
+            isVsyncEnabled = null
+        )
+    }
+}

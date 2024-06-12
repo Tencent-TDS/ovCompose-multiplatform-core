@@ -17,6 +17,7 @@
 package androidx.compose.ui.window
 
 import androidx.compose.ui.assertThat
+import androidx.compose.ui.awt.RenderingSettings
 import androidx.compose.ui.isEqualTo
 import androidx.compose.ui.scene.ComposeContainer
 import androidx.lifecycle.Lifecycle
@@ -142,7 +143,8 @@ class ComposeContainerLifecycleOwnerTest {
             container = ComposeContainer(
                 container = pane,
                 skiaLayerAnalytics = SkiaLayerAnalytics.Empty,
-                window = window
+                window = window,
+                renderingSettings = RenderingSettings.Default
             ).also {
                 it.lifecycle.addObserver(allEvents)
             }
@@ -172,7 +174,8 @@ class ComposeContainerLifecycleOwnerTest {
             container = ComposeContainer(
                 container = pane,
                 skiaLayerAnalytics = SkiaLayerAnalytics.Empty,
-                window = window
+                window = window,
+                renderingSettings = RenderingSettings.Default
             ).also {
                 it.lifecycle.addObserver(allEvents)
             }
@@ -202,7 +205,8 @@ class ComposeContainerLifecycleOwnerTest {
             container = ComposeContainer(
                 container = pane,
                 skiaLayerAnalytics = SkiaLayerAnalytics.Empty,
-                window = window
+                window = window,
+                renderingSettings = RenderingSettings.Default
             ).also {
                 it.lifecycle.addObserver(allEvents)
             }
@@ -250,7 +254,8 @@ class ComposeContainerLifecycleOwnerTest {
                 container = ComposeContainer(
                     container = this,
                     skiaLayerAnalytics = SkiaLayerAnalytics.Empty,
-                    window = window
+                    window = window,
+                    renderingSettings = RenderingSettings.Default
                 )
                 container.lifecycle.addObserver(observer)
                 window.add(this)
