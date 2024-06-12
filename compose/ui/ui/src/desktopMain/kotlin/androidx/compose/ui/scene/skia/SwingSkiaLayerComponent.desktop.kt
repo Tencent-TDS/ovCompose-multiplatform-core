@@ -66,7 +66,7 @@ internal class SwingSkiaLayerComponent(
                 mediator.preferredSize
             }
 
-            override fun getAccessibleContext(): AccessibleContext {
+            override fun getAccessibleContext(): AccessibleContext? {
                 return mediator.accessible.accessibleContext
             }
         }
