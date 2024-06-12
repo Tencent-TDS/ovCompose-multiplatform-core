@@ -58,12 +58,10 @@ fun runUIKitComposeUiTest(
 
 @ExperimentalTestApi
 class UIKitComposeUiTest {
-    val density = Density(density = UIScreen.mainScreen().scale.toFloat())
-    val window = UIWindow(frame = UIScreen.mainScreen().bounds())
-    val screenSize = DpSize(
-        width = UIScreen.mainScreen().bounds().useContents { size.width.dp },
-        height = UIScreen.mainScreen().bounds().useContents { size.height.dp }
-    )
+    private val screen = UIScreen.mainScreen()
+    val density = Density(density = screen.scale.toFloat())
+    val window = UIWindow(frame = screen.bounds())
+    val screenSize: DpSize = screen.bounds().useContents { DpSize(size.width.dp, size.height.dp) }
     val viewController = window.rootViewController
     var keyboardHeight: Dp = 0.dp
         private set
