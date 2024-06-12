@@ -38,7 +38,6 @@ import org.jetbrains.skiko.SkikoProperties
 @ExperimentalComposeUiApi
 class RenderingSettings(
     val isVsyncEnabled: Boolean?
-
 ) {
     companion object {
         /**
