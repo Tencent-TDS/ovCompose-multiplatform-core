@@ -16,7 +16,7 @@
 
 package androidx.compose.ui.scene.skia
 
-import androidx.compose.ui.awt.RenderingSettings
+import androidx.compose.ui.awt.RenderSettings
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.scene.ComposeSceneMediator
 import java.awt.Dimension
@@ -39,7 +39,7 @@ internal class WindowSkiaLayerComponent(
     private val windowContext: PlatformWindowContext,
     renderDelegate: SkikoRenderDelegate,
     skiaLayerAnalytics: SkiaLayerAnalytics,
-    private val renderingSettings: RenderingSettings,
+    private val renderSettings: RenderSettings,
 ) : SkiaLayerComponent {
     /**
      * See also backend layer for swing interop in [SwingSkiaLayerComponent]
@@ -54,7 +54,7 @@ internal class WindowSkiaLayerComponent(
             val defaultProperties = SkiaLayerProperties()
 
             SkiaLayerProperties(
-                isVsyncEnabled = renderingSettings.isVsyncEnabled ?: defaultProperties.isVsyncEnabled,
+                isVsyncEnabled = renderSettings.isVsyncEnabled ?: defaultProperties.isVsyncEnabled,
             )
         },
         analytics = skiaLayerAnalytics

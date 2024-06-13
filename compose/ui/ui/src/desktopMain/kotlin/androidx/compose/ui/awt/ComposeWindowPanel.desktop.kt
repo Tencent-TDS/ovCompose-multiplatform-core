@@ -61,7 +61,7 @@ internal class ComposeWindowPanel(
             if (it == LayerType.OnComponent) LayerType.OnSameCanvas else it
         },
         // TODO: Add RenderingSettings to ComposeWindowPanel constructor
-        renderingSettings = RenderingSettings.Default
+        renderSettings = RenderSettings.Default
     )
     private val composeContainer
         get() = requireNotNull(_composeContainer) {

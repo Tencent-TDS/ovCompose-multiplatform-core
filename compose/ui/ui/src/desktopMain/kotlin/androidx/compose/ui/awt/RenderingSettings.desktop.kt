@@ -36,14 +36,14 @@ import org.jetbrains.skiko.SkikoProperties
  * by Swing.
  */
 @ExperimentalComposeUiApi
-class RenderingSettings(
+class RenderSettings(
     val isVsyncEnabled: Boolean?
 ) {
     companion object {
         /**
          * Default rendering settings
          */
-        val Default = RenderingSettings(
+        val Default = RenderSettings(
             isVsyncEnabled = null
         )
     }

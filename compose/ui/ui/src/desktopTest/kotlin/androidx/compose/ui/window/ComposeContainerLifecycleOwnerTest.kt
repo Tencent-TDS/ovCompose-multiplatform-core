@@ -17,14 +17,12 @@
 package androidx.compose.ui.window
 
 import androidx.compose.ui.assertThat
-import androidx.compose.ui.awt.RenderingSettings
+import androidx.compose.ui.awt.RenderSettings
 import androidx.compose.ui.isEqualTo
 import androidx.compose.ui.scene.ComposeContainer
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
-import java.awt.Frame
-import java.awt.Toolkit
 import java.time.Duration
 import javax.swing.JFrame
 import javax.swing.JLayeredPane
@@ -144,7 +142,7 @@ class ComposeContainerLifecycleOwnerTest {
                 container = pane,
                 skiaLayerAnalytics = SkiaLayerAnalytics.Empty,
                 window = window,
-                renderingSettings = RenderingSettings.Default
+                renderSettings = RenderSettings.Default
             ).also {
                 it.lifecycle.addObserver(allEvents)
             }
@@ -175,7 +173,7 @@ class ComposeContainerLifecycleOwnerTest {
                 container = pane,
                 skiaLayerAnalytics = SkiaLayerAnalytics.Empty,
                 window = window,
-                renderingSettings = RenderingSettings.Default
+                renderSettings = RenderSettings.Default
             ).also {
                 it.lifecycle.addObserver(allEvents)
             }
@@ -206,7 +204,7 @@ class ComposeContainerLifecycleOwnerTest {
                 container = pane,
                 skiaLayerAnalytics = SkiaLayerAnalytics.Empty,
                 window = window,
-                renderingSettings = RenderingSettings.Default
+                renderSettings = RenderSettings.Default
             ).also {
                 it.lifecycle.addObserver(allEvents)
             }
@@ -255,7 +253,7 @@ class ComposeContainerLifecycleOwnerTest {
                     container = this,
                     skiaLayerAnalytics = SkiaLayerAnalytics.Empty,
                     window = window,
-                    renderingSettings = RenderingSettings.Default
+                    renderSettings = RenderSettings.Default
                 )
                 container.lifecycle.addObserver(observer)
                 window.add(this)

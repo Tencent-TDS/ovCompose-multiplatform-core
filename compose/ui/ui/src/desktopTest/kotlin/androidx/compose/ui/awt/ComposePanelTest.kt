@@ -179,7 +179,7 @@ class ComposePanelTest {
 
             val composePanel = ComposePanel(
                 skiaLayerAnalytics = analytics,
-                renderingSettings = RenderingSettings.Default
+                renderSettings = RenderSettings.Default
             )
             composePanel.size = Dimension(100, 100)
 
