@@ -25,10 +25,12 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.ComposeContainer
 import androidx.compose.ui.window.ComposeUIViewController
 import kotlin.test.assertEquals
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGRectMake
 import platform.Foundation.NSDate
@@ -49,15 +51,14 @@ import platform.UIKit.UIScreen
 import platform.UIKit.UIWindow
 import platform.UIKit.valueWithCGRect
 
-@ExperimentalTestApi
-fun runUIKitComposeUiTest(
-    testBlock: UIKitComposeUiTest.() -> Unit
+internal fun runUIKitInstrumentedTest(
+    testBlock: UIKitInstrumentedTest.() -> Unit
 ) {
-    UIKitComposeUiTest().runTest(testBlock)
+    UIKitInstrumentedTest().runTest(testBlock)
 }
 
-@ExperimentalTestApi
-class UIKitComposeUiTest {
+@OptIn(ExperimentalForeignApi::class)
+internal class UIKitInstrumentedTest {
     private val screen = UIScreen.mainScreen()
     val density = Density(density = screen.scale.toFloat())
     val window = UIWindow(frame = screen.bounds())
@@ -65,6 +66,7 @@ class UIKitComposeUiTest {
     val viewController = window.rootViewController
     var keyboardHeight: Dp = 0.dp
         private set
+    val composeContainer get() = this.window.rootViewController() as ComposeContainer
 
     fun setContent(
         configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
@@ -173,7 +175,7 @@ class UIKitComposeUiTest {
         return remainingTime > 0.seconds
     }
 
-    fun runTest(block: UIKitComposeUiTest.() -> Unit) {
+    fun runTest(block: UIKitInstrumentedTest.() -> Unit) {
         block()
         hideKeyboard(animated = false)
     }

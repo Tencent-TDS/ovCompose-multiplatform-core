@@ -319,6 +319,11 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 kotlin.srcDir("src/webTest/kotlin")
                 dependsOn(skikoTest)
             }
+            uikitInstrumentedTest.dependencies {
+                implementation(project(":compose:material:material"))
+                implementation(project(":compose:foundation:foundation"))
+                implementation(project(":compose:ui:ui-test-junit4"))
+            }
 
             desktopTest.dependencies {
                 implementation(libs.truth)

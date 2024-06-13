@@ -31,8 +31,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.runUIKitComposeUiTest
+import androidx.compose.ui.test.runUIKitInstrumentedTest
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.height
@@ -40,10 +39,9 @@ import androidx.compose.ui.unit.toDpRect
 import kotlin.test.Test
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalTestApi::class)
 class KeyboardInsetsTest {
     @Test
-    fun testBottomIMEInsets() = runUIKitComposeUiTest {
+    fun testBottomIMEInsets() = runUIKitInstrumentedTest {
         var contentFrame: DpRect? = null
 
         setContent {
@@ -65,7 +63,7 @@ class KeyboardInsetsTest {
     }
 
     @Test
-    fun testFocusableAboveKeyboardTextFieldLocation() = runUIKitComposeUiTest {
+    fun testFocusableAboveKeyboardTextFieldLocation() = runUIKitInstrumentedTest {
         var textRectInWindow: DpRect? = null
         var textRectInRoot: DpRect? = null
 
