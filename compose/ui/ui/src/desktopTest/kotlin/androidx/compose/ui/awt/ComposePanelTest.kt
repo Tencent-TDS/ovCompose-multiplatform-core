@@ -177,7 +177,10 @@ class ComposePanelTest {
                 }
             }
 
-            val composePanel = ComposePanel(skiaLayerAnalytics = analytics)
+            val composePanel = ComposePanel(
+                skiaLayerAnalytics = analytics,
+                renderingSettings = RenderingSettings.Default
+            )
             composePanel.size = Dimension(100, 100)
 
             val frame = JFrame()
