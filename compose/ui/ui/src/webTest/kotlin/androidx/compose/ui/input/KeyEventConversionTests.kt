@@ -200,5 +200,15 @@ class KeyEventConversionTests {
         keyDownEvent("+", code = "Equal", keyCode = Key.Equals.keyCode.toInt()).assertEquivalence(key = Key.Equals, codePoint = 43)
     }
 
+    @Test
+    fun standardVirtualKeyboardLayout() {
+        // Virtual keyboard generates actual keyboard events for some of the keys pressed
+        // This keyboard events, however, actually differ - the code is always "" while key contains the value that we need
+        keyDownEvent("ArrowRight", code = "", keyCode = Key.DirectionRight.keyCode.toInt()).assertEquivalence(key = Key.DirectionRight)
+        keyDownEvent("ArrowLeft", code = "", keyCode = Key.DirectionLeft.keyCode.toInt()).assertEquivalence(key = Key.DirectionLeft)
+        keyDownEvent("Delete", code = "", keyCode = Key.Delete.keyCode.toInt()).assertEquivalence(key = Key.Delete)
+        keyDownEvent("Backspace", code = "", keyCode = Key.Backspace.keyCode.toInt()).assertEquivalence(key = Key.Backspace)
+        keyDownEvent("Enter", code = "", keyCode = Key.Enter.keyCode.toInt()).assertEquivalence(key = Key.Enter)
+    }
 
 }
