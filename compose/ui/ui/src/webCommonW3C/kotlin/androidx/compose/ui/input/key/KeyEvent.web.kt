@@ -69,120 +69,122 @@ internal fun String.codePointAt(index: Int): CodePoint {
     return high.code
 }
 
+private val codeMap = mapOf(
+    "KeyA" to Key.A,
+    "KeyB" to Key.B,
+    "KeyC" to Key.C,
+    "KeyD" to Key.D,
+    "KeyE" to Key.E,
+    "KeyF" to Key.F,
+    "KeyG" to Key.G,
+    "KeyH" to Key.H,
+    "KeyI" to Key.I,
+    "KeyJ" to Key.J,
+    "KeyK" to Key.K,
+    "KeyL" to Key.L,
+    "KeyM" to Key.M,
+    "KeyN" to Key.N,
+    "KeyO" to Key.O,
+    "KeyP" to Key.P,
+    "KeyQ" to Key.Q,
+    "KeyR" to Key.R,
+    "KeyS" to Key.S,
+    "KeyT" to Key.T,
+    "KeyU" to Key.U,
+    "KeyV" to Key.V,
+    "KeyW" to Key.W,
+    "KeyX" to Key.X,
+    "KeyY" to Key.Y,
+    "KeyZ" to Key.Z,
+
+    "Digit0" to Key.Zero,
+    "Digit1" to Key.One,
+    "Digit2" to Key.Two,
+    "Digit3" to Key.Three,
+    "Digit4" to Key.Four,
+    "Digit5" to Key.Five,
+    "Digit6" to Key.Six,
+    "Digit7" to Key.Seven,
+    "Digit8" to Key.Eight,
+    "Digit9" to Key.Nine,
+
+    "Numpad0" to Key.NumPad0,
+    "Numpad1" to Key.NumPad1,
+    "Numpad2" to Key.NumPad2,
+    "Numpad3" to Key.NumPad3,
+    "Numpad4" to Key.NumPad4,
+    "Numpad5" to Key.NumPad5,
+    "Numpad6" to Key.NumPad6,
+    "Numpad7" to Key.NumPad7,
+    "Numpad8" to Key.NumPad8,
+    "Numpad9" to Key.NumPad9,
+
+    "NumpadDivide" to Key.NumPadDivide,
+    "NumpadMultiply" to Key.NumPadMultiply,
+    "NumpadSubtract" to Key.NumPadSubtract,
+    "NumpadAdd" to Key.NumPadAdd,
+    "NumpadEnter" to Key.NumPadEnter,
+    "NumpadEqual" to Key.NumPadEquals,
+    "NumpadDecimal" to Key.NumPadDot,
+
+    "NumLock" to Key.NumLock,
+
+    "Minus" to Key.Minus,
+    "Equal" to Key.Equals,
+    "Backspace" to Key.Backspace,
+    "BracketLeft" to Key.LeftBracket,
+    "BracketRight" to Key.RightBracket,
+    "Backslash" to Key.Backslash,
+    "Semicolon" to Key.Semicolon,
+    "Enter" to Key.Enter,
+    "Comma" to Key.Comma,
+    "Period" to Key.Period,
+    "Slash" to Key.Slash,
+
+    "ArrowLeft" to Key.DirectionLeft,
+    "ArrowUp" to Key.DirectionUp,
+    "ArrowRight" to Key.DirectionRight,
+    "ArrowDown" to Key.DirectionDown,
+
+    "Home" to Key.MoveHome,
+    "PageUp" to Key.PageUp,
+    "PageDown" to Key.PageDown,
+    "Delete" to Key.Delete,
+    "End" to Key.MoveEnd,
+
+    "Backquote" to Key.Grave,
+    "Tab" to Key.Tab,
+    "CapsLock" to Key.CapsLock,
+
+    "ShiftLeft" to Key.ShiftLeft,
+    "ControlLeft" to Key.CtrlLeft,
+    "AltLeft" to Key.AltLeft,
+    "MetaLeft" to Key.MetaLeft,
+
+    "ShiftRight" to Key.ShiftRight,
+    "ControlRight" to Key.CtrlRight,
+    "AltRight" to Key.AltRight,
+    "MetaRight" to Key.MetaRight,
+    "Insert" to Key.Insert,
+
+    "Escape" to Key.Escape,
+
+    "F1" to Key.F1,
+    "F2" to Key.F2,
+    "F3" to Key.F3,
+    "F4" to Key.F4,
+    "F5" to Key.F5,
+    "F6" to Key.F6,
+    "F7" to Key.F7,
+    "F8" to Key.F8,
+    "F9" to Key.F9,
+    "F10" to Key.F10,
+    "F11" to Key.F11,
+    "F12" to Key.F12,
+
+    "Space" to Key.Spacebar,
+)
+
 private fun KeyboardEvent.toKey(): Key {
-    return when(code) {
-        "KeyA" -> Key.A
-        "KeyB" -> Key.B
-        "KeyC" -> Key.C
-        "KeyD" -> Key.D
-        "KeyE" -> Key.E
-        "KeyF" -> Key.F
-        "KeyG" -> Key.G
-        "KeyH" -> Key.H
-        "KeyI" -> Key.I
-        "KeyJ" -> Key.J
-        "KeyK" -> Key.K
-        "KeyL" -> Key.L
-        "KeyM" -> Key.M
-        "KeyN" -> Key.N
-        "KeyO" -> Key.O
-        "KeyP" -> Key.P
-        "KeyQ" -> Key.Q
-        "KeyR" -> Key.R
-        "KeyS" -> Key.S
-        "KeyT" -> Key.T
-        "KeyU" -> Key.U
-        "KeyV" -> Key.V
-        "KeyW" -> Key.W
-        "KeyX" -> Key.X
-        "KeyY" -> Key.Y
-        "KeyZ" -> Key.Z
-
-        "Digit0" -> Key.Zero
-        "Digit1" -> Key.One
-        "Digit2" -> Key.Two
-        "Digit3" -> Key.Three
-        "Digit4" -> Key.Four
-        "Digit5" -> Key.Five
-        "Digit6" -> Key.Six
-        "Digit7" -> Key.Seven
-        "Digit8" -> Key.Eight
-        "Digit9" -> Key.Nine
-
-        "Numpad0" -> Key.NumPad0
-        "Numpad1" -> Key.NumPad1
-        "Numpad2" -> Key.NumPad2
-        "Numpad3" -> Key.NumPad3
-        "Numpad4" -> Key.NumPad4
-        "Numpad5" -> Key.NumPad5
-        "Numpad6" -> Key.NumPad6
-        "Numpad7" -> Key.NumPad7
-        "Numpad8" -> Key.NumPad8
-        "Numpad9" -> Key.NumPad9
-
-        "NumpadDivide" -> Key.NumPadDivide
-        "NumpadMultiply" -> Key.NumPadMultiply
-        "NumpadSubtract" -> Key.NumPadSubtract
-        "NumpadAdd" -> Key.NumPadAdd
-        "NumpadEnter" -> Key.NumPadEnter
-        "NumpadEqual" -> Key.NumPadEquals
-        "NumpadDecimal" -> Key.NumPadDot
-
-        "NumLock" -> Key.NumLock
-
-        "Minus" -> Key.Minus
-        "Equal" -> Key.Equals
-        "Backspace" -> Key.Backspace
-        "BracketLeft" -> Key.LeftBracket
-        "BracketRight" -> Key.RightBracket
-        "Backslash" -> Key.Backslash
-        "Semicolon" -> Key.Semicolon
-        "Enter" -> Key.Enter
-        "Comma" -> Key.Comma
-        "Period" -> Key.Period
-        "Slash" -> Key.Slash
-
-        "ArrowLeft" -> Key.DirectionLeft
-        "ArrowUp" -> Key.DirectionUp
-        "ArrowRight" -> Key.DirectionRight
-        "ArrowDown" -> Key.DirectionDown
-
-        "Home" -> Key.MoveHome
-        "PageUp" -> Key.PageUp
-        "PageDown" -> Key.PageDown
-        "Delete" -> Key.Delete
-        "End" -> Key.MoveEnd
-
-        "Escape" -> Key.Escape
-
-        "Backquote" -> Key.Grave
-        "Tab" -> Key.Tab
-        "CapsLock" -> Key.CapsLock
-
-        "ShiftLeft" -> Key.ShiftLeft
-        "ControlLeft" -> Key.CtrlLeft
-        "AltLeft" -> Key.AltLeft
-        "MetaLeft" -> Key.MetaLeft
-
-        "ShiftRight" -> Key.ShiftRight
-        "ControlRight" -> Key.CtrlRight
-        "AltRight" -> Key.AltRight
-        "MetaRight" -> Key.MetaRight
-        "Insert" -> Key.Insert
-
-        "F1" -> Key.F1
-        "F2" -> Key.F2
-        "F3" -> Key.F3
-        "F4" -> Key.F4
-        "F5" -> Key.F5
-        "F6" -> Key.F6
-        "F7" -> Key.F7
-        "F8" -> Key.F8
-        "F9" -> Key.F9
-        "F10" -> Key.F10
-        "F11" -> Key.F11
-        "F12" -> Key.F12
-
-        else -> Key.Unknown
-    }
+    return codeMap[code] ?: Key.Unknown
 }

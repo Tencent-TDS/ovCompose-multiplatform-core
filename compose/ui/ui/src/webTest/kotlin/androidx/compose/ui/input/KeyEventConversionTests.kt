@@ -153,6 +153,7 @@ class KeyEventConversionTests {
         keyDownEvent("F11", code = "F11", keyCode = Key.F11.keyCode.toInt()).assertEquivalence(key = Key.F11)
         keyDownEvent("F12", code = "F12", keyCode = Key.F12.keyCode.toInt()).assertEquivalence(key = Key.F12)
 
+        keyDownEvent("", code = "Space", keyCode = Key.Spacebar.keyCode.toInt()).assertEquivalence(key = Key.Spacebar)
     }
 
     @Test
