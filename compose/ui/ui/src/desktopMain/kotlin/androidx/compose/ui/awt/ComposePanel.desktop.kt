@@ -46,7 +46,7 @@ import org.jetbrains.skiko.SkiaLayerAnalytics
  */
 class ComposePanel @ExperimentalComposeUiApi constructor(
     private val skiaLayerAnalytics: SkiaLayerAnalytics,
-    private val renderingSettings: RenderingSettings
+    private val renderingSettings: RenderingSettings = RenderingSettings.Default
 ) : JLayeredPane() {
     constructor() : this(SkiaLayerAnalytics.Empty, RenderingSettings.Default)
 
