@@ -72,7 +72,7 @@ abstract class AndroidXComposeMultiplatformExtension {
     abstract fun configureDarwinFlags(): Unit
 
     /**
-     * Configures tests to be run on an actual ios simulator.
+     * Configure instrumented tests to run on an actual iOS simulator.
      */
-    abstract fun configureTestsRunInIosSimulatorEnvironment(device: String? = null): Unit
+    abstract fun iosInstrumentedTest(): Unit
 }

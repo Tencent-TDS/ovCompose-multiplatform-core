@@ -26,8 +26,6 @@ import org.gradle.api.tasks.Exec
 import org.gradle.kotlin.dsl.creating
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.getValue
-import org.jetbrains.kotlin.gradle.DeprecatedTargetPresetApi
-import org.jetbrains.kotlin.gradle.InternalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinJsCompilerType
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
@@ -273,11 +271,10 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     // https://youtrack.jetbrains.com/issue/KT-55751/MPP-Gradle-Consumable-configurations-must-have-unique-attributes
     private val instrumentedTestAttribute = Attribute.of("instrumentedTest", String::class.java)
 
-    @OptIn(DeprecatedTargetPresetApi::class, InternalKotlinGradlePluginApi::class)
-    override fun configureTestsRunInIosSimulatorEnvironment(device: String?): Unit =
+    override fun iosInstrumentedTest(): Unit =
         multiplatformExtension.run {
             fun getDeviceName(): String? {
-                return device ?: project.findProperty("iosSimulatorName") as? String
+                return project.findProperty("iosSimulatorName") as? String
             }
 
             val bootTask = project.tasks.register("bootIosSimulator", Exec::class.java) { task ->
@@ -310,6 +307,8 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
             iosX64("uikitInstrumentedX64") {
                 configureTestRun()
             }
+            // Testing on real iOS devices is not supported.
+            // iosArm64("uikitInstrumentedArm64") { ... }
             iosSimulatorArm64("uikitInstrumentedSimArm64") {
                 configureTestRun()
             }
