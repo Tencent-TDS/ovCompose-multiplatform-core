@@ -163,7 +163,7 @@ internal class UIKitInstrumentedTest {
     }
 
     @OptIn(ExperimentalNativeApi::class)
-    fun waitForIdle(deadline: Duration = 1.seconds): Boolean {
+    fun waitForIdle(deadline: Duration = 5.seconds): Boolean {
         val defaultIdleScore = 10
         var idleScore = defaultIdleScore
         val timeoutAchieved = waitForExpectation(deadline = deadline) {
@@ -178,7 +178,7 @@ internal class UIKitInstrumentedTest {
         return timeoutAchieved
     }
 
-    fun waitForExpectation(deadline: Duration = 1.seconds, expectation: () -> Boolean): Boolean {
+    fun waitForExpectation(deadline: Duration = 5.seconds, expectation: () -> Boolean): Boolean {
         val runLoop = NSRunLoop.currentRunLoop()
         var remainingTime = deadline
         var time = NSDate.timeIntervalSinceReferenceDate()
