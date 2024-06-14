@@ -17,6 +17,8 @@
 package androidx.compose.ui.test
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Recomposer
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.layout.Layout
@@ -27,11 +29,12 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeContainer
 import androidx.compose.ui.window.ComposeUIViewController
-import kotlin.test.assertEquals
+import kotlin.experimental.ExperimentalNativeApi
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
+import kotlinx.coroutines.runBlocking
 import platform.CoreGraphics.CGRectMake
 import platform.Foundation.NSDate
 import platform.Foundation.NSNotification
@@ -52,7 +55,7 @@ import platform.UIKit.UIWindow
 import platform.UIKit.valueWithCGRect
 
 internal fun runUIKitInstrumentedTest(
-    testBlock: UIKitInstrumentedTest.() -> Unit
+    testBlock: suspend UIKitInstrumentedTest.() -> Unit
 ) {
     UIKitInstrumentedTest().runTest(testBlock)
 }
@@ -63,17 +66,19 @@ internal class UIKitInstrumentedTest {
     val density = Density(density = screen.scale.toFloat())
     val window = UIWindow(frame = screen.bounds())
     val screenSize: DpSize = screen.bounds().useContents { DpSize(size.width.dp, size.height.dp) }
-    val viewController = window.rootViewController
     var keyboardHeight: Dp = 0.dp
         private set
-    val composeContainer get() = this.window.rootViewController() as ComposeContainer
+    lateinit var composeContainer: ComposeContainer
+        private set
+
+    private val initialRecomposers = Recomposer.runningRecomposers.value
 
     fun setContent(
         configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
         content: @Composable () -> Unit
     ) {
         var onDraw = false
-        val composeContainer = ComposeUIViewController(configure) {
+        composeContainer = ComposeUIViewController(configure) {
             Layout(
                 content = content,
                 modifier = Modifier.drawWithContent {
@@ -90,7 +95,7 @@ internal class UIKitInstrumentedTest {
                     }
                 }
             )
-        }
+        } as ComposeContainer
         window.rootViewController = composeContainer
         window.makeKeyAndVisible()
         waitForExpectation { onDraw }
@@ -147,19 +152,30 @@ internal class UIKitInstrumentedTest {
         keyboardHeight = 0.dp
     }
 
-    fun <T> waitToEquals(expected: T, actual: () -> T, deadline: Duration = 1.seconds) {
-        waitToEquals({ expected }, actual, deadline)
-    }
-
-    fun <T> waitToEquals(expected: () -> T, actual: T, deadline: Duration = 1.seconds) {
-        waitToEquals(expected, { actual }, deadline)
-    }
-
-    fun <T> waitToEquals(expected: () -> T, actual: () -> T, deadline: Duration = 1.seconds) {
-        waitForExpectation(deadline) {
-            expected() == actual()
+    private val isIdle: Boolean get() {
+        val hadSnapshotChanges = Snapshot.current.hasPendingChanges()
+        val hasPendingRecomposer = Recomposer.runningRecomposers.value.any {
+            it.hasPendingWork
         }
-        assertEquals(expected(), actual(), "Values are not equal after timeout $deadline.")
+        val isApplyObserverNotificationPending = Snapshot.isApplyObserverNotificationPending
+
+        return !hadSnapshotChanges && !hasPendingRecomposer && !isApplyObserverNotificationPending
+    }
+
+    @OptIn(ExperimentalNativeApi::class)
+    fun waitForIdle(deadline: Duration = 1.seconds): Boolean {
+        val defaultIdleScore = 10
+        var idleScore = defaultIdleScore
+        val timeoutAchieved = waitForExpectation(deadline = deadline) {
+            if (isIdle) {
+                idleScore -= 1
+            } else {
+                idleScore = defaultIdleScore
+            }
+            idleScore == 0
+        }
+        assert(timeoutAchieved) { "waitForIdle reached $deadline deadline" }
+        return timeoutAchieved
     }
 
     fun waitForExpectation(deadline: Duration = 1.seconds, expectation: () -> Boolean): Boolean {
@@ -167,7 +183,7 @@ internal class UIKitInstrumentedTest {
         var remainingTime = deadline
         var time = NSDate.timeIntervalSinceReferenceDate()
         while (!expectation() && remainingTime > 0.seconds) {
-            runLoop.runUntilDate(NSDate.dateWithTimeIntervalSinceNow(0.01))
+            runLoop.runUntilDate(NSDate.dateWithTimeIntervalSinceNow(0.005))
             val current = NSDate.timeIntervalSinceReferenceDate()
             remainingTime -= (current - time).seconds
             time = current
@@ -175,8 +191,10 @@ internal class UIKitInstrumentedTest {
         return remainingTime > 0.seconds
     }
 
-    fun runTest(block: UIKitInstrumentedTest.() -> Unit) {
-        block()
-        hideKeyboard(animated = false)
+    fun runTest(block: suspend UIKitInstrumentedTest.() -> Unit) {
+        runBlocking {
+            block()
+            hideKeyboard(animated = false)
+        }
     }
 }
