@@ -26,7 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.*
+import androidx.compose.runtime.State
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.unit.width
+import androidx.compose.ui.node.TrackInteropModifierNode
 import kotlinx.atomicfu.atomic
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGRect
@@ -64,9 +65,10 @@ import platform.CoreGraphics.CGRectZero
 
 private val STUB_CALLBACK_WITH_RECEIVER: Any.() -> Unit = {}
 private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { rect -> this.setFrame(rect) }
-private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Unit = { rect -> this.view.setFrame(rect) }
+private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Unit =
+    { rect -> this.view.setFrame(rect) }
 
-internal class InteropWrappingView: CMPInteropWrappingView(frame = CGRectZero.readValue()) {
+internal class InteropWrappingView : CMPInteropWrappingView(frame = CGRectZero.readValue()) {
     var actualAccessibilityContainer: Any? = null
 
     override fun accessibilityContainer(): Any? {
@@ -80,10 +82,12 @@ internal val InteropViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
         if (parentValue == null) {
             childValue
         } else {
-            println("Warning: Merging accessibility for multiple interop views is not supported. " +
-                "Multiple [UIKitView] are grouped under one node that should be represented as a single accessibility element." +
-                "It isn't recommended because the accessibility system can only recognize the first one. " +
-                "If you need multiple native views for accessibility, make sure to place them inside a single [UIKitView].")
+            println(
+                "Warning: Merging accessibility for multiple interop views is not supported. " +
+                    "Multiple [UIKitView] are grouped under one node that should be represented as a single accessibility element." +
+                    "It isn't recommended because the accessibility system can only recognize the first one. " +
+                    "If you need multiple native views for accessibility, make sure to place them inside a single [UIKitView]."
+            )
 
             parentValue
         }
@@ -96,7 +100,10 @@ private var SemanticsPropertyReceiver.interopView by InteropViewSemanticsKey
  * Chain [this] with [Modifier.semantics] that sets the [interopView] of the node if [enabled] is true.
  * If [enabled] is false, [this] is returned as is.
  */
-private fun Modifier.interopSemantics(enabled: Boolean, wrappingView: InteropWrappingView): Modifier =
+private fun Modifier.interopSemantics(
+    enabled: Boolean,
+    wrappingView: InteropWrappingView
+): Modifier =
     if (enabled) {
         this.semantics {
             interopView = wrappingView
@@ -104,6 +111,97 @@ private fun Modifier.interopSemantics(enabled: Boolean, wrappingView: InteropWra
     } else {
         this
     }
+
+private fun Modifier.catchInteropPointer(isInteractive: Boolean): Modifier =
+    if (isInteractive) {
+        this then InteropViewCatchPointerModifier()
+    } else {
+        this
+    }
+
+/**
+ * Internal common part of custom layout emitting a node associated with UIKit interop for [UIView] and [UIViewController].
+ */
+@Composable
+private fun <T : Any> UIKitInteropLayout(
+    modifier: Modifier,
+    update: (T) -> Unit,
+    background: Color,
+    entityHandler: InteropEntityHandler<T>,
+    onResize: (T, rect: CValue<CGRect>) -> Unit,
+    interactive: Boolean,
+    accessibilityEnabled: Boolean,
+) {
+    val density = LocalDensity.current
+    var rectInPixels by remember { mutableStateOf(IntRect(0, 0, 0, 0)) }
+    var localToWindowOffset: IntOffset by remember { mutableStateOf(IntOffset.Zero) }
+    val interopContext = LocalUIKitInteropContext.current
+    val interopContainer = LocalUIKitInteropContainer.current
+
+    EmptyLayout(
+        modifier.onGloballyPositioned { coordinates ->
+            localToWindowOffset = coordinates.positionInRoot().round()
+            val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
+            if (rectInPixels != newRectInPixels) {
+                val rect = newRectInPixels.toRect().toDpRect(density)
+
+                interopContext.deferAction {
+                    entityHandler.wrappingView.setFrame(rect.asCGRect())
+                }
+
+                if (rectInPixels.width != newRectInPixels.width || rectInPixels.height != newRectInPixels.height) {
+                    interopContext.deferAction {
+                        onResize(
+                            entityHandler.interopEntity,
+                            CGRectMake(
+                                0.0,
+                                0.0,
+                                rect.width.value.toDouble(),
+                                rect.height.value.toDouble()
+                            ),
+                        )
+                    }
+                }
+                rectInPixels = newRectInPixels
+            }
+        }.drawBehind {
+            // Clear interop area to make visible the component under our canvas.
+            drawRect(
+                color = Color.Transparent,
+                blendMode = BlendMode.Clear
+            )
+        }.trackUIKitInterop(
+            container = interopContainer,
+            view = entityHandler.wrappingView
+        ).catchInteropPointer(
+            isInteractive = interactive
+        ).interopSemantics(accessibilityEnabled, entityHandler.wrappingView)
+    )
+
+    DisposableEffect(Unit) {
+        entityHandler.initialize(interopContext, update)
+
+        interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
+            entityHandler.addToHierarchy()
+        }
+
+        onDispose {
+            interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
+                entityHandler.removeFromHierarchy()
+            }
+        }
+    }
+
+    LaunchedEffect(background) {
+        interopContext.deferAction {
+            entityHandler.setBackgroundColor(background)
+        }
+    }
+
+    SideEffect {
+        entityHandler.update = update
+    }
+}
 
 /**
  * @param factory The block creating the [UIView] to be composed.
@@ -147,76 +245,23 @@ fun <T : UIView> UIKitView(
     // TODO: adapt UIKitView to reuse inside LazyColumn like in AndroidView:
     //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
     val interopContainer = LocalUIKitInteropContainer.current
-    val embeddedInteropComponent = remember {
-        EmbeddedInteropView(
+    val handler = remember {
+        InteropViewHandler(
+            makeInteropEntity = factory,
             interopContainer = interopContainer,
-            onRelease
+            onRelease = onRelease
         )
     }
-    val density = LocalDensity.current
-    var rectInPixels by remember { mutableStateOf(IntRect(0, 0, 0, 0)) }
-    var localToWindowOffset: IntOffset by remember { mutableStateOf(IntOffset.Zero) }
-    val interopContext = LocalUIKitInteropContext.current
 
-    EmptyLayout(
-        modifier.onGloballyPositioned { coordinates ->
-            localToWindowOffset = coordinates.positionInRoot().round()
-            val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
-            if (rectInPixels != newRectInPixels) {
-                val rect = newRectInPixels.toRect().toDpRect(density)
-
-                interopContext.deferAction {
-                    embeddedInteropComponent.wrappingView.setFrame(rect.asCGRect())
-                }
-
-                if (rectInPixels.width != newRectInPixels.width || rectInPixels.height != newRectInPixels.height) {
-                    interopContext.deferAction {
-                        onResize(
-                            embeddedInteropComponent.component,
-                            CGRectMake(0.0, 0.0, rect.width.value.toDouble(), rect.height.value.toDouble()),
-                        )
-                    }
-                }
-                rectInPixels = newRectInPixels
-            }
-        }.drawBehind {
-            // Clear interop area to make visible the component under our canvas.
-            drawRect(Color.Transparent, blendMode = BlendMode.Clear)
-        }.trackUIKitInterop(interopContainer, embeddedInteropComponent.wrappingView).let {
-            if (interactive) {
-                it.then(InteropViewCatchPointerModifier())
-            } else {
-                it
-            }
-        }.interopSemantics(accessibilityEnabled, embeddedInteropComponent.wrappingView)
+    UIKitInteropLayout(
+        modifier = modifier,
+        update = update,
+        background = background,
+        entityHandler = handler,
+        onResize = onResize,
+        interactive = interactive,
+        accessibilityEnabled = accessibilityEnabled
     )
-
-    DisposableEffect(Unit) {
-        embeddedInteropComponent.component = factory()
-        embeddedInteropComponent.updater = Updater(embeddedInteropComponent.component, update) {
-            interopContext.deferAction(action = it)
-        }
-
-        interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
-            embeddedInteropComponent.addToHierarchy()
-        }
-
-        onDispose {
-            interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
-                embeddedInteropComponent.removeFromHierarchy()
-            }
-        }
-    }
-
-    LaunchedEffect(background) {
-        interopContext.deferAction {
-            embeddedInteropComponent.setBackgroundColor(background)
-        }
-    }
-
-    SideEffect {
-        embeddedInteropComponent.updater.update = update
-    }
 }
 
 /**
@@ -264,87 +309,50 @@ fun <T : UIViewController> UIKitViewController(
     //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
     val interopContainer = LocalUIKitInteropContainer.current
     val rootViewController = LocalUIViewController.current
-    val embeddedInteropComponent = remember {
-        EmbeddedInteropViewController(
+    val handler = remember {
+        InteropViewControllerHandler(
+            makeInteropEntity = factory,
             interopContainer = interopContainer,
             rootViewController = rootViewController,
             onRelease = onRelease
         )
     }
 
-    val density = LocalDensity.current
-    var rectInPixels by remember { mutableStateOf(IntRect(0, 0, 0, 0)) }
-    var localToWindowOffset: IntOffset by remember { mutableStateOf(IntOffset.Zero) }
-    val interopContext = LocalUIKitInteropContext.current
-
-    EmptyLayout(
-        modifier.onGloballyPositioned { coordinates ->
-            localToWindowOffset = coordinates.positionInRoot().round()
-            val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
-            if (rectInPixels != newRectInPixels) {
-                val rect = newRectInPixels.toRect().toDpRect(density)
-
-                interopContext.deferAction {
-                    embeddedInteropComponent.wrappingView.setFrame(rect.asCGRect())
-                }
-
-                if (rectInPixels.width != newRectInPixels.width || rectInPixels.height != newRectInPixels.height) {
-                    interopContext.deferAction {
-                        onResize(
-                            embeddedInteropComponent.component,
-                            CGRectMake(0.0, 0.0, rect.width.value.toDouble(), rect.height.value.toDouble()),
-                        )
-                    }
-                }
-                rectInPixels = newRectInPixels
-            }
-        }.drawBehind {
-            // Clear interop area to make visible the component under our canvas.
-            drawRect(Color.Transparent, blendMode = BlendMode.Clear)
-        }.trackUIKitInterop(interopContainer, embeddedInteropComponent.wrappingView).let {
-            if (interactive) {
-                it.then(InteropViewCatchPointerModifier())
-            } else {
-                it
-            }
-        }.interopSemantics(accessibilityEnabled, embeddedInteropComponent.wrappingView)
+    UIKitInteropLayout(
+        modifier = modifier,
+        update = update,
+        background = background,
+        entityHandler = handler,
+        onResize = onResize,
+        interactive = interactive,
+        accessibilityEnabled = accessibilityEnabled
     )
-
-    DisposableEffect(Unit) {
-        embeddedInteropComponent.component = factory()
-        embeddedInteropComponent.updater = Updater(embeddedInteropComponent.component, update) {
-            interopContext.deferAction(action = it)
-        }
-
-        interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
-            embeddedInteropComponent.addToHierarchy()
-        }
-
-        onDispose {
-            interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
-                embeddedInteropComponent.removeFromHierarchy()
-            }
-        }
-    }
-
-    LaunchedEffect(background) {
-        interopContext.deferAction {
-            embeddedInteropComponent.setBackgroundColor(background)
-        }
-    }
-
-    SideEffect {
-        embeddedInteropComponent.updater.update = update
-    }
 }
 
-private abstract class EmbeddedInteropComponent<T : Any>(
+/**
+ * An abstract that abstracts structural and state management of interop entities like [UIView] and [UIViewController]
+ */
+private abstract class InteropEntityHandler<T : Any>(
+    val makeInteropEntity: () -> T,
     val interopContainer: UIKitInteropContainer,
     val onRelease: (T) -> Unit
 ) {
     val wrappingView = InteropWrappingView()
-    lateinit var component: T
-    lateinit var updater: Updater<T>
+    lateinit var interopEntity: T
+    private lateinit var updater: Updater<T>
+
+    var update: (T) -> Unit
+        get() = updater.update
+        set(value) {
+            updater.update = value
+        }
+
+    fun initialize(interopContext: UIKitInteropContext, update: (T) -> Unit) {
+        interopEntity = makeInteropEntity()
+        updater = Updater(interopEntity, update) {
+            interopContext.deferAction(action = it)
+        }
+    }
 
     fun setBackgroundColor(color: Color) {
         if (color == Color.Unspecified) {
@@ -357,50 +365,64 @@ private abstract class EmbeddedInteropComponent<T : Any>(
     abstract fun addToHierarchy()
     abstract fun removeFromHierarchy()
 
+    /**
+     * Places the actual view a user constructed in factory to the [wrappingView]
+     * [wrappingView] will be added to the [UIKitInteropContainer] within [TrackInteropModifierNode]
+     */
     protected fun addViewToHierarchy(view: UIView) {
         wrappingView.addSubview(view)
-        // wrappingView will be added to the container from [onPlaced]
     }
 
     protected fun removeViewFromHierarchy(view: UIView) {
         view.removeFromSuperview()
         interopContainer.removeInteropView(wrappingView)
         updater.dispose()
-        onRelease(component)
+        onRelease(interopEntity)
     }
 }
 
-private class EmbeddedInteropView<T : UIView>(
+private class InteropViewHandler<T : UIView>(
+    makeInteropEntity: () -> T,
     interopContainer: UIKitInteropContainer,
     onRelease: (T) -> Unit
-) : EmbeddedInteropComponent<T>(interopContainer, onRelease) {
+) : InteropEntityHandler<T>(makeInteropEntity, interopContainer, onRelease) {
     override fun addToHierarchy() {
-        addViewToHierarchy(component)
+        addViewToHierarchy(interopEntity)
     }
 
     override fun removeFromHierarchy() {
-        removeViewFromHierarchy(component)
+        removeViewFromHierarchy(interopEntity)
     }
 }
 
-private class EmbeddedInteropViewController<T : UIViewController>(
+private class InteropViewControllerHandler<T : UIViewController>(
+    makeInteropEntity: () -> T,
     interopContainer: UIKitInteropContainer,
     private val rootViewController: UIViewController,
     onRelease: (T) -> Unit
-) : EmbeddedInteropComponent<T>(interopContainer, onRelease) {
+) : InteropEntityHandler<T>(makeInteropEntity, interopContainer, onRelease) {
     override fun addToHierarchy() {
-        rootViewController.addChildViewController(component)
-        addViewToHierarchy(component.view)
-        component.didMoveToParentViewController(rootViewController)
+        rootViewController.addChildViewController(interopEntity)
+        addViewToHierarchy(interopEntity.view)
+        interopEntity.didMoveToParentViewController(rootViewController)
     }
 
     override fun removeFromHierarchy() {
-        component.willMoveToParentViewController(null)
-        removeViewFromHierarchy(component.view)
-        component.removeFromParentViewController()
+        interopEntity.willMoveToParentViewController(null)
+        removeViewFromHierarchy(interopEntity.view)
+        interopEntity.removeFromParentViewController()
     }
 }
 
+/**
+ * A helper class to schedule an update the interop entity whenever the [State] used by the [update]
+ * lambda is changed.
+ *
+ * @param component The interop entity to be updated.
+ * @param update The lambda to be called whenever the state used by this lambda is changed.
+ * @param deferAction The lambda to register [update] execution to defer it in order to sync it with
+ * Compose rendering. The aim of this is to make changes to UIKit and Compose synchronized.
+ */
 private class Updater<T : Any>(
     private val component: T,
     update: (T) -> Unit,

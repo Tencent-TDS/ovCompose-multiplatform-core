@@ -78,7 +78,8 @@ private class UIKitInteropContainerView: UIView(CGRectZero.readValue()) {
 }
 
 /**
- * Modifier to track interop view inside [LayoutNode] hierarchy.
+ * Modifier to track interop view inside [LayoutNode] hierarchy. Used to properly
+ * sort interop views in the tree.
  *
  * @param view The [UIView] that matches the current node.
  */
