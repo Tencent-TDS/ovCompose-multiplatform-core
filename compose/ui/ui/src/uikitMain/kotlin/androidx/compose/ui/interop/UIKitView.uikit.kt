@@ -138,8 +138,8 @@ private fun <T : Any> UIKitInteropLayout(
     val interopContext = LocalUIKitInteropContext.current
     val interopContainer = LocalUIKitInteropContainer.current
 
-    EmptyLayout(
-        modifier.onGloballyPositioned { coordinates ->
+    val finalModifier = modifier
+        .onGloballyPositioned { coordinates ->
             localToWindowOffset = coordinates.positionInRoot().round()
             val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
             if (rectInPixels != newRectInPixels) {
@@ -164,18 +164,20 @@ private fun <T : Any> UIKitInteropLayout(
                 }
                 rectInPixels = newRectInPixels
             }
-        }.drawBehind {
+        }
+        .drawBehind {
             // Clear interop area to make visible the component under our canvas.
             drawRect(
                 color = Color.Transparent,
                 blendMode = BlendMode.Clear
             )
-        }.trackUIKitInterop(
-            container = interopContainer,
-            view = entityHandler.wrappingView
-        ).catchInteropPointer(
-            isInteractive = interactive
-        ).interopSemantics(accessibilityEnabled, entityHandler.wrappingView)
+        }
+        .trackUIKitInterop(interopContainer, entityHandler.wrappingView)
+        .catchInteropPointer(interactive)
+        .interopSemantics(accessibilityEnabled, entityHandler.wrappingView)
+
+    EmptyLayout(
+        finalModifier
     )
 
     DisposableEffect(Unit) {
