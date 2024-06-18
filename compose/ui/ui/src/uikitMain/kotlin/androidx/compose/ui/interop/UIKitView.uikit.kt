@@ -244,8 +244,6 @@ fun <T : UIView> UIKitView(
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true,
 ) {
-    // TODO: adapt UIKitView to reuse inside LazyColumn like in AndroidView:
-    //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
     val interopContainer = LocalUIKitInteropContainer.current
     val handler = remember {
         InteropViewHandler(
@@ -307,8 +305,6 @@ fun <T : UIViewController> UIKitViewController(
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true,
 ) {
-    // TODO: adapt UIKitViewController to reuse inside LazyColumn like in AndroidView:
-    //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
     val interopContainer = LocalUIKitInteropContainer.current
     val rootViewController = LocalUIViewController.current
     val handler = remember {
@@ -335,6 +331,8 @@ fun <T : UIViewController> UIKitViewController(
  * An abstract class responsible for hiearchy updates and state management of interop entities like [UIView] and [UIViewController]
  */
 private abstract class InteropEntityHandler<T : Any>(
+    // TODO: reuse an object created makeInteropEntity inside LazyColumn like in AndroidView:
+    //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
     val makeInteropEntity: () -> T,
     val interopContainer: UIKitInteropContainer,
     val onRelease: (T) -> Unit
