@@ -154,10 +154,10 @@ private fun <T : Any> UIKitInteropLayout(
                         onResize(
                             entityHandler.interopEntity,
                             CGRectMake(
-                                0.0,
-                                0.0,
-                                rect.width.value.toDouble(),
-                                rect.height.value.toDouble()
+                                x = 0.0,
+                                y = 0.0,
+                                width = rect.width.value.toDouble(),
+                                height = rect.height.value.toDouble()
                             ),
                         )
                     }
@@ -332,7 +332,7 @@ fun <T : UIViewController> UIKitViewController(
 }
 
 /**
- * An abstract that abstracts structural and state management of interop entities like [UIView] and [UIViewController]
+ * An abstract class responsible for hiearchy updates and state management of interop entities like [UIView] and [UIViewController]
  */
 private abstract class InteropEntityHandler<T : Any>(
     val makeInteropEntity: () -> T,
