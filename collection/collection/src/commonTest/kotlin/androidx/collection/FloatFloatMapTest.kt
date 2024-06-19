@@ -586,6 +586,22 @@ internal class FloatFloatMapTest {
     }
 
     @Test
+    @JsName("testEquals")
+    fun equals() {
+        val map = MutableFloatFloatMap()
+        map[1f] = 1f
+
+        assertFalse(map.equals(null))
+        assertEquals(map, map)
+
+        val map2 = MutableFloatFloatMap()
+        assertNotEquals(map, map2)
+
+        map2[1f] = 1f
+        assertEquals(map, map2)
+    }
+
+    @Test
     fun containsKey() {
         val map = MutableFloatFloatMap()
         map[1f] = 1f
@@ -601,22 +617,6 @@ internal class FloatFloatMapTest {
 
         assertTrue(1f in map)
         assertFalse(2f in map)
-    }
-
-    @Test
-    @JsName("testEquals")
-    fun equals() {
-        val map = MutableFloatFloatMap()
-        map[1f] = 1f
-
-        assertFalse(map.equals(null))
-        assertEquals(map, map)
-
-        val map2 = MutableFloatFloatMap()
-        assertNotEquals(map, map2)
-
-        map2[1f] = 1f
-        assertEquals(map, map2)
     }
 
     @Test
