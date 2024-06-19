@@ -415,13 +415,15 @@ private class InteropViewControllerHandler<T : UIViewController>(
 }
 
 /**
- * A helper class to schedule an update the interop entity whenever the [State] used by the [update]
+ * A helper class to schedule an update for the interop entity whenever the [State] used by the [update]
  * lambda is changed.
  *
  * @param component The interop entity to be updated.
  * @param update The lambda to be called whenever the state used by this lambda is changed.
  * @param deferAction The lambda to register [update] execution to defer it in order to sync it with
- * Compose rendering. The aim of this is to make changes to UIKit and Compose synchronized.
+ * Compose rendering. The aim of this is to make visual changes to UIKit and Compose
+ * simulteneously.
+ * @see [UIKitInteropContext] and [UIKitInteropTransaction] for more details.
  */
 private class Updater<T : Any>(
     private val component: T,
