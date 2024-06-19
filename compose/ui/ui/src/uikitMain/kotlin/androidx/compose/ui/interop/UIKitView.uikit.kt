@@ -341,6 +341,11 @@ private abstract class InteropComponentHandler<T : Any>(
     lateinit var component: T
     private lateinit var updater: Updater<T>
 
+    /**
+     * Access the [update] lambda.
+     * Lambda is immediately executed when set anew.
+     * @see Updater.performUpdate
+     */
     var update: (T) -> Unit
         get() = updater.update
         set(value) {
