@@ -127,7 +127,7 @@ private fun <T : Any> UIKitInteropLayout(
     modifier: Modifier,
     update: (T) -> Unit,
     background: Color,
-    entityHandler: InteropEntityHandler<T>,
+    componentHandler: InteropComponentHandler<T>,
     onResize: (T, rect: CValue<CGRect>) -> Unit,
     interactive: Boolean,
     accessibilityEnabled: Boolean,
@@ -146,13 +146,13 @@ private fun <T : Any> UIKitInteropLayout(
                 val rect = newRectInPixels.toRect().toDpRect(density)
 
                 interopContext.deferAction {
-                    entityHandler.wrappingView.setFrame(rect.asCGRect())
+                    componentHandler.wrappingView.setFrame(rect.asCGRect())
                 }
 
                 if (rectInPixels.width != newRectInPixels.width || rectInPixels.height != newRectInPixels.height) {
                     interopContext.deferAction {
                         onResize(
-                            entityHandler.interopEntity,
+                            componentHandler.component,
                             CGRectMake(
                                 x = 0.0,
                                 y = 0.0,
@@ -172,36 +172,36 @@ private fun <T : Any> UIKitInteropLayout(
                 blendMode = BlendMode.Clear
             )
         }
-        .trackUIKitInterop(interopContainer, entityHandler.wrappingView)
+        .trackUIKitInterop(interopContainer, componentHandler.wrappingView)
         .catchInteropPointer(interactive)
-        .interopSemantics(accessibilityEnabled, entityHandler.wrappingView)
+        .interopSemantics(accessibilityEnabled, componentHandler.wrappingView)
 
     EmptyLayout(
         finalModifier
     )
 
     DisposableEffect(Unit) {
-        entityHandler.initialize(interopContext, update)
+        componentHandler.initialize(interopContext, update)
 
         interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
-            entityHandler.addToHierarchy()
+            componentHandler.addToHierarchy()
         }
 
         onDispose {
             interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
-                entityHandler.removeFromHierarchy()
+                componentHandler.removeFromHierarchy()
             }
         }
     }
 
     LaunchedEffect(background) {
         interopContext.deferAction {
-            entityHandler.setBackgroundColor(background)
+            componentHandler.setBackgroundColor(background)
         }
     }
 
     SideEffect {
-        entityHandler.update = update
+        componentHandler.update = update
     }
 }
 
@@ -247,7 +247,7 @@ fun <T : UIView> UIKitView(
     val interopContainer = LocalUIKitInteropContainer.current
     val handler = remember {
         InteropViewHandler(
-            makeInteropEntity = factory,
+            makeInteropComponent = factory,
             interopContainer = interopContainer,
             onRelease = onRelease
         )
@@ -257,7 +257,7 @@ fun <T : UIView> UIKitView(
         modifier = modifier,
         update = update,
         background = background,
-        entityHandler = handler,
+        componentHandler = handler,
         onResize = onResize,
         interactive = interactive,
         accessibilityEnabled = accessibilityEnabled
@@ -309,7 +309,7 @@ fun <T : UIViewController> UIKitViewController(
     val rootViewController = LocalUIViewController.current
     val handler = remember {
         InteropViewControllerHandler(
-            makeInteropEntity = factory,
+            makeInteropComponent = factory,
             interopContainer = interopContainer,
             rootViewController = rootViewController,
             onRelease = onRelease
@@ -320,7 +320,7 @@ fun <T : UIViewController> UIKitViewController(
         modifier = modifier,
         update = update,
         background = background,
-        entityHandler = handler,
+        componentHandler = handler,
         onResize = onResize,
         interactive = interactive,
         accessibilityEnabled = accessibilityEnabled
@@ -328,17 +328,17 @@ fun <T : UIViewController> UIKitViewController(
 }
 
 /**
- * An abstract class responsible for hiearchy updates and state management of interop entities like [UIView] and [UIViewController]
+ * An abstract class responsible for hiearchy updates and state management of interop components like [UIView] and [UIViewController]
  */
-private abstract class InteropEntityHandler<T : Any>(
-    // TODO: reuse an object created makeInteropEntity inside LazyColumn like in AndroidView:
+private abstract class InteropComponentHandler<T : Any>(
+    // TODO: reuse an object created makeInteropComponent inside LazyColumn like in AndroidView:
     //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
-    val makeInteropEntity: () -> T,
+    val makeInteropComponent: () -> T,
     val interopContainer: UIKitInteropContainer,
     val onRelease: (T) -> Unit
 ) {
     val wrappingView = InteropWrappingView()
-    lateinit var interopEntity: T
+    lateinit var component: T
     private lateinit var updater: Updater<T>
 
     var update: (T) -> Unit
@@ -348,8 +348,8 @@ private abstract class InteropEntityHandler<T : Any>(
         }
 
     fun initialize(interopContext: UIKitInteropContext, update: (T) -> Unit) {
-        interopEntity = makeInteropEntity()
-        updater = Updater(interopEntity, update) {
+        component = makeInteropComponent()
+        updater = Updater(component, update) {
             interopContext.deferAction(action = it)
         }
     }
@@ -377,52 +377,52 @@ private abstract class InteropEntityHandler<T : Any>(
         view.removeFromSuperview()
         interopContainer.removeInteropView(wrappingView)
         updater.dispose()
-        onRelease(interopEntity)
+        onRelease(component)
     }
 }
 
 private class InteropViewHandler<T : UIView>(
-    makeInteropEntity: () -> T,
+    makeInteropComponent: () -> T,
     interopContainer: UIKitInteropContainer,
     onRelease: (T) -> Unit
-) : InteropEntityHandler<T>(makeInteropEntity, interopContainer, onRelease) {
+) : InteropComponentHandler<T>(makeInteropComponent, interopContainer, onRelease) {
     override fun addToHierarchy() {
-        addViewToHierarchy(interopEntity)
+        addViewToHierarchy(component)
     }
 
     override fun removeFromHierarchy() {
-        removeViewFromHierarchy(interopEntity)
+        removeViewFromHierarchy(component)
     }
 }
 
 private class InteropViewControllerHandler<T : UIViewController>(
-    makeInteropEntity: () -> T,
+    makeInteropComponent: () -> T,
     interopContainer: UIKitInteropContainer,
     private val rootViewController: UIViewController,
     onRelease: (T) -> Unit
-) : InteropEntityHandler<T>(makeInteropEntity, interopContainer, onRelease) {
+) : InteropComponentHandler<T>(makeInteropComponent, interopContainer, onRelease) {
     override fun addToHierarchy() {
-        rootViewController.addChildViewController(interopEntity)
-        addViewToHierarchy(interopEntity.view)
-        interopEntity.didMoveToParentViewController(rootViewController)
+        rootViewController.addChildViewController(component)
+        addViewToHierarchy(component.view)
+        component.didMoveToParentViewController(rootViewController)
     }
 
     override fun removeFromHierarchy() {
-        interopEntity.willMoveToParentViewController(null)
-        removeViewFromHierarchy(interopEntity.view)
-        interopEntity.removeFromParentViewController()
+        component.willMoveToParentViewController(null)
+        removeViewFromHierarchy(component.view)
+        component.removeFromParentViewController()
     }
 }
 
 /**
- * A helper class to schedule an update for the interop entity whenever the [State] used by the [update]
+ * A helper class to schedule an update for the interop component whenever the [State] used by the [update]
  * lambda is changed.
  *
- * @param component The interop entity to be updated.
+ * @param component The interop component to be updated.
  * @param update The lambda to be called whenever the state used by this lambda is changed.
  * @param deferAction The lambda to register [update] execution to defer it in order to sync it with
  * Compose rendering. The aim of this is to make visual changes to UIKit and Compose
- * simulteneously.
+ * simultaneously.
  * @see [UIKitInteropContext] and [UIKitInteropTransaction] for more details.
  */
 private class Updater<T : Any>(
