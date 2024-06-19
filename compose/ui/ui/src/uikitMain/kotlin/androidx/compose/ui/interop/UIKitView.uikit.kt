@@ -247,7 +247,7 @@ fun <T : UIView> UIKitView(
     val interopContainer = LocalUIKitInteropContainer.current
     val handler = remember {
         InteropViewHandler(
-            makeInteropComponent = factory,
+            createView = factory,
             interopContainer = interopContainer,
             onRelease = onRelease
         )
@@ -309,7 +309,7 @@ fun <T : UIViewController> UIKitViewController(
     val rootViewController = LocalUIViewController.current
     val handler = remember {
         InteropViewControllerHandler(
-            makeInteropComponent = factory,
+            createViewController = factory,
             interopContainer = interopContainer,
             rootViewController = rootViewController,
             onRelease = onRelease
@@ -331,9 +331,9 @@ fun <T : UIViewController> UIKitViewController(
  * An abstract class responsible for hiearchy updates and state management of interop components like [UIView] and [UIViewController]
  */
 private abstract class InteropComponentHandler<T : Any>(
-    // TODO: reuse an object created makeInteropComponent inside LazyColumn like in AndroidView:
+    // TODO: reuse an object created makeComponent inside LazyColumn like in AndroidView:
     //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
-    val makeInteropComponent: () -> T,
+    val createComponent: () -> T,
     val interopContainer: UIKitInteropContainer,
     val onRelease: (T) -> Unit
 ) {
@@ -348,7 +348,7 @@ private abstract class InteropComponentHandler<T : Any>(
         }
 
     fun initialize(interopContext: UIKitInteropContext, update: (T) -> Unit) {
-        component = makeInteropComponent()
+        component = createComponent()
         updater = Updater(component, update) {
             interopContext.deferAction(action = it)
         }
@@ -382,10 +382,10 @@ private abstract class InteropComponentHandler<T : Any>(
 }
 
 private class InteropViewHandler<T : UIView>(
-    makeInteropComponent: () -> T,
+    createView: () -> T,
     interopContainer: UIKitInteropContainer,
     onRelease: (T) -> Unit
-) : InteropComponentHandler<T>(makeInteropComponent, interopContainer, onRelease) {
+) : InteropComponentHandler<T>(createView, interopContainer, onRelease) {
     override fun addToHierarchy() {
         addViewToHierarchy(component)
     }
@@ -396,11 +396,11 @@ private class InteropViewHandler<T : UIView>(
 }
 
 private class InteropViewControllerHandler<T : UIViewController>(
-    makeInteropComponent: () -> T,
+    createViewController: () -> T,
     interopContainer: UIKitInteropContainer,
     private val rootViewController: UIViewController,
     onRelease: (T) -> Unit
-) : InteropComponentHandler<T>(makeInteropComponent, interopContainer, onRelease) {
+) : InteropComponentHandler<T>(createViewController, interopContainer, onRelease) {
     override fun addToHierarchy() {
         rootViewController.addChildViewController(component)
         addViewToHierarchy(component.view)
