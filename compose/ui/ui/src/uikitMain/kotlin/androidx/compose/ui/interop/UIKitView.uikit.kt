@@ -60,6 +60,7 @@ import platform.UIKit.didMoveToParentViewController
 import platform.UIKit.removeFromParentViewController
 import platform.UIKit.willMoveToParentViewController
 import androidx.compose.ui.uikit.utils.CMPInteropWrappingView
+import androidx.compose.ui.unit.Density
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
 
@@ -128,14 +129,12 @@ private fun <T : Any> UIKitInteropLayout(
     update: (T) -> Unit,
     background: Color,
     componentHandler: InteropComponentHandler<T>,
-    onResize: (T, rect: CValue<CGRect>) -> Unit,
     interactive: Boolean,
     accessibilityEnabled: Boolean,
 ) {
     val density = LocalDensity.current
     var rectInPixels by remember { mutableStateOf(IntRect(0, 0, 0, 0)) }
     var localToWindowOffset: IntOffset by remember { mutableStateOf(IntOffset.Zero) }
-    val interopContext = LocalUIKitInteropContext.current
     val interopContainer = LocalUIKitInteropContainer.current
 
     val finalModifier = modifier
@@ -143,25 +142,12 @@ private fun <T : Any> UIKitInteropLayout(
             localToWindowOffset = coordinates.positionInRoot().round()
             val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
             if (rectInPixels != newRectInPixels) {
-                val rect = newRectInPixels.toRect().toDpRect(density)
+                componentHandler.updateRect(
+                    from = rectInPixels,
+                    to = newRectInPixels,
+                    density = density
+                )
 
-                interopContext.deferAction {
-                    componentHandler.wrappingView.setFrame(rect.asCGRect())
-                }
-
-                if (rectInPixels.width != newRectInPixels.width || rectInPixels.height != newRectInPixels.height) {
-                    interopContext.deferAction {
-                        onResize(
-                            componentHandler.component,
-                            CGRectMake(
-                                x = 0.0,
-                                y = 0.0,
-                                width = rect.width.value.toDouble(),
-                                height = rect.height.value.toDouble()
-                            ),
-                        )
-                    }
-                }
                 rectInPixels = newRectInPixels
             }
         }
@@ -181,27 +167,27 @@ private fun <T : Any> UIKitInteropLayout(
     )
 
     DisposableEffect(Unit) {
-        componentHandler.initialize(interopContext, update)
+        componentHandler.initialize(update)
 
-        interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
+        interopContainer.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
             componentHandler.addToHierarchy()
         }
 
         onDispose {
-            interopContext.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
+            interopContainer.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
                 componentHandler.removeFromHierarchy()
             }
         }
     }
 
     LaunchedEffect(background) {
-        interopContext.deferAction {
+        interopContainer.deferAction {
             componentHandler.setBackgroundColor(background)
         }
     }
 
     SideEffect {
-        componentHandler.update = update
+        componentHandler.setUpdate(update)
     }
 }
 
@@ -249,6 +235,7 @@ fun <T : UIView> UIKitView(
         InteropViewHandler(
             createView = factory,
             interopContainer = interopContainer,
+            onResize = onResize,
             onRelease = onRelease
         )
     }
@@ -258,7 +245,6 @@ fun <T : UIView> UIKitView(
         update = update,
         background = background,
         componentHandler = handler,
-        onResize = onResize,
         interactive = interactive,
         accessibilityEnabled = accessibilityEnabled
     )
@@ -312,6 +298,7 @@ fun <T : UIViewController> UIKitViewController(
             createViewController = factory,
             interopContainer = interopContainer,
             rootViewController = rootViewController,
+            onResize = onResize,
             onRelease = onRelease
         )
     }
@@ -321,7 +308,6 @@ fun <T : UIViewController> UIKitViewController(
         update = update,
         background = background,
         componentHandler = handler,
-        onResize = onResize,
         interactive = interactive,
         accessibilityEnabled = accessibilityEnabled
     )
@@ -335,27 +321,52 @@ private abstract class InteropComponentHandler<T : Any>(
     //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
     val createComponent: () -> T,
     val interopContainer: UIKitInteropContainer,
-    val onRelease: (T) -> Unit
+    val onResize: (T, rect: CValue<CGRect>) -> Unit,
+    val onRelease: (T) -> Unit,
 ) {
     val wrappingView = InteropWrappingView()
     lateinit var component: T
     private lateinit var updater: Updater<T>
 
     /**
-     * Access the [update] lambda.
-     * Lambda is immediately executed when set anew.
+     * Set the [Updater.update] lambda.
+     * Lambda is immediately executed after setting.
      * @see Updater.performUpdate
      */
-    var update: (T) -> Unit
-        get() = updater.update
-        set(value) {
-            updater.update = value
+    fun setUpdate(block: (T) -> Unit) {
+        updater.update = block
+    }
+
+    /**
+     * Set the frame of the wrapping view.
+     */
+    fun updateRect(from: IntRect, to: IntRect, density: Density) {
+        val dpRect = to.toRect().toDpRect(density)
+
+        interopContainer.deferAction {
+            wrappingView.setFrame(dpRect.asCGRect())
         }
 
-    fun initialize(interopContext: UIKitInteropContext, update: (T) -> Unit) {
+        if (from.size != to.size) {
+            interopContainer.deferAction {
+                // The actual component created by the user is resized here using the provided callback.
+                onResize(
+                    component,
+                    CGRectMake(
+                        x = 0.0,
+                        y = 0.0,
+                        width = dpRect.width.value.toDouble(),
+                        height = dpRect.height.value.toDouble()
+                    ),
+                )
+            }
+        }
+    }
+
+    fun initialize(update: (T) -> Unit) {
         component = createComponent()
         updater = Updater(component, update) {
-            interopContext.deferAction(action = it)
+            interopContainer.deferAction(action = it)
         }
     }
 
@@ -389,8 +400,9 @@ private abstract class InteropComponentHandler<T : Any>(
 private class InteropViewHandler<T : UIView>(
     createView: () -> T,
     interopContainer: UIKitInteropContainer,
+    onResize: (T, rect: CValue<CGRect>) -> Unit,
     onRelease: (T) -> Unit
-) : InteropComponentHandler<T>(createView, interopContainer, onRelease) {
+) : InteropComponentHandler<T>(createView, interopContainer, onResize, onRelease) {
     override fun addToHierarchy() {
         addViewToHierarchy(component)
     }
@@ -404,8 +416,9 @@ private class InteropViewControllerHandler<T : UIViewController>(
     createViewController: () -> T,
     interopContainer: UIKitInteropContainer,
     private val rootViewController: UIViewController,
+    onResize: (T, rect: CValue<CGRect>) -> Unit,
     onRelease: (T) -> Unit
-) : InteropComponentHandler<T>(createViewController, interopContainer, onRelease) {
+) : InteropComponentHandler<T>(createViewController, interopContainer, onResize, onRelease) {
     override fun addToHierarchy() {
         rootViewController.addChildViewController(component)
         addViewToHierarchy(component.view)
@@ -428,7 +441,7 @@ private class InteropViewControllerHandler<T : UIViewController>(
  * @param deferAction The lambda to register [update] execution to defer it in order to sync it with
  * Compose rendering. The aim of this is to make visual changes to UIKit and Compose
  * simultaneously.
- * @see [UIKitInteropContext] and [UIKitInteropTransaction] for more details.
+ * @see [UIKitInteropContainer] and [UIKitInteropTransaction] for more details.
  */
 private class Updater<T : Any>(
     private val component: T,
