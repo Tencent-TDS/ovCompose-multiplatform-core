@@ -55,12 +55,7 @@ suspend fun getResourceBytes(resourceName: String): ByteArray? = withContext(Dis
     val classLoader = Thread.currentThread().contextClassLoader
     try {
         classLoader.getResourceAsStream(resourceName).use { inputStream ->
-            if (inputStream == null) {
-                println("Resource not found: $resourceName")
-                return@withContext null
-            }
-            // Read all bytes from the input stream
-            return@withContext inputStream.readBytes()
+            return@withContext inputStream?.readBytes()
         }
     } catch (e: IOException) {
         e.printStackTrace()
