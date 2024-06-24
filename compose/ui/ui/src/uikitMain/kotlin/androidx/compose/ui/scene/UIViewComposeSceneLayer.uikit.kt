@@ -152,7 +152,7 @@ internal class UIViewComposeSceneLayer(
     private fun createSkikoUIView(interopContainer: UIKitInteropContainer, renderDelegate: SkikoRenderDelegate): RenderingUIView =
         RenderingUIView(
             renderDelegate = recordDrawBounds(renderDelegate),
-            retrieveInteropTransaction = {
+            setupInteropTransaction = {
                 interopContainer.retrieveTransaction()
             }
         ).apply {

@@ -115,10 +115,10 @@ internal interface MetalRedrawerCallbacks {
     fun render(canvas: Canvas, targetTimestamp: NSTimeInterval)
 
     /**
-     * Retrieve a transaction object, containing a list of pending actions
+     * Create a transaction from the list of pending actions
      * that need to be synchronized with Metal rendering using CATransaction mechanism.
      */
-    fun retrieveInteropTransaction(): UIKitInteropTransaction
+    fun setupInteropTransaction(): UIKitInteropTransaction
 }
 
 internal class InflightCommandBuffers(
@@ -357,7 +357,7 @@ internal class MetalRedrawer(
                 return@autoreleasepool
             }
 
-            val interopTransaction = callbacks.retrieveInteropTransaction()
+            val interopTransaction = callbacks.setupInteropTransaction()
             if (interopTransaction.state == UIKitInteropState.BEGAN) {
                 isInteropActive = true
             }
