@@ -35,7 +35,7 @@ import platform.UIKit.*
 
 internal class RenderingUIView(
     private val renderDelegate: SkikoRenderDelegate,
-    private val setupInteropTransaction: () -> UIKitInteropTransaction,
+    private val retrieveInteropTransaction: () -> UIKitInteropTransaction,
 ) : UIView(
     frame = CGRectMake(
         x = 0.0,
@@ -65,8 +65,8 @@ internal class RenderingUIView(
                 renderDelegate.onRender(canvas, _width.toInt(), _height.toInt(), targetTimestamp.toNanoSeconds())
             }
 
-            override fun setupInteropTransaction(): UIKitInteropTransaction =
-                this@RenderingUIView.setupInteropTransaction()
+            override fun retrieveInteropTransaction(): UIKitInteropTransaction =
+                this@RenderingUIView.retrieveInteropTransaction()
         }
     )
 

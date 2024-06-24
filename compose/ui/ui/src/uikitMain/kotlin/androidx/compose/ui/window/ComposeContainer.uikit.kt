@@ -320,7 +320,7 @@ internal class ComposeContainer(
     ): RenderingUIView =
         RenderingUIView(
             renderDelegate = renderRelegate,
-            setupInteropTransaction = {
+            retrieveInteropTransaction = {
                 interopContainer.retrieveTransaction()
             }
         ).apply {
