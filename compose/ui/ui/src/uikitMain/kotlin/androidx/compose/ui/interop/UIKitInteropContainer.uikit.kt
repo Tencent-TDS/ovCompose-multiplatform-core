@@ -58,16 +58,6 @@ internal typealias UIKitInteropAction = () -> Unit
 internal interface UIKitInteropTransaction {
     val actions: List<UIKitInteropAction>
     val state: UIKitInteropState
-
-    companion object {
-        val empty = object : UIKitInteropTransaction {
-            override val actions: List<UIKitInteropAction>
-                get() = emptyList()
-
-            override val state: UIKitInteropState
-                get() = UIKitInteropState.UNCHANGED
-        }
-    }
 }
 
 internal fun UIKitInteropTransaction.isEmpty() = actions.isEmpty() && state == UIKitInteropState.UNCHANGED
