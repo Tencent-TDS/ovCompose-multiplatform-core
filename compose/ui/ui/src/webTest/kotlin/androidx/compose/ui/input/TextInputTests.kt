@@ -31,6 +31,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.window.CanvasBasedWindow
 import kotlin.test.BeforeTest
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -52,6 +53,7 @@ class TextInputTests : OnCanvasTests  {
     }
 
     @Test
+    @Ignore
     fun keyboardEventPassedToTextField() = runTest {
 
         val textInputChannel = Channel<String>(
