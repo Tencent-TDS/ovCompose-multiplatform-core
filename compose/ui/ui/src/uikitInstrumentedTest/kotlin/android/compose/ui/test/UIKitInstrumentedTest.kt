@@ -34,7 +34,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
-import kotlinx.coroutines.runBlocking
 import platform.CoreGraphics.CGRectMake
 import platform.Foundation.NSDate
 import platform.Foundation.NSNotification
@@ -54,10 +53,8 @@ import platform.UIKit.UIWindow
 import platform.UIKit.valueWithCGRect
 
 internal fun runUIKitInstrumentedTest(
-    testBlock: suspend UIKitInstrumentedTest.() -> Unit
-) {
-    UIKitInstrumentedTest().runTest(testBlock)
-}
+    testBlock: UIKitInstrumentedTest.() -> Unit
+) = with(UIKitInstrumentedTest(), testBlock)
 
 @OptIn(ExperimentalForeignApi::class)
 internal class UIKitInstrumentedTest {
@@ -69,8 +66,6 @@ internal class UIKitInstrumentedTest {
         private set
     lateinit var composeContainer: ComposeContainer
         private set
-
-    private val initialRecomposers = Recomposer.runningRecomposers.value
 
     fun setContent(
         configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
@@ -151,15 +146,16 @@ internal class UIKitInstrumentedTest {
         keyboardHeight = 0.dp
     }
 
-    private val isIdle: Boolean get() {
-        val hadSnapshotChanges = Snapshot.current.hasPendingChanges()
-        val hasPendingRecomposer = Recomposer.runningRecomposers.value.any {
-            it.hasPendingWork
-        }
-        val isApplyObserverNotificationPending = Snapshot.isApplyObserverNotificationPending
+    private val isIdle: Boolean
+        get() {
+            val hadSnapshotChanges = Snapshot.current.hasPendingChanges()
+            val hasPendingRecomposer = Recomposer.runningRecomposers.value.any {
+                it.hasPendingWork
+            }
+            val isApplyObserverNotificationPending = Snapshot.isApplyObserverNotificationPending
 
-        return !hadSnapshotChanges && !hasPendingRecomposer && !isApplyObserverNotificationPending
-    }
+            return !hadSnapshotChanges && !hasPendingRecomposer && !isApplyObserverNotificationPending
+        }
 
     fun waitForIdle(timeoutMillis: Long = 5_000) {
         val defaultIdleScore = 10
@@ -188,16 +184,11 @@ internal class UIKitInstrumentedTest {
         val startTime = TimeSource.Monotonic.markNow()
         while (!condition() && remainingTime.isPositive()) {
             runLoop.runUntilDate(NSDate.dateWithTimeIntervalSinceNow(0.005))
-            remainingTime = timeoutMillis.milliseconds - (TimeSource.Monotonic.markNow() - startTime)
+            remainingTime =
+                timeoutMillis.milliseconds - (TimeSource.Monotonic.markNow() - startTime)
         }
         assert(remainingTime.isPositive()) {
             conditionDescription ?: "Timeout ${timeoutMillis}ms reached."
-        }
-    }
-
-    fun runTest(block: suspend UIKitInstrumentedTest.() -> Unit) {
-        runBlocking {
-            block()
         }
     }
 }
