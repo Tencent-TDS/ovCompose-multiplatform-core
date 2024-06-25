@@ -31,7 +31,7 @@ import androidx.compose.ui.window.ComposeContainer
 import androidx.compose.ui.window.ComposeUIViewController
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.runBlocking
@@ -44,7 +44,6 @@ import platform.Foundation.NSRunLoop
 import platform.Foundation.NSValue
 import platform.Foundation.dateWithTimeIntervalSinceNow
 import platform.Foundation.runUntilDate
-import platform.Foundation.timeIntervalSinceReferenceDate
 import platform.UIKit.UIKeyboardAnimationCurveUserInfoKey
 import platform.UIKit.UIKeyboardAnimationDurationUserInfoKey
 import platform.UIKit.UIKeyboardFrameEndUserInfoKey
@@ -186,11 +185,10 @@ internal class UIKitInstrumentedTest {
     ) {
         val runLoop = NSRunLoop.currentRunLoop()
         var remainingTime = timeoutMillis.milliseconds
-        val start = NSDate.timeIntervalSinceReferenceDate()
+        val startTime = TimeSource.Monotonic.markNow()
         while (!condition() && remainingTime.isPositive()) {
             runLoop.runUntilDate(NSDate.dateWithTimeIntervalSinceNow(0.005))
-            val current = NSDate.timeIntervalSinceReferenceDate()
-            remainingTime = timeoutMillis.milliseconds - (current - start).seconds
+            remainingTime = timeoutMillis.milliseconds - (TimeSource.Monotonic.markNow() - startTime)
         }
         assert(remainingTime.isPositive()) {
             conditionDescription ?: "Timeout ${timeoutMillis}ms reached."
