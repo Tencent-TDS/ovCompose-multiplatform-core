@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeContainer
 import androidx.compose.ui.window.ComposeUIViewController
 import kotlin.experimental.ExperimentalNativeApi
-import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
@@ -98,7 +98,7 @@ internal class UIKitInstrumentedTest {
         } as ComposeContainer
         window.rootViewController = composeContainer
         window.makeKeyAndVisible()
-        waitForExpectation { onDraw }
+        waitUntil { onDraw }
     }
 
     private fun keyboardUserInfo(height: Dp, animated: Boolean): Map<Any?, *> {
@@ -162,11 +162,13 @@ internal class UIKitInstrumentedTest {
         return !hadSnapshotChanges && !hasPendingRecomposer && !isApplyObserverNotificationPending
     }
 
-    @OptIn(ExperimentalNativeApi::class)
-    fun waitForIdle(deadline: Duration = 5.seconds): Boolean {
+    fun waitForIdle(timeoutMillis: Long = 5_000) {
         val defaultIdleScore = 10
         var idleScore = defaultIdleScore
-        val timeoutAchieved = waitForExpectation(deadline = deadline) {
+        waitUntil(
+            conditionDescription = "waitForIdle: timeout ${timeoutMillis}ms reached.",
+            timeoutMillis = timeoutMillis
+        ) {
             if (isIdle) {
                 idleScore -= 1
             } else {
@@ -174,27 +176,31 @@ internal class UIKitInstrumentedTest {
             }
             idleScore == 0
         }
-        assert(timeoutAchieved) { "waitForIdle reached $deadline deadline" }
-        return timeoutAchieved
     }
 
-    fun waitForExpectation(deadline: Duration = 5.seconds, expectation: () -> Boolean): Boolean {
+    @OptIn(ExperimentalNativeApi::class)
+    fun waitUntil(
+        conditionDescription: String? = null,
+        timeoutMillis: Long = 5_000,
+        condition: () -> Boolean
+    ) {
         val runLoop = NSRunLoop.currentRunLoop()
-        var remainingTime = deadline
+        var remainingTime = timeoutMillis.milliseconds
         var time = NSDate.timeIntervalSinceReferenceDate()
-        while (!expectation() && remainingTime > 0.seconds) {
+        while (!condition() && remainingTime > 0.seconds) {
             runLoop.runUntilDate(NSDate.dateWithTimeIntervalSinceNow(0.005))
             val current = NSDate.timeIntervalSinceReferenceDate()
             remainingTime -= (current - time).seconds
             time = current
         }
-        return remainingTime > 0.seconds
+        assert(remainingTime > 0.seconds) {
+            conditionDescription ?: "Timeout ${timeoutMillis}ms reached."
+        }
     }
 
     fun runTest(block: suspend UIKitInstrumentedTest.() -> Unit) {
         runBlocking {
             block()
-            hideKeyboard(animated = false)
         }
     }
 }
