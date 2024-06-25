@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.InteropViewCatchPointerModifier
 import androidx.compose.ui.layout.EmptyLayout
+import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -61,6 +62,7 @@ import platform.UIKit.removeFromParentViewController
 import platform.UIKit.willMoveToParentViewController
 import androidx.compose.ui.uikit.utils.CMPInteropWrappingView
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.roundToIntRect
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
 
@@ -133,26 +135,26 @@ private fun <T : Any> UIKitInteropLayout(
     accessibilityEnabled: Boolean,
 ) {
     val density = LocalDensity.current
-    var rectInPixels by remember { mutableStateOf(IntRect(0, 0, 0, 0)) }
-    var localToWindowOffset: IntOffset by remember { mutableStateOf(IntOffset.Zero) }
     val interopContainer = LocalUIKitInteropContainer.current
 
     val finalModifier = modifier
         .onGloballyPositioned { coordinates ->
-            localToWindowOffset = coordinates.positionInRoot().round()
-            val newRectInPixels = IntRect(localToWindowOffset, coordinates.size)
-            if (rectInPixels != newRectInPixels) {
-                componentHandler.updateRect(
-                    from = rectInPixels,
-                    to = newRectInPixels,
-                    density = density
+            val rootCoordinates = coordinates.findRootCoordinates()
+
+            // TODO: perform proper clipping of underlying view with `clipBounds` set to true
+            val bounds = rootCoordinates
+                .localBoundingBoxOf(
+                    sourceCoordinates = coordinates,
+                    clipBounds = false
                 )
 
-                rectInPixels = newRectInPixels
-            }
+            componentHandler.updateRect(
+                to = bounds.roundToIntRect(),
+                density = density
+            )
         }
         .drawBehind {
-            // Clear interop area to make visible the component under our canvas.
+            // Paint the rectangle behind with transparent color to let our interop shine through
             drawRect(
                 color = Color.Transparent,
                 blendMode = BlendMode.Clear
@@ -316,6 +318,10 @@ private abstract class InteropComponentHandler<T : Any>(
     val onResize: (T, rect: CValue<CGRect>) -> Unit,
     val onRelease: (T) -> Unit,
 ) {
+    /**
+     * The coordinates
+     */
+    private var currentRect: IntRect? = null
     val wrappingView = InteropWrappingView()
     lateinit var component: T
     private lateinit var updater: Updater<T>
@@ -332,14 +338,20 @@ private abstract class InteropComponentHandler<T : Any>(
     /**
      * Set the frame of the wrapping view.
      */
-    fun updateRect(from: IntRect, to: IntRect, density: Density) {
+    fun updateRect(to: IntRect, density: Density) {
+        if (currentRect == to) {
+            return
+        }
+
         val dpRect = to.toRect().toDpRect(density)
 
         interopContainer.deferAction {
             wrappingView.setFrame(dpRect.asCGRect())
         }
 
-        if (from.size != to.size) {
+
+        // Only call onResize if the actual size changes.
+        if (currentRect?.size != to.size) {
             interopContainer.deferAction {
                 // The actual component created by the user is resized here using the provided callback.
                 onResize(
@@ -353,6 +365,8 @@ private abstract class InteropComponentHandler<T : Any>(
                 )
             }
         }
+
+        currentRect = to
     }
 
     fun onStart(initialUpdateBlock: (T) -> Unit) {
