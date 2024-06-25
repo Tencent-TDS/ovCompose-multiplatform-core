@@ -186,14 +186,13 @@ internal class UIKitInstrumentedTest {
     ) {
         val runLoop = NSRunLoop.currentRunLoop()
         var remainingTime = timeoutMillis.milliseconds
-        var time = NSDate.timeIntervalSinceReferenceDate()
-        while (!condition() && remainingTime > 0.seconds) {
+        val start = NSDate.timeIntervalSinceReferenceDate()
+        while (!condition() && remainingTime.isPositive()) {
             runLoop.runUntilDate(NSDate.dateWithTimeIntervalSinceNow(0.005))
             val current = NSDate.timeIntervalSinceReferenceDate()
-            remainingTime -= (current - time).seconds
-            time = current
+            remainingTime = timeoutMillis.milliseconds - (current - start).seconds
         }
-        assert(remainingTime > 0.seconds) {
+        assert(remainingTime.isPositive()) {
             conditionDescription ?: "Timeout ${timeoutMillis}ms reached."
         }
     }
