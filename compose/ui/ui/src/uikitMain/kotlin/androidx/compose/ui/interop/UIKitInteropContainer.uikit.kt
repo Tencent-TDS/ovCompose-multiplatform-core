@@ -45,11 +45,6 @@ internal enum class UIKitInteropState {
     BEGAN, UNCHANGED, ENDED
 }
 
-internal enum class UIKitInteropViewHierarchyChange {
-    VIEW_ADDED,
-    VIEW_REMOVED
-}
-
 /**
  * Lambda containing changes to UIKit objects, which can be synchronized within [CATransaction]
  */
@@ -60,10 +55,12 @@ internal interface UIKitInteropTransaction {
     val state: UIKitInteropState
 }
 
-internal fun UIKitInteropTransaction.isEmpty() = actions.isEmpty() && state == UIKitInteropState.UNCHANGED
+internal fun UIKitInteropTransaction.isEmpty() =
+    actions.isEmpty() && state == UIKitInteropState.UNCHANGED
+
 internal fun UIKitInteropTransaction.isNotEmpty() = !isEmpty()
 
-private class UIKitInteropMutableTransaction: UIKitInteropTransaction {
+private class UIKitInteropMutableTransaction : UIKitInteropTransaction {
     override val actions = mutableListOf<UIKitInteropAction>()
     override var state = UIKitInteropState.UNCHANGED
         set(value) {
@@ -92,24 +89,13 @@ private class UIKitInteropMutableTransaction: UIKitInteropTransaction {
  */
 internal class UIKitInteropContainer(
     val requestRedraw: () -> Unit
-): InteropContainer<UIView> {
+) : InteropContainer<UIView> {
     val containerView: UIView = UIKitInteropContainerView()
     override var rootModifier: TrackInteropModifierNode<UIView>? = null
     override var interopViews = mutableSetOf<UIView>()
         private set
 
-    private val lock: NSLock = NSLock()
     private var transaction = UIKitInteropMutableTransaction()
-
-    /**
-     * Number of views, created by interop API and present in current view hierarchy
-     */
-    private var viewsCount = 0
-        set(value) {
-            require(value >= 0)
-
-            field = value
-        }
 
     /**
      * Dispose by immediately executing all UIKit interop actions that can't be deferred to be
@@ -126,56 +112,52 @@ internal class UIKitInteropContainer(
     /**
      * Add lambda to a list of commands which will be executed later in the same CATransaction, when the next rendered Compose frame is presented
      */
-    fun deferAction(hierarchyChange: UIKitInteropViewHierarchyChange? = null, action: () -> Unit) {
+    fun deferAction(action: () -> Unit) {
         requestRedraw()
 
-        lock.doLocked {
-            if (hierarchyChange == UIKitInteropViewHierarchyChange.VIEW_ADDED) {
-                if (viewsCount == 0) {
-                    transaction.state = UIKitInteropState.BEGAN
-                }
-                viewsCount += 1
-            }
-
-            transaction.actions.add(action)
-
-            if (hierarchyChange == UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
-                viewsCount -= 1
-                if (viewsCount == 0) {
-                    transaction.state = UIKitInteropState.ENDED
-                }
-            }
-        }
+        transaction.actions.add(action)
     }
 
     /**
      * Return an object containing pending changes and reset internal storage
      */
-    fun retrieveTransaction(): UIKitInteropTransaction =
-        lock.doLocked {
-            val result = transaction
-            transaction = UIKitInteropMutableTransaction()
-            result
-        }
-
-    override fun placeInteropView(nativeView: UIView) = deferAction {
-        val index = countInteropComponentsBelow(nativeView)
-        if (nativeView in interopViews) {
-            // Place might be called multiple times
-            nativeView.removeFromSuperview()
-        } else {
-            interopViews.add(nativeView)
-        }
-        containerView.insertSubview(nativeView, index.toLong())
+    fun retrieveTransaction(): UIKitInteropTransaction {
+        val result = transaction
+        transaction = UIKitInteropMutableTransaction()
+        return result
     }
 
-    override fun removeInteropView(nativeView: UIView) {
-        nativeView.removeFromSuperview()
+    /**
+     * Counts the number of interop components before the given native view in the container.
+     * And updates the index of the native view in the container for proper Z-ordering.
+     * @see TrackInteropModifierNode.onPlaced
+     */
+    override fun placeInteropView(nativeView: UIView) {
+        val index = countInteropComponentsBelow(nativeView)
+
+        deferAction {
+            containerView.insertSubview(nativeView, index.toLong())
+        }
+    }
+
+    fun startTrackingInteropView(nativeView: UIView) {
+        if (interopViews.isEmpty()) {
+            transaction.state = UIKitInteropState.BEGAN
+        }
+
+        interopViews.add(nativeView)
+    }
+
+    fun stopTrackingInteropView(nativeView: UIView) {
         interopViews.remove(nativeView)
+
+        if (interopViews.isEmpty()) {
+            transaction.state = UIKitInteropState.ENDED
+        }
     }
 }
 
-private class UIKitInteropContainerView: UIView(CGRectZero.readValue()) {
+private class UIKitInteropContainerView : UIView(CGRectZero.readValue()) {
     /**
      * We used a simple solution to make only this view not touchable.
      * Another view added to this container will be touchable.

@@ -20,10 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.State
@@ -34,21 +31,17 @@ import androidx.compose.ui.input.pointer.InteropViewCatchPointerModifier
 import androidx.compose.ui.layout.EmptyLayout
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.AccessibilityKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.uikit.toUIColor
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.height
-import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.unit.width
-import androidx.compose.ui.node.TrackInteropModifierNode
 import kotlinx.atomicfu.atomic
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGRect
@@ -169,7 +162,7 @@ private fun <T : Any> UIKitInteropLayout(
     )
 
     DisposableEffect(Unit) {
-        componentHandler.onStart(update)
+        componentHandler.onStart(initialUpdateBlock = update)
 
         onDispose {
             componentHandler.onStop()
@@ -375,15 +368,20 @@ private abstract class InteropComponentHandler<T : Any>(
             interopContainer.deferAction(action = it)
         }
 
-        interopContainer.deferAction(UIKitInteropViewHierarchyChange.VIEW_ADDED) {
-            addToHierarchy()
+        interopContainer.startTrackingInteropView(wrappingView)
+        interopContainer.deferAction {
+            setupViewHierarchy()
         }
     }
 
     fun onStop() {
-        interopContainer.deferAction(UIKitInteropViewHierarchyChange.VIEW_REMOVED) {
-            removeFromHierarchy()
+        interopContainer.stopTrackingInteropView(wrappingView)
+        interopContainer.deferAction {
+            destroyViewHierarchy()
         }
+
+        onRelease(component)
+        updater.dispose()
     }
 
     fun onBackgroundColorChange(color: Color) = interopContainer.deferAction {
@@ -394,23 +392,8 @@ private abstract class InteropComponentHandler<T : Any>(
         }
     }
 
-    abstract fun addToHierarchy()
-    abstract fun removeFromHierarchy()
-
-    /**
-     * Places the actual view a user constructed in factory to the [wrappingView]
-     * [wrappingView] will be added to the [UIKitInteropContainer] within [TrackInteropModifierNode]
-     */
-    protected fun addViewToHierarchy(view: UIView) {
-        wrappingView.addSubview(view)
-    }
-
-    protected fun removeViewFromHierarchy(view: UIView) {
-        view.removeFromSuperview()
-        interopContainer.removeInteropView(wrappingView)
-        updater.dispose()
-        onRelease(component)
-    }
+    abstract fun setupViewHierarchy()
+    abstract fun destroyViewHierarchy()
 }
 
 private class InteropViewHandler<T : UIView>(
@@ -419,12 +402,13 @@ private class InteropViewHandler<T : UIView>(
     onResize: (T, rect: CValue<CGRect>) -> Unit,
     onRelease: (T) -> Unit
 ) : InteropComponentHandler<T>(createView, interopContainer, onResize, onRelease) {
-    override fun addToHierarchy() {
-        addViewToHierarchy(component)
+    override fun setupViewHierarchy() {
+        interopContainer.containerView.addSubview(wrappingView)
+        wrappingView.addSubview(component)
     }
 
-    override fun removeFromHierarchy() {
-        removeViewFromHierarchy(component)
+    override fun destroyViewHierarchy() {
+        wrappingView.removeFromSuperview()
     }
 }
 
@@ -435,15 +419,16 @@ private class InteropViewControllerHandler<T : UIViewController>(
     onResize: (T, rect: CValue<CGRect>) -> Unit,
     onRelease: (T) -> Unit
 ) : InteropComponentHandler<T>(createViewController, interopContainer, onResize, onRelease) {
-    override fun addToHierarchy() {
+    override fun setupViewHierarchy() {
         rootViewController.addChildViewController(component)
-        addViewToHierarchy(component.view)
+        interopContainer.containerView.addSubview(wrappingView)
+        wrappingView.addSubview(component.view)
         component.didMoveToParentViewController(rootViewController)
     }
 
-    override fun removeFromHierarchy() {
+    override fun destroyViewHierarchy() {
         component.willMoveToParentViewController(null)
-        removeViewFromHierarchy(component.view)
+        wrappingView.removeFromSuperview()
         component.removeFromParentViewController()
     }
 }
