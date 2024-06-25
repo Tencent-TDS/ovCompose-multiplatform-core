@@ -40,6 +40,7 @@ class TextTests : OnCanvasTests {
 
     @Test
     @Ignore
+    // TODO: Activate after fixing https://youtrack.jetbrains.com/issue/CMP-1580/Fix-flaky-tests
     // https://github.com/JetBrains/compose-multiplatform/issues/4078
     fun baselineShouldBeNotZero() = runTest {
         val canvas = createCanvasAndAttach()

@@ -54,6 +54,7 @@ class TextInputTests : OnCanvasTests  {
 
     @Test
     @Ignore
+    // TODO: Activate after fixing https://youtrack.jetbrains.com/issue/CMP-1580/Fix-flaky-tests
     fun keyboardEventPassedToTextField() = runTest {
 
         val textInputChannel = Channel<String>(

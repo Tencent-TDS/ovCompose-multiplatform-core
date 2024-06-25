@@ -62,6 +62,7 @@ class SelectionContainerTests : OnCanvasTests {
 
     @Test
     @Ignore
+    // TODO: Activate after fixing https://youtrack.jetbrains.com/issue/CMP-1580/Fix-flaky-tests
     fun canSelectOneWordUsingDoubleClick() = runTest {
         createCanvasAndAttach()
         val syncChannel = Channel<Selection?>(
@@ -179,6 +180,7 @@ class SelectionContainerTests : OnCanvasTests {
 
     @Test
     @Ignore
+    // TODO: Activate after fixing https://youtrack.jetbrains.com/issue/CMP-1580/Fix-flaky-tests
     fun twoSingleClicksDoNotTriggerSelection() = runTest {
         createCanvasAndAttach()
 
