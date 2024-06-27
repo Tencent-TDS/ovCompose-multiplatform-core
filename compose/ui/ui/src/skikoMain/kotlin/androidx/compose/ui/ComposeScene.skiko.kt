@@ -49,7 +49,8 @@ import org.jetbrains.skiko.currentNanoTime
  */
 @Deprecated(
     "Replaced with interface in scene package",
-    replaceWith = ReplaceWith("androidx.compose.ui.scene.ComposeScene")
+    replaceWith = ReplaceWith("androidx.compose.ui.scene.ComposeScene"),
+    level = DeprecationLevel.ERROR
 )
 class ComposeScene internal constructor(
     coroutineContext: CoroutineContext,
