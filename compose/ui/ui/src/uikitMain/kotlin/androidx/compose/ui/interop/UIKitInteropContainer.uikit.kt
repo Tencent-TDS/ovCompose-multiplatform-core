@@ -41,6 +41,12 @@ internal val LocalUIKitInteropContainer = staticCompositionLocalOf<UIKitInteropC
 }
 
 
+/**
+ * Enum which is used to define if rendering strategy should be changed along with this transaction.
+ * If [BEGAN], it will wait until a next CATransaction on every frame and make the metal layer opaque.
+ * If [ENDED] it will fallback to the most efficient rendering strategy (opaque layer, no transaction waiting, asynchronous encoding and GPU-driven presentation).
+ * If [UNCHANGED] it will keep the current rendering strategy.
+ */
 internal enum class UIKitInteropState {
     BEGAN, UNCHANGED, ENDED
 }
@@ -50,6 +56,12 @@ internal enum class UIKitInteropState {
  */
 internal typealias UIKitInteropAction = () -> Unit
 
+/**
+ * A transaction containing changes to UIKit objects to be synchronized within [CATransaction] inside a
+ * renderer to make sure that changes in UIKit and Compose are visually simultaneous.
+ * [actions] contains a list of lambdas that will be executed in the same CATransaction.
+ * [state] defines if rendering strategy should be changed along with this transaction.
+ */
 internal interface UIKitInteropTransaction {
     val actions: List<UIKitInteropAction>
     val state: UIKitInteropState
@@ -60,6 +72,12 @@ internal fun UIKitInteropTransaction.isEmpty() =
 
 internal fun UIKitInteropTransaction.isNotEmpty() = !isEmpty()
 
+/**
+ * A mutable transaction managed by [UIKitInteropContainer] to collect changes to UIKit objects to be executed later.
+ * @see UIKitView
+ * @see UIKitViewController
+ * @see UIKitInteropContainer.deferAction
+ */
 private class UIKitInteropMutableTransaction : UIKitInteropTransaction {
     private val _actions = mutableListOf<UIKitInteropAction>()
 
@@ -93,7 +111,9 @@ private class UIKitInteropMutableTransaction : UIKitInteropTransaction {
 }
 
 /**
- * A container that controls interop views/components.
+ * A container that controls interop views/components. It's using a modifier of [TrackInteropModifierNode]
+ * to properly sort native interop elements and contains a logic for syncing changes to UIKit objects
+ * driven by Compose state changes with Compose rendering.
  */
 internal class UIKitInteropContainer(
     val requestRedraw: () -> Unit
