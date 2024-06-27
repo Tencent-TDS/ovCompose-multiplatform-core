@@ -61,7 +61,11 @@ internal fun UIKitInteropTransaction.isEmpty() =
 internal fun UIKitInteropTransaction.isNotEmpty() = !isEmpty()
 
 private class UIKitInteropMutableTransaction : UIKitInteropTransaction {
-    override val actions = mutableListOf<UIKitInteropAction>()
+    private val _actions = mutableListOf<UIKitInteropAction>()
+
+    override val actions
+        get() = _actions
+
     override var state = UIKitInteropState.UNCHANGED
         set(value) {
             field = when (value) {
@@ -82,6 +86,10 @@ private class UIKitInteropMutableTransaction : UIKitInteropTransaction {
                 }
             }
         }
+
+    fun add(action: UIKitInteropAction) {
+        _actions.add(action)
+    }
 }
 
 /**
@@ -115,7 +123,7 @@ internal class UIKitInteropContainer(
     fun deferAction(action: () -> Unit) {
         requestRedraw()
 
-        transaction.actions.add(action)
+        transaction.add(action)
     }
 
     /**
