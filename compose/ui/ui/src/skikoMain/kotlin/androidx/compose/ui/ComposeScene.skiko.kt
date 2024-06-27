@@ -18,8 +18,6 @@ package androidx.compose.ui
 
 import org.jetbrains.skia.Canvas as SkCanvas
 import androidx.compose.runtime.*
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.key.KeyEvent
@@ -162,7 +160,7 @@ class ComposeScene internal constructor(
         invalidate = invalidate
     )
 
-    private val replacement = androidx.compose.ui.scene.MultiLayerComposeScene(
+    private val replacement = androidx.compose.ui.scene.CanvasLayersComposeScene(
         density = density,
         layoutDirection = layoutDirection,
         coroutineContext = coroutineContext,

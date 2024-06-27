@@ -30,7 +30,7 @@ class MultiLayerComposeSceneTest {
     @Test
     fun sceneSizeChangeTriggersInvalidation() = runTest(StandardTestDispatcher()) {
         var invalidationCount = 0
-        val scene = MultiLayerComposeScene(
+        val scene = CanvasLayersComposeScene(
             size = IntSize(100, 100),
             invalidate = { invalidationCount++ }
         )

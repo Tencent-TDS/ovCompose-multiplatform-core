@@ -59,7 +59,7 @@ import kotlinx.coroutines.Dispatchers
 
 /**
  * Constructs a multi-layer [ComposeScene] using the specified parameters. Unlike
- * [SingleLayerComposeScene], this version doesn't employ [ComposeSceneContext.createPlatformLayer]
+ * [PlatformLayersComposeScene], this version doesn't employ [ComposeSceneContext.createPlatformLayer]
  * to position a new [LayoutNode] tree. Rather, it keeps track of the added layers on its own in
  * order to render (and also divide input among them) everything on a single canvas.
  *
@@ -82,14 +82,14 @@ import kotlinx.coroutines.Dispatchers
  * @see ComposeScene
  */
 @InternalComposeUiApi
-fun MultiLayerComposeScene(
+fun CanvasLayersComposeScene(
     density: Density = Density(1f),
     layoutDirection: LayoutDirection = LayoutDirection.Ltr,
     size: IntSize? = null,
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
     composeSceneContext: ComposeSceneContext = ComposeSceneContext.Empty,
     invalidate: () -> Unit = {},
-): ComposeScene = MultiLayerComposeSceneImpl(
+): ComposeScene = CanvasLayersComposeSceneImpl(
     density = density,
     layoutDirection = layoutDirection,
     size = size,
@@ -98,7 +98,7 @@ fun MultiLayerComposeScene(
     invalidate = invalidate
 )
 
-private class MultiLayerComposeSceneImpl(
+private class CanvasLayersComposeSceneImpl(
     density: Density,
     layoutDirection: LayoutDirection,
     size: IntSize?,
@@ -456,7 +456,7 @@ private class MultiLayerComposeSceneImpl(
             density = density,
             layoutDirection = layoutDirection,
             coroutineContext = compositionContext.effectCoroutineContext,
-            size = this@MultiLayerComposeSceneImpl.size,
+            size = this@CanvasLayersComposeSceneImpl.size,
             platformContext = object : PlatformContext by composeSceneContext.platformContext {
 
                 /**

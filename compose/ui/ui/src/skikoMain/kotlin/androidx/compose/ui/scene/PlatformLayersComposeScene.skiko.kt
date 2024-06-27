@@ -60,14 +60,14 @@ import kotlinx.coroutines.Dispatchers
  * @see ComposeScene
  */
 @InternalComposeUiApi
-fun SingleLayerComposeScene(
+fun PlatformLayersComposeScene(
     density: Density = Density(1f),
     layoutDirection: LayoutDirection = LayoutDirection.Ltr,
     size: IntSize? = null,
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
     composeSceneContext: ComposeSceneContext = ComposeSceneContext.Empty,
     invalidate: () -> Unit = {},
-): ComposeScene = SingleLayerComposeSceneImpl(
+): ComposeScene = PlatformLayersComposeSceneImpl(
     density = density,
     layoutDirection = layoutDirection,
     size = size,
@@ -76,7 +76,7 @@ fun SingleLayerComposeScene(
     invalidate = invalidate
 )
 
-private class SingleLayerComposeSceneImpl(
+private class PlatformLayersComposeSceneImpl(
     density: Density,
     layoutDirection: LayoutDirection,
     size: IntSize?,
