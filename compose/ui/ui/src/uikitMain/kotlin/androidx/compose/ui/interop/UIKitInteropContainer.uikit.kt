@@ -27,7 +27,6 @@ import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRectZero
-import platform.Foundation.NSLock
 import platform.QuartzCore.CATransaction
 import platform.UIKit.UIEvent
 import platform.UIKit.UIView
@@ -210,12 +209,3 @@ internal fun Modifier.trackUIKitInterop(
     nativeView = view
 )
 
-internal inline fun <T> NSLock.doLocked(block: () -> T): T {
-    lock()
-
-    try {
-        return block()
-    } finally {
-        unlock()
-    }
-}
