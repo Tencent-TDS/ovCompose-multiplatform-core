@@ -77,7 +77,8 @@ val UIKitRenderSync = Screen.Example("UIKitRenderSync") {
                         label.textColor = UIColor.blackColor
                         label
                     },
-                    modifier = Modifier.fillMaxWidth().height(40.dp)
+                    modifier = Modifier.fillMaxWidth().height(40.dp),
+                    interactive = false
                 )
                 2 -> TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
                 3 -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
