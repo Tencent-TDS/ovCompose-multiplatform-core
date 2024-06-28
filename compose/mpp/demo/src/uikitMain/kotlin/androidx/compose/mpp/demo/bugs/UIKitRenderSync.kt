@@ -37,11 +37,38 @@ import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSSelectorFromString
 import platform.UIKit.*
 
+private class TouchReactingView: UIView(frame = CGRectZero.readValue()) {
+    init {
+        setUserInteractionEnabled(true)
+
+        setDefaultColor()
+    }
+
+    private fun setDefaultColor() {
+        backgroundColor = UIColor.greenColor
+    }
+
+    override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesBegan(touches, withEvent)
+        backgroundColor = UIColor.redColor
+    }
+
+    override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesEnded(touches, withEvent)
+        setDefaultColor()
+    }
+
+    override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesCancelled(touches, withEvent)
+        setDefaultColor()
+    }
+}
+
 val UIKitRenderSync = Screen.Example("UIKitRenderSync") {
     var text by remember { mutableStateOf("Type something") }
     LazyColumn(Modifier.fillMaxSize()) {
         items(100) { index ->
-            when (index % 4) {
+            when (index % 5) {
                 0 -> Text("material.Text $index", Modifier.fillMaxSize().height(40.dp))
                 1 -> UIKitView(
                     factory = {
@@ -53,7 +80,11 @@ val UIKitRenderSync = Screen.Example("UIKitRenderSync") {
                     modifier = Modifier.fillMaxWidth().height(40.dp)
                 )
                 2 -> TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
-                else -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
+                3 -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
+                4 -> UIKitView(
+                    factory = { TouchReactingView() },
+                    modifier = Modifier.fillMaxWidth().height(40.dp)
+                )
             }
         }
     }
