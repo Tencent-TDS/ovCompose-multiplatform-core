@@ -158,6 +158,7 @@ internal class InteractionUIView(
      * can be caused by implicit capture of the view by UIKit objects (such as UIEvent).
      */
     fun dispose() {
+        gestureRecognizer.proxy = null
         removeGestureRecognizer(gestureRecognizer)
 
         touchesDelegate = object : Delegate {
