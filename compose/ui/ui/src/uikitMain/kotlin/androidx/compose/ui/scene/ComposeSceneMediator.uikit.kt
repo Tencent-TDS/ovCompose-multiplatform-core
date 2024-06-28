@@ -70,7 +70,7 @@ import androidx.compose.ui.window.InteractionUIView
 import androidx.compose.ui.window.KeyboardEventHandler
 import androidx.compose.ui.window.KeyboardVisibilityListener
 import androidx.compose.ui.window.RenderingUIView
-import androidx.compose.ui.window.UITouchesEventPhase
+import androidx.compose.ui.window.CupertinoTouchesPhase
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
@@ -365,7 +365,7 @@ internal class ComposeSceneMediator(
                     !scene.hitTestInteropView(position)
                 }
 
-            override fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase) {
+            override fun onTouchesEvent(view: UIView, event: UIEvent, phase: CupertinoTouchesPhase) {
                 scene.sendPointerEvent(
                     eventType = phase.toPointerEventType(),
                     pointers = event.touchesForView(view)?.map {
@@ -707,12 +707,12 @@ private fun getConstraintsToCenterInParent(
     )
 }
 
-private fun UITouchesEventPhase.toPointerEventType(): PointerEventType =
+private fun CupertinoTouchesPhase.toPointerEventType(): PointerEventType =
     when (this) {
-        UITouchesEventPhase.BEGAN -> PointerEventType.Press
-        UITouchesEventPhase.MOVED -> PointerEventType.Move
-        UITouchesEventPhase.ENDED -> PointerEventType.Release
-        UITouchesEventPhase.CANCELLED -> PointerEventType.Release
+        CupertinoTouchesPhase.BEGAN -> PointerEventType.Press
+        CupertinoTouchesPhase.MOVED -> PointerEventType.Move
+        CupertinoTouchesPhase.ENDED -> PointerEventType.Release
+        CupertinoTouchesPhase.CANCELLED -> PointerEventType.Release
     }
 
 private fun UIEvent.historicalChangesForTouch(

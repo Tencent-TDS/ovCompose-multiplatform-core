@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.ui.uikit.utils.CMPGestureRecognizer
+import androidx.compose.ui.uikit.utils.CMPGestureRecognizerProxyProtocol
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGPoint
@@ -23,9 +25,57 @@ import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
 import platform.UIKit.UIPressesEvent
 import platform.UIKit.UIView
+import platform.UIKit.UITouchPhase
+import platform.UIKit.UIGestureRecognizer
+import platform.darwin.NSObject
 
-internal enum class UITouchesEventPhase {
+/**
+ * Subset of [UITouchPhase] reflecting immediate phase when event is received by the [UIView] or
+ * [UIGestureRecognizer].
+ */
+internal enum class CupertinoTouchesPhase {
     BEGAN, MOVED, ENDED, CANCELLED
+}
+
+internal class GestureRecognizerProxyImpl(
+    private var view: UIView?,
+    private val touchesDelegate: InteractionUIView.Delegate,
+    private val onTouchesCountChanged: (by: Int) -> Unit
+
+): NSObject(), CMPGestureRecognizerProxyProtocol {
+    override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
+        onTouchesCountChanged(touches.size)
+
+        val view = view ?: return
+        val event = withEvent ?: return
+
+        touchesDelegate.onTouchesEvent(view, event, CupertinoTouchesPhase.BEGAN)
+    }
+
+    override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
+        val view = view ?: return
+        val event = withEvent ?: return
+
+        touchesDelegate.onTouchesEvent(view, event, CupertinoTouchesPhase.MOVED)
+    }
+
+    override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
+        onTouchesCountChanged(-touches.size)
+
+        val view = view ?: return
+        val event = withEvent ?: return
+
+        touchesDelegate.onTouchesEvent(view, event, CupertinoTouchesPhase.ENDED)
+    }
+
+    override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
+        onTouchesCountChanged(-touches.size)
+
+        val view = view ?: return
+        val event = withEvent ?: return
+
+        touchesDelegate.onTouchesEvent(view, event, CupertinoTouchesPhase.CANCELLED)
+    }
 }
 
 internal class InteractionUIView(
@@ -34,10 +84,17 @@ internal class InteractionUIView(
     private var updateTouchesCount: (count: Int) -> Unit,
     private var inBounds: (CValue<CGPoint>) -> Boolean,
 ) : UIView(CGRectZero.readValue()) {
+    private val gestureRecognizerProxy = GestureRecognizerProxyImpl(
+        view = this,
+        touchesDelegate = touchesDelegate,
+        onTouchesCountChanged = { _touchesCount += it }
+    )
+
+    private val gestureRecognizer = CMPGestureRecognizer()
 
     interface Delegate {
         fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean
-        fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase)
+        fun onTouchesEvent(view: UIView, event: UIEvent, phase: CupertinoTouchesPhase)
     }
 
     /**
@@ -53,6 +110,9 @@ internal class InteractionUIView(
     init {
         multipleTouchEnabled = true
         userInteractionEnabled = true
+
+        addGestureRecognizer(gestureRecognizer)
+        gestureRecognizer.proxy = gestureRecognizerProxy
     }
 
     override fun canBecomeFirstResponder() = true
@@ -67,6 +127,25 @@ internal class InteractionUIView(
         super.pressesEnded(presses, withEvent)
     }
 
+    // TODO: inspect if touches should be forwarded further up the responder chain
+    //  via super call or they considered to be consumed by this view
+
+    override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesBegan(touches, withEvent)
+    }
+
+    override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesMoved(touches, withEvent)
+    }
+
+    override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesEnded(touches, withEvent)
+    }
+
+    override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesCancelled(touches, withEvent)
+    }
+
     /**
      * https://developer.apple.com/documentation/uikit/uiview/1622533-point
      */
@@ -74,53 +153,18 @@ internal class InteractionUIView(
         return inBounds(point) && touchesDelegate.pointInside(point, withEvent)
     }
 
-    override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesBegan(touches, withEvent)
-
-        _touchesCount += touches.size
-
-        withEvent?.let { event ->
-            touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.BEGAN)
-        }
-    }
-
-    override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesEnded(touches, withEvent)
-
-        _touchesCount -= touches.size
-
-        withEvent?.let { event ->
-            touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.ENDED)
-        }
-    }
-
-    override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesMoved(touches, withEvent)
-
-        withEvent?.let { event ->
-            touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.MOVED)
-        }
-    }
-
-    override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesCancelled(touches, withEvent)
-
-        _touchesCount -= touches.size
-
-        withEvent?.let { event ->
-            touchesDelegate.onTouchesEvent(this, event, UITouchesEventPhase.CANCELLED)
-        }
-    }
-
     /**
      * Intentionally clean up all dependencies of InteractionUIView to prevent retain cycles that
      * can be caused by implicit capture of the view by UIKit objects (such as UIEvent).
      */
     fun dispose() {
+        removeGestureRecognizer(gestureRecognizer)
+
         touchesDelegate = object : Delegate {
             override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean = false
-            override fun onTouchesEvent(view: UIView, event: UIEvent, phase: UITouchesEventPhase) {}
+            override fun onTouchesEvent(view: UIView, event: UIEvent, phase: CupertinoTouchesPhase) {}
         }
+
         updateTouchesCount = {}
         inBounds = { false }
         keyboardEventHandler = KeyboardEventHandler.Empty
