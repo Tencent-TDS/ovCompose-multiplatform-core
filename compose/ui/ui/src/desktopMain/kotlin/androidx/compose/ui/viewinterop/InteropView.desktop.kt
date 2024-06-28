@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 
 package androidx.compose.ui.viewinterop
 
-// Interop Views aren't supported in Skiko. Use Any instead of Nothing because we can't have a type
-// aliased to Nothing appear as a function return type or property type.
+/**
+ * A typealias for the platform's built-in View type, which may be hosted inside of a Compose UI
+ * hierarchy to allow for interoperability. Not all platforms support interoperability in this way,
+ * in which case the typealias will resolve to [Any].
+ */
 actual typealias InteropView = Any

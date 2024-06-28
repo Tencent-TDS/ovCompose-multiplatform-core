@@ -263,13 +263,16 @@ internal class RootNodeOwner(
     }
 
     /**
-     * If pointerPosition is inside UIKitView, then Compose skip touches. And touches goes to UIKit.
+     * hit test interop view.
      */
-    fun hitTestInteropView(position: Offset): Boolean {
+    fun hitTestInteropView(position: Offset): InteropView? {
         val result = HitTestResult()
         owner.root.hitTest(position, result, true)
-        val last = result.lastOrNull()
-        return (last as? BackwardsCompatNode)?.element is InteropViewCatchPointerModifier
+        // TODO: check why we use BackwardsCompatNode here instead of new Element->Node based API
+        val last = result.lastOrNull() as? BackwardsCompatNode ?: return null
+        val modifier = last.element as? InteropViewCatchPointerModifier ?: return null
+
+        return modifier.interopView
     }
 
     private fun isInBounds(localPosition: Offset): Boolean =

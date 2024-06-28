@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import org.jetbrains.skiko.currentNanoTime
@@ -238,8 +239,7 @@ interface ComposeScene {
      *
      * @see InteropViewCatchPointerModifier
      */
-    @Deprecated("To be removed. Temporary hack for iOS interop")
-    fun hitTestInteropView(position: Offset): Boolean
+    fun hitTestInteropView(position: Offset): InteropView?
 
     /**
      * Creates a new [ComposeSceneLayer] with the specified parameters.

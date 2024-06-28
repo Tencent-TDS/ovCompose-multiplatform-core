@@ -18,6 +18,7 @@ package androidx.compose.ui.window
 
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizer
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizerProxyProtocol
+import androidx.compose.ui.viewinterop.InteropView
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGPoint
@@ -93,7 +94,7 @@ internal class InteractionUIView(
     private val gestureRecognizer = CMPGestureRecognizer()
 
     interface Delegate {
-        fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean
+        fun hitTestInteropView(point: CValue<CGPoint>, event: UIEvent?): InteropView?
         fun onTouchesEvent(view: UIView, event: UIEvent, phase: CupertinoTouchesPhase)
     }
 
@@ -146,11 +147,16 @@ internal class InteractionUIView(
         super.touchesCancelled(touches, withEvent)
     }
 
-    /**
-     * https://developer.apple.com/documentation/uikit/uiview/1622533-point
-     */
-    override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
-        return inBounds(point) && touchesDelegate.pointInside(point, withEvent)
+    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+        if (!inBounds(point)) {
+            return null
+        }
+
+        val interopView = touchesDelegate
+            .hitTestInteropView(point, withEvent)
+            ?.hitTest(point, withEvent)
+
+        return interopView ?: super.hitTest(point, withEvent)
     }
 
     /**
@@ -162,7 +168,7 @@ internal class InteractionUIView(
         removeGestureRecognizer(gestureRecognizer)
 
         touchesDelegate = object : Delegate {
-            override fun pointInside(point: CValue<CGPoint>, event: UIEvent?): Boolean = false
+            override fun hitTestInteropView(point: CValue<CGPoint>, event: UIEvent?): InteropView? = null
             override fun onTouchesEvent(view: UIView, event: UIEvent, phase: CupertinoTouchesPhase) {}
         }
 
