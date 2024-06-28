@@ -154,7 +154,9 @@ internal class InteractionUIView(
 
         val interopView = touchesDelegate
             .hitTestInteropView(point, withEvent)
-            ?.hitTest(point, withEvent)
+            ?.hitTest(point, withEvent, this)
+
+        println(interopView)
 
         return interopView ?: super.hitTest(point, withEvent)
     }

@@ -19,6 +19,7 @@ package androidx.compose.ui.viewinterop
 import androidx.compose.ui.interop.InteropWrappingView
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGPoint
+import platform.UIKit.NSStringFromCGPoint
 import platform.UIKit.UIEvent
 import platform.UIKit.UIView
 
@@ -30,7 +31,8 @@ import platform.UIKit.UIView
 actual class InteropView internal constructor (
     private val wrappingView: InteropWrappingView
 ) {
-    internal fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
-        return wrappingView.hitTest(point, withEvent)
+    internal fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?, parent: UIView): UIView? {
+        val wrappingViewSpacePoint = parent.convertPoint(point, toView = wrappingView)
+        return wrappingView.hitTest(wrappingViewSpacePoint, withEvent)
     }
 }
