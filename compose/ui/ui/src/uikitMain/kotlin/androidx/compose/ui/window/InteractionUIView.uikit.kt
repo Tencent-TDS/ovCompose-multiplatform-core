@@ -78,6 +78,10 @@ internal class GestureRecognizerHandlerImpl(
         onTouchesEvent(view, event, CupertinoTouchesPhase.CANCELLED)
     }
 
+    override fun shouldRecognizeSimultaneously(first: UIGestureRecognizer, withOther: UIGestureRecognizer): Boolean {
+        return true
+    }
+
     fun dispose() {
         onTouchesEvent = { _, _, _ -> }
     }

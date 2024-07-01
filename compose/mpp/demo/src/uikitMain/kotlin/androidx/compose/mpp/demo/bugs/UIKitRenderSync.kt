@@ -53,6 +53,12 @@ private class TouchReactingView: UIView(frame = CGRectZero.readValue()) {
         backgroundColor = UIColor.redColor
     }
 
+    override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
+        super.touchesMoved(touches, withEvent)
+
+        println(nextResponder)
+    }
+
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
         super.touchesEnded(touches, withEvent)
         setDefaultColor()

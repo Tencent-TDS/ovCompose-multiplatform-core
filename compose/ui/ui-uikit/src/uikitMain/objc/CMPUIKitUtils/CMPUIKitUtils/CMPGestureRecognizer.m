@@ -14,9 +14,20 @@
     
     if (self) {
         self.cancelsTouchesInView = false;
+        self.delegate = self;
     }
     
     return self;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    id <CMPGestureRecognizerHandler> handler = self.handler;
+    
+    if (handler) {
+        return [handler shouldRecognizeSimultaneously:gestureRecognizer withOther:otherGestureRecognizer];
+    } else {
+        return NO;
+    }
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
