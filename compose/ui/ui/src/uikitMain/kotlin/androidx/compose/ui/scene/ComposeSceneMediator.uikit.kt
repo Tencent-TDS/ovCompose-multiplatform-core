@@ -361,25 +361,27 @@ internal class ComposeSceneMediator(
         }
 
     private fun onTouchesEvent(view: UIView, event: UIEvent, phase: CupertinoTouchesPhase) {
+        val pointers = event.allTouches?.map {
+            val touch = it as UITouch
+            val id = touch.hashCode().toLong()
+            val position = touch.offsetInView(view, density.density)
+            ComposeScenePointer(
+                id = PointerId(id),
+                position = position,
+                pressed = touch.isPressed,
+                type = PointerType.Touch,
+                pressure = touch.force.toFloat(),
+                historical = event.historicalChangesForTouch(
+                    touch,
+                    view,
+                    density.density
+                )
+            )
+        } ?: emptyList()
+
         scene.sendPointerEvent(
             eventType = phase.toPointerEventType(),
-            pointers = event.touchesForView(view)?.map {
-                val touch = it as UITouch
-                val id = touch.hashCode().toLong()
-                val position = touch.offsetInView(view, density.density)
-                ComposeScenePointer(
-                    id = PointerId(id),
-                    position = position,
-                    pressed = touch.isPressed,
-                    type = PointerType.Touch,
-                    pressure = touch.force.toFloat(),
-                    historical = event.historicalChangesForTouch(
-                        touch,
-                        view,
-                        density.density
-                    )
-                )
-            } ?: emptyList(),
+            pointers = pointers,
             timeMillis = (event.timestamp * 1e3).toLong(),
             nativeEvent = event
         )
