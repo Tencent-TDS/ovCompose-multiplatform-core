@@ -16,7 +16,7 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.EmptyInputTraits
 import androidx.compose.ui.platform.IOSSkikoInput
 import androidx.compose.ui.platform.SkikoUITextInputTraits
@@ -25,7 +25,6 @@ import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.uikit.utils.CMPEditMenuView
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import kotlinx.cinterop.COpaquePointer
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlinx.cinterop.CValue
@@ -70,6 +69,7 @@ import platform.UIKit.UITextStorageDirection
 import platform.UIKit.UIView
 import platform.darwin.NSInteger
 
+private val NoOpOnPresses: (Set<*>) -> Unit = {}
 /**
  * Hidden UIView to interact with iOS Keyboard and TextInput system.
  * TODO maybe need to call reloadInputViews() to update UIKit text features?
@@ -87,7 +87,7 @@ internal class IntermediateTextInputUIView(
                 hideEditMenu()
             }
         }
-    var keyboardEventHandler: KeyboardEventHandler? = null
+    var onPresses: (Set<*>) -> Unit = NoOpOnPresses
 
     var inputTraits: SkikoUITextInputTraits = EmptyInputTraits
 
@@ -106,12 +106,13 @@ internal class IntermediateTextInputUIView(
     }
 
     override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {
-        keyboardEventHandler?.pressesBegan(presses, withEvent)
+        onPresses(presses)
+
         super.pressesBegan(presses, withEvent)
     }
 
     override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {
-        keyboardEventHandler?.pressesEnded(presses, withEvent)
+        onPresses(presses)
         super.pressesEnded(presses, withEvent)
     }
 
@@ -486,6 +487,10 @@ internal class IntermediateTextInputUIView(
 
     override fun tokenizer(): UITextInputTokenizerProtocol =
         UITextInputStringTokenizer(textInput = this)
+
+    fun resetOnPressesCallback() {
+        onPresses = NoOpOnPresses
+    }
 }
 
 private class IntermediateTextPosition(val position: Long = 0) : UITextPosition()

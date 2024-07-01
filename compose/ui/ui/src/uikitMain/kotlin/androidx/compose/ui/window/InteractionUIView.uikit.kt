@@ -39,8 +39,8 @@ internal enum class CupertinoTouchesPhase {
 }
 
 internal class GestureRecognizerHandlerImpl(
+    private var onTouchesEvent: (view: UIView, event: UIEvent, phase: CupertinoTouchesPhase) -> Unit,
     private var view: UIView?,
-    private val touchesDelegate: InteractionUIView.Delegate,
     private val onTouchesCountChanged: (by: Int) -> Unit
 
 ): NSObject(), CMPGestureRecognizerHandlerProtocol {
@@ -50,14 +50,14 @@ internal class GestureRecognizerHandlerImpl(
         val view = view ?: return
         val event = withEvent ?: return
 
-        touchesDelegate.onTouchesEvent(view, event, CupertinoTouchesPhase.BEGAN)
+        onTouchesEvent(view, event, CupertinoTouchesPhase.BEGAN)
     }
 
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
         val view = view ?: return
         val event = withEvent ?: return
 
-        touchesDelegate.onTouchesEvent(view, event, CupertinoTouchesPhase.MOVED)
+        onTouchesEvent(view, event, CupertinoTouchesPhase.MOVED)
     }
 
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
@@ -66,7 +66,7 @@ internal class GestureRecognizerHandlerImpl(
         val view = view ?: return
         val event = withEvent ?: return
 
-        touchesDelegate.onTouchesEvent(view, event, CupertinoTouchesPhase.ENDED)
+        onTouchesEvent(view, event, CupertinoTouchesPhase.ENDED)
     }
 
     override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
@@ -75,28 +75,28 @@ internal class GestureRecognizerHandlerImpl(
         val view = view ?: return
         val event = withEvent ?: return
 
-        touchesDelegate.onTouchesEvent(view, event, CupertinoTouchesPhase.CANCELLED)
+        onTouchesEvent(view, event, CupertinoTouchesPhase.CANCELLED)
+    }
+
+    fun dispose() {
+        onTouchesEvent = { _, _, _ -> }
     }
 }
 
 internal class InteractionUIView(
-    private var keyboardEventHandler: KeyboardEventHandler,
-    private var touchesDelegate: Delegate,
-    private var updateTouchesCount: (count: Int) -> Unit,
+    private var hitTestInteropView: (point: CValue<CGPoint>, event: UIEvent?) -> InteropView?,
+    onTouchesEvent: (view: UIView, event: UIEvent, phase: CupertinoTouchesPhase) -> Unit,
+    private var onTouchesCountChange: (count: Int) -> Unit,
     private var inBounds: (CValue<CGPoint>) -> Boolean,
+    private var onPresses: (Set<*>) -> Unit,
 ) : UIView(CGRectZero.readValue()) {
     private val gestureRecognizerHandler = GestureRecognizerHandlerImpl(
         view = this,
-        touchesDelegate = touchesDelegate,
+        onTouchesEvent = onTouchesEvent,
         onTouchesCountChanged = { _touchesCount += it }
     )
 
     private val gestureRecognizer = CMPGestureRecognizer()
-
-    interface Delegate {
-        fun hitTestInteropView(point: CValue<CGPoint>, event: UIEvent?): InteropView?
-        fun onTouchesEvent(view: UIView, event: UIEvent, phase: CupertinoTouchesPhase)
-    }
 
     /**
      * When there at least one tracked touch, we need notify redrawer about it. It should schedule CADisplayLink which
@@ -105,7 +105,7 @@ internal class InteractionUIView(
     private var _touchesCount = 0
         set(value) {
             field = value
-            updateTouchesCount(value)
+            onTouchesCountChange(value)
         }
 
     init {
@@ -119,12 +119,12 @@ internal class InteractionUIView(
     override fun canBecomeFirstResponder() = true
 
     override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {
-        keyboardEventHandler.pressesBegan(presses, withEvent)
+        onPresses(presses)
         super.pressesBegan(presses, withEvent)
     }
 
     override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {
-        keyboardEventHandler.pressesEnded(presses, withEvent)
+        onPresses(presses)
         super.pressesEnded(presses, withEvent)
     }
 
@@ -152,8 +152,8 @@ internal class InteractionUIView(
             return null
         }
 
-        val interopView = touchesDelegate
-            .hitTestInteropView(point, withEvent)
+        val interopView =
+            hitTestInteropView(point, withEvent)
             ?.hitTest(point, withEvent, this)
 
         // hitTest happens after `pointInside` is checked. If hitTest inside ComposeScene didn't
@@ -166,16 +166,14 @@ internal class InteractionUIView(
      * can be caused by implicit capture of the view by UIKit objects (such as UIEvent).
      */
     fun dispose() {
+        gestureRecognizerHandler.dispose()
         gestureRecognizer.handler = null
         removeGestureRecognizer(gestureRecognizer)
 
-        touchesDelegate = object : Delegate {
-            override fun hitTestInteropView(point: CValue<CGPoint>, event: UIEvent?): InteropView? = null
-            override fun onTouchesEvent(view: UIView, event: UIEvent, phase: CupertinoTouchesPhase) {}
-        }
+        hitTestInteropView = { _, _ -> null }
 
-        updateTouchesCount = {}
+        onTouchesCountChange = {}
         inBounds = { false }
-        keyboardEventHandler = KeyboardEventHandler.Empty
+        onPresses = {}
     }
 }

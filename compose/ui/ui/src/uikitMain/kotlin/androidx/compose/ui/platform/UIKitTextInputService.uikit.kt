@@ -45,7 +45,6 @@ import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
-import androidx.compose.ui.window.KeyboardEventHandler
 import kotlin.math.absoluteValue
 import kotlin.math.min
 import kotlinx.coroutines.MainScope
@@ -61,7 +60,7 @@ internal class UIKitTextInputService(
     private val densityProvider: () -> Density,
     private val viewConfiguration: ViewConfiguration,
     private val focusStack: FocusStack<UIView>?,
-    private val keyboardEventHandler: KeyboardEventHandler,
+    private val onPresses: (Set<*>) -> Unit,
 ) : PlatformTextInputService, TextToolbar {
 
     private val rootView get() = rootViewProvider()
@@ -338,7 +337,7 @@ internal class UIKitTextInputService(
         textUIView = IntermediateTextInputUIView(
             viewConfiguration = viewConfiguration
         ).also {
-            it.keyboardEventHandler = keyboardEventHandler
+            it.onPresses = onPresses
             rootView.addSubview(it)
             it.translatesAutoresizingMaskIntoConstraints = false
             NSLayoutConstraint.activateConstraints(
@@ -349,7 +348,7 @@ internal class UIKitTextInputService(
 
     private fun detachIntermediateTextInputView() {
         textUIView?.let { view ->
-            view.keyboardEventHandler = null
+            view.resetOnPressesCallback()
             mainScope.launch {
                 view.removeFromSuperview()
             }
