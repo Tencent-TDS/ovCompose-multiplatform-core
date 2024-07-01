@@ -23,6 +23,7 @@ import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
@@ -239,6 +240,7 @@ interface ComposeScene {
      *
      * @see InteropViewCatchPointerModifier
      */
+    @ExperimentalComposeUiApi
     fun hitTestInteropView(position: Offset): InteropView?
 
     /**

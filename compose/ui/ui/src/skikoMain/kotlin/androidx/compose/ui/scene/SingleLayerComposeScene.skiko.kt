@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composition
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
@@ -156,7 +157,6 @@ private class SingleLayerComposeSceneImpl(
         )
     }
 
-    @Deprecated("To be removed. Temporary hack for iOS interop")
     override fun hitTestInteropView(position: Offset): InteropView? {
         return mainOwner.hitTestInteropView(position)
     }
