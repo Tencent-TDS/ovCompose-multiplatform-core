@@ -156,8 +156,6 @@ internal class InteractionUIView(
             .hitTestInteropView(point, withEvent)
             ?.hitTest(point, withEvent, this)
 
-        println(interopView)
-
         return interopView ?: super.hitTest(point, withEvent)
     }
 
