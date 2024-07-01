@@ -10,7 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@protocol CMPGestureRecognizerProxy <NSObject>
+@protocol CMPGestureRecognizerHandler <NSObject>
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent * _Nullable)event;
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent * _Nullable)event;
@@ -21,7 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CMPGestureRecognizer : UIGestureRecognizer
 
-@property (weak, nonatomic) id <CMPGestureRecognizerProxy> proxy;
+@property (weak, nonatomic) id <CMPGestureRecognizerHandler> handler;
 
 @end
 

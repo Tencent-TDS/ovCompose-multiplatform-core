@@ -17,7 +17,7 @@
 package androidx.compose.ui.window
 
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizer
-import androidx.compose.ui.uikit.utils.CMPGestureRecognizerProxyProtocol
+import androidx.compose.ui.uikit.utils.CMPGestureRecognizerHandlerProtocol
 import androidx.compose.ui.viewinterop.InteropView
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
@@ -38,12 +38,12 @@ internal enum class CupertinoTouchesPhase {
     BEGAN, MOVED, ENDED, CANCELLED
 }
 
-internal class GestureRecognizerProxyImpl(
+internal class GestureRecognizerHandlerImpl(
     private var view: UIView?,
     private val touchesDelegate: InteractionUIView.Delegate,
     private val onTouchesCountChanged: (by: Int) -> Unit
 
-): NSObject(), CMPGestureRecognizerProxyProtocol {
+): NSObject(), CMPGestureRecognizerHandlerProtocol {
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
         onTouchesCountChanged(touches.size)
 
@@ -85,7 +85,7 @@ internal class InteractionUIView(
     private var updateTouchesCount: (count: Int) -> Unit,
     private var inBounds: (CValue<CGPoint>) -> Boolean,
 ) : UIView(CGRectZero.readValue()) {
-    private val gestureRecognizerProxy = GestureRecognizerProxyImpl(
+    private val gestureRecognizerHandler = GestureRecognizerHandlerImpl(
         view = this,
         touchesDelegate = touchesDelegate,
         onTouchesCountChanged = { _touchesCount += it }
@@ -113,7 +113,7 @@ internal class InteractionUIView(
         userInteractionEnabled = true
 
         addGestureRecognizer(gestureRecognizer)
-        gestureRecognizer.proxy = gestureRecognizerProxy
+        gestureRecognizer.handler = gestureRecognizerHandler
     }
 
     override fun canBecomeFirstResponder() = true
@@ -164,7 +164,7 @@ internal class InteractionUIView(
      * can be caused by implicit capture of the view by UIKit objects (such as UIEvent).
      */
     fun dispose() {
-        gestureRecognizer.proxy = null
+        gestureRecognizer.handler = null
         removeGestureRecognizer(gestureRecognizer)
 
         touchesDelegate = object : Delegate {

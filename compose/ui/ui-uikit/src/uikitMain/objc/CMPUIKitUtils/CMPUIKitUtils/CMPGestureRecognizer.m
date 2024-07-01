@@ -20,7 +20,7 @@
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    [self.proxy touchesBegan:touches withEvent:event];
+    [self.handler touchesBegan:touches withEvent:event];
     
     if (self.state == UIGestureRecognizerStatePossible) {
         self.state = UIGestureRecognizerStateBegan;
@@ -28,7 +28,7 @@
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    [self.proxy touchesMoved:touches withEvent:event];
+    [self.handler touchesMoved:touches withEvent:event];
     
     switch (self.state) {
         case UIGestureRecognizerStateBegan:
@@ -41,12 +41,16 @@
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    [self.proxy touchesEnded:touches withEvent:event];
+    [self.handler touchesEnded:touches withEvent:event];
     
     switch (self.state) {
         case UIGestureRecognizerStateBegan:
         case UIGestureRecognizerStateChanged:
-            self.state = UIGestureRecognizerStateEnded;
+            if (self.numberOfTouches == 0) {
+                self.state = UIGestureRecognizerStateEnded;
+            } else {
+                self.state = UIGestureRecognizerStateChanged;
+            }
             break;
         default:
             break;
@@ -54,12 +58,16 @@
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    [self.proxy touchesCancelled:touches withEvent:event];
+    [self.handler touchesCancelled:touches withEvent:event];
     
     switch (self.state) {
         case UIGestureRecognizerStateBegan:
         case UIGestureRecognizerStateChanged:
-            self.state = UIGestureRecognizerStateCancelled;
+            if (self.numberOfTouches == 0) {
+                self.state = UIGestureRecognizerStateCancelled;
+            } else {
+                self.state = UIGestureRecognizerStateChanged;
+            }
             break;
         default:
             break;
