@@ -55,8 +55,6 @@ private class TouchReactingView: UIView(frame = CGRectZero.readValue()) {
 
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
         super.touchesMoved(touches, withEvent)
-
-        println(nextResponder)
     }
 
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
