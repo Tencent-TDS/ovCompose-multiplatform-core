@@ -212,11 +212,6 @@ private class MultiLayerComposeSceneImpl(
     }
 
     override fun hitTestInteropView(position: Offset): InteropView? {
-        // TODO:
-        //  Temporary solution copying control flow from [processPress].
-        //  A proper solution is to send touches to scene as black box
-        //  and handle only that ones that were received in interop view
-        //  instead of using [pointInside].
         forEachLayerReversed { layer ->
             if (layer.isInBounds(position)) {
                 return layer.owner.hitTestInteropView(position)

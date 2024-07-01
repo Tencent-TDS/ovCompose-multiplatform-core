@@ -156,7 +156,9 @@ internal class InteractionUIView(
             .hitTestInteropView(point, withEvent)
             ?.hitTest(point, withEvent, this)
 
-        return interopView ?: super.hitTest(point, withEvent)
+        // hitTest happens after `pointInside` is checked. If hitTest inside ComposeScene didn't
+        // find any interop view, then we should return the view itself.
+        return interopView ?: this
     }
 
     /**
