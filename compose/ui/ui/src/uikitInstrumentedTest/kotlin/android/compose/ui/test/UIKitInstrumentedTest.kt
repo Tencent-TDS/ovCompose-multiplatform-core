@@ -17,23 +17,24 @@
 package androidx.compose.ui.test
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.InfiniteAnimationPolicy
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeContainer
-import androidx.compose.ui.window.ComposeUIViewController
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
+import kotlinx.coroutines.Dispatchers
 import platform.CoreGraphics.CGRectMake
 import platform.Foundation.NSDate
 import platform.Foundation.NSNotification
@@ -67,32 +68,46 @@ internal class UIKitInstrumentedTest {
     lateinit var composeContainer: ComposeContainer
         private set
 
+    private val infiniteAnimationPolicy = object : InfiniteAnimationPolicy {
+        override suspend fun <R> onInfiniteOperation(block: suspend () -> R): R {
+            throw CancellationException("Infinite animations are disabled on tests")
+        }
+    }
+
+    private val coroutineContext = Dispatchers.Main + infiniteAnimationPolicy
+
     fun setContent(
         configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
         content: @Composable () -> Unit
     ) {
         var onDraw = false
-        composeContainer = ComposeUIViewController(configure) {
-            Layout(
-                content = content,
-                modifier = Modifier.drawWithContent {
-                    onDraw = true
-                },
-                measurePolicy = { measurables, constraints ->
-                    val placeable = measurables.firstOrNull()?.measure(constraints)
+        composeContainer = ComposeContainer(
+            configuration = ComposeUIViewControllerConfiguration().apply(configure),
+            content = {
+                Layout(
+                    content = content,
+                    modifier = Modifier.drawWithContent {
+                        onDraw = true
+                    },
+                    measurePolicy = { measurables, constraints ->
+                        val placeable = measurables.firstOrNull()?.measure(constraints)
 
-                    val width = placeable?.width ?: constraints.minWidth
-                    val height = placeable?.height ?: constraints.minHeight
+                        val width = placeable?.width ?: constraints.minWidth
+                        val height = placeable?.height ?: constraints.minHeight
 
-                    layout(width, height) {
-                        placeable?.placeRelative(0, 0)
+                        layout(width, height) {
+                            placeable?.placeRelative(0, 0)
+                        }
                     }
-                }
-            )
-        } as ComposeContainer
+                )
+            },
+            coroutineContext = coroutineContext
+        )
+
         window.rootViewController = composeContainer
         window.makeKeyAndVisible()
         waitUntil { onDraw }
+        waitForIdle()
     }
 
     private fun keyboardUserInfo(height: Dp, animated: Boolean): Map<Any?, *> {
@@ -149,16 +164,14 @@ internal class UIKitInstrumentedTest {
     private val isIdle: Boolean
         get() {
             val hadSnapshotChanges = Snapshot.current.hasPendingChanges()
-            val hasPendingRecomposer = Recomposer.runningRecomposers.value.any {
-                it.hasPendingWork
-            }
             val isApplyObserverNotificationPending = Snapshot.isApplyObserverNotificationPending
+            val containerInvalidations = composeContainer.hasInvalidations()
 
-            return !hadSnapshotChanges && !hasPendingRecomposer && !isApplyObserverNotificationPending
+            return !hadSnapshotChanges && !isApplyObserverNotificationPending && !containerInvalidations
         }
 
     fun waitForIdle(timeoutMillis: Long = 5_000) {
-        val defaultIdleScore = 10
+        val defaultIdleScore = 1
         var idleScore = defaultIdleScore
         waitUntil(
             conditionDescription = "waitForIdle: timeout ${timeoutMillis}ms reached.",
