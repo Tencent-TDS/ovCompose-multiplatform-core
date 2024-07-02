@@ -263,7 +263,8 @@ internal class RootNodeOwner(
     }
 
     /**
-     * hit test interop view.
+     * Perform hit test and return the [InteropView] associated with the resulting node
+     * in case it contains an [InteropViewCatchPointerModifier], otherwise null.
      */
     fun hitTestInteropView(position: Offset): InteropView? {
         val result = HitTestResult()
