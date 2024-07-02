@@ -45,7 +45,6 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.InteropViewCatchPointerModifier
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -85,6 +84,7 @@ import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.trace
 import androidx.compose.ui.viewinterop.InteropView
+import androidx.compose.ui.viewinterop.InteropViewModifierNode
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.max
 import kotlin.math.min
@@ -263,17 +263,16 @@ internal class RootNodeOwner(
     }
 
     /**
-     * Perform hit test and return the [InteropView] associated with the resulting node
-     * in case it contains an [InteropViewCatchPointerModifier], otherwise null.
+     * Perform hit test and return the [InteropView] associated with the resulting
+     * [PointerInputModifierNode] node in case it is a [InteropViewModifierNode], otherwise null.
      */
     fun hitTestInteropView(position: Offset): InteropView? {
         val result = HitTestResult()
         owner.root.hitTest(position, result, true)
-        // TODO: check why we use BackwardsCompatNode here instead of new Element->Node based API
-        val last = result.lastOrNull() as? BackwardsCompatNode ?: return null
-        val modifier = last.element as? InteropViewCatchPointerModifier ?: return null
 
-        return modifier.interopView
+        val node = result.lastOrNull() as? InteropViewModifierNode ?: return null
+
+        return node.interopView
     }
 
     private fun isInBounds(localPosition: Offset): Boolean =

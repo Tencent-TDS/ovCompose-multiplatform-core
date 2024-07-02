@@ -23,14 +23,14 @@ import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.pointer.InteropViewCatchPointerModifier
+import androidx.compose.ui.viewinterop.interopView
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -235,12 +235,9 @@ interface ComposeScene {
     fun sendKeyEvent(keyEvent: KeyEvent): Boolean
 
     /**
-     * If [position] is inside interop view, then [ComposeScene] skip touches to forward it to
-     * platform interop view.
-     *
-     * @see InteropViewCatchPointerModifier
+     * Perform hit test and return the [InteropView] associated with the resulting node
+     * in case it has a modifier [Modifier.interopView], otherwise return null.
      */
-    @ExperimentalComposeUiApi
     fun hitTestInteropView(position: Offset): InteropView?
 
     /**

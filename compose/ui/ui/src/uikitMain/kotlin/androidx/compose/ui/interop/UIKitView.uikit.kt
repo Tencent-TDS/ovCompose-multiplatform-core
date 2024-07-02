@@ -27,7 +27,6 @@ import androidx.compose.runtime.State
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.InteropViewCatchPointerModifier
 import androidx.compose.ui.layout.EmptyLayout
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -121,11 +120,9 @@ private fun Modifier.interopSemantics(
         this
     }
 
-private fun Modifier.catchInteropPointer(isInteractive: Boolean, wrappingView: InteropWrappingView): Modifier =
+private fun Modifier.interopView(isInteractive: Boolean, wrappingView: InteropWrappingView): Modifier =
     if (isInteractive) {
-        this then InteropViewCatchPointerModifier(
-            interopView = InteropView(wrappingView)
-        )
+        this.interopView(wrappingView)
     } else {
         this
     }
@@ -175,7 +172,7 @@ private fun <T : Any> UIKitInteropLayout(
             )
         }
         .trackUIKitInterop(interopContainer, componentHandler.wrappingView)
-        .catchInteropPointer(interactive, componentHandler.wrappingView)
+        .interopView(interactive, componentHandler.wrappingView)
         .interopSemantics(accessibilityEnabled, componentHandler.wrappingView)
 
     EmptyLayout(

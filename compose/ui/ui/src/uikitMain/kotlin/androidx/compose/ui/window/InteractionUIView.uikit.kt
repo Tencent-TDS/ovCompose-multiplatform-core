@@ -104,13 +104,18 @@ internal class InteractionUIView(
             return null
         }
 
-        val interopView =
-            hitTestInteropView(point, withEvent)
-            ?.hitTest(point, withEvent, this)
+        // Find if a scene contains a node [InteropViewModifier] at the given point.
+        // Native [hitTest] happens after [pointInside] is checked. If hit testing
+        // inside ComposeScene didn't yield any interop view, then we should return [this]
+        val interopView = hitTestInteropView(point, withEvent) ?: return this
 
-        // hitTest happens after `pointInside` is checked. If hitTest inside ComposeScene didn't
-        // find any interop view, then we should return the view itself.
-        return interopView ?: this
+        // Transform the point to the interop view's coordinate system.
+        // And perform native [hitTest] on the interop view.
+        val hitTestView = interopView.hitTest(
+            point = convertPoint(point, toView = interopView),
+            withEvent = withEvent)
+
+        return hitTestView ?: this
     }
 
     /**
