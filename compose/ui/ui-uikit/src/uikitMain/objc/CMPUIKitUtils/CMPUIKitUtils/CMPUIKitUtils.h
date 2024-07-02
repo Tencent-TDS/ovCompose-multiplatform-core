@@ -28,4 +28,3 @@ FOUNDATION_EXPORT const unsigned char CMPUIKitUtilsVersionString[];
 #import "CMPOSLogger.h"
 #import "CMPTextLoupeSession.h"
 #import "CMPMetalDrawablesHandler.h"
-#import "CMPGestureRecognizer.h"
