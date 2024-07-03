@@ -199,7 +199,6 @@ private fun <T : Any> UIKitInteropLayout(
         .onGloballyPositioned { coordinates ->
             val rootCoordinates = coordinates.findRootCoordinates()
 
-
             val bounds = rootCoordinates
                 .localBoundingBoxOf(
                     sourceCoordinates = coordinates,
