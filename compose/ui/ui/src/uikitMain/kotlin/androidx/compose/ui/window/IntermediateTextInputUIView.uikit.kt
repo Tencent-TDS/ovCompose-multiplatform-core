@@ -493,7 +493,7 @@ internal class IntermediateTextInputUIView(
     override fun tokenizer(): UITextInputTokenizerProtocol =
         UITextInputStringTokenizer(textInput = this)
 
-    fun resetOnPressesCallback() {
+    fun resetOnKeyboardPressesCallback() {
         onKeyboardPresses = NoOpOnKeyboardPresses
     }
 }

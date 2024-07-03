@@ -353,7 +353,7 @@ internal class UIKitTextInputService(
 
     private fun detachIntermediateTextInputView() {
         textUIView?.let { view ->
-            view.resetOnPressesCallback()
+            view.resetOnKeyboardPressesCallback()
             mainScope.launch {
                 view.removeFromSuperview()
             }
