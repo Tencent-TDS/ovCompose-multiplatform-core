@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeContainer
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.experimental.ExperimentalNativeApi
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -171,37 +170,24 @@ internal class UIKitInstrumentedTest {
         }
 
     fun waitForIdle(timeoutMillis: Long = 5_000) {
-        val defaultIdleScore = 1
-        var idleScore = defaultIdleScore
         waitUntil(
             conditionDescription = "waitForIdle: timeout ${timeoutMillis}ms reached.",
             timeoutMillis = timeoutMillis
-        ) {
-            if (isIdle) {
-                idleScore -= 1
-            } else {
-                idleScore = defaultIdleScore
-            }
-            idleScore == 0
-        }
+        ) { isIdle }
     }
 
-    @OptIn(ExperimentalNativeApi::class)
     fun waitUntil(
         conditionDescription: String? = null,
         timeoutMillis: Long = 5_000,
         condition: () -> Boolean
     ) {
         val runLoop = NSRunLoop.currentRunLoop()
-        var remainingTime = timeoutMillis.milliseconds
-        val startTime = TimeSource.Monotonic.markNow()
-        while (!condition() && remainingTime.isPositive()) {
+        val endTime = TimeSource.Monotonic.markNow() + timeoutMillis.milliseconds
+        while (!condition()) {
+            if (TimeSource.Monotonic.markNow() > endTime) {
+                throw AssertionError(conditionDescription ?: "Timeout ${timeoutMillis}ms reached.")
+            }
             runLoop.runUntilDate(NSDate.dateWithTimeIntervalSinceNow(0.005))
-            remainingTime =
-                timeoutMillis.milliseconds - (TimeSource.Monotonic.markNow() - startTime)
-        }
-        assert(remainingTime.isPositive()) {
-            conditionDescription ?: "Timeout ${timeoutMillis}ms reached."
         }
     }
 }

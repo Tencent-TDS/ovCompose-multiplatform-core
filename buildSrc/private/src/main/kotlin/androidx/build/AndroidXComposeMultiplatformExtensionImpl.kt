@@ -16,6 +16,7 @@
 
 package androidx.build
 
+import com.android.build.gradle.internal.crash.afterEvaluate
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import org.gradle.api.Action
@@ -270,6 +271,22 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
 
     // https://youtrack.jetbrains.com/issue/KT-55751/MPP-Gradle-Consumable-configurations-must-have-unique-attributes
     private val instrumentedTestAttribute = Attribute.of("instrumentedTest", String::class.java)
+    private val instrumentedTestCompilationAttribute = Attribute.of("instrumentedTestCompilation", String::class.java)
+
+//    The consumer was configured to find a library for use during 'kotlin-metadata',
+//    preferably optimized for non-jvm, as well as
+//    attribute 'org.jetbrains.kotlin.platform.type'
+//        with value 'native',
+//    attribute 'org.jetbrains.kotlin.native.target'
+//        with value 'ios_simulator_arm64',
+//    attribute 'instrumentedTest'
+//        with value 'Test'.
+//    However we cannot choose between the following variants of project :compose:ui:ui:
+//        - uikitInstrumentedSimArm64ApiElements
+//        - uikitInstrumentedSimArm64MetadataElements
+//        - uikitSimArm64ApiElements
+//        - uikitSimArm64MetadataElements
+
 
     override fun iosInstrumentedTest(): Unit =
         multiplatformExtension.run {
@@ -294,13 +311,16 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
             }
 
             fun KotlinNativeTargetWithSimulatorTests.configureTestRun() {
-                attributes.attribute(instrumentedTestAttribute, "Test")
+                attributes.attribute(instrumentedTestAttribute, "test")
                 testRuns.forEach {
                     (it as DefaultSimulatorTestRun).executionTask.configure { task ->
                         task.dependsOn(bootTask)
                         task.standalone.set(false)
                         task.device.set(getDeviceName())
                     }
+                }
+                compilations.forEach {
+                    it.attributes.attribute(instrumentedTestCompilationAttribute, "test")
                 }
             }
 
@@ -328,5 +348,24 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
             uikitInstrumentedTest.dependsOn(commonTest)
             uikitInstrumentedX64Test.dependsOn(uikitInstrumentedTest)
             uikitInstrumentedSimArm64Test.dependsOn(uikitInstrumentedTest)
+
+            afterEvaluate {
+                println(">>> After ${it} - ${it.tasks.count()}")
+                it.tasks.forEach {
+                    println(">> NNN ${it.name}")
+                }
+                it.tasks.configureEach {
+                    println(">>> ${it.name}")
+                    if (
+                        it.name.startsWith("transform")
+                        && it.name.endsWith("DependenciesMetadataForIde")
+                    ) {
+                        // transformUikitInstrumentedTestCInteropDependenciesMetadataForIde
+                        // println("disabling ${this@subprojects}:$name")
+                        it.enabled = false
+                    }
+                }
+            }
+
         }
 }

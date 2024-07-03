@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.toDpRect
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlinx.coroutines.launch
 
 class KeyboardInsetsTest {
     @Test
@@ -54,13 +53,10 @@ class KeyboardInsetsTest {
                 }
             )
             LaunchedEffect(Unit) {
-                launch {
-                    showKeyboard(animated = false)
-                }
+                showKeyboard(animated = false)
             }
         }
 
-        waitForIdle()
         assertEquals(screenSize.height - keyboardHeight, contentFrame?.height)
     }
 
@@ -88,14 +84,11 @@ class KeyboardInsetsTest {
             }
 
             LaunchedEffect(Unit) {
-                launch {
-                    focusRequester.requestFocus()
-                    showKeyboard(animated = false)
-                }
+                focusRequester.requestFocus()
+                showKeyboard(animated = false)
             }
         }
 
-        waitForIdle()
         assertEquals(screenSize.height - keyboardHeight, textRectInWindow?.bottom)
         assertEquals(screenSize.height, textRectInRoot?.bottom)
 
