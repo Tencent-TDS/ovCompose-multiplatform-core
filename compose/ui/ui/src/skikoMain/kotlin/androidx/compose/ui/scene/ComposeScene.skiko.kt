@@ -237,6 +237,8 @@ interface ComposeScene {
     /**
      * Perform hit test and return the [InteropView] associated with the resulting node
      * in case it has a modifier [Modifier.interopView], otherwise return null.
+     * @param position The position of the hit test.
+     * @return The [InteropView] associated with the resulting node in case there is any, or null.
      */
     fun hitTestInteropView(position: Offset): InteropView?
 
