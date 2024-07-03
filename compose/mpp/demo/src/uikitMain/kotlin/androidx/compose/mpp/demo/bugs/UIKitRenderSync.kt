@@ -35,6 +35,7 @@ import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSSelectorFromString
+import platform.MapKit.MKMapView
 import platform.UIKit.*
 
 private class TouchReactingView: UIView(frame = CGRectZero.readValue()) {
@@ -72,24 +73,33 @@ val UIKitRenderSync = Screen.Example("UIKitRenderSync") {
     var text by remember { mutableStateOf("Type something") }
     LazyColumn(Modifier.fillMaxSize()) {
         items(100) { index ->
-            when (index % 5) {
-                0 -> Text("material.Text $index", Modifier.fillMaxSize().height(40.dp))
-                1 -> UIKitView(
+            if (index == 0) {
+                UIKitView(
                     factory = {
-                        val label = UILabel(frame = CGRectZero.readValue())
-                        label.text = "UILabel $index"
-                        label.textColor = UIColor.blackColor
-                        label
+                        MKMapView()
                     },
-                    modifier = Modifier.fillMaxWidth().height(40.dp),
-                    interactive = false
+                    modifier = Modifier.fillMaxWidth().height(200.dp)
                 )
-                2 -> TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
-                3 -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
-                4 -> UIKitView(
-                    factory = { TouchReactingView() },
-                    modifier = Modifier.fillMaxWidth().height(40.dp)
-                )
+            } else {
+                when (index % 5) {
+                    0 -> Text("material.Text $index", Modifier.fillMaxSize().height(40.dp))
+                    1 -> UIKitView(
+                        factory = {
+                            val label = UILabel(frame = CGRectZero.readValue())
+                            label.text = "UILabel $index"
+                            label.textColor = UIColor.blackColor
+                            label
+                        },
+                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                        interactive = false
+                    )
+                    2 -> TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
+                    3 -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
+                    4 -> UIKitView(
+                        factory = { TouchReactingView() },
+                        modifier = Modifier.fillMaxWidth().height(40.dp)
+                    )
+                }
             }
         }
     }
