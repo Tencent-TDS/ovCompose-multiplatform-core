@@ -67,8 +67,8 @@ private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Un
     { rect -> this.view.setFrame(rect) }
 
 /**
- * A UIView that contains underlying interop element, such as an independent UIView
- * or UIViewController root UIView.
+ * A [UIView] that contains underlying interop element, such as an independent [UIView]
+ * or [UIViewController]'s root [UIView].
  */
 internal class InteropWrappingView : CMPInteropWrappingView(frame = CGRectZero.readValue()) {
     var actualAccessibilityContainer: Any? = null
