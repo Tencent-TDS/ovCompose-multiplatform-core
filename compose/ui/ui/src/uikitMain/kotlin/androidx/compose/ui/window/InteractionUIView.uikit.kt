@@ -26,6 +26,7 @@ import platform.UIKit.UIPressesEvent
 import platform.UIKit.UIView
 import platform.UIKit.UITouchPhase
 import platform.UIKit.UIGestureRecognizer
+import platform.UIKit.UIPress
 
 /**
  * Subset of [UITouchPhase] reflecting immediate phase when event is received by the [UIView] or
@@ -35,16 +36,31 @@ internal enum class CupertinoTouchesPhase {
     BEGAN, MOVED, ENDED, CANCELLED
 }
 
+/**
+ * [UIView] subclass that handles touches and keyboard presses events and forwards them
+ * to the Compose runtime.
+ *
+ * @param hitTestInteropView A callback to find an [InteropView] at the given point.
+ * @param onTouchesEvent A callback to notify the Compose runtime about touch events.
+ * @param onTouchesCountChange A callback to notify the Compose runtime about the number of tracked
+ * touches.
+ * @param inInteractionBounds A callback to check if the given point is within the interaction
+ * bounds as defined by the owning implementation.
+ * @param onKeyboardPresses A callback to notify the Compose runtime about keyboard presses.
+ * The parameter is a [Set] of [UIPress] objects. Erasure happens due to K/N not supporting Obj-C
+ * lightweight generics.
+ */
 internal class InteractionUIView(
     private var hitTestInteropView: (point: CValue<CGPoint>, event: UIEvent?) -> InteropView?,
     private var onTouchesEvent: (view: UIView, event: UIEvent, phase: CupertinoTouchesPhase) -> Unit,
     private var onTouchesCountChange: (count: Int) -> Unit,
-    private var inBounds: (CValue<CGPoint>) -> Boolean,
-    private var onPresses: (Set<*>) -> Unit,
+    private var inInteractionBounds: (CValue<CGPoint>) -> Boolean,
+    private var onKeyboardPresses: (Set<*>) -> Unit,
 ) : UIView(CGRectZero.readValue()) {
     /**
-     * When there at least one tracked touch, we need notify redrawer about it. It should schedule CADisplayLink which
-     * affects frequency of polling UITouch events on high frequency display and forces it to match display refresh rate.
+     * When there at least one tracked touch, we need notify redrawer about it. It should schedule
+     * CADisplayLink which affects frequency of polling UITouch events on high frequency display
+     * and forces it to match display refresh rate.
      */
     private var _touchesCount = 0
         set(value) {
@@ -60,12 +76,12 @@ internal class InteractionUIView(
     override fun canBecomeFirstResponder() = true
 
     override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {
-        onPresses(presses)
+        onKeyboardPresses(presses)
         super.pressesBegan(presses, withEvent)
     }
 
     override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {
-        onPresses(presses)
+        onKeyboardPresses(presses)
         super.pressesEnded(presses, withEvent)
     }
 
@@ -100,7 +116,7 @@ internal class InteractionUIView(
     }
 
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
-        if (!inBounds(point)) {
+        if (!inInteractionBounds(point)) {
             return null
         }
 
@@ -127,7 +143,7 @@ internal class InteractionUIView(
         onTouchesEvent = { _, _, _ -> }
 
         onTouchesCountChange = {}
-        inBounds = { false }
-        onPresses = {}
+        inInteractionBounds = { false }
+        onKeyboardPresses = {}
     }
 }

@@ -276,13 +276,13 @@ internal class ComposeSceneMediator(
             hitTestInteropView = ::hitTestInteropView,
             onTouchesEvent = ::onTouchesEvent,
             onTouchesCountChange = ::onTouchesCountChange,
-            inBounds = { point ->
+            inInteractionBounds = { point ->
                 val positionInContainer = point.useContents {
                     asDpOffset().toOffset(container.systemDensity).round()
                 }
                 interactionBounds.contains(positionInContainer)
             },
-            onPresses = ::onPresses
+            onKeyboardPresses = ::onKeyboardPresses
         )
 
     /**
@@ -343,7 +343,7 @@ internal class ComposeSceneMediator(
             densityProvider = { rootView.systemDensity },
             viewConfiguration = viewConfiguration,
             focusStack = focusStack,
-            onPresses = ::onPresses
+            onKeyboardPresses = ::onKeyboardPresses
         ).also {
             KeyboardVisibilityListener.initialize()
         }
@@ -638,7 +638,11 @@ internal class ComposeSceneMediator(
         this._onKeyEvent = onKeyEvent ?: { false }
     }
 
-    private fun onPresses(presses: Set<*>) {
+    /**
+     * Converts [UIPress] objects to [KeyEvent] and dispatches them to the appropriate handlers.
+     * @param presses a [Set] of [UIPress] objects. Erasure happens due to K/N not supporting Obj-C lightweight generics.
+     */
+    private fun onKeyboardPresses(presses: Set<*>) {
         presses.forEach {
             val press = it as UIPress
             onKeyboardEvent(press.toComposeEvent())
