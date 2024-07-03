@@ -52,7 +52,7 @@ internal enum class CupertinoTouchesPhase {
  */
 internal class InteractionUIView(
     private var hitTestInteropView: (point: CValue<CGPoint>, event: UIEvent?) -> InteropView?,
-    private var onTouchesEvent: (view: UIView, event: UIEvent, phase: CupertinoTouchesPhase) -> Unit,
+    private var onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent, phase: CupertinoTouchesPhase) -> Unit,
     private var onTouchesCountChange: (count: Int) -> Unit,
     private var inInteractionBounds: (CValue<CGPoint>) -> Boolean,
     private var onKeyboardPresses: (Set<*>) -> Unit,
@@ -90,13 +90,13 @@ internal class InteractionUIView(
 
         val event = withEvent ?: return
 
-        onTouchesEvent(this, event, CupertinoTouchesPhase.BEGAN)
+        onTouchesEvent(this, touches, event, CupertinoTouchesPhase.BEGAN)
     }
 
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
         val event = withEvent ?: return
 
-        onTouchesEvent(this, event, CupertinoTouchesPhase.MOVED)
+        onTouchesEvent(this, touches, event, CupertinoTouchesPhase.MOVED)
     }
 
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
@@ -104,7 +104,7 @@ internal class InteractionUIView(
 
         val event = withEvent ?: return
 
-        onTouchesEvent(this, event, CupertinoTouchesPhase.ENDED)
+        onTouchesEvent(this, touches, event, CupertinoTouchesPhase.ENDED)
     }
 
     override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
@@ -112,7 +112,7 @@ internal class InteractionUIView(
 
         val event = withEvent ?: return
 
-        onTouchesEvent(this, event, CupertinoTouchesPhase.CANCELLED)
+        onTouchesEvent(this, touches, event, CupertinoTouchesPhase.CANCELLED)
     }
 
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
@@ -140,7 +140,7 @@ internal class InteractionUIView(
      */
     fun dispose() {
         hitTestInteropView = { _, _ -> null }
-        onTouchesEvent = { _, _, _ -> }
+        onTouchesEvent = { _, _, _, _ -> }
 
         onTouchesCountChange = {}
         inInteractionBounds = { false }

@@ -360,8 +360,15 @@ internal class ComposeSceneMediator(
             scene.hitTestInteropView(position)
         }
 
-    private fun onTouchesEvent(view: UIView, event: UIEvent, phase: CupertinoTouchesPhase) {
-        val pointers = event.allTouches?.map {
+    /**
+     * Converts [UITouch] objects from [touches] to [ComposeScenePointer] and dispatches them to the appropriate handlers.
+     * @param view the [UIView] that received the touches
+     * @param touches a [Set] of [UITouch] objects. Erasure happens due to K/N not supporting Obj-C lightweight generics.
+     * @param event the [UIEvent] associated with the touches
+     * @param phase the [CupertinoTouchesPhase] of the touches
+     */
+    private fun onTouchesEvent(view: UIView, touches: Set<*>, event: UIEvent, phase: CupertinoTouchesPhase) {
+        val pointers = touches.map {
             val touch = it as UITouch
             val id = touch.hashCode().toLong()
             val position = touch.offsetInView(view, density.density)
