@@ -55,9 +55,14 @@ import platform.UIKit.removeFromParentViewController
 import platform.UIKit.willMoveToParentViewController
 import androidx.compose.ui.uikit.utils.CMPInteropWrappingView
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.roundToIntRect
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
+import platform.Foundation.NSNull
+import platform.Foundation.NSNullMeta
+import platform.QuartzCore.CALayer
+import platform.UIKit.UIColor
 
 private val STUB_CALLBACK_WITH_RECEIVER: Any.() -> Unit = {}
 private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { rect -> this.setFrame(rect) }
@@ -67,8 +72,68 @@ private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Un
 internal class InteropWrappingView : CMPInteropWrappingView(frame = CGRectZero.readValue()) {
     var actualAccessibilityContainer: Any? = null
 
+    private var isMaskEnabled = false
+    private val maskLayer = CALayer()
+    private val opaqueRectLayer = CALayer()
+
+    init {
+        maskLayer.backgroundColor = UIColor.clearColor.CGColor
+        maskLayer.disableImplicitLayerAnimations()
+
+        opaqueRectLayer.backgroundColor = UIColor.blackColor.CGColor
+        opaqueRectLayer.disableImplicitLayerAnimations()
+
+        maskLayer.addSublayer(opaqueRectLayer)
+    }
+
     override fun accessibilityContainer(): Any? {
         return actualAccessibilityContainer
+    }
+
+    /**
+     * CALayer have implicit animations enabled by default. This method disables them.
+     */
+    private fun CALayer.disableImplicitLayerAnimations() {
+        actions = mapOf(
+            "bounds" to NSNull.`null`(),
+            "position" to NSNull.`null`(),
+            "frame" to NSNull.`null`()
+        )
+    }
+
+    fun updateClipping(
+        unclippedRect: IntRect,
+        clippedRect: IntRect,
+        density: Density,
+        deferAction: (UIKitInteropAction) -> Unit
+    ) {
+
+        val visibleRegionRect = IntRect(
+            offset = IntOffset(
+                x = clippedRect.left - unclippedRect.left,
+                y = clippedRect.top - unclippedRect.top
+            ),
+            size = clippedRect.size
+        ).toRect().toDpRect(density).asCGRect()
+
+        if (unclippedRect == clippedRect) {
+            if (isMaskEnabled) {
+                deferAction {
+                    layer.mask = null
+                }
+
+                isMaskEnabled = false
+            }
+        } else {
+            isMaskEnabled = true
+
+            deferAction {
+                layer.mask = maskLayer
+                maskLayer.setFrame(bounds)
+                opaqueRectLayer.setFrame(visibleRegionRect)
+            }
+        }
+
     }
 }
 
@@ -134,15 +199,22 @@ private fun <T : Any> UIKitInteropLayout(
         .onGloballyPositioned { coordinates ->
             val rootCoordinates = coordinates.findRootCoordinates()
 
-            // TODO: perform proper clipping of underlying view with `clipBounds` set to true
+
             val bounds = rootCoordinates
                 .localBoundingBoxOf(
                     sourceCoordinates = coordinates,
                     clipBounds = false
                 )
 
+            val clippedBounds = rootCoordinates
+                .localBoundingBoxOf(
+                    sourceCoordinates = coordinates,
+                    clipBounds = true
+                )
+
             componentHandler.updateRect(
                 to = bounds.roundToIntRect(),
+                clippedRect = clippedBounds.roundToIntRect(),
                 density = density
             )
         }
@@ -315,6 +387,7 @@ private abstract class InteropComponentHandler<T : Any>(
      * The coordinates
      */
     private var currentRect: IntRect? = null
+    private var currentClippedRect: IntRect? = null
     val wrappingView = InteropWrappingView()
     lateinit var component: T
     private lateinit var updater: Updater<T>
@@ -331,7 +404,14 @@ private abstract class InteropComponentHandler<T : Any>(
     /**
      * Set the frame of the wrapping view.
      */
-    fun updateRect(to: IntRect, density: Density) {
+    fun updateRect(to: IntRect, clippedRect: IntRect, density: Density) {
+        wrappingView.updateClipping(
+            unclippedRect = to,
+            clippedRect = clippedRect,
+            density = density,
+            deferAction = interopContainer::deferAction
+        )
+
         if (currentRect == to) {
             return
         }
@@ -341,7 +421,6 @@ private abstract class InteropComponentHandler<T : Any>(
         interopContainer.deferAction {
             wrappingView.setFrame(dpRect.asCGRect())
         }
-
 
         // Only call onResize if the actual size changes.
         if (currentRect?.size != to.size) {
