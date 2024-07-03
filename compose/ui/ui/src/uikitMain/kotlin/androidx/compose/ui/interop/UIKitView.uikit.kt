@@ -60,7 +60,6 @@ import androidx.compose.ui.unit.roundToIntRect
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSNull
-import platform.Foundation.NSNullMeta
 import platform.QuartzCore.CALayer
 import platform.UIKit.UIColor
 
@@ -199,7 +198,7 @@ private fun <T : Any> UIKitInteropLayout(
         .onGloballyPositioned { coordinates ->
             val rootCoordinates = coordinates.findRootCoordinates()
 
-            val bounds = rootCoordinates
+            val unclippedBounds = rootCoordinates
                 .localBoundingBoxOf(
                     sourceCoordinates = coordinates,
                     clipBounds = false
@@ -212,7 +211,7 @@ private fun <T : Any> UIKitInteropLayout(
                 )
 
             componentHandler.updateRect(
-                to = bounds.roundToIntRect(),
+                unclippedRect = unclippedBounds.roundToIntRect(),
                 clippedRect = clippedBounds.roundToIntRect(),
                 density = density
             )
@@ -403,26 +402,26 @@ private abstract class InteropComponentHandler<T : Any>(
     /**
      * Set the frame of the wrapping view.
      */
-    fun updateRect(to: IntRect, clippedRect: IntRect, density: Density) {
+    fun updateRect(unclippedRect: IntRect, clippedRect: IntRect, density: Density) {
         wrappingView.updateClipping(
-            unclippedRect = to,
+            unclippedRect = unclippedRect,
             clippedRect = clippedRect,
             density = density,
             deferAction = interopContainer::deferAction
         )
 
-        if (currentRect == to) {
+        if (currentRect == unclippedRect) {
             return
         }
 
-        val dpRect = to.toRect().toDpRect(density)
+        val dpRect = unclippedRect.toRect().toDpRect(density)
 
         interopContainer.deferAction {
             wrappingView.setFrame(dpRect.asCGRect())
         }
 
         // Only call onResize if the actual size changes.
-        if (currentRect?.size != to.size) {
+        if (currentRect?.size != unclippedRect.size) {
             interopContainer.deferAction {
                 // The actual component created by the user is resized here using the provided callback.
                 onResize(
@@ -437,7 +436,7 @@ private abstract class InteropComponentHandler<T : Any>(
             }
         }
 
-        currentRect = to
+        currentRect = unclippedRect
     }
 
     fun onStart(initialUpdateBlock: (T) -> Unit) {
