@@ -26,7 +26,7 @@ import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.unit.IntSize
 
 /**
- * Modifier to associate an [InteropView] with a [PointerInputFilter] to allow hit testing it and
+ * [Modifier.Node] to associate an [InteropView] with the modified element to allow hit testing it and
  * perform custom pointer input handling if needed.
  */
 @InternalComposeUiApi
