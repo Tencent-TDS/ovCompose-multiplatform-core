@@ -1,10 +1,6 @@
 name: iOS Unit tests
 on:
   workflow_dispatch:
-  pull_request:
-  push:
-    branches:
-      - "jb-main"
 
 concurrency: 
   group: ${{ github.head_ref || github.run_id }}
