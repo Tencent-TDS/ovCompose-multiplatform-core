@@ -27,7 +27,7 @@ import java.awt.dnd.DropTargetDropEvent
 /**
  * Encapsulates the information needed to start a drag-and-drop session from Compose on the desktop.
  */
-@ExperimentalComposeUiApi
+@OptIn(ExperimentalComposeUiApi::class)
 actual class DragAndDropTransferData(
     val transferable: DragAndDropTransferable,
     val supportedActions: Iterable<DragAndDropTransferAction>,
@@ -65,13 +65,12 @@ class DragAndDropTransferAction private constructor() {
 /**
  * The event dispatched to [DragAndDropTarget] implementations during a drag-and-drop session.
  */
-@ExperimentalComposeUiApi
 actual class DragAndDropEvent(
     /**
      * The underlying native event dispatched when the drag-and-drop gesture ends in a drop; only
      * available in [DragAndDropTarget.onDrop].
      *
-     * Use [DragAndDropEvent.awtTransferable] to access it..
+     * Use [DragAndDropEvent.awtTransferable] to access it.
      */
     val nativeDropEvent: Any?,
 
