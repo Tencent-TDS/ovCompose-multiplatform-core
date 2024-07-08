@@ -127,7 +127,7 @@ internal class RootNodeOwner(
         },
     )
     private val dragAndDropManager: DragAndDropManager =
-        PlatformDelegatingDragAndDropManager(platformContext.platformDragAndDropManager)
+        PlatformDelegatingDragAndDropManager(platformContext.createPlatformDragAndDropManager())
     private val rootSemanticsNode = EmptySemanticsModifier()
 
     private val rootModifier = EmptySemanticsElement(rootSemanticsNode)

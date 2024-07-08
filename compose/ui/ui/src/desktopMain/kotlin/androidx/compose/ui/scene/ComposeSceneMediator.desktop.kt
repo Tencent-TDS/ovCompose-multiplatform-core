@@ -689,7 +689,7 @@ internal class ComposeSceneMediator(
         override val semanticsOwnerListener
             get() = this@ComposeSceneMediator.semanticsOwnerListener
 
-        override val platformDragAndDropManager = AwtDragAndDropManager(container)
+        override fun createPlatformDragAndDropManager() = AwtDragAndDropManager(container)
     }
 
     private inner class DesktopPlatformComponent : PlatformComponent {
