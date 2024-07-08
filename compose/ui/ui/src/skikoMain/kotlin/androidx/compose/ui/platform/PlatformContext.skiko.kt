@@ -20,10 +20,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropModifierNode
+import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.input.pointer.PointerIcon
@@ -109,6 +114,9 @@ interface PlatformContext {
 
     val parentFocusManager: FocusManager get() = EmptyFocusManager
     fun requestFocus(): Boolean = true
+
+    val platformDragAndDropManager: PlatformDragAndDropManager get() =
+        UnimplementedDragAndDropManager
 
     /**
      * The listener to track [RootForTest]s.
@@ -226,6 +234,27 @@ private object EmptyTextToolbar : TextToolbar {
 private object EmptyFocusManager : FocusManager {
     override fun clearFocus(force: Boolean) = Unit
     override fun moveFocus(focusDirection: FocusDirection) = false
+}
+
+private object UnimplementedDragAndDropManager : PlatformDragAndDropManager {
+    override val modifier: Modifier
+        get() = Modifier
+
+    override fun drag(
+        transferData: DragAndDropTransferData,
+        decorationSize: Size,
+        drawDragDecoration: DrawScope.() -> Unit
+    ): Boolean {
+        TODO("Drag&drop isn't implemented")
+    }
+
+    override fun registerNodeInterest(node: DragAndDropModifierNode) {
+        TODO("Drag&drop isn't implemented")
+    }
+
+    override fun isInterestedNode(node: DragAndDropModifierNode): Boolean {
+        TODO("Drag&drop isn't implemented")
+    }
 }
 
 /**
