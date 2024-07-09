@@ -217,7 +217,12 @@ private class GestureRecognizerHandlerImpl(
      */
     override fun onFailure() {
         state = UIGestureRecognizerStateFailed
+
         onTouchesEventCallbackForPhase(trackedTouches, null, CupertinoTouchesPhase.CANCELLED).invoke()
+
+        // We won't receive other touches until all fingers are lifted, so we can't rely
+        // on touchesEnded/touchesCancelled to reset the state.
+        stopTrackingTouches(trackedTouches)
     }
 
     override fun shouldRecognizeSimultaneously(first: UIGestureRecognizer, withOther: UIGestureRecognizer): Boolean {
