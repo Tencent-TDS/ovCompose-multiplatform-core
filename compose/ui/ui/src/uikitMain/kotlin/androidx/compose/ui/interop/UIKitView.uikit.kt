@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.unit.toDpOffset
 import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.viewinterop.interopViewAnchor
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
 
@@ -105,7 +106,7 @@ internal val InteropViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
 private var SemanticsPropertyReceiver.interopView by InteropViewSemanticsKey
 
 /**
- * Chain [this] with [Modifier.semantics] that sets the [interopView] of the node if [enabled] is true.
+ * Chain [this] with [Modifier.semantics] that sets the [interopViewAnchor] of the node if [enabled] is true.
  * If [enabled] is false, [this] is returned as is.
  */
 private fun Modifier.interopSemantics(
@@ -120,9 +121,9 @@ private fun Modifier.interopSemantics(
         this
     }
 
-private fun Modifier.interopView(isInteractive: Boolean, wrappingView: InteropWrappingView): Modifier =
+private fun Modifier.interopViewAnchor(isInteractive: Boolean, wrappingView: InteropWrappingView): Modifier =
     if (isInteractive) {
-        this.interopView(wrappingView)
+        this.interopViewAnchor(wrappingView)
     } else {
         this
     }
@@ -172,7 +173,7 @@ private fun <T : Any> UIKitInteropLayout(
             )
         }
         .trackUIKitInterop(interopContainer, componentHandler.wrappingView)
-        .interopView(interactive, componentHandler.wrappingView)
+        .interopViewAnchor(interactive, componentHandler.wrappingView)
         .interopSemantics(accessibilityEnabled, componentHandler.wrappingView)
 
     EmptyLayout(

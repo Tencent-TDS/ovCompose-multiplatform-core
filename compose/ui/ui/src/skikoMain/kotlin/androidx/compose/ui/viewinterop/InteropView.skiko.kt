@@ -20,7 +20,6 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerInputFilter
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.unit.IntSize
@@ -30,7 +29,7 @@ import androidx.compose.ui.unit.IntSize
  * perform custom pointer input handling if needed.
  */
 @InternalComposeUiApi
-open class InteropViewModifierNode(
+open class InteropViewAnchorModifierNode(
     var interopView: InteropView
 ) : Modifier.Node(), PointerInputModifierNode {
     override fun onPointerEvent(
@@ -43,16 +42,16 @@ open class InteropViewModifierNode(
 }
 
 /**
- * Element for [InteropViewModifierNode]. A custom implementation of [ModifierNodeElement] is needed
- * for possible [InteropViewModifierNode] subclasses.
+ * Element for [InteropViewAnchorModifierNode]. A custom implementation of [ModifierNodeElement] is needed
+ * for possible [InteropViewAnchorModifierNode] subclasses.
  */
-internal data class InteropViewModifierNodeElement(
+internal data class InteropViewAnchorModifierNodeElement(
     val interopView: InteropView
-) : ModifierNodeElement<InteropViewModifierNode>() {
-    override fun create(): InteropViewModifierNode =
-        InteropViewModifierNode(interopView)
+) : ModifierNodeElement<InteropViewAnchorModifierNode>() {
+    override fun create(): InteropViewAnchorModifierNode =
+        InteropViewAnchorModifierNode(interopView)
 
-    override fun update(node: InteropViewModifierNode) {
+    override fun update(node: InteropViewAnchorModifierNode) {
         node.interopView = interopView
     }
 }
@@ -62,5 +61,5 @@ internal data class InteropViewModifierNodeElement(
  * Allows hit testing and custom pointer input handling for the [InteropView].
  */
 @InternalComposeUiApi
-fun Modifier.interopView(view: InteropView): Modifier =
-    this then InteropViewModifierNodeElement(view)
+fun Modifier.interopViewAnchor(view: InteropView): Modifier =
+    this then InteropViewAnchorModifierNodeElement(view)

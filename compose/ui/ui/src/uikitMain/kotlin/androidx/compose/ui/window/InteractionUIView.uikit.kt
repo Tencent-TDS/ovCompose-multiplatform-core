@@ -39,7 +39,7 @@ internal enum class CupertinoTouchesPhase {
     BEGAN, MOVED, ENDED, CANCELLED
 }
 
-internal class GestureRecognizerHandlerImpl(
+private class GestureRecognizerHandlerImpl(
     private var onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent, phase: CupertinoTouchesPhase) -> Unit,
     private var view: UIView?,
     private val onTouchesCountChanged: (by: Int) -> Unit

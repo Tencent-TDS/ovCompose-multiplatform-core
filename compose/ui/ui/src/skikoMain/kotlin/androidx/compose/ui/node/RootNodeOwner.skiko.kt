@@ -84,7 +84,7 @@ import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.trace
 import androidx.compose.ui.viewinterop.InteropView
-import androidx.compose.ui.viewinterop.InteropViewModifierNode
+import androidx.compose.ui.viewinterop.InteropViewAnchorModifierNode
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.max
 import kotlin.math.min
@@ -264,13 +264,13 @@ internal class RootNodeOwner(
 
     /**
      * Perform hit test and return the [InteropView] associated with the resulting
-     * [PointerInputModifierNode] node in case it is a [InteropViewModifierNode], otherwise null.
+     * [PointerInputModifierNode] node in case it is a [InteropViewAnchorModifierNode], otherwise null.
      */
     fun hitTestInteropView(position: Offset): InteropView? {
         val result = HitTestResult()
         owner.root.hitTest(position, result, true)
 
-        val node = result.lastOrNull() as? InteropViewModifierNode ?: return null
+        val node = result.lastOrNull() as? InteropViewAnchorModifierNode ?: return null
 
         return node.interopView
     }
