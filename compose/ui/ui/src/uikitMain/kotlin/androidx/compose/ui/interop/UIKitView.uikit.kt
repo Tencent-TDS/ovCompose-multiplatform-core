@@ -64,8 +64,9 @@ import platform.Foundation.NSNull
 import platform.QuartzCore.CALayer
 
 private val STUB_CALLBACK_WITH_RECEIVER: Any.() -> Unit = {}
-private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { }
-private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Unit = { }
+private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { rect -> this.setFrame(rect) }
+private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Unit =
+    { rect -> this.view.setFrame(rect) }
 
 internal class InteropWrappingView : CMPInteropWrappingView(frame = CGRectZero.readValue()) {
     var actualAccessibilityContainer: Any? = null
