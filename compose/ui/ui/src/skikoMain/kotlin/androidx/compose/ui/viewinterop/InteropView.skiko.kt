@@ -60,6 +60,5 @@ internal data class InteropViewAnchorModifierNodeElement(
  * Add an association with [InteropView] to the modified element.
  * Allows hit testing and custom pointer input handling for the [InteropView].
  */
-@InternalComposeUiApi
-fun Modifier.interopViewAnchor(view: InteropView): Modifier =
+internal fun Modifier.interopViewAnchor(view: InteropView): Modifier =
     this then InteropViewAnchorModifierNodeElement(view)

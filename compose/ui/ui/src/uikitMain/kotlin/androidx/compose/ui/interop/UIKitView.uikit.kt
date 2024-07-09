@@ -59,6 +59,7 @@ import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.unit.toDpOffset
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.viewinterop.interopViewAnchor
+import androidx.compose.ui.viewinterop.InteropView
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
 
@@ -121,6 +122,13 @@ private fun Modifier.interopSemantics(
         this
     }
 
+/**
+ * Add an association with [InteropView] to the modified element.
+ * Allows hit testing and custom pointer input handling for the [InteropView].
+ *
+ * @param isInteractive If `true`, the modifier will be applied. If `false`, returns the original modifier.
+ * @param wrappingView The [InteropWrappingView] to associate with the modified element.
+ */
 private fun Modifier.interopViewAnchor(isInteractive: Boolean, wrappingView: InteropWrappingView): Modifier =
     if (isInteractive) {
         this.interopViewAnchor(wrappingView)
