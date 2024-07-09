@@ -24,11 +24,18 @@ import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
-import platform.UIKit.UIPressesEvent
-import platform.UIKit.UIView
-import platform.UIKit.UITouchPhase
 import platform.UIKit.UIGestureRecognizer
+import platform.UIKit.UIGestureRecognizerStateBegan
+import platform.UIKit.UIGestureRecognizerStateCancelled
+import platform.UIKit.UIGestureRecognizerStateChanged
+import platform.UIKit.UIGestureRecognizerStateEnded
+import platform.UIKit.UIGestureRecognizerStatePossible
 import platform.UIKit.UIPress
+import platform.UIKit.UIPressesEvent
+import platform.UIKit.UITouch
+import platform.UIKit.UITouchPhase
+import platform.UIKit.UIView
+import platform.UIKit.setState
 import platform.darwin.NSObject
 
 /**
@@ -42,10 +49,22 @@ internal enum class CupertinoTouchesPhase {
 private class GestureRecognizerHandlerImpl(
     private var onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent, phase: CupertinoTouchesPhase) -> Unit,
     private var view: UIView?,
-    private val onTouchesCountChanged: (by: Int) -> Unit
-
+    private val onTouchesCountChanged: (by: Int) -> Unit,
 ): NSObject(), CMPGestureRecognizerHandlerProtocol {
+    /**
+     * [CMPGestureRecognizer] that is associated with this handler.
+     */
+    var gestureRecognizer: CMPGestureRecognizer? = null
+
+    private var firstTouchInSequence: UITouch? = null
+
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
+        val gestureRecognizer = gestureRecognizer ?: return
+
+        if (gestureRecognizer.state == UIGestureRecognizerStatePossible) {
+            gestureRecognizer.setState(UIGestureRecognizerStateBegan)
+        }
+
         onTouchesCountChanged(touches.size)
 
         val view = view ?: return
@@ -55,6 +74,14 @@ private class GestureRecognizerHandlerImpl(
     }
 
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
+        val gestureRecognizer = gestureRecognizer ?: return
+
+        when (gestureRecognizer.state) {
+            UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
+                gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+            }
+        }
+
         val view = view ?: return
         val event = withEvent ?: return
 
@@ -62,6 +89,18 @@ private class GestureRecognizerHandlerImpl(
     }
 
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
+        val gestureRecognizer = gestureRecognizer ?: return
+
+        when (gestureRecognizer.state) {
+            UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
+                if (gestureRecognizer.numberOfTouches == 0UL) {
+                    gestureRecognizer.setState(UIGestureRecognizerStateEnded)
+                } else {
+                    gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+                }
+            }
+        }
+
         onTouchesCountChanged(-touches.size)
 
         val view = view ?: return
@@ -71,6 +110,18 @@ private class GestureRecognizerHandlerImpl(
     }
 
     override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
+        val gestureRecognizer = gestureRecognizer ?: return
+
+        when (gestureRecognizer.state) {
+            UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
+                if (gestureRecognizer.numberOfTouches == 0UL) {
+                    gestureRecognizer.setState(UIGestureRecognizerStateCancelled)
+                } else {
+                    gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+                }
+            }
+        }
+
         onTouchesCountChanged(-touches.size)
 
         val view = view ?: return
@@ -80,11 +131,51 @@ private class GestureRecognizerHandlerImpl(
     }
 
     override fun shouldRecognizeSimultaneously(first: UIGestureRecognizer, withOther: UIGestureRecognizer): Boolean {
-        return true
+        val gestureRecognizer = gestureRecognizer ?: return false
+
+        return when {
+            first == gestureRecognizer -> {
+                shouldRecognizeSimultaneously(
+                    first = gestureRecognizer,
+                    second = withOther
+                )
+            }
+            withOther == gestureRecognizer -> {
+                shouldRecognizeSimultaneously(
+                    first = gestureRecognizer,
+                    second = first
+                )
+            }
+            else -> false
+        }
     }
+
 
     fun dispose() {
         onTouchesEvent = { _, _, _, _ -> }
+        gestureRecognizer = null
+    }
+
+    /**
+     * Determines if the Compose [CMPGestureRecognizer] should recognize simultaneously with the other [UIGestureRecognizer].
+     * @param first The Compose gesture recognizer.
+     * @param second The other UIKit gesture recognizer.
+     * @return `true` if the gesture recognizers should recognize simultaneously, `false` otherwise.
+     * @note
+     */
+    private fun shouldRecognizeSimultaneously(first: CMPGestureRecognizer, second: UIGestureRecognizer): Boolean {
+        val firstView = first.view ?: return false
+        val secondView = second.view ?: return false
+
+        return if (secondView.isDescendantOfView(firstView)) {
+            // If other gesture recognizer belongs to interop view, then it means that it should
+            // intercept all the touches
+            false
+        } else {
+            // As of now, we unconditionally allow simultaneous recognition with UIKit gesture
+            // recognizers from super views.
+            true
+        }
     }
 }
 
@@ -112,7 +203,7 @@ internal class InteractionUIView(
     private val gestureRecognizerHandler = GestureRecognizerHandlerImpl(
         view = this,
         onTouchesEvent = onTouchesEvent,
-        onTouchesCountChanged = { _touchesCount += it }
+        onTouchesCountChanged = { touchesCount += it }
     )
 
     private val gestureRecognizer = CMPGestureRecognizer()
@@ -122,7 +213,7 @@ internal class InteractionUIView(
      * CADisplayLink which affects frequency of polling UITouch events on high frequency display
      * and forces it to match display refresh rate.
      */
-    private var _touchesCount = 0
+    private var touchesCount = 0
         set(value) {
             field = value
             onTouchesCountChange(value)
@@ -132,8 +223,11 @@ internal class InteractionUIView(
         multipleTouchEnabled = true
         userInteractionEnabled = true
 
+        gestureRecognizer.cancelsTouchesInView = true
+
         addGestureRecognizer(gestureRecognizer)
         gestureRecognizer.handler = gestureRecognizerHandler
+        gestureRecognizerHandler.gestureRecognizer = gestureRecognizer
     }
 
     override fun canBecomeFirstResponder() = true
