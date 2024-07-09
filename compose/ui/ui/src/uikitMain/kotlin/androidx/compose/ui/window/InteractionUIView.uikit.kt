@@ -414,34 +414,26 @@ internal class InteractionUIView(
         super.touchesCancelled(touches, withEvent)
     }
 
-    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? = rememberingHitTestResult {
         if (!inInteractionBounds(point)) {
-            gestureRecognizerHandler.hitTestView = null
-            return null
-        }
-
-        // Find if a scene contains a node [InteropViewModifier] at the given point.
-        // Native [hitTest] happens after [pointInside] is checked. If hit testing
-        // inside ComposeScene didn't yield any interop view, then we should return [this]
-        val interopView = hitTestInteropView(point, withEvent)
-
-        if (interopView == null) {
-            gestureRecognizerHandler.hitTestView = this
-            return this
-        }
-
-        // Transform the point to the interop view's coordinate system.
-        // And perform native [hitTest] on the interop view.
-        val hitTestView = interopView.hitTest(
-            point = convertPoint(point, toView = interopView),
-            withEvent = withEvent)
-
-        if (hitTestView == null) {
-            gestureRecognizerHandler.hitTestView = this
-            return this
+            null
         } else {
-            gestureRecognizerHandler.hitTestView = hitTestView
-            return hitTestView
+            // Find if a scene contains a [InteropViewAnchorModifierNode] at the given point.
+            val interopView = hitTestInteropView(point, withEvent)
+
+            if (interopView == null) {
+                // Native [hitTest] happens after [pointInside] is checked. If hit testing
+                // inside ComposeScene didn't yield any interop view, then we should return [this]
+                this
+            } else {
+                // Transform the point to the interop view's coordinate system.
+                // And perform native [hitTest] on the interop view.
+                // Return this view if the interop view doesn't handle the hit test.
+                interopView.hitTest(
+                    point = convertPoint(point, toView = interopView),
+                    withEvent = withEvent
+                ) ?: this
+            }
         }
     }
 
@@ -459,5 +451,14 @@ internal class InteractionUIView(
         onTouchesCountChange = {}
         inInteractionBounds = { false }
         onKeyboardPresses = {}
+    }
+
+    /**
+     * Execute the given [hitTestBlock] and save the result to the gesture recognizer handler.
+     */
+    private fun rememberingHitTestResult(hitTestBlock: () -> UIView?): UIView? {
+        val result = hitTestBlock()
+        gestureRecognizerHandler.hitTestView = result
+        return result
     }
 }
