@@ -7,7 +7,9 @@
 
 #import "CMPGestureRecognizer.h"
 
-@implementation CMPGestureRecognizer
+@implementation CMPGestureRecognizer {
+    dispatch_block_t _scheduledFailureBlock;
+}
 
 - (instancetype)init {
     self = [super init];
@@ -27,6 +29,35 @@
     } else {
         return NO;
     }
+}
+
+- (void)cancelFailure {
+    if (_scheduledFailureBlock) {
+        dispatch_block_cancel(_scheduledFailureBlock);
+        _scheduledFailureBlock = NULL;
+    }
+}
+
+- (void)fail {
+    self.state = UIGestureRecognizerStateFailed;
+}
+
+- (void)scheduleFailure {
+    __weak typeof(self) weakSelf = self;
+    dispatch_block_t dispatchBlock = dispatch_block_create(0, ^{
+        [weakSelf fail];
+    });
+    
+    if (_scheduledFailureBlock) {
+        dispatch_block_cancel(_scheduledFailureBlock);
+    }
+    _scheduledFailureBlock = dispatchBlock;
+
+    // Calculate the delay time in dispatch_time_t
+    dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC));
+
+    // Schedule the block to be executed after the delay on the main queue
+    dispatch_after(delay, dispatch_get_main_queue(), dispatchBlock);
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {

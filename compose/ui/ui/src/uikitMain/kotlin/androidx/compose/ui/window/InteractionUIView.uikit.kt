@@ -21,7 +21,9 @@ import androidx.compose.ui.uikit.utils.CMPGestureRecognizerHandlerProtocol
 import androidx.compose.ui.viewinterop.InteropView
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
 import platform.UIKit.UIGestureRecognizer
@@ -56,78 +58,145 @@ private class GestureRecognizerHandlerImpl(
      */
     var gestureRecognizer: CMPGestureRecognizer? = null
 
-    private var firstTouchInSequence: UITouch? = null
+    /**
+     * Initial centroid location in the sequence to measure the motion slop and to determine whether the gesture
+     * should be recognized or failed and pass touches to interop views.
+     */
+    private var initialLocation: CValue<CGPoint>? = null
+
+    /**
+     * Touches that are currently tracked by the gesture recognizer.
+     */
+    private var trackedTouches: MutableSet<UITouch> = mutableSetOf()
+
+    /**
+     * Calculates the centroid of the tracked touches.
+     */
+    private val trackedTouchesCentroidLocation: CValue<CGPoint>?
+        get() {
+            if (trackedTouches.isEmpty()) {
+                return null
+            }
+
+            var centroidX = 0.0
+            var centroidY = 0.0
+
+            for (touch in trackedTouches) {
+                val location = touch.locationInView(view)
+                location.useContents {
+                    centroidX += x
+                    centroidY += y
+                }
+            }
+
+            return CGPointMake(
+                x = centroidX / trackedTouches.size.toDouble(),
+                y = centroidY / trackedTouches.size.toDouble()
+            )
+        }
+
+    /**
+     * The actual view that was hit-tested by the first touch in the sequence.
+     * It could be interop view, for example. If there are tracked touches assignment is ignored.
+     */
+    var hitTestView: UIView? = null
+        set(value) {
+            /**
+             * Only remember the first hit-tested view in the sequence.
+             */
+            if (initialLocation == null) {
+                field = value
+            }
+        }
 
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
         val gestureRecognizer = gestureRecognizer ?: return
 
-        if (gestureRecognizer.state == UIGestureRecognizerStatePossible) {
-            gestureRecognizer.setState(UIGestureRecognizerStateBegan)
+        startTrackingTouches(touches)
+
+        if (hitTestView == view) {
+            // Golden path, immediately start the gesture recognizer.
+            if (gestureRecognizer.state == UIGestureRecognizerStatePossible) {
+                gestureRecognizer.setState(UIGestureRecognizerStateBegan)
+            }
+
+            val view = view ?: return
+            val event = withEvent ?: return
+
+            onTouchesEvent(view, touches, event, CupertinoTouchesPhase.BEGAN)
         }
-
-        onTouchesCountChanged(touches.size)
-
-        val view = view ?: return
-        val event = withEvent ?: return
-
-        onTouchesEvent(view, touches, event, CupertinoTouchesPhase.BEGAN)
     }
 
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
         val gestureRecognizer = gestureRecognizer ?: return
 
-        when (gestureRecognizer.state) {
-            UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
-                gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+        if (hitTestView == view) {
+            // Golden path, just update the gesture recognizer state and pass touches to
+            // the Compose runtime.
+
+            when (gestureRecognizer.state) {
+                UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
+                    gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+                }
             }
+
+            val view = view ?: return
+            val event = withEvent ?: return
+
+            onTouchesEvent(view, touches, event, CupertinoTouchesPhase.MOVED)
         }
-
-        val view = view ?: return
-        val event = withEvent ?: return
-
-        onTouchesEvent(view, touches, event, CupertinoTouchesPhase.MOVED)
     }
 
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
         val gestureRecognizer = gestureRecognizer ?: return
 
-        when (gestureRecognizer.state) {
-            UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
-                if (gestureRecognizer.numberOfTouches == 0UL) {
-                    gestureRecognizer.setState(UIGestureRecognizerStateEnded)
-                } else {
-                    gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+        stopTrackingTouches(touches)
+
+        if (hitTestView == view) {
+            // Golden path, just update the gesture recognizer state and pass touches to
+            // the Compose runtime.
+
+            when (gestureRecognizer.state) {
+                UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
+                    if (trackedTouches.isEmpty()) {
+                        gestureRecognizer.setState(UIGestureRecognizerStateEnded)
+                    } else {
+                        gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+                    }
                 }
             }
+
+            val view = view ?: return
+            val event = withEvent ?: return
+
+            onTouchesEvent(view, touches, event, CupertinoTouchesPhase.ENDED)
         }
-
-        onTouchesCountChanged(-touches.size)
-
-        val view = view ?: return
-        val event = withEvent ?: return
-
-        onTouchesEvent(view, touches, event, CupertinoTouchesPhase.ENDED)
     }
 
     override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
         val gestureRecognizer = gestureRecognizer ?: return
 
-        when (gestureRecognizer.state) {
-            UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
-                if (gestureRecognizer.numberOfTouches == 0UL) {
-                    gestureRecognizer.setState(UIGestureRecognizerStateCancelled)
-                } else {
-                    gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+        stopTrackingTouches(touches)
+
+        if (hitTestView == view) {
+            // Golden path, just update the gesture recognizer state and pass touches to
+            // the Compose runtime.
+
+            when (gestureRecognizer.state) {
+                UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
+                    if (trackedTouches.isEmpty()) {
+                        gestureRecognizer.setState(UIGestureRecognizerStateCancelled)
+                    } else {
+                        gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+                    }
                 }
             }
+
+            val view = view ?: return
+            val event = withEvent ?: return
+
+            onTouchesEvent(view, touches, event, CupertinoTouchesPhase.CANCELLED)
         }
-
-        onTouchesCountChanged(-touches.size)
-
-        val view = view ?: return
-        val event = withEvent ?: return
-
-        onTouchesEvent(view, touches, event, CupertinoTouchesPhase.CANCELLED)
     }
 
     override fun shouldRecognizeSimultaneously(first: UIGestureRecognizer, withOther: UIGestureRecognizer): Boolean {
@@ -151,6 +220,10 @@ private class GestureRecognizerHandlerImpl(
     }
 
 
+    /**
+     * Intentionally clean up all dependencies of GestureRecognizerHandlerImpl to prevent retain cycles that
+     * can be caused by implicit capture of the view by UIKit objects (such as UIEvent).
+     */
     fun dispose() {
         onTouchesEvent = { _, _, _, _ -> }
         gestureRecognizer = null
@@ -175,6 +248,40 @@ private class GestureRecognizerHandlerImpl(
             // As of now, we unconditionally allow simultaneous recognition with UIKit gesture
             // recognizers from super views.
             true
+        }
+    }
+
+    /**
+     * Starts tracking the given touches. Remember initial location if those are the first touches
+     * in the sequence.
+     */
+    private fun startTrackingTouches(touches: Set<*>) {
+        onTouchesCountChanged(touches.size)
+
+        val areTouchesInitial = trackedTouches.isEmpty()
+
+        for (touch in touches) {
+            trackedTouches.add(touch as UITouch)
+        }
+
+        if (areTouchesInitial) {
+            initialLocation = trackedTouchesCentroidLocation
+        }
+    }
+
+    /**
+     * Stops tracking the given touches. If there are no tracked touches left, reset the initial
+     * location to null.
+     */
+    private fun stopTrackingTouches(touches: Set<*>) {
+        onTouchesCountChanged(-touches.size)
+
+        for (touch in touches) {
+            trackedTouches.remove(touch as UITouch)
+        }
+
+        if (trackedTouches.isEmpty()) {
+            initialLocation = null
         }
     }
 }
@@ -223,7 +330,12 @@ internal class InteractionUIView(
         multipleTouchEnabled = true
         userInteractionEnabled = true
 
+        // When CMPGestureRecognizer is recognized, immediately cancel all touches in the subviews.
         gestureRecognizer.cancelsTouchesInView = true
+
+        // Delays touches reception by underlying views until the gesture recognizer is explicitly
+        // stated as failed (aka, the touch sequence is targeted to the interop view).
+        gestureRecognizer.delaysTouchesBegan = true
 
         addGestureRecognizer(gestureRecognizer)
         gestureRecognizer.handler = gestureRecognizerHandler
@@ -263,13 +375,19 @@ internal class InteractionUIView(
 
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
         if (!inInteractionBounds(point)) {
+            gestureRecognizerHandler.hitTestView = null
             return null
         }
 
         // Find if a scene contains a node [InteropViewModifier] at the given point.
         // Native [hitTest] happens after [pointInside] is checked. If hit testing
         // inside ComposeScene didn't yield any interop view, then we should return [this]
-        val interopView = hitTestInteropView(point, withEvent) ?: return this
+        val interopView = hitTestInteropView(point, withEvent)
+
+        if (interopView == null) {
+            gestureRecognizerHandler.hitTestView = this
+            return this
+        }
 
         // Transform the point to the interop view's coordinate system.
         // And perform native [hitTest] on the interop view.
@@ -277,7 +395,13 @@ internal class InteractionUIView(
             point = convertPoint(point, toView = interopView),
             withEvent = withEvent)
 
-        return hitTestView ?: this
+        if (hitTestView == null) {
+            gestureRecognizerHandler.hitTestView = this
+            return this
+        } else {
+            gestureRecognizerHandler.hitTestView = hitTestView
+            return hitTestView
+        }
     }
 
     /**
