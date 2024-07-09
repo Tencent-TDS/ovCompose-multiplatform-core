@@ -55,34 +55,25 @@ import platform.UIKit.removeFromParentViewController
 import platform.UIKit.willMoveToParentViewController
 import androidx.compose.ui.uikit.utils.CMPInteropWrappingView
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.roundToIntRect
+import androidx.compose.ui.unit.toDpOffset
+import androidx.compose.ui.unit.toOffset
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSNull
 import platform.QuartzCore.CALayer
-import platform.UIKit.UIColor
 
 private val STUB_CALLBACK_WITH_RECEIVER: Any.() -> Unit = {}
-private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { rect -> this.setFrame(rect) }
-private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Unit =
-    { rect -> this.view.setFrame(rect) }
+private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { }
+private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Unit = { }
 
 internal class InteropWrappingView : CMPInteropWrappingView(frame = CGRectZero.readValue()) {
     var actualAccessibilityContainer: Any? = null
 
-    private var isMaskEnabled = false
-    private val maskLayer = CALayer()
-    private val opaqueRectLayer = CALayer()
-
     init {
-        maskLayer.backgroundColor = UIColor.clearColor.CGColor
-        maskLayer.disableImplicitLayerAnimations()
-
-        opaqueRectLayer.backgroundColor = UIColor.blackColor.CGColor
-        opaqueRectLayer.disableImplicitLayerAnimations()
-
-        maskLayer.addSublayer(opaqueRectLayer)
+        // required to properly clip the content of the wrapping view in case interop unclipped
+        // bounds are larger than clipped bounds
+        clipsToBounds = true
     }
 
     override fun accessibilityContainer(): Any? {
@@ -98,41 +89,6 @@ internal class InteropWrappingView : CMPInteropWrappingView(frame = CGRectZero.r
             "position" to NSNull.`null`(),
             "frame" to NSNull.`null`()
         )
-    }
-
-    fun updateClipping(
-        unclippedRect: IntRect,
-        clippedRect: IntRect,
-        density: Density,
-        deferAction: (UIKitInteropAction) -> Unit
-    ) {
-
-        val visibleRegionRect = IntRect(
-            offset = IntOffset(
-                x = clippedRect.left - unclippedRect.left,
-                y = clippedRect.top - unclippedRect.top
-            ),
-            size = clippedRect.size
-        ).toRect().toDpRect(density).asCGRect()
-
-        if (unclippedRect == clippedRect) {
-            if (isMaskEnabled) {
-                deferAction {
-                    layer.mask = null
-                }
-
-                isMaskEnabled = false
-            }
-        } else {
-            isMaskEnabled = true
-
-            deferAction {
-                layer.mask = maskLayer
-                maskLayer.setFrame(bounds)
-                opaqueRectLayer.setFrame(visibleRegionRect)
-            }
-        }
-
     }
 }
 
@@ -384,7 +340,7 @@ private abstract class InteropComponentHandler<T : Any>(
     /**
      * The coordinates
      */
-    private var currentRect: IntRect? = null
+    private var currentUnclippedRect: IntRect? = null
     private var currentClippedRect: IntRect? = null
     val wrappingView = InteropWrappingView()
     lateinit var component: T
@@ -403,40 +359,43 @@ private abstract class InteropComponentHandler<T : Any>(
      * Set the frame of the wrapping view.
      */
     fun updateRect(unclippedRect: IntRect, clippedRect: IntRect, density: Density) {
-        wrappingView.updateClipping(
-            unclippedRect = unclippedRect,
-            clippedRect = clippedRect,
-            density = density,
-            deferAction = interopContainer::deferAction
-        )
-
-        if (currentRect == unclippedRect) {
+        if (currentUnclippedRect == unclippedRect && currentClippedRect == clippedRect) {
             return
         }
 
-        val dpRect = unclippedRect.toRect().toDpRect(density)
+        val clippedDpRect = clippedRect.toRect().toDpRect(density)
+        val unclippedDpRect = unclippedRect.toRect().toDpRect(density)
 
-        interopContainer.deferAction {
-            wrappingView.setFrame(dpRect.asCGRect())
+        // wrapping view itself is always using the clipped rect
+        if (clippedRect != currentClippedRect) {
+            interopContainer.deferAction {
+                wrappingView.setFrame(clippedDpRect.asCGRect())
+            }
         }
 
         // Only call onResize if the actual size changes.
-        if (currentRect?.size != unclippedRect.size) {
+        if (currentUnclippedRect != unclippedRect || currentClippedRect != clippedRect) {
+            // offset to move the component to the correct position inside the wrapping view, so
+            // its global unclipped frame stays the same
+            val offset = unclippedRect.topLeft - clippedRect.topLeft
+            val dpOffset = offset.toOffset().toDpOffset(density)
+
             interopContainer.deferAction {
                 // The actual component created by the user is resized here using the provided callback.
                 onResize(
                     component,
                     CGRectMake(
-                        x = 0.0,
-                        y = 0.0,
-                        width = dpRect.width.value.toDouble(),
-                        height = dpRect.height.value.toDouble()
+                        x = dpOffset.x.value.toDouble(),
+                        y = dpOffset.y.value.toDouble(),
+                        width = unclippedDpRect.width.value.toDouble(),
+                        height = unclippedDpRect.height.value.toDouble()
                     ),
                 )
             }
         }
 
-        currentRect = unclippedRect
+        currentUnclippedRect = unclippedRect
+        currentClippedRect = clippedRect
     }
 
     fun onStart(initialUpdateBlock: (T) -> Unit) {
