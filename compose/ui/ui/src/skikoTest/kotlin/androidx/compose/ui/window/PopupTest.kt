@@ -755,6 +755,7 @@ class PopupTest {
                 val windowInfo = it.platformContext.windowInfo as WindowInfoImpl
                 windowInfo.containerSize = IntSize(50, 50)
             },
+            coroutineContext = coroutineContext,
             invalidate = ::invalidate
         )
         try {
