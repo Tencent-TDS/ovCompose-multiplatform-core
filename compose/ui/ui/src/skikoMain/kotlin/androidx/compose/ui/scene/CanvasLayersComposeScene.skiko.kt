@@ -86,6 +86,7 @@ fun CanvasLayersComposeScene(
     density: Density = Density(1f),
     layoutDirection: LayoutDirection = LayoutDirection.Ltr,
     size: IntSize? = null,
+    // TODO: Remove `Dispatchers.Unconfined` as a default
     coroutineContext: CoroutineContext = Dispatchers.Unconfined,
     composeSceneContext: ComposeSceneContext = ComposeSceneContext.Empty,
     invalidate: () -> Unit = {},
