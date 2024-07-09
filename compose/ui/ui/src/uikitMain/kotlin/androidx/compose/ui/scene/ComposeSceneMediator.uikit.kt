@@ -87,6 +87,7 @@ import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
+import platform.QuartzCore.CACurrentMediaTime
 import platform.QuartzCore.CATransaction
 import platform.UIKit.NSLayoutConstraint
 import platform.UIKit.UIEvent
@@ -367,7 +368,7 @@ internal class ComposeSceneMediator(
      * @param event the [UIEvent] associated with the touches
      * @param phase the [CupertinoTouchesPhase] of the touches
      */
-    private fun onTouchesEvent(view: UIView, touches: Set<*>, event: UIEvent, phase: CupertinoTouchesPhase) {
+    private fun onTouchesEvent(view: UIView, touches: Set<*>, event: UIEvent?, phase: CupertinoTouchesPhase) {
         val pointers = touches.map {
             val touch = it as UITouch
             val id = touch.hashCode().toLong()
@@ -378,18 +379,20 @@ internal class ComposeSceneMediator(
                 pressed = touch.isPressed,
                 type = PointerType.Touch,
                 pressure = touch.force.toFloat(),
-                historical = event.historicalChangesForTouch(
+                historical = event?.historicalChangesForTouch(
                     touch,
                     view,
                     density.density
-                )
+                ) ?: emptyList()
             )
-        } ?: emptyList()
+        }
+
+        val timestamp = event?.timestamp ?: CACurrentMediaTime()
 
         scene.sendPointerEvent(
             eventType = phase.toPointerEventType(),
             pointers = pointers,
-            timeMillis = (event.timestamp * 1e3).toLong(),
+            timeMillis = (timestamp * 1e3).toLong(),
             nativeEvent = event
         )
     }

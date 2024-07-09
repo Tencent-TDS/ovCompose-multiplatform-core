@@ -16,6 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent * _Nullable)event;
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent * _Nullable)event;
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent * _Nullable)event;
+- (void)onFailure;
 - (BOOL)shouldRecognizeSimultaneously:(UIGestureRecognizer *)first withOther:(UIGestureRecognizer *)second;
 
 @end

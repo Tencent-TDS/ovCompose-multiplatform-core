@@ -27,10 +27,12 @@ import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
 import platform.UIKit.UIGestureRecognizer
+import platform.UIKit.UIGestureRecognizerState
 import platform.UIKit.UIGestureRecognizerStateBegan
 import platform.UIKit.UIGestureRecognizerStateCancelled
 import platform.UIKit.UIGestureRecognizerStateChanged
 import platform.UIKit.UIGestureRecognizerStateEnded
+import platform.UIKit.UIGestureRecognizerStateFailed
 import platform.UIKit.UIGestureRecognizerStatePossible
 import platform.UIKit.UIPress
 import platform.UIKit.UIPressesEvent
@@ -58,6 +60,12 @@ private class GestureRecognizerHandlerImpl(
      */
     var gestureRecognizer: CMPGestureRecognizer? = null
 
+    var state: UIGestureRecognizerState
+        get() = gestureRecognizer?.state ?: UIGestureRecognizerStateFailed
+        set(value) {
+            gestureRecognizer?.setState(value)
+        }
+
     /**
      * Initial centroid location in the sequence to measure the motion slop and to determine whether the gesture
      * should be recognized or failed and pass touches to interop views.
@@ -67,7 +75,7 @@ private class GestureRecognizerHandlerImpl(
     /**
      * Touches that are currently tracked by the gesture recognizer.
      */
-    private var trackedTouches: MutableSet<UITouch> = mutableSetOf()
+    private val trackedTouches: MutableSet<UITouch> = mutableSetOf()
 
     /**
      * Calculates the centroid of the tracked touches.
@@ -110,93 +118,106 @@ private class GestureRecognizerHandlerImpl(
         }
 
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
-        val gestureRecognizer = gestureRecognizer ?: return
+        val areTouchesInitial = startTrackingTouches(touches)
 
-        startTrackingTouches(touches)
+        val onTouchesEvent = onTouchesEventCallbackForPhase(touches, withEvent, CupertinoTouchesPhase.BEGAN)
 
         if (hitTestView == view) {
-            // Golden path, immediately start the gesture recognizer.
-            if (gestureRecognizer.state == UIGestureRecognizerStatePossible) {
-                gestureRecognizer.setState(UIGestureRecognizerStateBegan)
+            // Golden path, immediately start the gesture recognizer if possible and pass touches.
+            when (state) {
+                UIGestureRecognizerStatePossible -> {
+                    state = UIGestureRecognizerStateBegan
+
+                    onTouchesEvent()
+                }
+
+                UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
+                    state = UIGestureRecognizerStateChanged
+
+                    onTouchesEvent()
+                }
             }
-
-            val view = view ?: return
-            val event = withEvent ?: return
-
-            onTouchesEvent(view, touches, event, CupertinoTouchesPhase.BEGAN)
+        } else {
+            println("Warning: UNSUPPORTED SCENARIO")
         }
     }
 
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
-        val gestureRecognizer = gestureRecognizer ?: return
+        val onTouchesEvent = onTouchesEventCallbackForPhase(touches, withEvent, CupertinoTouchesPhase.MOVED)
 
         if (hitTestView == view) {
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
-            when (gestureRecognizer.state) {
+            when (state) {
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
-                    gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+                    state = UIGestureRecognizerStateChanged
+                    onTouchesEvent()
                 }
             }
-
-            val view = view ?: return
-            val event = withEvent ?: return
-
-            onTouchesEvent(view, touches, event, CupertinoTouchesPhase.MOVED)
+        } else {
+            println("Warning: UNSUPPORTED SCENARIO")
         }
     }
 
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
-        val gestureRecognizer = gestureRecognizer ?: return
-
         stopTrackingTouches(touches)
+
+        val onTouchesEvent = onTouchesEventCallbackForPhase(touches, withEvent, CupertinoTouchesPhase.ENDED)
 
         if (hitTestView == view) {
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
-            when (gestureRecognizer.state) {
+            when (state) {
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
                     if (trackedTouches.isEmpty()) {
-                        gestureRecognizer.setState(UIGestureRecognizerStateEnded)
+                        state = UIGestureRecognizerStateEnded
+                        onTouchesEvent()
                     } else {
-                        gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+                        state = UIGestureRecognizerStateChanged
+                        onTouchesEvent()
                     }
                 }
             }
-
-            val view = view ?: return
-            val event = withEvent ?: return
-
-            onTouchesEvent(view, touches, event, CupertinoTouchesPhase.ENDED)
+        } else {
+            println("Warning: UNSUPPORTED SCENARIO")
         }
     }
 
     override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
-        val gestureRecognizer = gestureRecognizer ?: return
-
         stopTrackingTouches(touches)
+
+        val onTouchesEvent = onTouchesEventCallbackForPhase(touches, withEvent, CupertinoTouchesPhase.CANCELLED)
 
         if (hitTestView == view) {
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
-            when (gestureRecognizer.state) {
+            when (state) {
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
                     if (trackedTouches.isEmpty()) {
-                        gestureRecognizer.setState(UIGestureRecognizerStateCancelled)
+                        state = UIGestureRecognizerStateCancelled
+                        onTouchesEvent()
                     } else {
-                        gestureRecognizer.setState(UIGestureRecognizerStateChanged)
+                        state = UIGestureRecognizerStateChanged
+                        onTouchesEvent()
                     }
                 }
             }
-
-            val view = view ?: return
-            val event = withEvent ?: return
-
-            onTouchesEvent(view, touches, event, CupertinoTouchesPhase.CANCELLED)
+        } else {
+            println("Warning: UNSUPPORTED SCENARIO")
         }
+    }
+
+    /**
+     * Gesture recognizer scheduled failure has triggered. It means we need to pass
+     * all the tracked touches to the runtime as cancelled and set failed state
+     * on the gesture recognizer.
+     */
+    override fun onFailure() {
+        state = UIGestureRecognizerStateFailed
+        onTouchesEventCallbackForPhase(trackedTouches, null, CupertinoTouchesPhase.CANCELLED).invoke()
     }
 
     override fun shouldRecognizeSimultaneously(first: UIGestureRecognizer, withOther: UIGestureRecognizer): Boolean {
@@ -219,7 +240,6 @@ private class GestureRecognizerHandlerImpl(
         }
     }
 
-
     /**
      * Intentionally clean up all dependencies of GestureRecognizerHandlerImpl to prevent retain cycles that
      * can be caused by implicit capture of the view by UIKit objects (such as UIEvent).
@@ -227,6 +247,7 @@ private class GestureRecognizerHandlerImpl(
     fun dispose() {
         onTouchesEvent = { _, _, _, _ -> }
         gestureRecognizer = null
+        trackedTouches.clear()
     }
 
     /**
@@ -254,8 +275,9 @@ private class GestureRecognizerHandlerImpl(
     /**
      * Starts tracking the given touches. Remember initial location if those are the first touches
      * in the sequence.
+     * @return `true` if the touches are initial, `false` otherwise.
      */
-    private fun startTrackingTouches(touches: Set<*>) {
+    private fun startTrackingTouches(touches: Set<*>): Boolean {
         onTouchesCountChanged(touches.size)
 
         val areTouchesInitial = trackedTouches.isEmpty()
@@ -267,6 +289,8 @@ private class GestureRecognizerHandlerImpl(
         if (areTouchesInitial) {
             initialLocation = trackedTouchesCentroidLocation
         }
+
+        return areTouchesInitial
     }
 
     /**
@@ -284,6 +308,18 @@ private class GestureRecognizerHandlerImpl(
             initialLocation = null
         }
     }
+
+    private fun onTouchesEventCallbackForPhase(
+        touches: Set<*>,
+        event: UIEvent?,
+        phase: CupertinoTouchesPhase
+    ): () -> Unit =
+        block@{
+            val view = view ?: return@block
+            val nonNullEvent = event ?: return@block
+
+            onTouchesEvent(view, touches, nonNullEvent, phase)
+        }
 }
 
 /**
@@ -302,7 +338,7 @@ private class GestureRecognizerHandlerImpl(
  */
 internal class InteractionUIView(
     private var hitTestInteropView: (point: CValue<CGPoint>, event: UIEvent?) -> InteropView?,
-    onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent, phase: CupertinoTouchesPhase) -> Unit,
+    onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent?, phase: CupertinoTouchesPhase) -> Unit,
     private var onTouchesCountChange: (count: Int) -> Unit,
     private var inInteractionBounds: (CValue<CGPoint>) -> Boolean,
     private var onKeyboardPresses: (Set<*>) -> Unit,

@@ -39,7 +39,7 @@
 }
 
 - (void)fail {
-    self.state = UIGestureRecognizerStateFailed;
+    [self.handler onFailure];
 }
 
 - (void)scheduleFailure {
