@@ -55,7 +55,6 @@ import platform.UIKit.willMoveToParentViewController
 import androidx.compose.ui.uikit.utils.CMPInteropWrappingView
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.roundToIntRect
-import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.unit.toDpOffset
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.viewinterop.interopViewAnchor
