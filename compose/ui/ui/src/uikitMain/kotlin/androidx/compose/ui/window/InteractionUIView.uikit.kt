@@ -414,7 +414,7 @@ internal class InteractionUIView(
         super.touchesCancelled(touches, withEvent)
     }
 
-    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? = rememberingHitTestResult {
+    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? = rememberHitTestResult {
         if (!inInteractionBounds(point)) {
             null
         } else {
@@ -454,9 +454,11 @@ internal class InteractionUIView(
     }
 
     /**
-     * Execute the given [hitTestBlock] and save the result to the gesture recognizer handler.
+     * Execute the given [hitTestBlock] and save the result to the gesture recognizer handler, so
+     * that it can be used later to determine if the gesture recognizer should be recognized
+     * or failed.
      */
-    private fun rememberingHitTestResult(hitTestBlock: () -> UIView?): UIView? {
+    private fun rememberHitTestResult(hitTestBlock: () -> UIView?): UIView? {
         val result = hitTestBlock()
         gestureRecognizerHandler.hitTestView = result
         return result
