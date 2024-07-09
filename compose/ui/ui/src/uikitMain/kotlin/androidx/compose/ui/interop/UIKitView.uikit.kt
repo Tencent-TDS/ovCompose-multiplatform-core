@@ -60,8 +60,6 @@ import androidx.compose.ui.unit.toDpOffset
 import androidx.compose.ui.unit.toOffset
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
-import platform.Foundation.NSNull
-import platform.QuartzCore.CALayer
 
 private val STUB_CALLBACK_WITH_RECEIVER: Any.() -> Unit = {}
 private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { rect -> this.setFrame(rect) }
@@ -79,17 +77,6 @@ internal class InteropWrappingView : CMPInteropWrappingView(frame = CGRectZero.r
 
     override fun accessibilityContainer(): Any? {
         return actualAccessibilityContainer
-    }
-
-    /**
-     * CALayer have implicit animations enabled by default. This method disables them.
-     */
-    private fun CALayer.disableImplicitLayerAnimations() {
-        actions = mapOf(
-            "bounds" to NSNull.`null`(),
-            "position" to NSNull.`null`(),
-            "frame" to NSNull.`null`()
-        )
     }
 }
 
