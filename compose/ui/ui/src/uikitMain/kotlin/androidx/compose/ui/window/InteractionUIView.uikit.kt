@@ -50,17 +50,42 @@ internal enum class CupertinoTouchesPhase {
     BEGAN, MOVED, ENDED, CANCELLED
 }
 
+fun dbgLog(msg: String) {
+    println("DBG: $msg")
+}
+
+private val UIGestureRecognizerState.isOngoing: Boolean
+    get() =
+        when (this) {
+            UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> true
+            else -> false
+        }
+
 private class GestureRecognizerHandlerImpl(
     private var onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent, phase: CupertinoTouchesPhase) -> Unit,
     private var view: UIView?,
     private val onTouchesCountChanged: (by: Int) -> Unit,
 ): NSObject(), CMPGestureRecognizerHandlerProtocol {
     /**
+     * The actual view that was hit-tested by the first touch in the sequence.
+     * It could be interop view, for example. If there are tracked touches assignment is ignored.
+     */
+    var hitTestView: UIView? = null
+        set(value) {
+            /**
+             * Only remember the first hit-tested view in the sequence.
+             */
+            if (initialLocation == null) {
+                field = value
+            }
+        }
+
+    /**
      * [CMPGestureRecognizer] that is associated with this handler.
      */
     var gestureRecognizer: CMPGestureRecognizer? = null
 
-    var state: UIGestureRecognizerState
+    private var state: UIGestureRecognizerState
         get() = gestureRecognizer?.state ?: UIGestureRecognizerStateFailed
         set(value) {
             gestureRecognizer?.setState(value)
@@ -76,6 +101,23 @@ private class GestureRecognizerHandlerImpl(
      * Touches that are currently tracked by the gesture recognizer.
      */
     private val trackedTouches: MutableSet<UITouch> = mutableSetOf()
+
+    /**
+     * Checks whether the centroid location of [trackedTouches] has exceeded the scrolling slop
+     * relative to [initialLocation]
+     */
+    private val isLocationDeltaAboveSlope: Boolean
+        get() {
+            val initialLocation = initialLocation ?: return false
+            val centroidLocation = trackedTouchesCentroidLocation ?: return false
+
+            val slop = 10.0
+
+            val dx = centroidLocation.useContents { x - initialLocation.useContents { x } }
+            val dy = centroidLocation.useContents { y - initialLocation.useContents { y } }
+
+            return dx * dx + dy * dy > slop * slop
+        }
 
     /**
      * Calculates the centroid of the tracked touches.
@@ -104,26 +146,38 @@ private class GestureRecognizerHandlerImpl(
         }
 
     /**
-     * The actual view that was hit-tested by the first touch in the sequence.
-     * It could be interop view, for example. If there are tracked touches assignment is ignored.
+     * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles touchesBegan event and
+     * forwards it here.
+     *
+     * There are following scenarios:
+     * 1. Those are first touches in the sequence, the interaction view is hit-tested. In this case, we
+     * should start the gesture recognizer immediately and start passing touches to the Compose
+     * runtime.
+     *
+     * 2. Those are first touches in the sequence, an interop view is hit-tested. In this case we
+     * intecept touches from interop views until the gesture recognizer is explicitly failed.
+     * See [UIGestureRecognizer.delaysTouchesBegan]. In the same time we schedule a failure in
+     * [CMPGestureRecognizer.scheduleFailure], which will pass intercepted touches to the interop
+     * views if the gesture recognizer is not recognized within a certain time frame
+     * (UIScrollView reverse-engineered 150ms is used).
+     * The similar approach is used by [UIScrollView](https://developer.apple.com/documentation/uikit/uiscrollview?language=objc)
+     *
+     * 3. Those are not the first touches in the sequence. A gesture is recognized.
+     * We should continue with scenario (1), we don't yet support multitouch sequence in
+     * compose and interop view simultaneously (e.g. scrolling native horizontal
+     * scroll and compose horizontal scroll with different fingers)
+     *
+     * 4. Those are not the first touches in the sequence. A gesture is not recognized.
+     * See if centroid of the tracked touches has moved enough to recognize the gesture.
+     *
      */
-    var hitTestView: UIView? = null
-        set(value) {
-            /**
-             * Only remember the first hit-tested view in the sequence.
-             */
-            if (initialLocation == null) {
-                field = value
-            }
-        }
-
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
         val areTouchesInitial = startTrackingTouches(touches)
 
         val onTouchesEvent = onTouchesEventCallbackForPhase(touches, withEvent, CupertinoTouchesPhase.BEGAN)
 
-        if (hitTestView == view) {
-            // Golden path, immediately start the gesture recognizer if possible and pass touches.
+        if (state.isOngoing || hitTestView == view) {
+            // Golden path, immediately start/continue the gesture recognizer if possible and pass touches.
             when (state) {
                 UIGestureRecognizerStatePossible -> {
                     state = UIGestureRecognizerStateBegan
@@ -138,14 +192,35 @@ private class GestureRecognizerHandlerImpl(
                 }
             }
         } else {
-            println("Warning: UNSUPPORTED SCENARIO")
+            if (areTouchesInitial) {
+                // We are in the scenario (2), we should schedule failure and pass touches to the
+                // interop view.
+                gestureRecognizer?.scheduleFailure()
+
+                onTouchesEvent()
+            } else {
+                // We are in the scenario (4), check if the gesture recognizer should be recognized.
+                checkPanIntent()
+
+                onTouchesEvent()
+            }
         }
     }
 
+    /**
+     * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles touchesMoved event and
+     * forwards it here.
+     *
+     * There are following scenarios:
+     * 1. The interaction view is hit-tested, or a gesture is recognized.
+     * In this case, we should just forward the touches.
+     *
+     * 2. An interop view is hit-tested. In this case we should check if the pan intent is met.
+     */
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
         val onTouchesEvent = onTouchesEventCallbackForPhase(touches, withEvent, CupertinoTouchesPhase.MOVED)
 
-        if (hitTestView == view) {
+        if (state.isOngoing || hitTestView == view) {
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
@@ -156,16 +231,29 @@ private class GestureRecognizerHandlerImpl(
                 }
             }
         } else {
-            println("Warning: UNSUPPORTED SCENARIO")
+            checkPanIntent()
+
+            onTouchesEvent()
         }
     }
 
+    /**
+     * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles touchesEnded event and
+     * forwards it here.
+     *
+     * There are following scenarios:
+     * 1. The interaction view is hit-tested, or a gesture is recognized. Just update the gesture
+     * recognizer state and pass touches to the Compose runtime.
+     *
+     * 2. An interop view is hit-tested. In this case if there are no tracked touches left -
+     * we need to allow all the touches to be passed to the interop view by failing explicitly.
+     */
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
         stopTrackingTouches(touches)
 
         val onTouchesEvent = onTouchesEventCallbackForPhase(touches, withEvent, CupertinoTouchesPhase.ENDED)
 
-        if (hitTestView == view) {
+        if (state.isOngoing || hitTestView == view) {
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
@@ -181,7 +269,22 @@ private class GestureRecognizerHandlerImpl(
                 }
             }
         } else {
-            println("Warning: UNSUPPORTED SCENARIO")
+            if (trackedTouches.isEmpty()) {
+                // Those were the last touches in the sequence
+                // Explicitly pass them as cancelled to Compose
+                onTouchesEventCallbackForPhase(
+                    touches,
+                    withEvent,
+                    CupertinoTouchesPhase.CANCELLED
+                ).invoke()
+
+                // Explicitly fail the gesture, cancelling a scheduled failure
+                gestureRecognizer?.cancelFailure()
+
+                state = UIGestureRecognizerStateFailed
+            } else {
+                onTouchesEvent()
+            }
         }
     }
 
@@ -206,22 +309,35 @@ private class GestureRecognizerHandlerImpl(
                 }
             }
         } else {
-            println("Warning: UNSUPPORTED SCENARIO")
+            onTouchesEvent()
+
+            if (trackedTouches.isEmpty()) {
+                // Those were the last touches in the sequence
+                // Explicitly fail the gesture, cancelling a scheduled failure
+                gestureRecognizer?.cancelFailure()
+
+                state = UIGestureRecognizerStateFailed
+            }
         }
     }
 
     /**
-     * Gesture recognizer scheduled failure has triggered. It means we need to pass
-     * all the tracked touches to the runtime as cancelled and set failed state
-     * on the gesture recognizer.
+     * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles the failure of
+     * the gesture if it's not recognized within the certain time frame.
+     *
+     * It means we need to pass all the tracked touches to the runtime as cancelled and set failed
+     * state on the gesture recognizer.
+     *
+     * Intercepted touches will be passed to the interop views by UIKit due to
+     * [UIGestureRecognizer.delaysTouchesBegan]
      */
     override fun onFailure() {
         state = UIGestureRecognizerStateFailed
 
+        // We won't receive other touches events until all fingers are lifted, so we can't rely
+        // on touchesEnded/touchesCancelled to reset the state.  We need to immediately notify
+        // the runtime about the cancelled touches and reset the state manually
         onTouchesEventCallbackForPhase(trackedTouches, null, CupertinoTouchesPhase.CANCELLED).invoke()
-
-        // We won't receive other touches until all fingers are lifted, so we can't rely
-        // on touchesEnded/touchesCancelled to reset the state.
         stopTrackingTouches(trackedTouches)
     }
 
@@ -299,6 +415,16 @@ private class GestureRecognizerHandlerImpl(
     }
 
     /**
+     * Check if the tracked touches have moved enough to recognize the gesture.
+     */
+    private fun checkPanIntent() {
+        if (isLocationDeltaAboveSlope) {
+            gestureRecognizer?.cancelFailure()
+            state = UIGestureRecognizerStateBegan
+        }
+    }
+
+    /**
      * Stops tracking the given touches. If there are no tracked touches left, reset the initial
      * location to null.
      */
@@ -314,6 +440,9 @@ private class GestureRecognizerHandlerImpl(
         }
     }
 
+    /**
+     * Curry the [onTouchesEvent] callback with the given [touches], [event], and [phase].
+     */
     private fun onTouchesEventCallbackForPhase(
         touches: Set<*>,
         event: UIEvent?,
@@ -461,6 +590,8 @@ internal class InteractionUIView(
     private fun rememberHitTestResult(hitTestBlock: () -> UIView?): UIView? {
         val result = hitTestBlock()
         gestureRecognizerHandler.hitTestView = result
+
+        dbgLog("hitTestView: $result")
         return result
     }
 }
