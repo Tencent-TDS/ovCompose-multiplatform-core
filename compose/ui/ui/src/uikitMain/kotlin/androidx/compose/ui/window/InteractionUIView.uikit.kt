@@ -155,7 +155,7 @@ private class GestureRecognizerHandlerImpl(
      * runtime.
      *
      * 2. Those are first touches in the sequence, an interop view is hit-tested. In this case we
-     * intecept touches from interop views until the gesture recognizer is explicitly failed.
+     * intercept touches from interop views until the gesture recognizer is explicitly failed.
      * See [UIGestureRecognizer.delaysTouchesBegan]. In the same time we schedule a failure in
      * [CMPGestureRecognizer.scheduleFailure], which will pass intercepted touches to the interop
      * views if the gesture recognizer is not recognized within a certain time frame
@@ -192,17 +192,15 @@ private class GestureRecognizerHandlerImpl(
                 }
             }
         } else {
+            onTouchesEvent()
+
             if (areTouchesInitial) {
                 // We are in the scenario (2), we should schedule failure and pass touches to the
                 // interop view.
                 gestureRecognizer?.scheduleFailure()
-
-                onTouchesEvent()
             } else {
                 // We are in the scenario (4), check if the gesture recognizer should be recognized.
                 checkPanIntent()
-
-                onTouchesEvent()
             }
         }
     }
