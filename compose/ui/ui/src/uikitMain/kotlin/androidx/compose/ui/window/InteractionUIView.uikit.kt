@@ -62,7 +62,7 @@ private val UIGestureRecognizerState.isOngoing: Boolean
         }
 
 private class GestureRecognizerHandlerImpl(
-    private var onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent, phase: CupertinoTouchesPhase) -> Unit,
+    private var onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent?, phase: CupertinoTouchesPhase) -> Unit,
     private var view: UIView?,
     private val onTouchesCountChanged: (by: Int) -> Unit,
 ): NSObject(), CMPGestureRecognizerHandlerProtocol {
@@ -174,26 +174,20 @@ private class GestureRecognizerHandlerImpl(
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
         val areTouchesInitial = startTrackingTouches(touches)
 
-        val onTouchesEvent = onTouchesEventCallbackForPhase(touches, withEvent, CupertinoTouchesPhase.BEGAN)
+        onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.BEGAN)
 
         if (state.isOngoing || hitTestView == view) {
             // Golden path, immediately start/continue the gesture recognizer if possible and pass touches.
             when (state) {
                 UIGestureRecognizerStatePossible -> {
                     state = UIGestureRecognizerStateBegan
-
-                    onTouchesEvent()
                 }
 
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
                     state = UIGestureRecognizerStateChanged
-
-                    onTouchesEvent()
                 }
             }
         } else {
-            onTouchesEvent()
-
             if (areTouchesInitial) {
                 // We are in the scenario (2), we should schedule failure and pass touches to the
                 // interop view.
@@ -216,7 +210,7 @@ private class GestureRecognizerHandlerImpl(
      * 2. An interop view is hit-tested. In this case we should check if the pan intent is met.
      */
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
-        val onTouchesEvent = onTouchesEventCallbackForPhase(touches, withEvent, CupertinoTouchesPhase.MOVED)
+        onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.MOVED)
 
         if (state.isOngoing || hitTestView == view) {
             // Golden path, just update the gesture recognizer state and pass touches to
@@ -225,13 +219,10 @@ private class GestureRecognizerHandlerImpl(
             when (state) {
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
                     state = UIGestureRecognizerStateChanged
-                    onTouchesEvent()
                 }
             }
         } else {
             checkPanIntent()
-
-            onTouchesEvent()
         }
     }
 
@@ -249,7 +240,7 @@ private class GestureRecognizerHandlerImpl(
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
         stopTrackingTouches(touches)
 
-        val onTouchesEvent = onTouchesEventCallbackForPhase(touches, withEvent, CupertinoTouchesPhase.ENDED)
+        onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.ENDED)
 
         if (state.isOngoing || hitTestView == view) {
             // Golden path, just update the gesture recognizer state and pass touches to
@@ -259,29 +250,17 @@ private class GestureRecognizerHandlerImpl(
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
                     if (trackedTouches.isEmpty()) {
                         state = UIGestureRecognizerStateEnded
-                        onTouchesEvent()
                     } else {
                         state = UIGestureRecognizerStateChanged
-                        onTouchesEvent()
                     }
                 }
             }
         } else {
             if (trackedTouches.isEmpty()) {
-                // Those were the last touches in the sequence
-                // Explicitly pass them as cancelled to Compose
-                onTouchesEventCallbackForPhase(
-                    touches,
-                    withEvent,
-                    CupertinoTouchesPhase.CANCELLED
-                ).invoke()
-
                 // Explicitly fail the gesture, cancelling a scheduled failure
                 gestureRecognizer?.cancelFailure()
 
                 state = UIGestureRecognizerStateFailed
-            } else {
-                onTouchesEvent()
             }
         }
     }
@@ -300,7 +279,7 @@ private class GestureRecognizerHandlerImpl(
     override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
         stopTrackingTouches(touches)
 
-        val onTouchesEvent = onTouchesEventCallbackForPhase(touches, withEvent, CupertinoTouchesPhase.CANCELLED)
+        onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.CANCELLED)
 
         if (hitTestView == view) {
             // Golden path, just update the gesture recognizer state and pass touches to
@@ -310,16 +289,12 @@ private class GestureRecognizerHandlerImpl(
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
                     if (trackedTouches.isEmpty()) {
                         state = UIGestureRecognizerStateCancelled
-                        onTouchesEvent()
                     } else {
                         state = UIGestureRecognizerStateChanged
-                        onTouchesEvent()
                     }
                 }
             }
         } else {
-            onTouchesEvent()
-
             if (trackedTouches.isEmpty()) {
                 // Those were the last touches in the sequence
                 // Explicitly fail the gesture, cancelling a scheduled failure
@@ -346,7 +321,7 @@ private class GestureRecognizerHandlerImpl(
         // We won't receive other touches events until all fingers are lifted, so we can't rely
         // on touchesEnded/touchesCancelled to reset the state.  We need to immediately notify
         // the runtime about the cancelled touches and reset the state manually
-        onTouchesEventCallbackForPhase(trackedTouches, null, CupertinoTouchesPhase.CANCELLED).invoke()
+        onTouchesEvent(trackedTouches, null, CupertinoTouchesPhase.CANCELLED)
         stopTrackingTouches(trackedTouches)
     }
 
@@ -452,17 +427,15 @@ private class GestureRecognizerHandlerImpl(
     /**
      * Curry the [onTouchesEvent] callback with the given [touches], [event], and [phase].
      */
-    private fun onTouchesEventCallbackForPhase(
+    private fun onTouchesEvent(
         touches: Set<*>,
         event: UIEvent?,
         phase: CupertinoTouchesPhase
-    ): () -> Unit =
-        block@{
-            val view = view ?: return@block
-            val nonNullEvent = event ?: return@block
+    ) {
+        val view = view ?: return
 
-            onTouchesEvent(view, touches, nonNullEvent, phase)
-        }
+        onTouchesEvent(view, touches, event, phase)
+    }
 }
 
 /**
