@@ -288,6 +288,17 @@ private class GestureRecognizerHandlerImpl(
         }
     }
 
+    /**
+     * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles touchesCancelled event and
+     * forwards it here.
+     *
+     * There are following scenarios:
+     * 1. The interaction view is hit-tested, or a gesture is recognized. Just update the gesture
+     * recognizer state and pass touches to the Compose runtime.
+     *
+     * 2. An interop view is hit-tested. In this case if there are no tracked touches left -
+     * we need to allow all the touches to be passed to the interop view by failing explicitly.
+     */
     override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
         stopTrackingTouches(touches)
 
