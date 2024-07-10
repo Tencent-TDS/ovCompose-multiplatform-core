@@ -27,8 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.Autofill
 import androidx.compose.ui.autofill.AutofillTree
 import androidx.compose.ui.draganddrop.DragAndDropManager
-import androidx.compose.ui.draganddrop.DragAndDropModifierNode
-import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.focus.FocusOwnerImpl
@@ -36,11 +34,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Matrix
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
@@ -66,10 +62,10 @@ import androidx.compose.ui.platform.DefaultHapticFeedback
 import androidx.compose.ui.platform.DelegatingSoftwareKeyboardController
 import androidx.compose.ui.platform.PlatformClipboardManager
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.PlatformDragAndDropManager
 import androidx.compose.ui.platform.PlatformRootForTest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.RenderNodeLayer
+import androidx.compose.ui.platform.asDragAndDropManager
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
@@ -127,7 +123,7 @@ internal class RootNodeOwner(
         },
     )
     private val dragAndDropManager: DragAndDropManager =
-        PlatformDelegatingDragAndDropManager(platformContext.createPlatformDragAndDropManager())
+        platformContext.createPlatformDragAndDropManager().asDragAndDropManager()
     private val rootSemanticsNode = EmptySemanticsModifier()
 
     private val rootModifier = EmptySemanticsElement(rootSemanticsNode)
@@ -616,32 +612,6 @@ internal class RootNodeOwner(
         override fun setIcon(value: PointerIcon?) {
             desiredPointerIcon = value
             platformContext.setPointerIcon(desiredPointerIcon ?: PointerIcon.Default)
-        }
-    }
-
-    /**
-     * Implements [DragAndDropManager] by delegating to [PlatformDragAndDropManager].
-     */
-    private class PlatformDelegatingDragAndDropManager(
-        val platformDragAndDropManager: PlatformDragAndDropManager
-    ): DragAndDropManager {
-        override val modifier: Modifier
-            get() = platformDragAndDropManager.modifier
-
-        override fun drag(
-            transferData: DragAndDropTransferData,
-            decorationSize: Size,
-            drawDragDecoration: DrawScope.() -> Unit
-        ): Boolean {
-            return platformDragAndDropManager.drag(transferData, decorationSize, drawDragDecoration)
-        }
-
-        override fun registerNodeInterest(node: DragAndDropModifierNode) {
-            platformDragAndDropManager.registerNodeInterest(node)
-        }
-
-        override fun isInterestedNode(node: DragAndDropModifierNode): Boolean {
-            return platformDragAndDropManager.isInterestedNode(node)
         }
     }
 }

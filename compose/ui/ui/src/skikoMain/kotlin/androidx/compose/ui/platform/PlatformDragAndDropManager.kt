@@ -49,3 +49,28 @@ interface PlatformDragAndDropManager {
 
     fun isInterestedNode(node: DragAndDropModifierNode): Boolean
 }
+
+
+/**
+ * Returns a [DragAndDropManager] that delegates to `this` [PlatformDragAndDropManager].
+ */
+internal fun PlatformDragAndDropManager.asDragAndDropManager() = object : DragAndDropManager {
+    override val modifier: Modifier
+        get() = this@asDragAndDropManager.modifier
+
+    override fun drag(
+        transferData: DragAndDropTransferData,
+        decorationSize: Size,
+        drawDragDecoration: DrawScope.() -> Unit
+    ): Boolean {
+        return this@asDragAndDropManager.drag(transferData, decorationSize, drawDragDecoration)
+    }
+
+    override fun registerNodeInterest(node: DragAndDropModifierNode) {
+        this@asDragAndDropManager.registerNodeInterest(node)
+    }
+
+    override fun isInterestedNode(node: DragAndDropModifierNode): Boolean {
+        return this@asDragAndDropManager.isInterestedNode(node)
+    }
+}
