@@ -23,20 +23,21 @@ import androidx.compose.foundation.DesktopPlatform
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.JPopupContextMenuRepresentation
 import androidx.compose.foundation.LocalContextMenuRepresentation
+import androidx.compose.foundation.contextMenuOpenDetector
 import androidx.compose.foundation.text.TextContextMenu.TextManager
 import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState
 import androidx.compose.foundation.text.selection.SelectionManager
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposePanel
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalLocalization
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -51,10 +52,8 @@ internal actual fun ContextMenuArea(
     content: @Composable () -> Unit
 ) {
     val state = remember { ContextMenuState() }
-    if (DesktopPlatform.Current == DesktopPlatform.MacOS) {
-        OpenMenuAdjuster(state) { manager.contextMenuOpenAdjustment(it) }
-    }
-    LocalTextContextMenu.current.Area(manager.textManager, state, content)
+    val textManager = remember(manager) { manager.textManager }
+    LocalTextContextMenu.current.Area(textManager, state, content)
 }
 
 @Composable
@@ -74,25 +73,12 @@ internal actual fun ContextMenuArea(
     content: @Composable () -> Unit
 ) {
     val state = remember { ContextMenuState() }
-    if (DesktopPlatform.Current == DesktopPlatform.MacOS) {
-        OpenMenuAdjuster(state) { manager.contextMenuOpenAdjustment(it) }
-    }
-    LocalTextContextMenu.current.Area(manager.textManager, state, content)
-}
-
-@Composable
-internal fun OpenMenuAdjuster(state: ContextMenuState, adjustAction: (Offset) -> Unit) {
-    LaunchedEffect(state) {
-        snapshotFlow { state.status }.collect { status ->
-            if (status is ContextMenuState.Status.Open) {
-                adjustAction(status.rect.center)
-            }
-        }
-    }
+    val textManager = remember(manager) { manager.textManager }
+    LocalTextContextMenu.current.Area(textManager, state, content)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-private val TextFieldSelectionManager.textManager get() = object : TextManager {
+private val TextFieldSelectionManager.textManager: TextManager get() = object : TextManager {
     override val selectedText get() = value.getSelectedText()
 
     val isPassword get() = visualTransformation is PasswordVisualTransformation
@@ -136,15 +122,22 @@ private val TextFieldSelectionManager.textManager get() = object : TextManager {
         } else {
             null
         }
+
+    override fun selectWordAtPositionIfNotAlreadySelected(offset: Offset) {
+        this@textManager.selectWordAtPositionIfNotAlreadySelected(offset)
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-private val SelectionManager.textManager get() = object : TextManager {
+private val SelectionManager.textManager: TextManager get() = object : TextManager {
     override val selectedText get() = getSelectedText() ?: AnnotatedString("")
     override val cut = null
     override val copy = { copy() }
     override val paste = null
     override val selectAll = null
+    override fun selectWordAtPositionIfNotAlreadySelected(offset: Offset) {
+        this@textManager.selectWordAtPositionIfNotAlreadySelected(offset)
+    }
 }
 
 /**
@@ -162,8 +155,11 @@ interface TextContextMenu {
     /**
      * Defines an area, that describes how to open and show text context menus.
      * Usually it uses [ContextMenuArea] as the implementation.
+     * Note that it's up to the [Area] implementation to trigger the opening of the context menu on
+     * the appropriate user events (e.g. right-click).
      *
-     * @param textManager Provides useful methods and information for text for which we show the text context menu.
+     * @param textManager Provides useful methods and information for text for which we show the
+     * text context menu.
      * @param state [ContextMenuState] of menu controlled by this area.
      * @param content The content of the [ContextMenuArea].
      */
@@ -199,6 +195,12 @@ interface TextContextMenu {
          * Action for selecting the whole text. Null if the text is already selected.
          */
         val selectAll: (() -> Unit)?
+
+        /**
+         * Selects the word at the given [offset], unless the current selection already encompasses
+         * that position.
+         */
+        fun selectWordAtPositionIfNotAlreadySelected(offset: Offset)
     }
 
     companion object {
@@ -227,7 +229,12 @@ interface TextContextMenu {
                     )
                 }
 
-                ContextMenuArea(items, state, content = content)
+                ContextMenuArea(
+                    items = items,
+                    state = state,
+                    modifier = Modifier.textAreaContextMenuOpenDetector(textManager, state),
+                    content = content
+                )
             }
         }
     }
@@ -255,7 +262,31 @@ class JPopupTextMenu(
             }
         ) {
             // We pass emptyList, but it will be merged with the other custom items defined via ContextMenuDataProvider, and passed to createMenu
-            ContextMenuArea({ emptyList() }, state, content = content)
+            ContextMenuArea(
+                items = { emptyList() },
+                state = state,
+                modifier = Modifier.textAreaContextMenuOpenDetector(textManager, state),
+                content = content
+            )
         }
     }
+}
+
+/**
+ * The standard trigger of context menu opening in a [TextContextMenu.Area].
+ *
+ * @param textManager The [TextManager] associated with the area.
+ * @param state The [ContextMenuState] whose opening to trigger.
+ */
+@ExperimentalFoundationApi
+fun Modifier.textAreaContextMenuOpenDetector(
+    textManager: TextManager,
+    state: ContextMenuState,
+): Modifier = contextMenuOpenDetector(
+    key = Pair(textManager, state)
+) { pointerPosition ->
+    if (DesktopPlatform.Current == DesktopPlatform.MacOS) {
+        textManager.selectWordAtPositionIfNotAlreadySelected(pointerPosition)
+    }
+    state.status = ContextMenuState.Status.Open(Rect(pointerPosition, 0f))
 }
