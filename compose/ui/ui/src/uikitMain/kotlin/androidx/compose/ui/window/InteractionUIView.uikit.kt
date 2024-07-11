@@ -390,9 +390,6 @@ private class GestureRecognizerHandlerImpl(
         }
     }
 
-    /**
-     * Curry the [onTouchesEvent] callback with the given [touches], [event], and [phase].
-     */
     private fun onTouchesEvent(
         touches: Set<*>,
         event: UIEvent?,
