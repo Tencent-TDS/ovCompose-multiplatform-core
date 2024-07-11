@@ -17,7 +17,6 @@
 package androidx.compose.ui.input.pointer
 
 import androidx.collection.LongSparseArray
-import androidx.collection.forEach
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Matrix
