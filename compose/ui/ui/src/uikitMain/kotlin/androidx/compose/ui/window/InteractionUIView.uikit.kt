@@ -50,10 +50,6 @@ internal enum class CupertinoTouchesPhase {
     BEGAN, MOVED, ENDED, CANCELLED
 }
 
-fun dbgLog(msg: String) {
-    println("DBG: $msg")
-}
-
 private val UIGestureRecognizerState.isOngoing: Boolean
     get() =
         when (this) {
@@ -84,7 +80,6 @@ private class GestureRecognizerHandlerImpl(
              * Only remember the first hit-tested view in the sequence.
              */
             if (initialLocation == null) {
-                dbgLog("hitTestView: $value")
                 field = value
             }
         }
@@ -191,8 +186,6 @@ private class GestureRecognizerHandlerImpl(
         onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.BEGAN)
 
         if (state.isOngoing || hitTestView == view) {
-            dbgLog("touchesBegan golden")
-
             // Golden path, immediately start/continue the gesture recognizer if possible and pass touches.
             when (state) {
                 UIGestureRecognizerStatePossible -> {
@@ -205,12 +198,10 @@ private class GestureRecognizerHandlerImpl(
             }
         } else {
             if (areTouchesInitial) {
-                dbgLog("touchesBegan initial")
                 // We are in the scenario (2), we should schedule failure and pass touches to the
                 // interop view.
                 gestureRecognizer?.scheduleFailure()
             } else {
-                dbgLog("touchesBegan not initial")
                 // We are in the scenario (4), check if the gesture recognizer should be recognized.
                 checkPanIntent()
             }
@@ -231,7 +222,6 @@ private class GestureRecognizerHandlerImpl(
         onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.MOVED)
 
         if (state.isOngoing || hitTestView == view) {
-            dbgLog("touchesMoved golden")
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
@@ -241,7 +231,6 @@ private class GestureRecognizerHandlerImpl(
                 }
             }
         } else {
-            dbgLog("touchesMoved not golden")
             checkPanIntent()
         }
     }
@@ -263,7 +252,6 @@ private class GestureRecognizerHandlerImpl(
         onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.ENDED)
 
         if (state.isOngoing || hitTestView == view) {
-            dbgLog("touchesEnded golden")
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
@@ -272,13 +260,11 @@ private class GestureRecognizerHandlerImpl(
                     if (trackedTouches.isEmpty()) {
                         state = UIGestureRecognizerStateEnded
                     } else {
-                        dbgLog("touchesEnded, trackedTouches.size: ${trackedTouches.size}")
                         state = UIGestureRecognizerStateChanged
                     }
                 }
             }
         } else {
-            dbgLog("touchesEnded not golden")
             if (trackedTouches.isEmpty()) {
                 // Explicitly fail the gesture, cancelling a scheduled failure
                 gestureRecognizer?.cancelFailure()
@@ -305,7 +291,6 @@ private class GestureRecognizerHandlerImpl(
         onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.CANCELLED)
 
         if (hitTestView == view) {
-            dbgLog("touchesCancelled golden")
             // Golden path, just update the gesture recognizer state.
 
             when (state) {
@@ -313,13 +298,11 @@ private class GestureRecognizerHandlerImpl(
                     if (trackedTouches.isEmpty()) {
                         state = UIGestureRecognizerStateCancelled
                     } else {
-                        dbgLog("touchesCancelled, trackedTouches.size: ${trackedTouches.size}")
                         state = UIGestureRecognizerStateChanged
                     }
                 }
             }
         } else {
-            dbgLog("touchesCancelled not golden")
             if (trackedTouches.isEmpty()) {
                 // Those were the last touches in the sequence
                 // Explicitly fail the gesture, cancelling a scheduled failure
@@ -348,8 +331,6 @@ private class GestureRecognizerHandlerImpl(
         // the runtime about the cancelled touches and reset the state manually
         onTouchesEvent(trackedTouches, null, CupertinoTouchesPhase.CANCELLED)
         stopTrackingTouches(trackedTouches)
-
-        dbgLog("onFailure, trackedTouches.size: ${trackedTouches.size}")
     }
 
     /**
@@ -388,7 +369,6 @@ private class GestureRecognizerHandlerImpl(
      */
     private fun checkPanIntent() {
         if (isLocationDeltaAboveSlope) {
-            dbgLog("checkPanIntent success")
             gestureRecognizer?.cancelFailure()
             state = UIGestureRecognizerStateBegan
         }
@@ -539,8 +519,6 @@ internal class InteractionUIView(
     private fun rememberHitTestResult(hitTestBlock: () -> UIView?): UIView? {
         val result = hitTestBlock()
         gestureRecognizerHandler.hitTestView = result
-
-        dbgLog("rememberHitTestResult: $result")
         return result
     }
 }
