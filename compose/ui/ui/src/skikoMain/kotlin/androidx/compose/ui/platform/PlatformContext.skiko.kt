@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.draganddrop.DragAndDropModifierNode
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.focus.FocusDirection
@@ -115,9 +116,7 @@ interface PlatformContext {
     val parentFocusManager: FocusManager get() = EmptyFocusManager
     fun requestFocus(): Boolean = true
 
-    fun createPlatformDragAndDropManager(): PlatformDragAndDropManager {
-        return UnimplementedDragAndDropManager
-    }
+    fun createPlatformDragAndDropManager(): PlatformDragAndDropManager = EmptyDragAndDropManager
 
     /**
      * The listener to track [RootForTest]s.
@@ -237,7 +236,7 @@ private object EmptyFocusManager : FocusManager {
     override fun moveFocus(focusDirection: FocusDirection) = false
 }
 
-private object UnimplementedDragAndDropManager : PlatformDragAndDropManager {
+private object EmptyDragAndDropManager : PlatformDragAndDropManager {
     override val modifier: Modifier
         get() = Modifier
 
@@ -246,16 +245,12 @@ private object UnimplementedDragAndDropManager : PlatformDragAndDropManager {
         decorationSize: Size,
         drawDragDecoration: DrawScope.() -> Unit
     ): Boolean {
-        TODO("Drag&drop isn't implemented")
+        return false
     }
 
-    override fun registerNodeInterest(node: DragAndDropModifierNode) {
-        TODO("Drag&drop isn't implemented")
-    }
+    override fun registerNodeInterest(node: DragAndDropModifierNode) = Unit
 
-    override fun isInterestedNode(node: DragAndDropModifierNode): Boolean {
-        TODO("Drag&drop isn't implemented")
-    }
+    override fun isInterestedNode(node: DragAndDropModifierNode): Boolean = false
 }
 
 /**
