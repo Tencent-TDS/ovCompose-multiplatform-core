@@ -394,7 +394,9 @@ internal class ComposeSceneMediator(
             )
         }
 
-        println("${pointers.size} $phase")
+        // If the touches were cancelled due to gesture failure, the timestamp is not available,
+        // because no actual event with touch updates happened. We just use the current time in
+        // this case.
         val timestamp = event?.timestamp ?: CACurrentMediaTime()
 
         scene.sendPointerEvent(
