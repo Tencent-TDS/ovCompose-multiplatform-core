@@ -142,7 +142,7 @@ internal class AwtDragAndDropManager(
                 layoutDirection = layoutDirection,
                 drawDragDecoration = drawDragDecoration
             ),
-            dragImageOffset = transferData.dragOffset.unaryMinus().toPoint()
+            dragImageOffset = transferData.dragOffset.toPoint()
         )
 
         return true
@@ -248,8 +248,15 @@ internal class AwtDragAndDropManager(
     private class OutgoingTransfer(
         val transferData: DragAndDropTransferData,
         val dragImage: Image,
-        val dragImageOffset: Point
-    )
+        dragImageOffset: Point
+    ) {
+        val dragImageOffset: Point = dragImageOffset.let {
+            when (DesktopPlatform.Current) {
+                DesktopPlatform.MacOS -> Point(-it.x, -it.y)
+                else -> it
+            }
+        }
+    }
 
     private inner class ComposeDropTarget : DropTarget(
         rootContainer,
