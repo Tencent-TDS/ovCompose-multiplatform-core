@@ -19,17 +19,16 @@ package androidx.compose.ui.input.mouse
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.awt.SwingPanel
-import androidx.compose.ui.sendMouseEvent
-import androidx.compose.ui.sendMouseWheelEvent
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
-import java.awt.event.MouseEvent
 import javax.swing.JPanel
 import org.junit.Test
 
@@ -37,18 +36,20 @@ class MouseApplicationTest {
 
     @Test
     fun `interop in lazy list`() = runApplicationTest {
-        lateinit var window: ComposeWindow
+        lateinit var density: Density
 
         val currentlyVisible = mutableSetOf<Int>()
+        val scrollState = LazyListState()
+
         launchTestApplication {
             Window(
                 onCloseRequest = ::exitApplication,
                 state = rememberWindowState(width = 250.dp, height = 250.dp)
             ) {
-                window = this.window
+                density = LocalDensity.current
 
-                LazyColumn(Modifier.fillMaxSize()) {
-                    items(1000) { index ->
+                LazyColumn(Modifier.fillMaxSize(), scrollState) {
+                    items(100) { index ->
                         SwingPanel(
                             factory = {
                                 object : JPanel() {
@@ -73,13 +74,14 @@ class MouseApplicationTest {
         awaitIdle()
         assertThat(currentlyVisible).containsExactly(0, 1, 2)
 
-        window.sendMouseEvent(MouseEvent.MOUSE_ENTERED, 5, 5)
-        window.sendMouseWheelEvent(5, 5, wheelRotation = 1000.0)
+        // Use [dispatchRawDelta] instead of [window.sendMouseWheelEvent] because
+        // [wheelRotation] is platform dependant (multiplied by dynamic internal coefficient)
+        scrollState.dispatchRawDelta(with(density) { 1000.dp.toPx() })
 
         awaitIdle()
-        assertThat(currentlyVisible).containsExactly(100, 101, 102)
+        assertThat(currentlyVisible).containsExactly(10, 11, 12)
 
-        window.sendMouseWheelEvent(5, 5, wheelRotation = -1000.0)
+        scrollState.dispatchRawDelta(with(density) { -1000.dp.toPx() })
 
         awaitIdle()
         assertThat(currentlyVisible).containsExactly(0, 1, 2)
