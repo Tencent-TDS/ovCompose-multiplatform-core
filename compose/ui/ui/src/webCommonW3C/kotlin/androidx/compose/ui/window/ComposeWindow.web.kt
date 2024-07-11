@@ -31,7 +31,6 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.InputModeManager
-import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.toComposeEvent
 import androidx.compose.ui.input.pointer.BrowserCursor
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -206,7 +205,7 @@ internal class ComposeWindow(
             }
         }
 
-        override fun createPlatformDragAndDropManager(): PlatformDragAndDropManager {
+        override fun createDragAndDropManager(): PlatformDragAndDropManager {
             return object : PlatformDragAndDropManager {
                 override val modifier: Modifier
                     get() = Modifier

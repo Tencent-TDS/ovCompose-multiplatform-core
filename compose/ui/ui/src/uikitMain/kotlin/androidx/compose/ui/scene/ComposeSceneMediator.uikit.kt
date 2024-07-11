@@ -704,7 +704,7 @@ internal class ComposeSceneMediator(
         override fun convertScreenToLocalPosition(positionOnScreen: Offset): Offset =
             windowContext.convertScreenToLocalPosition(viewForKeyboardOffsetTransform, positionOnScreen)
 
-        override fun createPlatformDragAndDropManager(): PlatformDragAndDropManager {
+        override fun createDragAndDropManager(): PlatformDragAndDropManager {
             return object : PlatformDragAndDropManager {
                 override val modifier: Modifier
                     get() = Modifier

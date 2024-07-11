@@ -3293,7 +3293,7 @@ public abstract interface class androidx/compose/ui/platform/PlatformContext {
 	public fun convertLocalToWindowPosition-MK-Hz9U (J)J
 	public fun convertScreenToLocalPosition-MK-Hz9U (J)J
 	public fun convertWindowToLocalPosition-MK-Hz9U (J)J
-	public fun createPlatformDragAndDropManager ()Landroidx/compose/ui/platform/PlatformDragAndDropManager;
+	public fun createDragAndDropManager ()Landroidx/compose/ui/platform/PlatformDragAndDropManager;
 	public abstract fun getInputModeManager ()Landroidx/compose/ui/input/InputModeManager;
 	public fun getMeasureDrawLayerBounds ()Z
 	public fun getParentFocusManager ()Landroidx/compose/ui/focus/FocusManager;
