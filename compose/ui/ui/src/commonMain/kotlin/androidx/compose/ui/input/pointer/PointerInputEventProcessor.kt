@@ -17,6 +17,7 @@
 package androidx.compose.ui.input.pointer
 
 import androidx.collection.LongSparseArray
+import androidx.collection.forEach
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Matrix
@@ -132,6 +133,10 @@ internal class PointerInputEventProcessor(val root: LayoutNode) {
                     }
                 }
                 result
+            }
+
+            internalPointerEvent.changes.forEach { key, value ->
+                println(value.toString())
             }
 
             return ProcessResult(dispatchedToSomething, anyMovementConsumed)

@@ -376,7 +376,14 @@ internal class ComposeSceneMediator(
             ComposeScenePointer(
                 id = PointerId(id),
                 position = position,
-                pressed = touch.isPressed,
+                pressed = when (phase) {
+                    // When CMPGestureRecognizer is failed, all tracked touches are sent immediately
+                    // as CANCELLED. In this case, we should not consider the touch as pressed
+                    // despite them being on the screen. This is the last event for Compose in a
+                    // given gesture sequence and should be treated as such.
+                    CupertinoTouchesPhase.CANCELLED -> false
+                    else -> touch.isPressed
+                },
                 type = PointerType.Touch,
                 pressure = touch.force.toFloat(),
                 historical = event?.historicalChangesForTouch(
@@ -387,6 +394,7 @@ internal class ComposeSceneMediator(
             )
         }
 
+        println("${pointers.size} $phase")
         val timestamp = event?.timestamp ?: CACurrentMediaTime()
 
         scene.sendPointerEvent(

@@ -16,19 +16,56 @@
     
     if (self) {        
         self.delegate = self;
+        [self addTarget:self action:@selector(handleStateChange)];
     }
     
     return self;
 }
 
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    id <CMPGestureRecognizerHandler> handler = self.handler;
+- (void)handleStateChange {
+    switch (self.state) {
+        case UIGestureRecognizerStateBegan:
+            NSLog(@"state = Began");
+            break;
+            
+        case UIGestureRecognizerStateChanged:
+            NSLog(@"state = Changed");
+            break;
+            
+        case UIGestureRecognizerStateEnded:
+            [self cancelFailure];
+            break;
+            
+        case UIGestureRecognizerStateCancelled:
+            [self cancelFailure];
+            break;
+
+        default:
+            break;
+    }
+}
+
+- (BOOL)shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    UIView *view = self.view;
+    UIView *otherView = otherGestureRecognizer.view;
     
-    if (handler) {
-        return [handler shouldRecognizeSimultaneously:gestureRecognizer withOther:otherGestureRecognizer];
-    } else {
+    if (view == nil || otherView == nil) {
         return NO;
     }
+    
+    if ([otherView isDescendantOfView:view]) {
+        return NO;
+    } else {
+        return YES;
+    }
+}
+
+- (BOOL)shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return NO;
+}
+
+- (BOOL)shouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return YES;
 }
 
 - (void)cancelFailure {

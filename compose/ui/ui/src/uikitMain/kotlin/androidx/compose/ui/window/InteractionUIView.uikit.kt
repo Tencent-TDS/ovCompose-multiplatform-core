@@ -61,6 +61,14 @@ private val UIGestureRecognizerState.isOngoing: Boolean
             else -> false
         }
 
+/**
+ * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles touch events and forwards
+ * them. The main difference from the original [UIView] touches based is that it's built on top of
+ * [CMPGestureRecognizer], which play differently with UIKit touches processing and are required
+ * for the correct handling of the touch events in interop scenarios, because they rely on
+ * [UIGestureRecognizer] failure requirements and touches interception, which is an exclusive way
+ * to control touches delivery to [UIView]s and their [UIGestureRecognizer]s in a fine-grain manner.
+ */
 private class GestureRecognizerHandlerImpl(
     private var onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent?, phase: CupertinoTouchesPhase) -> Unit,
     private var view: UIView?,
@@ -76,6 +84,7 @@ private class GestureRecognizerHandlerImpl(
              * Only remember the first hit-tested view in the sequence.
              */
             if (initialLocation == null) {
+                dbgLog("hitTestView: $value")
                 field = value
             }
         }
@@ -170,6 +179,11 @@ private class GestureRecognizerHandlerImpl(
      * 4. Those are not the first touches in the sequence. A gesture is not recognized.
      * See if centroid of the tracked touches has moved enough to recognize the gesture.
      *
+     * TODO (not yet tracked):
+     *  An improvement to the current implementation would be to remove the delay if hitTest
+     *  on ComposeScene didn't go through a node, that has a PointerFilter attached
+     *  (e.g. a scrollable)
+     *
      */
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
         val areTouchesInitial = startTrackingTouches(touches)
@@ -177,6 +191,8 @@ private class GestureRecognizerHandlerImpl(
         onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.BEGAN)
 
         if (state.isOngoing || hitTestView == view) {
+            dbgLog("touchesBegan golden")
+
             // Golden path, immediately start/continue the gesture recognizer if possible and pass touches.
             when (state) {
                 UIGestureRecognizerStatePossible -> {
@@ -189,10 +205,12 @@ private class GestureRecognizerHandlerImpl(
             }
         } else {
             if (areTouchesInitial) {
+                dbgLog("touchesBegan initial")
                 // We are in the scenario (2), we should schedule failure and pass touches to the
                 // interop view.
                 gestureRecognizer?.scheduleFailure()
             } else {
+                dbgLog("touchesBegan not initial")
                 // We are in the scenario (4), check if the gesture recognizer should be recognized.
                 checkPanIntent()
             }
@@ -213,6 +231,7 @@ private class GestureRecognizerHandlerImpl(
         onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.MOVED)
 
         if (state.isOngoing || hitTestView == view) {
+            dbgLog("touchesMoved golden")
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
@@ -222,6 +241,7 @@ private class GestureRecognizerHandlerImpl(
                 }
             }
         } else {
+            dbgLog("touchesMoved not golden")
             checkPanIntent()
         }
     }
@@ -243,6 +263,7 @@ private class GestureRecognizerHandlerImpl(
         onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.ENDED)
 
         if (state.isOngoing || hitTestView == view) {
+            dbgLog("touchesEnded golden")
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
@@ -251,11 +272,13 @@ private class GestureRecognizerHandlerImpl(
                     if (trackedTouches.isEmpty()) {
                         state = UIGestureRecognizerStateEnded
                     } else {
+                        dbgLog("touchesEnded, trackedTouches.size: ${trackedTouches.size}")
                         state = UIGestureRecognizerStateChanged
                     }
                 }
             }
         } else {
+            dbgLog("touchesEnded not golden")
             if (trackedTouches.isEmpty()) {
                 // Explicitly fail the gesture, cancelling a scheduled failure
                 gestureRecognizer?.cancelFailure()
@@ -282,19 +305,21 @@ private class GestureRecognizerHandlerImpl(
         onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.CANCELLED)
 
         if (hitTestView == view) {
-            // Golden path, just update the gesture recognizer state and pass touches to
-            // the Compose runtime.
+            dbgLog("touchesCancelled golden")
+            // Golden path, just update the gesture recognizer state.
 
             when (state) {
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
                     if (trackedTouches.isEmpty()) {
                         state = UIGestureRecognizerStateCancelled
                     } else {
+                        dbgLog("touchesCancelled, trackedTouches.size: ${trackedTouches.size}")
                         state = UIGestureRecognizerStateChanged
                     }
                 }
             }
         } else {
+            dbgLog("touchesCancelled not golden")
             if (trackedTouches.isEmpty()) {
                 // Those were the last touches in the sequence
                 // Explicitly fail the gesture, cancelling a scheduled failure
@@ -323,26 +348,8 @@ private class GestureRecognizerHandlerImpl(
         // the runtime about the cancelled touches and reset the state manually
         onTouchesEvent(trackedTouches, null, CupertinoTouchesPhase.CANCELLED)
         stopTrackingTouches(trackedTouches)
-    }
 
-    override fun shouldRecognizeSimultaneously(first: UIGestureRecognizer, withOther: UIGestureRecognizer): Boolean {
-        val gestureRecognizer = gestureRecognizer ?: return false
-
-        return when {
-            first == gestureRecognizer -> {
-                shouldRecognizeSimultaneously(
-                    first = gestureRecognizer,
-                    second = withOther
-                )
-            }
-            withOther == gestureRecognizer -> {
-                shouldRecognizeSimultaneously(
-                    first = gestureRecognizer,
-                    second = first
-                )
-            }
-            else -> false
-        }
+        dbgLog("onFailure, trackedTouches.size: ${trackedTouches.size}")
     }
 
     /**
@@ -353,28 +360,6 @@ private class GestureRecognizerHandlerImpl(
         onTouchesEvent = { _, _, _, _ -> }
         gestureRecognizer = null
         trackedTouches.clear()
-    }
-
-    /**
-     * Determines if the Compose [CMPGestureRecognizer] should recognize simultaneously with the other [UIGestureRecognizer].
-     * @param first The Compose gesture recognizer.
-     * @param second The other UIKit gesture recognizer.
-     * @return `true` if the gesture recognizers should recognize simultaneously, `false` otherwise.
-     * @note
-     */
-    private fun shouldRecognizeSimultaneously(first: CMPGestureRecognizer, second: UIGestureRecognizer): Boolean {
-        val firstView = first.view ?: return false
-        val secondView = second.view ?: return false
-
-        return if (secondView.isDescendantOfView(firstView)) {
-            // If other gesture recognizer belongs to interop view, then it means that it should
-            // intercept all the touches
-            false
-        } else {
-            // As of now, we unconditionally allow simultaneous recognition with UIKit gesture
-            // recognizers from super views.
-            true
-        }
     }
 
     /**
@@ -403,6 +388,7 @@ private class GestureRecognizerHandlerImpl(
      */
     private fun checkPanIntent() {
         if (isLocationDeltaAboveSlope) {
+            dbgLog("checkPanIntent success")
             gestureRecognizer?.cancelFailure()
             state = UIGestureRecognizerStateBegan
         }
@@ -506,25 +492,6 @@ internal class InteractionUIView(
         super.pressesEnded(presses, withEvent)
     }
 
-    // TODO: inspect if touches should be forwarded further up the responder chain
-    //  via super call or they considered to be consumed by this view
-
-    override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesBegan(touches, withEvent)
-    }
-
-    override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesMoved(touches, withEvent)
-    }
-
-    override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesEnded(touches, withEvent)
-    }
-
-    override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
-        super.touchesCancelled(touches, withEvent)
-    }
-
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? = rememberHitTestResult {
         if (!inInteractionBounds(point)) {
             null
@@ -573,7 +540,7 @@ internal class InteractionUIView(
         val result = hitTestBlock()
         gestureRecognizerHandler.hitTestView = result
 
-        dbgLog("hitTestView: $result")
+        dbgLog("rememberHitTestResult: $result")
         return result
     }
 }
