@@ -135,10 +135,6 @@ internal class PointerInputEventProcessor(val root: LayoutNode) {
                 result
             }
 
-            internalPointerEvent.changes.forEach { key, value ->
-                println(value.toString())
-            }
-
             return ProcessResult(dispatchedToSomething, anyMovementConsumed)
         } finally {
             isProcessing = false
