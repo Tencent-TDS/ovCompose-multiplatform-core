@@ -82,13 +82,12 @@
     // 150ms is a timer delay for notifying a handler that the gesture was failed to recognize.
     // `handler` implementtion is responsible for cancelling this via calling `cancelFailure` and transitioning
     // this gesture recognizer to a proper state.
-    double failureInterval = 0.15;
+    double failureDelay = 0.15;
+    
+    dispatch_time_t dispatchTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(failureDelay * NSEC_PER_SEC));
 
-    // Calculate the delay time in dispatch_time_t
-    dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(failureInterval * NSEC_PER_SEC));
-
-    // Schedule the block to be executed after the delay on the main queue
-    dispatch_after(delay, dispatch_get_main_queue(), dispatchBlock);
+    // Schedule the block to be executed at `dispatchTime`
+    dispatch_after(dispatchTime, dispatch_get_main_queue(), dispatchBlock);
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
