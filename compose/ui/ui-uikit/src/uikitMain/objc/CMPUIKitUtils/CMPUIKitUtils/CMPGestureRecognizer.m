@@ -23,15 +23,7 @@
 }
 
 - (void)handleStateChange {
-    switch (self.state) {
-        case UIGestureRecognizerStateBegan:
-            NSLog(@"state = Began");
-            break;
-            
-        case UIGestureRecognizerStateChanged:
-            NSLog(@"state = Changed");
-            break;
-            
+    switch (self.state) {        
         case UIGestureRecognizerStateEnded:
             [self cancelFailure];
             break;
