@@ -89,7 +89,7 @@ private class GestureRecognizerHandlerImpl(
      */
     var gestureRecognizer: CMPGestureRecognizer? = null
 
-    private var state: UIGestureRecognizerState
+    private var gestureRecognizerState: UIGestureRecognizerState
         get() = gestureRecognizer?.state ?: UIGestureRecognizerStateFailed
         set(value) {
             gestureRecognizer?.setState(value)
@@ -185,15 +185,15 @@ private class GestureRecognizerHandlerImpl(
 
         onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.BEGAN)
 
-        if (state.isOngoing || hitTestView == view) {
+        if (gestureRecognizerState.isOngoing || hitTestView == view) {
             // Golden path, immediately start/continue the gesture recognizer if possible and pass touches.
-            when (state) {
+            when (gestureRecognizerState) {
                 UIGestureRecognizerStatePossible -> {
-                    state = UIGestureRecognizerStateBegan
+                    gestureRecognizerState = UIGestureRecognizerStateBegan
                 }
 
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
-                    state = UIGestureRecognizerStateChanged
+                    gestureRecognizerState = UIGestureRecognizerStateChanged
                 }
             }
         } else {
@@ -221,13 +221,13 @@ private class GestureRecognizerHandlerImpl(
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
         onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.MOVED)
 
-        if (state.isOngoing || hitTestView == view) {
+        if (gestureRecognizerState.isOngoing || hitTestView == view) {
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
-            when (state) {
+            when (gestureRecognizerState) {
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
-                    state = UIGestureRecognizerStateChanged
+                    gestureRecognizerState = UIGestureRecognizerStateChanged
                 }
             }
         } else {
@@ -251,16 +251,16 @@ private class GestureRecognizerHandlerImpl(
 
         onTouchesEvent(touches, withEvent, CupertinoTouchesPhase.ENDED)
 
-        if (state.isOngoing || hitTestView == view) {
+        if (gestureRecognizerState.isOngoing || hitTestView == view) {
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
-            when (state) {
+            when (gestureRecognizerState) {
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
                     if (trackedTouches.isEmpty()) {
-                        state = UIGestureRecognizerStateEnded
+                        gestureRecognizerState = UIGestureRecognizerStateEnded
                     } else {
-                        state = UIGestureRecognizerStateChanged
+                        gestureRecognizerState = UIGestureRecognizerStateChanged
                     }
                 }
             }
@@ -269,7 +269,7 @@ private class GestureRecognizerHandlerImpl(
                 // Explicitly fail the gesture, cancelling a scheduled failure
                 gestureRecognizer?.cancelFailure()
 
-                state = UIGestureRecognizerStateFailed
+                gestureRecognizerState = UIGestureRecognizerStateFailed
             }
         }
     }
@@ -293,12 +293,12 @@ private class GestureRecognizerHandlerImpl(
         if (hitTestView == view) {
             // Golden path, just update the gesture recognizer state.
 
-            when (state) {
+            when (gestureRecognizerState) {
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
                     if (trackedTouches.isEmpty()) {
-                        state = UIGestureRecognizerStateCancelled
+                        gestureRecognizerState = UIGestureRecognizerStateCancelled
                     } else {
-                        state = UIGestureRecognizerStateChanged
+                        gestureRecognizerState = UIGestureRecognizerStateChanged
                     }
                 }
             }
@@ -308,7 +308,7 @@ private class GestureRecognizerHandlerImpl(
                 // Explicitly fail the gesture, cancelling a scheduled failure
                 gestureRecognizer?.cancelFailure()
 
-                state = UIGestureRecognizerStateFailed
+                gestureRecognizerState = UIGestureRecognizerStateFailed
             }
         }
     }
@@ -324,7 +324,7 @@ private class GestureRecognizerHandlerImpl(
      * [UIGestureRecognizer.delaysTouchesBegan]
      */
     override fun onFailure() {
-        state = UIGestureRecognizerStateFailed
+        gestureRecognizerState = UIGestureRecognizerStateFailed
 
         // We won't receive other touches events until all fingers are lifted, so we can't rely
         // on touchesEnded/touchesCancelled to reset the state.  We need to immediately notify
@@ -370,7 +370,7 @@ private class GestureRecognizerHandlerImpl(
     private fun checkPanIntent() {
         if (isLocationDeltaAboveSlope) {
             gestureRecognizer?.cancelFailure()
-            state = UIGestureRecognizerStateBegan
+            gestureRecognizerState = UIGestureRecognizerStateBegan
         }
     }
 
