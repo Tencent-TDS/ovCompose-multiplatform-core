@@ -25,9 +25,6 @@
 - (void)handleStateChange {
     switch (self.state) {
         case UIGestureRecognizerStateEnded:
-            [self cancelFailure];
-            break;
-            
         case UIGestureRecognizerStateCancelled:
             [self cancelFailure];
             break;
