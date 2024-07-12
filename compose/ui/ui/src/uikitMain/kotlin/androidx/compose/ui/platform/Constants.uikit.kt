@@ -17,6 +17,6 @@
 package androidx.compose.ui.platform
 
 /**
- * iOS default value in scale-independent points for the pan gesture slop.
+ * iOS default value in scale-independent points for touch slop that recognizes as scroll/pan gesture.
  */
-internal const val CUPERTINO_PAN_GESTURE_SLOP_VALUE = 10
+internal const val CUPERTINO_TOUCH_SLOP = 10
