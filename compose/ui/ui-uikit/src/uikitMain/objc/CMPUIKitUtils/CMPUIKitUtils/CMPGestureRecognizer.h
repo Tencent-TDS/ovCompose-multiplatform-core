@@ -9,9 +9,9 @@
 #import <UIKit/UIGestureRecognizerSubclass.h>
 
 NS_ASSUME_NONNULL_BEGIN
- 
+
 @protocol CMPGestureRecognizerHandler <NSObject>
- 
+
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent * _Nullable)event;
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent * _Nullable)event;
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent * _Nullable)event;
