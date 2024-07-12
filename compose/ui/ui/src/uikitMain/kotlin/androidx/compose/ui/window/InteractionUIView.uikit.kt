@@ -164,7 +164,7 @@ private class GestureRecognizerHandlerImpl(
      * [CMPGestureRecognizer.scheduleFailure], which will pass intercepted touches to the interop
      * views if the gesture recognizer is not recognized within a certain time frame
      * (UIScrollView reverse-engineered 150ms is used).
-     * The similar approach is used by [UIScrollView](https://developer.apple.com/documentation/uikit/uiscrollview?language=objc)
+     * The similar approach is used by [UIScrollView](https://developer.apple.com/documentation/uikit/uiscrollview)
      *
      * 3. Those are not the first touches in the sequence. A gesture is recognized.
      * We should continue with scenario (1), we don't yet support multitouch sequence in
