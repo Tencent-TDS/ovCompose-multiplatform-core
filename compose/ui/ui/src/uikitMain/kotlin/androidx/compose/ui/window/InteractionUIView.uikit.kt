@@ -111,7 +111,7 @@ private class GestureRecognizerHandlerImpl(
      * Checks whether the centroid location of [trackedTouches] has exceeded the scrolling slop
      * relative to [initialLocation]
      */
-    private val isLocationDeltaAboveSlope: Boolean
+    private val isLocationDeltaAboveSlop: Boolean
         get() {
             val initialLocation = initialLocation ?: return false
             val centroidLocation = trackedTouchesCentroidLocation ?: return false
@@ -369,7 +369,7 @@ private class GestureRecognizerHandlerImpl(
      * Check if the tracked touches have moved enough to recognize the gesture.
      */
     private fun checkPanIntent() {
-        if (isLocationDeltaAboveSlope) {
+        if (isLocationDeltaAboveSlop) {
             gestureRecognizer?.cancelFailure()
             gestureRecognizerState = UIGestureRecognizerStateBegan
         }
