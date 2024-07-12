@@ -296,10 +296,10 @@ private class GestureRecognizerHandlerImpl(
 
             when (gestureRecognizerState) {
                 UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
-                    if (trackedTouches.isEmpty()) {
-                        gestureRecognizerState = UIGestureRecognizerStateCancelled
+                    gestureRecognizerState = if (trackedTouches.isEmpty()) {
+                        UIGestureRecognizerStateCancelled
                     } else {
-                        gestureRecognizerState = UIGestureRecognizerStateChanged
+                        UIGestureRecognizerStateChanged
                     }
                 }
             }
