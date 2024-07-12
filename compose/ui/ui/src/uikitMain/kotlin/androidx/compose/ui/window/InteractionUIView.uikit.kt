@@ -349,13 +349,13 @@ private class GestureRecognizerHandlerImpl(
      * @return `true` if the touches are initial, `false` otherwise.
      */
     private fun startTrackingTouches(touches: Set<*>): Boolean {
-        onTouchesCountChanged(touches.size)
-
         val areTouchesInitial = trackedTouches.isEmpty()
 
         for (touch in touches) {
             trackedTouches.add(touch as UITouch)
         }
+
+        onTouchesCountChanged(touches.size)
 
         if (areTouchesInitial) {
             initialLocation = trackedTouchesCentroidLocation
@@ -379,11 +379,11 @@ private class GestureRecognizerHandlerImpl(
      * location to null.
      */
     private fun stopTrackingTouches(touches: Set<*>) {
-        onTouchesCountChanged(-touches.size)
-
         for (touch in touches) {
             trackedTouches.remove(touch as UITouch)
         }
+
+        onTouchesCountChanged(-touches.size)
 
         if (trackedTouches.isEmpty()) {
             initialLocation = null
