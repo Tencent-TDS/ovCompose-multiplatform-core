@@ -23,7 +23,7 @@
 }
 
 - (void)handleStateChange {
-    switch (self.state) {        
+    switch (self.state) {
         case UIGestureRecognizerStateEnded:
             [self cancelFailure];
             break;
@@ -81,9 +81,14 @@
         dispatch_block_cancel(_scheduledFailureBlock);
     }
     _scheduledFailureBlock = dispatchBlock;
+    
+    // 150ms is a timer delay for notifying a handler that the gesture was failed to recognize.
+    // `handler` implementtion is responsible for cancelling this via calling `cancelFailure` and transitioning
+    // this gesture recognizer to a proper state.
+    double failureInterval = 0.15;
 
     // Calculate the delay time in dispatch_time_t
-    dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC));
+    dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(failureInterval * NSEC_PER_SEC));
 
     // Schedule the block to be executed after the delay on the main queue
     dispatch_after(delay, dispatch_get_main_queue(), dispatchBlock);
