@@ -38,6 +38,7 @@ import androidx.compose.ui.interop.UIKitInteropContainer
 import androidx.compose.ui.node.TrackInteropContainer
 import androidx.compose.ui.platform.AccessibilityMediator
 import androidx.compose.ui.platform.AccessibilitySyncOptions
+import androidx.compose.ui.platform.CUPERTINO_PAN_GESTURE_SLOP_VALUE
 import androidx.compose.ui.platform.DefaultInputModeManager
 import androidx.compose.ui.platform.EmptyViewConfiguration
 import androidx.compose.ui.platform.LocalLayoutMargins
@@ -230,7 +231,7 @@ internal class ComposeSceneMediator(
             override val touchSlop: Float
                 get() = with(density) {
                     // this value is originating from iOS 16 drag behavior reverse engineering
-                    10.dp.toPx()
+                    CUPERTINO_PAN_GESTURE_SLOP_VALUE.dp.toPx()
                 }
         }
 

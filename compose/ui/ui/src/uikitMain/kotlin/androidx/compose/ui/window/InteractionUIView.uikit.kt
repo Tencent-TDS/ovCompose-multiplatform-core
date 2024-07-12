@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.ui.platform.CUPERTINO_PAN_GESTURE_SLOP_VALUE
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizer
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizerHandlerProtocol
 import androidx.compose.ui.viewinterop.InteropView
@@ -115,7 +116,7 @@ private class GestureRecognizerHandlerImpl(
             val initialLocation = initialLocation ?: return false
             val centroidLocation = trackedTouchesCentroidLocation ?: return false
 
-            val slop = 10.0
+            val slop = CUPERTINO_PAN_GESTURE_SLOP_VALUE.toDouble()
 
             val dx = centroidLocation.useContents { x - initialLocation.useContents { x } }
             val dy = centroidLocation.useContents { y - initialLocation.useContents { y } }
