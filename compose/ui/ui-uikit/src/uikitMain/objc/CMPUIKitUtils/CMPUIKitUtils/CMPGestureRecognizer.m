@@ -42,11 +42,8 @@
         return NO;
     }
     
-    if ([otherView isDescendantOfView:view]) {
-        return NO;
-    } else {
-        return YES;
-    }
+    // Allow simultaneous recognition only if otherGestureRecognizer is attached to the view up in the hierarchy
+    return ![otherView isDescendantOfView:view];
 }
 
 - (BOOL)shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
