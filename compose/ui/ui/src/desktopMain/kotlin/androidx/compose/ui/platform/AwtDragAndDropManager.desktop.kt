@@ -269,8 +269,8 @@ internal class AwtDragAndDropManager(
                 val accepted = rootDragAndDropNode.acceptDragAndDropTransfer(event)
                 interestedNodes.forEach { it.onStarted(event) }
                 rootDragAndDropNode.onEntered(event)
-                if (accepted) {
-                    dtde.acceptDrag(dtde.sourceActions)
+                if (!accepted) {
+                    dtde.rejectDrag()
                 }
             }
 
@@ -282,12 +282,10 @@ internal class AwtDragAndDropManager(
 
             override fun dragOver(dtde: DropTargetDragEvent) {
                 rootDragAndDropNode.onMoved(DragAndDropEvent(dtde))
-                dtde.acceptDrag(dtde.sourceActions)
             }
 
             override fun dropActionChanged(dtde: DropTargetDragEvent) {
                 rootDragAndDropNode.onChanged(DragAndDropEvent(dtde))
-                dtde.acceptDrag(dtde.sourceActions)
             }
 
             override fun drop(dtde: DropTargetDropEvent) {
@@ -304,16 +302,19 @@ internal class AwtDragAndDropManager(
 
             private fun DragAndDropEvent(dragEvent: DropTargetDragEvent) = DragAndDropEvent(
                 nativeDropEvent = dragEvent,
+                action = DragAndDropTransferAction.fromAwtAction(dragEvent.dropAction),
                 positionInRootImpl = dragEvent.location.toOffset()
             )
 
             private fun DragAndDropEvent(dropEvent: DropTargetDropEvent) = DragAndDropEvent(
                 nativeDropEvent = dropEvent,
+                action = DragAndDropTransferAction.fromAwtAction(dropEvent.dropAction),
                 positionInRootImpl = dropEvent.location.toOffset()
             )
 
             private fun DragAndDropEvent(dropEvent: DropTargetEvent) = DragAndDropEvent(
                 nativeDropEvent = dropEvent,
+                action = null,
                 positionInRootImpl = Offset.Zero
             )
         },

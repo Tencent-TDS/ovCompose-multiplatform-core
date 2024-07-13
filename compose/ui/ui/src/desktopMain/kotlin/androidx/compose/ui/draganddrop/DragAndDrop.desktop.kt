@@ -54,11 +54,15 @@ abstract class DragAndDropTransferable {
  * The possible actions on the transferred object in a drag-and-drop session.
  */
 @ExperimentalComposeUiApi
-class DragAndDropTransferAction private constructor() {
+class DragAndDropTransferAction private constructor(private val name: String) {
+    override fun toString(): String {
+        return name
+    }
+
     companion object {
-        val Copy = DragAndDropTransferAction()
-        val Move = DragAndDropTransferAction()
-        val Link = DragAndDropTransferAction()
+        val Copy = DragAndDropTransferAction("Copy")
+        val Move = DragAndDropTransferAction("Move")
+        val Link = DragAndDropTransferAction("Link")
     }
 }
 
@@ -73,6 +77,11 @@ actual class DragAndDropEvent(
      * Use [DragAndDropEvent.awtTransferable] to access it.
      */
     val nativeDropEvent: Any?,
+
+    /**
+     * The action currently selected by the user.
+     */
+    val action: DragAndDropTransferAction?,
 
     /**
      * The position of the dragged object relative to the root Compose container.
