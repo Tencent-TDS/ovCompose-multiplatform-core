@@ -216,7 +216,8 @@ internal class AwtDragAndDropManager(
                     0,
                     false
                 ),
-                transferData.initialAction.awtAction
+                // This seems to be ignored, and the initial action is MOVE regardless
+                DnDConstants.ACTION_MOVE
             )
         }
 

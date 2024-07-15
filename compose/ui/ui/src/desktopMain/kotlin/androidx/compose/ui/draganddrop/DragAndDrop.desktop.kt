@@ -31,7 +31,6 @@ import java.awt.dnd.DropTargetDropEvent
 actual class DragAndDropTransferData(
     val transferable: DragAndDropTransferable,
     val supportedActions: Iterable<DragAndDropTransferAction>,
-    val initialAction: DragAndDropTransferAction,
     val dragOffset: Offset = Offset.Zero,
     val onTransferCompleted: ((userAction: DragAndDropTransferAction?) -> Unit)? = null,
 )
