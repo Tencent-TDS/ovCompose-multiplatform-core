@@ -16,8 +16,6 @@
 
 package androidx.compose.ui.text.intl
 
-actual typealias PlatformLocale = IntlLocale
-
 internal actual val PlatformLocale.language: String
     get() = _language
 
@@ -56,19 +54,20 @@ internal actual fun PlatformLocale.isRtl(): Boolean = this.language in rtlLangua
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale
 // Note: Since Compose common code introduced PlatformLocale with extension properties with the same names,
 // we had to change the names of the properties in kotlin to avoid the name shadowing.
-external class IntlLocale {
+actual external class PlatformLocale {
     @JsName("language")
-    val _language: String
+    internal val _language: String
     @JsName("script")
-    val _script: String?
+    internal val _script: String?
     @JsName("region")
-    val _region: String?
+    internal val _region: String?
     @JsName("baseName")
-    val _baseName: String
+    internal val _baseName: String
 }
 
-internal fun parseLanguageTagToIntlLocale(languageTag: String): IntlLocale = js("new Intl.Locale(languageTag)")
+internal fun parseLanguageTagToIntlLocale(languageTag: String): PlatformLocale =
+    js("new Intl.Locale(languageTag)")
 
 internal expect fun userPreferredLanguages(): List<String>
 
-private fun String.toIntlLocale(): IntlLocale = parseLanguageTagToIntlLocale(this)
+private fun String.toIntlLocale(): PlatformLocale = parseLanguageTagToIntlLocale(this)
