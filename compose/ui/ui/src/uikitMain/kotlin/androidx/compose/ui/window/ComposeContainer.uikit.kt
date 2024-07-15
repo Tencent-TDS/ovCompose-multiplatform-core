@@ -185,7 +185,7 @@ internal class ComposeContainer(
 
     override fun viewDidLoad() {
         super.viewDidLoad()
-        PlistSanityCheck.performIfNeeded()
+        PlistSanityCheck.performIfNeeded(configuration.enforceStrictPlistSanityCheck)
         configuration.delegate.viewDidLoad()
         systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
     }
