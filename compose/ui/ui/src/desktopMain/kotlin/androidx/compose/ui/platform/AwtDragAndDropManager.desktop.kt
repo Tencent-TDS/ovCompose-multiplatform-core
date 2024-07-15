@@ -27,6 +27,7 @@ import androidx.compose.ui.draganddrop.DragAndDropTransferAction.Companion.Copy
 import androidx.compose.ui.draganddrop.DragAndDropTransferAction.Companion.Link
 import androidx.compose.ui.draganddrop.DragAndDropTransferAction.Companion.Move
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
+import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
@@ -52,6 +53,7 @@ import java.awt.dnd.DropTargetDropEvent
 import java.awt.dnd.DropTargetEvent
 import java.awt.dnd.DropTargetListener
 import java.awt.event.MouseEvent
+import java.awt.image.BufferedImage
 import javax.swing.JComponent
 import javax.swing.TransferHandler
 import kotlin.math.roundToInt
@@ -116,14 +118,6 @@ internal class AwtDragAndDropManager(
         )
     }
 
-    private fun Offset.toPoint(): Point {
-        val scale = this@AwtDragAndDropManager.scale
-        return Point(
-            (x / scale).roundToInt(),
-            (y / scale).roundToInt()
-        )
-    }
-
     override fun drag(
         transferData: DragAndDropTransferData,
         decorationSize: Size,
@@ -143,7 +137,7 @@ internal class AwtDragAndDropManager(
                 layoutDirection = layoutDirection,
                 drawDragDecoration = drawDragDecoration
             ),
-            dragImageOffset = transferData.dragDecorationOffset.toPoint()
+            dragDecorationOffset = transferData.dragDecorationOffset
         )
 
         return true
@@ -174,13 +168,10 @@ internal class AwtDragAndDropManager(
         val canvas = Canvas(imageBitmap)
         val canvasScope = CanvasDrawScope()
         canvasScope.draw(density, layoutDirection, canvas, size, drawDragDecoration)
-        return imageBitmap.toAwtImage().let {
-            it.getScaledInstance(
-                (it.width / density.density).roundToInt(),
-                (it.height / density.density).roundToInt(),
-                Image.SCALE_SMOOTH
-            )
-        }
+        return PlatformAdaptations.dragImage(
+            image = imageBitmap.toAwtImage(),
+            density = density.density
+        )
     }
 
     private inner class ComposeTransferHandler : TransferHandler() {
@@ -190,12 +181,12 @@ internal class AwtDragAndDropManager(
         fun startOutgoingTransfer(
             transferData: DragAndDropTransferData,
             dragImage: Image,
-            dragImageOffset: Point,
+            dragDecorationOffset: Offset,
         ) {
             outgoingTransfer = OutgoingTransfer(
                 transferData = transferData,
                 dragImage = dragImage,
-                dragImageOffset = dragImageOffset
+                dragImageOffset = PlatformAdaptations.dragImageOffset(dragDecorationOffset, scale)
             )
 
             val rootContainerLocation = rootContainer.locationOnScreen
@@ -251,15 +242,8 @@ internal class AwtDragAndDropManager(
     private class OutgoingTransfer(
         val transferData: DragAndDropTransferData,
         val dragImage: Image,
-        dragImageOffset: Point
-    ) {
-        val dragImageOffset: Point = dragImageOffset.let {
-            when (DesktopPlatform.Current) {
-                DesktopPlatform.MacOS -> Point(-it.x, -it.y)
-                else -> it
-            }
-        }
-    }
+        val dragImageOffset: Point
+    )
 
     private inner class ComposeDropTarget : DropTarget(
         rootContainer,
@@ -329,7 +313,6 @@ internal class AwtDragAndDropManager(
 private class DragAndDropModifier(
     val dragAndDropNode: DragAndDropNode
 ) : ModifierNodeElement<DragAndDropNode>() {
-
     override fun create() = dragAndDropNode
 
     override fun update(node: DragAndDropNode) = Unit
@@ -341,5 +324,71 @@ private class DragAndDropModifier(
     override fun hashCode(): Int = dragAndDropNode.hashCode()
 
     override fun equals(other: Any?) = other === this
-
 }
+
+/**
+ * The AWT drag-and-drop seems to have some differences between the various OSes. This
+ * interface encapsulates the adaptations to these differences for each OS.
+ */
+private interface PlatformAdaptations {
+    /**
+     * Given a Compose offset and density, returns the AWT [Point] representing the offset of the
+     * pointer inside the drag image we return from [TransferHandler.dragImage].
+     */
+    fun dragImageOffset(decorationOffset: Offset, density: Float): Point
+
+    /**
+     * Returns the image to represent the dragged object, given its rendering at the size specified
+     * by the `decorationSize` argument passed to [DragAndDropManager.drag].
+     */
+    fun dragImage(image: BufferedImage, density: Float): Image
+
+    /**
+     * The adaptations for macOS.
+     */
+    private object MacOs : PlatformAdaptations {
+        override fun dragImageOffset(decorationOffset: Offset, density: Float) = Point(
+            -(decorationOffset.x / density).roundToInt(),
+            -(decorationOffset.y / density).roundToInt()
+        )
+
+        override fun dragImage(image: BufferedImage, density: Float): Image {
+            return image.getScaledInstance(
+                (image.width / density).roundToInt(),
+                (image.height / density).roundToInt(),
+                Image.SCALE_SMOOTH
+            )
+        }
+    }
+
+    /**
+     * The adaptations for Windows.
+     */
+    private object Windows : PlatformAdaptations {
+        override fun dragImageOffset(decorationOffset: Offset, density: Float) =
+            Point(decorationOffset.x.roundToInt(), decorationOffset.y.roundToInt())
+
+        override fun dragImage(image: BufferedImage, density: Float) = image
+    }
+
+    /**
+     * The adaptations for other OSes.
+     */
+    private object Other : PlatformAdaptations {
+
+        override fun dragImageOffset(decorationOffset: Offset, density: Float) =
+            Point(decorationOffset.x.roundToInt(), decorationOffset.y.roundToInt())
+
+        override fun dragImage(image: BufferedImage, density: Float) = image
+    }
+
+    /**
+     * The adaptations for the OS this application is running on.
+     */
+    companion object : PlatformAdaptations by when (DesktopPlatform.Current) {
+        DesktopPlatform.Windows -> Windows
+        DesktopPlatform.MacOS -> MacOs
+        else -> Other
+    }
+}
+
