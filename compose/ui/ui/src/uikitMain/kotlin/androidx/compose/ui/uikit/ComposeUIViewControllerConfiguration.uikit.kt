@@ -55,6 +55,13 @@ class ComposeUIViewControllerConfiguration {
      */
     @ExperimentalComposeApi
     var opaque: Boolean = true
+
+    /**
+     * A boolean flag to enable or disable the strict sanity check for the `Info.plist` file.
+     * In case some of the required keys are missing, a warning will be printed to the console.
+     * If the flag is set to true, and keys are missing, an app will be crashed.
+     */
+    var enforceStrictPlistSanityCheck: Boolean = true
 }
 
 /**
