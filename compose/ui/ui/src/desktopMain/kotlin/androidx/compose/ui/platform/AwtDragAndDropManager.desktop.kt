@@ -18,6 +18,7 @@ package androidx.compose.ui.platform
 
 import androidx.collection.ArraySet
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.AwtDragAndDropTransferable
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropModifierNode
 import androidx.compose.ui.draganddrop.DragAndDropNode
@@ -222,7 +223,8 @@ internal class AwtDragAndDropManager(
         }
 
         override fun createTransferable(c: JComponent?): Transferable? {
-            return outgoingTransfer?.transferData?.transferable?.toAwtTransferable()
+            return (outgoingTransfer?.transferData?.transferable as? AwtDragAndDropTransferable)
+                ?.toAwtTransferable()
         }
 
         override fun getSourceActions(c: JComponent?): Int {
@@ -302,19 +304,19 @@ internal class AwtDragAndDropManager(
             }
 
             private fun DragAndDropEvent(dragEvent: DropTargetDragEvent) = DragAndDropEvent(
-                nativeDropEvent = dragEvent,
+                nativeEvent = dragEvent,
                 action = DragAndDropTransferAction.fromAwtAction(dragEvent.dropAction),
                 positionInRootImpl = dragEvent.location.toOffset()
             )
 
             private fun DragAndDropEvent(dropEvent: DropTargetDropEvent) = DragAndDropEvent(
-                nativeDropEvent = dropEvent,
+                nativeEvent = dropEvent,
                 action = DragAndDropTransferAction.fromAwtAction(dropEvent.dropAction),
                 positionInRootImpl = dropEvent.location.toOffset()
             )
 
             private fun DragAndDropEvent(dropEvent: DropTargetEvent) = DragAndDropEvent(
-                nativeDropEvent = dropEvent,
+                nativeEvent = dropEvent,
                 action = null,
                 positionInRootImpl = Offset.Zero
             )

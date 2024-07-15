@@ -21,7 +21,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.dragData
 import androidx.compose.ui.geometry.Offset
 import java.awt.datatransfer.Transferable
-import androidx.compose.ui.platform.PlatformDragAndDropManager
+import java.awt.dnd.DropTargetDragEvent
 import java.awt.dnd.DropTargetDropEvent
 
 /**
@@ -39,15 +39,7 @@ actual class DragAndDropTransferData(
  * Represents the actual object transferred during a drag-and-drop.
  */
 @ExperimentalComposeUiApi
-abstract class DragAndDropTransferable {
-    /**
-     * Returns the AWT [Transferable] to pass to the AWT drag-and-drop system.
-     *
-     * This must return a non-null value in order to work with the AWT implementation of
-     * [PlatformDragAndDropManager].
-     */
-    abstract fun toAwtTransferable(): Transferable?
-}
+interface DragAndDropTransferable
 
 /**
  * The possible actions on the transferred object in a drag-and-drop session.
@@ -70,17 +62,14 @@ class DragAndDropTransferAction private constructor(private val name: String) {
  */
 actual class DragAndDropEvent(
     /**
-     * The underlying native event dispatched when the drag-and-drop gesture ends in a drop; only
-     * available in [DragAndDropTarget.onDrop].
-     *
-     * Use [DragAndDropEvent.awtTransferable] to access it.
-     */
-    val nativeDropEvent: Any?,
-
-    /**
      * The action currently selected by the user.
      */
     val action: DragAndDropTransferAction?,
+
+    /**
+     * The underlying native event.
+     */
+    val nativeEvent: Any?,
 
     /**
      * The position of the dragged object relative to the root Compose container.
@@ -88,29 +77,40 @@ actual class DragAndDropEvent(
     internal val positionInRootImpl: Offset
 )
 
+
 /**
- * A [DragAndDropTransferable] that simply wraps an AWT [Transferable] instance.
+ * The base class for [DragAndDropTransferable] for AWT that simply wraps an AWT [Transferable]
+ * instance.
+ */
+internal interface AwtDragAndDropTransferable : DragAndDropTransferable {
+    fun toAwtTransferable(): Transferable
+}
+
+
+/**
+ * Returns a [DragAndDropTransferable] that simply wraps an AWT [Transferable] instance.
  */
 @ExperimentalComposeUiApi
-class AwtDragAndDropTransferable(
-    private val transferable: Transferable
-) : DragAndDropTransferable() {
-    override fun toAwtTransferable(): Transferable = transferable
+fun DragAndDropTransferable(transferable: Transferable): DragAndDropTransferable {
+    return object: AwtDragAndDropTransferable {
+        override fun toAwtTransferable() = transferable
+    }
 }
+
 
 /**
  * Returns the AWT [Transferable] associated with the [DragAndDropEvent].
- *
- * This may only be called on a [DragAndDropEvent] received in [DragAndDropTarget.onDrop].
  */
 @ExperimentalComposeUiApi
 val DragAndDropEvent.awtTransferable: Transferable
-    get() = (nativeDropEvent as DropTargetDropEvent).transferable
+    get() = when (nativeEvent) {
+        is DropTargetDragEvent -> nativeEvent.transferable
+        is DropTargetDropEvent -> nativeEvent.transferable
+        else -> error("Unrecognized AWT drag event: $nativeEvent")
+    }
 
 /**
  * Returns the [DragData] associated with the given [DragAndDropEvent].
- *
- * This may only be called on a [DragAndDropEvent] received in [DragAndDropTarget.onDrop].
  */
 @ExperimentalComposeUiApi
 fun DragAndDropEvent.dragData(): DragData = awtTransferable.dragData()

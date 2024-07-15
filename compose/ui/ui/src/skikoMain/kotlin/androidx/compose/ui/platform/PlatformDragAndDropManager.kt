@@ -16,7 +16,7 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.draganddrop.DragAndDropModifierNode
@@ -35,7 +35,7 @@ import androidx.compose.ui.node.RootNodeOwner
  *
  * For documentation of the methods of this interface refer to [DragAndDropManager].
  */
-@ExperimentalComposeUiApi
+@InternalComposeUiApi
 interface PlatformDragAndDropManager {
     val modifier: Modifier
 
