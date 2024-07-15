@@ -29,9 +29,16 @@ import java.awt.dnd.DropTargetDropEvent
  */
 @OptIn(ExperimentalComposeUiApi::class)
 actual class DragAndDropTransferData(
+    @property:ExperimentalComposeUiApi
     val transferable: DragAndDropTransferable,
+
+    @property:ExperimentalComposeUiApi
     val supportedActions: Iterable<DragAndDropTransferAction>,
+
+    @property:ExperimentalComposeUiApi
     val dragOffset: Offset = Offset.Zero,
+
+    @property:ExperimentalComposeUiApi
     val onTransferCompleted: ((userAction: DragAndDropTransferAction?) -> Unit)? = null,
 )
 
@@ -64,11 +71,13 @@ actual class DragAndDropEvent(
     /**
      * The action currently selected by the user.
      */
+    @property:ExperimentalComposeUiApi
     val action: DragAndDropTransferAction?,
 
     /**
      * The underlying native event.
      */
+    @property:ExperimentalComposeUiApi
     val nativeEvent: Any?,
 
     /**
