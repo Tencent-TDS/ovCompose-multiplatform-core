@@ -143,7 +143,7 @@ internal class AwtDragAndDropManager(
                 layoutDirection = layoutDirection,
                 drawDragDecoration = drawDragDecoration
             ),
-            dragImageOffset = transferData.dragOffset.toPoint()
+            dragImageOffset = transferData.dragDecorationOffset.toPoint()
         )
 
         return true

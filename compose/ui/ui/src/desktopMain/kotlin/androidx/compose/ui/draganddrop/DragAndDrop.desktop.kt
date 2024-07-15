@@ -29,15 +29,30 @@ import java.awt.dnd.DropTargetDropEvent
  */
 @OptIn(ExperimentalComposeUiApi::class)
 actual class DragAndDropTransferData(
+    /**
+     * The object being transferred during a drag-and-drop gesture.
+     */
     @property:ExperimentalComposeUiApi
     val transferable: DragAndDropTransferable,
 
+    /**
+     * The transfer actions supported by the source of the drag-and-drop session.
+     */
     @property:ExperimentalComposeUiApi
     val supportedActions: Iterable<DragAndDropTransferAction>,
 
+    /**
+     * The offset of the pointer relative to the drag decoration.
+     */
     @property:ExperimentalComposeUiApi
-    val dragOffset: Offset = Offset.Zero,
+    val dragDecorationOffset: Offset = Offset.Zero,
 
+    /**
+     * Invoked when the drag-and-drop gesture completes.
+     *
+     * The argument to the callback specifies the transfer action with which the gesture completed,
+     * or `null` if the gesture did not complete successfully.
+     */
     @property:ExperimentalComposeUiApi
     val onTransferCompleted: ((userAction: DragAndDropTransferAction?) -> Unit)? = null,
 )
