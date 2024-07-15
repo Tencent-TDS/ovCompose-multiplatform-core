@@ -16,34 +16,30 @@
 
 package androidx.compose.ui.text.intl
 
-// TODO https://youtrack.jetbrains.com/issue/COMPOSE-1256/Implement-public-JsLocale
-//  Remove TODO in a separate PR, this implementation should be reviewed separately.
-class JsPlatformLocale internal constructor(internal val locale: IntlLocale)
-
-actual typealias PlatformLocale = JsPlatformLocale
+actual typealias PlatformLocale = IntlLocale
 
 internal actual val PlatformLocale.language: String
-    get() = locale.language
+    get() = _language
 
 internal actual val PlatformLocale.script: String
-    get() = locale.script ?: ""
+    get() = _script ?: ""
 
 internal actual val PlatformLocale.region: String
-    get() = locale.region ?: ""
+    get() = _region ?: ""
 
-internal actual fun PlatformLocale.getLanguageTag(): String = locale.baseName
+internal actual fun PlatformLocale.getLanguageTag(): String = _baseName
 
 internal actual fun createPlatformLocaleDelegate(): PlatformLocaleDelegate =
     object : PlatformLocaleDelegate {
         override val current: LocaleList
             get() = LocaleList(
                 userPreferredLanguages().map {
-                    Locale(JsPlatformLocale(it.toIntlLocale()))
+                    Locale(it.toIntlLocale())
                 }
             )
 
         override fun parseLanguageTag(languageTag: String): PlatformLocale {
-            return JsPlatformLocale(languageTag.toIntlLocale())
+            return languageTag.toIntlLocale()
         }
     }
 
@@ -54,12 +50,21 @@ private val rtlLanguagesSet = setOf("ar", "fa", "he", "iw", "ji", "ur", "yi")
 // since there is no js API for this.
 internal actual fun PlatformLocale.isRtl(): Boolean = this.language in rtlLanguagesSet
 
+// K/JS and K/Wasm stdlib doesn't have this type. Therefore, we declare it here.
+// Ideally it would not be necessary, or at least we would make it internal, but Compose common API
+// requires that expect PlatformLocale is actualized by a "standard/native" type of Locale.
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Locale
-internal external interface IntlLocale {
-    val language: String
-    val script: String?
-    val region: String?
-    val baseName: String
+// Note: Since Compose common code introduced PlatformLocale with extension properties with the same names,
+// we had to change the names of the properties in kotlin to avoid the name shadowing.
+external class IntlLocale {
+    @JsName("language")
+    val _language: String
+    @JsName("script")
+    val _script: String?
+    @JsName("region")
+    val _region: String?
+    @JsName("baseName")
+    val _baseName: String
 }
 
 internal fun parseLanguageTagToIntlLocale(languageTag: String): IntlLocale = js("new Intl.Locale(languageTag)")
