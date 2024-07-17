@@ -120,11 +120,11 @@ public class androidx/compose/foundation/ContextMenuItem {
 }
 
 public final class androidx/compose/foundation/ContextMenuProvider_desktopKt {
-	public static final fun ContextMenuArea (Lkotlin/jvm/functions/Function0;Landroidx/compose/foundation/ContextMenuState;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;I)V
 	public static final fun ContextMenuArea (Lkotlin/jvm/functions/Function0;Landroidx/compose/foundation/ContextMenuState;ZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 	public static final fun ContextMenuDataProvider (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;I)V
 	public static final fun contextMenuOpenDetector (Landroidx/compose/ui/Modifier;Ljava/lang/Object;ZLkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun contextMenuOpenDetector$default (Landroidx/compose/ui/Modifier;Ljava/lang/Object;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
+	public static final fun getLocalContextMenuData ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 	public static final fun getLocalContextMenuRepresentation ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 }
 
@@ -147,6 +147,9 @@ public abstract class androidx/compose/foundation/ContextMenuState$Status {
 public final class androidx/compose/foundation/ContextMenuState$Status$Closed : androidx/compose/foundation/ContextMenuState$Status {
 	public static final field $stable I
 	public static final field INSTANCE Landroidx/compose/foundation/ContextMenuState$Status$Closed;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class androidx/compose/foundation/ContextMenuState$Status$Open : androidx/compose/foundation/ContextMenuState$Status {
@@ -1901,8 +1904,8 @@ public final class androidx/compose/foundation/text/ComposableSingletons$CoreTex
 }
 
 public final class androidx/compose/foundation/text/ContextMenu_desktopKt {
+	public static final fun TextContextMenuArea (Landroidx/compose/foundation/text/TextContextMenu$TextManager;Lkotlin/jvm/functions/Function0;Landroidx/compose/foundation/ContextMenuState;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;I)V
 	public static final fun getLocalTextContextMenu ()Landroidx/compose/runtime/ProvidableCompositionLocal;
-	public static final fun textAreaContextMenuOpenDetector (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/text/TextContextMenu$TextManager;Landroidx/compose/foundation/ContextMenuState;)Landroidx/compose/ui/Modifier;
 }
 
 public final class androidx/compose/foundation/text/InlineTextContent {

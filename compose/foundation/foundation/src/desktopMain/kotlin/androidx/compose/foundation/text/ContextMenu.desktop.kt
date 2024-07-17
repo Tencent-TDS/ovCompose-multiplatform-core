@@ -17,6 +17,7 @@
 package androidx.compose.foundation.text
 
 import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuDataProvider
 import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.ContextMenuState
 import androidx.compose.foundation.DesktopPlatform
@@ -229,10 +230,10 @@ interface TextContextMenu {
                     )
                 }
 
-                ContextMenuArea(
+                TextContextMenuArea(
+                    textManager = textManager,
                     items = items,
                     state = state,
-                    modifier = Modifier.textAreaContextMenuOpenDetector(textManager, state),
                     content = content
                 )
             }
@@ -261,11 +262,12 @@ class JPopupTextMenu(
                 createMenu(textManager, it)
             }
         ) {
-            // We pass emptyList, but it will be merged with the other custom items defined via ContextMenuDataProvider, and passed to createMenu
-            ContextMenuArea(
+            TextContextMenuArea(
+                textManager = textManager,
+                // We pass emptyList, but it will be merged with the other custom items defined via
+                // ContextMenuDataProvider, and passed to createMenu
                 items = { emptyList() },
                 state = state,
-                modifier = Modifier.textAreaContextMenuOpenDetector(textManager, state),
                 content = content
             )
         }
@@ -273,20 +275,33 @@ class JPopupTextMenu(
 }
 
 /**
- * The standard trigger of context menu opening in a [TextContextMenu.Area].
+ * The context menu area for textual content.
  *
  * @param textManager The [TextManager] associated with the area.
+ * @param items List of context menu items. Final context menu contains all items from descendant
+ * [ContextMenuArea] and [ContextMenuDataProvider].
  * @param state The [ContextMenuState] whose opening to trigger.
+ * @param content The content of the [ContextMenuArea].
  */
 @ExperimentalFoundationApi
-fun Modifier.textAreaContextMenuOpenDetector(
+@Composable
+fun TextContextMenuArea(
     textManager: TextManager,
+    items: () -> List<ContextMenuItem>,
     state: ContextMenuState,
-): Modifier = contextMenuOpenDetector(
-    key = Pair(textManager, state)
-) { pointerPosition ->
-    if (DesktopPlatform.Current == DesktopPlatform.MacOS) {
-        textManager.selectWordAtPositionIfNotAlreadySelected(pointerPosition)
-    }
-    state.status = ContextMenuState.Status.Open(Rect(pointerPosition, 0f))
+    content: @Composable () -> Unit
+) {
+    ContextMenuArea(
+        items = items,
+        state = state,
+        modifier = Modifier.contextMenuOpenDetector(
+            key = Pair(textManager, state)
+        ) { pointerPosition ->
+            if (DesktopPlatform.Current == DesktopPlatform.MacOS) {
+                textManager.selectWordAtPositionIfNotAlreadySelected(pointerPosition)
+            }
+            state.status = ContextMenuState.Status.Open(Rect(pointerPosition, 0f))
+        },
+        content = content
+    )
 }

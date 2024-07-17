@@ -76,7 +76,7 @@ fun ContextMenuArea(
  * @param content The content of the [ContextMenuArea].
  */
 @Composable
-fun ContextMenuArea(
+internal fun ContextMenuArea(
     items: () -> List<ContextMenuItem>,
     state: ContextMenuState,
     modifier: Modifier,
@@ -123,7 +123,10 @@ internal fun ContextMenuDataProvider(
     }
 }
 
-private val LocalContextMenuData = staticCompositionLocalOf<ContextMenuData?> {
+/**
+ * The composition local for specifying the local [ContextMenuData].
+ */
+val LocalContextMenuData = staticCompositionLocalOf<ContextMenuData?> {
     null
 }
 
@@ -280,7 +283,7 @@ class ContextMenuState {
             }
         }
 
-        object Closed : Status()
+        data object Closed : Status()
     }
 
     var status: Status by mutableStateOf(Status.Closed)
