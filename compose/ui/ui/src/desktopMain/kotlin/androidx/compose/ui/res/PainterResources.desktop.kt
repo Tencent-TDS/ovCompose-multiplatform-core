@@ -50,7 +50,7 @@ import org.xml.sax.InputSource
  * @param loader  resources loader
  * @return [Painter] used for drawing the loaded resource
  */
-@OptIn(ExperimentalComposeUiApi::class)
+@Deprecated("Migrate to the compose resources library")
 @Composable
 fun painterResource(
     resourcePath: String
@@ -59,7 +59,7 @@ fun painterResource(
     ResourceLoader.Default
 )
 
-@ExperimentalComposeUiApi
+@Deprecated("Migrate to the compose resources library")
 @Composable
 fun painterResource(
     resourcePath: String,

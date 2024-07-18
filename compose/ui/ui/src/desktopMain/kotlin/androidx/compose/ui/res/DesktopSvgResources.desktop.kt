@@ -49,6 +49,7 @@ import org.jetbrains.skia.svg.SVGPreserveAspectRatioAlign
  * will be drawn with the specified size, density will have no effect.
  * @return the decoded SVG image associated with the resource
  */
+@Deprecated("Migrate to the compose resources library")
 fun loadSvgPainter(
     inputStream: InputStream,
     density: Density

@@ -29,5 +29,6 @@ import org.jetbrains.skia.Image
  * stream, but stream will not be closed after this method.
  * @return the decoded SVG image associated with the resource
  */
+@Deprecated("Migrate to the compose resources library")
 fun loadImageBitmap(inputStream: InputStream): ImageBitmap =
     Image.makeFromEncoded(inputStream.readAllBytes()).toComposeImageBitmap()

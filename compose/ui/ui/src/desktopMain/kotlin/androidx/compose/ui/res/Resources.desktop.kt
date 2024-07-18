@@ -33,6 +33,7 @@ import java.io.FileInputStream
  * @throws IllegalArgumentException if there is no [resourcePath] in resources
  */
 @ExperimentalComposeUiApi
+@Deprecated("Migrate to the compose resources library")
 internal inline fun <T> useResource(
     resourcePath: String,
     loader: ResourceLoader,
@@ -49,6 +50,7 @@ internal inline fun <T> useResource(
  *
  * @throws IllegalArgumentException if there is no [resourcePath] in resources
  */
+@Deprecated("Migrate to the compose resources library")
 inline fun <T> useResource(
     resourcePath: String,
     block: (InputStream) -> T
@@ -64,6 +66,7 @@ inline fun <T> useResource(
  */
 @PublishedApi
 @ExperimentalComposeUiApi
+@Deprecated("Migrate to the compose resources library")
 internal fun openResource(
     resourcePath: String,
     loader: ResourceLoader
@@ -79,7 +82,7 @@ internal fun openResource(
  * @throws IllegalArgumentException if there is no [resourcePath] in resources
  */
 @PublishedApi
-@OptIn(ExperimentalComposeUiApi::class)
+@Deprecated("Migrate to the compose resources library")
 internal fun openResource(
     resourcePath: String,
 ): InputStream {
@@ -94,7 +97,7 @@ internal fun openResource(
  * Also the resource should be always available to load, and if you need to handle exceptions,
  * it is better to use these functions as well.
  */
-@ExperimentalComposeUiApi
+@Deprecated("Migrate to the compose resources library")
 interface ResourceLoader {
     companion object {
         /**
@@ -111,7 +114,7 @@ interface ResourceLoader {
 /**
  * Resource loader based on JVM current context class loader.
  */
-@ExperimentalComposeUiApi
+@Deprecated("Migrate to the compose resources library")
 class ClassLoaderResourceLoader : ResourceLoader {
     override fun load(resourcePath: String): InputStream {
         // TODO(https://github.com/JetBrains/compose-jb/issues/618): probably we shouldn't use
@@ -126,7 +129,7 @@ class ClassLoaderResourceLoader : ResourceLoader {
 /**
  * Resource loader from the file system relative to a certain root location.
  */
-@ExperimentalComposeUiApi
+@Deprecated("Migrate to the compose resources library")
 class FileResourceLoader(val root: File) : ResourceLoader {
     override fun load(resourcePath: String): InputStream {
         return FileInputStream(File(root, resourcePath))
