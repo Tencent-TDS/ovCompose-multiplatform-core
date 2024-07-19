@@ -22,6 +22,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.State
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -145,6 +147,10 @@ private fun <T : Any> UIKitInteropLayout(
  * @param onResize May be used to custom resize logic.
  * @param interactive If true, then user touches will be passed to this UIView
  * @param accessibilityEnabled If `true`, then the view will be visible to accessibility services.
+ * @param areTouchesDelayed If `true`, then the touches reception will be delayed
+ * for a while until a user holds a pointer down for a certain amount of time to give Compose a chance
+ * to process and intercept the touches. If `false`, the view will receive touches immediately and
+ * Compose will not be able to handle them. Default is `true`.
  *
  * If this Composable is within a modifier chain that merges
  * the semantics of its children (such as `Modifier.clickable`), the merged subtree data will be ignored in favor of
@@ -171,6 +177,7 @@ fun <T : UIView> UIKitView(
     onResize: (view: T, rect: CValue<CGRect>) -> Unit = DefaultViewResize,
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true,
+    areTouchesDelayed: Boolean = true
 ) {
     val interopContainer = LocalInteropContainer.current
     val interopViewHolder = remember {
@@ -178,7 +185,8 @@ fun <T : UIView> UIKitView(
             container = interopContainer,
             createView = factory,
             onResize = onResize,
-            onRelease = onRelease
+            onRelease = onRelease,
+            areTouchesDelayed = areTouchesDelayed
         )
     }
 
@@ -204,6 +212,10 @@ fun <T : UIView> UIKitView(
  * @param onResize May be used to custom resize logic.
  * @param interactive If true, then user touches will be passed to this UIViewController
  * @param accessibilityEnabled If `true`, then the [UIViewController.view] will be visible to accessibility services.
+ * @param areTouchesDelayed If `true`, then the touches reception will be delayed
+ * for a while until a user holds a pointer down for a certain amount of time to give Compose a chance
+ * to process and intercept the touches. If `false`, the view will receive touches immediately and
+ * Compose will not be able to handle them. Default is `true`.
  *
  * If this Composable is within a modifier chain that merges the semantics of its children (such as `Modifier.clickable`),
  * the merged subtree data will be ignored in favor of
@@ -232,6 +244,7 @@ fun <T : UIViewController> UIKitViewController(
     onResize: (viewController: T, rect: CValue<CGRect>) -> Unit = DefaultViewControllerResize,
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true,
+    areTouchesDelayed: Boolean = true
 ) {
     val interopContainer = LocalInteropContainer.current
     val rootViewController = LocalUIViewController.current
@@ -241,7 +254,8 @@ fun <T : UIViewController> UIKitViewController(
             createViewController = factory,
             rootViewController = rootViewController,
             onResize = onResize,
-            onRelease = onRelease
+            onRelease = onRelease,
+            areTouchesDelayed = areTouchesDelayed
         )
     }
 
@@ -267,6 +281,7 @@ private abstract class UIKitInteropViewHolder<T : Any>(
     val createUserComponent: () -> T,
     val onResize: (T, rect: CValue<CGRect>) -> Unit,
     val onRelease: (T) -> Unit,
+    areTouchesDelayed: Boolean
 ) : InteropViewHolder(container, group = UIKitInteropViewGroup()) {
     private var currentUnclippedRect: IntRect? = null
     private var currentClippedRect: IntRect? = null
@@ -365,7 +380,8 @@ private class UIKitViewHolder<T : UIView>(
     container: InteropContainer,
     createView: () -> T,
     onResize: (T, rect: CValue<CGRect>) -> Unit,
-    onRelease: (T) -> Unit
+    onRelease: (T) -> Unit,
+    areTouchesDelayed: Boolean
 ) : UIKitInteropViewHolder<T>(container, createView, onResize, onRelease) {
     override fun getInteropView(): InteropView? =
         userComponent
@@ -383,8 +399,9 @@ private class UIKitViewControllerHolder<T : UIViewController>(
     createViewController: () -> T,
     private val rootViewController: UIViewController,
     onResize: (T, rect: CValue<CGRect>) -> Unit,
-    onRelease: (T) -> Unit
-) : UIKitInteropViewHolder<T>(container, createViewController, onResize, onRelease) {
+    onRelease: (T) -> Unit,
+    areTouchesDelayed: Boolean
+) : UIKitInteropViewHolder<T>(container, createViewController, onResize, onRelease, areTouchesDelayed) {
     override fun getInteropView(): InteropView? =
         userComponent.view
 

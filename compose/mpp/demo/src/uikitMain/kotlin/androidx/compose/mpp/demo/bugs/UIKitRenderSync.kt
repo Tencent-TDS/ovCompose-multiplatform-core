@@ -78,7 +78,8 @@ val UIKitRenderSync = Screen.Example("UIKitRenderSync") {
                     factory = {
                         MKMapView()
                     },
-                    modifier = Modifier.fillMaxWidth().height(200.dp)
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    areTouchesDelayed = false
                 )
             } else {
                 when (index % 5) {
