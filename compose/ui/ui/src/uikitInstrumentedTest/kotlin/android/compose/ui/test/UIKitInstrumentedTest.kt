@@ -82,8 +82,7 @@ internal class UIKitInstrumentedTest {
         var onDraw = false
         composeContainer = ComposeContainer(
             configuration = ComposeUIViewControllerConfiguration().apply {
-                // TODO: setup proper plist for instrumented test
-                //   https://youtrack.jetbrains.com/issue/CMP-5706/iOS-setup-proper-plist-in-instrumented-tests
+                // TODO: setup proper plist for instrumented test and remove next line https://youtrack.jetbrains.com/issue/CMP-5706/iOS-setup-proper-plist-in-instrumented-tests
                 enforceStrictPlistSanityCheck = false
                 configure()
             },
