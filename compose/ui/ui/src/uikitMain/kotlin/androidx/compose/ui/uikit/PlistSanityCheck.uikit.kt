@@ -43,7 +43,7 @@ internal object PlistSanityCheck {
                             This will result in an inadequate performance on devices with high refresh rate. 
                             Add `<key>CADisableMinimumFrameDurationOnPhone</key><true/>` entry to `Info.plist` to fix this error. 
                             If you don't have a separate plist file, add the entry to the target from within Xcode: Project -> Targets -> Info -> Custom iOS Target Properties.                            
-                            Or set `ComposeUIViewControllerConfiguration.enforceStrictPlistSanityCheck` to false, if it's intended.                            
+                            Or set `ComposeUIViewController(configure = { enforceStrictPlistSanityCheck = false }) { .. }`, if it's intended.                            
                         """.trimIndent()
                         println(message)
                         error(message)
