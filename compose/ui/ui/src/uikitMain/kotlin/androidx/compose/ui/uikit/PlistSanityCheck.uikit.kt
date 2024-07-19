@@ -46,9 +46,7 @@ internal object PlistSanityCheck {
                             Or set `ComposeUIViewControllerConfiguration.enforceStrictPlistSanityCheck` to false, if it's intended.                            
                         """.trimIndent()
                         println(message)
-                        terminateWithUnhandledException(
-                            IllegalStateException(message)
-                        )
+                        error(message)
                     } else {
                         println("Warning: `Info.plist` doesn't have a valid `CADisableMinimumFrameDurationOnPhone` entry. Framerate will be restricted to 60hz on iPhones. To support high frequency rendering on iPhones, add `<key>CADisableMinimumFrameDurationOnPhone</key><true/>` entry to `Info.plist`.")
                     }
