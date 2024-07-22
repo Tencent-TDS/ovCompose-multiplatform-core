@@ -26,18 +26,21 @@ import platform.darwin.dispatch_get_global_queue
 internal object PlistSanityCheck {
     private val isPerformed = atomic(false)
 
-    fun performIfNeeded(enforceStrictPlistSanityCheck: Boolean) {
+    fun performIfNeeded(isPhone: Boolean) {
         if (isPerformed.compareAndSet(expect = false, update = true)) {
             dispatch_async(dispatch_get_global_queue(
                 DISPATCH_QUEUE_PRIORITY_LOW.toLong(),
                 0u
             )) {
-                val entry = NSBundle
+                val bundle = NSBundle
                     .mainBundle
-                    .objectForInfoDictionaryKey("CADisableMinimumFrameDurationOnPhone") as? NSNumber
 
-                if (entry?.boolValue != true) {
-                    if (enforceStrictPlistSanityCheck) {
+                // CADisableMinimumFrameDurationOnPhone is only applicable to iPhone
+                if (isPhone) {
+                    val displayLinkEntry = bundle
+                        .objectForInfoDictionaryKey("CADisableMinimumFrameDurationOnPhone") as? NSNumber
+
+                    if (displayLinkEntry?.boolValue != true) {
                         val message = """
                             Error: `Info.plist` doesn't have a valid `CADisableMinimumFrameDurationOnPhone` entry. 
                             This will result in an inadequate performance on devices with high refresh rate. 
@@ -47,8 +50,6 @@ internal object PlistSanityCheck {
                         """.trimIndent()
                         println(message)
                         error(message)
-                    } else {
-                        println("Warning: `Info.plist` doesn't have a valid `CADisableMinimumFrameDurationOnPhone` entry. Framerate will be restricted to 60hz on iPhones. To support high frequency rendering on iPhones, add `<key>CADisableMinimumFrameDurationOnPhone</key><true/>` entry to `Info.plist`.")
                     }
                 }
             }

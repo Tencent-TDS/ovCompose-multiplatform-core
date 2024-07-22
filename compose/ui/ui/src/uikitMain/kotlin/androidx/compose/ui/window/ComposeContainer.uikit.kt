@@ -82,9 +82,11 @@ import platform.UIKit.UIContentSizeCategoryExtraSmall
 import platform.UIKit.UIContentSizeCategoryLarge
 import platform.UIKit.UIContentSizeCategoryMedium
 import platform.UIKit.UIContentSizeCategorySmall
+import platform.UIKit.UIDevice
 import platform.UIKit.UIStatusBarAnimation
 import platform.UIKit.UIStatusBarStyle
 import platform.UIKit.UITraitCollection
+import platform.UIKit.UIUserInterfaceIdiomPhone
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
 import platform.UIKit.UIView
@@ -185,7 +187,13 @@ internal class ComposeContainer(
 
     override fun viewDidLoad() {
         super.viewDidLoad()
-        PlistSanityCheck.performIfNeeded(configuration.enforceStrictPlistSanityCheck)
+
+        if (configuration.enforceStrictPlistSanityCheck) {
+            PlistSanityCheck.performIfNeeded(
+                isPhone = UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone
+            )
+        }
+
         configuration.delegate.viewDidLoad()
         systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
     }
