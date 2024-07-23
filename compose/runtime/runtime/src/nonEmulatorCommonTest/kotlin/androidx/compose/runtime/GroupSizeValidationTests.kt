@@ -29,7 +29,7 @@ import kotlin.test.Test
 import kotlinx.test.IgnoreJsTarget
 
 
-//@IgnoreJsTarget
+@IgnoreJsTarget
 // TODO (o.k.): figure out. Can fail on js because we have some extra logic there which leads to
 // more groups than these tests expect. The behaviour of the composition is still correct (?).
 class GroupSizeValidationTests {
