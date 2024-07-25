@@ -135,9 +135,9 @@ public fun <T : Component> SwingPanel(
 
             override fun focusLost(e: FocusEvent) = Unit
         }
-        interopViewHolder.group.addFocusListener(focusListener)
+        interopContainer.root.addFocusListener(focusListener)
         onDispose {
-            interopViewHolder.group.removeFocusListener(focusListener)
+            interopContainer.root.removeFocusListener(focusListener)
         }
     }
 
