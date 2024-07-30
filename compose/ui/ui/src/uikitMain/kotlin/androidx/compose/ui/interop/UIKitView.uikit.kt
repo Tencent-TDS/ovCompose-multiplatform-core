@@ -282,7 +282,7 @@ private abstract class UIKitInteropViewHolder<T : Any>(
     val onResize: (T, rect: CValue<CGRect>) -> Unit,
     val onRelease: (T) -> Unit,
     areTouchesDelayed: Boolean
-) : InteropViewHolder(container, group = UIKitInteropViewGroup()) {
+) : InteropViewHolder(container, group = UIKitInteropViewGroup(areTouchesDelayed)) {
     private var currentUnclippedRect: IntRect? = null
     private var currentClippedRect: IntRect? = null
     lateinit var userComponent: T
@@ -382,8 +382,8 @@ private class UIKitViewHolder<T : UIView>(
     onResize: (T, rect: CValue<CGRect>) -> Unit,
     onRelease: (T) -> Unit,
     areTouchesDelayed: Boolean
-) : UIKitInteropViewHolder<T>(container, createView, onResize, onRelease) {
-    override fun getInteropView(): InteropView? =
+) : UIKitInteropViewHolder<T>(container, createView, onResize, onRelease, areTouchesDelayed) {
+    override fun getInteropView(): InteropView =
         userComponent
 
     override fun setupViewHierarchy() {
@@ -402,11 +402,12 @@ private class UIKitViewControllerHolder<T : UIViewController>(
     onRelease: (T) -> Unit,
     areTouchesDelayed: Boolean
 ) : UIKitInteropViewHolder<T>(container, createViewController, onResize, onRelease, areTouchesDelayed) {
-    override fun getInteropView(): InteropView? =
+    override fun getInteropView(): InteropView =
         userComponent.view
 
     override fun setupViewHierarchy() {
         rootViewController.addChildViewController(userComponent)
+        //userComponent.wil
         group.addSubview(userComponent.view)
         userComponent.didMoveToParentViewController(rootViewController)
     }

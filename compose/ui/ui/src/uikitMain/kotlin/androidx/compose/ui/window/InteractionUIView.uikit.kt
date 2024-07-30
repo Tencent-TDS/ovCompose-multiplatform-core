@@ -16,11 +16,11 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.ui.interop.InteropWrappingView
 import androidx.compose.ui.platform.CUPERTINO_TOUCH_SLOP
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizer
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizerHandlerProtocol
 import androidx.compose.ui.viewinterop.InteropView
+import androidx.compose.ui.viewinterop.UIKitInteropViewGroup
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
@@ -79,7 +79,7 @@ private enum class InteractionUIViewHitTestResult {
 }
 
 /**
- * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles touch events and forwards
+ * Implementation of [CMPGestureRecognizer] that handles touch events and forwards
  * them. The main difference from the original [UIView] touches based is that it's built on top of
  * [CMPGestureRecognizer], which play differently with UIKit touches processing and are required
  * for the correct handling of the touch events in interop scenarios, because they rely on
@@ -552,7 +552,7 @@ internal class InteractionUIView(
                 // If the hit-tested view is not a descendant of [InteropWrappingView], then it
                 // should be considered as a view that doesn't want to cooperate with Compose.
 
-                val areTouchesDelayed = result.findInteropWrappingView()?.areTouchesDelayed ?: false
+                val areTouchesDelayed = result.interopViewGroup?.areTouchesDelayed ?: false
 
                 if (areTouchesDelayed) {
                     InteractionUIViewHitTestResult.COOPERATIVE_CHILD_VIEW
@@ -566,17 +566,18 @@ internal class InteractionUIView(
 }
 
 /**
- * There is no way to associate [InteropWrappingView.areTouchesDelayed] with a given hitTest query.
- * This extension function allows to find the nearest [InteropWrappingView] up the view hierarchy
+ * There is no way to associate [UIKitInteropViewGroup.areTouchesDelayed] with a given hitTest query.
+ * This extension property allows to find the nearest [UIKitInteropViewGroup] up the view hierarchy
  * and request the value retroactively.
  */
-private fun UIView.findInteropWrappingView(): InteropWrappingView? {
-    var view: UIView? = this
-    while (view != null) {
-        if (view is InteropWrappingView) {
-            return view
+private val UIView.interopViewGroup: UIKitInteropViewGroup?
+    get() {
+        var view: UIView? = this
+        while (view != null) {
+            if (view is UIKitInteropViewGroup) {
+                return view
+            }
+            view = view.superview
         }
-        view = view.superview
+        return null
     }
-    return null
-}
