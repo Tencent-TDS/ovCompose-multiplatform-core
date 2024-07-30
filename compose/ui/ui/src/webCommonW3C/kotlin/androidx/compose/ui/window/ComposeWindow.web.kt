@@ -513,26 +513,6 @@ internal class ComposeWindow(
         )
     }
 
-    fun onTouchEventXXX(
-        eventType: PointerEventType,
-        pointers: List<ComposeScenePointer>,
-        buttons: PointerButtons = PointerButtons(),
-        keyboardModifiers: PointerKeyboardModifiers = PointerKeyboardModifiers(),
-        scrollDelta: Offset = Offset.Zero,
-        nativeEvent: Any? = null,
-        button: PointerButton? = null,
-    ) {
-        scene.sendPointerEvent(
-            eventType = eventType,
-            pointers = pointers,
-            buttons = buttons,
-            keyboardModifiers = keyboardModifiers,
-            scrollDelta = scrollDelta,
-            nativeEvent = nativeEvent,
-            button = button
-        )
-    }
-
     private val MouseEvent.offset get() = Offset(
         x = offsetX.toFloat(),
         y = offsetY.toFloat()
