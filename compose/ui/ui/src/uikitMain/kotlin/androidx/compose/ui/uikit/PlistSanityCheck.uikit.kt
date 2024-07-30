@@ -46,7 +46,6 @@ internal object PlistSanityCheck {
                             If you don't have a separate plist file, add the entry to the target from within Xcode: Project -> Targets -> Info -> Custom iOS Target Properties.                            
                             Or set `ComposeUIViewController(configure = { enforceStrictPlistSanityCheck = false }) { .. }`, if it's intended.                            
                         """.trimIndent()
-                    println(message)
                     error(message)
                 }
             }
