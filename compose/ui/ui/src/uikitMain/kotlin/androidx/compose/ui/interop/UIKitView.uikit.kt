@@ -407,7 +407,6 @@ private class UIKitViewControllerHolder<T : UIViewController>(
 
     override fun setupViewHierarchy() {
         rootViewController.addChildViewController(userComponent)
-        //userComponent.wil
         group.addSubview(userComponent.view)
         userComponent.didMoveToParentViewController(rootViewController)
     }
