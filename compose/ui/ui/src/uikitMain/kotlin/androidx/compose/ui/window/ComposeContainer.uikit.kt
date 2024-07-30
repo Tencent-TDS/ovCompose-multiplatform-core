@@ -189,9 +189,7 @@ internal class ComposeContainer(
         super.viewDidLoad()
 
         if (configuration.enforceStrictPlistSanityCheck) {
-            PlistSanityCheck.performIfNeeded(
-                isPhone = UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPhone
-            )
+            PlistSanityCheck.performIfNeeded()
         }
 
         configuration.delegate.viewDidLoad()
