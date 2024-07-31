@@ -26,11 +26,28 @@ import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
+internal sealed interface UIKitInteropElement {
+    val view: UIView
+
+    class View(override val view: UIView) : UIKitInteropElement
+
+    class ViewController(private val viewController: UIViewController) : UIKitInteropElement {
+        override val view: UIView
+            get() = viewController.view
+    }
+}
+
 /**
- * On iOS, [InteropView] is a typealias for [UIView]. Interop entity can in fact be
- * a [UIViewController], in this case it will be wrapped in a [UIView] anyway.
+ * On iOS, [InteropView] is encapsulating the underlying [UIKitInteropElement], which is either
+ * a [UIView] or a [UIViewController]
  */
-actual typealias InteropView = UIView
+actual class InteropView internal constructor(
+    internal val element: UIKitInteropElement
+) {
+    internal constructor(view: UIView) : this(UIKitInteropElement.View(view))
+
+    internal constructor(viewController: UIViewController) : this(UIKitInteropElement.ViewController(viewController))
+}
 
 @Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-37316
 internal actual typealias InteropViewGroup = UIView
@@ -43,7 +60,7 @@ internal actual typealias InteropViewGroup = UIView
  * in attempt to intercept touches, or should get delivered to the interop view immediately without
  * Compose being aware of them.
  */
-internal class UIKitInteropViewGroup(
+internal class InteropWrappingView(
     val areTouchesDelayed: Boolean
 ) : CMPInteropWrappingView(frame = CGRectZero.readValue()) {
     var actualAccessibilityContainer: Any? = null
@@ -59,7 +76,7 @@ internal class UIKitInteropViewGroup(
     }
 }
 
-internal val InteropViewSemanticsKey = AccessibilityKey<UIKitInteropViewGroup>(
+internal val InteropViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
     name = "InteropView",
     mergePolicy = { parentValue, childValue ->
         if (parentValue == null) {
@@ -85,7 +102,7 @@ private var SemanticsPropertyReceiver.interopView by InteropViewSemanticsKey
  */
 internal fun Modifier.interopViewSemantics(enabled: Boolean, interopViewHolder: InteropViewHolder) =
     if (enabled) {
-        this.semantics { interopView = interopViewHolder.group as UIKitInteropViewGroup }
+        this.semantics { interopView = interopViewHolder.group as InteropWrappingView }
     } else {
         this
     }

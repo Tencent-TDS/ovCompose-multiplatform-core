@@ -19,6 +19,7 @@ package androidx.compose.ui.viewinterop
 import androidx.compose.runtime.ComposeNodeLifecycleCallback
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.node.LayoutNode
 import kotlinx.atomicfu.atomic
 
 /**
@@ -40,9 +41,28 @@ internal open class InteropViewHolder(
     override fun onDeactivate() {}
     override fun onRelease() {}
 
+    val layoutNode: LayoutNode = throw NotImplementedError()
+
     // TODO: Try to share more with [AndroidViewHolder]
 
     open fun dispatchToView(pointerEvent: PointerEvent) {
         throw NotImplementedError()
     }
+}
+
+/**
+ * On some platforms the interop element is not necessarily a view, but a supervising entity (e.g.
+ * UIViewController on iOS). This interface is used to provide a common way to access the
+ * InteropView itself.
+ */
+internal interface TypedInteropViewProxy {
+    val interopView: InteropView
+}
+
+internal open class TypedInteropViewHolder<T: TypedInteropViewProxy>(
+    val proxy: T,
+    interopContainer: InteropContainer,
+    group: InteropViewGroup
+) : InteropViewHolder(interopContainer, group) {
+    override fun getInteropView(): InteropView = proxy.interopView
 }

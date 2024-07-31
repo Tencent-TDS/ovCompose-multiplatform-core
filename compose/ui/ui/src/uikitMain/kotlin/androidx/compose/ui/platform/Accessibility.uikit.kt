@@ -32,7 +32,7 @@ import androidx.compose.ui.uikit.utils.CMPAccessibilityContainer
 import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.viewinterop.InteropViewSemanticsKey
-import androidx.compose.ui.viewinterop.UIKitInteropViewGroup
+import androidx.compose.ui.viewinterop.InteropWrappingView
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.measureTime
 import kotlinx.cinterop.CValue
@@ -119,7 +119,7 @@ private object CachedAccessibilityPropertyKeys {
     val accessibilityTraits = CachedAccessibilityPropertyKey<UIAccessibilityTraits>()
     val accessibilityValue = CachedAccessibilityPropertyKey<String?>()
     val accessibilityFrame = CachedAccessibilityPropertyKey<CValue<CGRect>>()
-    val interopWrappingView = CachedAccessibilityPropertyKey<UIKitInteropViewGroup?>()
+    val interopWrappingView = CachedAccessibilityPropertyKey<InteropWrappingView?>()
 }
 
 /**
@@ -194,7 +194,7 @@ private class AccessibilityElement(
      * Cached InteropWrappingView for the element if it's present. AX services will be redirected
      * to this view if it's not null, semantics data for this element will be ignored.
      */
-    private val interopView: UIKitInteropViewGroup?
+    private val interopView: InteropWrappingView?
         get() = getOrElse(CachedAccessibilityPropertyKeys.interopWrappingView) {
             cachedConfig.getOrNull(InteropViewSemanticsKey)?.also {
                 it.actualAccessibilityContainer = parent?.accessibilityContainer

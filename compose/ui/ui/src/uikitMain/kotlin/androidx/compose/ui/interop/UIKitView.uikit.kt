@@ -22,8 +22,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.State
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -49,7 +47,7 @@ import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.InteropViewHolder
 import androidx.compose.ui.viewinterop.InteropViewUpdater
 import androidx.compose.ui.viewinterop.LocalInteropContainer
-import androidx.compose.ui.viewinterop.UIKitInteropViewGroup
+import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.interopViewSemantics
 import androidx.compose.ui.viewinterop.pointerInteropFilter
 import androidx.compose.ui.viewinterop.trackInteropPlacement
@@ -272,11 +270,21 @@ private abstract class UIKitInteropViewHolder<T : Any>(
     val onResize: (T, rect: CValue<CGRect>) -> Unit,
     val onRelease: (T) -> Unit,
     areTouchesDelayed: Boolean
-) : InteropViewHolder(container, group = UIKitInteropViewGroup(areTouchesDelayed)) {
+) : InteropViewHolder(container, group = InteropWrappingView(areTouchesDelayed)) {
     private var currentUnclippedRect: IntRect? = null
     private var currentClippedRect: IntRect? = null
     lateinit var userComponent: T
     private lateinit var updater: InteropViewUpdater<T>
+
+    /**
+     * The user component itself is wrapped in a [InteropView] to be used in the Compose hierarchy.
+     * It can be a [UIView] or a [UIViewController] and implementers of this class should provide
+     * the correct tagged type.
+     */
+    val lazyInteropView: InteropView by lazy { toInteropView() }
+
+    override fun getInteropView(): InteropView? =
+        lazyInteropView
 
     /**
      * Set the [InteropViewUpdater.update] lambda.
@@ -364,6 +372,7 @@ private abstract class UIKitInteropViewHolder<T : Any>(
 
     abstract fun setupViewHierarchy()
     abstract fun destroyViewHierarchy()
+    abstract fun toInteropView(): InteropView
 }
 
 private class UIKitViewHolder<T : UIView>(
@@ -373,8 +382,8 @@ private class UIKitViewHolder<T : UIView>(
     onRelease: (T) -> Unit,
     areTouchesDelayed: Boolean
 ) : UIKitInteropViewHolder<T>(container, createView, onResize, onRelease, areTouchesDelayed) {
-    override fun getInteropView(): InteropView =
-        userComponent
+    override fun toInteropView(): InteropView =
+        InteropView(view = userComponent)
 
     override fun setupViewHierarchy() {
         group.addSubview(userComponent)
@@ -392,8 +401,8 @@ private class UIKitViewControllerHolder<T : UIViewController>(
     onRelease: (T) -> Unit,
     areTouchesDelayed: Boolean
 ) : UIKitInteropViewHolder<T>(container, createViewController, onResize, onRelease, areTouchesDelayed) {
-    override fun getInteropView(): InteropView =
-        userComponent.view
+    override fun toInteropView(): InteropView =
+        InteropView(viewController = userComponent)
 
     override fun setupViewHierarchy() {
         rootViewController.addChildViewController(userComponent)

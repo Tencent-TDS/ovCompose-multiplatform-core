@@ -20,7 +20,7 @@ import androidx.compose.ui.platform.CUPERTINO_TOUCH_SLOP
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizer
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizerHandlerProtocol
 import androidx.compose.ui.viewinterop.InteropView
-import androidx.compose.ui.viewinterop.UIKitInteropViewGroup
+import androidx.compose.ui.viewinterop.InteropWrappingView
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
@@ -501,7 +501,7 @@ internal class InteractionUIView(
                 null
             } else {
                 // Find if a scene contains a [InteropViewAnchorModifierNode] at the given point.
-                val interopView = hitTestInteropView(point, withEvent)
+                val interopView = hitTestInteropView(point, withEvent)?.element?.view
 
                 if (interopView == null) {
                     // Native [hitTest] happens after [pointInside] is checked. If hit testing
@@ -552,7 +552,7 @@ internal class InteractionUIView(
                 // If the hit-tested view is not a descendant of [InteropWrappingView], then it
                 // should be considered as a view that doesn't want to cooperate with Compose.
 
-                val areTouchesDelayed = result.interopViewGroup?.areTouchesDelayed ?: false
+                val areTouchesDelayed = result.interopWrappingView?.areTouchesDelayed ?: false
 
                 if (areTouchesDelayed) {
                     InteractionUIViewHitTestResult.COOPERATIVE_CHILD_VIEW
@@ -566,15 +566,15 @@ internal class InteractionUIView(
 }
 
 /**
- * There is no way to associate [UIKitInteropViewGroup.areTouchesDelayed] with a given hitTest query.
- * This extension property allows to find the nearest [UIKitInteropViewGroup] up the view hierarchy
+ * There is no way to associate [InteropWrappingView.areTouchesDelayed] with a given hitTest query.
+ * This extension property allows to find the nearest [InteropWrappingView] up the view hierarchy
  * and request the value retroactively.
  */
-private val UIView.interopViewGroup: UIKitInteropViewGroup?
+private val UIView.interopWrappingView: InteropWrappingView?
     get() {
         var view: UIView? = this
         while (view != null) {
-            if (view is UIKitInteropViewGroup) {
+            if (view is InteropWrappingView) {
                 return view
             }
             view = view.superview
