@@ -147,10 +147,6 @@ private fun <T : Any> UIKitInteropLayout(
  * @param onResize May be used to custom resize logic.
  * @param interactive If true, then user touches will be passed to this UIView
  * @param accessibilityEnabled If `true`, then the view will be visible to accessibility services.
- * @param areTouchesDelayed If `true`, then the touches reception will be delayed
- * for a while until a user holds a pointer down for a certain amount of time to give Compose a chance
- * to process and intercept the touches. If `false`, the view will receive touches immediately and
- * Compose will not be able to handle them. Default is `true`.
  *
  * If this Composable is within a modifier chain that merges
  * the semantics of its children (such as `Modifier.clickable`), the merged subtree data will be ignored in favor of
@@ -176,8 +172,7 @@ fun <T : UIView> UIKitView(
     onRelease: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
     onResize: (view: T, rect: CValue<CGRect>) -> Unit = DefaultViewResize,
     interactive: Boolean = true,
-    accessibilityEnabled: Boolean = true,
-    areTouchesDelayed: Boolean = true
+    accessibilityEnabled: Boolean = true
 ) {
     val interopContainer = LocalInteropContainer.current
     val interopViewHolder = remember {
@@ -186,7 +181,7 @@ fun <T : UIView> UIKitView(
             createView = factory,
             onResize = onResize,
             onRelease = onRelease,
-            areTouchesDelayed = areTouchesDelayed
+            areTouchesDelayed = true
         )
     }
 
@@ -212,10 +207,6 @@ fun <T : UIView> UIKitView(
  * @param onResize May be used to custom resize logic.
  * @param interactive If true, then user touches will be passed to this UIViewController
  * @param accessibilityEnabled If `true`, then the [UIViewController.view] will be visible to accessibility services.
- * @param areTouchesDelayed If `true`, then the touches reception will be delayed
- * for a while until a user holds a pointer down for a certain amount of time to give Compose a chance
- * to process and intercept the touches. If `false`, the view will receive touches immediately and
- * Compose will not be able to handle them. Default is `true`.
  *
  * If this Composable is within a modifier chain that merges the semantics of its children (such as `Modifier.clickable`),
  * the merged subtree data will be ignored in favor of
@@ -243,8 +234,7 @@ fun <T : UIViewController> UIKitViewController(
     onRelease: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
     onResize: (viewController: T, rect: CValue<CGRect>) -> Unit = DefaultViewControllerResize,
     interactive: Boolean = true,
-    accessibilityEnabled: Boolean = true,
-    areTouchesDelayed: Boolean = true
+    accessibilityEnabled: Boolean = true
 ) {
     val interopContainer = LocalInteropContainer.current
     val rootViewController = LocalUIViewController.current
@@ -255,7 +245,7 @@ fun <T : UIViewController> UIKitViewController(
             rootViewController = rootViewController,
             onResize = onResize,
             onRelease = onRelease,
-            areTouchesDelayed = areTouchesDelayed
+            areTouchesDelayed = true
         )
     }
 
