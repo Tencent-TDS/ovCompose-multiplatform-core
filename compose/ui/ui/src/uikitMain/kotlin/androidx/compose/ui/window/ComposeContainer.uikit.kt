@@ -366,6 +366,7 @@ internal class ComposeContainer(
     private fun createMediator(): ComposeSceneMediator {
         val mediator = ComposeSceneMediator(
             container = view,
+            viewController = this,
             configuration = configuration,
             focusStack = focusStack,
             windowContext = windowContext,

@@ -86,7 +86,6 @@ import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.trace
 import androidx.compose.ui.viewinterop.InteropPointerInputModifier
 import androidx.compose.ui.viewinterop.InteropView
-import androidx.compose.ui.viewinterop.interopView
 import androidx.compose.ui.viewinterop.pointerInteropFilter
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.max
@@ -269,7 +268,7 @@ internal class RootNodeOwner(
     }
 
     /**
-     * Perform hit test and return the [interopView] associated with the resulting
+     * Perform hit test and return the [InteropView] associated with the resulting
      * [PointerInputModifierNode] node in case it is a [Modifier.pointerInteropFilter],
      * otherwise null.
      */

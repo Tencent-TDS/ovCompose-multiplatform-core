@@ -51,10 +51,6 @@ import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
-import platform.UIKit.addChildViewController
-import platform.UIKit.didMoveToParentViewController
-import platform.UIKit.removeFromParentViewController
-import platform.UIKit.willMoveToParentViewController
 
 private val STUB_CALLBACK_WITH_RECEIVER: Any.() -> Unit = {}
 private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { rect -> this.setFrame(rect) }
@@ -150,10 +146,6 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     }
 
     abstract fun setUserComponentFrame(rect: CValue<CGRect>)
-
-    abstract fun setupHierarchy()
-
-    abstract fun dismantleHierarchy()
 }
 
 internal class UIKitInteropViewHolder<T : UIView>(
@@ -176,22 +168,18 @@ internal class UIKitInteropViewHolder<T : UIView>(
     isNativeAccessibilityEnabled = isNativeAccessibilityEnabled,
     compositeHashKey = compositeHashKey
 ) {
+    init {
+        // Group will be placed to hierarchy in [InteropContainer.placeInteropView]
+        group.addSubview(interopView.view)
+    }
+
     override fun setUserComponentFrame(rect: CValue<CGRect>) {
         interopView.view.setFrame(rect)
     }
-
-    override fun setupHierarchy() {
-        TODO("Not yet implemented")
-    }
-
-    override fun dismantleHierarchy() {
-        TODO("Not yet implemented")
-    }
 }
 
-internal class UIKitInteropViewControllerHolder<T : UIViewController>(
+internal class InteropUIViewControllerHolder<T : UIViewController>(
     createViewController: () -> T,
-    val parentViewControler: UIViewController,
     interopContainer: UIKitInteropContainer,
     group: InteropViewGroup,
     isInteractive: Boolean,
@@ -210,36 +198,14 @@ internal class UIKitInteropViewControllerHolder<T : UIViewController>(
     isNativeAccessibilityEnabled = isNativeAccessibilityEnabled,
     compositeHashKey = compositeHashKey
 ) {
+    init {
+        // Group will be placed to hierarchy in [InteropContainer.placeInteropView]
+        group.addSubview(interopView.viewController.view)
+    }
+
     override fun setUserComponentFrame(rect: CValue<CGRect>) {
         interopView.viewController.view.setFrame(rect)
     }
-
-    override fun setupHierarchy() {
-        parentViewControler.addChildViewController(interopView.viewController)
-        group.addSubview(interopView.viewController.view)
-        interopView.viewController.didMoveToParentViewController(parentViewControler)
-    }
-
-    override fun dismantleHierarchy() {
-        interopView.viewController.willMoveToParentViewController(null)
-        interopView.viewController.view.removeFromSuperview()
-        interopView.viewController.removeFromParentViewController()
-    }
-}
-
-/**
- * Internal common part of custom layout emitting a node associated with UIKit interop for [UIView] and [UIViewController].
- */
-@Composable
-private fun <T : Any> UIKitInteropLayout(
-    modifier: Modifier,
-    update: (T) -> Unit,
-    background: Color,
-//    interopViewHolder: UIKitInteropViewHolder<T>,
-    interactive: Boolean,
-    accessibilityEnabled: Boolean,
-) {
-    TODO()
 }
 
 /**
@@ -282,18 +248,17 @@ fun <T : UIView> UIKitView(
     accessibilityEnabled: Boolean = true
 ) {
     val compositeKeyHash = currentCompositeKeyHash
+    val interopContainer = LocalInteropContainer.current
     InteropView(
         factory = {
-            val holder = UIKitInteropViewHolder(
+            UIKitInteropViewHolder(
                 createView = factory,
-                interopContainer = LocalInteropContainer.current,
+                interopContainer = interopContainer,
                 group = InteropWrappingView(areTouchesDelayed = true),
                 isInteractive = interactive,
                 isNativeAccessibilityEnabled = accessibilityEnabled,
                 compositeHashKey = compositeKeyHash
             )
-
-            holder
         },
         modifier = modifier,
         onReset = null,

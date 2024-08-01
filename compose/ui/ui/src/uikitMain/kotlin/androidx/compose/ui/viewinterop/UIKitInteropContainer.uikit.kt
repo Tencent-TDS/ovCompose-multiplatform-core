@@ -17,6 +17,11 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.ui.node.OwnerSnapshotObserver
+import platform.UIKit.UIViewController
+import platform.UIKit.addChildViewController
+import platform.UIKit.didMoveToParentViewController
+import platform.UIKit.removeFromParentViewController
+import platform.UIKit.willMoveToParentViewController
 
 /**
  * A container that controls interop views/components.
@@ -26,6 +31,7 @@ import androidx.compose.ui.node.OwnerSnapshotObserver
  */
 internal class UIKitInteropContainer(
     override val root: InteropViewGroup,
+    val viewController: UIViewController,
     val requestRedraw: () -> Unit
 ) : InteropContainer {
     override var rootModifier: TrackInteropPlacementModifierNode? = null
@@ -78,12 +84,26 @@ internal class UIKitInteropContainer(
 
         val countBelow = countInteropComponentsBelow(holder).toLong()
 
-
         // Interop view controllers need special treatment.
         val interopView = holder.getInteropView()
 
-        changeInteropViewLayout {
-            root.insertSubview(holder.group, countBelow)
+        // Conditional downcast to InteropUIViewController to access the viewController property.
+        if (interopView is InteropUIViewController) {
+            val childViewController = interopView.viewController
+            changeInteropViewLayout {
+                val isAdded = childViewController.parentViewController == null
+
+                if (isAdded) viewController.addChildViewController(childViewController)
+
+                root.insertSubview(interopView.viewController.view, countBelow)
+
+                if (isAdded) childViewController.didMoveToParentViewController(viewController)
+
+            }
+        } else {
+            changeInteropViewLayout {
+                root.insertSubview(holder.group, countBelow)
+            }
         }
     }
 
@@ -94,8 +114,22 @@ internal class UIKitInteropContainer(
             snapshotObserver.stopObserving()
         }
 
-        changeInteropViewLayout {
-            holder.group.removeFromSuperview()
+        // Interop view controllers need special treatment.
+        val interopView = holder.getInteropView()
+
+        // Conditional downcast to InteropUIViewController to access the viewController property.
+        if (interopView is InteropUIViewController) {
+            val childViewController = interopView.viewController
+
+            changeInteropViewLayout {
+                childViewController.willMoveToParentViewController(null)
+                childViewController.view.removeFromSuperview()
+                childViewController.removeFromParentViewController()
+            }
+        } else {
+            changeInteropViewLayout {
+                holder.group.removeFromSuperview()
+            }
         }
     }
 

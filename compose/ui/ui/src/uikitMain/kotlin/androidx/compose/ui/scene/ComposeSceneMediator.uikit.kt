@@ -102,6 +102,7 @@ import platform.UIKit.UIPress
 import platform.UIKit.UITouch
 import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
+import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.UIKit.UIWindow
 
@@ -206,6 +207,7 @@ private class ComposeSceneMediatorRootUIView : UIView(CGRectZero.readValue()) {
 
 internal class ComposeSceneMediator(
     private val container: UIView,
+    viewController: UIViewController,
     private val configuration: ComposeUIViewControllerConfiguration,
     private val focusStack: FocusStack<UIView>?,
     private val windowContext: PlatformWindowContext,
@@ -298,6 +300,7 @@ internal class ComposeSceneMediator(
      */
     private val interopContainer = UIKitInteropContainer(
         root = interactionView,
+        viewController = viewController,
         requestRedraw = ::onComposeSceneInvalidate
     )
 
