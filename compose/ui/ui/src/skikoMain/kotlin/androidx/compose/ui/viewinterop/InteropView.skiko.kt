@@ -43,38 +43,22 @@ import androidx.compose.ui.unit.Density
 
 private val NoOp: Any.() -> Unit = {}
 
-internal class AbstractInvocationError(
-    operation: String
-) : Error("$operation is abstract, but is not expressible as such due to expect class constraints, it should never be called directly")
-
 /**
  * Class containing the properties and functions that should be implemented by the platform-specific
  * TypedInteropViewHolder.
  */
-internal open class InteropViewHolderAbstractBase {
-    open val isInteractive: Boolean
-        get() {
-            throw AbstractInvocationError("isInteractive")
-        }
+internal interface InteropViewHolderPlatformHooks {
+    val isInteractive: Boolean
 
-    open val measurePolicy: MeasurePolicy
-        get() {
-            throw AbstractInvocationError("measurePolicy")
-        }
+    val measurePolicy: MeasurePolicy
 
-    open val drawModifier: Modifier
-        get() {
-            throw AbstractInvocationError("platformDrawModifier")
-        }
+    val drawModifier: Modifier
 
+    fun dispatchToView(pointerEvent: PointerEvent)
 
-    open fun dispatchToView(pointerEvent: PointerEvent) {
-        throw AbstractInvocationError("dispatchToView")
-    }
+    fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates)
 
-    open fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
-        throw AbstractInvocationError("layoutAccordingTo")
-    }
+    fun getInteropView(): InteropView?
 }
 
 /**
@@ -86,9 +70,11 @@ internal open class InteropViewHolderAbstractBase {
 internal open class InteropViewHolder(
     val container: InteropContainer,
     val group: InteropViewGroup,
-    private val compositeKeyHash: Int
-) : InteropViewHolderAbstractBase(), ComposeNodeLifecycleCallback, OwnerScope {
+    private val compositeKeyHash: Int,
+) : ComposeNodeLifecycleCallback, OwnerScope {
     private var onModifierChanged: ((Modifier) -> Unit)? = null
+
+    protected var platformHooks: InteropViewHolderPlatformHooks? = null
 
     var modifier: Modifier = Modifier
         set(value) {
@@ -111,6 +97,7 @@ internal open class InteropViewHolder(
 
     protected var release: () -> Unit = {}
 
+    private var onDensityChanged: ((Density) -> Unit)? = null
     var density: Density = Density(1f)
         set(value) {
             if (value !== field) {
@@ -118,8 +105,6 @@ internal open class InteropViewHolder(
                 onDensityChanged?.invoke(value)
             }
         }
-
-    private var onDensityChanged: ((Density) -> Unit)? = null
 
     private var isAttachedToWindow: Boolean = true
 
@@ -140,41 +125,48 @@ internal open class InteropViewHolder(
     }
 
     override fun onReuse() {
+        isAttachedToWindow = true
         reset()
     }
 
     override fun onDeactivate() {
         reset()
+        isAttachedToWindow = false
     }
 
     override fun onRelease() {
         release()
+        isAttachedToWindow = false
     }
 
     val layoutNode: LayoutNode = run {
-        val layoutNode = LayoutNode()
+        val holder = this
 
-        layoutNode.interopViewFactoryHolder = this
+        withPlatformHooks {
+            val layoutNode = LayoutNode()
 
-        val interopModifier = Modifier
-            .semantics(mergeDescendants = true) {}
-            .pointerInteropFilter(isInteractive = isInteractive, interopViewHolder = this)
-            .trackInteropPlacement(this)
-            .then(drawModifier)
-            .onGloballyPositioned { layoutCoordinates ->
-                layoutAccordingTo(layoutCoordinates)
-            }
+            layoutNode.interopViewFactoryHolder = holder
 
-        layoutNode.compositeKeyHash = compositeKeyHash
-        layoutNode.modifier = modifier then interopModifier
-        onModifierChanged = { layoutNode.modifier = it then interopModifier }
+            val interopModifier = Modifier
+                .semantics(mergeDescendants = true) {}
+                .pointerInteropFilter(isInteractive = isInteractive, interopViewHolder = holder)
+                .trackInteropPlacement(holder)
+                .then(drawModifier)
+                .onGloballyPositioned { layoutCoordinates ->
+                    layoutAccordingTo(layoutCoordinates)
+                }
 
-        layoutNode.density = density
-        onDensityChanged = { layoutNode.density = it }
+            layoutNode.compositeKeyHash = compositeKeyHash
+            layoutNode.modifier = modifier then interopModifier
+            onModifierChanged = { layoutNode.modifier = it then interopModifier }
 
-        layoutNode.measurePolicy = measurePolicy
+            layoutNode.density = density
+            onDensityChanged = { layoutNode.density = it }
 
-        layoutNode
+            layoutNode.measurePolicy = measurePolicy
+
+            layoutNode
+        }
     }
 
     companion object {
@@ -183,20 +175,33 @@ internal open class InteropViewHolder(
         }
     }
 
-    open fun getInteropView(): InteropView? {
-        throw AbstractInvocationError("getInteropView")
-    }
+    private fun <R> withPlatformHooks(block: InteropViewHolderPlatformHooks.() -> R): R =
+        checkNotNull(platformHooks) {
+            "platformHooks must be set by a subclass before any meaningful operation can be performed"
+        }.block()
+
+    fun getInteropView(): InteropView? =
+        withPlatformHooks { getInteropView() }
 }
 
+/**
+ * Base class for any concrete implementation of [InteropViewHolder] that holds a specific type
+ * of InteropView to be implemented by the platform-specific [TypedInteropViewHolder] subclass
+ */
 internal abstract class TypedInteropViewHolder<T : InteropView>(
-    factory: () -> T,
+    val factory: () -> T,
     interopContainer: InteropContainer,
     group: InteropViewGroup,
-    compositeKeyHash: Int
-) : InteropViewHolder(interopContainer, group, compositeKeyHash) {
+    compositeKeyHash: Int,
+) : InteropViewHolder(interopContainer, group, compositeKeyHash), InteropViewHolderPlatformHooks {
     private val view = factory()
 
-    override fun getInteropView(): InteropView = view
+    init {
+        // No methods InteropViewHolderPlatformHooks
+        // will be called in the constructor, so it's safe to set the platformHooks here
+        @Suppress("LeakingThis")
+        platformHooks = this
+    }
 
     var updateBlock: (T) -> Unit = NoOp
         set(value) {
@@ -223,7 +228,7 @@ internal abstract class TypedInteropViewHolder<T : InteropView>(
 /**
  * Entry point for creating a composable that wraps a platform specific interop view.
  * Platform implementations should call it and provide the appropriate factory, returning
- * a subclass of [TypedInteropViewHolder] overriding everything from [InteropViewHolderAbstractBase].
+ * a subclass of [TypedInteropViewHolder].
  */
 @Composable
 @UiComposable
@@ -238,6 +243,9 @@ internal fun <T : InteropView> InteropView(
     val materializedModifier = currentComposer.materialize(modifier)
     val density = LocalDensity.current
     val compositeKeyHash = currentCompositeKeyHash
+
+    // TODO: there are other parameters on Android that we don't yet use:
+    //  lifecycleOwner, savedStateRegistryOwner, layoutDirection
 
     if (onReset == null) {
         ComposeNode<LayoutNode, UiApplier>(
@@ -281,20 +289,20 @@ private fun <T : InteropView> Updater<LayoutNode>.updateParameters(
     modifier: Modifier,
     density: Density,
     compositeKeyHash: Int,
-    onResetOrNil: ((T) -> Unit)?,
+    onResetOrNull: ((T) -> Unit)?,
     update: (T) -> Unit,
     onRelease: (T) -> Unit
 ) {
     set(compositionLocalMap, SetResolvedCompositionLocals)
-    set(modifier) { requireViewFactoryHolder<T>().modifier = it}
+    set(modifier) { requireViewFactoryHolder<T>().modifier = it }
     set(density) { requireViewFactoryHolder<T>().density = it }
     set(compositeKeyHash, SetCompositeKeyHash)
 
-    onResetOrNil?.let { onReset ->
+    onResetOrNull?.let { onReset ->
         set(onReset) { requireViewFactoryHolder<T>().resetBlock = it }
     }
 
-    set(update) { requireViewFactoryHolder<T>().updateBlock = it}
+    set(update) { requireViewFactoryHolder<T>().updateBlock = it }
     set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
 }
 
