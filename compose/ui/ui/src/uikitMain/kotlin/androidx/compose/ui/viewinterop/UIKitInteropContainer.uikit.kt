@@ -35,6 +35,12 @@ internal class UIKitInteropContainer(
     private var transaction = UIKitInteropMutableTransaction()
 
     // TODO: Android reuses `owner.snapshotObserver`. We should probably do the same with RootNodeOwner.
+    /**
+     * Snapshot observer that is used by underlying [InteropViewHolder] to observe changes in
+     * Compose state and trigger changes in UIKit objects.
+     * It starts observing when the first interop view is added and stops when the last one is
+     * removed.
+     */
     override val snapshotObserver = OwnerSnapshotObserver { command ->
         command()
     }
@@ -49,6 +55,9 @@ internal class UIKitInteropContainer(
         for (action in lastTransaction.actions) {
             action.invoke()
         }
+
+        // snapshotObserver.stopObserving() is not needed, because unplaceInteropView will be called
+        // for all interop views and it will stop observing when the last one is removed.
     }
 
     /**
@@ -63,6 +72,7 @@ internal class UIKitInteropContainer(
     override fun placeInteropView(interopView: InteropViewHolder) {
         if (interopViews.isEmpty()) {
             transaction.state = UIKitInteropState.BEGAN
+            snapshotObserver.startObserving()
         }
         interopViews.add(interopView)
 
@@ -76,6 +86,7 @@ internal class UIKitInteropContainer(
         interopViews.remove(interopView)
         if (interopViews.isEmpty()) {
             transaction.state = UIKitInteropState.ENDED
+            snapshotObserver.stopObserving()
         }
 
         changeInteropViewLayout {

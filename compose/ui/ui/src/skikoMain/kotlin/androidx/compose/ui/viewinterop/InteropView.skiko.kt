@@ -52,7 +52,11 @@ internal interface InteropViewHolderPlatformHooks {
 
     val measurePolicy: MeasurePolicy
 
-    val drawModifier: Modifier
+    /**
+     * Modifier containing platform-specific interop view modifiers chain, such as custom drawing,
+     * native accessibility markers, etc.
+     */
+    val platformModifier: Modifier
 
     fun dispatchToView(pointerEvent: PointerEvent)
 
@@ -63,7 +67,7 @@ internal interface InteropViewHolderPlatformHooks {
 
 /**
  * A holder that keeps references to user interop view and its group (container).
- * It's actual implementation of [InteropViewFactoryHolder]
+ * It's actual of `expect class [InteropViewFactoryHolder]`
  *
  * @see InteropViewFactoryHolder
  */
@@ -74,6 +78,11 @@ internal open class InteropViewHolder(
 ) : ComposeNodeLifecycleCallback, OwnerScope {
     private var onModifierChanged: ((Modifier) -> Unit)? = null
 
+    /**
+     * InteropViewHolder is an expect class, and thus is not allowed to be abstract.
+     * This interface contains the properties and functions that should be implemented by the
+     * platform-specific subclass of TypedInteropViewHolder.
+     */
     protected var platformHooks: InteropViewHolderPlatformHooks? = null
 
     var modifier: Modifier = Modifier
@@ -151,7 +160,7 @@ internal open class InteropViewHolder(
                 .semantics(mergeDescendants = true) {}
                 .pointerInteropFilter(isInteractive = isInteractive, interopViewHolder = holder)
                 .trackInteropPlacement(holder)
-                .then(drawModifier)
+                .then(platformModifier)
                 .onGloballyPositioned { layoutCoordinates ->
                     layoutAccordingTo(layoutCoordinates)
                 }
@@ -197,7 +206,7 @@ internal abstract class TypedInteropViewHolder<T : InteropView>(
     group: InteropViewGroup,
     compositeKeyHash: Int,
 ) : InteropViewHolder(interopContainer, group, compositeKeyHash), InteropViewHolderPlatformHooks {
-    private val view = factory()
+    protected val interopView = factory()
 
     init {
         // No methods InteropViewHolderPlatformHooks
@@ -209,25 +218,24 @@ internal abstract class TypedInteropViewHolder<T : InteropView>(
     var updateBlock: (T) -> Unit = NoOp
         set(value) {
             field = value
-            update = { view.apply(updateBlock) }
+            update = { interopView.apply(updateBlock) }
         }
 
     var resetBlock: (T) -> Unit = NoOp
         set(value) {
             field = value
-            reset = { view.apply(resetBlock) }
+            reset = { interopView.apply(resetBlock) }
         }
 
     var releaseBlock: (T) -> Unit = NoOp
         set(value) {
             field = value
             release = {
-                view.apply(releaseBlock)
+                interopView.apply(releaseBlock)
             }
         }
 }
 
-// Based on AndroidView.android.kt:AndroidView
 /**
  * Entry point for creating a composable that wraps a platform specific interop view.
  * Platform implementations should call it and provide the appropriate factory, returning

@@ -20,7 +20,7 @@ import platform.QuartzCore.CATransaction
 
 /**
  * Enum which is used to define if rendering strategy should be changed along with this transaction.
- * If [BEGAN], it will wait until a next CATransaction on every frame and make the metal layer opaque.
+ * If [BEGAN], it will wait until a next CATransaction on every frame and make the metal layer transparent.
  * If [ENDED] it will fallback to the most efficient rendering strategy
  *   (opaque layer, no transaction waiting, asynchronous encoding and GPU-driven presentation).
  * If [UNCHANGED] it will keep the current rendering strategy.

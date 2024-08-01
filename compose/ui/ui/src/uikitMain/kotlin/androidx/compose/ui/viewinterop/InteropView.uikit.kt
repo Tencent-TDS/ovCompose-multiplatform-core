@@ -27,12 +27,12 @@ import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
 /**
- * On iOS, [InteropView] is encapsulating the hierarchy consisting of a wrapping
+ * On iOS, [interopView] is encapsulating the hierarchy consisting of a wrapping
  * [InteropViewGroup] and underlying [UIView] or a [UIViewController]. This immediate
  * class is only used for API surface where the top-level view is needed for general-purpose
  * operations, such as view hierarchy hit-testing and modification.
  *
- * Subclasses of [InteropView] are used to represent specific types of interop views to forward
+ * Subclasses of [interopView] are used to represent specific types of interop views to forward
  * user-settable callbacks.
  *
  * @property group The [InteropViewGroup] (aka [UIView]) that contains the underlying
@@ -43,15 +43,14 @@ actual open class InteropView internal constructor(
 )
 
 /**
- * A [InteropView] that contains underlying [UIViewController] of certain type [T].
+ * A [interopView] that contains underlying [UIViewController] of certain type [T].
  */
 internal class TypedInteropViewController<T : UIViewController>(
     group: InteropViewGroup,
     val viewController: T
 ) : InteropView(group)
-
 /**
- * A [InteropView] that contains underlying [UIView] of certain type [T].
+ * A [interopView] that contains underlying [UIView] of certain type [T].
  */
 internal class TypedInteropView<T : UIView>(
     group: InteropViewGroup,
@@ -110,9 +109,9 @@ private var SemanticsPropertyReceiver.interopView by InteropViewSemanticsKey
  * Chain [this] with [Modifier.semantics] that sets the [trackInteropPlacement] of the node
  * if [enabled] is true. If [enabled] is false, [this] is returned as is.
  */
-internal fun Modifier.interopViewSemantics(enabled: Boolean, interopViewHolder: InteropViewHolder) =
+internal fun Modifier.interopViewSemantics(enabled: Boolean, interopViewGroup: InteropViewGroup) =
     if (enabled) {
-        this.semantics { interopView = interopViewHolder.group as InteropWrappingView }
+        this.semantics { interopView = interopViewGroup as InteropWrappingView }
     } else {
         this
     }
