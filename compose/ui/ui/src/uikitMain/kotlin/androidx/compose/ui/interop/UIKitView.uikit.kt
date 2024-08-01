@@ -41,8 +41,8 @@ import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.InteropViewGroup
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.LocalInteropContainer
-import androidx.compose.ui.viewinterop.TypedInteropView
-import androidx.compose.ui.viewinterop.TypedInteropViewController
+import androidx.compose.ui.viewinterop.TypedInteropUIView
+import androidx.compose.ui.viewinterop.TypedInteropUIViewController
 import androidx.compose.ui.viewinterop.TypedInteropViewHolder
 import androidx.compose.ui.viewinterop.UIKitInteropContainer
 import androidx.compose.ui.viewinterop.interopViewSemantics
@@ -63,7 +63,7 @@ private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Un
 
 internal abstract class UIKitInteropElementHolder<T : InteropView>(
     factory: () -> T,
-    interopContainer: UIKitInteropContainer,
+    interopContainer: InteropContainer,
     group: InteropViewGroup,
     override val isInteractive: Boolean,
     isNativeAccessibilityEnabled: Boolean,
@@ -76,7 +76,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
             }
         }
 
-    override val platformModifier = Modifier
+    override val extraModifier = Modifier
         .drawBehind {
             drawRect(
                 color = Color.Transparent,
@@ -158,14 +158,14 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
 
 internal class UIKitInteropViewHolder<T : UIView>(
     createView: () -> T,
-    interopContainer: UIKitInteropContainer,
+    interopContainer: InteropContainer,
     group: InteropViewGroup,
     isInteractive: Boolean,
     isNativeAccessibilityEnabled: Boolean,
     compositeHashKey: Int
-) : UIKitInteropElementHolder<TypedInteropView<T>>(
+) : UIKitInteropElementHolder<TypedInteropUIView<T>>(
     factory = {
-        TypedInteropView(
+        TypedInteropUIView(
             group = group,
             view = createView()
         )
@@ -197,9 +197,9 @@ internal class UIKitInteropViewControllerHolder<T : UIViewController>(
     isInteractive: Boolean,
     isNativeAccessibilityEnabled: Boolean,
     compositeHashKey: Int
-) : UIKitInteropElementHolder<TypedInteropViewController<T>>(
+) : UIKitInteropElementHolder<TypedInteropUIViewController<T>>(
     factory = {
-        TypedInteropViewController(
+        TypedInteropUIViewController(
             group = group,
             viewController = createViewController()
         )

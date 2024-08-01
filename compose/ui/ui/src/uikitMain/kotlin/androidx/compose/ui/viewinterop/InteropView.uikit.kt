@@ -43,16 +43,24 @@ actual open class InteropView internal constructor(
 )
 
 /**
- * A [interopView] that contains underlying [UIViewController] of certain type [T].
+ * An [InteropView] that contains underlying type-erased [UIViewController].
  */
-internal class TypedInteropViewController<T : UIViewController>(
+internal open class InteropUIViewController(
     group: InteropViewGroup,
-    val viewController: T
-) : InteropView(group)
+    open val viewController: UIViewController
+)  : InteropView(group)
+
 /**
- * A [interopView] that contains underlying [UIView] of certain type [T].
+ * An [InteropView] that contains underlying [UIViewController] of certain type [T].
  */
-internal class TypedInteropView<T : UIView>(
+internal class TypedInteropUIViewController<T : UIViewController>(
+    group: InteropViewGroup,
+    override val viewController: T // Narrowed type
+) : InteropUIViewController(group, viewController)
+/**
+ * An [InteropView] that contains underlying [UIView] of certain type [T].
+ */
+internal class TypedInteropUIView<T : UIView>(
     group: InteropViewGroup,
     val view: T
 ) : InteropView(group)

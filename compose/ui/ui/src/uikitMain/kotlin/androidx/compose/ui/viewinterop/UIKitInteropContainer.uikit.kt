@@ -69,28 +69,33 @@ internal class UIKitInteropContainer(
         return result
     }
 
-    override fun placeInteropView(interopView: InteropViewHolder) {
+    override fun placeInteropView(holder: InteropViewHolder) {
         if (interopViews.isEmpty()) {
             transaction.state = UIKitInteropState.BEGAN
             snapshotObserver.startObserving()
         }
-        interopViews.add(interopView)
+        interopViews.add(holder)
 
-        val countBelow = countInteropComponentsBelow(interopView)
+        val countBelow = countInteropComponentsBelow(holder).toLong()
+
+
+        // Interop view controllers need special treatment.
+        val interopView = holder.getInteropView()
+
         changeInteropViewLayout {
-            root.insertSubview(interopView.group, countBelow.toLong())
+            root.insertSubview(holder.group, countBelow)
         }
     }
 
-    override fun unplaceInteropView(interopView: InteropViewHolder) {
-        interopViews.remove(interopView)
+    override fun unplaceInteropView(holder: InteropViewHolder) {
+        interopViews.remove(holder)
         if (interopViews.isEmpty()) {
             transaction.state = UIKitInteropState.ENDED
             snapshotObserver.stopObserving()
         }
 
         changeInteropViewLayout {
-            interopView.group.removeFromSuperview()
+            holder.group.removeFromSuperview()
         }
     }
 

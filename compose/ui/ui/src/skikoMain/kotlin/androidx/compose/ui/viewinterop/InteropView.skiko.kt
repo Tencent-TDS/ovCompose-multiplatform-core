@@ -43,27 +43,9 @@ import androidx.compose.ui.unit.Density
 
 private val NoOp: Any.() -> Unit = {}
 
-/**
- * Class containing the properties and functions that should be implemented by the platform-specific
- * TypedInteropViewHolder.
- */
-internal interface InteropViewHolderPlatformHooks {
-    val isInteractive: Boolean
-
-    val measurePolicy: MeasurePolicy
-
-    /**
-     * Modifier containing platform-specific interop view modifiers chain, such as custom drawing,
-     * native accessibility markers, etc.
-     */
-    val platformModifier: Modifier
-
-    fun dispatchToView(pointerEvent: PointerEvent)
-
-    fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates)
-
-    fun getInteropView(): InteropView?
-}
+private class AbstractInvocationError(
+    name: String
+): Error("Abstract `$name` must be implemented by platform-specific subclass")
 
 /**
  * A holder that keeps references to user interop view and its group (container).
@@ -77,13 +59,6 @@ internal open class InteropViewHolder(
     private val compositeKeyHash: Int,
 ) : ComposeNodeLifecycleCallback, OwnerScope {
     private var onModifierChanged: ((Modifier) -> Unit)? = null
-
-    /**
-     * InteropViewHolder is an expect class, and thus is not allowed to be abstract.
-     * This interface contains the properties and functions that should be implemented by the
-     * platform-specific subclass of TypedInteropViewHolder.
-     */
-    protected var platformHooks: InteropViewHolderPlatformHooks? = null
 
     var modifier: Modifier = Modifier
         set(value) {
@@ -151,31 +126,70 @@ internal open class InteropViewHolder(
     val layoutNode: LayoutNode = run {
         val holder = this
 
-        withPlatformHooks {
-            val layoutNode = LayoutNode()
+        val layoutNode = LayoutNode()
 
-            layoutNode.interopViewFactoryHolder = holder
+        layoutNode.interopViewFactoryHolder = holder
 
-            val interopModifier = Modifier
-                .semantics(mergeDescendants = true) {}
-                .pointerInteropFilter(isInteractive = isInteractive, interopViewHolder = holder)
-                .trackInteropPlacement(holder)
-                .then(platformModifier)
-                .onGloballyPositioned { layoutCoordinates ->
-                    layoutAccordingTo(layoutCoordinates)
-                }
+        val interopModifier = Modifier
+            .semantics(mergeDescendants = true) {}
+            .pointerInteropFilter(isInteractive = isInteractive, interopViewHolder = holder)
+            .trackInteropPlacement(holder)
+            .then(extraModifier)
+            .onGloballyPositioned { layoutCoordinates ->
+                layoutAccordingTo(layoutCoordinates)
+            }
 
-            layoutNode.compositeKeyHash = compositeKeyHash
-            layoutNode.modifier = modifier then interopModifier
-            onModifierChanged = { layoutNode.modifier = it then interopModifier }
+        layoutNode.compositeKeyHash = compositeKeyHash
+        layoutNode.modifier = modifier then interopModifier
+        onModifierChanged = { layoutNode.modifier = it then interopModifier }
 
-            layoutNode.density = density
-            onDensityChanged = { layoutNode.density = it }
+        layoutNode.density = density
+        onDensityChanged = { layoutNode.density = it }
 
-            layoutNode.measurePolicy = measurePolicy
+        layoutNode.measurePolicy = measurePolicy
 
-            layoutNode
+        layoutNode
+    }
+
+    fun place() {
+        container.placeInteropView(this)
+    }
+
+    fun unplace() {
+        container.unplaceInteropView(this)
+    }
+
+    // ===== Abstract methods to be implemented by platform-specific subclasses =====
+
+    open val isInteractive: Boolean
+        get() {
+            throw AbstractInvocationError("val isInteractive: Boolean")
         }
+
+    open val measurePolicy: MeasurePolicy
+        get() {
+            throw AbstractInvocationError("val measurePolicy: MeasurePolicy")
+        }
+
+    /**
+     * Modifier containing platform-specific interop view modifiers chain, such as custom drawing,
+     * native accessibility setup, etc.
+     */
+    open val extraModifier: Modifier
+        get() {
+            throw AbstractInvocationError("val platformModifier: Modifier")
+        }
+
+    open fun dispatchToView(pointerEvent: PointerEvent) {
+        throw AbstractInvocationError("fun dispatchToView(pointerEvent: PointerEvent)")
+    }
+
+    open fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
+        throw AbstractInvocationError("fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates)")
+    }
+
+    open fun getInteropView(): InteropView? {
+        throw AbstractInvocationError("fun getInteropView(): InteropView?")
     }
 
     companion object {
@@ -183,17 +197,6 @@ internal open class InteropViewHolder(
             it.container.changeInteropViewLayout { it.update() }
         }
     }
-
-    private fun <R> withPlatformHooks(block: InteropViewHolderPlatformHooks.() -> R): R =
-        checkNotNull(platformHooks) {
-            "platformHooks must be set by a subclass before any meaningful operation can be performed"
-        }.block()
-
-    fun getInteropView(): InteropView? =
-        withPlatformHooks { getInteropView() }
-
-    fun dispatchToView(pointerEvent: PointerEvent) =
-        withPlatformHooks { dispatchToView(pointerEvent) }
 }
 
 /**
@@ -205,15 +208,8 @@ internal abstract class TypedInteropViewHolder<T : InteropView>(
     interopContainer: InteropContainer,
     group: InteropViewGroup,
     compositeKeyHash: Int,
-) : InteropViewHolder(interopContainer, group, compositeKeyHash), InteropViewHolderPlatformHooks {
+) : InteropViewHolder(interopContainer, group, compositeKeyHash) {
     protected val interopView = factory()
-
-    init {
-        // No methods InteropViewHolderPlatformHooks
-        // will be called in the constructor, so it's safe to set the platformHooks here
-        @Suppress("LeakingThis")
-        platformHooks = this
-    }
 
     var updateBlock: (T) -> Unit = NoOp
         set(value) {

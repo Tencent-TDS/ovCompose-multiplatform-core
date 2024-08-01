@@ -88,8 +88,8 @@ internal class SwingInteropContainer(
         root.repaint()
     }
 
-    override fun unplaceInteropView(interopView: InteropViewHolder) {
-        val component = interopView.group
+    override fun unplaceInteropView(holder: InteropViewHolder) {
+        val component = holder.group
         root.remove(component)
         interopComponents.remove(component)
 

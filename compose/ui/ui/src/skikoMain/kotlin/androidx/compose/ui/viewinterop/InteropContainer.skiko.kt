@@ -46,8 +46,8 @@ internal interface InteropContainer {
     val interopViews: Set<InteropViewHolder>
     val snapshotObserver: OwnerSnapshotObserver
 
-    fun placeInteropView(interopView: InteropViewHolder)
-    fun unplaceInteropView(interopView: InteropViewHolder)
+    fun placeInteropView(holder: InteropViewHolder)
+    fun unplaceInteropView(holder: InteropViewHolder)
 
     // TODO: Should be the same as [Owner.onInteropViewLayoutChange]
     fun changeInteropViewLayout(action: () -> Unit) {
@@ -153,13 +153,11 @@ internal class TrackInteropPlacementModifierNode(
     override val traverseKey = TRAVERSAL_NODE_KEY
 
     override fun onPlaced(coordinates: LayoutCoordinates) {
-        val interopView = interopViewHolder ?: return
-        interopView.container.placeInteropView(interopView)
+        interopViewHolder?.place()
     }
 
     override fun onUnplaced() {
-        val interopView = interopViewHolder ?: return
-        interopView.container.unplaceInteropView(interopView)
+        interopViewHolder?.unplace()
     }
 
     override fun onDetach() {
