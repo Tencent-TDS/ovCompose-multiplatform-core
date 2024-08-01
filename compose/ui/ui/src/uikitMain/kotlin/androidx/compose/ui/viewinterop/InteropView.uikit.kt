@@ -26,28 +26,38 @@ import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
-internal sealed interface UIKitInteropElement {
-    val view: UIView
-
-    class View(override val view: UIView) : UIKitInteropElement
-
-    class ViewController(private val viewController: UIViewController) : UIKitInteropElement {
-        override val view: UIView
-            get() = viewController.view
-    }
-}
+/**
+ * On iOS, [InteropView] is encapsulating the hierarchy consisting of a wrapping
+ * [InteropViewGroup] and underlying [UIView] or a [UIViewController]. This immediate
+ * class is only used for API surface where the top-level view is needed for general-purpose
+ * operations, such as view hierarchy hit-testing and modification.
+ *
+ * Subclasses of [InteropView] are used to represent specific types of interop views to forward
+ * user-settable callbacks.
+ *
+ * @property group The [InteropViewGroup] (aka [UIView]) that contains the underlying
+ * interop element.
+ */
+actual open class InteropView internal constructor(
+    val group: InteropViewGroup
+)
 
 /**
- * On iOS, [InteropView] is encapsulating the underlying [UIKitInteropElement], which is either
- * a [UIView] or a [UIViewController]
+ * A [InteropView] that contains underlying [UIViewController] of certain type [T].
  */
-actual class InteropView internal constructor(
-    internal val element: UIKitInteropElement
-) {
-    internal constructor(view: UIView) : this(UIKitInteropElement.View(view))
+internal class TypedInteropViewController<T : UIViewController>(
+    group: InteropViewGroup,
+    val viewController: T
+) : InteropView(group)
 
-    internal constructor(viewController: UIViewController) : this(UIKitInteropElement.ViewController(viewController))
-}
+/**
+ * A [InteropView] that contains underlying [UIView] of certain type [T].
+ */
+internal class TypedInteropView<T : UIView>(
+    group: InteropViewGroup,
+    val view: T
+) : InteropView(group)
+
 
 @Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-37316
 internal actual typealias InteropViewGroup = UIView

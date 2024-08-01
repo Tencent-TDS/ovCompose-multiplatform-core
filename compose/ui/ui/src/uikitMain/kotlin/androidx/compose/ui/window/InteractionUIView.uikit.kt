@@ -500,10 +500,10 @@ internal class InteractionUIView(
             if (!inInteractionBounds(point)) {
                 null
             } else {
-                // Find if a scene contains a [InteropViewAnchorModifierNode] at the given point.
-                val interopView = hitTestInteropView(point, withEvent)?.element?.view
+                // Find if a scene contains an [InteropView]
+                val interopViewGroup = hitTestInteropView(point, withEvent)?.group
 
-                if (interopView == null) {
+                if (interopViewGroup == null) {
                     // Native [hitTest] happens after [pointInside] is checked. If hit testing
                     // inside ComposeScene didn't yield any interop view, then we should return [this]
                     this
@@ -511,8 +511,8 @@ internal class InteractionUIView(
                     // Transform the point to the interop view's coordinate system.
                     // And perform native [hitTest] on the interop view.
                     // Return this view if the interop view doesn't handle the hit test.
-                    interopView.hitTest(
-                        point = convertPoint(point, toView = interopView),
+                    interopViewGroup.hitTest(
+                        point = convertPoint(point, toView = interopViewGroup),
                         withEvent = withEvent
                     ) ?: this
                 }

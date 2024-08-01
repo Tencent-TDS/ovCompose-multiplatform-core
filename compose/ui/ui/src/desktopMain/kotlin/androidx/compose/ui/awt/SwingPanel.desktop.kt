@@ -89,13 +89,13 @@ public fun <T : Component> SwingPanel(
     val interopContainer = LocalInteropContainer.current
     val compositeKey = currentCompositeKeyHash
     val interopViewHolder = remember {
-        SwingInteropViewHolder2(
+        SwingInteropViewHolder2<T>(
             container = interopContainer,
             group = SwingInteropViewGroup(
                 key = compositeKey,
                 focusComponent = interopContainer.root,
             ),
-            update = update,
+            compositeKey
         )
     }
 
@@ -150,7 +150,7 @@ public fun <T : Component> SwingPanel(
 
     SideEffect {
         interopViewHolder.group.background = background.toAwtColor()
-        interopViewHolder.update = update
+//        interopViewHolder.update = update
     }
 }
 
@@ -284,10 +284,11 @@ private class FocusSwitcher(
 private class SwingInteropViewHolder2<T : Component>(
     container: InteropContainer,
     group: InteropViewGroup,
-    var update: (T) -> Unit
-): SwingInteropViewHolder(container, group) {
+    compositeKeyHash: Int,
+    //var update: (T) -> Unit
+): SwingInteropViewHolder(container, group, compositeKeyHash) {
     private var userComponent: T? = null
-    private var updater: InteropViewUpdater<T>? = null
+    //private var updater: InteropViewUpdater<T>? = null
 
     override fun getInteropView(): InteropView? =
         userComponent
@@ -296,14 +297,14 @@ private class SwingInteropViewHolder2<T : Component>(
         check(userComponent == null)
         userComponent = component
         group.add(component)
-        updater = InteropViewUpdater(component, update) { SwingUtilities.invokeLater(it) }
+        //updater = InteropViewUpdater(component, update) { SwingUtilities.invokeLater(it) }
     }
 
     fun cleanUserComponent() {
         group.remove(userComponent)
-        updater?.dispose()
+        //updater?.dispose()
         userComponent = null
-        updater = null
+        //updater = null
     }
 
     fun setBounds(

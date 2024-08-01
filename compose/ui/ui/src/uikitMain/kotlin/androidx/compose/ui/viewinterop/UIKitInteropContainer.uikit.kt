@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.viewinterop
 
+import androidx.compose.ui.node.OwnerSnapshotObserver
+
 /**
  * A container that controls interop views/components.
  * It's using a modifier of [TrackInteropPlacementModifierNode] to properly sort native interop
@@ -31,6 +33,11 @@ internal class UIKitInteropContainer(
         private set
 
     private var transaction = UIKitInteropMutableTransaction()
+
+    // TODO: Android reuses `owner.snapshotObserver`. We should probably do the same with RootNodeOwner.
+    override val snapshotObserver = OwnerSnapshotObserver { command ->
+        command()
+    }
 
     /**
      * Dispose by immediately executing all UIKit interop actions that can't be deferred to be

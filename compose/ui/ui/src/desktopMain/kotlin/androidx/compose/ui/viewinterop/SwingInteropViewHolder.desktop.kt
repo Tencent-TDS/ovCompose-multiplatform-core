@@ -28,7 +28,8 @@ import org.jetbrains.skiko.ClipRectangle
 internal open class SwingInteropViewHolder(
     container: InteropContainer,
     group: InteropViewGroup,
-) : InteropViewHolder(container, group), ClipRectangle {
+    compositeKeyHash: Int,
+) : InteropViewHolder(container, group, compositeKeyHash), ClipRectangle {
     protected var clipBounds: IntRect? = null
 
     override val x: Float

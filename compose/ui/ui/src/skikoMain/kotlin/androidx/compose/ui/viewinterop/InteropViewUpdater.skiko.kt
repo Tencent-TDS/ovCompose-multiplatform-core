@@ -20,6 +20,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import kotlinx.atomicfu.atomic
 
+// TODO To remove in favor of Android approach
 /**
  * A helper class to schedule an update for the interop component whenever the [State] used by
  * the [update] lambda is changed.

@@ -74,63 +74,64 @@ private fun <T : Any> UIKitInteropLayout(
     modifier: Modifier,
     update: (T) -> Unit,
     background: Color,
-    interopViewHolder: UIKitInteropViewHolder<T>,
+//    interopViewHolder: UIKitInteropViewHolder<T>,
     interactive: Boolean,
     accessibilityEnabled: Boolean,
 ) {
-    val density = LocalDensity.current
-    val finalModifier = modifier
-        .onGloballyPositioned { coordinates ->
-            val rootCoordinates = coordinates.findRootCoordinates()
-
-            val unclippedBounds = rootCoordinates
-                .localBoundingBoxOf(
-                    sourceCoordinates = coordinates,
-                    clipBounds = false
-                )
-
-            val clippedBounds = rootCoordinates
-                .localBoundingBoxOf(
-                    sourceCoordinates = coordinates,
-                    clipBounds = true
-                )
-
-            interopViewHolder.updateRect(
-                unclippedRect = unclippedBounds.roundToIntRect(),
-                clippedRect = clippedBounds.roundToIntRect(),
-                density = density
-            )
-        }
-        .drawBehind {
-            // Paint the rectangle behind with transparent color to let our interop shine through
-            drawRect(
-                color = Color.Transparent,
-                blendMode = BlendMode.Clear
-            )
-        }
-        .trackInteropPlacement(interopViewHolder)
-        .pointerInteropFilter(interactive, interopViewHolder)
-        .interopViewSemantics(accessibilityEnabled, interopViewHolder)
-
-    EmptyLayout(
-        finalModifier
-    )
-
-    DisposableEffect(Unit) {
-        interopViewHolder.onStart(initialUpdateBlock = update)
-
-        onDispose {
-            interopViewHolder.onStop()
-        }
-    }
-
-    LaunchedEffect(background) {
-        interopViewHolder.onBackgroundColorChange(background)
-    }
-
-    SideEffect {
-        interopViewHolder.setUpdate(update)
-    }
+    TODO()
+//    val density = LocalDensity.current
+//    val finalModifier = modifier
+//        .onGloballyPositioned { coordinates ->
+//            val rootCoordinates = coordinates.findRootCoordinates()
+//
+//            val unclippedBounds = rootCoordinates
+//                .localBoundingBoxOf(
+//                    sourceCoordinates = coordinates,
+//                    clipBounds = false
+//                )
+//
+//            val clippedBounds = rootCoordinates
+//                .localBoundingBoxOf(
+//                    sourceCoordinates = coordinates,
+//                    clipBounds = true
+//                )
+//
+//            interopViewHolder.updateRect(
+//                unclippedRect = unclippedBounds.roundToIntRect(),
+//                clippedRect = clippedBounds.roundToIntRect(),
+//                density = density
+//            )
+//        }
+//        .drawBehind {
+//            // Paint the rectangle behind with transparent color to let our interop shine through
+//            drawRect(
+//                color = Color.Transparent,
+//                blendMode = BlendMode.Clear
+//            )
+//        }
+//        .trackInteropPlacement(interopViewHolder)
+//        .pointerInteropFilter(interactive, interopViewHolder)
+//        .interopViewSemantics(accessibilityEnabled, interopViewHolder)
+//
+//    EmptyLayout(
+//        finalModifier
+//    )
+//
+//    DisposableEffect(Unit) {
+//        interopViewHolder.onStart(initialUpdateBlock = update)
+//
+//        onDispose {
+//            interopViewHolder.onStop()
+//        }
+//    }
+//
+//    LaunchedEffect(background) {
+//        interopViewHolder.onBackgroundColorChange(background)
+//    }
+//
+//    SideEffect {
+//        interopViewHolder.setUpdate(update)
+//    }
 }
 
 /**
@@ -172,25 +173,26 @@ fun <T : UIView> UIKitView(
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true
 ) {
-    val interopContainer = LocalInteropContainer.current
-    val interopViewHolder = remember {
-        UIKitViewHolder(
-            container = interopContainer,
-            createView = factory,
-            onResize = onResize,
-            onRelease = onRelease,
-            areTouchesDelayed = true
-        )
-    }
-
-    UIKitInteropLayout(
-        modifier = modifier,
-        update = update,
-        background = background,
-        interopViewHolder = interopViewHolder,
-        interactive = interactive,
-        accessibilityEnabled = accessibilityEnabled
-    )
+    TODO()
+//    val interopContainer = LocalInteropContainer.current
+//    val interopViewHolder = remember {
+//        UIKitViewHolder(
+//            container = interopContainer,
+//            createView = factory,
+//            onResize = onResize,
+//            onRelease = onRelease,
+//            areTouchesDelayed = true
+//        )
+//    }
+//
+//    UIKitInteropLayout(
+//        modifier = modifier,
+//        update = update,
+//        background = background,
+//        interopViewHolder = interopViewHolder,
+//        interactive = interactive,
+//        accessibilityEnabled = accessibilityEnabled
+//    )
 }
 
 /**
@@ -234,184 +236,185 @@ fun <T : UIViewController> UIKitViewController(
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true
 ) {
-    val interopContainer = LocalInteropContainer.current
-    val rootViewController = LocalUIViewController.current
-    val interopViewHolder = remember {
-        UIKitViewControllerHolder(
-            container = interopContainer,
-            createViewController = factory,
-            rootViewController = rootViewController,
-            onResize = onResize,
-            onRelease = onRelease,
-            areTouchesDelayed = true
-        )
-    }
-
-    UIKitInteropLayout(
-        modifier = modifier,
-        update = update,
-        background = background,
-        interopViewHolder = interopViewHolder,
-        interactive = interactive,
-        accessibilityEnabled = accessibilityEnabled
-    )
+    TODO()
+//    val interopContainer = LocalInteropContainer.current
+//    val rootViewController = LocalUIViewController.current
+//    val interopViewHolder = remember {
+//        UIKitViewControllerHolder(
+//            container = interopContainer,
+//            createViewController = factory,
+//            rootViewController = rootViewController,
+//            onResize = onResize,
+//            onRelease = onRelease,
+//            areTouchesDelayed = true
+//        )
+//    }
+//
+//    UIKitInteropLayout(
+//        modifier = modifier,
+//        update = update,
+//        background = background,
+//        interopViewHolder = interopViewHolder,
+//        interactive = interactive,
+//        accessibilityEnabled = accessibilityEnabled
+//    )
 }
 
-/**
- * An abstract class responsible for hierarchy updates and state management of interop components
- * like [UIView] and [UIViewController].
- */
-private abstract class UIKitInteropViewHolder<T : Any>(
-    container: InteropContainer,
-
-    // TODO: reuse an object created makeComponent inside LazyColumn like in AndroidView:
-    //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
-    val createUserComponent: () -> T,
-    val onResize: (T, rect: CValue<CGRect>) -> Unit,
-    val onRelease: (T) -> Unit,
-    areTouchesDelayed: Boolean
-) : InteropViewHolder(container, group = InteropWrappingView(areTouchesDelayed)) {
-    private var currentUnclippedRect: IntRect? = null
-    private var currentClippedRect: IntRect? = null
-    lateinit var userComponent: T
-    private lateinit var updater: InteropViewUpdater<T>
-
-    /**
-     * The user component itself is wrapped in a [InteropView] to be used in the Compose hierarchy.
-     * It can be a [UIView] or a [UIViewController] and implementers of this class should provide
-     * the correct tagged type.
-     */
-    val lazyInteropView: InteropView by lazy { toInteropView() }
-
-    override fun getInteropView(): InteropView? =
-        lazyInteropView
-
-    /**
-     * Set the [InteropViewUpdater.update] lambda.
-     * Lambda is immediately executed after setting.
-     * @see InteropViewUpdater.performUpdate
-     */
-    fun setUpdate(block: (T) -> Unit) {
-        updater.update = block
-    }
-
-    /**
-     * Set the frame of the wrapping view.
-     */
-    fun updateRect(unclippedRect: IntRect, clippedRect: IntRect, density: Density) {
-        if (currentUnclippedRect == unclippedRect && currentClippedRect == clippedRect) {
-            return
-        }
-
-        val clippedDpRect = clippedRect.toRect().toDpRect(density)
-        val unclippedDpRect = unclippedRect.toRect().toDpRect(density)
-
-        // wrapping view itself is always using the clipped rect
-        if (clippedRect != currentClippedRect) {
-            container.changeInteropViewLayout {
-                group.setFrame(clippedDpRect.asCGRect())
-            }
-        }
-
-        // Only call onResize if the actual size changes.
-        if (currentUnclippedRect != unclippedRect || currentClippedRect != clippedRect) {
-            // offset to move the component to the correct position inside the wrapping view, so
-            // its global unclipped frame stays the same
-            val offset = unclippedRect.topLeft - clippedRect.topLeft
-            val dpOffset = offset.toOffset().toDpOffset(density)
-
-            container.changeInteropViewLayout {
-                // The actual component created by the user is resized here using the provided callback.
-                onResize(
-                    userComponent,
-                    CGRectMake(
-                        x = dpOffset.x.value.toDouble(),
-                        y = dpOffset.y.value.toDouble(),
-                        width = unclippedDpRect.width.value.toDouble(),
-                        height = unclippedDpRect.height.value.toDouble()
-                    ),
-                )
-            }
-        }
-
-        currentUnclippedRect = unclippedRect
-        currentClippedRect = clippedRect
-    }
-
-    fun onStart(initialUpdateBlock: (T) -> Unit) {
-        userComponent = createUserComponent()
-        updater = InteropViewUpdater(userComponent, initialUpdateBlock) {
-            container.changeInteropViewLayout(action = it)
-        }
-
-        container.changeInteropViewLayout {
-            setupViewHierarchy()
-        }
-    }
-
-    fun onStop() {
-        container.changeInteropViewLayout {
-            destroyViewHierarchy()
-        }
-
-        onRelease(userComponent)
-        updater.dispose()
-    }
-
-    fun onBackgroundColorChange(color: Color) = container.changeInteropViewLayout {
-        if (color == Color.Unspecified) {
-            group.backgroundColor = container.root.backgroundColor
-        } else {
-            group.backgroundColor = color.toUIColor()
-        }
-    }
-
-    override fun dispatchToView(pointerEvent: PointerEvent) {
-        // Do nothing - iOS uses hit-testing instead of redispatching
-    }
-
-    abstract fun setupViewHierarchy()
-    abstract fun destroyViewHierarchy()
-    abstract fun toInteropView(): InteropView
-}
-
-private class UIKitViewHolder<T : UIView>(
-    container: InteropContainer,
-    createView: () -> T,
-    onResize: (T, rect: CValue<CGRect>) -> Unit,
-    onRelease: (T) -> Unit,
-    areTouchesDelayed: Boolean
-) : UIKitInteropViewHolder<T>(container, createView, onResize, onRelease, areTouchesDelayed) {
-    override fun toInteropView(): InteropView =
-        InteropView(view = userComponent)
-
-    override fun setupViewHierarchy() {
-        group.addSubview(userComponent)
-    }
-
-    override fun destroyViewHierarchy() {
-    }
-}
-
-private class UIKitViewControllerHolder<T : UIViewController>(
-    container: InteropContainer,
-    createViewController: () -> T,
-    private val rootViewController: UIViewController,
-    onResize: (T, rect: CValue<CGRect>) -> Unit,
-    onRelease: (T) -> Unit,
-    areTouchesDelayed: Boolean
-) : UIKitInteropViewHolder<T>(container, createViewController, onResize, onRelease, areTouchesDelayed) {
-    override fun toInteropView(): InteropView =
-        InteropView(viewController = userComponent)
-
-    override fun setupViewHierarchy() {
-        rootViewController.addChildViewController(userComponent)
-        group.addSubview(userComponent.view)
-        userComponent.didMoveToParentViewController(rootViewController)
-    }
-
-    override fun destroyViewHierarchy() {
-        userComponent.willMoveToParentViewController(null)
-        userComponent.removeFromParentViewController()
-    }
-}
+///**
+// * An abstract class responsible for hierarchy updates and state management of interop components
+// * like [UIView] and [UIViewController].
+// */
+//private abstract class UIKitInteropViewHolder<T : Any>(
+//    container: InteropContainer,
+//
+//    // TODO: reuse an object created makeComponent inside LazyColumn like in AndroidView:
+//    //  https://developer.android.com/reference/kotlin/androidx/compose/ui/viewinterop/package-summary#AndroidView(kotlin.Function1,kotlin.Function1,androidx.compose.ui.Modifier,kotlin.Function1,kotlin.Function1)
+//    val createUserComponent: () -> T,
+//    val onResize: (T, rect: CValue<CGRect>) -> Unit,
+//    val onRelease: (T) -> Unit,
+//    areTouchesDelayed: Boolean
+//) : InteropViewHolder(container, group = InteropWrappingView(areTouchesDelayed)) {
+//    private var currentUnclippedRect: IntRect? = null
+//    private var currentClippedRect: IntRect? = null
+//    lateinit var userComponent: T
+//    private lateinit var updater: InteropViewUpdater<T>
+//
+//    /**
+//     * The user component itself is wrapped in a [InteropView] to be used in the Compose hierarchy.
+//     * It can be a [UIView] or a [UIViewController] and implementers of this class should provide
+//     * the correct tagged type.
+//     */
+//    val lazyInteropView: InteropView by lazy { toInteropView() }
+//
+//    override fun getInteropView(): InteropView? =
+//        lazyInteropView
+//
+//    /**
+//     * Set the [InteropViewUpdater.update] lambda.
+//     * Lambda is immediately executed after setting.
+//     * @see InteropViewUpdater.performUpdate
+//     */
+//    fun setUpdate(block: (T) -> Unit) {
+//        updater.update = block
+//    }
+//
+//    /**
+//     * Set the frame of the wrapping view.
+//     */
+//    fun updateRect(unclippedRect: IntRect, clippedRect: IntRect, density: Density) {
+//        if (currentUnclippedRect == unclippedRect && currentClippedRect == clippedRect) {
+//            return
+//        }
+//
+//        val clippedDpRect = clippedRect.toRect().toDpRect(density)
+//        val unclippedDpRect = unclippedRect.toRect().toDpRect(density)
+//
+//        // wrapping view itself is always using the clipped rect
+//        if (clippedRect != currentClippedRect) {
+//            container.changeInteropViewLayout {
+//                group.setFrame(clippedDpRect.asCGRect())
+//            }
+//        }
+//
+//        // Only call onResize if the actual size changes.
+//        if (currentUnclippedRect != unclippedRect || currentClippedRect != clippedRect) {
+//            // offset to move the component to the correct position inside the wrapping view, so
+//            // its global unclipped frame stays the same
+//            val offset = unclippedRect.topLeft - clippedRect.topLeft
+//            val dpOffset = offset.toOffset().toDpOffset(density)
+//
+//            container.changeInteropViewLayout {
+//                // The actual component created by the user is resized here using the provided callback.
+//                onResize(
+//                    userComponent,
+//                    CGRectMake(
+//                        x = dpOffset.x.value.toDouble(),
+//                        y = dpOffset.y.value.toDouble(),
+//                        width = unclippedDpRect.width.value.toDouble(),
+//                        height = unclippedDpRect.height.value.toDouble()
+//                    ),
+//                )
+//            }
+//        }
+//
+//        currentUnclippedRect = unclippedRect
+//        currentClippedRect = clippedRect
+//    }
+//
+//    fun onStart(initialUpdateBlock: (T) -> Unit) {
+//        userComponent = createUserComponent()
+//        updater = InteropViewUpdater(userComponent, initialUpdateBlock) {
+//            container.changeInteropViewLayout(action = it)
+//        }
+//
+//        container.changeInteropViewLayout {
+//            setupViewHierarchy()
+//        }
+//    }
+//
+//    fun onStop() {
+//        container.changeInteropViewLayout {
+//            destroyViewHierarchy()
+//        }
+//
+//        onRelease(userComponent)
+//        updater.dispose()
+//    }
+//
+//    fun onBackgroundColorChange(color: Color) = container.changeInteropViewLayout {
+//        if (color == Color.Unspecified) {
+//            group.backgroundColor = container.root.backgroundColor
+//        } else {
+//            group.backgroundColor = color.toUIColor()
+//        }
+//    }
+//
+//    override fun dispatchToView(pointerEvent: PointerEvent) {
+//        // Do nothing - iOS uses hit-testing instead of redispatching
+//    }
+//
+//    abstract fun setupViewHierarchy()
+//    abstract fun destroyViewHierarchy()
+//    abstract fun toInteropView(): InteropView
+//}
+//
+//private class UIKitViewHolder<T : UIView>(
+//    container: InteropContainer,
+//    createView: () -> T,
+//    onResize: (T, rect: CValue<CGRect>) -> Unit,
+//    onRelease: (T) -> Unit,
+//    areTouchesDelayed: Boolean
+//) : UIKitInteropViewHolder<T>(container, createView, onResize, onRelease, areTouchesDelayed) {
+//    override fun toInteropView(): InteropView =
+//        InteropView(view = userComponent)
+//
+//    override fun setupViewHierarchy() {
+//        group.addSubview(userComponent)
+//    }
+//
+//    override fun destroyViewHierarchy() {
+//    }
+//}
+//
+//private class UIKitViewControllerHolder<T : UIViewController>(
+//    container: InteropContainer,
+//    createViewController: () -> T,
+//    private val rootViewController: UIViewController,
+//    onResize: (T, rect: CValue<CGRect>) -> Unit,
+//    onRelease: (T) -> Unit,
+//    areTouchesDelayed: Boolean
+//) : UIKitInteropViewHolder<T>(container, createViewController, onResize, onRelease, areTouchesDelayed) {
+//    override fun toInteropView(): InteropView =
+//        InteropView(viewController = userComponent)
+//
+//    override fun setupViewHierarchy() {
+//        rootViewController.addChildViewController(userComponent)
+//        group.addSubview(userComponent.view)
+//        userComponent.didMoveToParentViewController(rootViewController)
+//    }
+//
+//    override fun destroyViewHierarchy() {
+//        userComponent.willMoveToParentViewController(null)
+//        userComponent.removeFromParentViewController()
+//    }
+//}
