@@ -182,6 +182,9 @@ internal open class InteropViewHolder(
 
     fun getInteropView(): InteropView? =
         withPlatformHooks { getInteropView() }
+
+    fun dispatchToView(pointerEvent: PointerEvent) =
+        withPlatformHooks { dispatchToView(pointerEvent) }
 }
 
 /**
