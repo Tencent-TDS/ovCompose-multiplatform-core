@@ -36,7 +36,7 @@ import androidx.compose.ui.node.ComposeUiNode.Companion.SetResolvedCompositionLo
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.OwnerScope
 import androidx.compose.ui.node.OwnerSnapshotObserver
-import androidx.compose.ui.node.UiApplier
+import androidx.compose.ui.platform.DefaultUiApplier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Density
@@ -255,7 +255,7 @@ internal fun <T : InteropView> InteropView(
     //  lifecycleOwner, savedStateRegistryOwner, layoutDirection
 
     if (onReset == null) {
-        ComposeNode<LayoutNode, UiApplier>(
+        ComposeNode<LayoutNode, DefaultUiApplier>(
             factory = {
                 factory(compositeKeyHash).layoutNode
             },
@@ -272,7 +272,7 @@ internal fun <T : InteropView> InteropView(
             }
         )
     } else {
-        ReusableComposeNode<LayoutNode, UiApplier>(
+        ReusableComposeNode<LayoutNode, DefaultUiApplier>(
             factory = {
                 factory(compositeKeyHash).layoutNode
             },
