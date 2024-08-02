@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.viewinterop
 
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.node.OwnerSnapshotObserver
 import platform.UIKit.UIViewController
 import platform.UIKit.addChildViewController
@@ -47,7 +48,7 @@ internal class UIKitInteropContainer(
      * It starts observing when the first interop view is added and stops when the last one is
      * removed.
      */
-    override val snapshotObserver = OwnerSnapshotObserver { command ->
+    override val snapshotObserver = SnapshotStateObserver { command ->
         command()
     }
 
@@ -62,7 +63,7 @@ internal class UIKitInteropContainer(
             action.invoke()
         }
 
-        // snapshotObserver.stopObserving() is not needed, because unplaceInteropView will be called
+        // snapshotObserver.stop() is not needed, because unplaceInteropView will be called
         // for all interop views and it will stop observing when the last one is removed.
     }
 
@@ -78,7 +79,7 @@ internal class UIKitInteropContainer(
     override fun placeInteropView(holder: InteropViewHolder) {
         if (interopViews.isEmpty()) {
             transaction.state = UIKitInteropState.BEGAN
-            snapshotObserver.startObserving()
+            snapshotObserver.start()
         }
         interopViews.add(holder)
 
@@ -90,7 +91,7 @@ internal class UIKitInteropContainer(
         // Conditional downcast to InteropUIViewController to access the viewController property.
         if (interopView is InteropUIViewController) {
             val childViewController = interopView.viewController
-            changeInteropViewLayout {
+            updateInteropView {
                 val isAdded = childViewController.parentViewController == null
 
                 if (isAdded) viewController.addChildViewController(childViewController)
@@ -101,7 +102,7 @@ internal class UIKitInteropContainer(
 
             }
         } else {
-            changeInteropViewLayout {
+            updateInteropView {
                 root.insertSubview(holder.group, countBelow)
             }
         }
@@ -111,7 +112,7 @@ internal class UIKitInteropContainer(
         interopViews.remove(holder)
         if (interopViews.isEmpty()) {
             transaction.state = UIKitInteropState.ENDED
-            snapshotObserver.stopObserving()
+            snapshotObserver.stop()
         }
 
         // Interop view controllers need special treatment.
@@ -121,19 +122,19 @@ internal class UIKitInteropContainer(
         if (interopView is InteropUIViewController) {
             val childViewController = interopView.viewController
 
-            changeInteropViewLayout {
+            updateInteropView {
                 childViewController.willMoveToParentViewController(null)
                 childViewController.view.removeFromSuperview()
                 childViewController.removeFromParentViewController()
             }
         } else {
-            changeInteropViewLayout {
+            updateInteropView {
                 holder.group.removeFromSuperview()
             }
         }
     }
 
-    override fun changeInteropViewLayout(action: () -> Unit) {
+    override fun updateInteropView(action: () -> Unit) {
         requestRedraw()
 
         // Add lambda to a list of commands which will be executed later

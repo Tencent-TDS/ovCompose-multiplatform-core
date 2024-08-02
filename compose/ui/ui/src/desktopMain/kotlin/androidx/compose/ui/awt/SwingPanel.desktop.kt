@@ -20,7 +20,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.currentCompositeKeyHash
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -45,7 +44,6 @@ import androidx.compose.ui.viewinterop.InteropContainer
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.InteropViewGroup
 import androidx.compose.ui.viewinterop.InteropViewHolder
-import androidx.compose.ui.viewinterop.InteropViewUpdater
 import androidx.compose.ui.viewinterop.LocalInteropContainer
 import androidx.compose.ui.viewinterop.SwingInteropViewHolder
 import androidx.compose.ui.viewinterop.pointerInteropFilter
@@ -56,10 +54,8 @@ import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
 import javax.swing.JPanel
 import javax.swing.LayoutFocusTraversalPolicy
-import javax.swing.SwingUtilities
 import kotlin.math.ceil
 import kotlin.math.floor
-import kotlinx.atomicfu.atomic
 
 val NoOpUpdate: Component.() -> Unit = {}
 
@@ -310,7 +306,7 @@ private class SwingInteropViewHolder2<T : Component>(
     fun setBounds(
         bounds: IntRect,
         clippedBounds: IntRect = bounds
-    ) = container.changeInteropViewLayout {
+    ) = container.updateInteropView {
         clipBounds = clippedBounds // Clipping area for skia canvas
         group.isVisible = !clippedBounds.isEmpty // Hide if it's fully clipped
         // Swing clips children based on parent's bounds, so use our container for clipping

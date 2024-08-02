@@ -17,6 +17,7 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -44,15 +45,20 @@ internal interface InteropContainer {
     val root: InteropViewGroup
     var rootModifier: TrackInteropPlacementModifierNode?
     val interopViews: Set<InteropViewHolder>
-    val snapshotObserver: OwnerSnapshotObserver
+    val snapshotObserver: SnapshotStateObserver
 
     fun placeInteropView(holder: InteropViewHolder)
     fun unplaceInteropView(holder: InteropViewHolder)
 
     // TODO: Should be the same as [Owner.onInteropViewLayoutChange]
-    fun changeInteropViewLayout(action: () -> Unit) {
-        action()
-    }
+    /**
+     * Action to be performed on interop view. Some platforms (like iOS) delay the action to
+     * synchronize it with compose rendering.
+     *
+     * @param action The action to be performed. Could be layout change, or other visual updates
+     * to the view state, such as background, corner radius, etc.
+     */
+    fun updateInteropView(action: () -> Unit)
 }
 
 /**

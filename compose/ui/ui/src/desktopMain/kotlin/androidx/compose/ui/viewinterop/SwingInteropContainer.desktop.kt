@@ -18,6 +18,7 @@ package androidx.compose.ui.viewinterop
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.scene.ComposeSceneMediator
 import java.awt.Component
 import org.jetbrains.skiko.ClipRectangle
@@ -33,13 +34,17 @@ import org.jetbrains.skiko.ClipRectangle
  */
 internal class SwingInteropContainer(
     override val root: InteropViewGroup,
-    private val placeInteropAbove: Boolean
+    private val placeInteropAbove: Boolean,
 ): InteropContainer {
     private var interopComponents = mutableMapOf<Component, InteropViewHolder>()
 
     override var rootModifier: TrackInteropPlacementModifierNode? = null
     override val interopViews: Set<InteropViewHolder>
         get() = interopComponents.values.toSet()
+
+    override val snapshotObserver: SnapshotStateObserver = SnapshotStateObserver { command ->
+        command()
+    }
 
     /**
      * Index of last interop component in [root].
@@ -60,17 +65,17 @@ internal class SwingInteropContainer(
             return lastInteropIndex
         }
 
-    override fun placeInteropView(interopView: InteropViewHolder) {
-        val component = interopView.group
+    override fun placeInteropView(holder: InteropViewHolder) {
+        val component = holder.group
 
         // Add this component to [interopComponents] to track count and clip rects
         val alreadyAdded = component in interopComponents
         if (!alreadyAdded) {
-            interopComponents[component] = interopView
+            interopComponents[component] = holder
         }
 
         // Iterate through a Compose layout tree in draw order and count interop view below this one
-        val countBelow = countInteropComponentsBelow(interopView)
+        val countBelow = countInteropComponentsBelow(holder)
 
         // AWT/Swing uses the **REVERSE ORDER** for drawing and events
         val awtIndex = lastInteropIndex - countBelow
@@ -99,7 +104,7 @@ internal class SwingInteropContainer(
         root.repaint()
     }
 
-    override fun changeInteropViewLayout(action: () -> Unit) {
+    override fun updateInteropView(action: () -> Unit) {
         action()
         root.validate()
         root.repaint()

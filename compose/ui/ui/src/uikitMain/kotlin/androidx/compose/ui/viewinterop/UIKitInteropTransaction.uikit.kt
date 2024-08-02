@@ -54,7 +54,7 @@ internal fun UIKitInteropTransaction.isNotEmpty() = !isEmpty()
  * A mutable transaction managed by [UIKitInteropContainer] to collect changes
  * to UIKit objects to be executed later.
  *
- * @see UIKitInteropContainer.changeInteropViewLayout
+ * @see UIKitInteropContainer.updateInteropView
  */
 internal class UIKitInteropMutableTransaction : UIKitInteropTransaction {
     private val _actions = mutableListOf<UIKitInteropAction>()

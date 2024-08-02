@@ -72,7 +72,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
             }
         }
 
-    override val extraModifier = Modifier
+    override val interopModifier = Modifier
         .drawBehind {
             drawRect(
                 color = Color.Transparent,
@@ -94,7 +94,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
 
         // wrapping view itself is always using the clipped rect
         if (clippedRect != currentClippedRect) {
-            container.changeInteropViewLayout {
+            container.updateInteropView {
                 group.setFrame(clippedDpRect.asCGRect())
             }
         }
@@ -106,7 +106,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
             val offset = unclippedRect.topLeft - clippedRect.topLeft
             val dpOffset = offset.toOffset().toDpOffset(density)
 
-            container.changeInteropViewLayout {
+            container.updateInteropView {
                 // The actual component created by the user is resized here using the provided callback.
                 val rect = CGRectMake(
                     x = dpOffset.x.value.toDouble(),
@@ -170,11 +170,11 @@ internal class UIKitInteropViewHolder<T : UIView>(
 ) {
     init {
         // Group will be placed to hierarchy in [InteropContainer.placeInteropView]
-        group.addSubview(interopView.view)
+        group.addSubview(typedInteropView.view)
     }
 
     override fun setUserComponentFrame(rect: CValue<CGRect>) {
-        interopView.view.setFrame(rect)
+        typedInteropView.view.setFrame(rect)
     }
 }
 
@@ -200,11 +200,11 @@ internal class InteropUIViewControllerHolder<T : UIViewController>(
 ) {
     init {
         // Group will be placed to hierarchy in [InteropContainer.placeInteropView]
-        group.addSubview(interopView.viewController.view)
+        group.addSubview(typedInteropView.viewController.view)
     }
 
     override fun setUserComponentFrame(rect: CValue<CGRect>) {
-        interopView.viewController.view.setFrame(rect)
+        typedInteropView.viewController.view.setFrame(rect)
     }
 }
 

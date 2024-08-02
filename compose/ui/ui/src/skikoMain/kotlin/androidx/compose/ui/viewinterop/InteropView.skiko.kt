@@ -20,10 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ComposeNode
 import androidx.compose.runtime.ComposeNodeLifecycleCallback
 import androidx.compose.runtime.CompositionLocalMap
-import androidx.compose.runtime.ReusableComposeNode
 import androidx.compose.runtime.Updater
 import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.currentCompositeKeyHash
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.UiComposable
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -35,7 +35,6 @@ import androidx.compose.ui.node.ComposeUiNode.Companion.SetCompositeKeyHash
 import androidx.compose.ui.node.ComposeUiNode.Companion.SetResolvedCompositionLocals
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.OwnerScope
-import androidx.compose.ui.node.OwnerSnapshotObserver
 import androidx.compose.ui.platform.DefaultUiApplier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
@@ -45,7 +44,7 @@ private val NoOp: Any.() -> Unit = {}
 
 private class AbstractInvocationError(
     name: String
-): Error("Abstract `$name` must be implemented by platform-specific subclass")
+) : Error("Abstract `$name` must be implemented by platform-specific subclass of `InteropViewHolder`")
 
 /**
  * A holder that keeps references to user interop view and its group (container).
@@ -95,7 +94,7 @@ internal open class InteropViewHolder(
     override val isValidOwnerScope: Boolean
         get() = isAttachedToWindow
 
-    private val snapshotObserver: OwnerSnapshotObserver
+    private val snapshotObserver: SnapshotStateObserver
         get() {
             return container.snapshotObserver
         }
@@ -123,18 +122,19 @@ internal open class InteropViewHolder(
         isAttachedToWindow = false
     }
 
+    /**
+     * Construct a [LayoutNode] that is linked to this [InteropViewHolder].
+     */
     val layoutNode: LayoutNode = run {
-        val holder = this
-
         val layoutNode = LayoutNode()
 
-        layoutNode.interopViewFactoryHolder = holder
+        layoutNode.interopViewFactoryHolder = this
 
         val interopModifier = Modifier
             .semantics(mergeDescendants = true) {}
-            .pointerInteropFilter(isInteractive = isInteractive, interopViewHolder = holder)
-            .trackInteropPlacement(holder)
-            .then(extraModifier)
+            .pointerInteropFilter(isInteractive = isInteractive, interopViewHolder = this)
+            .trackInteropPlacement(this)
+            .then(interopModifier)
             .onGloballyPositioned { layoutCoordinates ->
                 layoutAccordingTo(layoutCoordinates)
             }
@@ -161,11 +161,17 @@ internal open class InteropViewHolder(
 
     // ===== Abstract methods to be implemented by platform-specific subclasses =====
 
+    /**
+     * Indicates whether the interop view is interactive and should be visible in hit test chain.
+     */
     open val isInteractive: Boolean
         get() {
             throw AbstractInvocationError("val isInteractive: Boolean")
         }
 
+    /**
+     * Measure policy for the interop view.
+     */
     open val measurePolicy: MeasurePolicy
         get() {
             throw AbstractInvocationError("val measurePolicy: MeasurePolicy")
@@ -175,26 +181,35 @@ internal open class InteropViewHolder(
      * Modifier containing platform-specific interop view modifiers chain, such as custom drawing,
      * native accessibility setup, etc.
      */
-    open val extraModifier: Modifier
+    open val interopModifier: Modifier
         get() {
-            throw AbstractInvocationError("val platformModifier: Modifier")
+            throw AbstractInvocationError("val interopModifier: Modifier")
         }
 
+    /**
+     * Dispatches the pointer event to the interop view.
+     */
     open fun dispatchToView(pointerEvent: PointerEvent) {
         throw AbstractInvocationError("fun dispatchToView(pointerEvent: PointerEvent)")
     }
 
+    /**
+     * Layout the interop view according to the given layout coordinates.
+     */
     open fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
         throw AbstractInvocationError("fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates)")
     }
 
+    /**
+     * Returns the actual interop view instance.
+     */
     open fun getInteropView(): InteropView? {
         throw AbstractInvocationError("fun getInteropView(): InteropView?")
     }
 
     companion object {
         private val OnCommitAffectingUpdate: (InteropViewHolder) -> Unit = {
-            it.container.changeInteropViewLayout { it.update() }
+            it.container.updateInteropView { it.update() }
         }
     }
 }
@@ -204,38 +219,61 @@ internal open class InteropViewHolder(
  * of InteropView to be implemented by the platform-specific [TypedInteropViewHolder] subclass
  */
 internal abstract class TypedInteropViewHolder<T : InteropView>(
-    val factory: () -> T,
+    factory: () -> T,
     interopContainer: InteropContainer,
     group: InteropViewGroup,
     compositeKeyHash: Int,
 ) : InteropViewHolder(interopContainer, group, compositeKeyHash) {
-    protected val interopView = factory()
+    protected val typedInteropView = factory()
+
+    override fun getInteropView(): InteropView? {
+        return typedInteropView
+    }
 
     var updateBlock: (T) -> Unit = NoOp
         set(value) {
             field = value
-            update = { interopView.apply(updateBlock) }
+            update = { typedInteropView.apply(updateBlock) }
         }
 
     var resetBlock: (T) -> Unit = NoOp
         set(value) {
             field = value
-            reset = { interopView.apply(resetBlock) }
+            reset = { typedInteropView.apply(resetBlock) }
         }
 
     var releaseBlock: (T) -> Unit = NoOp
         set(value) {
             field = value
             release = {
-                interopView.apply(releaseBlock)
+                typedInteropView.apply(releaseBlock)
             }
         }
+}
+
+/**
+ * Create a [LayoutNode] factory that can be constructed from [TypedInteropViewHolder] built with
+ * the [currentCompositeKeyHash]
+ *
+ * @see [AndroidView.android.kt:createAndroidViewNodeFactory]
+ */
+@Composable
+private fun <T : InteropView> createInteropViewLayoutNodeFactory(
+    factory: (compositeKeyHash: Int) -> TypedInteropViewHolder<T>
+): () -> LayoutNode {
+    val compositeKeyHash = currentCompositeKeyHash
+
+    return {
+        factory(compositeKeyHash).layoutNode
+    }
 }
 
 /**
  * Entry point for creating a composable that wraps a platform specific interop view.
  * Platform implementations should call it and provide the appropriate factory, returning
  * a subclass of [TypedInteropViewHolder].
+ *
+ * @see [AndroidView.android.kt:AndroidView]
  */
 @Composable
 @UiComposable
@@ -246,74 +284,87 @@ internal fun <T : InteropView> InteropView(
     onRelease: (T) -> Unit = NoOp,
     update: (T) -> Unit = NoOp,
 ) {
+    val compositeKeyHash = currentCompositeKeyHash
     val compositionLocalMap = currentComposer.currentCompositionLocalMap
     val materializedModifier = currentComposer.materialize(modifier)
     val density = LocalDensity.current
-    val compositeKeyHash = currentCompositeKeyHash
 
     // TODO: there are other parameters on Android that we don't yet use:
     //  lifecycleOwner, savedStateRegistryOwner, layoutDirection
 
-    if (onReset == null) {
-        ComposeNode<LayoutNode, DefaultUiApplier>(
-            factory = {
-                factory(compositeKeyHash).layoutNode
-            },
-            update = {
-                updateParameters(
-                    compositionLocalMap,
-                    materializedModifier,
-                    density,
-                    compositeKeyHash,
-                    onReset,
-                    update,
-                    onRelease
-                )
-            }
-        )
-    } else {
-        ReusableComposeNode<LayoutNode, DefaultUiApplier>(
-            factory = {
-                factory(compositeKeyHash).layoutNode
-            },
-            update = {
-                updateParameters(
-                    compositionLocalMap,
-                    materializedModifier,
-                    density,
-                    compositeKeyHash,
-                    onReset,
-                    update,
-                    onRelease
-                )
-            }
-        )
-    }
+    ComposeNode<LayoutNode, DefaultUiApplier>(
+        factory = createInteropViewLayoutNodeFactory(factory),
+        update = {
+            updateParameters<T>(
+                compositionLocalMap,
+                materializedModifier,
+                density,
+                compositeKeyHash
+            )
+            set(update) { requireViewFactoryHolder<T>().updateBlock = it }
+            set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
+        }
+    )
+
+//    if (onReset == null) {
+//        ComposeNode<LayoutNode, DefaultUiApplier>(
+//            factory = {
+//                factory(compositeKeyHash).layoutNode
+//            },
+//            update = {
+//                updateParameters(
+//                    compositionLocalMap,
+//                    materializedModifier,
+//                    density,
+//                    compositeKeyHash,
+//                    onReset,
+//                    update,
+//                    onRelease
+//                )
+//            }
+//        )
+//    } else {
+//        ReusableComposeNode<LayoutNode, DefaultUiApplier>(
+//            factory = {
+//                factory(compositeKeyHash).layoutNode
+//            },
+//            update = {
+//                updateParameters(
+//                    compositionLocalMap,
+//                    materializedModifier,
+//                    density,
+//                    compositeKeyHash,
+//                    onReset,
+//                    update,
+//                    onRelease
+//                )
+//            }
+//        )
+//    }
 }
 
+/**
+ * Updates the parameters of the [LayoutNode] in the current [Updater] with the given values.
+ * @see [AndroidView.android.kt:updateViewHolderParams]
+ */
 private fun <T : InteropView> Updater<LayoutNode>.updateParameters(
     compositionLocalMap: CompositionLocalMap,
     modifier: Modifier,
     density: Density,
-    compositeKeyHash: Int,
-    onResetOrNull: ((T) -> Unit)?,
-    update: (T) -> Unit,
-    onRelease: (T) -> Unit
+    compositeKeyHash: Int
 ) {
     set(compositionLocalMap, SetResolvedCompositionLocals)
     set(modifier) { requireViewFactoryHolder<T>().modifier = it }
     set(density) { requireViewFactoryHolder<T>().density = it }
     set(compositeKeyHash, SetCompositeKeyHash)
-
-    onResetOrNull?.let { onReset ->
-        set(onReset) { requireViewFactoryHolder<T>().resetBlock = it }
-    }
-
-    set(update) { requireViewFactoryHolder<T>().updateBlock = it }
-    set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
 }
 
-// Based on AndroidView.android.kt:requireViewFactoryHolder
+/**
+ * Returns the [TypedInteropViewHolder] associated with the current [LayoutNode].
+ * Since the [TypedInteropViewHolder] is responsible for constructing the [LayoutNode], it
+ * associates itself with the [LayoutNode] by setting the [LayoutNode.interopViewFactoryHolder]
+ * property and it's safe to cast from [InteropViewHolder]
+ */
 @Suppress("UNCHECKED_CAST")
 private fun <T : InteropView> LayoutNode.requireViewFactoryHolder(): TypedInteropViewHolder<T> {
     // This LayoutNode is created and managed internally here, so it's safe to cast

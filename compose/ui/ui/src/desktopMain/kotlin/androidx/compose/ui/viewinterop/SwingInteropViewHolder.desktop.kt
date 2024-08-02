@@ -16,8 +16,11 @@
 
 package androidx.compose.ui.viewinterop
 
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.util.fastForEach
 import java.awt.Component
@@ -31,6 +34,24 @@ internal open class SwingInteropViewHolder(
     compositeKeyHash: Int,
 ) : InteropViewHolder(container, group, compositeKeyHash), ClipRectangle {
     protected var clipBounds: IntRect? = null
+
+    override val isInteractive: Boolean
+        get() = true
+
+    override val measurePolicy: MeasurePolicy = MeasurePolicy { measurables, constraints ->
+        layout(constraints.minWidth, constraints.minHeight) {}
+    }
+
+    override val interopModifier: Modifier = Modifier
+
+    override fun getInteropView(): InteropView? {
+        return group
+    }
+
+    override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
+
+    }
+
 
     override val x: Float
         get() = (clipBounds?.left ?: group.x).toFloat()
