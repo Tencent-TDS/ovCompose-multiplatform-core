@@ -115,10 +115,10 @@ private var SemanticsPropertyReceiver.interopView by InteropViewSemanticsKey
 
 /**
  * Chain [this] with [Modifier.semantics] that sets the [trackInteropPlacement] of the node
- * if [enabled] is true. If [enabled] is false, [this] is returned as is.
+ * if [isNativeAccessibilityEnabled] is true. If [isNativeAccessibilityEnabled] is false, [this] is returned as is.
  */
-internal fun Modifier.interopViewSemantics(enabled: Boolean, interopViewGroup: InteropViewGroup) =
-    if (enabled) {
+internal fun Modifier.interopViewSemantics(isNativeAccessibilityEnabled: Boolean, interopViewGroup: InteropViewGroup) =
+    if (isNativeAccessibilityEnabled) {
         this.semantics { interopView = interopViewGroup as InteropWrappingView }
     } else {
         this

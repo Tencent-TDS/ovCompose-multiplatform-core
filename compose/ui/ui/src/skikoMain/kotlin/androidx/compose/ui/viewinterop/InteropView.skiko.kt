@@ -51,6 +51,8 @@ private class AbstractInvocationError(
  * It's actual of `expect class [InteropViewFactoryHolder]`
  *
  * @see InteropViewFactoryHolder
+ *
+ * @param platformModifier The modifier that is specific to the platform.
  */
 internal open class InteropViewHolder(
     val container: InteropContainer,
@@ -58,11 +60,14 @@ internal open class InteropViewHolder(
     private val compositeKeyHash: Int,
     measurePolicy: MeasurePolicy,
     isInteractive: Boolean,
-    modifier: Modifier,
+    platformModifier: Modifier
 ) : ComposeNodeLifecycleCallback, OwnerScope {
     private var onModifierChanged: ((Modifier) -> Unit)? = null
 
-    var modifier: Modifier = modifier
+    /**
+     * User-provided modifier that will be reapplied if changed.
+     */
+    var modifier: Modifier = Modifier
         set(value) {
             if (value !== field) {
                 field = value
@@ -133,17 +138,16 @@ internal open class InteropViewHolder(
 
         layoutNode.interopViewFactoryHolder = this
 
-        val coreModifier = Modifier
-            .semantics(mergeDescendants = true) {}
+        val coreModifier = platformModifier
             .pointerInteropFilter(isInteractive = isInteractive, interopViewHolder = this)
             .trackInteropPlacement(this)
             .onGloballyPositioned { layoutCoordinates ->
-                layoutAccordingTo(layoutNode.innerCoordinator.coordinates)
+                layoutAccordingTo(layoutCoordinates)
             }
 
         layoutNode.compositeKeyHash = compositeKeyHash
-        layoutNode.modifier = modifier then coreModifier // modifier from the constructor
-        onModifierChanged = { layoutNode.modifier = it.then(coreModifier) }
+        layoutNode.modifier = modifier then coreModifier
+        onModifierChanged = { layoutNode.modifier = it then coreModifier }
 
         layoutNode.density = density
         onDensityChanged = { layoutNode.density = it }
@@ -204,8 +208,15 @@ internal abstract class TypedInteropViewHolder<T : InteropView>(
     compositeKeyHash: Int,
     measurePolicy: MeasurePolicy,
     isInteractive: Boolean,
-    modifier: Modifier,
-) : InteropViewHolder(interopContainer, group, compositeKeyHash, measurePolicy, isInteractive, modifier) {
+    platformModifier: Modifier
+) : InteropViewHolder(
+    interopContainer,
+    group,
+    compositeKeyHash,
+    measurePolicy,
+    isInteractive,
+    platformModifier
+) {
     protected val typedInteropView = factory()
 
     override fun getInteropView(): InteropView? {

@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.findRootCoordinates
@@ -61,18 +62,21 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     factory: () -> T,
     interopContainer: InteropContainer,
     group: InteropViewGroup,
-    override val isInteractive: Boolean,
+    isInteractive: Boolean,
     isNativeAccessibilityEnabled: Boolean,
-    compositeHashKey: Int,
-) : TypedInteropViewHolder<T>(factory, interopContainer, group, compositeHashKey) {
-    override val measurePolicy: MeasurePolicy
-        get() = MeasurePolicy { _, constraints ->
-            layout(constraints.minWidth, constraints.minHeight) {
-                // No-op, no children are expected
-            }
+    compositeKeyHash: Int,
+) : TypedInteropViewHolder<T>(
+    factory = factory,
+    interopContainer = interopContainer,
+    group = group,
+    compositeKeyHash = compositeKeyHash,
+    measurePolicy = MeasurePolicy { _, constraints ->
+        layout(constraints.minWidth, constraints.minHeight) {
+            // No-op, no children are expected
         }
-
-    override val interopModifier = Modifier
+    },
+    isInteractive = isInteractive,
+    platformModifier = Modifier
         .drawBehind {
             drawRect(
                 color = Color.Transparent,
@@ -80,6 +84,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
             )
         }
         .interopViewSemantics(isNativeAccessibilityEnabled, group)
+) {
 
     private var currentUnclippedRect: IntRect? = null
     private var currentClippedRect: IntRect? = null
@@ -146,6 +151,12 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     }
 
     abstract fun setUserComponentFrame(rect: CValue<CGRect>)
+
+
+    override fun dispatchToView(pointerEvent: PointerEvent) {
+        // No-op, we can't dispatch events to UIView or UIViewController directly, see
+        // [InteractionUIView] logic
+    }
 }
 
 internal class UIKitInteropViewHolder<T : UIView>(
@@ -153,8 +164,8 @@ internal class UIKitInteropViewHolder<T : UIView>(
     interopContainer: InteropContainer,
     group: InteropViewGroup,
     isInteractive: Boolean,
-    isNativeAccessibilityEnabled: Boolean,
-    compositeHashKey: Int
+    compositeKeyHash: Int,
+    isNativeAccessibilityEnabled: Boolean
 ) : UIKitInteropElementHolder<TypedInteropUIView<T>>(
     factory = {
         TypedInteropUIView(
@@ -166,7 +177,7 @@ internal class UIKitInteropViewHolder<T : UIView>(
     group = group,
     isInteractive = isInteractive,
     isNativeAccessibilityEnabled = isNativeAccessibilityEnabled,
-    compositeHashKey = compositeHashKey
+    compositeKeyHash = compositeKeyHash
 ) {
     init {
         // Group will be placed to hierarchy in [InteropContainer.placeInteropView]
@@ -184,7 +195,7 @@ internal class InteropUIViewControllerHolder<T : UIViewController>(
     group: InteropViewGroup,
     isInteractive: Boolean,
     isNativeAccessibilityEnabled: Boolean,
-    compositeHashKey: Int
+    compositeKeyHash: Int
 ) : UIKitInteropElementHolder<TypedInteropUIViewController<T>>(
     factory = {
         TypedInteropUIViewController(
@@ -196,7 +207,7 @@ internal class InteropUIViewControllerHolder<T : UIViewController>(
     group = group,
     isInteractive = isInteractive,
     isNativeAccessibilityEnabled = isNativeAccessibilityEnabled,
-    compositeHashKey = compositeHashKey
+    compositeKeyHash = compositeKeyHash
 ) {
     init {
         // Group will be placed to hierarchy in [InteropContainer.placeInteropView]
@@ -249,6 +260,7 @@ fun <T : UIView> UIKitView(
 ) {
     val compositeKeyHash = currentCompositeKeyHash
     val interopContainer = LocalInteropContainer.current
+
     InteropView(
         factory = {
             UIKitInteropViewHolder(
@@ -257,7 +269,7 @@ fun <T : UIView> UIKitView(
                 group = InteropWrappingView(areTouchesDelayed = true),
                 isInteractive = interactive,
                 isNativeAccessibilityEnabled = accessibilityEnabled,
-                compositeHashKey = compositeKeyHash
+                compositeKeyHash = compositeKeyHash
             )
         },
         modifier = modifier,
