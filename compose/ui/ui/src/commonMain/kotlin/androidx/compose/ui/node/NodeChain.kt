@@ -823,12 +823,8 @@ private fun Modifier.fillVector(
     val capacity = result.size.coerceAtLeast(16)
     val stack = MutableVector<Modifier>(capacity).also { it.add(this) }
     var predicate: ((Modifier.Element) -> Boolean)? = null
-    println("stack size: ${stack.size}")
     while (stack.isNotEmpty()) {
-        val next = stack.removeAt(stack.size - 1)
-        println("items left: ${stack.size}")
-        println("next: $next")
-        when (next) {
+        when (val next = stack.removeAt(stack.size - 1)) {
             is CombinedModifier -> {
                 stack.add(next.inner)
                 stack.add(next.outer)

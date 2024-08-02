@@ -56,10 +56,13 @@ internal open class InteropViewHolder(
     val container: InteropContainer,
     val group: InteropViewGroup,
     private val compositeKeyHash: Int,
+    measurePolicy: MeasurePolicy,
+    isInteractive: Boolean,
+    modifier: Modifier,
 ) : ComposeNodeLifecycleCallback, OwnerScope {
     private var onModifierChanged: ((Modifier) -> Unit)? = null
 
-    var modifier: Modifier = Modifier
+    var modifier: Modifier = modifier
         set(value) {
             if (value !== field) {
                 field = value
@@ -125,23 +128,22 @@ internal open class InteropViewHolder(
     /**
      * Construct a [LayoutNode] that is linked to this [InteropViewHolder].
      */
-    val layoutNode: LayoutNode = run {
+    val layoutNode: LayoutNode by lazy {
         val layoutNode = LayoutNode()
 
         layoutNode.interopViewFactoryHolder = this
 
-        val interopModifier = Modifier
+        val coreModifier = Modifier
             .semantics(mergeDescendants = true) {}
             .pointerInteropFilter(isInteractive = isInteractive, interopViewHolder = this)
             .trackInteropPlacement(this)
-            .then(interopModifier)
             .onGloballyPositioned { layoutCoordinates ->
-                layoutAccordingTo(layoutCoordinates)
+                layoutAccordingTo(layoutNode.innerCoordinator.coordinates)
             }
 
         layoutNode.compositeKeyHash = compositeKeyHash
-        layoutNode.modifier = modifier then interopModifier
-        onModifierChanged = { layoutNode.modifier = it then interopModifier }
+        layoutNode.modifier = modifier then coreModifier // modifier from the constructor
+        onModifierChanged = { layoutNode.modifier = it.then(coreModifier) }
 
         layoutNode.density = density
         onDensityChanged = { layoutNode.density = it }
@@ -157,34 +159,10 @@ internal open class InteropViewHolder(
 
     fun unplace() {
         container.unplaceInteropView(this)
+        snapshotObserver.clear(this)
     }
 
     // ===== Abstract methods to be implemented by platform-specific subclasses =====
-
-    /**
-     * Indicates whether the interop view is interactive and should be visible in hit test chain.
-     */
-    open val isInteractive: Boolean
-        get() {
-            throw AbstractInvocationError("val isInteractive: Boolean")
-        }
-
-    /**
-     * Measure policy for the interop view.
-     */
-    open val measurePolicy: MeasurePolicy
-        get() {
-            throw AbstractInvocationError("val measurePolicy: MeasurePolicy")
-        }
-
-    /**
-     * Modifier containing platform-specific interop view modifiers chain, such as custom drawing,
-     * native accessibility setup, etc.
-     */
-    open val interopModifier: Modifier
-        get() {
-            throw AbstractInvocationError("val interopModifier: Modifier")
-        }
 
     /**
      * Dispatches the pointer event to the interop view.
@@ -201,6 +179,7 @@ internal open class InteropViewHolder(
     }
 
     /**
+     * actual for
      * Returns the actual interop view instance.
      */
     open fun getInteropView(): InteropView? {
@@ -223,7 +202,10 @@ internal abstract class TypedInteropViewHolder<T : InteropView>(
     interopContainer: InteropContainer,
     group: InteropViewGroup,
     compositeKeyHash: Int,
-) : InteropViewHolder(interopContainer, group, compositeKeyHash) {
+    measurePolicy: MeasurePolicy,
+    isInteractive: Boolean,
+    modifier: Modifier,
+) : InteropViewHolder(interopContainer, group, compositeKeyHash, measurePolicy, isInteractive, modifier) {
     protected val typedInteropView = factory()
 
     override fun getInteropView(): InteropView? {

@@ -32,17 +32,17 @@ internal open class SwingInteropViewHolder(
     container: InteropContainer,
     group: InteropViewGroup,
     compositeKeyHash: Int,
-) : InteropViewHolder(container, group, compositeKeyHash), ClipRectangle {
-    protected var clipBounds: IntRect? = null
-
-    override val isInteractive: Boolean
-        get() = true
-
-    override val measurePolicy: MeasurePolicy = MeasurePolicy { measurables, constraints ->
+) : InteropViewHolder(
+    container,
+    group,
+    compositeKeyHash,
+    MeasurePolicy { measurables, constraints ->
         layout(constraints.minWidth, constraints.minHeight) {}
-    }
-
-    override val interopModifier: Modifier = Modifier
+    },
+    isInteractive = true,
+    modifier = Modifier
+), ClipRectangle {
+    protected var clipBounds: IntRect? = null
 
     override fun getInteropView(): InteropView? {
         return group
@@ -51,7 +51,6 @@ internal open class SwingInteropViewHolder(
     override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
 
     }
-
 
     override val x: Float
         get() = (clipBounds?.left ?: group.x).toFloat()
