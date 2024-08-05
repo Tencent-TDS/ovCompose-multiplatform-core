@@ -77,19 +77,25 @@ internal class SwingInteropViewHolder<T : Component>(
 
     init {
         group.add(typedInteropView)
-        container.root.addFocusListener(focusListener)
+        startListeningForFocus()
     }
 
     override fun onReuse() {
-        container.root.addFocusListener(focusListener)
-
+        startListeningForFocus()
         super.onReuse()
     }
 
     override fun onDeactivate() {
-        container.root.removeFocusListener(focusListener)
-
+        stopListeningForFocus()
         super.onDeactivate()
+    }
+
+    private fun startListeningForFocus() {
+        container.root.addFocusListener(focusListener)
+    }
+
+    private fun stopListeningForFocus() {
+        container.root.removeFocusListener(focusListener)
     }
 
     override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {

@@ -71,13 +71,13 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
         val rootCoordinates = layoutCoordinates.findRootCoordinates()
 
-        val clippedRect = rootCoordinates
+        val unclippedRect = rootCoordinates
             .localBoundingBoxOf(
                 sourceCoordinates = layoutCoordinates,
                 clipBounds = false
             ).roundToIntRect()
 
-        val unclippedRect = rootCoordinates
+        val clippedRect = rootCoordinates
             .localBoundingBoxOf(
                 sourceCoordinates = layoutCoordinates,
                 clipBounds = true
