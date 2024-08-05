@@ -16,11 +16,8 @@
 
 package androidx.compose.runtime
 
-internal expect class SynchronizedObject()
-
-@Suppress("CONFLICTING_OVERLOADS")
-internal fun createSynchronizedObject() = SynchronizedObject()
+@Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-37316
+internal actual typealias SynchronizedObject = Any
 
 @PublishedApi
-internal expect inline fun <R> synchronized(lock: SynchronizedObject, block: () -> R): R
-
+internal actual inline fun <R> synchronized(lock: SynchronizedObject, block: () -> R): R = block()
