@@ -1,0 +1,178 @@
+/*
+ * Copyright 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package androidx.compose.ui.viewinterop
+
+import androidx.compose.runtime.ComposeNodeLifecycleCallback
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.node.LayoutNode
+import androidx.compose.ui.unit.Density
+
+private class AbstractInvocationError(
+    name: String
+) : Error("Abstract `$name` must be implemented by platform-specific subclass of `InteropViewHolder`")
+
+/**
+ * A holder that keeps references to user interop view and its group (container).
+ * It's actual of `expect class [InteropViewFactoryHolder]`
+ *
+ * @see InteropViewFactoryHolder
+ *
+ * @param platformModifier The modifier that is specific to the platform.
+ */
+internal open class InteropViewHolder(
+    val container: InteropContainer,
+    val group: InteropViewGroup,
+    private val compositeKeyHash: Int,
+    measurePolicy: MeasurePolicy,
+    isInteractive: Boolean,
+    platformModifier: Modifier
+) : ComposeNodeLifecycleCallback {
+    private var onModifierChanged: ((Modifier) -> Unit)? = null
+
+    /**
+     * User-provided modifier that will be reapplied if changed.
+     */
+    var modifier: Modifier = Modifier
+        set(value) {
+            if (value !== field) {
+                field = value
+                onModifierChanged?.invoke(value)
+            }
+        }
+
+    private var hasUpdateBlock = false
+
+    var update: () -> Unit = {}
+        protected set(value) {
+            field = value
+            hasUpdateBlock = true
+            runUpdate()
+        }
+
+    protected var reset: () -> Unit = {}
+
+    protected var release: () -> Unit = {}
+
+    private var onDensityChanged: ((Density) -> Unit)? = null
+    var density: Density = Density(1f)
+        set(value) {
+            if (value !== field) {
+                field = value
+                onDensityChanged?.invoke(value)
+            }
+        }
+
+    private var isAttachedToWindow: Boolean = true
+
+    private val snapshotObserver: SnapshotStateObserver
+        get() {
+            return container.snapshotObserver
+        }
+
+    private val runUpdate: () -> Unit = {
+        // If we're not attached, the observer isn't started, so don't bother running it.
+        // onAttachedToWindow will run an update the next time the view is attached.
+        if (hasUpdateBlock && isAttachedToWindow) {
+            snapshotObserver.observeReads(this, OnCommitAffectingUpdate, update)
+        }
+    }
+
+    override fun onReuse() {
+        isAttachedToWindow = true
+        reset()
+    }
+
+    override fun onDeactivate() {
+        isAttachedToWindow = false
+    }
+
+    override fun onRelease() {
+        release()
+        isAttachedToWindow = false
+    }
+
+    /**
+     * Construct a [LayoutNode] that is linked to this [InteropViewHolder].
+     */
+    val layoutNode: LayoutNode by lazy {
+        val layoutNode = LayoutNode()
+
+        layoutNode.interopViewFactoryHolder = this
+
+        val coreModifier = platformModifier
+            .pointerInteropFilter(isInteractive = isInteractive, interopViewHolder = this)
+            .trackInteropPlacement(this)
+            .onGloballyPositioned { layoutCoordinates ->
+                layoutAccordingTo(layoutCoordinates)
+            }
+
+        layoutNode.compositeKeyHash = compositeKeyHash
+        layoutNode.modifier = modifier then coreModifier
+        onModifierChanged = { layoutNode.modifier = it then coreModifier }
+
+        layoutNode.density = density
+        onDensityChanged = { layoutNode.density = it }
+
+        layoutNode.measurePolicy = measurePolicy
+
+        layoutNode
+    }
+
+    fun place() {
+        container.place(this)
+    }
+
+    fun unplace() {
+        container.unplace(this)
+        snapshotObserver.clear(this)
+    }
+
+    // ===== Abstract methods to be implemented by platform-specific subclasses =====
+
+    /**
+     * Dispatches the pointer event to the interop view.
+     */
+    open fun dispatchToView(pointerEvent: PointerEvent) {
+        throw AbstractInvocationError("fun dispatchToView(pointerEvent: PointerEvent)")
+    }
+
+    /**
+     * Layout the interop view according to the given layout coordinates.
+     */
+    open fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
+        throw AbstractInvocationError("fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates)")
+    }
+
+    /**
+     * `expect fun` of expect class [InteropViewFactoryHolder] (aka this)
+     * Returns the actual interop view instance.
+     */
+    open fun getInteropView(): InteropView? {
+        throw AbstractInvocationError("fun getInteropView(): InteropView?")
+    }
+
+    companion object {
+        private val OnCommitAffectingUpdate: (InteropViewHolder) -> Unit = {
+            it.container.update { it.update() }
+        }
+    }
+}
