@@ -51,14 +51,14 @@ internal expect val PTHREAD_MUTEX_ERRORCHECK: Int
  *
  * `SynchronizedObject` from `kotlinx-atomicfu` library was used before.
  * However, it is still [experimental](https://github.com/Kotlin/kotlinx-atomicfu?tab=readme-ov-file#locks)
- *  and has [a performance problem](https://github.com/Kotlin/kotlinx-atomicfu/issues/412)
- *  that seriously affects Compose.
+ * and has [a performance problem](https://github.com/Kotlin/kotlinx-atomicfu/issues/412)
+ * that seriously affects Compose.
  *
- *  This implementation is optimized for a non-contention case
- *  (that is the case for the current state of Compose for iOS), so it does not create a posix mutex
- *  when there is no contention: using a posix mutex has its own performance overheads.
- *  On the other hand, it does not just spin lock in case of contention,
- *  protecting from an occasional battery drain.
+ * This implementation is optimized for a non-contention case
+ * (that is the case for the current state of Compose for iOS), so it does not create a posix mutex
+ * when there is no contention: using a posix mutex has its own performance overheads.
+ * On the other hand, it does not just spin lock in case of contention,
+ * protecting from an occasional battery drain.
  */
 internal actual class SynchronizedObject actual constructor() {
 
