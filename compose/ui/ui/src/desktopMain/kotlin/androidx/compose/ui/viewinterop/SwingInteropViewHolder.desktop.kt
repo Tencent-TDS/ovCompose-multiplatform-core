@@ -18,38 +18,110 @@ package androidx.compose.ui.viewinterop
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.awtEventOrNull
+import androidx.compose.ui.awt.isFocusGainedHandledBySwingPanel
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.util.fastForEach
 import java.awt.Component
+import java.awt.event.FocusEvent
+import java.awt.event.FocusListener
 import java.awt.event.MouseEvent
 import javax.swing.SwingUtilities
+import kotlin.math.ceil
+import kotlin.math.floor
 import org.jetbrains.skiko.ClipRectangle
 
-internal open class SwingInteropViewHolder(
+internal class SwingInteropViewHolder<T : Component>(
+    factory: () -> T,
     container: InteropContainer,
     group: InteropViewGroup,
+    onFocusGained: (FocusEvent) -> Unit,
     compositeKeyHash: Int,
-) : InteropViewHolder(
+) : TypedInteropViewHolder<T>(
+    factory,
     container,
     group,
     compositeKeyHash,
-    MeasurePolicy { measurables, constraints ->
+    MeasurePolicy { _, constraints ->
         layout(constraints.minWidth, constraints.minHeight) {}
     },
     isInteractive = true,
     platformModifier = Modifier
+        .drawBehind {
+            // Clear interop area to make visible the component under our canvas.
+            drawRect(
+                color = Color.Transparent,
+                blendMode = BlendMode.Clear
+            )
+        }
 ), ClipRectangle {
-    protected var clipBounds: IntRect? = null
+    private var clipBounds: IntRect? = null
+    private val focusListener = object : FocusListener {
+        override fun focusGained(e: FocusEvent) {
+            onFocusGained(e)
+        }
 
-    override fun getInteropView(): InteropView? {
-        return group
+        override fun focusLost(e: FocusEvent) = Unit
+    }
+
+    override fun getInteropView(): InteropView =
+        typedInteropView
+
+    init {
+        group.add(typedInteropView)
+        container.root.addFocusListener(focusListener)
+    }
+
+    override fun onReuse() {
+        container.root.addFocusListener(focusListener)
+
+        super.onReuse()
+    }
+
+    override fun onDeactivate() {
+        container.root.removeFocusListener(focusListener)
+
+        super.onDeactivate()
     }
 
     override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
+        val rootCoordinates = layoutCoordinates.findRootCoordinates()
 
+        val clippedBounds = rootCoordinates
+            .localBoundingBoxOf(layoutCoordinates, clipBounds = true)
+            .round(density)
+
+        val bounds = rootCoordinates
+            .localBoundingBoxOf(layoutCoordinates, clipBounds = false)
+            .round(density)
+
+        container.update {
+            clipBounds = clippedBounds // Clipping area for skia canvas
+            group.isVisible = !clippedBounds.isEmpty // Hide if it's fully clipped
+            // Swing clips children based on parent's bounds, so use our container for clipping
+            group.setBounds(
+                /* x = */ clippedBounds.left,
+                /* y = */ clippedBounds.top,
+                /* width = */ clippedBounds.width,
+                /* height = */ clippedBounds.height
+            )
+
+            // The real size and position should be based on not-clipped bounds
+            typedInteropView.setBounds(
+                /* x = */ bounds.left - clippedBounds.left, // Local position relative to container
+                /* y = */ bounds.top - clippedBounds.top,
+                /* width = */ bounds.width,
+                /* height = */ bounds.height
+            )
+        }
     }
 
     override val x: Float
@@ -82,8 +154,17 @@ internal open class SwingInteropViewHolder(
     }
 
     private fun getDeepestComponentForEvent(event: MouseEvent): Component? {
-        val userComponent = getInteropView()?.asAwtComponent ?: return null
-        val point = SwingUtilities.convertPoint(event.component, event.point, userComponent)
-        return SwingUtilities.getDeepestComponentAt(userComponent, point.x, point.y)
+        val point = SwingUtilities.convertPoint(event.component, event.point,
+            typedInteropView
+        )
+        return SwingUtilities.getDeepestComponentAt(typedInteropView, point.x, point.y)
     }
+}
+
+private fun Rect.round(density: Density): IntRect {
+    val left = floor(left / density.density).toInt()
+    val top = floor(top / density.density).toInt()
+    val right = ceil(right / density.density).toInt()
+    val bottom = ceil(bottom / density.density).toInt()
+    return IntRect(left, top, right, bottom)
 }

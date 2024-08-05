@@ -68,8 +68,21 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     private var currentClippedRect: IntRect? = null
     private var currentUserComponentRect: IntRect? = null
 
-    protected fun updateRect(unclippedRect: IntRect, clippedRect: IntRect) {
-        // Only update if the rect changes
+    override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
+        val rootCoordinates = layoutCoordinates.findRootCoordinates()
+
+        val clippedRect = rootCoordinates
+            .localBoundingBoxOf(
+                sourceCoordinates = layoutCoordinates,
+                clipBounds = false
+            ).roundToIntRect()
+
+        val unclippedRect = rootCoordinates
+            .localBoundingBoxOf(
+                sourceCoordinates = layoutCoordinates,
+                clipBounds = true
+            ).roundToIntRect()
+
         if (currentUnclippedRect == unclippedRect && currentClippedRect == clippedRect) {
             return
         }
@@ -117,28 +130,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
 
         currentUnclippedRect = unclippedRect
         currentClippedRect = clippedRect
-    }
 
-
-    override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
-        val rootCoordinates = layoutCoordinates.findRootCoordinates()
-
-        val unclippedBounds = rootCoordinates
-            .localBoundingBoxOf(
-                sourceCoordinates = layoutCoordinates,
-                clipBounds = false
-            )
-
-        val clippedBounds = rootCoordinates
-            .localBoundingBoxOf(
-                sourceCoordinates = layoutCoordinates,
-                clipBounds = true
-            )
-
-        updateRect(
-            unclippedRect = unclippedBounds.roundToIntRect(),
-            clippedRect = clippedBounds.roundToIntRect()
-        )
     }
 
     abstract fun setUserComponentFrame(rect: CValue<CGRect>)

@@ -42,8 +42,6 @@ internal class SwingInteropContainer(
     private var interopComponents = mutableMapOf<InteropViewGroup, InteropViewHolder>()
 
     override var rootModifier: TrackInteropPlacementModifierNode? = null
-//    override val interopViews: Set<InteropViewHolder>
-//        get() = interopComponents.values.toSet()
 
     override val snapshotObserver: SnapshotStateObserver = SnapshotStateObserver { command ->
         command()
@@ -74,6 +72,10 @@ internal class SwingInteropContainer(
     override fun place(holder: InteropViewHolder) {
         val component = holder.group
 
+        if (interopComponents.isEmpty()) {
+            snapshotObserver.start()
+        }
+
         // Add this component to [interopComponents] to track count and clip rects
         val alreadyAdded = component in interopComponents
         if (!alreadyAdded) {
@@ -103,6 +105,10 @@ internal class SwingInteropContainer(
         val component = holder.group
         root.remove(component)
         interopComponents.remove(component)
+
+        if (interopComponents.isEmpty()) {
+            snapshotObserver.stop()
+        }
 
         // Sometimes Swing displays the rest of interop views in incorrect order after removing,
         // so we need to force re-validate it.
