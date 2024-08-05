@@ -27,8 +27,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.interop.UIKitView
 import androidx.compose.ui.interop.UIKitViewController
+import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
@@ -71,6 +74,8 @@ private class TouchReactingView: UIView(frame = CGRectZero.readValue()) {
 
 val UIKitInteropExample = Screen.Example("UIKitInterop") {
     var text by remember { mutableStateOf("Type something") }
+    var updatedValue by remember { mutableStateOf(null as Offset?) }
+
     LazyColumn(Modifier.fillMaxSize()) {
         item {
             UIKitView(
@@ -88,10 +93,18 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
             UIKitViewController(
                 factory = {
                     object : UIViewController(nibName = null, bundle = null) {
+                        val label = UILabel()
+
+                        override fun loadView() {
+                            setView(label)
+                        }
+
                         override fun viewDidLoad() {
                             super.viewDidLoad()
 
-                            view.backgroundColor = UIColor.blueColor
+                            label.textAlignment = NSTextAlignmentCenter
+                            label.textColor = UIColor.whiteColor
+                            label.backgroundColor = UIColor.blueColor
                         }
 
                         override fun viewWillAppear(animated: Boolean) {
@@ -119,7 +132,20 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(100.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .onGloballyPositioned { coordinates ->
+                        val rootCoordinates = coordinates.findRootCoordinates()
+                        val box = coordinates.localBoundingBoxOf(rootCoordinates, clipBounds = false)
+                        updatedValue = box.topLeft
+                    },
+                update = { viewController ->
+                    updatedValue?.let {
+                        viewController.label.text = "${it.x}, ${it.y}"
+                    }
+                },
+                interactive = false
             )
         }
         items(100) { index ->
