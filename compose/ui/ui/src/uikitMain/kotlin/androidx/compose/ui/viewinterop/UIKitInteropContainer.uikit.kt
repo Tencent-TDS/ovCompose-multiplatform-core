@@ -17,7 +17,6 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
-import androidx.compose.ui.node.OwnerSnapshotObserver
 import platform.UIKit.UIViewController
 import platform.UIKit.addChildViewController
 import platform.UIKit.didMoveToParentViewController
@@ -86,24 +85,28 @@ internal class UIKitInteropContainer(
         val countBelow = countInteropComponentsBelow(holder).toLong()
 
         // Interop view controllers need special treatment.
-        val interopView = holder.getInteropView()
+        val interopView = holder.getInteropView() ?: return
 
         // Conditional downcast to InteropUIViewController to access the viewController property.
         if (interopView is InteropUIViewController) {
             val childViewController = interopView.viewController
             updateInteropView {
-                val isAdded = childViewController.parentViewController == null
+                val needsContainmentCalls = childViewController.parentViewController == null
 
-                if (isAdded) viewController.addChildViewController(childViewController)
+                if (needsContainmentCalls) {
+                    viewController.addChildViewController(childViewController)
+                }
 
-                root.insertSubview(interopView.viewController.view, countBelow)
+                root.insertSubview(view = interopView.group, atIndex = countBelow)
 
-                if (isAdded) childViewController.didMoveToParentViewController(viewController)
+                if (needsContainmentCalls) {
+                    childViewController.didMoveToParentViewController(viewController)
+                }
 
             }
         } else {
             updateInteropView {
-                root.insertSubview(holder.group, countBelow)
+                root.insertSubview(view = holder.group, atIndex = countBelow)
             }
         }
     }
@@ -116,7 +119,7 @@ internal class UIKitInteropContainer(
         }
 
         // Interop view controllers need special treatment.
-        val interopView = holder.getInteropView()
+        val interopView = holder.getInteropView() ?: return
 
         // Conditional downcast to InteropUIViewController to access the viewController property.
         if (interopView is InteropUIViewController) {

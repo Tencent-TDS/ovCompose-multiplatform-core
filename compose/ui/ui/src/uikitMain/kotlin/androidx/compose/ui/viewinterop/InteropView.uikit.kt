@@ -25,6 +25,8 @@ import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
+import platform.UIKit.addChildViewController
+import platform.UIKit.willMoveToParentViewController
 
 /**
  * On iOS, [interopView] is encapsulating the hierarchy consisting of a wrapping
@@ -43,19 +45,19 @@ actual open class InteropView internal constructor(
 )
 
 /**
- * An [InteropView] that contains underlying type-erased [UIViewController].
+ * An [InteropView] that contains underlying a type-erased [UIViewController].
  */
 internal open class InteropUIViewController(
     group: InteropViewGroup,
     open val viewController: UIViewController
-)  : InteropView(group)
+) : InteropView(group)
 
 /**
  * An [InteropView] that contains underlying [UIViewController] of certain type [T].
  */
 internal class TypedInteropUIViewController<T : UIViewController>(
     group: InteropViewGroup,
-    override val viewController: T // Narrowed type
+    override val viewController: T // narrow type
 ) : InteropUIViewController(group, viewController)
 /**
  * An [InteropView] that contains underlying [UIView] of certain type [T].

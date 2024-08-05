@@ -73,6 +73,9 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     measurePolicy = MeasurePolicy { _, constraints ->
         layout(constraints.minWidth, constraints.minHeight) {
             // No-op, no children are expected
+            // TODO: attempt to calculate the size of the wrapped view using constraints
+            //  and autolayout system if possible
+            //  https://youtrack.jetbrains.com/issue/CMP-5873/iOS-investigate-intrinsic-sizing-of-interop-elements
         }
     },
     isInteractive = isInteractive,
@@ -90,6 +93,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     private var currentClippedRect: IntRect? = null
 
     protected fun updateRect(unclippedRect: IntRect, clippedRect: IntRect) {
+        // Only update if the rect changes
         if (currentUnclippedRect == unclippedRect && currentClippedRect == clippedRect) {
             return
         }
@@ -98,13 +102,16 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
         val unclippedDpRect = unclippedRect.toRect().toDpRect(density)
 
         // wrapping view itself is always using the clipped rect
+        // don't issue a redundant update, if the clipped rect is the same
         if (clippedRect != currentClippedRect) {
             container.updateInteropView {
                 group.setFrame(clippedDpRect.asCGRect())
             }
         }
 
-        // Only call onResize if the actual size changes.
+        // user component is always updated if the unclipped or clipped rect changes,
+        // because it needs to be moved inside the clipping view to keep the frame
+        // in window coordinates the same
         if (currentUnclippedRect != unclippedRect || currentClippedRect != clippedRect) {
             // offset to move the component to the correct position inside the wrapping view, so
             // its global unclipped frame stays the same

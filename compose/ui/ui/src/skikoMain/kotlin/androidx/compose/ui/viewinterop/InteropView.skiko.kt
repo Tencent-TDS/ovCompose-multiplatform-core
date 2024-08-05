@@ -38,7 +38,6 @@ import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.OwnerScope
 import androidx.compose.ui.platform.DefaultUiApplier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Density
 
 private val NoOp: Any.() -> Unit = {}
@@ -62,7 +61,7 @@ internal open class InteropViewHolder(
     measurePolicy: MeasurePolicy,
     isInteractive: Boolean,
     platformModifier: Modifier
-) : ComposeNodeLifecycleCallback, OwnerScope {
+) : ComposeNodeLifecycleCallback {
     private var onModifierChanged: ((Modifier) -> Unit)? = null
 
     /**
@@ -100,9 +99,6 @@ internal open class InteropViewHolder(
 
     private var isAttachedToWindow: Boolean = true
 
-    override val isValidOwnerScope: Boolean
-        get() = isAttachedToWindow
-
     private val snapshotObserver: SnapshotStateObserver
         get() {
             return container.snapshotObserver
@@ -122,7 +118,6 @@ internal open class InteropViewHolder(
     }
 
     override fun onDeactivate() {
-        reset()
         isAttachedToWindow = false
     }
 
@@ -184,7 +179,7 @@ internal open class InteropViewHolder(
     }
 
     /**
-     * actual for
+     * `expect fun` of expect class [InteropViewFactoryHolder] (aka this)
      * Returns the actual interop view instance.
      */
     open fun getInteropView(): InteropView? {
@@ -224,18 +219,32 @@ internal abstract class TypedInteropViewHolder<T : InteropView>(
         return typedInteropView
     }
 
+    /**
+     * A block containing the update logic for [T], to be forwarded to user.
+     * Setting it will schedule an update immediately.
+     * See [InteropViewHolder.update]
+     */
     var updateBlock: (T) -> Unit = NoOp
         set(value) {
             field = value
             update = { typedInteropView.apply(updateBlock) }
         }
 
+    /**
+     * A block containing the reset logic for [T], to be forwarded to user.
+     * It will be called if [LayoutNode] associated with this [InteropViewHolder] is reused to
+     * avoid interop view reallocation.
+     */
     var resetBlock: (T) -> Unit = NoOp
         set(value) {
             field = value
             reset = { typedInteropView.apply(resetBlock) }
         }
 
+    /**
+     * A block containing the release logic for [T], to be forwarded to user.
+     * It will be called if [LayoutNode] associated with this [InteropViewHolder] is released.
+     */
     var releaseBlock: (T) -> Unit = NoOp
         set(value) {
             field = value
