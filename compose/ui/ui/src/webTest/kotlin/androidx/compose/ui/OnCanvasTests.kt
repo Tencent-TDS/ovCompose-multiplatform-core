@@ -35,25 +35,18 @@ private const val canvasId: String = "canvasApp"
 internal interface OnCanvasTests {
     fun getCanvas() = document.getElementById(canvasId) as HTMLCanvasElement
 
-    private fun createCanvasAndAttach(): HTMLCanvasElement {
+    fun resetCanvas(): HTMLCanvasElement {
+        /** TODO: [kotlin.test.AfterTest] is fixed only in kotlin 2.0
+        see https://youtrack.jetbrains.com/issue/KT-61888
+         */
+        document.getElementById(canvasId)?.remove()
+
         val canvas = document.createElement("canvas") as HTMLCanvasElement
         canvas.setAttribute("id", canvasId)
         canvas.setAttribute("tabindex", "0")
 
         document.body!!.appendChild(canvas)
         return canvas
-    }
-
-    private fun commonAfterTest() {
-        document.getElementById(canvasId)?.remove()
-    }
-
-    fun resetCanvas(): HTMLCanvasElement {
-        /** TODO: [kotlin.test.AfterTest] is fixed only in kotlin 2.0
-        see https://youtrack.jetbrains.com/issue/KT-61888
-         */
-        commonAfterTest()
-        return createCanvasAndAttach()
     }
 
     fun createComposeWindow(content: @Composable () -> Unit) {
