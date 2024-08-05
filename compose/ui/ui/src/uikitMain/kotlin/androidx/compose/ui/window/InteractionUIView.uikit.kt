@@ -442,7 +442,7 @@ private class GestureRecognizerHandlerImpl(
  * lightweight generics.
  */
 internal class InteractionUIView(
-    private var hitTestInteropView: (point: CValue<CGPoint>, event: UIEvent?) -> InteropView?,
+    private var hitTestInteropView: (point: CValue<CGPoint>, event: UIEvent?) -> UIView?,
     onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent?, phase: CupertinoTouchesPhase) -> Unit,
     private var onTouchesCountChange: (count: Int) -> Unit,
     private var inInteractionBounds: (CValue<CGPoint>) -> Boolean,
@@ -501,9 +501,9 @@ internal class InteractionUIView(
                 null
             } else {
                 // Find if a scene contains an [InteropView]
-                val interopViewGroup = hitTestInteropView(point, withEvent)?.group
+                val interopView = hitTestInteropView(point, withEvent)
 
-                if (interopViewGroup == null) {
+                if (interopView == null) {
                     // Native [hitTest] happens after [pointInside] is checked. If hit testing
                     // inside ComposeScene didn't yield any interop view, then we should return [this]
                     this
@@ -511,8 +511,8 @@ internal class InteractionUIView(
                     // Transform the point to the interop view's coordinate system.
                     // And perform native [hitTest] on the interop view.
                     // Return this view if the interop view doesn't handle the hit test.
-                    interopViewGroup.hitTest(
-                        point = convertPoint(point, toView = interopViewGroup),
+                    interopView.hitTest(
+                        point = convertPoint(point, toView = interopView),
                         withEvent = withEvent
                     ) ?: this
                 }

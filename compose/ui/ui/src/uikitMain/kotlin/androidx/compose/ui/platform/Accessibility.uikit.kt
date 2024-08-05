@@ -31,7 +31,7 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.uikit.utils.CMPAccessibilityContainer
 import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
 import androidx.compose.ui.unit.toSize
-import androidx.compose.ui.viewinterop.InteropViewSemanticsKey
+import androidx.compose.ui.viewinterop.InteropWrappingViewSemanticsKey
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.measureTime
@@ -196,7 +196,7 @@ private class AccessibilityElement(
      */
     private val interopView: InteropWrappingView?
         get() = getOrElse(CachedAccessibilityPropertyKeys.interopWrappingView) {
-            cachedConfig.getOrNull(InteropViewSemanticsKey)?.also {
+            cachedConfig.getOrNull(InteropWrappingViewSemanticsKey)?.also {
                 it.actualAccessibilityContainer = parent?.accessibilityContainer
             }
         }
@@ -217,7 +217,7 @@ private class AccessibilityElement(
     /**
      * Returns accessibility element communicated to iOS Accessibility services for the given [index].
      * Takes a child at [index].
-     * If the child is constructed from a [SemanticsNode] with [InteropViewSemanticsKey],
+     * If the child is constructed from a [SemanticsNode] with [InteropWrappingViewSemanticsKey],
      * then the element at the given index is a native view.
      * If the child has its own children, then the element at the given index is the synthesized container
      * for the child. Otherwise, the element at the given index is the child itself.

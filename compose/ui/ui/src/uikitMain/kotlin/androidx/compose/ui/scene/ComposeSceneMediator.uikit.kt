@@ -365,10 +365,15 @@ internal class ComposeSceneMediator(
         renderingView.redrawer.needsProactiveDisplayLink = needHighFrequencyPolling
     }
 
-    private fun hitTestInteropView(point: CValue<CGPoint>, event: UIEvent?): InteropView? =
+    private fun hitTestInteropView(point: CValue<CGPoint>, event: UIEvent?): UIView? =
         point.useContents {
             val position = asDpOffset().toOffset(density)
-            scene.hitTestInteropView(position)
+            val interopView = scene.hitTestInteropView(position)
+
+            // Find a group of a holder assocaited with a given interop view or view controller
+            interopView?.let {
+                interopContainer.groupForInteropView(it)
+            }
         }
 
     /**

@@ -26,7 +26,6 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.OnUnplacedModifierNode
-import androidx.compose.ui.node.OwnerSnapshotObserver
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.traverseDescendantsInDrawOrder
 
@@ -44,11 +43,11 @@ internal val LocalInteropContainer = staticCompositionLocalOf<InteropContainer> 
 internal interface InteropContainer {
     val root: InteropViewGroup
     var rootModifier: TrackInteropPlacementModifierNode?
-    val interopViews: Set<InteropViewHolder>
     val snapshotObserver: SnapshotStateObserver
 
-    fun placeInteropView(holder: InteropViewHolder)
-    fun unplaceInteropView(holder: InteropViewHolder)
+    fun contains(holder: InteropViewHolder): Boolean
+    fun place(holder: InteropViewHolder)
+    fun unplace(holder: InteropViewHolder)
 
     // TODO: Should be the same as [Owner.onInteropViewLayoutChange]
     /**
@@ -58,22 +57,24 @@ internal interface InteropContainer {
      * @param action The action to be performed. Could be layout change, or other visual updates
      * to the view state, such as background, corner radius, etc.
      */
-    fun updateInteropView(action: () -> Unit)
+    fun update(action: () -> Unit)
 }
 
 /**
  * Counts the number of interop components before the given native view in the container.
  *
- * @param interopView The native view to count interop components before.
+ * @param holder The holder for native view to count interop components before.
  * @return The number of interop components before the given native view.
  */
-internal fun InteropContainer.countInteropComponentsBelow(interopView: InteropViewHolder): Int {
+internal fun InteropContainer.countInteropComponentsBelow(holder: InteropViewHolder): Int {
     var componentsBefore = 0
     rootModifier?.traverseDescendantsInDrawOrder {
-        if (it.interopViewHolder != interopView) {
+        val currentHolder = it.interopViewHolder
+        if (currentHolder != null && currentHolder != holder) {
             // It might be inside a Compose tree before adding in InteropContainer in case
             // if it was initiated out of scroll visible bounds for example.
-            if (it.interopViewHolder in interopViews) {
+
+            if (contains(currentHolder)) {
                 componentsBefore++
             }
             true

@@ -18,38 +18,21 @@ package androidx.compose.ui.interop
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.currentCompositeKeyHash
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEvent
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.MeasurePolicy
-import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.graphics.isUnspecified
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.uikit.toUIColor
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.asCGRect
-import androidx.compose.ui.unit.height
-import androidx.compose.ui.unit.roundToIntRect
-import androidx.compose.ui.unit.toDpOffset
-import androidx.compose.ui.unit.toDpRect
-import androidx.compose.ui.unit.toOffset
-import androidx.compose.ui.unit.toRect
-import androidx.compose.ui.unit.width
-import androidx.compose.ui.viewinterop.InteropContainer
 import androidx.compose.ui.viewinterop.InteropView
-import androidx.compose.ui.viewinterop.InteropViewGroup
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.LocalInteropContainer
-import androidx.compose.ui.viewinterop.TypedInteropUIView
-import androidx.compose.ui.viewinterop.TypedInteropUIViewController
-import androidx.compose.ui.viewinterop.TypedInteropViewHolder
-import androidx.compose.ui.viewinterop.UIKitInteropContainer
-import androidx.compose.ui.viewinterop.interopViewSemantics
+import androidx.compose.ui.viewinterop.UIKitInteropViewControllerHolder
+import androidx.compose.ui.viewinterop.UIKitInteropViewHolder
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGRect
-import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
@@ -57,174 +40,6 @@ private val STUB_CALLBACK_WITH_RECEIVER: Any.() -> Unit = {}
 private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { rect -> this.setFrame(rect) }
 private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Unit =
     { rect -> this.view.setFrame(rect) }
-
-internal abstract class UIKitInteropElementHolder<T : InteropView>(
-    factory: () -> T,
-    interopContainer: InteropContainer,
-    group: InteropViewGroup,
-    isInteractive: Boolean,
-    isNativeAccessibilityEnabled: Boolean,
-    compositeKeyHash: Int,
-) : TypedInteropViewHolder<T>(
-    factory = factory,
-    interopContainer = interopContainer,
-    group = group,
-    compositeKeyHash = compositeKeyHash,
-    measurePolicy = MeasurePolicy { _, constraints ->
-        layout(constraints.minWidth, constraints.minHeight) {
-            // No-op, no children are expected
-            // TODO: attempt to calculate the size of the wrapped view using constraints
-            //  and autolayout system if possible
-            //  https://youtrack.jetbrains.com/issue/CMP-5873/iOS-investigate-intrinsic-sizing-of-interop-elements
-        }
-    },
-    isInteractive = isInteractive,
-    platformModifier = Modifier
-        .drawBehind {
-            drawRect(
-                color = Color.Transparent,
-                blendMode = BlendMode.Clear
-            )
-        }
-        .interopViewSemantics(isNativeAccessibilityEnabled, group)
-) {
-
-    private var currentUnclippedRect: IntRect? = null
-    private var currentClippedRect: IntRect? = null
-
-    protected fun updateRect(unclippedRect: IntRect, clippedRect: IntRect) {
-        // Only update if the rect changes
-        if (currentUnclippedRect == unclippedRect && currentClippedRect == clippedRect) {
-            return
-        }
-
-        val clippedDpRect = clippedRect.toRect().toDpRect(density)
-        val unclippedDpRect = unclippedRect.toRect().toDpRect(density)
-
-        // wrapping view itself is always using the clipped rect
-        // don't issue a redundant update, if the clipped rect is the same
-        if (clippedRect != currentClippedRect) {
-            container.updateInteropView {
-                group.setFrame(clippedDpRect.asCGRect())
-            }
-        }
-
-        // user component is always updated if the unclipped or clipped rect changes,
-        // because it needs to be moved inside the clipping view to keep the frame
-        // in window coordinates the same
-        if (currentUnclippedRect != unclippedRect || currentClippedRect != clippedRect) {
-            // offset to move the component to the correct position inside the wrapping view, so
-            // its global unclipped frame stays the same
-            val offset = unclippedRect.topLeft - clippedRect.topLeft
-            val dpOffset = offset.toOffset().toDpOffset(density)
-
-            container.updateInteropView {
-                // The actual component created by the user is resized here using the provided callback.
-                val rect = CGRectMake(
-                    x = dpOffset.x.value.toDouble(),
-                    y = dpOffset.y.value.toDouble(),
-                    width = unclippedDpRect.width.value.toDouble(),
-                    height = unclippedDpRect.height.value.toDouble()
-                )
-
-                setUserComponentFrame(rect)
-            }
-        }
-
-        currentUnclippedRect = unclippedRect
-        currentClippedRect = clippedRect
-    }
-
-
-    override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
-        val rootCoordinates = layoutCoordinates.findRootCoordinates()
-
-        val unclippedBounds = rootCoordinates
-            .localBoundingBoxOf(
-                sourceCoordinates = layoutCoordinates,
-                clipBounds = false
-            )
-
-        val clippedBounds = rootCoordinates
-            .localBoundingBoxOf(
-                sourceCoordinates = layoutCoordinates,
-                clipBounds = true
-            )
-
-        updateRect(
-            unclippedRect = unclippedBounds.roundToIntRect(),
-            clippedRect = clippedBounds.roundToIntRect()
-        )
-    }
-
-    abstract fun setUserComponentFrame(rect: CValue<CGRect>)
-
-
-    override fun dispatchToView(pointerEvent: PointerEvent) {
-        // No-op, we can't dispatch events to UIView or UIViewController directly, see
-        // [InteractionUIView] logic
-    }
-}
-
-internal class UIKitInteropViewHolder<T : UIView>(
-    createView: () -> T,
-    interopContainer: InteropContainer,
-    group: InteropViewGroup,
-    isInteractive: Boolean,
-    compositeKeyHash: Int,
-    isNativeAccessibilityEnabled: Boolean
-) : UIKitInteropElementHolder<TypedInteropUIView<T>>(
-    factory = {
-        TypedInteropUIView(
-            group = group,
-            view = createView()
-        )
-    },
-    interopContainer = interopContainer,
-    group = group,
-    isInteractive = isInteractive,
-    isNativeAccessibilityEnabled = isNativeAccessibilityEnabled,
-    compositeKeyHash = compositeKeyHash
-) {
-    init {
-        // Group will be placed to hierarchy in [InteropContainer.placeInteropView]
-        group.addSubview(typedInteropView.view)
-    }
-
-    override fun setUserComponentFrame(rect: CValue<CGRect>) {
-        typedInteropView.view.setFrame(rect)
-    }
-}
-
-internal class UIKitInteropViewControllerHolder<T : UIViewController>(
-    createViewController: () -> T,
-    interopContainer: InteropContainer,
-    group: InteropViewGroup,
-    isInteractive: Boolean,
-    isNativeAccessibilityEnabled: Boolean,
-    compositeKeyHash: Int
-) : UIKitInteropElementHolder<TypedInteropUIViewController<T>>(
-    factory = {
-        TypedInteropUIViewController(
-            group = group,
-            viewController = createViewController()
-        )
-    },
-    interopContainer = interopContainer,
-    group = group,
-    isInteractive = isInteractive,
-    isNativeAccessibilityEnabled = isNativeAccessibilityEnabled,
-    compositeKeyHash = compositeKeyHash
-) {
-    init {
-        // Group will be placed to hierarchy in [InteropContainer.placeInteropView]
-        group.addSubview(typedInteropView.viewController.view)
-    }
-
-    override fun setUserComponentFrame(rect: CValue<CGRect>) {
-        typedInteropView.viewController.view.setFrame(rect)
-    }
-}
 
 /**
  * @param factory The block creating the [UIView] to be composed.
@@ -268,10 +83,18 @@ fun <T : UIView> UIKitView(
     val compositeKeyHash = currentCompositeKeyHash
     val interopContainer = LocalInteropContainer.current
 
+    val backgroundColor by remember(background) {
+        mutableStateOf(if (background.isUnspecified) {
+            null
+        } else {
+            background.toUIColor()
+        })
+    }
+
     InteropView(
         factory = {
             UIKitInteropViewHolder(
-                createView = factory,
+                factory = factory,
                 interopContainer = interopContainer,
                 group = InteropWrappingView(areTouchesDelayed = true),
                 isInteractive = interactive,
@@ -281,14 +104,12 @@ fun <T : UIView> UIKitView(
         },
         modifier = modifier,
         onReset = null,
-        onRelease = {
-            onRelease(it.view)
-        },
+        onRelease = onRelease,
         update = {
-            if (background != Color.Unspecified) {
-                it.view.backgroundColor = background.toUIColor()
+            backgroundColor?.let { color ->
+                it.backgroundColor = color
             }
-            update(it.view)
+            update(it)
         }
     )
 }
@@ -337,10 +158,18 @@ fun <T : UIViewController> UIKitViewController(
     val compositeKeyHash = currentCompositeKeyHash
     val interopContainer = LocalInteropContainer.current
 
+    val backgroundColor by remember(background) {
+        mutableStateOf(if (background.isUnspecified) {
+            null
+        } else {
+            background.toUIColor()
+        })
+    }
+
     InteropView(
         factory = {
             UIKitInteropViewControllerHolder(
-                createViewController = factory,
+                factory = factory,
                 interopContainer = interopContainer,
                 group = InteropWrappingView(areTouchesDelayed = true),
                 isInteractive = interactive,
@@ -350,14 +179,12 @@ fun <T : UIViewController> UIKitViewController(
         },
         modifier = modifier,
         onReset = null,
-        onRelease = {
-            onRelease(it.viewController)
-        },
+        onRelease = onRelease,
         update = {
-            if (background != Color.Unspecified) {
-                it.viewController.view.backgroundColor = background.toUIColor()
+            backgroundColor?.let { color ->
+                it.view.backgroundColor = color
             }
-            update(it.viewController)
+            update(it)
         }
     )
 }

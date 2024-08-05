@@ -17,6 +17,7 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
+import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import platform.UIKit.addChildViewController
 import platform.UIKit.didMoveToParentViewController
@@ -35,9 +36,7 @@ internal class UIKitInteropContainer(
     val requestRedraw: () -> Unit
 ) : InteropContainer {
     override var rootModifier: TrackInteropPlacementModifierNode? = null
-    override var interopViews = mutableSetOf<InteropViewHolder>()
-        private set
-
+    private var interopViews = mutableMapOf<InteropView, InteropViewHolder>()
     private var transaction = UIKitInteropMutableTransaction()
 
     // TODO: Android reuses `owner.snapshotObserver`. We should probably do the same with RootNodeOwner.
@@ -49,6 +48,14 @@ internal class UIKitInteropContainer(
      */
     override val snapshotObserver = SnapshotStateObserver { command ->
         command()
+    }
+
+    override fun contains(holder: InteropViewHolder): Boolean =
+        interopViews.contains(holder.getInteropView())
+
+    fun groupForInteropView(interopView: InteropView): InteropViewGroup? {
+        val holder = interopViews[interopView] ?: return null
+        return holder.group
     }
 
     /**
@@ -75,69 +82,65 @@ internal class UIKitInteropContainer(
         return result
     }
 
-    override fun placeInteropView(holder: InteropViewHolder) {
+    override fun place(holder: InteropViewHolder) {
+        val interopView = checkNotNull(holder.getInteropView())
+
         if (interopViews.isEmpty()) {
             transaction.state = UIKitInteropState.BEGAN
             snapshotObserver.start()
         }
-        interopViews.add(holder)
+        interopViews[interopView] = holder
 
         val countBelow = countInteropComponentsBelow(holder).toLong()
 
-        // Interop view controllers need special treatment.
-        val interopView = holder.getInteropView() ?: return
-
-        // Conditional downcast to InteropUIViewController to access the viewController property.
-        if (interopView is InteropUIViewController) {
-            val childViewController = interopView.viewController
-            updateInteropView {
-                val needsContainmentCalls = childViewController.parentViewController == null
-
-                if (needsContainmentCalls) {
-                    viewController.addChildViewController(childViewController)
-                }
-
-                root.insertSubview(view = interopView.group, atIndex = countBelow)
-
-                if (needsContainmentCalls) {
-                    childViewController.didMoveToParentViewController(viewController)
-                }
-
-            }
-        } else {
-            updateInteropView {
+        when (interopView) {
+            is UIView -> update {
                 root.insertSubview(view = holder.group, atIndex = countBelow)
             }
+
+            is UIViewController -> update {
+                val needsContainmentCalls = interopView.parentViewController == null
+                if (needsContainmentCalls) {
+                    interopView.willMoveToParentViewController(viewController)
+                }
+
+                root.insertSubview(view = holder.group, atIndex = countBelow)
+
+                if (needsContainmentCalls) {
+                    viewController.addChildViewController(interopView)
+                }
+            }
+
+            else -> error("Unknown interop view type: $interopView")
         }
     }
 
-    override fun unplaceInteropView(holder: InteropViewHolder) {
-        interopViews.remove(holder)
+    override fun unplace(holder: InteropViewHolder) {
+        val interopView = requireNotNull(holder.getInteropView())
+
+        interopViews.remove(interopView)
         if (interopViews.isEmpty()) {
             transaction.state = UIKitInteropState.ENDED
             snapshotObserver.stop()
         }
 
-        // Interop view controllers need special treatment.
-        val interopView = holder.getInteropView() ?: return
 
-        // Conditional downcast to InteropUIViewController to access the viewController property.
-        if (interopView is InteropUIViewController) {
-            val childViewController = interopView.viewController
-
-            updateInteropView {
-                childViewController.willMoveToParentViewController(null)
-                childViewController.view.removeFromSuperview()
-                childViewController.removeFromParentViewController()
-            }
-        } else {
-            updateInteropView {
+        when (interopView) {
+            is UIView -> update {
                 holder.group.removeFromSuperview()
             }
+
+            is UIViewController -> update {
+                interopView.willMoveToParentViewController(null)
+                holder.group.removeFromSuperview()
+                interopView.removeFromParentViewController()
+            }
+
+            else -> error("Unknown interop view type: $interopView")
         }
     }
 
-    override fun updateInteropView(action: () -> Unit) {
+    override fun update(action: () -> Unit) {
         requestRedraw()
 
         // Add lambda to a list of commands which will be executed later

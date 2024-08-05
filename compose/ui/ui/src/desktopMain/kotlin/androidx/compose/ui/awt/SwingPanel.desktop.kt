@@ -306,7 +306,7 @@ private class SwingInteropViewHolder2<T : Component>(
     fun setBounds(
         bounds: IntRect,
         clippedBounds: IntRect = bounds
-    ) = container.updateInteropView {
+    ) = container.update {
         clipBounds = clippedBounds // Clipping area for skia canvas
         group.isVisible = !clippedBounds.isEmpty // Hide if it's fully clipped
         // Swing clips children based on parent's bounds, so use our container for clipping

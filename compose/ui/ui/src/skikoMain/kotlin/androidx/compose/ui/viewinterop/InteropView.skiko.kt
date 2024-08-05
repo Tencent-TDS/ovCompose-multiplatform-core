@@ -35,7 +35,6 @@ import androidx.compose.ui.materialize
 import androidx.compose.ui.node.ComposeUiNode.Companion.SetCompositeKeyHash
 import androidx.compose.ui.node.ComposeUiNode.Companion.SetResolvedCompositionLocals
 import androidx.compose.ui.node.LayoutNode
-import androidx.compose.ui.node.OwnerScope
 import androidx.compose.ui.platform.DefaultUiApplier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
@@ -154,11 +153,11 @@ internal open class InteropViewHolder(
     }
 
     fun place() {
-        container.placeInteropView(this)
+        container.place(this)
     }
 
     fun unplace() {
-        container.unplaceInteropView(this)
+        container.unplace(this)
         snapshotObserver.clear(this)
     }
 
@@ -188,7 +187,7 @@ internal open class InteropViewHolder(
 
     companion object {
         private val OnCommitAffectingUpdate: (InteropViewHolder) -> Unit = {
-            it.container.updateInteropView { it.update() }
+            it.container.update { it.update() }
         }
     }
 }
@@ -279,13 +278,14 @@ private fun <T : InteropView> createInteropViewLayoutNodeFactory(
  * @see [AndroidView.android.kt:AndroidView]
  */
 @Composable
-@UiComposable
+// @UiComposable TODO: ditch content from swing implementation and uncomment
 internal fun <T : InteropView> InteropView(
     factory: (compositeKeyHash: Int) -> TypedInteropViewHolder<T>,
     modifier: Modifier,
     onReset: ((T) -> Unit)? = null,
     onRelease: (T) -> Unit = NoOp,
     update: (T) -> Unit = NoOp,
+    content: (@Composable () -> Unit)? = null
 ) {
     val compositeKeyHash = currentCompositeKeyHash
     val materializedModifier = currentComposer.materialize(modifier)
@@ -295,34 +295,69 @@ internal fun <T : InteropView> InteropView(
     // TODO: there are other parameters on Android that we don't yet use:
     //  lifecycleOwner, savedStateRegistryOwner, layoutDirection
     if (onReset == null) {
-        ComposeNode<LayoutNode, DefaultUiApplier>(
-            factory = createInteropViewLayoutNodeFactory(factory),
-            update = {
-                updateParameters<T>(
-                    compositionLocalMap,
-                    materializedModifier,
-                    density,
-                    compositeKeyHash
-                )
-                set(update) { requireViewFactoryHolder<T>().updateBlock = it }
-                set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
-            }
-        )
+        if (content == null) {
+            ComposeNode<LayoutNode, DefaultUiApplier>(
+                factory = createInteropViewLayoutNodeFactory(factory),
+                update = {
+                    updateParameters<T>(
+                        compositionLocalMap,
+                        materializedModifier,
+                        density,
+                        compositeKeyHash
+                    )
+                    set(update) { requireViewFactoryHolder<T>().updateBlock = it }
+                    set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
+                }
+            )
+        } else {
+            ComposeNode<LayoutNode, DefaultUiApplier>(
+                factory = createInteropViewLayoutNodeFactory(factory),
+                update = {
+                    updateParameters<T>(
+                        compositionLocalMap,
+                        materializedModifier,
+                        density,
+                        compositeKeyHash
+                    )
+                    set(update) { requireViewFactoryHolder<T>().updateBlock = it }
+                    set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
+                },
+                content = content
+            )
+        }
     } else {
-        ReusableComposeNode<LayoutNode, DefaultUiApplier>(
-            factory = createInteropViewLayoutNodeFactory(factory),
-            update = {
-                updateParameters<T>(
-                    compositionLocalMap,
-                    materializedModifier,
-                    density,
-                    compositeKeyHash
-                )
-                set(onReset) { requireViewFactoryHolder<T>().resetBlock = it }
-                set(update) { requireViewFactoryHolder<T>().updateBlock = it }
-                set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
-            }
-        )
+        if (content == null) {
+            ReusableComposeNode<LayoutNode, DefaultUiApplier>(
+                factory = createInteropViewLayoutNodeFactory(factory),
+                update = {
+                    updateParameters<T>(
+                        compositionLocalMap,
+                        materializedModifier,
+                        density,
+                        compositeKeyHash
+                    )
+                    set(onReset) { requireViewFactoryHolder<T>().resetBlock = it }
+                    set(update) { requireViewFactoryHolder<T>().updateBlock = it }
+                    set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
+                }
+            )
+        } else {
+            ReusableComposeNode<LayoutNode, DefaultUiApplier>(
+                factory = createInteropViewLayoutNodeFactory(factory),
+                update = {
+                    updateParameters<T>(
+                        compositionLocalMap,
+                        materializedModifier,
+                        density,
+                        compositeKeyHash
+                    )
+                    set(onReset) { requireViewFactoryHolder<T>().resetBlock = it }
+                    set(update) { requireViewFactoryHolder<T>().updateBlock = it }
+                    set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
+                },
+                content = content
+            )
+        }
     }
 }
 

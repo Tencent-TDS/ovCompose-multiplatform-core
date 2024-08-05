@@ -77,7 +77,10 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                 factory = {
                     MKMapView()
                 },
-                modifier = Modifier.fillMaxWidth().height(200.dp)
+                modifier = Modifier.fillMaxWidth().height(200.dp),
+                update = {
+                    println("MKMapView updated")
+                }
             )
         }
 

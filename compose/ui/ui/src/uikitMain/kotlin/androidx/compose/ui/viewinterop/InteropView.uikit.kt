@@ -23,50 +23,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.uikit.utils.CMPInteropWrappingView
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
+import platform.UIKit.UIResponder
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
-import platform.UIKit.addChildViewController
-import platform.UIKit.willMoveToParentViewController
 
-/**
- * On iOS, [interopView] is encapsulating the hierarchy consisting of a wrapping
- * [InteropViewGroup] and underlying [UIView] or a [UIViewController]. This immediate
- * class is only used for API surface where the top-level view is needed for general-purpose
- * operations, such as view hierarchy hit-testing and modification.
- *
- * Subclasses of [interopView] are used to represent specific types of interop views to forward
- * user-settable callbacks.
- *
- * @property group The [InteropViewGroup] (aka [UIView]) that contains the underlying
- * interop element.
- */
-actual open class InteropView internal constructor(
-    val group: InteropViewGroup
-)
-
-/**
- * An [InteropView] that contains underlying a type-erased [UIViewController].
- */
-internal open class InteropUIViewController(
-    group: InteropViewGroup,
-    open val viewController: UIViewController
-) : InteropView(group)
-
-/**
- * An [InteropView] that contains underlying [UIViewController] of certain type [T].
- */
-internal class TypedInteropUIViewController<T : UIViewController>(
-    group: InteropViewGroup,
-    override val viewController: T // narrow type
-) : InteropUIViewController(group, viewController)
-/**
- * An [InteropView] that contains underlying [UIView] of certain type [T].
- */
-internal class TypedInteropUIView<T : UIView>(
-    group: InteropViewGroup,
-    val view: T
-) : InteropView(group)
-
+actual typealias InteropView = UIResponder
 
 @Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-37316
 internal actual typealias InteropViewGroup = UIView
@@ -95,8 +56,8 @@ internal class InteropWrappingView(
     }
 }
 
-internal val InteropViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
-    name = "InteropView",
+internal val InteropWrappingViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
+    name = "InteropWrappingView",
     mergePolicy = { parentValue, childValue ->
         if (parentValue == null) {
             childValue
@@ -113,15 +74,15 @@ internal val InteropViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
     }
 )
 
-private var SemanticsPropertyReceiver.interopView by InteropViewSemanticsKey
+private var SemanticsPropertyReceiver.interopWrappingView by InteropWrappingViewSemanticsKey
 
 /**
  * Chain [this] with [Modifier.semantics] that sets the [trackInteropPlacement] of the node
  * if [isNativeAccessibilityEnabled] is true. If [isNativeAccessibilityEnabled] is false, [this] is returned as is.
  */
-internal fun Modifier.interopViewSemantics(isNativeAccessibilityEnabled: Boolean, interopViewGroup: InteropViewGroup) =
+internal fun Modifier.interopViewSemantics(isNativeAccessibilityEnabled: Boolean, interopViewGroup: InteropWrappingView) =
     if (isNativeAccessibilityEnabled) {
-        this.semantics { interopView = interopViewGroup as InteropWrappingView }
+        this.semantics { interopWrappingView = interopViewGroup }
     } else {
         this
     }

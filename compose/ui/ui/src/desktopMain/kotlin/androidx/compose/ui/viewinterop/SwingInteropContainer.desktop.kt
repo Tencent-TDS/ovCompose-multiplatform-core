@@ -36,11 +36,14 @@ internal class SwingInteropContainer(
     override val root: InteropViewGroup,
     private val placeInteropAbove: Boolean,
 ): InteropContainer {
-    private var interopComponents = mutableMapOf<Component, InteropViewHolder>()
+    /**
+     * Map to reverse-lookup of [InteropViewHolder] having an [InteropViewGroup].
+     */
+    private var interopComponents = mutableMapOf<InteropViewGroup, InteropViewHolder>()
 
     override var rootModifier: TrackInteropPlacementModifierNode? = null
-    override val interopViews: Set<InteropViewHolder>
-        get() = interopComponents.values.toSet()
+//    override val interopViews: Set<InteropViewHolder>
+//        get() = interopComponents.values.toSet()
 
     override val snapshotObserver: SnapshotStateObserver = SnapshotStateObserver { command ->
         command()
@@ -65,7 +68,10 @@ internal class SwingInteropContainer(
             return lastInteropIndex
         }
 
-    override fun placeInteropView(holder: InteropViewHolder) {
+    override fun contains(holder: InteropViewHolder): Boolean =
+        interopComponents.contains(holder.group)
+
+    override fun place(holder: InteropViewHolder) {
         val component = holder.group
 
         // Add this component to [interopComponents] to track count and clip rects
@@ -93,7 +99,7 @@ internal class SwingInteropContainer(
         root.repaint()
     }
 
-    override fun unplaceInteropView(holder: InteropViewHolder) {
+    override fun unplace(holder: InteropViewHolder) {
         val component = holder.group
         root.remove(component)
         interopComponents.remove(component)
@@ -104,7 +110,7 @@ internal class SwingInteropContainer(
         root.repaint()
     }
 
-    override fun updateInteropView(action: () -> Unit) {
+    override fun update(action: () -> Unit) {
         action()
         root.validate()
         root.repaint()
