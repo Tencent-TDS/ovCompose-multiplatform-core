@@ -101,13 +101,13 @@ internal class UIKitInteropContainer(
             is UIViewController -> update {
                 val needsContainmentCalls = interopView.parentViewController == null
                 if (needsContainmentCalls) {
-                    interopView.willMoveToParentViewController(viewController)
+                    viewController.addChildViewController(interopView)
                 }
 
                 root.insertSubview(view = holder.group, atIndex = countBelow)
 
                 if (needsContainmentCalls) {
-                    viewController.addChildViewController(interopView)
+                    interopView.didMoveToParentViewController(viewController)
                 }
             }
 
