@@ -119,7 +119,7 @@ private data class RootTrackInteropPlacementModifierElement(
 /**
  * Modifier to track interop view inside [LayoutNode] hierarchy.
  *
- * @param interopViewHolder The interop view that matches the current node.
+ * @param interopViewHolder The interop view holder that matches the current node.
  */
 internal fun Modifier.trackInteropPlacement(interopViewHolder: InteropViewHolder): Modifier =
     this then TrackInteropPlacementModifierElement(interopViewHolder)
