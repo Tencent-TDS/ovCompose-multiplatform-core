@@ -40,7 +40,7 @@ internal open class SwingInteropViewHolder(
         layout(constraints.minWidth, constraints.minHeight) {}
     },
     isInteractive = true,
-    modifier = Modifier
+    platformModifier = Modifier
 ), ClipRectangle {
     protected var clipBounds: IntRect? = null
 
