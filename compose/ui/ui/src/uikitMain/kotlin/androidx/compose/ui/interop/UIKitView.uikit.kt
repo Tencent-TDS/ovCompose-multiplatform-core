@@ -189,9 +189,9 @@ internal class UIKitInteropViewHolder<T : UIView>(
     }
 }
 
-internal class InteropUIViewControllerHolder<T : UIViewController>(
+internal class UIKitInteropViewControllerHolder<T : UIViewController>(
     createViewController: () -> T,
-    interopContainer: UIKitInteropContainer,
+    interopContainer: InteropContainer,
     group: InteropViewGroup,
     isInteractive: Boolean,
     isNativeAccessibilityEnabled: Boolean,
@@ -327,5 +327,30 @@ fun <T : UIViewController> UIKitViewController(
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true
 ) {
+    val compositeKeyHash = currentCompositeKeyHash
+    val interopContainer = LocalInteropContainer.current
 
+    InteropView(
+        factory = {
+            UIKitInteropViewControllerHolder(
+                createViewController = factory,
+                interopContainer = interopContainer,
+                group = InteropWrappingView(areTouchesDelayed = true),
+                isInteractive = interactive,
+                isNativeAccessibilityEnabled = accessibilityEnabled,
+                compositeKeyHash = compositeKeyHash
+            )
+        },
+        modifier = modifier,
+        onReset = null,
+        onRelease = {
+            onRelease(it.viewController)
+        },
+        update = {
+            if (background != Color.Unspecified) {
+                it.viewController.view.backgroundColor = background.toUIColor()
+            }
+            update(it.viewController)
+        }
+    )
 }

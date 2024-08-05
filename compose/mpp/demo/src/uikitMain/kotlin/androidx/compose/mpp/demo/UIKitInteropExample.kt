@@ -136,7 +136,7 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                 3 -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
                 4 -> UIKitView(
                     factory = { TouchReactingView() },
-                    modifier = Modifier.fillMaxWidth().height(40.dp)
+                    modifier = Modifier.fillMaxWidth().height(40.dp),
                 )
             }
         }
