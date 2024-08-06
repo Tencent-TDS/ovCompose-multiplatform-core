@@ -99,6 +99,8 @@ public fun <T : Component> SwingPanel(
         )
     }
 
+    EmptyLayout(focusSwitcher.backwardTracker.modifier)
+
     InteropView(
         factory = {
             interopViewHolder
@@ -108,9 +110,9 @@ public fun <T : Component> SwingPanel(
             it.background = background.toAwtColor()
             update(it)
         }
-    ) {
-        focusSwitcher.Content()
-    }
+    )
+
+    EmptyLayout(focusSwitcher.forwardTracker.modifier)
 }
 
 /**
@@ -170,7 +172,7 @@ private class FocusSwitcher(
     private val group: InteropViewGroup,
     private val focusManager: FocusManager,
 ) {
-    private val backwardTracker = FocusTracker {
+    val backwardTracker = FocusTracker {
         val component = group.focusTraversalPolicy.getFirstComponent(group)
         if (component != null) {
             component.requestFocus(FocusEvent.Cause.TRAVERSAL_FORWARD)
@@ -179,7 +181,7 @@ private class FocusSwitcher(
         }
     }
 
-    private val forwardTracker = FocusTracker {
+    val forwardTracker = FocusTracker {
         val component = group.focusTraversalPolicy.getLastComponent(group)
         if (component != null) {
             component.requestFocus(FocusEvent.Cause.TRAVERSAL_BACKWARD)
@@ -198,19 +200,13 @@ private class FocusSwitcher(
         focusManager.moveFocus(FocusDirection.Next)
     }
 
-    @Composable
-    fun Content() {
-        EmptyLayout(backwardTracker.modifier)
-        EmptyLayout(forwardTracker.modifier)
-    }
-
     /**
      * A helper class that can help:
      * - to prevent recursive focus events
      *   (a case when we focus the same element inside `onFocusEvent`)
      * - to prevent triggering `onFocusEvent` while requesting focus somewhere else
      */
-    private class FocusTracker(
+    class FocusTracker(
         private val onNonRecursiveFocused: () -> Unit
     ) {
         private val requester = FocusRequester()
