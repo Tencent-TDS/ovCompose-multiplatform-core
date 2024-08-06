@@ -51,16 +51,8 @@ internal class SwingInteropViewHolder<T : Component>(
     container,
     group,
     compositeKeyHash,
-    MeasurePolicy { measurables, constraints ->
-        val placeables = measurables.map { it.measure(constraints) }
-        layout(
-            placeables.maxOfOrNull { it.width } ?: constraints.minWidth,
-            placeables.maxOfOrNull { it.height } ?: constraints.minHeight
-        ) {
-            placeables.forEach {
-                it.place(0, 0)
-            }
-        }
+    MeasurePolicy { _, constraints ->
+        layout(constraints.minWidth, constraints.minHeight) {}
     },
     isInteractive = true,
     platformModifier = Modifier

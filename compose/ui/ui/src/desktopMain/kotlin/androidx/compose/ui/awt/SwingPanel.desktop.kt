@@ -74,6 +74,10 @@ public fun <T : Component> SwingPanel(
     val compositeKeyHash = currentCompositeKeyHash
     val focusManager = LocalFocusManager.current
 
+    // TODO: entire interop context must be inside SwingInteropViewHolder in order to
+    //  expose a version of this API with `onReset` callback and integrated with ReusableComposeNode
+    //  https://youtrack.jetbrains.com/issue/CMP-5897/Desktop-self-contained-InteropViewHolder
+
     val group = remember {
         SwingInteropViewGroup(
             key = compositeKeyHash,
