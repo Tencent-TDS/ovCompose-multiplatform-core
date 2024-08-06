@@ -35,7 +35,7 @@ import org.jetbrains.skiko.ClipRectangle
 internal class SwingInteropContainer(
     override val root: InteropViewGroup,
     private val placeInteropAbove: Boolean
-): InteropContainer {
+) : InteropContainer {
     /**
      * Map to reverse-lookup of [InteropViewHolder] having an [InteropViewGroup].
      */
@@ -69,7 +69,7 @@ internal class SwingInteropContainer(
     override fun contains(holder: InteropViewHolder): Boolean =
         interopComponents.contains(holder.group)
 
-    override fun place(holder: InteropViewHolder) {
+    override fun place(holder: InteropViewHolder) = update {
         val group = holder.group
 
         if (interopComponents.isEmpty()) {
@@ -89,21 +89,15 @@ internal class SwingInteropContainer(
         val awtIndex = lastInteropIndex - countBelow
 
         // Update AWT/Swing hierarchy
-        update {
-            if (alreadyAdded) {
-                holder.changeInteropViewIndex(root, awtIndex)
-            } else {
-                holder.insertInteropView(root, awtIndex)
-            }
+        if (alreadyAdded) {
+            holder.changeInteropViewIndex(root, awtIndex)
+        } else {
+            holder.insertInteropView(root, awtIndex)
         }
     }
 
-    override fun unplace(holder: InteropViewHolder) {
-
-
-        update {
-            holder.removeInteropView(root)
-        }
+    override fun unplace(holder: InteropViewHolder) = update {
+        holder.removeInteropView(root)
 
         interopComponents.remove(holder.group)
 
