@@ -27,7 +27,7 @@ internal class UIKitInteropViewHolder<T : UIView>(
     isInteractive: Boolean,
     isNativeAccessibilityEnabled: Boolean,
     compositeKeyHash: Int,
-    // TODO: remove after new API arrives https://youtrack.jetbrains.com/issue/CMP-5719/iOS-revisit-UIKit-interop-API
+    // TODO: deprecate after new API arrives https://youtrack.jetbrains.com/issue/CMP-5719/iOS-revisit-UIKit-interop-API
     val resize: (T, rect: CValue<CGRect>) -> Unit
 ) : UIKitInteropElementHolder<T>(
     factory = factory,
@@ -44,6 +44,7 @@ internal class UIKitInteropViewHolder<T : UIView>(
 
     override fun setUserComponentFrame(rect: CValue<CGRect>) {
         // typedInteropView.setFrame(rect)
+        // TODO: deprecate after new API arrives https://youtrack.jetbrains.com/issue/CMP-5719/iOS-revisit-UIKit-interop-API
         resize(typedInteropView, rect)
     }
 

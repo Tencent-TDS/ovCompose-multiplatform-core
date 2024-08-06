@@ -128,8 +128,7 @@ internal fun <T : InteropView> InteropView(
     modifier: Modifier,
     onReset: ((T) -> Unit)? = null,
     onRelease: (T) -> Unit = NoOp,
-    update: (T) -> Unit = NoOp,
-    content: (@Composable @UiComposable () -> Unit) = {}
+    update: (T) -> Unit = NoOp
 ) {
     val compositeKeyHash = currentCompositeKeyHash
     val materializedModifier = currentComposer.materialize(modifier)
@@ -150,8 +149,7 @@ internal fun <T : InteropView> InteropView(
                 )
                 set(update) { requireViewFactoryHolder<T>().updateBlock = it }
                 set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
-            },
-            content = content
+            }
         )
     } else {
         ReusableComposeNode<LayoutNode, DefaultUiApplier>(
@@ -166,8 +164,7 @@ internal fun <T : InteropView> InteropView(
                 set(onReset) { requireViewFactoryHolder<T>().resetBlock = it }
                 set(update) { requireViewFactoryHolder<T>().updateBlock = it }
                 set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
-            },
-            content = content
+            }
         )
     }
 }
