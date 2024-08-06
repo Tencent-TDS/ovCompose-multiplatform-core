@@ -118,8 +118,11 @@ internal class SwingInteropContainer(
         root.repaint()
     }
 
-    fun getClipRectForComponent(component: Component): ClipRectangle =
-        requireNotNull(interopComponents[component] as? ClipRectangle)
+    fun getClipRectForComponent(component: Component): ClipRectangle {
+        val holder = requireNotNull(interopComponents[component])
+
+        return holder as ClipRectangle
+    }
 
     @Composable
     operator fun invoke(content: @Composable () -> Unit) {

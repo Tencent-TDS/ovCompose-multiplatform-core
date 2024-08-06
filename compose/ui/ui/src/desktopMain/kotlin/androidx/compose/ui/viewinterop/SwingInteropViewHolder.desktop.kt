@@ -130,16 +130,16 @@ internal class SwingInteropViewHolder<T : Component>(
     }
 
     override fun insertInteropView(root: InteropViewGroup, index: Int) {
-        root.add(typedInteropView, index)
+        root.add(group, index)
         super.insertInteropView(root, index)
     }
 
     override fun changeInteropViewIndex(root: InteropViewGroup, index: Int) {
-        root.setComponentZOrder(typedInteropView, index)
+        root.setComponentZOrder(group, index)
     }
 
     override fun removeInteropView(root: InteropViewGroup) {
-        root.remove(typedInteropView)
+        root.remove(group)
         super.removeInteropView(root)
     }
 
