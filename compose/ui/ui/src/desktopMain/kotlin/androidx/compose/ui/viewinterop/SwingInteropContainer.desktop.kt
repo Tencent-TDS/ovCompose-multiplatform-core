@@ -21,6 +21,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.scene.ComposeSceneMediator
 import java.awt.Component
+import javax.swing.SwingUtilities
 import org.jetbrains.skiko.ClipRectangle
 
 /**
@@ -112,7 +113,7 @@ internal class SwingInteropContainer(
         root.repaint()
     }
 
-    override fun update(action: () -> Unit) {
+    override fun update(action: () -> Unit) = SwingUtilities.invokeLater {
         action()
         root.validate()
         root.repaint()

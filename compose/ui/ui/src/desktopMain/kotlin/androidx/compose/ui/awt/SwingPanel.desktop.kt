@@ -17,25 +17,34 @@ package androidx.compose.ui.awt
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.currentCompositeKeyHash
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.focus.onFocusEvent
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.EmptyLayout
+import androidx.compose.ui.layout.OverlayLayout
+import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.InteropViewGroup
 import androidx.compose.ui.viewinterop.LocalInteropContainer
 import androidx.compose.ui.viewinterop.SwingInteropViewHolder
+import androidx.compose.ui.viewinterop.pointerInteropFilter
+import androidx.compose.ui.viewinterop.trackInteropPlacement
 import java.awt.Component
 import java.awt.Container
 import java.awt.event.FocusEvent
@@ -69,6 +78,99 @@ public fun <T : Component> SwingPanel(
     update: (T) -> Unit = NoOpUpdate,
 ) {
     val interopContainer = LocalInteropContainer.current
+    val compositeKeyHash = currentCompositeKeyHash
+
+    val group = remember {
+        SwingInteropViewGroup(
+            key = compositeKeyHash,
+            focusComponent = interopContainer.root
+        )
+    }
+
+    val interopViewHolder = remember {
+        SwingInteropViewHolder(
+            factory = factory,
+            container = interopContainer,
+            group = group,
+            compositeKeyHash = compositeKeyHash
+        )
+    }
+
+    val focusManager = LocalFocusManager.current
+    val focusSwitcher = remember { FocusSwitcher(group, focusManager) }
+
+//    InteropView(
+//        factory = {
+//            interopViewHolder
+//        },
+//        modifier = modifier,
+//        update = {
+//            it.background = background.toAwtColor()
+//            update(it)
+//        }
+//    ) {
+//        focusSwitcher.Content()
+//    }
+    OverlayLayout(
+        modifier = modifier
+            .onGloballyPositioned { coordinates ->
+                interopViewHolder.layoutAccordingTo(coordinates)
+            }
+            .drawBehind {
+                // Clear interop area to make visible the component under our canvas.
+                drawRect(Color.Transparent, blendMode = BlendMode.Clear)
+            }
+            .trackInteropPlacement(interopViewHolder)
+            .pointerInteropFilter(interopViewHolder)
+    ) {
+        focusSwitcher.Content()
+    }
+
+    DisposableEffect(Unit) {
+        val focusListener = object : FocusListener {
+            override fun focusGained(e: FocusEvent) {
+                if (e.isFocusGainedHandledBySwingPanel(interopViewHolder.group)) {
+                    when (e.cause) {
+                        FocusEvent.Cause.TRAVERSAL_FORWARD -> focusSwitcher.moveForward()
+                        FocusEvent.Cause.TRAVERSAL_BACKWARD -> focusSwitcher.moveBackward()
+                        else -> Unit
+                    }
+                }
+            }
+
+            override fun focusLost(e: FocusEvent) = Unit
+        }
+        interopContainer.root.addFocusListener(focusListener)
+        onDispose {
+            interopContainer.root.removeFocusListener(focusListener)
+        }
+    }
+}
+
+/**
+ * Composes an AWT/Swing component obtained from [factory]. The [factory] block will be called
+ * to obtain the [Component] to be composed.
+ *
+ * By default, the Swing component is placed on top of the Compose layer (that means that Compose
+ * content can't overlap or clip it). It might be changed by `compose.interop.blending` system
+ * property. See [ComposeFeatureFlags.useInteropBlending].
+ *
+ * The [update] block runs due to recomposition, this is the place to set [Component] properties
+ * depending on state. When state changes, the block will be re-executed to set the new properties.
+ *
+ * @param background Background color of SwingPanel
+ * @param factory The block creating the [Component] to be composed.
+ * @param modifier The modifier to be applied to the layout.
+ * @param update The callback to be invoked after the layout is inflated.
+ */
+@Composable
+public fun <T : Component> SwingPanel2(
+    background: Color = Color.White,
+    factory: () -> T,
+    modifier: Modifier = Modifier,
+    update: (T) -> Unit = NoOpUpdate,
+) {
+    val interopContainer = LocalInteropContainer.current
     val focusManager = LocalFocusManager.current
     val compositeKeyHash = currentCompositeKeyHash
 
@@ -91,15 +193,6 @@ public fun <T : Component> SwingPanel(
                 factory = factory,
                 container = interopContainer,
                 group = group,
-                onFocusGained = { event ->
-                    if (event.isFocusGainedHandledBySwingPanel(group)) {
-                        when (event.cause) {
-                            FocusEvent.Cause.TRAVERSAL_FORWARD -> focusSwitcher.moveForward()
-                            FocusEvent.Cause.TRAVERSAL_BACKWARD -> focusSwitcher.moveBackward()
-                            else -> Unit
-                        }
-                    }
-                },
                 compositeKeyHash = it
             )
         },
@@ -112,6 +205,26 @@ public fun <T : Component> SwingPanel(
         }
     ) {
         focusSwitcher.Content()
+    }
+
+    DisposableEffect(Unit) {
+        val focusListener = object : FocusListener {
+            override fun focusGained(e: FocusEvent) {
+                if (e.isFocusGainedHandledBySwingPanel(group)) {
+                    when (e.cause) {
+                        FocusEvent.Cause.TRAVERSAL_FORWARD -> focusSwitcher.moveForward()
+                        FocusEvent.Cause.TRAVERSAL_BACKWARD -> focusSwitcher.moveBackward()
+                        else -> Unit
+                    }
+                }
+            }
+
+            override fun focusLost(e: FocusEvent) = Unit
+        }
+        interopContainer.root.addFocusListener(focusListener)
+        onDispose {
+            interopContainer.root.removeFocusListener(focusListener)
+        }
     }
 }
 

@@ -42,15 +42,22 @@ internal class SwingInteropViewHolder<T : Component>(
     factory: () -> T,
     container: InteropContainer,
     group: InteropViewGroup,
-    onFocusGained: (FocusEvent) -> Unit,
     compositeKeyHash: Int,
 ) : TypedInteropViewHolder<T>(
     factory,
     container,
     group,
     compositeKeyHash,
-    MeasurePolicy { _, constraints ->
-        layout(constraints.minWidth, constraints.minHeight) {}
+    MeasurePolicy { measurables, constraints ->
+        val placeables = measurables.map { it.measure(constraints) }
+        layout(
+            placeables.maxOfOrNull { it.width } ?: constraints.minWidth,
+            placeables.maxOfOrNull { it.height } ?: constraints.minHeight
+        ) {
+            placeables.forEach {
+                it.place(0, 0)
+            }
+        }
     },
     isInteractive = true,
     platformModifier = Modifier
@@ -63,38 +70,12 @@ internal class SwingInteropViewHolder<T : Component>(
         }
 ), ClipRectangle {
     private var clipBounds: IntRect? = null
-    private val focusListener = object : FocusListener {
-        override fun focusGained(e: FocusEvent) {
-            onFocusGained(e)
-        }
-
-        override fun focusLost(e: FocusEvent) = Unit
-    }
 
     override fun getInteropView(): InteropView =
         typedInteropView
 
     init {
         group.add(typedInteropView)
-        startListeningForFocus()
-    }
-
-    override fun onReuse() {
-        startListeningForFocus()
-        super.onReuse()
-    }
-
-    override fun onDeactivate() {
-        stopListeningForFocus()
-        super.onDeactivate()
-    }
-
-    private fun startListeningForFocus() {
-        container.root.addFocusListener(focusListener)
-    }
-
-    private fun stopListeningForFocus() {
-        container.root.removeFocusListener(focusListener)
     }
 
     override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
