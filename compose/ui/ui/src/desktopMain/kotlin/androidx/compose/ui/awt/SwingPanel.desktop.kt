@@ -72,6 +72,7 @@ public fun <T : Component> SwingPanel(
 ) {
     val interopContainer = LocalInteropContainer.current
     val compositeKeyHash = currentCompositeKeyHash
+    val focusManager = LocalFocusManager.current
 
     val group = remember {
         SwingInteropViewGroup(
@@ -80,7 +81,6 @@ public fun <T : Component> SwingPanel(
         )
     }
 
-    val focusManager = LocalFocusManager.current
     val focusSwitcher = remember { FocusSwitcher(group, focusManager) }
 
     val interopViewHolder = remember {
