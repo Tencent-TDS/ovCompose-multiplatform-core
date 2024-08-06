@@ -17,12 +17,7 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
-import platform.UIKit.UIView
 import platform.UIKit.UIViewController
-import platform.UIKit.addChildViewController
-import platform.UIKit.didMoveToParentViewController
-import platform.UIKit.removeFromParentViewController
-import platform.UIKit.willMoveToParentViewController
 
 /**
  * A container that controls interop views/components.
@@ -32,7 +27,6 @@ import platform.UIKit.willMoveToParentViewController
  */
 internal class UIKitInteropContainer(
     override val root: InteropViewGroup,
-    val viewController: UIViewController,
     val requestRedraw: () -> Unit
 ) : InteropContainer {
     override var rootModifier: TrackInteropPlacementModifierNode? = null
@@ -89,31 +83,19 @@ internal class UIKitInteropContainer(
             transaction.state = UIKitInteropState.BEGAN
             snapshotObserver.start()
         }
-        interopViews[interopView] = holder
 
-        val countBelow = countInteropComponentsBelow(holder).toLong()
+        val isAdded = interopViews.put(interopView, holder) == null
 
-        when (interopView) {
-            is UIView -> update {
-                holder.isAttachedToWindow = true
-                root.insertSubview(view = holder.group, atIndex = countBelow)
+        val countBelow = countInteropComponentsBelow(holder)
+
+        if (isAdded) {
+            update {
+                holder.insertInteropView(root, countBelow)
             }
-
-            is UIViewController -> update {
-                holder.isAttachedToWindow = true
-                val needsContainmentCalls = interopView.parentViewController == null
-                if (needsContainmentCalls) {
-                    viewController.addChildViewController(interopView)
-                }
-
-                root.insertSubview(view = holder.group, atIndex = countBelow)
-
-                if (needsContainmentCalls) {
-                    interopView.didMoveToParentViewController(viewController)
-                }
+        } else {
+            update {
+                holder.changeInteropViewIndex(root, countBelow)
             }
-
-            else -> error("Unknown interop view type: $interopView")
         }
     }
 
@@ -126,21 +108,8 @@ internal class UIKitInteropContainer(
             snapshotObserver.stop()
         }
 
-
-        when (interopView) {
-            is UIView -> update {
-                holder.group.removeFromSuperview()
-                holder.isAttachedToWindow = false
-            }
-
-            is UIViewController -> update {
-                interopView.willMoveToParentViewController(null)
-                holder.group.removeFromSuperview()
-                interopView.removeFromParentViewController()
-                holder.isAttachedToWindow = false
-            }
-
-            else -> error("Unknown interop view type: $interopView")
+        update {
+            holder.removeInteropView(root)
         }
     }
 

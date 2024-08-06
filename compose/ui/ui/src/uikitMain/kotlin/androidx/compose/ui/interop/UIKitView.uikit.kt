@@ -157,6 +157,7 @@ fun <T : UIViewController> UIKitViewController(
 ) {
     val compositeKeyHash = currentCompositeKeyHash
     val interopContainer = LocalInteropContainer.current
+    val parentViewController = LocalUIViewController.current
 
     val backgroundColor by remember(background) {
         mutableStateOf(if (background.isUnspecified) {
@@ -170,6 +171,7 @@ fun <T : UIViewController> UIKitViewController(
         factory = {
             UIKitInteropViewControllerHolder(
                 factory = factory,
+                parentViewController = parentViewController,
                 interopContainer = interopContainer,
                 group = InteropWrappingView(areTouchesDelayed = true),
                 isInteractive = interactive,

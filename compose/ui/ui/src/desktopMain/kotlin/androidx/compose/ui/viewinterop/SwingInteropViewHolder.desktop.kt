@@ -18,7 +18,6 @@ package androidx.compose.ui.viewinterop
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.awtEventOrNull
-import androidx.compose.ui.awt.isFocusGainedHandledBySwingPanel
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
@@ -128,6 +127,20 @@ internal class SwingInteropViewHolder<T : Component>(
                 /* height = */ bounds.height
             )
         }
+    }
+
+    override fun insertInteropView(root: InteropViewGroup, index: Int) {
+        root.add(typedInteropView, index)
+        super.insertInteropView(root, index)
+    }
+
+    override fun changeInteropViewIndex(root: InteropViewGroup, index: Int) {
+        root.setComponentZOrder(typedInteropView, index)
+    }
+
+    override fun removeInteropView(root: InteropViewGroup) {
+        root.remove(typedInteropView)
+        super.removeInteropView(root)
     }
 
     override val x: Float

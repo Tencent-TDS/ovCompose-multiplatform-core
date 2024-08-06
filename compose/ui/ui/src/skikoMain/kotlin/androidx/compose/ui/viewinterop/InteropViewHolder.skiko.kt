@@ -91,7 +91,7 @@ internal open class InteropViewHolder(
      *
      * If the view is detached, the observer is stopped to avoid redundant callbacks.
      */
-    var isAttachedToWindow: Boolean = false
+    private var isAttachedToWindow: Boolean = false
         set(value) {
             if (value != field) {
                 if (value) {
@@ -163,14 +163,24 @@ internal open class InteropViewHolder(
         container.unplace(this)
     }
 
-    // ===== Abstract methods to be implemented by platform-specific subclasses =====
-
-    open fun insertInteropViewAt(index: Int) {
-        abstractInvocationError("fun insertInteropViewAt(index: Int)")
+    /**
+     * Must be called by implementations when the interop view is attached to the window.
+     */
+    open fun insertInteropView(root: InteropViewGroup, index: Int) {
+        isAttachedToWindow = true
     }
 
-    open fun removeInteropView() {
-        abstractInvocationError("fun removeInteropView()")
+    /**
+     * Must be called by implementations when the interop view is detached from the window.
+     */
+    open fun removeInteropView(root: InteropViewGroup) {
+        isAttachedToWindow = false
+    }
+
+    // ===== Abstract methods to be implemented by platform-specific subclasses =====
+
+    open fun changeInteropViewIndex(root: InteropViewGroup, index: Int) {
+        abstractInvocationError("fun moveInteropViewTo(index: Int)")
     }
 
     /**

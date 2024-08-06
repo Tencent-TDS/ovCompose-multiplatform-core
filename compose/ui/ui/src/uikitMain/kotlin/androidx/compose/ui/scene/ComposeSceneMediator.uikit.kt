@@ -300,7 +300,6 @@ internal class ComposeSceneMediator(
      */
     private val interopContainer = UIKitInteropContainer(
         root = interactionView,
-        viewController = viewController,
         requestRedraw = ::onComposeSceneInvalidate
     )
 

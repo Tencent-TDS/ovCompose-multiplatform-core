@@ -19,10 +19,15 @@ package androidx.compose.ui.viewinterop
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGRect
 import platform.UIKit.UIViewController
+import platform.UIKit.addChildViewController
+import platform.UIKit.didMoveToParentViewController
+import platform.UIKit.removeFromParentViewController
+import platform.UIKit.willMoveToParentViewController
 
 internal class UIKitInteropViewControllerHolder<T : UIViewController>(
     factory: () -> T,
     interopContainer: InteropContainer,
+    private val parentViewController: UIViewController,
     group: InteropWrappingView,
     isInteractive: Boolean,
     isNativeAccessibilityEnabled: Boolean,
@@ -42,5 +47,21 @@ internal class UIKitInteropViewControllerHolder<T : UIViewController>(
 
     override fun setUserComponentFrame(rect: CValue<CGRect>) {
         typedInteropView.view.setFrame(rect)
+    }
+
+    override fun insertInteropView(root: InteropViewGroup, index: Int) {
+        parentViewController.addChildViewController(typedInteropView)
+        root.insertSubview(group, index.toLong())
+        typedInteropView.didMoveToParentViewController(parentViewController)
+
+        super.insertInteropView(root, index)
+    }
+
+    override fun removeInteropView(root: InteropViewGroup) {
+        typedInteropView.willMoveToParentViewController(null)
+        group.removeFromSuperview()
+        typedInteropView.removeFromParentViewController()
+
+        super.removeInteropView(root)
     }
 }

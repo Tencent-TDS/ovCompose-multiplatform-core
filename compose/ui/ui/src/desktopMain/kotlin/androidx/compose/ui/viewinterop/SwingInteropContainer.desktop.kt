@@ -89,35 +89,27 @@ internal class SwingInteropContainer(
         val awtIndex = lastInteropIndex - countBelow
 
         // Update AWT/Swing hierarchy
-        if (alreadyAdded) {
-            root.setComponentZOrder(component, awtIndex)
-        } else {
-            root.add(component, awtIndex)
+        update {
+            if (alreadyAdded) {
+                holder.changeInteropViewIndex(root, awtIndex)
+            } else {
+                holder.insertInteropView(root, awtIndex)
+            }
         }
-
-        holder.isAttachedToWindow = true
-
-        // Sometimes Swing displays the rest of interop views in incorrect order after adding,
-        // so we need to force re-validate it.
-        root.validate()
-        root.repaint()
     }
 
     override fun unplace(holder: InteropViewHolder) {
         val component = holder.group
-        root.remove(component)
+
         interopComponents.remove(component)
 
         if (interopComponents.isEmpty()) {
             snapshotObserver.stop()
         }
 
-        holder.isAttachedToWindow = false
-
-        // Sometimes Swing displays the rest of interop views in incorrect order after removing,
-        // so we need to force re-validate it.
-        root.validate()
-        root.repaint()
+        update {
+            holder.removeInteropView(root)
+        }
     }
 
     override fun update(action: () -> Unit) {

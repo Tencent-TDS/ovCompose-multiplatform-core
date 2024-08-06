@@ -18,7 +18,6 @@ package androidx.compose.ui.viewinterop
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -139,5 +138,9 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     override fun dispatchToView(pointerEvent: PointerEvent) {
         // No-op, we can't dispatch events to UIView or UIViewController directly, see
         // [InteractionUIView] logic
+    }
+
+    override fun changeInteropViewIndex(root: InteropViewGroup, index: Int) {
+        root.insertSubview(view = group, atIndex = index.toLong())
     }
 }
