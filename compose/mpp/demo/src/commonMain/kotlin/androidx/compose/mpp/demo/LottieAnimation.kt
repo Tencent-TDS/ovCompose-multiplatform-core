@@ -58,8 +58,9 @@ private fun InfiniteAnimation(animation: Animation, modifier: Modifier) {
     )
     val invalidationController = remember { InvalidationController() }
 
-    animation.seekFrameTime(time, invalidationController)
     Canvas(modifier) {
+        animation.seekFrameTime(time, invalidationController)
+
         drawIntoCanvas {
             animation.render(
                 canvas = it.nativeCanvas,
