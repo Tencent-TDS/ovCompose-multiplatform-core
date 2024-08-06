@@ -90,14 +90,14 @@ internal open class InteropViewHolder(
     private var isAttachedToWindow: Boolean = false
         set(value) {
             if (value != field) {
+                field = value
+
                 if (value) {
                     runUpdate()
                 } else {
                     snapshotObserver.clear(this)
                 }
             }
-
-            field = value
         }
 
     private val snapshotObserver: SnapshotStateObserver
