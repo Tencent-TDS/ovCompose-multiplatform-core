@@ -97,6 +97,9 @@ internal fun InteropContainer.countInteropComponentsBelow(holder: InteropViewHol
 /**
  * Wrapper of Compose content that might contain interop views. It adds a helper modifier to root
  * that allows traversing interop views in the tree with the right order.
+ *
+ * TODO: refactor to use a root node modifier instead of emitting an extra node
+ *      https://youtrack.jetbrains.com/issue/CMP-5896
  */
 @Composable
 internal fun InteropContainer.TrackInteropPlacementContainer(content: @Composable () -> Unit) {
