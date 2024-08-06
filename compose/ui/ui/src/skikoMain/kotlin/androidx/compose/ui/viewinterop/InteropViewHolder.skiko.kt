@@ -165,6 +165,14 @@ internal open class InteropViewHolder(
 
     // ===== Abstract methods to be implemented by platform-specific subclasses =====
 
+    open fun insertInteropViewAt(index: Int) {
+        abstractInvocationError("fun insertInteropViewAt(index: Int)")
+    }
+
+    open fun removeInteropView() {
+        abstractInvocationError("fun removeInteropView()")
+    }
+
     /**
      * Dispatches the pointer event to the interop view.
      */

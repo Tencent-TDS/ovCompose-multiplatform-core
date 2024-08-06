@@ -46,7 +46,16 @@ internal interface InteropContainer {
     val snapshotObserver: SnapshotStateObserver
 
     fun contains(holder: InteropViewHolder): Boolean
+
+    /**
+     * Calculates the proper index for the interop view in the container and issues a request to
+     * update the view hierarchy.
+     */
     fun place(holder: InteropViewHolder)
+
+    /**
+     * Issues a request to remove the interop view from the hierarchy.
+     */
     fun unplace(holder: InteropViewHolder)
 
     // TODO: Should be the same as [Owner.onInteropViewLayoutChange]

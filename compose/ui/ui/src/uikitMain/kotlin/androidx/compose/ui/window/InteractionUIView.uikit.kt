@@ -552,7 +552,7 @@ internal class InteractionUIView(
                 // If the hit-tested view is not a descendant of [InteropWrappingView], then it
                 // should be considered as a view that doesn't want to cooperate with Compose.
 
-                val areTouchesDelayed = result.interopWrappingView?.areTouchesDelayed ?: false
+                val areTouchesDelayed = result.findAncestorInteropWrappingView()?.areTouchesDelayed ?: false
 
                 if (areTouchesDelayed) {
                     InteractionUIViewHitTestResult.COOPERATIVE_CHILD_VIEW
@@ -570,14 +570,13 @@ internal class InteractionUIView(
  * This extension property allows to find the nearest [InteropWrappingView] up the view hierarchy
  * and request the value retroactively.
  */
-private val UIView.interopWrappingView: InteropWrappingView?
-    get() {
-        var view: UIView? = this
-        while (view != null) {
-            if (view is InteropWrappingView) {
-                return view
-            }
-            view = view.superview
+private fun UIView.findAncestorInteropWrappingView(): InteropWrappingView? {
+    var view: UIView? = this
+    while (view != null) {
+        if (view is InteropWrappingView) {
+            return view
         }
-        return null
+        view = view.superview
     }
+    return null
+}
