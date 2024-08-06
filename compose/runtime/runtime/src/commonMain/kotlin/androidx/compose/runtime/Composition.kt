@@ -460,7 +460,7 @@ internal class CompositionImpl(
     private val pendingModifications = AtomicReference<Any?>(null)
 
     // Held when making changes to self or composer
-    private val lock = SynchronizedObject()
+    private val lock = createSynchronizedObject()
 
     /**
      * A set of remember observers that were potentially abandoned between [composeContent] or
@@ -691,19 +691,15 @@ internal class CompositionImpl(
             null -> {
                 // Do nothing, just start composing.
             }
-
             PendingApplyNoModifications -> {
                 composeRuntimeError("pending composition has not been applied")
             }
-
             is Set<*> -> {
                 addPendingInvalidationsLocked(toRecord as Set<Any>, forgetConditionalScopes = true)
             }
-
             is Array<*> -> for (changed in toRecord as Array<Set<Any>>) {
                 addPendingInvalidationsLocked(changed, forgetConditionalScopes = true)
             }
-
             else -> composeRuntimeError("corrupt pendingModifications drain: $pendingModifications")
         }
     }
@@ -714,19 +710,15 @@ internal class CompositionImpl(
             PendingApplyNoModifications -> {
                 // No work to do
             }
-
             is Set<*> -> {
                 addPendingInvalidationsLocked(toRecord as Set<Any>, forgetConditionalScopes = false)
             }
-
             is Array<*> -> for (changed in toRecord as Array<Set<Any>>) {
                 addPendingInvalidationsLocked(changed, forgetConditionalScopes = false)
             }
-
             null -> composeRuntimeError(
                 "calling recordModificationsOf and applyChanges concurrently is not supported"
             )
-
             else -> composeRuntimeError(
                 "corrupt pendingModifications drain: $pendingModifications"
             )
@@ -1102,7 +1094,7 @@ internal class CompositionImpl(
             invalidationDelegate = to as CompositionImpl
             invalidationDelegateGroup = groupIndex
             try {
-                block()
+               block()
             } finally {
                 invalidationDelegate = null
                 invalidationDelegateGroup = 0
