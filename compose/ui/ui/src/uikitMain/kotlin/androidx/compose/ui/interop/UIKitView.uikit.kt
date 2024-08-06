@@ -83,13 +83,7 @@ fun <T : UIView> UIKitView(
     val compositeKeyHash = currentCompositeKeyHash
     val interopContainer = LocalInteropContainer.current
 
-    val backgroundColor by remember(background) {
-        mutableStateOf(if (background.isUnspecified) {
-            null
-        } else {
-            background.toUIColor()
-        })
-    }
+    val backgroundColor by remember(background) { mutableStateOf(background.toUIColor()) }
 
     InteropView(
         factory = {
@@ -160,13 +154,7 @@ fun <T : UIViewController> UIKitViewController(
     val interopContainer = LocalInteropContainer.current
     val parentViewController = LocalUIViewController.current
 
-    val backgroundColor by remember(background) {
-        mutableStateOf(if (background.isUnspecified) {
-            null
-        } else {
-            background.toUIColor()
-        })
-    }
+    val backgroundColor by remember(background) { mutableStateOf(background.toUIColor()) }
 
     InteropView(
         factory = {
