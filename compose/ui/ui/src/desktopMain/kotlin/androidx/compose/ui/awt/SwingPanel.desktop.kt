@@ -88,13 +88,7 @@ public fun <T : Component> SwingPanel(
             factory = factory,
             container = interopContainer,
             group = group,
-            onFocusGained = { e ->
-                when (e.cause) {
-                    FocusEvent.Cause.TRAVERSAL_FORWARD -> focusSwitcher.moveForward()
-                    FocusEvent.Cause.TRAVERSAL_BACKWARD -> focusSwitcher.moveBackward()
-                    else -> Unit
-                }
-            },
+            focusSwitcher = focusSwitcher,
             compositeKeyHash = compositeKeyHash
         )
     }
@@ -168,7 +162,7 @@ private class SwingInteropViewGroup(
     }
 }
 
-private class FocusSwitcher(
+internal class FocusSwitcher(
     private val group: InteropViewGroup,
     private val focusManager: FocusManager,
 ) {

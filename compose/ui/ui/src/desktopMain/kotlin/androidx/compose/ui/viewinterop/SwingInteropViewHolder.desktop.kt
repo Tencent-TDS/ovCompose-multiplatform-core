@@ -17,6 +17,7 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.awt.FocusSwitcher
 import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.awt.isFocusGainedHandledBySwingPanel
 import androidx.compose.ui.draw.drawBehind
@@ -42,8 +43,8 @@ import org.jetbrains.skiko.ClipRectangle
 internal class SwingInteropViewHolder<T : Component>(
     factory: () -> T,
     container: InteropContainer,
-    onFocusGained: (FocusEvent) -> Unit,
     group: InteropViewGroup,
+    focusSwitcher: FocusSwitcher,
     compositeKeyHash: Int,
 ) : TypedInteropViewHolder<T>(
     factory,
@@ -76,7 +77,11 @@ internal class SwingInteropViewHolder<T : Component>(
     val focusListener = object : FocusListener {
         override fun focusGained(e: FocusEvent) {
             if (e.isFocusGainedHandledBySwingPanel(group)) {
-                onFocusGained(e)
+                when (e.cause) {
+                    FocusEvent.Cause.TRAVERSAL_FORWARD -> focusSwitcher.moveForward()
+                    FocusEvent.Cause.TRAVERSAL_BACKWARD -> focusSwitcher.moveBackward()
+                    else -> Unit
+                }
             }
         }
 
