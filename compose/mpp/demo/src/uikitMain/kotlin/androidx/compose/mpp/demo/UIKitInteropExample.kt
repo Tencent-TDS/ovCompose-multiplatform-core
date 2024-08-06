@@ -34,6 +34,7 @@ import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import kotlinx.cinterop.ObjCAction
+import kotlinx.cinterop.objcPtr
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
@@ -200,6 +201,7 @@ private fun ComposeUITextField(value: String, onValueChange: (String) -> Unit, m
         },
         modifier = modifier,
         update = { textField ->
+            println("Update called for UITextField(0x${textField.objcPtr().toLong().toString(16)}, value = $value")
             textField.text = value
         }
     )

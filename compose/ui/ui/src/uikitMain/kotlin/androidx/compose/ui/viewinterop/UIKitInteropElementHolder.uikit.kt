@@ -54,6 +54,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     },
     isInteractive = isInteractive,
     platformModifier = Modifier
+        // Make the canvas transparent in that area to make the interop view behind visible
         .drawBehind {
             drawRect(
                 color = Color.Transparent,
