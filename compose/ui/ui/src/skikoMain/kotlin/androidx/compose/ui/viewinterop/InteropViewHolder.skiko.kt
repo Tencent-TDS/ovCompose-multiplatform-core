@@ -82,10 +82,6 @@ internal open class InteropViewHolder(
         }
 
     /**
-     * Whether the interop view is attached to the window. Some implementations can delay
-     * attachment/detachment initiated inside [place] and [unplace] methods and are responsible
-     * for updating this flag.
-     *
      * If the view is not attached, update on closure change (or on setting initial one) will
      * be postponed until it's attached and triggered when this flag is set to `true`.
      *
