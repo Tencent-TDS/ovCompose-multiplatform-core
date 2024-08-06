@@ -34,7 +34,7 @@ import org.jetbrains.skiko.ClipRectangle
  */
 internal class SwingInteropContainer(
     override val root: InteropViewGroup,
-    private val placeInteropAbove: Boolean,
+    private val placeInteropAbove: Boolean
 ): InteropContainer {
     /**
      * Map to reverse-lookup of [InteropViewHolder] having an [InteropViewGroup].
