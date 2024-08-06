@@ -99,7 +99,8 @@ fun <T : UIView> UIKitView(
                 group = InteropWrappingView(areTouchesDelayed = true),
                 isInteractive = interactive,
                 isNativeAccessibilityEnabled = accessibilityEnabled,
-                compositeKeyHash = compositeKeyHash
+                compositeKeyHash = compositeKeyHash,
+                resize = onResize
             )
         },
         modifier = modifier,
@@ -176,7 +177,8 @@ fun <T : UIViewController> UIKitViewController(
                 group = InteropWrappingView(areTouchesDelayed = true),
                 isInteractive = interactive,
                 isNativeAccessibilityEnabled = accessibilityEnabled,
-                compositeKeyHash = compositeKeyHash
+                compositeKeyHash = compositeKeyHash,
+                resize = onResize
             )
         },
         modifier = modifier,

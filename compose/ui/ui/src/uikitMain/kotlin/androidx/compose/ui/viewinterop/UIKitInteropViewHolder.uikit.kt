@@ -26,7 +26,9 @@ internal class UIKitInteropViewHolder<T : UIView>(
     group: InteropWrappingView,
     isInteractive: Boolean,
     isNativeAccessibilityEnabled: Boolean,
-    compositeKeyHash: Int
+    compositeKeyHash: Int,
+    // TODO: remove after new API arrives https://youtrack.jetbrains.com/issue/CMP-5719/iOS-revisit-UIKit-interop-API
+    val resize: (T, rect: CValue<CGRect>) -> Unit
 ) : UIKitInteropElementHolder<T>(
     factory = factory,
     interopContainer = interopContainer,
@@ -41,7 +43,8 @@ internal class UIKitInteropViewHolder<T : UIView>(
     }
 
     override fun setUserComponentFrame(rect: CValue<CGRect>) {
-        typedInteropView.setFrame(rect)
+        // typedInteropView.setFrame(rect)
+        resize(typedInteropView, rect)
     }
 
     override fun insertInteropView(root: InteropViewGroup, index: Int) {
