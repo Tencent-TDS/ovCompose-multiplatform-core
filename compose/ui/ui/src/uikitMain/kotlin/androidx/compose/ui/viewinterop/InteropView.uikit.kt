@@ -56,8 +56,8 @@ internal class InteropWrappingView(
     }
 }
 
-internal val InteropWrappingViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
-    name = "InteropWrappingView",
+internal val NativeAccessibilityViewSemanticsKey = AccessibilityKey<InteropWrappingView>(
+    name = "NativeAccessibilityView",
     mergePolicy = { parentValue, childValue ->
         if (parentValue == null) {
             childValue
@@ -74,15 +74,16 @@ internal val InteropWrappingViewSemanticsKey = AccessibilityKey<InteropWrappingV
     }
 )
 
-private var SemanticsPropertyReceiver.interopWrappingView by InteropWrappingViewSemanticsKey
+private var SemanticsPropertyReceiver.nativeAccessibilityView by NativeAccessibilityViewSemanticsKey
 
 /**
- * Chain [this] with [Modifier.semantics] that sets the [trackInteropPlacement] of the node
- * if [isNativeAccessibilityEnabled] is true. If [isNativeAccessibilityEnabled] is false, [this] is returned as is.
+ * Chain [this] with [Modifier.semantics] that sets the [nativeAccessibilityView] of the node to
+ * the [interopViewGroup] if [isNativeAccessibilityEnabled] is true.
+ * If [isNativeAccessibilityEnabled] is false, [this] is returned as is.
  */
 internal fun Modifier.interopViewSemantics(isNativeAccessibilityEnabled: Boolean, interopViewGroup: InteropWrappingView) =
     if (isNativeAccessibilityEnabled) {
-        this.semantics { interopWrappingView = interopViewGroup }
+        this.semantics { nativeAccessibilityView = interopViewGroup }
     } else {
         this
     }
