@@ -18,6 +18,7 @@ package androidx.compose.ui.viewinterop
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.awtEventOrNull
+import androidx.compose.ui.awt.isFocusGainedHandledBySwingPanel
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
@@ -30,6 +31,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.util.fastForEach
 import java.awt.Component
+import java.awt.event.FocusEvent
+import java.awt.event.FocusListener
 import java.awt.event.MouseEvent
 import javax.swing.SwingUtilities
 import kotlin.math.ceil
@@ -39,6 +42,7 @@ import org.jetbrains.skiko.ClipRectangle
 internal class SwingInteropViewHolder<T : Component>(
     factory: () -> T,
     container: InteropContainer,
+    onFocusGained: (FocusEvent) -> Unit,
     group: InteropViewGroup,
     compositeKeyHash: Int,
 ) : TypedInteropViewHolder<T>(
@@ -68,6 +72,16 @@ internal class SwingInteropViewHolder<T : Component>(
         }
 ), ClipRectangle {
     private var clipBounds: IntRect? = null
+
+    val focusListener = object : FocusListener {
+        override fun focusGained(e: FocusEvent) {
+            if (e.isFocusGainedHandledBySwingPanel(group)) {
+                onFocusGained(e)
+            }
+        }
+
+        override fun focusLost(e: FocusEvent) = Unit
+    }
 
     override fun getInteropView(): InteropView =
         typedInteropView
@@ -111,6 +125,7 @@ internal class SwingInteropViewHolder<T : Component>(
     override fun insertInteropView(root: InteropViewGroup, index: Int) {
         root.add(group, index)
         super.insertInteropView(root, index)
+        container.root.addFocusListener(focusListener)
     }
 
     override fun changeInteropViewIndex(root: InteropViewGroup, index: Int) {
@@ -120,6 +135,7 @@ internal class SwingInteropViewHolder<T : Component>(
     override fun removeInteropView(root: InteropViewGroup) {
         root.remove(group)
         super.removeInteropView(root)
+        container.root.removeFocusListener(focusListener)
     }
 
     override val x: Float

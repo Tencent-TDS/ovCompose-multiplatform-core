@@ -80,17 +80,24 @@ public fun <T : Component> SwingPanel(
         )
     }
 
+    val focusManager = LocalFocusManager.current
+    val focusSwitcher = remember { FocusSwitcher(group, focusManager) }
+
     val interopViewHolder = remember {
         SwingInteropViewHolder(
             factory = factory,
             container = interopContainer,
             group = group,
+            onFocusGained = { e ->
+                when (e.cause) {
+                    FocusEvent.Cause.TRAVERSAL_FORWARD -> focusSwitcher.moveForward()
+                    FocusEvent.Cause.TRAVERSAL_BACKWARD -> focusSwitcher.moveBackward()
+                    else -> Unit
+                }
+            },
             compositeKeyHash = compositeKeyHash
         )
     }
-
-    val focusManager = LocalFocusManager.current
-    val focusSwitcher = remember { FocusSwitcher(group, focusManager) }
 
     InteropView(
         factory = {
@@ -103,26 +110,6 @@ public fun <T : Component> SwingPanel(
         }
     ) {
         focusSwitcher.Content()
-    }
-
-    DisposableEffect(Unit) {
-        val focusListener = object : FocusListener {
-            override fun focusGained(e: FocusEvent) {
-                if (e.isFocusGainedHandledBySwingPanel(interopViewHolder.group)) {
-                    when (e.cause) {
-                        FocusEvent.Cause.TRAVERSAL_FORWARD -> focusSwitcher.moveForward()
-                        FocusEvent.Cause.TRAVERSAL_BACKWARD -> focusSwitcher.moveBackward()
-                        else -> Unit
-                    }
-                }
-            }
-
-            override fun focusLost(e: FocusEvent) = Unit
-        }
-        interopContainer.root.addFocusListener(focusListener)
-        onDispose {
-            interopContainer.root.removeFocusListener(focusListener)
-        }
     }
 }
 
