@@ -32,7 +32,7 @@ private fun abstractInvocationError(name: String): Nothing {
 
 /**
  * A holder that keeps references to user interop view and its group (container).
- * It's actual of `expect class [InteropViewFactoryHolder]`
+ * It's an actual implementation of `expect class [InteropViewFactoryHolder]`
  *
  * @see InteropViewFactoryHolder
  *

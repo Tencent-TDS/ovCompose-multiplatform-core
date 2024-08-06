@@ -140,6 +140,9 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
         // [InteractionUIView] logic
     }
 
+    /**
+     * This logic is similar for both interop view and view controller holders.
+     */
     override fun changeInteropViewIndex(root: InteropViewGroup, index: Int) {
         root.insertSubview(view = group, atIndex = index.toLong())
     }
