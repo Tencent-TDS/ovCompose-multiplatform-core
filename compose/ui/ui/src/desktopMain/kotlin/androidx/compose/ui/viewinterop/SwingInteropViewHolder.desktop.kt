@@ -30,8 +30,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.util.fastForEach
 import java.awt.Component
-import java.awt.event.FocusEvent
-import java.awt.event.FocusListener
 import java.awt.event.MouseEvent
 import javax.swing.SwingUtilities
 import kotlin.math.ceil

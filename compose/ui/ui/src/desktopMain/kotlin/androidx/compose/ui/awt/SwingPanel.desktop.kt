@@ -99,29 +99,15 @@ public fun <T : Component> SwingPanel(
     val focusManager = LocalFocusManager.current
     val focusSwitcher = remember { FocusSwitcher(group, focusManager) }
 
-//    InteropView(
-//        factory = {
-//            interopViewHolder
-//        },
-//        modifier = modifier,
-//        update = {
-//            it.background = background.toAwtColor()
-//            update(it)
-//        }
-//    ) {
-//        focusSwitcher.Content()
-//    }
-    OverlayLayout(
-        modifier = modifier
-            .onGloballyPositioned { coordinates ->
-                interopViewHolder.layoutAccordingTo(coordinates)
-            }
-            .drawBehind {
-                // Clear interop area to make visible the component under our canvas.
-                drawRect(Color.Transparent, blendMode = BlendMode.Clear)
-            }
-            .trackInteropPlacement(interopViewHolder)
-            .pointerInteropFilter(interopViewHolder)
+    InteropView(
+        factory = {
+            interopViewHolder
+        },
+        modifier = modifier,
+        update = {
+            it.background = background.toAwtColor()
+            update(it)
+        }
     ) {
         focusSwitcher.Content()
     }
