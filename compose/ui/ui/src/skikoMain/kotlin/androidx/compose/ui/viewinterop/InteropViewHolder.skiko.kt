@@ -26,9 +26,9 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.unit.Density
 
-private class AbstractInvocationError(
-    name: String
-) : Error("Abstract `$name` must be implemented by platform-specific subclass of `InteropViewHolder`")
+private fun abstractInvocationError(name: String): Nothing {
+    throw NotImplementedError("Abstract `$name` must be implemented by platform-specific subclass of `InteropViewHolder`")
+}
 
 /**
  * A holder that keeps references to user interop view and its group (container).
@@ -152,14 +152,14 @@ internal open class InteropViewHolder(
      * Dispatches the pointer event to the interop view.
      */
     open fun dispatchToView(pointerEvent: PointerEvent) {
-        throw AbstractInvocationError("fun dispatchToView(pointerEvent: PointerEvent)")
+        abstractInvocationError("fun dispatchToView(pointerEvent: PointerEvent)")
     }
 
     /**
      * Layout the interop view according to the given layout coordinates.
      */
     open fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
-        throw AbstractInvocationError("fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates)")
+        abstractInvocationError("fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates)")
     }
 
     /**
@@ -167,7 +167,7 @@ internal open class InteropViewHolder(
      * Returns the actual interop view instance.
      */
     open fun getInteropView(): InteropView? {
-        throw AbstractInvocationError("fun getInteropView(): InteropView?")
+        abstractInvocationError("fun getInteropView(): InteropView?")
     }
 
     companion object {
