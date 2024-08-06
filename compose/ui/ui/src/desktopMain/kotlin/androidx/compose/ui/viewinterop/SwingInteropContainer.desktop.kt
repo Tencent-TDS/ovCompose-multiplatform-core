@@ -69,7 +69,7 @@ internal class SwingInteropContainer(
     override fun contains(holder: InteropViewHolder): Boolean =
         interopComponents.contains(holder.group)
 
-    override fun place(holder: InteropViewHolder) = update {
+    override fun place(holder: InteropViewHolder) {
         val group = holder.group
 
         if (interopComponents.isEmpty()) {
@@ -94,9 +94,12 @@ internal class SwingInteropContainer(
         } else {
             holder.insertInteropView(root, awtIndex)
         }
+
+        root.validate()
+        root.repaint()
     }
 
-    override fun unplace(holder: InteropViewHolder) = update {
+    override fun unplace(holder: InteropViewHolder) {
         holder.removeInteropView(root)
 
         interopComponents.remove(holder.group)
@@ -104,6 +107,9 @@ internal class SwingInteropContainer(
         if (interopComponents.isEmpty()) {
             snapshotObserver.stop()
         }
+
+        root.validate()
+        root.repaint()
     }
 
     override fun update(action: () -> Unit) {
