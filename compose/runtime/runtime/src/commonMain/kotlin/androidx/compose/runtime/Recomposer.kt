@@ -201,19 +201,20 @@ class Recomposer(
         PendingWork
     }
 
-    private val stateLock = createSynchronizedObject()
+    private val stateLock = SynchronizedObject()
 
     // Begin properties guarded by stateLock
     private var runnerJob: Job? = null
     private var closeCause: Throwable? = null
     private val _knownCompositions = mutableListOf<ControlledComposition>()
     private var _knownCompositionsCache: List<ControlledComposition>? = null
-    private val knownCompositions get() = _knownCompositionsCache ?: run {
-        val compositions = _knownCompositions
-        val newCache = if (compositions.isEmpty()) emptyList() else ArrayList(compositions)
-        _knownCompositionsCache = newCache
-        newCache
-    }
+    private val knownCompositions
+        get() = _knownCompositionsCache ?: run {
+            val compositions = _knownCompositions
+            val newCache = if (compositions.isEmpty()) emptyList() else ArrayList(compositions)
+            _knownCompositionsCache = newCache
+            newCache
+        }
     private var snapshotInvalidations = MutableScatterSet<Any>()
     private val compositionInvalidations = mutableVectorOf<ControlledComposition>()
     private val compositionsAwaitingApply = mutableListOf<ControlledComposition>()
@@ -290,11 +291,14 @@ class Recomposer(
     internal override val recomposeCoroutineContext: CoroutineContext
         get() = EmptyCoroutineContext
 
-    private val hasBroadcastFrameClockAwaitersLocked: Boolean get() =
-        !frameClockPaused && broadcastFrameClock.hasAwaiters
+    private val hasBroadcastFrameClockAwaitersLocked: Boolean
+        get() =
+            !frameClockPaused && broadcastFrameClock.hasAwaiters
 
-    private val hasBroadcastFrameClockAwaiters: Boolean get() =
-        synchronized(stateLock) { hasBroadcastFrameClockAwaitersLocked }
+    private val hasBroadcastFrameClockAwaiters: Boolean
+        get() =
+            synchronized(stateLock) { hasBroadcastFrameClockAwaitersLocked }
+
     /**
      * Determine the new value of [_state]. Call only while locked on [stateLock].
      * If it returns a continuation, that continuation should be resumed after releasing the lock.
@@ -317,18 +321,21 @@ class Recomposer(
             errorState != null -> {
                 State.Inactive
             }
+
             runnerJob == null -> {
                 snapshotInvalidations = MutableScatterSet()
                 compositionInvalidations.clear()
                 if (hasBroadcastFrameClockAwaitersLocked) State.InactivePendingWork
                 else State.Inactive
             }
+
             compositionInvalidations.isNotEmpty() ||
                 snapshotInvalidations.isNotEmpty() ||
                 compositionsAwaitingApply.isNotEmpty() ||
                 compositionValuesAwaitingInsert.isNotEmpty() ||
                 concurrentCompositionsOutstanding > 0 ||
                 hasBroadcastFrameClockAwaitersLocked -> State.PendingWork
+
             else -> State.Idle
         }
 
@@ -382,6 +389,7 @@ class Recomposer(
                 .fastMapNotNull { it as? CompositionImpl }
                 .fastForEach { it.invalidateGroupsWithKey(key) }
         }
+
         fun saveStateAndDisposeForHotReload(): List<HotReloadable> {
             val compositions: List<ControlledComposition> = synchronized(stateLock) {
                 knownCompositions
@@ -1022,7 +1030,7 @@ class Recomposer(
                         changed.fastForEach {
                             if (
                                 it is StateObjectImpl &&
-                                    !it.isReadIn(ReaderKind.Composition)
+                                !it.isReadIn(ReaderKind.Composition)
                             ) {
                                 // continue if we know that state is never read in composition
                                 return@fastForEach
@@ -1184,7 +1192,8 @@ class Recomposer(
     ): ControlledComposition? {
         if (composition.isComposing ||
             composition.isDisposed ||
-            compositionsRemoved?.contains(composition) == true) return null
+            compositionsRemoved?.contains(composition) == true
+        ) return null
 
         return if (
             composing(composition, modifiedValues) {
@@ -1221,7 +1230,9 @@ class Recomposer(
                 // may release content when it is moved as it is recomposed when move.
                 val toInsert = if (
                     pairs.fastAll { it.second == null } || pairs.fastAll { it.second != null }
-                ) { pairs } else {
+                ) {
+                    pairs
+                } else {
                     // Return the content not moving to the awaiting list. These will come back
                     // here in the next iteration of the caller's loop and either have content
                     // to move or by still needing to create the content.

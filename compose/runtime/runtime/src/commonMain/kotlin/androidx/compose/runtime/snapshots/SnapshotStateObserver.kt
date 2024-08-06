@@ -22,6 +22,7 @@ import androidx.collection.MutableScatterSet
 import androidx.compose.runtime.AtomicReference
 import androidx.compose.runtime.DerivedState
 import androidx.compose.runtime.DerivedStateObserver
+import androidx.compose.runtime.SynchronizedObject
 import androidx.compose.runtime.TestOnly
 import androidx.compose.runtime.collection.ScopeMap
 import androidx.compose.runtime.collection.fastForEach
@@ -33,7 +34,6 @@ import androidx.compose.runtime.observeDerivedStateRecalculations
 import androidx.compose.runtime.requirePrecondition
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.runtime.synchronized
-import androidx.compose.runtime.createSynchronizedObject
 
 /**
  * Helper class to efficiently observe snapshot state reads. See [observeReads] for more details.
@@ -142,6 +142,7 @@ class SnapshotStateObserver(private val onChangedExecutor: (callback: () -> Unit
                     result = old as Set<Any>?
                     new = null
                 }
+
                 is List<*> -> {
                     result = old[0] as Set<Any>?
                     new = when {
@@ -150,6 +151,7 @@ class SnapshotStateObserver(private val onChangedExecutor: (callback: () -> Unit
                         else -> null
                     }
                 }
+
                 else -> report()
             }
             if (pendingChanges.compareAndSet(old, new)) {
@@ -195,7 +197,7 @@ class SnapshotStateObserver(private val onChangedExecutor: (callback: () -> Unit
         }
     }
 
-    private val observedScopeMapsLock = createSynchronizedObject()
+    private val observedScopeMapsLock = SynchronizedObject()
 
     /**
      * Method to call when unsubscribing from the apply observer.
