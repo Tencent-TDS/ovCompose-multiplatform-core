@@ -70,16 +70,16 @@ internal class SwingInteropContainer(
         interopComponents.contains(holder.group)
 
     override fun place(holder: InteropViewHolder) {
-        val component = holder.group
+        val group = holder.group
 
         if (interopComponents.isEmpty()) {
             snapshotObserver.start()
         }
 
         // Add this component to [interopComponents] to track count and clip rects
-        val alreadyAdded = component in interopComponents
+        val alreadyAdded = group in interopComponents
         if (!alreadyAdded) {
-            interopComponents[component] = holder
+            interopComponents[group] = holder
         }
 
         // Iterate through a Compose layout tree in draw order and count interop view below this one
@@ -99,16 +99,16 @@ internal class SwingInteropContainer(
     }
 
     override fun unplace(holder: InteropViewHolder) {
-        val component = holder.group
 
-        interopComponents.remove(component)
-
-        if (interopComponents.isEmpty()) {
-            snapshotObserver.stop()
-        }
 
         update {
             holder.removeInteropView(root)
+        }
+
+        interopComponents.remove(holder.group)
+
+        if (interopComponents.isEmpty()) {
+            snapshotObserver.stop()
         }
     }
 
