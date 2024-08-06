@@ -81,7 +81,28 @@ internal open class InteropViewHolder(
             }
         }
 
-    private var isAttachedToWindow: Boolean = true
+    /**
+     * Whether the interop view is attached to the window. Some implementations can delay
+     * attachment/detachment initiated inside [place] and [unplace] methods and are responsible
+     * for updating this flag.
+     *
+     * If the view is not attached, update on closure change (or on setting initial one) will
+     * be postponed until it's attached and triggered when this flag is set to `true`.
+     *
+     * If the view is detached, the observer is stopped to avoid redundant callbacks.
+     */
+    var isAttachedToWindow: Boolean = false
+        set(value) {
+            if (value != field) {
+                if (value) {
+                    runUpdate()
+                } else {
+                    snapshotObserver.clear(this)
+                }
+            }
+
+            field = value
+        }
 
     private val snapshotObserver: SnapshotStateObserver
         get() {
@@ -97,17 +118,14 @@ internal open class InteropViewHolder(
     }
 
     override fun onReuse() {
-        isAttachedToWindow = true
         reset()
     }
 
     override fun onDeactivate() {
-        isAttachedToWindow = false
     }
 
     override fun onRelease() {
         release()
-        isAttachedToWindow = false
     }
 
     /**
@@ -143,7 +161,6 @@ internal open class InteropViewHolder(
 
     fun unplace() {
         container.unplace(this)
-        snapshotObserver.clear(this)
     }
 
     // ===== Abstract methods to be implemented by platform-specific subclasses =====

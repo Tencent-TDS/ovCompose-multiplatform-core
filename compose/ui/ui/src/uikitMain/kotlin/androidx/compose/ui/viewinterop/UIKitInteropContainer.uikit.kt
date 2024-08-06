@@ -95,10 +95,12 @@ internal class UIKitInteropContainer(
 
         when (interopView) {
             is UIView -> update {
+                holder.isAttachedToWindow = true
                 root.insertSubview(view = holder.group, atIndex = countBelow)
             }
 
             is UIViewController -> update {
+                holder.isAttachedToWindow = true
                 val needsContainmentCalls = interopView.parentViewController == null
                 if (needsContainmentCalls) {
                     viewController.addChildViewController(interopView)
@@ -128,12 +130,14 @@ internal class UIKitInteropContainer(
         when (interopView) {
             is UIView -> update {
                 holder.group.removeFromSuperview()
+                holder.isAttachedToWindow = false
             }
 
             is UIViewController -> update {
                 interopView.willMoveToParentViewController(null)
                 holder.group.removeFromSuperview()
                 interopView.removeFromParentViewController()
+                holder.isAttachedToWindow = false
             }
 
             else -> error("Unknown interop view type: $interopView")
