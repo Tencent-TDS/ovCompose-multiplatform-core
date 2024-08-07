@@ -61,7 +61,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
                 blendMode = BlendMode.Clear
             )
         }
-        .interopViewSemantics(isNativeAccessibilityEnabled, group)
+        .nativeAccessibility(isNativeAccessibilityEnabled, group)
 ) {
 
     private var currentUnclippedRect: IntRect? = null

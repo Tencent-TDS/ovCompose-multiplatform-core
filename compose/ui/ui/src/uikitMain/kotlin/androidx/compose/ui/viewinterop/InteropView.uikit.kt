@@ -40,6 +40,10 @@ internal actual typealias InteropViewGroup = UIView
  * A [UIView] that contains underlying interop element, such as an independent [UIView]
  * or [UIViewController]'s root [UIView].
  *
+ * Also contains [actualAccessibilityContainer] property that overrides default (superview)
+ * accessibility container to allow proper traversal of a Compose semantics tree containing
+ * interop views.
+ *
  * @param areTouchesDelayed indicates whether the touches are allowed to be delayed by Compose
  * in attempt to intercept touches, or should get delivered to the interop view immediately without
  * Compose being aware of them.
@@ -82,12 +86,12 @@ private var SemanticsPropertyReceiver.nativeAccessibilityView by NativeAccessibi
 
 /**
  * Chain [this] with [Modifier.semantics] that sets the [nativeAccessibilityView] of the node to
- * the [interopViewGroup] if [isNativeAccessibilityEnabled] is true.
- * If [isNativeAccessibilityEnabled] is false, [this] is returned as is.
+ * the [interopWrappingView] if [isEnabled] is true.
+ * If [isEnabled] is false, [this] is returned as is.
  */
-internal fun Modifier.interopViewSemantics(isNativeAccessibilityEnabled: Boolean, interopViewGroup: InteropWrappingView) =
-    if (isNativeAccessibilityEnabled) {
-        this.semantics { nativeAccessibilityView = interopViewGroup }
+internal fun Modifier.nativeAccessibility(isEnabled: Boolean, interopWrappingView: InteropWrappingView) =
+    if (isEnabled) {
+        this.semantics { nativeAccessibilityView = interopWrappingView }
     } else {
         this
     }
