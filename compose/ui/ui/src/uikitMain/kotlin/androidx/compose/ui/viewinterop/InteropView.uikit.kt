@@ -21,6 +21,8 @@ import androidx.compose.ui.semantics.AccessibilityKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.uikit.utils.CMPInteropWrappingView
+import androidx.compose.ui.interop.UIKitView
+import androidx.compose.ui.interop.UIKitViewController
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIResponder
@@ -88,6 +90,8 @@ private var SemanticsPropertyReceiver.nativeAccessibilityView by NativeAccessibi
  * Chain [this] with [Modifier.semantics] that sets the [nativeAccessibilityView] of the node to
  * the [interopWrappingView] if [isEnabled] is true.
  * If [isEnabled] is false, [this] is returned as is.
+ *
+ * See [UIKitView] and [UIKitViewController] accessibility argument for description of effects introduced by this semantics.
  */
 internal fun Modifier.nativeAccessibility(isEnabled: Boolean, interopWrappingView: InteropWrappingView) =
     if (isEnabled) {
