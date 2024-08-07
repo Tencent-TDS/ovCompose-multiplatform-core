@@ -72,7 +72,7 @@ public fun <T : Component> SwingPanel(
         )
     }
 
-    val focusSwitcher = remember { FocusSwitcher(group, focusManager) }
+    val focusSwitcher = remember { InteropFocusSwitcher(group, focusManager) }
 
     val interopViewHolder = remember {
         SwingInteropViewHolder(

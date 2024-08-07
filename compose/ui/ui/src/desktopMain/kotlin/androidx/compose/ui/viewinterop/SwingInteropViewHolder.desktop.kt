@@ -17,7 +17,7 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.awt.FocusSwitcher
+import androidx.compose.ui.awt.InteropFocusSwitcher
 import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.awt.isFocusGainedHandledBySwingPanel
 import androidx.compose.ui.draw.drawBehind
@@ -44,7 +44,7 @@ internal class SwingInteropViewHolder<T : Component>(
     factory: () -> T,
     container: InteropContainer,
     group: InteropViewGroup,
-    focusSwitcher: FocusSwitcher,
+    focusSwitcher: InteropFocusSwitcher,
     compositeKeyHash: Int,
 ) : TypedInteropViewHolder<T>(
     factory,

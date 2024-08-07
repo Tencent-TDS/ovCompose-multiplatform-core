@@ -26,11 +26,11 @@ import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.viewinterop.InteropViewGroup
 import java.awt.event.FocusEvent
 
-internal class FocusSwitcher(
+internal class InteropFocusSwitcher(
     private val group: InteropViewGroup,
     private val focusManager: FocusManager,
 ) {
-    private val backwardTracker = FocusTracker {
+    private val backwardTracker = Tracker {
         val component = group.focusTraversalPolicy.getFirstComponent(group)
         if (component != null) {
             component.requestFocus(FocusEvent.Cause.TRAVERSAL_FORWARD)
@@ -39,7 +39,7 @@ internal class FocusSwitcher(
         }
     }
 
-    private val forwardTracker = FocusTracker {
+    private val forwardTracker = Tracker {
         val component = group.focusTraversalPolicy.getLastComponent(group)
         if (component != null) {
             component.requestFocus(FocusEvent.Cause.TRAVERSAL_BACKWARD)
@@ -70,7 +70,7 @@ internal class FocusSwitcher(
      *   (a case when we focus the same element inside `onFocusEvent`)
      * - to prevent triggering `onFocusEvent` while requesting focus somewhere else
      */
-    private class FocusTracker(
+    private class Tracker(
         private val onNonRecursiveFocused: () -> Unit
     ) {
         private val requester = FocusRequester()
