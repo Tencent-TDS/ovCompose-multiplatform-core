@@ -119,7 +119,8 @@ internal class SwingInteropContainer(
         root.repaint()
     }
 
-    override fun scheduleUpdate(action: () -> Unit) = SwingUtilities.invokeLater {
+    override fun scheduleUpdate(action: () -> Unit) {
+        // Swing doesn't need to delay the action. Just execute it synchronously.
         action()
     }
 
