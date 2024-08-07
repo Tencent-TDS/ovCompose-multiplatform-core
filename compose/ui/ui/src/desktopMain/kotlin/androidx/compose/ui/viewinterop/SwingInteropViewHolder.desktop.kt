@@ -98,24 +98,27 @@ internal class SwingInteropViewHolder<T : Component>(
             .localBoundingBoxOf(layoutCoordinates, clipBounds = false)
             .round(density)
 
-        container.update {
-            clipBounds = clippedBounds // Clipping area for skia canvas
-            group.isVisible = !clippedBounds.isEmpty // Hide if it's fully clipped
-            // Swing clips children based on parent's bounds, so use our container for clipping
-            group.setBounds(
-                /* x = */ clippedBounds.left,
-                /* y = */ clippedBounds.top,
-                /* width = */ clippedBounds.width,
-                /* height = */ clippedBounds.height
-            )
+        clipBounds = clippedBounds // Clipping area for skia canvas
+        group.isVisible = !clippedBounds.isEmpty // Hide if it's fully clipped
+        // Swing clips children based on parent's bounds, so use our container for clipping
+        group.setBounds(
+            /* x = */ clippedBounds.left,
+            /* y = */ clippedBounds.top,
+            /* width = */ clippedBounds.width,
+            /* height = */ clippedBounds.height
+        )
 
-            // The real size and position should be based on not-clipped bounds
-            typedInteropView.setBounds(
-                /* x = */ bounds.left - clippedBounds.left, // Local position relative to container
-                /* y = */ bounds.top - clippedBounds.top,
-                /* width = */ bounds.width,
-                /* height = */ bounds.height
-            )
+        // The real size and position should be based on not-clipped bounds
+        typedInteropView.setBounds(
+            /* x = */ bounds.left - clippedBounds.left, // Local position relative to container
+            /* y = */ bounds.top - clippedBounds.top,
+            /* width = */ bounds.width,
+            /* height = */ bounds.height
+        )
+
+        container.root.apply {
+            validate()
+            repaint()
         }
     }
 
