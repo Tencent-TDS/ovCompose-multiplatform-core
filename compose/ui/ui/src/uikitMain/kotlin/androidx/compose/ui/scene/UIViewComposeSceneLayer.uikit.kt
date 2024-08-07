@@ -120,7 +120,6 @@ internal class UIViewComposeSceneLayer(
     private val mediator by lazy {
         ComposeSceneMediator(
             container = rootView,
-            viewController = composeContainer,
             configuration = configuration,
             focusStack = focusStack,
             windowContext = windowContext,

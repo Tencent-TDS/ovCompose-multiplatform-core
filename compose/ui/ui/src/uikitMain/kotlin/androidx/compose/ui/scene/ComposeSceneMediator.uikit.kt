@@ -207,7 +207,6 @@ private class ComposeSceneMediatorRootUIView : UIView(CGRectZero.readValue()) {
 
 internal class ComposeSceneMediator(
     private val container: UIView,
-    viewController: UIViewController,
     private val configuration: ComposeUIViewControllerConfiguration,
     private val focusStack: FocusStack<UIView>?,
     private val windowContext: PlatformWindowContext,
