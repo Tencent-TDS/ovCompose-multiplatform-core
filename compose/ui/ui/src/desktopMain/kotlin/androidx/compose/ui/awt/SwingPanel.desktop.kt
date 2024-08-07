@@ -84,7 +84,7 @@ public fun <T : Component> SwingPanel(
         )
     }
 
-    EmptyLayout(focusSwitcher.backwardTracker.modifier)
+    EmptyLayout(focusSwitcher.backwardTrackerModifier)
 
     InteropView(
         factory = {
@@ -97,7 +97,7 @@ public fun <T : Component> SwingPanel(
         }
     )
 
-    EmptyLayout(focusSwitcher.forwardTracker.modifier)
+    EmptyLayout(focusSwitcher.forwardTrackerModifier)
 }
 
 /**

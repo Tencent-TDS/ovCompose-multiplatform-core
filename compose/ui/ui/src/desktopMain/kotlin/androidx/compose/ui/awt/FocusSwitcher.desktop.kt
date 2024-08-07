@@ -30,7 +30,7 @@ internal class FocusSwitcher(
     private val group: InteropViewGroup,
     private val focusManager: FocusManager,
 ) {
-    val backwardTracker = FocusTracker {
+    private val backwardTracker = FocusTracker {
         val component = group.focusTraversalPolicy.getFirstComponent(group)
         if (component != null) {
             component.requestFocus(FocusEvent.Cause.TRAVERSAL_FORWARD)
@@ -39,7 +39,7 @@ internal class FocusSwitcher(
         }
     }
 
-    val forwardTracker = FocusTracker {
+    private val forwardTracker = FocusTracker {
         val component = group.focusTraversalPolicy.getLastComponent(group)
         if (component != null) {
             component.requestFocus(FocusEvent.Cause.TRAVERSAL_BACKWARD)
@@ -47,6 +47,12 @@ internal class FocusSwitcher(
             moveBackward()
         }
     }
+
+    val backwardTrackerModifier: Modifier
+        get() = backwardTracker.modifier
+
+    val forwardTrackerModifier: Modifier
+        get() = forwardTracker.modifier
 
     fun moveBackward() {
         backwardTracker.requestFocusWithoutEvent()
@@ -64,7 +70,7 @@ internal class FocusSwitcher(
      *   (a case when we focus the same element inside `onFocusEvent`)
      * - to prevent triggering `onFocusEvent` while requesting focus somewhere else
      */
-    class FocusTracker(
+    private class FocusTracker(
         private val onNonRecursiveFocused: () -> Unit
     ) {
         private val requester = FocusRequester()
