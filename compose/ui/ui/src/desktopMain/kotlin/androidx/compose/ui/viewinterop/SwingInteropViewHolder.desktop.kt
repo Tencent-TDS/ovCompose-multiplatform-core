@@ -168,8 +168,10 @@ internal class SwingInteropViewHolder<T : Component>(
     }
 
     private fun getDeepestComponentForEvent(event: MouseEvent): Component? {
-        val point = SwingUtilities.convertPoint(event.component, event.point,
-            typedInteropView
+        val point = SwingUtilities.convertPoint(
+            /* source = */event.component,
+            /* aPoint = */event.point,
+            /* destination = */typedInteropView
         )
         return SwingUtilities.getDeepestComponentAt(typedInteropView, point.x, point.y)
     }
