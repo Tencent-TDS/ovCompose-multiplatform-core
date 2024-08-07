@@ -123,6 +123,9 @@ internal open class InteropViewHolder(
     }
 
     override fun onDeactivate() {
+        // TODO: Android calls [reset] here, but it's not clear why it's needed, because
+        //  [onReuse] will be called after [onDeactivate] if the holder is indeed reused.
+        //  discuss it with Google when this code is commonized
     }
 
     override fun onRelease() {
