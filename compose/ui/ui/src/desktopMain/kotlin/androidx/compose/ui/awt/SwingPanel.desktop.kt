@@ -16,32 +16,19 @@
 package androidx.compose.ui.awt
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.currentCompositeKeyHash
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusTarget
-import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.EmptyLayout
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.viewinterop.InteropView
-import androidx.compose.ui.viewinterop.InteropViewGroup
 import androidx.compose.ui.viewinterop.LocalInteropContainer
 import androidx.compose.ui.viewinterop.SwingInteropViewHolder
 import java.awt.Component
 import java.awt.Container
 import java.awt.event.FocusEvent
-import java.awt.event.FocusListener
 import javax.swing.JPanel
 import javax.swing.LayoutFocusTraversalPolicy
 
@@ -163,77 +150,6 @@ private class SwingInteropViewGroup(
             }
         }
         isFocusCycleRoot = true
-    }
-}
-
-internal class FocusSwitcher(
-    private val group: InteropViewGroup,
-    private val focusManager: FocusManager,
-) {
-    val backwardTracker = FocusTracker {
-        val component = group.focusTraversalPolicy.getFirstComponent(group)
-        if (component != null) {
-            component.requestFocus(FocusEvent.Cause.TRAVERSAL_FORWARD)
-        } else {
-            moveForward()
-        }
-    }
-
-    val forwardTracker = FocusTracker {
-        val component = group.focusTraversalPolicy.getLastComponent(group)
-        if (component != null) {
-            component.requestFocus(FocusEvent.Cause.TRAVERSAL_BACKWARD)
-        } else {
-            moveBackward()
-        }
-    }
-
-    fun moveBackward() {
-        backwardTracker.requestFocusWithoutEvent()
-        focusManager.moveFocus(FocusDirection.Previous)
-    }
-
-    fun moveForward() {
-        forwardTracker.requestFocusWithoutEvent()
-        focusManager.moveFocus(FocusDirection.Next)
-    }
-
-    /**
-     * A helper class that can help:
-     * - to prevent recursive focus events
-     *   (a case when we focus the same element inside `onFocusEvent`)
-     * - to prevent triggering `onFocusEvent` while requesting focus somewhere else
-     */
-    class FocusTracker(
-        private val onNonRecursiveFocused: () -> Unit
-    ) {
-        private val requester = FocusRequester()
-
-        private var isRequestingFocus = false
-        private var isHandlingFocus = false
-
-        fun requestFocusWithoutEvent() {
-            try {
-                isRequestingFocus = true
-                requester.requestFocus()
-            } finally {
-                isRequestingFocus = false
-            }
-        }
-
-        val modifier = Modifier
-            .focusRequester(requester)
-            .onFocusEvent {
-                if (!isRequestingFocus && !isHandlingFocus && it.isFocused) {
-                    try {
-                        isHandlingFocus = true
-                        onNonRecursiveFocused()
-                    } finally {
-                        isHandlingFocus = false
-                    }
-                }
-            }
-            .focusTarget()
     }
 }
 
