@@ -105,11 +105,16 @@ internal open class InteropViewHolder(
             return container.snapshotObserver
         }
 
+    /**
+     * If we're not attached, the observer won't be started in scope of this object. It will be run
+     * after [insertInteropView] is called.
+     *
+     * Dispatch scheduling strategy is defined by platform implementation of
+     * [InteropContainer.update].
+     */
     private val runUpdate: () -> Unit = {
-        // If we're not attached, the observer isn't started, so don't bother running it.
-        // onAttachedToWindow will run an update the next time the view is attached.
         if (hasUpdateBlock && isAttachedToWindow) {
-            snapshotObserver.observeReads(this, OnCommitAffectingUpdate, update)
+            snapshotObserver.observeReads(this, DispatchUpdateUsingContainerStrategy, update)
         }
     }
 
@@ -202,7 +207,7 @@ internal open class InteropViewHolder(
     }
 
     companion object {
-        private val OnCommitAffectingUpdate: (InteropViewHolder) -> Unit = {
+        private val DispatchUpdateUsingContainerStrategy: (InteropViewHolder) -> Unit = {
             it.container.update { it.update() }
         }
     }
