@@ -110,7 +110,7 @@ internal open class InteropViewHolder(
      * after [insertInteropView] is called.
      *
      * Dispatch scheduling strategy is defined by platform implementation of
-     * [InteropContainer.update].
+     * [InteropContainer.scheduleUpdate].
      */
     private val runUpdate: () -> Unit = {
         if (hasUpdateBlock && isAttachedToWindow) {
@@ -145,6 +145,7 @@ internal open class InteropViewHolder(
             .trackInteropPlacement(this)
             .onGloballyPositioned { layoutCoordinates ->
                 layoutAccordingTo(layoutCoordinates)
+                container.onInteropViewLayoutChange(this)
             }
 
         layoutNode.compositeKeyHash = compositeKeyHash
@@ -211,7 +212,7 @@ internal open class InteropViewHolder(
 
     companion object {
         private val DispatchUpdateUsingContainerStrategy: (InteropViewHolder) -> Unit = {
-            it.container.update { it.update() }
+            it.container.scheduleUpdate { it.update() }
         }
     }
 }

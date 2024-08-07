@@ -17,7 +17,6 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
-import platform.UIKit.UIViewController
 
 /**
  * A container that controls interop views/components.
@@ -89,11 +88,11 @@ internal class UIKitInteropContainer(
         val countBelow = countInteropComponentsBelow(holder)
 
         if (isAdded) {
-            update {
+            scheduleUpdate {
                 holder.insertInteropView(root, countBelow)
             }
         } else {
-            update {
+            scheduleUpdate {
                 holder.changeInteropViewIndex(root, countBelow)
             }
         }
@@ -108,16 +107,20 @@ internal class UIKitInteropContainer(
             snapshotObserver.stop()
         }
 
-        update {
+        scheduleUpdate {
             holder.removeInteropView(root)
         }
     }
 
-    override fun update(action: () -> Unit) {
+    override fun scheduleUpdate(action: () -> Unit) {
         requestRedraw()
 
         // Add lambda to a list of commands which will be executed later
         // in the same [CATransaction], when the next rendered Compose frame is presented.
         transaction.add(action)
+    }
+
+    override fun onInteropViewLayoutChange(holder: InteropViewHolder) {
+        // No-op
     }
 }

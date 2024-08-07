@@ -95,7 +95,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
                 .toDpRect(density)
                 .asCGRect()
 
-            container.update {
+            container.scheduleUpdate {
                 group.setFrame(groupFrame)
             }
         }
@@ -122,7 +122,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
                         .toDpRect(density)
                         .asCGRect()
 
-                container.update {
+                container.scheduleUpdate {
                     setUserComponentFrame(userComponentFrame)
                 }
             }

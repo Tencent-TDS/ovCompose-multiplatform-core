@@ -58,15 +58,20 @@ internal interface InteropContainer {
      */
     fun unplace(holder: InteropViewHolder)
 
-    // TODO: Should be the same as [Owner.onInteropViewLayoutChange]
     /**
-     * Action to be performed on interop view. Some platforms (like iOS) delay the action to
-     * synchronize it with compose rendering.
+     * Schedule an update to be performed on interop view. Some platforms (like iOS) delay the
+     * action to synchronize it with compose rendering. Some can execute it synchronously.
      *
      * @param action The action to be performed. Could be layout change, or other visual updates
      * to the view state, such as background, corner radius, etc.
      */
-    fun update(action: () -> Unit)
+    fun scheduleUpdate(action: () -> Unit)
+
+    /**
+     * Callback to be invoked when the layout of the interop view changes to notify the system
+     * that something has changed.
+     */
+    fun onInteropViewLayoutChange(holder: InteropViewHolder)
 }
 
 /**

@@ -119,8 +119,11 @@ internal class SwingInteropContainer(
         root.repaint()
     }
 
-    override fun update(action: () -> Unit) = SwingUtilities.invokeLater {
+    override fun scheduleUpdate(action: () -> Unit) = SwingUtilities.invokeLater {
         action()
+    }
+
+    override fun onInteropViewLayoutChange(holder: InteropViewHolder) {
         root.validate()
         root.repaint()
     }
