@@ -96,6 +96,9 @@ internal class SwingInteropContainer(
             holder.insertInteropView(root, awtIndex)
         }
 
+        // Sometimes Swing displays the rest of interop views in incorrect order after adding,
+        // so we need to force re-validate it.
+
         root.validate()
         root.repaint()
     }
@@ -108,6 +111,9 @@ internal class SwingInteropContainer(
         if (interopComponents.isEmpty()) {
             snapshotObserver.stop()
         }
+
+        // Sometimes Swing displays the rest of interop views in incorrect order after removal,
+        // so we need to force re-validate it.
 
         root.validate()
         root.repaint()
