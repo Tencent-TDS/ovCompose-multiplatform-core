@@ -27,6 +27,10 @@ import platform.UIKit.UIResponder
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
+/**
+ * On iOS [InteropView] is a [UIResponder], which is a base class for [UIView] and [UIViewController]
+ * that can be both created in interop API exposed on iOS.
+ */
 actual typealias InteropView = UIResponder
 
 @Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-37316
