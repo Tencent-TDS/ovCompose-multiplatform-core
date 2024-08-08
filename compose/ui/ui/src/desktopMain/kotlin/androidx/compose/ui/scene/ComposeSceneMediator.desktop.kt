@@ -134,7 +134,7 @@ internal class ComposeSceneMediator(
     private val _platformContext = DesktopPlatformContext()
     val platformContext: PlatformContext get() = _platformContext
 
-    private val skiaLayerComponent by lazy { skiaLayerComponentFactory(this) }
+    private val skiaLayerComponent: SkiaLayerComponent by lazy { skiaLayerComponentFactory(this) }
     val contentComponent by skiaLayerComponent::contentComponent
     var fullscreen by skiaLayerComponent::fullscreen
     val windowHandle by skiaLayerComponent::windowHandle
@@ -161,7 +161,8 @@ internal class ComposeSceneMediator(
      */
     private val interopContainer = SwingInteropContainer(
         root = container,
-        placeInteropAbove = !useInteropBlending || metalOrderHack
+        placeInteropAbove = !useInteropBlending || metalOrderHack,
+        requestRedraw = ::onComposeInvalidation
     )
 
     private val containerListener = object : ContainerListener {
@@ -459,6 +460,8 @@ internal class ComposeSceneMediator(
 
         unsubscribe(contentComponent)
 
+        // Since rendering can not happen after, we still need to execute scheduled updates
+        interopContainer.executeScheduledUpdates()
         container.removeContainerListener(containerListener)
         container.remove(contentComponent)
         container.remove(invisibleComponent)
@@ -550,6 +553,8 @@ internal class ComposeSceneMediator(
     }
 
     override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) = catchExceptions {
+        interopContainer.executeScheduledUpdates()
+
         canvas.withSceneOffset {
             scene.render(asComposeCanvas(), nanoTime)
         }

@@ -20,9 +20,55 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.scene.ComposeSceneMediator
+import androidx.compose.ui.util.fastForEach
 import java.awt.Component
-import javax.swing.SwingUtilities
+import javax.swing.SwingUtilities.isEventDispatchThread
 import org.jetbrains.skiko.ClipRectangle
+
+typealias ScheduledUpdate = () -> Unit
+
+/**
+ * A helper class to back-buffer scheduled updates for Swing Interop without allocating
+ * an array on each frame.
+ */
+private class ScheduledUpdatesSwapchain {
+    private var executed = mutableListOf<ScheduledUpdate>()
+    private var scheduled = mutableListOf<ScheduledUpdate>()
+    private val lock = Any()
+
+    /**
+     * Schedule an update to be executed on the next frame.
+     */
+    fun scheduleUpdate(action: ScheduledUpdate) = synchronized(lock) {
+        scheduled.add(action)
+    }
+
+    /**
+     * Execute all scheduled updates.
+     *
+     * @return True if there were any updates to execute. False otherwise.
+     */
+    fun execute(): Boolean {
+        // Race condition on [executed] is prevented by the fact that this method is called only
+        // on the AWT EDT. We only need to synchronize [scheduled] across threads using [lock].
+
+        synchronized(lock) {
+            // Swap lists and return the one to be executed
+            val t = executed
+            executed = scheduled
+            scheduled = t
+        }
+
+        val hasAnyUpdates = executed.isNotEmpty()
+
+        executed.fastForEach {
+            it.invoke()
+        }
+        executed.clear()
+
+        return hasAnyUpdates
+    }
+}
 
 /**
  * A container that controls interop views/components.
@@ -32,10 +78,13 @@ import org.jetbrains.skiko.ClipRectangle
  *
  * @property root The Swing container to add the interop views to.
  * @property placeInteropAbove Whether to place interop components above non-interop components.
+ * @property requestRedraw Function to request a redraw. It's needed because executing scheduled
+ * updates is tied to the draw loop.
  */
 internal class SwingInteropContainer(
     override val root: InteropViewGroup,
-    private val placeInteropAbove: Boolean
+    private val placeInteropAbove: Boolean,
+    private val requestRedraw: () -> Unit
 ) : InteropContainer {
     /**
      * Map to reverse-lookup of [InteropViewHolder] having an [InteropViewGroup].
@@ -47,6 +96,8 @@ internal class SwingInteropContainer(
     override val snapshotObserver: SnapshotStateObserver = SnapshotStateObserver { command ->
         command()
     }
+
+    private val scheduledUpdatesSwapchain = ScheduledUpdatesSwapchain()
 
     /**
      * Index of last interop component in [root].
@@ -90,43 +141,51 @@ internal class SwingInteropContainer(
         val awtIndex = lastInteropIndex - countBelow
 
         // Update AWT/Swing hierarchy
-        if (alreadyAdded) {
-            holder.changeInteropViewIndex(root, awtIndex)
-        } else {
-            holder.insertInteropView(root, awtIndex)
+        scheduleUpdate {
+            if (alreadyAdded) {
+                holder.changeInteropViewIndex(root = root, index = awtIndex)
+            } else {
+                holder.insertInteropView(root = root, index = awtIndex)
+            }
         }
-
-        // Sometimes Swing displays the rest of interop views in incorrect order after adding,
-        // so we need to force re-validate it.
-
-        root.validate()
-        root.repaint()
     }
 
     override fun unplace(holder: InteropViewHolder) {
-        holder.removeInteropView(root)
+        scheduleUpdate {
+            holder.removeInteropView(root = root)
+        }
 
         interopComponents.remove(holder.group)
 
         if (interopComponents.isEmpty()) {
             snapshotObserver.stop()
         }
+    }
 
-        // Sometimes Swing displays the rest of interop views in incorrect order after removal,
-        // so we need to force re-validate it.
+    fun executeScheduledUpdates() {
+        check(isEventDispatchThread())
 
-        root.validate()
-        root.repaint()
+        val hasAnyUpdates = scheduledUpdatesSwapchain.execute()
+
+        if (hasAnyUpdates) {
+            // Sometimes Swing displays the rest of interop views in incorrect order after an update
+            // so we need to re-validate and repaint the root component.
+
+            root.validate()
+            root.repaint()
+        }
     }
 
     override fun scheduleUpdate(action: () -> Unit) {
-        // Swing doesn't need to delay the action. Just execute it synchronously.
-        action()
+        scheduledUpdatesSwapchain.scheduleUpdate(action)
+
+        requestRedraw()
     }
 
     override fun onInteropViewLayoutChange(holder: InteropViewHolder) {
-        root.validate()
-        root.repaint()
+        // No-op.
+        // On Swing it's called after relayout for specific interop view was requested.
+        // It means that the validate and repaint will be executed after it.
     }
 
     fun getClipRectForComponent(component: Component): ClipRectangle =

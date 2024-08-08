@@ -59,8 +59,9 @@ internal interface InteropContainer {
     fun unplace(holder: InteropViewHolder)
 
     /**
-     * Schedule an update to be performed on interop view. Some platforms (like iOS) delay the
-     * action to synchronize it with compose rendering. Some can execute it synchronously.
+     * Schedule an update to be performed on interop view. Platforms have their different strategy
+     * to align the updates with the rendering and threading requirements when modifying
+     * interop views.
      *
      * @param action The action to be performed. Could be layout change, or other visual updates
      * to the view state, such as background, corner radius, etc.

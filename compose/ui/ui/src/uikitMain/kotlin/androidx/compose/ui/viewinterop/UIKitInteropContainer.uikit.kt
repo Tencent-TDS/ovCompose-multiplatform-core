@@ -89,11 +89,11 @@ internal class UIKitInteropContainer(
 
         if (isAdded) {
             scheduleUpdate {
-                holder.insertInteropView(root, countBelow)
+                holder.insertInteropView(root = root, index = countBelow)
             }
         } else {
             scheduleUpdate {
-                holder.changeInteropViewIndex(root, countBelow)
+                holder.changeInteropViewIndex(root = root, index = countBelow)
             }
         }
     }
@@ -108,7 +108,7 @@ internal class UIKitInteropContainer(
         }
 
         scheduleUpdate {
-            holder.removeInteropView(root)
+            holder.removeInteropView(root = root)
         }
     }
 
