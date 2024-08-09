@@ -41,7 +41,7 @@ private class ScheduledUpdatesSwapchain(
     /**
      * Indicates whether a redraw is requested when update is scheduled.
      */
-    private var doesRequestRedrawOnUpdateScheduled = true
+    private var needsRequestRedrawOnUpdateScheduled = true
 
     /**
      * Schedule an update to be executed later.
@@ -49,7 +49,7 @@ private class ScheduledUpdatesSwapchain(
     fun scheduleUpdate(action: ScheduledUpdate) = synchronized(lock) {
         scheduled.add(action)
 
-        if (doesRequestRedrawOnUpdateScheduled) {
+        if (needsRequestRedrawOnUpdateScheduled) {
             requestRedraw()
         }
     }
@@ -61,17 +61,17 @@ private class ScheduledUpdatesSwapchain(
     inline fun preventingRedrawRequests(body: () -> Unit) {
         try {
             synchronized(lock) {
-                check(doesRequestRedrawOnUpdateScheduled) {
+                check(needsRequestRedrawOnUpdateScheduled) {
                     "Reentry into ignoringRedrawRequests is not allowed"
                 }
 
-                doesRequestRedrawOnUpdateScheduled = false
+                needsRequestRedrawOnUpdateScheduled = false
             }
 
             body()
         } finally {
             synchronized(lock) {
-                doesRequestRedrawOnUpdateScheduled = true
+                needsRequestRedrawOnUpdateScheduled = true
             }
         }
     }
