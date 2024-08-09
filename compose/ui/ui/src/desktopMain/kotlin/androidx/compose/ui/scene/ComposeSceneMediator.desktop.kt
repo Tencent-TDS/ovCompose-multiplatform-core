@@ -460,8 +460,8 @@ internal class ComposeSceneMediator(
 
         unsubscribe(contentComponent)
 
-        // Since rendering can not happen after, we still need to execute scheduled updates
-        interopContainer.executeScheduledUpdates()
+        // Since rendering will not happen after, we needs to execute all scheduled updates
+        interopContainer.dispose()
         container.removeContainerListener(containerListener)
         container.remove(contentComponent)
         container.remove(invisibleComponent)
@@ -553,10 +553,10 @@ internal class ComposeSceneMediator(
     }
 
     override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) = catchExceptions {
-        interopContainer.executeScheduledUpdates()
-
-        canvas.withSceneOffset {
-            scene.render(asComposeCanvas(), nanoTime)
+        interopContainer.postponingExecutingScheduledUpdates {
+            canvas.withSceneOffset {
+                scene.render(asComposeCanvas(), nanoTime)
+            }
         }
     }
 

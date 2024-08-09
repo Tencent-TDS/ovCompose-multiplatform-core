@@ -31,16 +31,49 @@ typealias ScheduledUpdate = () -> Unit
  * A helper class to back-buffer scheduled updates for Swing Interop without allocating
  * an array on each frame.
  */
-private class ScheduledUpdatesSwapchain {
+private class ScheduledUpdatesSwapchain(
+    private val requestRedraw: () -> Unit
+) {
     private var executed = mutableListOf<ScheduledUpdate>()
     private var scheduled = mutableListOf<ScheduledUpdate>()
     private val lock = Any()
 
     /**
-     * Schedule an update to be executed on the next frame.
+     * Indicates whether a redraw is requested when update is scheduled.
+     */
+    private var doesRequestRedrawOnUpdateScheduled = true
+
+    /**
+     * Schedule an update to be executed later.
      */
     fun scheduleUpdate(action: ScheduledUpdate) = synchronized(lock) {
         scheduled.add(action)
+
+        if (doesRequestRedrawOnUpdateScheduled) {
+            requestRedraw()
+        }
+    }
+
+    /**
+     * Performs a [body], if [scheduleUpdate] is called-back from within it, no redraw requests
+     * will be made.
+     */
+    inline fun preventingRedrawRequests(body: () -> Unit) {
+        try {
+            synchronized(lock) {
+                check(doesRequestRedrawOnUpdateScheduled) {
+                    "Reentry into ignoringRedrawRequests is not allowed"
+                }
+
+                doesRequestRedrawOnUpdateScheduled = false
+            }
+
+            body()
+        } finally {
+            synchronized(lock) {
+                doesRequestRedrawOnUpdateScheduled = true
+            }
+        }
     }
 
     /**
@@ -78,13 +111,14 @@ private class ScheduledUpdatesSwapchain {
  *
  * @property root The Swing container to add the interop views to.
  * @property placeInteropAbove Whether to place interop components above non-interop components.
- * @property requestRedraw Function to request a redraw. It's needed because executing scheduled
- * updates is tied to the draw loop.
+ * @param requestRedraw Function to request a redraw. It's needed because executing scheduled
+ * updates is tied to the draw loop and update doesn't necessary trigger an invalidation causing
+ * a redraw, so we need to request it explicitly.
  */
 internal class SwingInteropContainer(
     override val root: InteropViewGroup,
     private val placeInteropAbove: Boolean,
-    private val requestRedraw: () -> Unit
+    requestRedraw: () -> Unit
 ) : InteropContainer {
     /**
      * Map to reverse-lookup of [InteropViewHolder] having an [InteropViewGroup].
@@ -97,7 +131,7 @@ internal class SwingInteropContainer(
         command()
     }
 
-    private val scheduledUpdatesSwapchain = ScheduledUpdatesSwapchain()
+    private val scheduledUpdatesSwapchain = ScheduledUpdatesSwapchain(requestRedraw)
 
     /**
      * Index of last interop component in [root].
@@ -162,7 +196,7 @@ internal class SwingInteropContainer(
         }
     }
 
-    fun executeScheduledUpdates() {
+    private fun executeScheduledUpdates() {
         check(isEventDispatchThread())
 
         val hasAnyUpdates = scheduledUpdatesSwapchain.execute()
@@ -176,10 +210,24 @@ internal class SwingInteropContainer(
         }
     }
 
+    fun dispose() {
+        executeScheduledUpdates()
+    }
+
+    /**
+     * Performs a [body] and then executes all scheduled updates, including those that can happen
+     * inside [body].
+     */
+    fun postponingExecutingScheduledUpdates(body: () -> Unit) {
+        scheduledUpdatesSwapchain.preventingRedrawRequests {
+            body()
+        }
+
+        executeScheduledUpdates()
+    }
+
     override fun scheduleUpdate(action: () -> Unit) {
         scheduledUpdatesSwapchain.scheduleUpdate(action)
-
-        requestRedraw()
     }
 
     override fun onInteropViewLayoutChange(holder: InteropViewHolder) {
