@@ -68,11 +68,12 @@ internal interface InteropContainer {
      */
     fun scheduleUpdate(action: () -> Unit)
 
-    /**
-     * Callback to be invoked when the layout of the interop view changes to notify the system
-     * that something has changed.
-     */
-    fun onInteropViewLayoutChange(holder: InteropViewHolder)
+    // TODO: Should be the same as [Owner.onInteropViewLayoutChange]?
+//    /**
+//     * Callback to be invoked when the layout of the interop view changes to notify the system
+//     * that something has changed.
+//     */
+//    fun onInteropViewLayoutChange(holder: InteropViewHolder)
 }
 
 /**

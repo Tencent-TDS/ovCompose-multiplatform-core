@@ -228,11 +228,12 @@ internal class SwingInteropContainer(
         scheduledUpdatesSwapchain.scheduleUpdate(action)
     }
 
-    override fun onInteropViewLayoutChange(holder: InteropViewHolder) {
-        // No-op.
-        // On Swing it's called after relayout for specific interop view was requested.
-        // It means that the validate and repaint will be executed after it.
-    }
+    // TODO: Should be the same as [Owner.onInteropViewLayoutChange]?
+//    override fun onInteropViewLayoutChange(holder: InteropViewHolder) {
+//        // No-op.
+//        // On Swing it's called after relayout for specific interop view was requested.
+//        // It means that the validate and repaint will be executed after it.
+//    }
 
     fun getClipRectForComponent(component: Component): ClipRectangle =
         requireNotNull(interopComponents[component]) as ClipRectangle

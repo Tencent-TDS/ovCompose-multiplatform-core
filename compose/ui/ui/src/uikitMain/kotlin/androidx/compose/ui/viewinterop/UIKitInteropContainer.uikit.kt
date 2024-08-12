@@ -120,7 +120,8 @@ internal class UIKitInteropContainer(
         transaction.add(action)
     }
 
-    override fun onInteropViewLayoutChange(holder: InteropViewHolder) {
-        // No-op
-    }
+    // TODO: Should be the same as [Owner.onInteropViewLayoutChange]?
+//    override fun onInteropViewLayoutChange(holder: InteropViewHolder) {
+//        // No-op
+//    }
 }
