@@ -25,8 +25,6 @@ import java.awt.Component
 import javax.swing.SwingUtilities.isEventDispatchThread
 import org.jetbrains.skiko.ClipRectangle
 
-typealias ScheduledUpdate = () -> Unit
-
 /**
  * A helper class to back-buffer scheduled updates for Swing Interop without allocating
  * an array on each frame.
@@ -34,8 +32,8 @@ typealias ScheduledUpdate = () -> Unit
 private class ScheduledUpdatesSwapchain(
     private val requestRedraw: () -> Unit
 ) {
-    private var executed = mutableListOf<ScheduledUpdate>()
-    private var scheduled = mutableListOf<ScheduledUpdate>()
+    private var executed = mutableListOf<() -> Unit>()
+    private var scheduled = mutableListOf<() -> Unit>()
     private val lock = Any()
 
     /**
@@ -46,7 +44,7 @@ private class ScheduledUpdatesSwapchain(
     /**
      * Schedule an update to be executed later.
      */
-    fun scheduleUpdate(action: ScheduledUpdate) = synchronized(lock) {
+    fun scheduleUpdate(action: () -> Unit) = synchronized(lock) {
         scheduled.add(action)
 
         if (needsRequestRedrawOnUpdateScheduled) {
