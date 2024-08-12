@@ -30,9 +30,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.interop.UIKitView
 import androidx.compose.ui.interop.UIKitViewController
+import androidx.compose.ui.viewinterop.UIKitView as UIKitView2
+import androidx.compose.ui.viewinterop.UIKitViewController as UIKitViewController2
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.UIKitInteropProperties
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.objcPtr
 import kotlinx.cinterop.readValue
@@ -73,9 +77,53 @@ private class TouchReactingView: UIView(frame = CGRectZero.readValue()) {
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 val UIKitInteropExample = Screen.Example("UIKitInterop") {
     var text by remember { mutableStateOf("Type something") }
     var updatedValue by remember { mutableStateOf(null as Offset?) }
+
+    val createBlueViewController = {
+        object : UIViewController(nibName = null, bundle = null) {
+            val label = UILabel()
+
+            override fun loadView() {
+                setView(label)
+            }
+
+            override fun viewDidLoad() {
+                super.viewDidLoad()
+
+                label.textAlignment = NSTextAlignmentCenter
+                label.textColor = UIColor.whiteColor
+                label.backgroundColor = UIColor.blueColor
+            }
+
+            override fun viewWillAppear(animated: Boolean) {
+                super.viewWillAppear(animated)
+
+                println("viewWillAppear animated=$animated")
+            }
+
+            override fun viewDidAppear(animated: Boolean) {
+                super.viewDidAppear(animated)
+
+                println("viewDidAppear animated=$animated")
+            }
+
+            override fun viewDidDisappear(animated: Boolean) {
+                super.viewDidDisappear(animated)
+
+                println("viewDidDisappear animated=$animated")
+            }
+
+            override fun viewWillDisappear(animated: Boolean) {
+                super.viewWillDisappear(animated)
+
+                println("viewWillDisappear animated=$animated")
+            }
+        }
+    }
+
 
     LazyColumn(Modifier.fillMaxSize()) {
         item {
@@ -89,56 +137,28 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                 }
             )
         }
-
+        item {
+            UIKitView2(
+                factory = {
+                    MKMapView()
+                },
+                modifier = Modifier.fillMaxWidth().height(200.dp),
+                update = {
+                    println("MKMapView updated")
+                }
+            )
+        }
         item {
             UIKitViewController(
                 factory = {
-                    object : UIViewController(nibName = null, bundle = null) {
-                        val label = UILabel()
-
-                        override fun loadView() {
-                            setView(label)
-                        }
-
-                        override fun viewDidLoad() {
-                            super.viewDidLoad()
-
-                            label.textAlignment = NSTextAlignmentCenter
-                            label.textColor = UIColor.whiteColor
-                            label.backgroundColor = UIColor.blueColor
-                        }
-
-                        override fun viewWillAppear(animated: Boolean) {
-                            super.viewWillAppear(animated)
-
-                            println("viewWillAppear animated=$animated")
-                        }
-
-                        override fun viewDidAppear(animated: Boolean) {
-                            super.viewDidAppear(animated)
-
-                            println("viewDidAppear animated=$animated")
-                        }
-
-                        override fun viewDidDisappear(animated: Boolean) {
-                            super.viewDidDisappear(animated)
-
-                            println("viewDidDisappear animated=$animated")
-                        }
-
-                        override fun viewWillDisappear(animated: Boolean) {
-                            super.viewWillDisappear(animated)
-
-                            println("viewWillDisappear animated=$animated")
-                        }
-                    }
+                    createBlueViewController()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp)
                     .onGloballyPositioned { coordinates ->
                         val rootCoordinates = coordinates.findRootCoordinates()
-                        val box = coordinates.localBoundingBoxOf(rootCoordinates, clipBounds = false)
+                        val box = rootCoordinates.localBoundingBoxOf(coordinates, clipBounds = false)
                         updatedValue = box.topLeft
                     },
                 update = { viewController ->
@@ -149,8 +169,32 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                 interactive = false
             )
         }
+        item {
+            UIKitViewController2(
+                factory = {
+                    createBlueViewController()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .onGloballyPositioned { coordinates ->
+                        val rootCoordinates = coordinates.findRootCoordinates()
+                        val box = rootCoordinates.localBoundingBoxOf(coordinates, clipBounds = false)
+                        updatedValue = box.topLeft
+                    },
+                update = { viewController ->
+                    updatedValue?.let {
+                        viewController.label.text = "${it.x}, ${it.y}"
+                    }
+                },
+                properties = UIKitInteropProperties(
+                    interactionMode = null,
+                    isNativeAccessibilityEnabled = false
+                )
+            )
+        }
         items(100) { index ->
-            when (index % 5) {
+            when (index % 7) {
                 0 -> Text("material.Text $index", Modifier.fillMaxSize().height(40.dp))
                 1 -> UIKitView(
                     factory = {
@@ -162,9 +206,26 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                     modifier = Modifier.fillMaxWidth().height(40.dp),
                     interactive = false
                 )
-                2 -> TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
-                3 -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
-                4 -> UIKitView(
+                2 -> UIKitView2(
+                    factory = {
+                        val label = UILabel(frame = CGRectZero.readValue())
+                        label.text = "UILabel $index"
+                        label.textColor = UIColor.blackColor
+                        label
+                    },
+                    modifier = Modifier.fillMaxWidth().height(40.dp),
+                    properties = UIKitInteropProperties(
+                        interactionMode = null,
+                        isNativeAccessibilityEnabled = false
+                    )
+                )
+                3 -> UIKitView2(
+                    factory = { TouchReactingView() },
+                    modifier = Modifier.fillMaxWidth().height(40.dp),
+                )
+                4 -> TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
+                5 -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
+                6 -> UIKitView(
                     factory = { TouchReactingView() },
                     modifier = Modifier.fillMaxWidth().height(40.dp),
                 )
