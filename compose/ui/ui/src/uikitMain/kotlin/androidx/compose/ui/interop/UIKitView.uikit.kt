@@ -23,12 +23,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.isUnspecified
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.uikit.toUIColor
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.LocalInteropContainer
+import androidx.compose.ui.viewinterop.NoOp
 import androidx.compose.ui.viewinterop.UIKitInteropViewControllerHolder
 import androidx.compose.ui.viewinterop.UIKitInteropViewHolder
 import kotlinx.cinterop.CValue
@@ -36,7 +36,6 @@ import platform.CoreGraphics.CGRect
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
-private val STUB_CALLBACK_WITH_RECEIVER: Any.() -> Unit = {}
 private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { rect -> this.setFrame(rect) }
 private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Unit =
     { rect -> this.view.setFrame(rect) }
@@ -73,9 +72,9 @@ private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Un
 fun <T : UIView> UIKitView(
     factory: () -> T,
     modifier: Modifier,
-    update: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
+    update: (T) -> Unit = NoOp,
     background: Color = Color.Unspecified,
-    onRelease: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
+    onRelease: (T) -> Unit = NoOp,
     onResize: (view: T, rect: CValue<CGRect>) -> Unit = DefaultViewResize,
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true
@@ -94,7 +93,7 @@ fun <T : UIView> UIKitView(
                 isInteractive = interactive,
                 isNativeAccessibilityEnabled = accessibilityEnabled,
                 compositeKeyHash = compositeKeyHash,
-                resize = onResize
+                onResize = onResize
             )
         },
         modifier = modifier,
@@ -143,9 +142,9 @@ fun <T : UIView> UIKitView(
 fun <T : UIViewController> UIKitViewController(
     factory: () -> T,
     modifier: Modifier,
-    update: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
+    update: (T) -> Unit = NoOp,
     background: Color = Color.Unspecified,
-    onRelease: (T) -> Unit = STUB_CALLBACK_WITH_RECEIVER,
+    onRelease: (T) -> Unit = NoOp,
     onResize: (viewController: T, rect: CValue<CGRect>) -> Unit = DefaultViewControllerResize,
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true

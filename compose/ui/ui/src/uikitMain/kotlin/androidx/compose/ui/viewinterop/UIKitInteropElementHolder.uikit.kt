@@ -63,6 +63,19 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
         }
         .nativeAccessibility(isNativeAccessibilityEnabled, group)
 ) {
+    constructor(
+        factory: () -> T,
+        interopContainer: InteropContainer,
+        properties: UIKitInteropProperties,
+        compositeKeyHash: Int,
+    ) : this(
+        factory = factory,
+        interopContainer = interopContainer,
+        group = InteropWrappingView(areTouchesDelayed = true),
+        isInteractive = properties.isInteractive,
+        isNativeAccessibilityEnabled = properties.isNativeAccessibilityEnabled,
+        compositeKeyHash = compositeKeyHash
+    )
 
     private var currentUnclippedRect: IntRect? = null
     private var currentClippedRect: IntRect? = null

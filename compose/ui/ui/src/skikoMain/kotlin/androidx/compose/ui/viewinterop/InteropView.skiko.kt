@@ -34,7 +34,7 @@ import androidx.compose.ui.platform.DefaultUiApplier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 
-private val NoOp: Any.() -> Unit = {}
+internal val NoOp: Any.() -> Unit = {}
 
 /**
  * Base class for any concrete implementation of [InteropViewHolder] that holds a specific type

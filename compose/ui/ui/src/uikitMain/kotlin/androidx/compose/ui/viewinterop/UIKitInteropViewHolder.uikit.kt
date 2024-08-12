@@ -18,23 +18,18 @@ package androidx.compose.ui.viewinterop
 
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGRect
+import platform.CoreGraphics.CGSize
 import platform.UIKit.UIView
 
 internal class UIKitInteropViewHolder<T : UIView>(
     factory: () -> T,
     interopContainer: InteropContainer,
-    group: InteropWrappingView,
-    isInteractive: Boolean,
-    isNativeAccessibilityEnabled: Boolean,
+    properties: UIKitInteropProperties,
     compositeKeyHash: Int,
-    // TODO: deprecate after new API arrives https://youtrack.jetbrains.com/issue/CMP-5719/iOS-revisit-UIKit-interop-API
-    val resize: (T, rect: CValue<CGRect>) -> Unit
 ) : UIKitInteropElementHolder<T>(
     factory = factory,
     interopContainer = interopContainer,
-    group = group,
-    isInteractive = isInteractive,
-    isNativeAccessibilityEnabled = isNativeAccessibilityEnabled,
+    properties = properties,
     compositeKeyHash = compositeKeyHash
 ) {
     init {
@@ -43,9 +38,7 @@ internal class UIKitInteropViewHolder<T : UIView>(
     }
 
     override fun setUserComponentFrame(rect: CValue<CGRect>) {
-        // typedInteropView.setFrame(rect)
-        // TODO: deprecate after new API arrives https://youtrack.jetbrains.com/issue/CMP-5719/iOS-revisit-UIKit-interop-API
-        resize(typedInteropView, rect)
+        typedInteropView.setFrame(rect)
     }
 
     override fun insertInteropView(root: InteropViewGroup, index: Int) {
