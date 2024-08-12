@@ -145,7 +145,8 @@ internal open class InteropViewHolder(
             .trackInteropPlacement(this)
             .onGloballyPositioned { layoutCoordinates ->
                 layoutAccordingTo(layoutCoordinates)
-                container.onInteropViewLayoutChange(this)
+                // TODO: Should be the same as [Owner.onInteropViewLayoutChange]?
+//                container.onInteropViewLayoutChange(this)
             }
 
         layoutNode.compositeKeyHash = compositeKeyHash
