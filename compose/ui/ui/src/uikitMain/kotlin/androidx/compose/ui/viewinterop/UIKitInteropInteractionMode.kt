@@ -17,6 +17,7 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.ui.ExperimentalComposeUiApi
+import platform.UIKit.UIScrollView
 
 /**
  * Represents a set of strategies on how the touches are processed when user interacts with the
@@ -28,7 +29,7 @@ sealed interface UIKitInteropInteractionMode {
      * Represents a mode where the touches are not processed by the Compose UI if the interop view
      * is hit by the touch event.
      */
-    class NonCooperative : UIKitInteropInteractionMode
+    data object NonCooperative : UIKitInteropInteractionMode
 
     /**
      * Represents a mode where the touches can be processed by the Compose UI if the interop view is
@@ -49,6 +50,10 @@ sealed interface UIKitInteropInteractionMode {
     class Cooperative(
         val delay: Int = DEFAULT_DELAY
     ) : UIKitInteropInteractionMode {
+        init {
+            require(delay > 0) { "Delay must be a positive value" }
+        }
+
         companion object {
             /**
              * The default delay in milliseconds before the touch is delivered to the interop view.

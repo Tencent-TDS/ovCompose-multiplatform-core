@@ -53,23 +53,15 @@ import androidx.compose.ui.semantics.semantics
  * @see Modifier.semantics
  */
 @Immutable
-data class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
+data class UIKitInteropProperties<T> @ExperimentalComposeUiApi constructor(
     val interactionMode: UIKitInteropInteractionMode?,
     val isNativeAccessibilityEnabled: Boolean,
 ) {
     internal val isInteractive: Boolean
         get() = interactionMode != null
 
-    companion object {
-        /**
-         * Default properties for [UIKitInteropProperties].
-         *
-         * - Touches are processed in cooperative manner,
-         * - Native accessibility resolution is disabled.
-         */
-        val Default = UIKitInteropProperties(
-            interactionMode = UIKitInteropInteractionMode.Cooperative(),
-            isNativeAccessibilityEnabled = false
-        )
-    }
+    constructor() : this(
+        interactionMode = UIKitInteropInteractionMode.Cooperative(),
+        isNativeAccessibilityEnabled = false
+    )
 }

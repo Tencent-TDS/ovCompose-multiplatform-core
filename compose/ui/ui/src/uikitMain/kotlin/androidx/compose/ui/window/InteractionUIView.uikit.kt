@@ -21,6 +21,7 @@ import androidx.compose.ui.uikit.utils.CMPGestureRecognizer
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizerHandlerProtocol
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.InteropWrappingView
+import androidx.compose.ui.viewinterop.UIKitInteropInteractionMode
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
@@ -98,20 +99,16 @@ private val UIGestureRecognizerState.isOngoing: Boolean
 /**
  * Enum class representing the possible hit test result of [InteractionUIViewHitTestResult].
  * This enum is used solely to determine the strategy of touch event delivery and
- * doesn't require any additional information about the hit-tested view.
- *
- * [SELF] - Hit-tested Compose view.
- * [COOPERATIVE_CHILD_VIEW] - Hit-tested child view that is okay with Compose receiving touches and
- * delaying them for the child view.
- * [UNCOOPERATIVE_CHILD_VIEW] - Hit-tested child view that doesn't want to cooperate with
- * Compose and receives touches immediately.
- * [NONE] - Hit test didn't yield any result.
+ * doesn't require any additional information about the hit-tested view itself.
  */
-private enum class InteractionUIViewHitTestResult {
-    SELF,
-    COOPERATIVE_CHILD_VIEW,
-    UNCOOPERATIVE_CHILD_VIEW,
-    NONE
+private sealed interface InteractionUIViewHitTestResult {
+    data object Self : InteractionUIViewHitTestResult
+
+    data object NonCooperativeChildView : InteractionUIViewHitTestResult
+
+    class CooperativeChildView(
+        val delay: Int
+    ) : InteractionUIViewHitTestResult
 }
 
 /**
@@ -131,7 +128,7 @@ private class GestureRecognizerHandlerImpl(
      * The actual view that was hit-tested by the first touch in the sequence.
      * It could be interop view, for example. If there are tracked touches, assignment is ignored.
      */
-    var hitTestResult = InteractionUIViewHitTestResult.NONE
+    var hitTestResult: InteractionUIViewHitTestResult? = null
         set(value) {
             /**
              * Only remember the first hit-tested view in the sequence.
@@ -238,7 +235,7 @@ private class GestureRecognizerHandlerImpl(
      *
      */
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
-        if (hitTestResult == InteractionUIViewHitTestResult.UNCOOPERATIVE_CHILD_VIEW) {
+        if (hitTestResult == InteractionUIViewHitTestResult.NonCooperativeChildView) {
             // If child view doesn't want delay logic applied, we should immediately fail the gesture
             // and allow touches to go through directly to that view, gesture recognizer should
             // fail immediately, no touches will be received by Compose and the gesture recognizer after
@@ -251,7 +248,7 @@ private class GestureRecognizerHandlerImpl(
 
         onTouchesEvent(trackedTouches, withEvent, TouchesEventKind.BEGAN)
 
-        if (gestureRecognizerState.isOngoing || hitTestResult == InteractionUIViewHitTestResult.SELF) {
+        if (gestureRecognizerState.isOngoing || hitTestResult == InteractionUIViewHitTestResult.Self) {
             // Golden path, immediately start/continue the gesture recognizer if possible and pass touches.
             when (gestureRecognizerState) {
                 UIGestureRecognizerStatePossible -> {
@@ -287,7 +284,7 @@ private class GestureRecognizerHandlerImpl(
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
         onTouchesEvent(trackedTouches, withEvent, TouchesEventKind.MOVED)
 
-        if (gestureRecognizerState.isOngoing || hitTestResult == InteractionUIViewHitTestResult.SELF) {
+        if (gestureRecognizerState.isOngoing || hitTestResult == InteractionUIViewHitTestResult.Self) {
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
@@ -317,7 +314,7 @@ private class GestureRecognizerHandlerImpl(
 
         stopTrackingTouches(touches)
 
-        if (gestureRecognizerState.isOngoing || hitTestResult == InteractionUIViewHitTestResult.SELF) {
+        if (gestureRecognizerState.isOngoing || hitTestResult == InteractionUIViewHitTestResult.Self) {
             // Golden path, just update the gesture recognizer state and pass touches to
             // the Compose runtime.
 
@@ -354,7 +351,7 @@ private class GestureRecognizerHandlerImpl(
 
         stopTrackingTouches(touches)
 
-        if (hitTestResult == InteractionUIViewHitTestResult.SELF) {
+        if (hitTestResult == InteractionUIViewHitTestResult.Self) {
             // Golden path, just update the gesture recognizer state.
 
             if (gestureRecognizerState.isOngoing) {
@@ -585,21 +582,29 @@ internal class InteractionUIView(
     private fun savingHitTestResult(hitTestBlock: () -> UIView?): UIView? {
         val result = hitTestBlock()
         gestureRecognizerHandler.hitTestResult = if (result == null) {
-            InteractionUIViewHitTestResult.NONE
+            null
         } else {
             if (result == this) {
-                InteractionUIViewHitTestResult.SELF
+                InteractionUIViewHitTestResult.Self
             } else {
                 // All views beneath are considered to be interop views.
                 // If the hit-tested view is not a descendant of [InteropWrappingView], then it
                 // should be considered as a view that doesn't want to cooperate with Compose.
 
-                val areTouchesDelayed = result.findAncestorInteropWrappingView()?.areTouchesDelayed ?: false
+                val interactionMode = result.findAncestorInteropWrappingView()?.interactionMode
 
-                if (areTouchesDelayed) {
-                    InteractionUIViewHitTestResult.COOPERATIVE_CHILD_VIEW
-                } else {
-                    InteractionUIViewHitTestResult.UNCOOPERATIVE_CHILD_VIEW
+                when (interactionMode) {
+                    is UIKitInteropInteractionMode.Cooperative -> {
+                        InteractionUIViewHitTestResult.CooperativeChildView(
+                            delay = interactionMode.delay
+                        )
+                    }
+
+                    is UIKitInteropInteractionMode.NonCooperative -> {
+                        InteractionUIViewHitTestResult.NonCooperativeChildView
+                    }
+
+                    null -> InteractionUIViewHitTestResult.Self
                 }
             }
         }
@@ -608,7 +613,7 @@ internal class InteractionUIView(
 }
 
 /**
- * There is no way to associate [InteropWrappingView.areTouchesDelayed] with a given hitTest query.
+ * There is no way to associate [InteropWrappingView.interactionMode] with a given hitTest query.
  * This extension property allows to find the nearest [InteropWrappingView] up the view hierarchy
  * and request the value retroactively.
  */

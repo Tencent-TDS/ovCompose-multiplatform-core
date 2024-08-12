@@ -29,17 +29,13 @@ internal class UIKitInteropViewControllerHolder<T : UIViewController>(
     factory: () -> T,
     interopContainer: InteropContainer,
     private val parentViewController: UIViewController,
-    group: InteropWrappingView,
-    isInteractive: Boolean,
-    isNativeAccessibilityEnabled: Boolean,
+    properties: UIKitInteropProperties<T>,
     compositeKeyHash: Int,
 ) : UIKitInteropElementHolder<T>(
-    factory = factory,
-    interopContainer = interopContainer,
-    group = group,
-    isInteractive = isInteractive,
-    isNativeAccessibilityEnabled = isNativeAccessibilityEnabled,
-    compositeKeyHash = compositeKeyHash,
+    factory,
+    interopContainer,
+    properties,
+    compositeKeyHash,
 ) {
     init {
         // Group will be placed to hierarchy in [InteropContainer.placeInteropView]

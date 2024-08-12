@@ -66,12 +66,12 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     constructor(
         factory: () -> T,
         interopContainer: InteropContainer,
-        properties: UIKitInteropProperties,
+        properties: UIKitInteropProperties<T>,
         compositeKeyHash: Int,
     ) : this(
         factory = factory,
         interopContainer = interopContainer,
-        group = InteropWrappingView(areTouchesDelayed = true),
+        group = InteropWrappingView(properties.interactionMode),
         isInteractive = properties.isInteractive,
         isNativeAccessibilityEnabled = properties.isNativeAccessibilityEnabled,
         compositeKeyHash = compositeKeyHash

@@ -21,14 +21,20 @@ import androidx.compose.ui.Modifier
 import platform.UIKit.UIView
 
 /**
- * Compose [UIView] into the UI hierarchy.
+ * Compose a [UIView] of class [T] into the UI hierarchy.
  *
- * @param factory The block creating the [UIView] to be composed.
+ * @param factory The block creating the [T] to be composed.
  * @param modifier The modifier to be applied to the layout.
  * @param update A callback to be invoked every time the state it reads changes.
- * Invoked once when it's assigned to the view, and then every time the state it reads changes.
- * @param onRelease A callback invoked as a signal that this view has exited the composition forever
- * Use it release resources and stop jobs associated with the view.
+ * Invoked once initially and then every time the state it reads changes.
+ * @param onRelease A callback invoked as a signal that the [T] has exited the
+ * composition forever. Use it release resources and stop jobs associated with [T].
+ * @param onReset If not null, this callback is invoked when the [T] is
+ * reused in the composition instead of being recreated. Use it to reset the state of [T] to
+ * some blank state. If null, this composable can not be reused.
+ * @property properties The properties configuring the behavior of [T]
+ *
+ * @see UIKitInteropProperties
  */
 @Composable
 fun <T : UIView> UIKitView(
@@ -37,22 +43,22 @@ fun <T : UIView> UIKitView(
     update: (T) -> Unit = NoOp,
     onRelease: (T) -> Unit = NoOp,
     onReset: ((T) -> Unit)? = null,
-    properties: UIKitInteropProperties = UIKitInteropProperties.Default
+    properties: UIKitInteropProperties<T> = UIKitInteropProperties()
 ) {
     val interopContainer = LocalInteropContainer.current
 
     InteropView(
         factory = { compositeKeyHash ->
             UIKitInteropViewHolder(
-                factory = factory,
-                interopContainer = interopContainer,
-                properties = properties,
-                compositeKeyHash = compositeKeyHash,
+                factory,
+                interopContainer,
+                properties,
+                compositeKeyHash,
             )
         },
-        modifier = modifier,
-        onReset = onReset,
-        onRelease = onRelease,
-        update = update
+        modifier,
+        onReset,
+        onRelease,
+        update
     )
 }
