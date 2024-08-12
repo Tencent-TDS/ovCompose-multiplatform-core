@@ -51,6 +51,10 @@ fun <T : UIView> UIKitView(
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true
 ) {
+    require(onResize == DefaultViewResize) {
+        "Custom onResize is not supported in deprecated API"
+    }
+
     val backgroundColor by remember(background) { mutableStateOf(background.toUIColor()) }
 
     val interactionMode =
@@ -94,6 +98,10 @@ fun <T : UIViewController> UIKitViewController(
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true
 ) {
+    require(onResize == DefaultViewControllerResize) {
+        "Custom onResize is not supported in deprecated API"
+    }
+
     val backgroundColor by remember(background) { mutableStateOf(background.toUIColor()) }
 
     val interactionMode =

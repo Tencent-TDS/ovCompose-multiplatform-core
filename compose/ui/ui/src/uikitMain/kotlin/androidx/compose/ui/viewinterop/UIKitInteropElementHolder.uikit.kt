@@ -30,15 +30,18 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toRect
 import kotlinx.cinterop.CValue
+import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGRect
+import platform.CoreGraphics.CGSize
+import platform.CoreGraphics.CGSizeEqualToSize
 
 internal abstract class UIKitInteropElementHolder<T : InteropView>(
     factory: () -> T,
     interopContainer: InteropContainer,
     group: InteropWrappingView,
-    isInteractive: Boolean,
-    isNativeAccessibilityEnabled: Boolean,
-    compositeKeyHash: Int,
+    protected val properties: UIKitInteropProperties<T>,
+    compositeKeyHash: Int
 ) : TypedInteropViewHolder<T>(
     factory = factory,
     interopContainer = interopContainer,
@@ -52,7 +55,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
             //  https://youtrack.jetbrains.com/issue/CMP-5873/iOS-investigate-intrinsic-sizing-of-interop-elements
         }
     },
-    isInteractive = isInteractive,
+    isInteractive = properties.isInteractive,
     platformModifier = Modifier
         // Make the canvas transparent in that area to make the interop view behind visible
         .drawBehind {
@@ -61,7 +64,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
                 blendMode = BlendMode.Clear
             )
         }
-        .nativeAccessibility(isNativeAccessibilityEnabled, group)
+        .nativeAccessibility(properties.isNativeAccessibilityEnabled, group)
 ) {
     constructor(
         factory: () -> T,
@@ -72,8 +75,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
         factory = factory,
         interopContainer = interopContainer,
         group = InteropWrappingView(properties.interactionMode),
-        isInteractive = properties.isInteractive,
-        isNativeAccessibilityEnabled = properties.isNativeAccessibilityEnabled,
+        properties,
         compositeKeyHash = compositeKeyHash
     )
 
@@ -146,7 +148,26 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
 
     }
 
-    abstract fun setUserComponentFrame(rect: CValue<CGRect>)
+    private var currentSize: CValue<CGSize>? = null
+
+    open fun setUserComponentFrame(rect: CValue<CGRect>) {
+        val size = rect.useContents {
+            size.readValue()
+        }
+
+        currentSize?.let {
+            if (CGSizeEqualToSize(it, size)) {
+                return
+            }
+        }
+
+        currentSize = size
+
+        properties.onResize(
+            typedInteropView,
+            size
+        )
+    }
 
 
     override fun dispatchToView(pointerEvent: PointerEvent) {

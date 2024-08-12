@@ -44,6 +44,8 @@ internal class UIKitInteropViewControllerHolder<T : UIViewController>(
 
     override fun setUserComponentFrame(rect: CValue<CGRect>) {
         typedInteropView.view.setFrame(rect)
+
+        super.setUserComponentFrame(rect)
     }
 
     override fun insertInteropView(root: InteropViewGroup, index: Int) {

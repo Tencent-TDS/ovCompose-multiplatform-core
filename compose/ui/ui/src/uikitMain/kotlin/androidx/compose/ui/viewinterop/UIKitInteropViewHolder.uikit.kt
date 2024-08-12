@@ -17,6 +17,8 @@
 package androidx.compose.ui.viewinterop
 
 import kotlinx.cinterop.CValue
+import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGSize
 import platform.UIKit.UIView
@@ -27,10 +29,10 @@ internal class UIKitInteropViewHolder<T : UIView>(
     properties: UIKitInteropProperties<T>,
     compositeKeyHash: Int,
 ) : UIKitInteropElementHolder<T>(
-    factory = factory,
-    interopContainer = interopContainer,
-    properties = properties,
-    compositeKeyHash = compositeKeyHash
+    factory,
+    interopContainer,
+    properties,
+    compositeKeyHash
 ) {
     init {
         // Group will be placed to hierarchy in [InteropContainer.placeInteropView]
@@ -39,6 +41,8 @@ internal class UIKitInteropViewHolder<T : UIView>(
 
     override fun setUserComponentFrame(rect: CValue<CGRect>) {
         typedInteropView.setFrame(rect)
+
+        super.setUserComponentFrame(rect)
     }
 
     override fun insertInteropView(root: InteropViewGroup, index: Int) {

@@ -20,12 +20,16 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
+import kotlinx.cinterop.CValue
+import platform.CoreGraphics.CGSize
 
 /**
  * Properties that are used to configure the behavior of the interop view.
  *
  * @property interactionMode The strategy on how the touches are processed when user interacts with
  * the interop view.
+ *
+ * @property onResize A callback that is invoked when the interop view is resized.
  *
  * @property isNativeAccessibilityEnabled Indicates whether a11y services should traverse the
  * native view itself, instead of parsing Compose semantics properties.
@@ -54,14 +58,10 @@ import androidx.compose.ui.semantics.semantics
  */
 @Immutable
 data class UIKitInteropProperties<T> @ExperimentalComposeUiApi constructor(
-    val interactionMode: UIKitInteropInteractionMode?,
-    val isNativeAccessibilityEnabled: Boolean,
+    val interactionMode: UIKitInteropInteractionMode? = UIKitInteropInteractionMode.Cooperative(),
+    val onResize: T.(CValue<CGSize>) -> Unit = {},
+    val isNativeAccessibilityEnabled: Boolean = false
 ) {
     internal val isInteractive: Boolean
         get() = interactionMode != null
-
-    constructor() : this(
-        interactionMode = UIKitInteropInteractionMode.Cooperative(),
-        isNativeAccessibilityEnabled = false
-    )
 }
