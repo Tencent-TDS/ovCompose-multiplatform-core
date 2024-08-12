@@ -50,11 +50,11 @@ internal actual fun legacyTextInputServiceAdapterAndService():
                 onEditCommand: (List<EditCommand>) -> Unit,
                 onImeActionPerformed: (ImeAction) -> Unit
             ) {
-                session = service?.startInput(value, imeOptions, onEditCommand, onImeActionPerformed)
+                session = service.startInput(value, imeOptions, onEditCommand, onImeActionPerformed)
             }
 
             override fun stopInput() {
-                service?.stopInput()
+                service.stopInput()
                 session?.dispose()
                 session = null
             }
