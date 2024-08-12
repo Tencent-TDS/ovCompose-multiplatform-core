@@ -86,6 +86,7 @@ internal val NativeAccessibilityViewSemanticsKey = AccessibilityKey<InteropWrapp
 
 private var SemanticsPropertyReceiver.nativeAccessibilityView by NativeAccessibilityViewSemanticsKey
 
+// TODO: align "platform" vs "native" naming
 /**
  * Chain [this] with [Modifier.semantics] that sets the [nativeAccessibilityView] of the node to
  * the [interopWrappingView] if [isEnabled] is true.
