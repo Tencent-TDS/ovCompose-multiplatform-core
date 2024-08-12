@@ -46,6 +46,46 @@ import platform.Foundation.NSSelectorFromString
 import platform.MapKit.MKMapView
 import platform.UIKit.*
 
+private class BlueViewController: UIViewController(nibName = null, bundle = null) {
+    val label = UILabel()
+
+    override fun loadView() {
+        setView(label)
+    }
+
+    override fun viewDidLoad() {
+        super.viewDidLoad()
+
+        label.textAlignment = NSTextAlignmentCenter
+        label.textColor = UIColor.whiteColor
+        label.backgroundColor = UIColor.blueColor
+    }
+
+    override fun viewWillAppear(animated: Boolean) {
+        super.viewWillAppear(animated)
+
+        println("viewWillAppear animated=$animated")
+    }
+
+    override fun viewDidAppear(animated: Boolean) {
+        super.viewDidAppear(animated)
+
+        println("viewDidAppear animated=$animated")
+    }
+
+    override fun viewDidDisappear(animated: Boolean) {
+        super.viewDidDisappear(animated)
+
+        println("viewDidDisappear animated=$animated")
+    }
+
+    override fun viewWillDisappear(animated: Boolean) {
+        super.viewWillDisappear(animated)
+
+        println("viewWillDisappear animated=$animated")
+    }
+}
+
 private class TouchReactingView: UIView(frame = CGRectZero.readValue()) {
     init {
         setUserInteractionEnabled(true)
@@ -82,48 +122,6 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
     var text by remember { mutableStateOf("Type something") }
     var updatedValue by remember { mutableStateOf(null as Offset?) }
 
-    val createBlueViewController = {
-        object : UIViewController(nibName = null, bundle = null) {
-            val label = UILabel()
-
-            override fun loadView() {
-                setView(label)
-            }
-
-            override fun viewDidLoad() {
-                super.viewDidLoad()
-
-                label.textAlignment = NSTextAlignmentCenter
-                label.textColor = UIColor.whiteColor
-                label.backgroundColor = UIColor.blueColor
-            }
-
-            override fun viewWillAppear(animated: Boolean) {
-                super.viewWillAppear(animated)
-
-                println("viewWillAppear animated=$animated")
-            }
-
-            override fun viewDidAppear(animated: Boolean) {
-                super.viewDidAppear(animated)
-
-                println("viewDidAppear animated=$animated")
-            }
-
-            override fun viewDidDisappear(animated: Boolean) {
-                super.viewDidDisappear(animated)
-
-                println("viewDidDisappear animated=$animated")
-            }
-
-            override fun viewWillDisappear(animated: Boolean) {
-                super.viewWillDisappear(animated)
-
-                println("viewWillDisappear animated=$animated")
-            }
-        }
-    }
-
 
     LazyColumn(Modifier.fillMaxSize()) {
         item {
@@ -151,7 +149,7 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
         item {
             UIKitViewController(
                 factory = {
-                    createBlueViewController()
+                    BlueViewController()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -172,7 +170,7 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
         item {
             UIKitViewController2(
                 factory = {
-                    createBlueViewController()
+                    BlueViewController()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -183,6 +181,7 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                         updatedValue = box.topLeft
                     },
                 update = { viewController ->
+                    println(viewController)
                     updatedValue?.let {
                         viewController.label.text = "${it.x}, ${it.y}"
                     }
