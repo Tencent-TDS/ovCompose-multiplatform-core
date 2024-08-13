@@ -51,6 +51,7 @@ import platform.UIKit.UIViewController
  * @param onReset If not null, this callback is invoked when the [T] is
  * reused in the composition instead of being recreated. Use it to reset the state of [T] to
  * some blank state. If null, this composable can not be reused.
+ * Use it to avoid reallocation of [T].
  * @property properties The properties configuring the behavior of [T]. Default value is
  * [UIKitInteropProperties.Default]
  * @property callbacks Callbacks related to events of [T] transitioning to specific states you want
