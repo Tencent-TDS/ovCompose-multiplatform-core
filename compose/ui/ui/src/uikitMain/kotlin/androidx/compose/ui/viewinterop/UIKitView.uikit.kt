@@ -24,6 +24,10 @@ import platform.UIKit.UIView
  * Compose a [UIView] of class [T] into the UI hierarchy.
  *
  * @param factory The block creating the [T] to be composed.
+ *
+ * NOTE: [T] shouldn't be leaked outside and
+ * will be managed by Compose runtime efficiently. Remembering [T] externally and passing it to be
+ * returned from [factory] can (and probably will) lead to hilarious bugs.
  * @param modifier The modifier to be applied to the layout.
  * @param update A callback to be invoked every time the state it reads changes.
  * Invoked once initially and then every time the state it reads changes.
