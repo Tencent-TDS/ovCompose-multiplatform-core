@@ -245,7 +245,7 @@ val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
     var counter: Int by remember { mutableStateOf(0) }
 
     LazyColumn(Modifier.fillMaxSize()) {
-        item {
+        items(100) {
             UIKitView(
                 factory = {
                     counter += 1

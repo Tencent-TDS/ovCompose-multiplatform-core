@@ -28,7 +28,7 @@ import platform.UIKit.UIView
  * @param update A callback to be invoked every time the state it reads changes.
  * Invoked once initially and then every time the state it reads changes.
  * @param onRelease A callback invoked as a signal that the [T] has exited the
- * composition forever. Use it release resources and stop jobs associated with [T].
+ * composition forever. Use it to release resources and stop jobs associated with [T].
  * @param onReset If not null, this callback is invoked when this composable node is
  * reused in the composition instead of being recreated. Use it to reset the state of [T] to
  * some blank state. If null, this composable node can not be reused.
