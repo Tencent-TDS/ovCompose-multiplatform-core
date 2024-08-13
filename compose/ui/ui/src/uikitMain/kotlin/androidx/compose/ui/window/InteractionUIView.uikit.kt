@@ -106,9 +106,15 @@ private sealed interface InteractionUIViewHitTestResult {
 
     data object NonCooperativeChildView : InteractionUIViewHitTestResult
 
+    /**
+     * Hit test result is Cooperative child view, that allows a delay of [delay] milliseconds.
+     */
     class CooperativeChildView(
         val delay: Int
-    ) : InteractionUIViewHitTestResult
+    ) : InteractionUIViewHitTestResult {
+        val delayInSeconds: Double
+            get() = delay.toDouble() / 1000.0
+    }
 }
 
 /**
@@ -216,8 +222,8 @@ private class GestureRecognizerHandlerImpl(
      * intercept touches from interop views until the gesture recognizer is explicitly failed.
      * See [UIGestureRecognizer.delaysTouchesBegan]. In the same time we schedule a failure in
      * [CMPGestureRecognizer.scheduleFailure], which will pass intercepted touches to the interop
-     * views if the gesture recognizer is not recognized within a certain time frame
-     * (UIScrollView reverse-engineered 150ms is used).
+     * views if the gesture is not recognized within a time frame allowed by hit tested cooperative
+     * child view.
      * The similar approach is used by [UIScrollView](https://developer.apple.com/documentation/uikit/uiscrollview)
      *
      * 3. Those are not the first touches in the sequence. A gesture is recognized.
@@ -263,7 +269,13 @@ private class GestureRecognizerHandlerImpl(
             if (areTouchesInitial) {
                 // We are in the scenario (2), we should schedule failure and pass touches to the
                 // interop view.
-                gestureRecognizer?.scheduleFailure()
+                when (val cooperativeChildView = hitTestResult) {
+                    is InteractionUIViewHitTestResult.CooperativeChildView ->
+                        gestureRecognizer?.scheduleFailure(
+                            cooperativeChildView.delayInSeconds
+                        )
+                    else -> {}
+                }
             } else {
                 // We are in the scenario (4), check if the gesture recognizer should be recognized.
                 checkPanIntent()

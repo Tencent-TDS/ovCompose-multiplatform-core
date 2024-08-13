@@ -240,3 +240,50 @@ private fun ComposeUITextField(value: String, onValueChange: (String) -> Unit, m
         }
     )
 }
+
+val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
+    var counter: Int by remember { mutableStateOf(0) }
+
+    LazyColumn(Modifier.fillMaxSize()) {
+        item {
+            UIKitView(
+                factory = {
+                    counter += 1
+                    val view = MKMapView().apply {
+                        tag = counter.toLong()
+                    }
+
+                    view
+                },
+                modifier = Modifier.fillMaxWidth().height(200.dp),
+                update = {
+                    println("MKMapView updated")
+                },
+                onReset = {
+                    println("${it.tag} onReset")
+                },
+                callbacks = object : UIKitInteropCallbacks<MKMapView> {
+                    override fun onDidAppear(component: MKMapView) {
+                        println("${component.tag} onDidAppear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
+                    }
+
+                    override fun onDidDisappear(component: MKMapView) {
+                        println("${component.tag} onDidDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
+                    }
+
+                    override fun onWillAppear(component: MKMapView) {
+                        println("${component.tag} onWillAppear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
+                    }
+
+                    override fun onWillDisappear(component: MKMapView) {
+                        println("${component.tag} onWillDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
+                    }
+
+                    override fun onResize(component: MKMapView, size: CValue<CGSize>) {
+                        println("${component.tag} onResize frame: ${NSStringFromCGRect(component.frame)}")
+                    }
+                }
+            )
+        }
+    }
+}
