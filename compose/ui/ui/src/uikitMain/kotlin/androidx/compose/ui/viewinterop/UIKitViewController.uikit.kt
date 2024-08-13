@@ -51,9 +51,13 @@ import platform.UIKit.UIViewController
  * @param onReset If not null, this callback is invoked when the [T] is
  * reused in the composition instead of being recreated. Use it to reset the state of [T] to
  * some blank state. If null, this composable can not be reused.
- * @property properties The properties configuring the behavior of [T]
+ * @property properties The properties configuring the behavior of [T]. Default value is
+ * [UIKitInteropProperties.Default]
+ * @property callbacks Callbacks related to events of [T] transitioning to specific states you want
+ * to associate some workload with.
  *
  * @see UIKitInteropProperties
+ * @see UIKitInteropCallbacks
  */
 @Composable
 fun <T : UIViewController> UIKitViewController(
@@ -62,7 +66,8 @@ fun <T : UIViewController> UIKitViewController(
     update: (T) -> Unit = NoOp,
     onRelease: (T) -> Unit = NoOp,
     onReset: ((T) -> Unit)? = null,
-    properties: UIKitInteropProperties<T> = UIKitInteropProperties()
+    properties: UIKitInteropProperties = UIKitInteropProperties.Default,
+    callbacks: UIKitInteropCallbacks<T>? = null,
 ) {
     val interopContainer = LocalInteropContainer.current
     val parentViewController = LocalUIViewController.current
@@ -74,7 +79,8 @@ fun <T : UIViewController> UIKitViewController(
                 interopContainer,
                 parentViewController,
                 properties,
-                compositeKeyHash,
+                callbacks,
+                compositeKeyHash
             )
         },
         modifier,

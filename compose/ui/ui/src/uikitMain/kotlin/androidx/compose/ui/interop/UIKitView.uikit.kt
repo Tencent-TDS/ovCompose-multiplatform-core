@@ -51,6 +51,9 @@ fun <T : UIView> UIKitView(
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true
 ) {
+    // Despite the name, onResize actually contains the logic for default resizing strategy.
+    // Since this strategy is already implied, changes to this argument can't be processed in a
+    // sane manner
     require(onResize == DefaultViewResize) {
         "Custom onResize is not supported in deprecated API"
     }
@@ -98,6 +101,9 @@ fun <T : UIViewController> UIKitViewController(
     interactive: Boolean = true,
     accessibilityEnabled: Boolean = true
 ) {
+    // Despite the name, onResize actually contains the logic for default resizing strategy.
+    // Since this strategy is already implied, changes to this argument can't be processed in a
+    // sane manner
     require(onResize == DefaultViewControllerResize) {
         "Custom onResize is not supported in deprecated API"
     }

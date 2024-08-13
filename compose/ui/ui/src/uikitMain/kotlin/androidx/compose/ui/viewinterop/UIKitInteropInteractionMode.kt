@@ -27,7 +27,7 @@ import platform.UIKit.UIScrollView
 sealed interface UIKitInteropInteractionMode {
     /**
      * Represents a mode where the touches are not processed by the Compose UI if the interop view
-     * is hit by the touch event.
+     * is hit by the initial touch in the gesture.
      */
     data object NonCooperative : UIKitInteropInteractionMode
 

@@ -28,10 +28,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.interop.UIKitView
-import androidx.compose.ui.interop.UIKitViewController
-import androidx.compose.ui.viewinterop.UIKitView as UIKitView2
-import androidx.compose.ui.viewinterop.UIKitViewController as UIKitViewController2
+import androidx.compose.ui.viewinterop.UIKitView
+import androidx.compose.ui.viewinterop.UIKitViewController
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -136,39 +134,7 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
             )
         }
         item {
-            UIKitView2(
-                factory = {
-                    MKMapView()
-                },
-                modifier = Modifier.fillMaxWidth().height(200.dp),
-                update = {
-                    println("MKMapView updated")
-                }
-            )
-        }
-        item {
             UIKitViewController(
-                factory = {
-                    BlueViewController()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-                    .onGloballyPositioned { coordinates ->
-                        val rootCoordinates = coordinates.findRootCoordinates()
-                        val box = rootCoordinates.localBoundingBoxOf(coordinates, clipBounds = false)
-                        updatedValue = box.topLeft
-                    },
-                update = { viewController ->
-                    updatedValue?.let {
-                        viewController.label.text = "${it.x}, ${it.y}"
-                    }
-                },
-                interactive = false
-            )
-        }
-        item {
-            UIKitViewController2(
                 factory = {
                     BlueViewController()
                 },
@@ -193,7 +159,7 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
             )
         }
         items(100) { index ->
-            when (index % 7) {
+            when (index % 5) {
                 0 -> Text("material.Text $index", Modifier.fillMaxSize().height(40.dp))
                 1 -> UIKitView(
                     factory = {
@@ -203,31 +169,16 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                         label
                     },
                     modifier = Modifier.fillMaxWidth().height(40.dp),
-                    interactive = false
-                )
-                2 -> UIKitView2(
-                    factory = {
-                        val label = UILabel(frame = CGRectZero.readValue())
-                        label.text = "UILabel $index"
-                        label.textColor = UIColor.blackColor
-                        label
-                    },
-                    modifier = Modifier.fillMaxWidth().height(40.dp),
                     properties = UIKitInteropProperties(
-                        interactionMode = null,
-                        isNativeAccessibilityEnabled = false
+                        interactionMode = null
                     )
                 )
-                3 -> UIKitView2(
+                2 -> UIKitView(
                     factory = { TouchReactingView() },
                     modifier = Modifier.fillMaxWidth().height(40.dp),
                 )
-                4 -> TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
-                5 -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
-                6 -> UIKitView(
-                    factory = { TouchReactingView() },
-                    modifier = Modifier.fillMaxWidth().height(40.dp),
-                )
+                3 -> TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
+                4 -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
             }
         }
     }

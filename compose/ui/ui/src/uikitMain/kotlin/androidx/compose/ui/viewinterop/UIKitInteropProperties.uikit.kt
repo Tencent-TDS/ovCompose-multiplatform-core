@@ -29,8 +29,6 @@ import platform.CoreGraphics.CGSize
  * @property interactionMode The strategy on how the touches are processed when user interacts with
  * the interop view.
  *
- * @property onResize A callback that is invoked when the interop view is resized.
- *
  * @property isNativeAccessibilityEnabled Indicates whether a11y services should traverse the
  * native view itself, instead of parsing Compose semantics properties.
  *
@@ -57,11 +55,19 @@ import platform.CoreGraphics.CGSize
  * @see Modifier.semantics
  */
 @Immutable
-data class UIKitInteropProperties<T> @ExperimentalComposeUiApi constructor(
-    val interactionMode: UIKitInteropInteractionMode? = UIKitInteropInteractionMode.Cooperative(),
-    val onResize: T.(CValue<CGSize>) -> Unit = {},
-    val isNativeAccessibilityEnabled: Boolean = false
+data class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
+    internal val interactionMode: UIKitInteropInteractionMode? = UIKitInteropInteractionMode.Cooperative(),
+    internal val isNativeAccessibilityEnabled: Boolean = false
 ) {
     internal val isInteractive: Boolean
         get() = interactionMode != null
+
+    companion object {
+        /**
+         * Default configuration.
+         * - View receives touches with 150ms delay, allowing compose to intercept them.
+         * - Native accessibility resolution is disabled
+         */
+        val Default = UIKitInteropProperties()
+    }
 }

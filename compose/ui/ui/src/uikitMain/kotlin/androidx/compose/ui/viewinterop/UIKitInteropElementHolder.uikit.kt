@@ -36,11 +36,23 @@ import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGSize
 import platform.CoreGraphics.CGSizeEqualToSize
 
+private enum class ElementLayoutState {
+    DETACHED,
+    ATTACHED,
+    LAID_OUT
+}
+
+internal class UIKitInteropPlatformDetails<T>(
+    val properties: UIKitInteropProperties,
+    val callbacks: UIKitInteropCallbacks<T>?
+)
+
 internal abstract class UIKitInteropElementHolder<T : InteropView>(
     factory: () -> T,
     interopContainer: InteropContainer,
     group: InteropWrappingView,
-    protected val properties: UIKitInteropProperties<T>,
+    properties: UIKitInteropProperties,
+    private val callbacks: UIKitInteropCallbacks<T>?,
     compositeKeyHash: Int
 ) : TypedInteropViewHolder<T>(
     factory = factory,
@@ -64,24 +76,32 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
                 blendMode = BlendMode.Clear
             )
         }
-        .nativeAccessibility(properties.isNativeAccessibilityEnabled, group)
+        .nativeAccessibility(
+            isEnabled = properties.isNativeAccessibilityEnabled,
+            interopWrappingView = group
+        )
 ) {
     constructor(
         factory: () -> T,
         interopContainer: InteropContainer,
-        properties: UIKitInteropProperties<T>,
+        properties: UIKitInteropProperties,
+        callbacks: UIKitInteropCallbacks<T>?,
         compositeKeyHash: Int,
     ) : this(
         factory = factory,
         interopContainer = interopContainer,
-        group = InteropWrappingView(properties.interactionMode),
+        group = InteropWrappingView(
+            interactionMode = properties.interactionMode
+        ),
         properties,
+        callbacks,
         compositeKeyHash = compositeKeyHash
     )
 
     private var currentUnclippedRect: IntRect? = null
     private var currentClippedRect: IntRect? = null
     private var currentUserComponentRect: IntRect? = null
+    private var currentSize: CValue<CGSize>? = null
 
     override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
         val rootCoordinates = layoutCoordinates.findRootCoordinates()
@@ -148,8 +168,6 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
 
     }
 
-    private var currentSize: CValue<CGSize>? = null
-
     open fun setUserComponentFrame(rect: CValue<CGRect>) {
         val size = rect.useContents {
             size.readValue()
@@ -163,10 +181,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
 
         currentSize = size
 
-        properties.onResize(
-            typedInteropView,
-            size
-        )
+        callbacks?.onResize(typedInteropView, size)
     }
 
 
