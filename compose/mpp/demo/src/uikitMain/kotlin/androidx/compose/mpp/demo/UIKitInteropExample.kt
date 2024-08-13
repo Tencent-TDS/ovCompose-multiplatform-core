@@ -36,11 +36,13 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.UIKitInteropCallbacks
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
+import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.objcPtr
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
+import platform.CoreGraphics.CGSize
 import platform.Foundation.NSSelectorFromString
 import platform.MapKit.MKMapView
 import platform.UIKit.*
@@ -148,6 +150,10 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                     override fun onWillDisappear(component: MKMapView) {
                         println("onWillDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
                     }
+
+                    override fun onResize(component: MKMapView, size: CValue<CGSize>) {
+                        println("onResize frame: ${NSStringFromCGRect(component.frame)}")
+                    }
                 }
             )
         }
@@ -165,7 +171,6 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                         updatedValue = box.topLeft
                     },
                 update = { viewController ->
-                    println(viewController)
                     updatedValue?.let {
                         viewController.label.text = "${it.x}, ${it.y}"
                     }
