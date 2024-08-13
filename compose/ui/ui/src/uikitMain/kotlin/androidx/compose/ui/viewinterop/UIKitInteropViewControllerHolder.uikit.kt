@@ -44,24 +44,30 @@ internal class UIKitInteropViewControllerHolder<T : UIViewController>(
         group.addSubview(typedInteropView.view)
     }
 
-    override fun setUserComponentFrame(rect: CValue<CGRect>) {
-        typedInteropView.view.setFrame(rect)
-
-        super.setUserComponentFrame(rect)
-    }
+    override var userComponentCGRect: CValue<CGRect>
+        get() = typedInteropView.view.frame
+        set(value) {
+            changeFrameInvokingVisibilityCallbacks(newFrame = value) {
+                typedInteropView.view.setFrame(value)
+            }
+        }
 
     override fun insertInteropView(root: InteropViewGroup, index: Int) {
-        parentViewController.addChildViewController(typedInteropView)
-        root.insertSubview(group, index.toLong())
-        typedInteropView.didMoveToParentViewController(parentViewController)
+        insertInvokingVisibilityCallbacks {
+            parentViewController.addChildViewController(typedInteropView)
+            root.insertSubview(group, index.toLong())
+            typedInteropView.didMoveToParentViewController(parentViewController)
+        }
 
         super.insertInteropView(root, index)
     }
 
     override fun removeInteropView(root: InteropViewGroup) {
-        typedInteropView.willMoveToParentViewController(null)
-        group.removeFromSuperview()
-        typedInteropView.removeFromParentViewController()
+        removeInvokingVisibilityCallbacks {
+            typedInteropView.willMoveToParentViewController(null)
+            group.removeFromSuperview()
+            typedInteropView.removeFromParentViewController()
+        }
 
         super.removeInteropView(root)
     }

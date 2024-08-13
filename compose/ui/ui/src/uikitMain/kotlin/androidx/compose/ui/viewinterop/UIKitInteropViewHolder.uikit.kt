@@ -17,10 +17,7 @@
 package androidx.compose.ui.viewinterop
 
 import kotlinx.cinterop.CValue
-import kotlinx.cinterop.readValue
-import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGRect
-import platform.CoreGraphics.CGSize
 import platform.UIKit.UIView
 
 internal class UIKitInteropViewHolder<T : UIView>(
@@ -41,20 +38,26 @@ internal class UIKitInteropViewHolder<T : UIView>(
         group.addSubview(typedInteropView)
     }
 
-    override fun setUserComponentFrame(rect: CValue<CGRect>) {
-        typedInteropView.setFrame(rect)
-
-        super.setUserComponentFrame(rect)
-    }
+    override var userComponentCGRect: CValue<CGRect>
+        get() = typedInteropView.frame
+        set(value) {
+            changeFrameInvokingVisibilityCallbacks(newFrame = value) {
+                typedInteropView.setFrame(value)
+            }
+        }
 
     override fun insertInteropView(root: InteropViewGroup, index: Int) {
-        root.insertSubview(group, index.toLong())
+        insertInvokingVisibilityCallbacks {
+            root.insertSubview(group, index.toLong())
+        }
 
         super.insertInteropView(root, index)
     }
 
     override fun removeInteropView(root: InteropViewGroup) {
-        group.removeFromSuperview()
+        removeInvokingVisibilityCallbacks {
+            group.removeFromSuperview()
+        }
 
         super.removeInteropView(root)
     }
