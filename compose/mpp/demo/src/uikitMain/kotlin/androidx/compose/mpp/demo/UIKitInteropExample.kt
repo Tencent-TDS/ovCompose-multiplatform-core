@@ -34,6 +34,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.UIKitInteropCallbacks
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.objcPtr
@@ -130,6 +131,23 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                 modifier = Modifier.fillMaxWidth().height(200.dp),
                 update = {
                     println("MKMapView updated")
+                },
+                callbacks = object : UIKitInteropCallbacks<MKMapView> {
+                    override fun onDidAppear(component: MKMapView) {
+                        println("onDidAppear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
+                    }
+
+                    override fun onDidDisappear(component: MKMapView) {
+                        println("onDidDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
+                    }
+
+                    override fun onWillAppear(component: MKMapView) {
+                        println("onWillAppear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
+                    }
+
+                    override fun onWillDisappear(component: MKMapView) {
+                        println("onWillDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
+                    }
                 }
             )
         }
