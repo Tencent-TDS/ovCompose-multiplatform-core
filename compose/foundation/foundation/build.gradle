@@ -222,7 +222,7 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             wasmJsMain {
                 dependencies {
-                    implementation(libs.kotlinX.w3c)
+                    implementation(libs.kotlinXw3c)
                 }
             }
 
