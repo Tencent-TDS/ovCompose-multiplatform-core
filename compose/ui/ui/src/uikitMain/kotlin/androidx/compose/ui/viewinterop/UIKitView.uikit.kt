@@ -47,7 +47,7 @@ import platform.UIKit.UIView
 @Composable
 fun <T : UIView> UIKitView(
     factory: () -> T,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     update: (T) -> Unit = NoOp,
     onRelease: (T) -> Unit = NoOp,
     onReset: ((T) -> Unit)? = null,
