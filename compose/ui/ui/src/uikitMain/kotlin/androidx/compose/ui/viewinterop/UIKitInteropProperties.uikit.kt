@@ -55,7 +55,7 @@ import platform.CoreGraphics.CGSize
  * @see Modifier.semantics
  */
 @Immutable
-data class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
+class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
     internal val interactionMode: UIKitInteropInteractionMode? = UIKitInteropInteractionMode.Cooperative(),
     internal val isNativeAccessibilityEnabled: Boolean = false
 ) {
