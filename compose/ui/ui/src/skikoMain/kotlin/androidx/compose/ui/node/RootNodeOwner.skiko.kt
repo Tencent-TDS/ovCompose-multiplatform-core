@@ -65,7 +65,6 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformRootForTest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.RenderNodeLayer
-import androidx.compose.ui.platform.asDragAndDropManager
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
@@ -124,7 +123,7 @@ internal class RootNodeOwner(
         },
     )
     private val dragAndDropManager: DragAndDropManager =
-        platformContext.createDragAndDropManager().asDragAndDropManager()
+        platformContext.createDragAndDropManager()
     private val rootSemanticsNode = EmptySemanticsModifier()
 
     private val rootModifier = EmptySemanticsElement(rootSemanticsNode)

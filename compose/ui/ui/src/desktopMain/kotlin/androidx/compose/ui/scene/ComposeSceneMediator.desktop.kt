@@ -25,6 +25,7 @@ import androidx.compose.ui.awt.AwtEventListeners
 import androidx.compose.ui.awt.OnlyValidPrimaryMouseButtonFilter
 import androidx.compose.ui.awt.isFocusGainedHandledBySwingPanel
 import androidx.compose.ui.awt.runOnEDTThread
+import androidx.compose.ui.draganddrop.AwtDragAndDropManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
@@ -39,7 +40,6 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
-import androidx.compose.ui.platform.AwtDragAndDropManager
 import androidx.compose.ui.platform.DelegateRootForTestListener
 import androidx.compose.ui.platform.DesktopTextInputService
 import androidx.compose.ui.platform.EmptyViewConfiguration

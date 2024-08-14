@@ -16,11 +16,13 @@
 
 package androidx.compose.ui.draganddrop
 
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 
-internal interface DragAndDropManager {
+@InternalComposeUiApi
+interface DragAndDropManager {
 
     /**
      * A [Modifier] that can be added to the [Owners][androidx.compose.ui.node.Owner] modifier

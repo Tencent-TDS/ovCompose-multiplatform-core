@@ -21,14 +21,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draganddrop.DragAndDropModifierNode
-import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.asComposeCanvas
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -46,7 +41,6 @@ import androidx.compose.ui.platform.EmptyViewConfiguration
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.PlatformDragAndDropManager
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.UIKitTextInputService
@@ -68,17 +62,16 @@ import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
-import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.LocalInteropContainer
 import androidx.compose.ui.viewinterop.TrackInteropPlacementContainer
 import androidx.compose.ui.viewinterop.UIKitInteropContainer
-import androidx.compose.ui.window.ComposeSceneKeyboardOffsetManager
 import androidx.compose.ui.window.ApplicationForegroundStateListener
+import androidx.compose.ui.window.ComposeSceneKeyboardOffsetManager
+import androidx.compose.ui.window.CupertinoTouchesPhase
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.InteractionUIView
 import androidx.compose.ui.window.KeyboardVisibilityListener
 import androidx.compose.ui.window.RenderingUIView
-import androidx.compose.ui.window.CupertinoTouchesPhase
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
@@ -102,7 +95,6 @@ import platform.UIKit.UIPress
 import platform.UIKit.UITouch
 import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
-import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.UIKit.UIWindow
 
@@ -709,29 +701,6 @@ internal class ComposeSceneMediator(
 
         override fun convertScreenToLocalPosition(positionOnScreen: Offset): Offset =
             windowContext.convertScreenToLocalPosition(viewForKeyboardOffsetTransform, positionOnScreen)
-
-        override fun createDragAndDropManager(): PlatformDragAndDropManager {
-            return object : PlatformDragAndDropManager {
-                override val modifier: Modifier
-                    get() = Modifier
-
-                override fun drag(
-                    transferData: DragAndDropTransferData,
-                    decorationSize: Size,
-                    drawDragDecoration: DrawScope.() -> Unit
-                ): Boolean {
-                    TODO("Drag&drop isn't implemented")
-                }
-
-                override fun registerNodeInterest(node: DragAndDropModifierNode) {
-                    TODO("Drag&drop isn't implemented")
-                }
-
-                override fun isInterestedNode(node: DragAndDropModifierNode): Boolean {
-                    TODO("Drag&drop isn't implemented")
-                }
-            }
-        }
 
         override val measureDrawLayerBounds get() = this@ComposeSceneMediator.measureDrawLayerBounds
         override val viewConfiguration get() = this@ComposeSceneMediator.viewConfiguration

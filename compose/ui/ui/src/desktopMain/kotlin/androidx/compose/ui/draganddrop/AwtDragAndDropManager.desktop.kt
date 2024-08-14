@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.platform
+package androidx.compose.ui.draganddrop
 
 import androidx.collection.ArraySet
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draganddrop.AwtDragAndDropTransferable
-import androidx.compose.ui.draganddrop.DragAndDropEvent
-import androidx.compose.ui.draganddrop.DragAndDropModifierNode
-import androidx.compose.ui.draganddrop.DragAndDropNode
-import androidx.compose.ui.draganddrop.DragAndDropTransferAction
 import androidx.compose.ui.draganddrop.DragAndDropTransferAction.Companion.Copy
 import androidx.compose.ui.draganddrop.DragAndDropTransferAction.Companion.Link
 import androidx.compose.ui.draganddrop.DragAndDropTransferAction.Companion.Move
-import androidx.compose.ui.draganddrop.DragAndDropTransferData
-import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
@@ -37,6 +30,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.platform.DesktopPlatform
+import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
@@ -82,11 +77,11 @@ internal fun DragAndDropTransferAction.Companion.fromAwtAction(
 }
 
 /**
- * Implements [PlatformDragAndDropManager] via the AWT drag-and-drop system.
+ * Implements [DragAndDropManager] via the AWT drag-and-drop system.
  */
 internal class AwtDragAndDropManager(
     private val rootContainer: JComponent
-): PlatformDragAndDropManager {
+): DragAndDropManager {
 
     private val rootDragAndDropNode = DragAndDropNode { null }
 

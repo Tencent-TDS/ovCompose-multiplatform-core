@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.draganddrop.DragAndDropModifierNode
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.focus.FocusDirection
@@ -115,7 +116,7 @@ interface PlatformContext {
     val parentFocusManager: FocusManager get() = EmptyFocusManager
     fun requestFocus(): Boolean = true
 
-    fun createDragAndDropManager(): PlatformDragAndDropManager = EmptyDragAndDropManager
+    fun createDragAndDropManager(): DragAndDropManager = EmptyDragAndDropManager
 
     /**
      * The listener to track [RootForTest]s.
@@ -235,7 +236,7 @@ private object EmptyFocusManager : FocusManager {
     override fun moveFocus(focusDirection: FocusDirection) = false
 }
 
-private object EmptyDragAndDropManager : PlatformDragAndDropManager {
+private object EmptyDragAndDropManager : DragAndDropManager {
     override val modifier: Modifier
         get() = Modifier
 

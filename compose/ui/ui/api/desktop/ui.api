@@ -559,6 +559,13 @@ public final class androidx/compose/ui/draganddrop/DragAndDropEvent {
 	public final fun getNativeEvent ()Ljava/lang/Object;
 }
 
+public abstract interface class androidx/compose/ui/draganddrop/DragAndDropManager {
+	public abstract fun drag-12SF9DM (Landroidx/compose/ui/draganddrop/DragAndDropTransferData;JLkotlin/jvm/functions/Function1;)Z
+	public abstract fun getModifier ()Landroidx/compose/ui/Modifier;
+	public abstract fun isInterestedNode (Landroidx/compose/ui/draganddrop/DragAndDropModifierNode;)Z
+	public abstract fun registerNodeInterest (Landroidx/compose/ui/draganddrop/DragAndDropModifierNode;)V
+}
+
 public abstract interface class androidx/compose/ui/draganddrop/DragAndDropModifierNode : androidx/compose/ui/draganddrop/DragAndDropTarget, androidx/compose/ui/node/DelegatableNode {
 	public abstract fun acceptDragAndDropTransfer (Landroidx/compose/ui/draganddrop/DragAndDropEvent;)Z
 	public abstract fun drag-12SF9DM (Landroidx/compose/ui/draganddrop/DragAndDropTransferData;JLkotlin/jvm/functions/Function1;)V
@@ -3286,7 +3293,7 @@ public abstract interface class androidx/compose/ui/platform/PlatformContext {
 	public fun convertLocalToWindowPosition-MK-Hz9U (J)J
 	public fun convertScreenToLocalPosition-MK-Hz9U (J)J
 	public fun convertWindowToLocalPosition-MK-Hz9U (J)J
-	public fun createDragAndDropManager ()Landroidx/compose/ui/platform/PlatformDragAndDropManager;
+	public fun createDragAndDropManager ()Landroidx/compose/ui/draganddrop/DragAndDropManager;
 	public abstract fun getInputModeManager ()Landroidx/compose/ui/input/InputModeManager;
 	public fun getMeasureDrawLayerBounds ()Z
 	public fun getParentFocusManager ()Landroidx/compose/ui/focus/FocusManager;
@@ -3315,13 +3322,6 @@ public abstract interface class androidx/compose/ui/platform/PlatformContext$Sem
 	public abstract fun onSemanticsChange (Landroidx/compose/ui/semantics/SemanticsOwner;)V
 	public abstract fun onSemanticsOwnerAppended (Landroidx/compose/ui/semantics/SemanticsOwner;)V
 	public abstract fun onSemanticsOwnerRemoved (Landroidx/compose/ui/semantics/SemanticsOwner;)V
-}
-
-public abstract interface class androidx/compose/ui/platform/PlatformDragAndDropManager {
-	public abstract fun drag-12SF9DM (Landroidx/compose/ui/draganddrop/DragAndDropTransferData;JLkotlin/jvm/functions/Function1;)Z
-	public abstract fun getModifier ()Landroidx/compose/ui/Modifier;
-	public abstract fun isInterestedNode (Landroidx/compose/ui/draganddrop/DragAndDropModifierNode;)Z
-	public abstract fun registerNodeInterest (Landroidx/compose/ui/draganddrop/DragAndDropModifierNode;)V
 }
 
 public final class androidx/compose/ui/platform/PlatformInsets {
