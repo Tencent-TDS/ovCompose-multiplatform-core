@@ -87,6 +87,6 @@ class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
          * - View receives touches with 150ms delay, allowing compose to intercept them.
          * - Native accessibility resolution is disabled
          */
-        val Default = UIKitInteropProperties()
+        internal val Default = UIKitInteropProperties()
     }
 }
