@@ -49,7 +49,7 @@ import platform.UIKit.UIViewController
 @Composable
 fun <T : UIViewController> UIKitViewController(
     factory: () -> T,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     update: (T) -> Unit = NoOp,
     onRelease: (T) -> Unit = NoOp,
     onReset: ((T) -> Unit)? = null,
