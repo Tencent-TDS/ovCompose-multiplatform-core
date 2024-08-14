@@ -34,7 +34,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.UIKitInteropCallbacks
+import androidx.compose.ui.viewinterop.UIKitInteropListener
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ObjCAction
@@ -134,7 +134,7 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                 update = {
                     println("MKMapView updated")
                 },
-                callbacks = object : UIKitInteropCallbacks<MKMapView> {
+                listener = object : UIKitInteropListener<MKMapView> {
                     override fun onDidAppear(component: MKMapView) {
                         println("onDidAppear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
                     }
@@ -267,7 +267,7 @@ val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
                     onRelease = {
                         allocations -= 1
                     },
-                    callbacks = object : UIKitInteropCallbacks<MKMapView> {
+                    listener = object : UIKitInteropListener<MKMapView> {
                         override fun onDidAppear(component: MKMapView) {
                             println("${component.tag} onDidAppear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
                         }

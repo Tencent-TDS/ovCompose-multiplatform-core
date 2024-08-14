@@ -20,11 +20,12 @@ import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGSize
 
 /**
- * Contains a list of callbacks to be invoked when an interop view transits to specific states.
- * All the changes are executed synchronously right after the state change on a main thread
- * in sync with a CATransaction batching UIKit objects changes to sync it with Compose rendering.
+ * An interface containing methods related to events emitted when an interop view transits to
+ * specific states. All the changes are executed synchronously right after the state change on a
+ * main thread in sync with a CATransaction batching UIKit objects changes to sync it with Compose
+ * rendering.
  */
-interface UIKitInteropCallbacks<T> {
+interface UIKitInteropListener<T> {
     /**
      * [T] was just added to hierarchy and will likely change the frame so that it is not entirely clipped.
      */

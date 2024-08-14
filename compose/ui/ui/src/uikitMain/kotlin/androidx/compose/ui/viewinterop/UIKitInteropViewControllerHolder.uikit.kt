@@ -18,7 +18,6 @@ package androidx.compose.ui.viewinterop
 
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGRect
-import platform.CoreGraphics.CGSize
 import platform.UIKit.UIViewController
 import platform.UIKit.addChildViewController
 import platform.UIKit.didMoveToParentViewController
@@ -30,13 +29,13 @@ internal class UIKitInteropViewControllerHolder<T : UIViewController>(
     interopContainer: InteropContainer,
     private val parentViewController: UIViewController,
     properties: UIKitInteropProperties,
-    callbacks: UIKitInteropCallbacks<T>?,
+    listener: UIKitInteropListener<T>?,
     compositeKeyHash: Int,
 ) : UIKitInteropElementHolder<T>(
     factory,
     interopContainer,
     properties,
-    callbacks,
+    listener,
     compositeKeyHash
 ) {
     init {

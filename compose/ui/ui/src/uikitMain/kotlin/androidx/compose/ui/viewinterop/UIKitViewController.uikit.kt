@@ -17,26 +17,8 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.currentCompositeKeyHash
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.isUnspecified
 import androidx.compose.ui.interop.LocalUIViewController
-import androidx.compose.ui.interop.UIKitView
-import androidx.compose.ui.interop.UIKitViewController
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.uikit.toUIColor
-import androidx.compose.ui.viewinterop.InteropView
-import androidx.compose.ui.viewinterop.InteropWrappingView
-import androidx.compose.ui.viewinterop.LocalInteropContainer
-import androidx.compose.ui.viewinterop.UIKitInteropViewControllerHolder
-import androidx.compose.ui.viewinterop.UIKitInteropViewHolder
-import kotlinx.cinterop.CValue
-import platform.CoreGraphics.CGRect
-import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 
 /**
@@ -58,11 +40,11 @@ import platform.UIKit.UIViewController
  * Use it to avoid reallocation of [T].
  * @property properties The properties configuring the behavior of [T]. Default value is
  * [UIKitInteropProperties.Default]
- * @property callbacks Callbacks related to events of [T] transitioning to specific states you want
- * to associate some workload with.
+ * @property listener Implementation of [UIKitInteropListener] reacting to events of [T]
+ * transitioning to specific states you can execute some workload along.
  *
  * @see UIKitInteropProperties
- * @see UIKitInteropCallbacks
+ * @see UIKitInteropListener
  */
 @Composable
 fun <T : UIViewController> UIKitViewController(
@@ -72,7 +54,7 @@ fun <T : UIViewController> UIKitViewController(
     onRelease: (T) -> Unit = NoOp,
     onReset: ((T) -> Unit)? = null,
     properties: UIKitInteropProperties = UIKitInteropProperties.Default,
-    callbacks: UIKitInteropCallbacks<T>? = null,
+    listener: UIKitInteropListener<T>? = null,
 ) {
     val interopContainer = LocalInteropContainer.current
     val parentViewController = LocalUIViewController.current
@@ -84,7 +66,7 @@ fun <T : UIViewController> UIKitViewController(
                 interopContainer,
                 parentViewController,
                 properties,
-                callbacks,
+                listener,
                 compositeKeyHash
             )
         },

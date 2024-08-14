@@ -42,7 +42,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     interopContainer: InteropContainer,
     group: InteropWrappingView,
     properties: UIKitInteropProperties,
-    protected val callbacks: UIKitInteropCallbacks<T>?,
+    private val listener: UIKitInteropListener<T>?,
     compositeKeyHash: Int
 ) : TypedInteropViewHolder<T>(
     factory = factory,
@@ -75,7 +75,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
         factory: () -> T,
         interopContainer: InteropContainer,
         properties: UIKitInteropProperties,
-        callbacks: UIKitInteropCallbacks<T>?,
+        callbacks: UIKitInteropListener<T>?,
         compositeKeyHash: Int,
     ) : this(
         factory = factory,
@@ -172,7 +172,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
                     }
 
                 // Schedule invoking callbacks with updated data
-                callbacks?.run {
+                listener?.run {
                     newUserComponentSize?.let {
                         val cgSize = it
                             .toSize()
@@ -213,19 +213,19 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
         CGRectIsNull(CGRectIntersection(cgRect, group.bounds))
 
     private fun onWillAppear() {
-        callbacks?.onWillAppear(typedInteropView)
+        listener?.onWillAppear(typedInteropView)
     }
 
     private fun onDidAppear() {
-        callbacks?.onDidAppear(typedInteropView)
+        listener?.onDidAppear(typedInteropView)
     }
 
     private fun onWillDisappear() {
-        callbacks?.onWillDisappear(typedInteropView)
+        listener?.onWillDisappear(typedInteropView)
     }
 
     private fun onDidDisappear() {
-        callbacks?.onDidDisappear(typedInteropView)
+        listener?.onDidDisappear(typedInteropView)
     }
 
     protected fun insertInvokingVisibilityCallbacks(block: () -> Unit) {

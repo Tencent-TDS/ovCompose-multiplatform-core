@@ -24,13 +24,13 @@ internal class UIKitInteropViewHolder<T : UIView>(
     factory: () -> T,
     interopContainer: InteropContainer,
     properties: UIKitInteropProperties,
-    callbacks: UIKitInteropCallbacks<T>?,
+    listener: UIKitInteropListener<T>?,
     compositeKeyHash: Int,
 ) : UIKitInteropElementHolder<T>(
     factory,
     interopContainer,
     properties,
-    callbacks,
+    listener,
     compositeKeyHash
 ) {
     init {

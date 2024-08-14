@@ -38,11 +38,11 @@ import platform.UIKit.UIView
  * some blank state. If null, this composable node can not be reused.
  * @property properties The properties configuring the behavior of [T]. Default value is
  * [UIKitInteropProperties.Default]
- * @property callbacks Callbacks related to events of [T] transitioning to specific states you want
- * to associate some workload with.
+ * @property listener Implementation of [UIKitInteropListener] reacting to events of [T]
+ * transitioning to specific states you can execute some workload along.
  *
  * @see UIKitInteropProperties
- * @see UIKitInteropCallbacks
+ * @see UIKitInteropListener
  */
 @Composable
 fun <T : UIView> UIKitView(
@@ -52,7 +52,7 @@ fun <T : UIView> UIKitView(
     onRelease: (T) -> Unit = NoOp,
     onReset: ((T) -> Unit)? = null,
     properties: UIKitInteropProperties = UIKitInteropProperties.Default,
-    callbacks: UIKitInteropCallbacks<T>? = null,
+    listener: UIKitInteropListener<T>? = null,
 ) {
     val interopContainer = LocalInteropContainer.current
 
@@ -62,7 +62,7 @@ fun <T : UIView> UIKitView(
                 factory,
                 interopContainer,
                 properties,
-                callbacks,
+                listener,
                 compositeKeyHash,
             )
         },
