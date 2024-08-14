@@ -172,16 +172,14 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
                     }
 
                 // Schedule invoking callbacks with updated data
-                listener?.run {
-                    newUserComponentSize?.let {
-                        val cgSize = it
-                            .toSize()
-                            .toDpSize(density)
-                            .asCGSize()
+                if (listener != null && newUserComponentSize != null) {
+                    val cgSize = newUserComponentSize
+                        .toSize()
+                        .toDpSize(density)
+                        .asCGSize()
 
-                        container.scheduleUpdate {
-                            onResize(typedInteropView, cgSize)
-                        }
+                    container.scheduleUpdate {
+                        listener.onResize(typedInteropView, cgSize)
                     }
                 }
 
