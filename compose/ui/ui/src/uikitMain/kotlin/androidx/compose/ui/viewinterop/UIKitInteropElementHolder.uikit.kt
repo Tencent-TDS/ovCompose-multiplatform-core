@@ -209,8 +209,10 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     /**
      * Check that [group] doesn't entirely clip a child view with a [cgRect]
      */
-    private fun isCgRectEntirelyClippedByGroup(cgRect: CValue<CGRect>): Boolean =
-        CGRectIsNull(CGRectIntersection(cgRect, group.bounds))
+    private fun isVisible(cgRect: CValue<CGRect>): Boolean =
+        CGRectIsNull(
+            CGRectIntersection(cgRect, group.bounds)
+        ).not()
 
     private fun onWillAppear() {
         listener?.onWillAppear(typedInteropView)
@@ -229,7 +231,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     }
 
     protected fun insertInvokingVisibilityCallbacks(block: () -> Unit) {
-        val isVisibleAfterBlockExecution = !isCgRectEntirelyClippedByGroup(userComponentCGRect)
+        val isVisibleAfterBlockExecution = isVisible(userComponentCGRect)
 
         onWillAppear()
         block()
@@ -243,12 +245,11 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     }
 
     protected fun changeFrameInvokingVisibilityCallbacks(newFrame: CValue<CGRect>, block: () -> Unit) {
-        val isVisibleAfterBlockExecution = !isCgRectEntirelyClippedByGroup(cgRect = newFrame)
+        val isVisibleAfterBlockExecution = isVisible(cgRect = newFrame)
 
         if (isVisibleAfterBlockExecution) {
             when (visibilityState) {
                 VisibilityState.NOT_VISIBLE -> {
-                    // was not visible prior to that
                     onWillAppear()
                 }
 
@@ -265,7 +266,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
                 VisibilityState.VISIBLE, VisibilityState.APPEARING -> {
                     // In case of APPEARING the chain of event is this:
                     // onWillAppear -> onWillDisappear -> onDidDisappear
-                    // which is by design and align with how UIViewControllers behave.
+                    // which is by design and aligns with how UIViewControllers behave.
                     onWillDisappear()
                 }
             }
@@ -303,7 +304,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
             VisibilityState.VISIBLE, VisibilityState.APPEARING -> {
                 // In case of APPEARING the chain of event is this:
                 // onWillAppear -> onWillDisappear -> onDidDisappear
-                // which is by design and align with how UIViewControllers behave.
+                // which is by design and aligns with how UIViewControllers behave.
 
                 onWillDisappear()
                 block()
@@ -311,11 +312,12 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
             }
 
             VisibilityState.NOT_VISIBLE -> {
+                // View is already not visible, just remove it from the hierarchy
                 block()
             }
 
             VisibilityState.DETACHED -> {
-                // TODO: it should be an impossible states but happens, because `unplace` can be
+                // TODO: it should be an impossible states but happens because `unplace` can be
                 //  called twice. When the changes are down-streamed, this needs to be uncommented
                 //  to reinforce an invariant coming from this assumption
                 // throw IllegalStateException()
