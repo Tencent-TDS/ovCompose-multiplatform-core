@@ -62,6 +62,14 @@ data class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
     internal val isInteractive: Boolean
         get() = interactionMode != null
 
+    /**
+     * @param isInteractive Indicates whether the affected interop component should process touches
+     * or not. If true, the default strategy with delay will be used. Otherwise, user interaction is
+     * disabled for it.
+     *
+     * @param isNativeAccessibilityEnabled Indicates whether native acessibility resolution is
+     * enabled for the interop component. For more details see [UIKitInteropProperties].
+     */
     constructor(
         isInteractive: Boolean,
         isNativeAccessibilityEnabled: Boolean
