@@ -27,28 +27,40 @@ import platform.CoreGraphics.CGSize
  */
 interface UIKitInteropListener<T> {
     /**
-     * [T] was just added to hierarchy and will likely change the frame so that it is not entirely clipped.
+     * [T] was just added to hierarchy and will likely change the frame so that it is not entirely
+     * clipped.
+     *
+     * @param component Component [T] associated with this listener
      */
     fun onWillAppear(component: T) = Unit
 
     /**
      * [T] has just appeared. It was added to the hierarchy and became visible, or it was
      * in the hierarchy but was clipped before.
+     *
+     * @param component Component [T] associated with this listener
      */
     fun onDidAppear(component: T) = Unit
 
     /**
      * [T] is about to be removed from the hierarchy, or it's about to become entirely clipped.
+     *
+     * @param component Component [T] associated with this listener
      */
     fun onWillDisappear(component: T) = Unit
 
     /**
      * [T] has just disappeared. It was either detached from the hierarchy or became entirely clipped.
+     *
+     * @param component Component [T] associated with this listener
      */
     fun onDidDisappear(component: T) = Unit
 
     /**
      * [T] was just resized to a [size].
+     *
+     * @param component Component [T] associated with this listener
+     * @param size New size of the [component] that was just assigned.
      */
     fun onResize(component: T, size: CValue<CGSize>) = Unit
 }
