@@ -32,13 +32,44 @@ import platform.UIKit.UIView
 import platform.UIKit.UIViewController
 import androidx.compose.ui.viewinterop.UIKitView as UIKitView2
 import androidx.compose.ui.viewinterop.UIKitViewController as UIKitViewController2
+import androidx.compose.ui.semantics.semantics
 
 private val DefaultViewResize: UIView.(CValue<CGRect>) -> Unit = { rect -> this.setFrame(rect) }
 private val DefaultViewControllerResize: UIViewController.(CValue<CGRect>) -> Unit =
     { rect -> this.view.setFrame(rect) }
 
+/**
+ * @param factory The block creating the [UIView] to be composed.
+ * @param modifier The modifier to be applied to the layout. Size should be specified in modifier.
+ * Modifier may contains crop() modifier with different shapes.
+ * @param update A callback to be invoked after the layout is inflated.
+ * @param background A color of [UIView] background wrapping the view created by [factory].
+ * @param onRelease A callback invoked as a signal that this view instance has exited the
+ * composition hierarchy entirely and will not be reused again. Any additional resources used by the
+ * View should be freed at this time.
+ * @param onResize May be used to custom resize logic.
+ * @param interactive If true, then user touches will be passed to this UIView
+ * @param accessibilityEnabled If `true`, then the view will be visible to accessibility services.
+ *
+ * If this Composable is within a modifier chain that merges
+ * the semantics of its children (such as `Modifier.clickable`), the merged subtree data will be ignored in favor of
+ * the native UIAccessibility resolution for the view constructed by [factory]. For example, `Button` containing [UIKitView]
+ * will be invisible for accessibility services, only the [UIView] created by [factory] will be accessible.
+ * To avoid this behavior, set [accessibilityEnabled] to `false` and use custom [Modifier.semantics] for `Button` to
+ * make the information associated with this view accessible.
+ *
+ * If there are multiple [UIKitView] or [UIKitViewController] with [accessibilityEnabled] set to `true` in the merged tree, only the first one will be accessible.
+ * Consider using a single [UIKitView] or [UIKitViewController] with multiple views inside it if you need multiple accessible views.
+ *
+ * In general, [accessibilityEnabled] set to `true` is not recommended to use in such cases.
+ * Consider using [Modifier.semantics] on Composable that merges its semantics instead.
+ *
+ * @see Modifier.semantics
+ */
 @Deprecated(
-    message = "Use androidx.compose.ui.viewinterop.UIKitView instead"
+    message = "This function was deprecated in favor of newer API",
+    replaceWith = ReplaceWith("UIKitView(factory = factory, modifier = modifier, update = update, onRelease = onRelease, properties = UIKitInteropProperties(isInteractive = interactive, isNativeAccessibilityEnabled = accessibilityEnabled))",
+        "androidx.compose.ui.viewinterop.UIKitView", "androidx.compose.ui.viewinterop.UIKitInteropProperties")
 )
 @Composable
 fun <T : UIView> UIKitView(
@@ -87,8 +118,40 @@ fun <T : UIView> UIKitView(
     )
 }
 
+/**
+ * @param factory The block creating the [UIViewController] to be composed.
+ * @param modifier The modifier to be applied to the layout. Size should be specified in modifier.
+ * Modifier may contains crop() modifier with different shapes.
+ * @param update A callback to be invoked after the layout is inflated.
+ * @param background A color of [UIView] background wrapping the view of [UIViewController] created by [factory].
+ * @param onRelease A callback invoked as a signal that this view controller instance has exited the
+ * composition hierarchy entirely and will not be reused again. Any additional resources used by the
+ * view controller should be freed at this time.
+ * @param onResize May be used to custom resize logic.
+ * @param interactive If true, then user touches will be passed to this UIViewController
+ * @param accessibilityEnabled If `true`, then the [UIViewController.view] will be visible to accessibility services.
+ *
+ * If this Composable is within a modifier chain that merges the semantics of its children (such as `Modifier.clickable`),
+ * the merged subtree data will be ignored in favor of
+ * the native UIAccessibility resolution for the [UIViewController.view] of [UIViewController] constructed by [factory].
+ * For example, `Button` containing [UIKitViewController] will be invisible for accessibility services,
+ * only the [UIViewController.view] of [UIViewController] created by [factory] will be accessible.
+ * To avoid this behavior, set [accessibilityEnabled] to `false` and use custom [Modifier.semantics] for `Button` to
+ * make the information associated with the [UIViewController] accessible.
+ *
+ * If there are multiple [UIKitView] or [UIKitViewController] with [accessibilityEnabled] set to `true` in the merged tree,
+ * only the first one will be accessible.
+ * Consider using a single [UIKitView] or [UIKitViewController] with multiple views inside it if you need multiple accessible views.
+ *
+ * In general, [accessibilityEnabled] set to `true` is not recommended to use in such cases.
+ * Consider using [Modifier.semantics] on Composable that merges its semantics instead.
+ *
+ * @see Modifier.semantics
+ */
 @Deprecated(
-    message = "Use androidx.compose.ui.viewinterop.UIKitViewController instead"
+    message = "This function was deprecated in favor of newer API",
+    replaceWith = ReplaceWith("UIKitViewController(factory = factory, modifier = modifier, update = update, onRelease = onRelease, properties = UIKitInteropProperties(isInteractive = interactive, isNativeAccessibilityEnabled = accessibilityEnabled))",
+        "androidx.compose.ui.viewinterop.UIKitViewController", "androidx.compose.ui.viewinterop.UIKitInteropProperties")
 )
 @Composable
 fun <T : UIViewController> UIKitViewController(

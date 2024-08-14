@@ -62,6 +62,14 @@ data class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
     internal val isInteractive: Boolean
         get() = interactionMode != null
 
+    constructor(
+        isInteractive: Boolean,
+        isNativeAccessibilityEnabled: Boolean
+    ) : this(
+        interactionMode = if (isInteractive) UIKitInteropInteractionMode.Cooperative() else null,
+        isNativeAccessibilityEnabled
+    )
+
     companion object {
         /**
          * Default configuration.
