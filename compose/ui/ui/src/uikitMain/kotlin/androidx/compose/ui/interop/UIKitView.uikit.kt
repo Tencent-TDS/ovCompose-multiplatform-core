@@ -85,8 +85,8 @@ fun <T : UIView> UIKitView(
     // Despite the name, onResize actually contains the logic for default resizing strategy.
     // Since this strategy is already implied, changes to this argument can't be processed in a
     // sane manner
-    require(onResize == DefaultViewResize) {
-        "Custom onResize is not supported in deprecated API"
+    if (onResize != DefaultViewResize) {
+        println("WARNING: custom `onResize` is not supported in deprecated [UIKitView], it will do nothing. If you need to perform changes based on latest calculated size - use [UIKitInteropListener.onResize]")
     }
 
     val backgroundColor by remember(background) { mutableStateOf(background.toUIColor()) }
@@ -167,8 +167,8 @@ fun <T : UIViewController> UIKitViewController(
     // Despite the name, onResize actually contains the logic for default resizing strategy.
     // Since this strategy is already implied, changes to this argument can't be processed in a
     // sane manner
-    require(onResize == DefaultViewControllerResize) {
-        "Custom onResize is not supported in deprecated API"
+    if (onResize != DefaultViewControllerResize) {
+        println("WARNING: custom `onResize` is not supported in deprecated [UIKitViewController], it will do nothing. If you need to perform changes based on latest calculated size - use [UIKitInteropListener.onResize]")
     }
 
     val backgroundColor by remember(background) { mutableStateOf(background.toUIColor()) }
