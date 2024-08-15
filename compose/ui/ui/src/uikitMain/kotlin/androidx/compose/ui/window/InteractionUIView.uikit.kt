@@ -48,7 +48,7 @@ import platform.darwin.NSObject
  */
 internal enum class TouchesEventKind {
     /**
-     * [UIEvent] when`touchesBegan`
+     * [UIEvent] when `touchesBegan`
      */
     BEGAN,
 
