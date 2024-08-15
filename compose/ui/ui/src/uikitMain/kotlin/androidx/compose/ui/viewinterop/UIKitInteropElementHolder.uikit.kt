@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.toSize
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectIntersection
+import platform.CoreGraphics.CGRectIsEmpty
 import platform.CoreGraphics.CGRectIsNull
 
 internal abstract class UIKitInteropElementHolder<T : InteropView>(
@@ -208,7 +209,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
      * Check that [group] doesn't entirely clip a child view with a [cgRect]
      */
     private fun isVisible(cgRect: CValue<CGRect>): Boolean =
-        CGRectIsNull(
+        CGRectIsEmpty(
             CGRectIntersection(cgRect, group.bounds)
         ).not()
 
