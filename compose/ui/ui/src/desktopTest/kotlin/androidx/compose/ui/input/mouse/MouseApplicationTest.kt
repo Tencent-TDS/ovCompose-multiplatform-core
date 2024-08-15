@@ -34,10 +34,8 @@ import org.junit.Test
 
 class MouseApplicationTest {
 
-    // TODO: check why useDelay is needed here. Rendering should be dispatched in between the
-    //   100 yield calls in the `awaitIdle`
     @Test
-    fun `interop in lazy list`() = runApplicationTest(useDelay = true) {
+    fun `interop in lazy list`() = runApplicationTest {
         lateinit var density: Density
 
         val currentlyVisible = mutableSetOf<Int>()
