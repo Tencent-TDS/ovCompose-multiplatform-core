@@ -40,6 +40,8 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.platform.AwtDragAndDropManager
+import androidx.compose.ui.platform.ComposeDropTarget
+import androidx.compose.ui.platform.ComposeTransferHandler
 import androidx.compose.ui.platform.DelegateRootForTestListener
 import androidx.compose.ui.platform.DesktopTextInputService
 import androidx.compose.ui.platform.EmptyViewConfiguration
@@ -342,6 +344,15 @@ internal class ComposeSceneMediator(
         // to react only on changes with [interopLayer].
         container.addContainerListener(containerListener)
 
+        // AwtDragAndDropManager support
+        container.transferHandler = ComposeTransferHandler(container)
+        container.dropTarget = ComposeDropTarget(
+            rootContainer = container,
+            dropTargetListener = {
+                (scene.activeDragAndDropManager() as? AwtDragAndDropManager)?.dropTargetListener
+            }
+        )
+
         // It will be enabled dynamically. See DesktopPlatformComponent
         contentComponent.enableInputMethods(false)
         contentComponent.focusTraversalKeysEnabled = false
@@ -462,6 +473,8 @@ internal class ComposeSceneMediator(
         container.removeContainerListener(containerListener)
         container.remove(contentComponent)
         container.remove(invisibleComponent)
+        container.transferHandler = null
+        container.dropTarget = null
 
         scene.close()
         skiaLayerComponent.dispose()
@@ -689,10 +702,7 @@ internal class ComposeSceneMediator(
         override val semanticsOwnerListener
             get() = this@ComposeSceneMediator.semanticsOwnerListener
 
-        override fun createDragAndDropManager() = AwtDragAndDropManager(
-            rootContainer = container,
-            activeDragAndDropManager = { scene.activeDragAndDropManager() },
-        )
+        override fun createDragAndDropManager() = AwtDragAndDropManager(container)
     }
 
     private inner class DesktopPlatformComponent : PlatformComponent {

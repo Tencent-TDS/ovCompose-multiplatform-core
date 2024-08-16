@@ -86,7 +86,6 @@ internal fun DragAndDropTransferAction.Companion.fromAwtAction(
  */
 internal class AwtDragAndDropManager(
     private val rootContainer: JComponent,
-    private val activeDragAndDropManager: () -> PlatformDragAndDropManager
 ): PlatformDragAndDropManager {
 
     private val rootDragAndDropNode = DragAndDropNode { null }
@@ -105,17 +104,8 @@ internal class AwtDragAndDropManager(
         get() = Modifier
             .then(DragAndDropModifier(rootDragAndDropNode))
             .onPlaced {
-                var transferHandler = rootContainer.transferHandler as? ComposeTransferHandler
-                if (transferHandler == null) {
-                    transferHandler = ComposeTransferHandler(rootContainer)
-                    rootContainer.transferHandler = transferHandler
-                }
-                this.transferHandler = transferHandler
-
-                if (rootContainer.dropTarget !is ComposeDropTarget) {
-                    rootContainer.dropTarget =
-                        ComposeDropTarget(rootContainer, activeDragAndDropManager)
-                }
+                transferHandler = (rootContainer.transferHandler as? ComposeTransferHandler)
+                    ?: error("No ${ComposeTransferHandler::class.simpleName} installed in the root container")
             }
 
     private fun Point.toOffset(): Offset {
@@ -248,11 +238,8 @@ internal class AwtDragAndDropManager(
 /**
  * The AWT [TransferHandler] we install in the root container in order to implement drag-source
  * functionality.
- *
- * Note that one instance may be shared between several [AwtDragAndDropManager]s, if there are
- * several compositions attached to the same [rootContainer]
  */
-private class ComposeTransferHandler(val rootContainer: JComponent) : TransferHandler() {
+internal class ComposeTransferHandler(private val rootContainer: JComponent) : TransferHandler() {
 
     private val scale: Float
         get() = rootContainer.density.density
@@ -329,14 +316,10 @@ private class OutgoingTransfer(
 /**
  * The AWT [DropTarget] we install in the root container in order to implement drop-target
  * functionality.
- *
- * Note that one instance may be shared between several [AwtDragAndDropManager]s, if there are
- * several compositions attached to the same root container. It forwards each [DropTargetEvent] it
- * receives to the appropriate [AwtDragAndDropManager.dropTargetListener].
  */
-private class ComposeDropTarget(
+internal class ComposeDropTarget(
     rootContainer: JComponent,
-    private val activeDragAndDropManager: () -> PlatformDragAndDropManager
+    private val dropTargetListener: () -> DropTargetListener?
 ) : DropTarget(
     rootContainer,
     DnDConstants.ACTION_MOVE or DnDConstants.ACTION_COPY or DnDConstants.ACTION_LINK,
@@ -344,30 +327,24 @@ private class ComposeDropTarget(
     true
 ) {
 
-    /**
-     * Returns the "active" [AwtDragAndDropManager] - the one to which events should be sent.
-     */
-    private fun activeDropTargetListener(): DropTargetListener? =
-        (activeDragAndDropManager() as? AwtDragAndDropManager)?.dropTargetListener
-
     override fun dragEnter(dtde: DropTargetDragEvent) {
-        activeDropTargetListener()?.dragEnter(dtde)
+        dropTargetListener()?.dragEnter(dtde)
     }
 
     override fun dragOver(dtde: DropTargetDragEvent) {
-        activeDropTargetListener()?.dragOver(dtde)
+        dropTargetListener()?.dragOver(dtde)
     }
 
     override fun dropActionChanged(dtde: DropTargetDragEvent) {
-        activeDropTargetListener()?.dropActionChanged(dtde)
+        dropTargetListener()?.dropActionChanged(dtde)
     }
 
     override fun dragExit(dte: DropTargetEvent) {
-        activeDropTargetListener()?.dragExit(dte)
+        dropTargetListener()?.dragExit(dte)
     }
 
     override fun drop(dtde: DropTargetDropEvent) {
-        activeDropTargetListener()?.drop(dtde)
+        dropTargetListener()?.drop(dtde)
     }
 }
 
