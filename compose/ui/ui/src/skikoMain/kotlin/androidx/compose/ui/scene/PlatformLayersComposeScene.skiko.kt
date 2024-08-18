@@ -130,7 +130,9 @@ private class PlatformLayersComposeSceneImpl(
         focusOwner = { mainOwner.focusOwner }
     )
 
-    override fun activeDragAndDropManager() = mainOwner.dragAndDropManager
+    override val dropTarget = ComposeSceneDropTarget(
+        activeDragAndDropManager = { mainOwner.dragAndDropManager }
+    )
 
     init {
         onOwnerAppended(mainOwner)

@@ -40,7 +40,6 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.RootNodeOwner
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.PlatformDragAndDropManager
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -151,9 +150,9 @@ private class CanvasLayersComposeSceneImpl(
         focusOwner = { focusedOwner.focusOwner }
     )
 
-    override fun activeDragAndDropManager(): PlatformDragAndDropManager {
-        return focusedOwner.dragAndDropManager
-    }
+    override val dropTarget = ComposeSceneDropTarget(
+        activeDragAndDropManager = { focusedOwner.dragAndDropManager }
+    )
 
     private val layers = mutableListOf<AttachedComposeSceneLayer>()
     private val _layersCopyCache = CopiedList {
