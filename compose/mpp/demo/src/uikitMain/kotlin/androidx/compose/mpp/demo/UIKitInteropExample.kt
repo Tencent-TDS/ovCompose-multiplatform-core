@@ -265,8 +265,8 @@ val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
                             override fun didMoveToWindow() {
                                 super.didMoveToWindow()
 
-                                println(window)
-                                hasAppeared = superview != null
+                                println("window is $window")
+                                hasAppeared = window != null
                             }
                         }.apply {
                             tag = it.toLong()
