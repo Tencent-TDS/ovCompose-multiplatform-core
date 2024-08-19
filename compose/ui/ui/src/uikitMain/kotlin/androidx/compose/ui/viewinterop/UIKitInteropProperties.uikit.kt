@@ -20,6 +20,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.window.DialogProperties
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGSize
 
@@ -88,5 +89,21 @@ class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
          * - Native accessibility resolution is disabled
          */
         internal val Default = UIKitInteropProperties()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is UIKitInteropProperties) return false
+
+        if (interactionMode != other.interactionMode) return false
+        if (isNativeAccessibilityEnabled != other.isNativeAccessibilityEnabled) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = interactionMode.hashCode()
+        result = 31 * result + isNativeAccessibilityEnabled.hashCode()
+        return result
     }
 }

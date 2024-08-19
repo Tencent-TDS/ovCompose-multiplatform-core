@@ -56,6 +56,19 @@ sealed interface UIKitInteropInteractionMode {
             require(delay > 0) { "Delay must be a positive value" }
         }
 
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Cooperative) return false
+
+            if (delay != other.delay) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            return delay.hashCode()
+        }
+
         companion object {
             /**
              * The default delay in milliseconds before the touch is delivered to the interop view.

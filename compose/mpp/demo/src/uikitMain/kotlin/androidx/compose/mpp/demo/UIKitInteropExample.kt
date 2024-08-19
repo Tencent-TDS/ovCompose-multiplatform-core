@@ -147,8 +147,9 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                     println("MKMapView updated")
                 },
                 listener = object : UIKitInteropListener<MKMapView> {
+                    val tag = temp
                     init {
-                        println("Listener created $temp")
+                        println("Listener created $tag")
                     }
 
                     override fun onDidAppear(component: MKMapView) {
@@ -156,7 +157,7 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                     }
 
                     override fun onDidDisappear(component: MKMapView) {
-                        println("onDidDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
+                        println("onDidDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}, tag = $tag")
                     }
 
                     override fun onWillAppear(component: MKMapView) {
@@ -164,7 +165,7 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                     }
 
                     override fun onWillDisappear(component: MKMapView) {
-                        println("onWillDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
+                        println("onWillDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}, tag = $tag")
                     }
 
                     override fun onResize(component: MKMapView, size: CValue<CGSize>) {
