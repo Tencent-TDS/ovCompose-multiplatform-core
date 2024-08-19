@@ -81,7 +81,7 @@ class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
         isNativeAccessibilityEnabled
     )
 
-    companion object {
+    internal companion object {
         /**
          * Default configuration.
          * - View receives touches with 150ms delay, allowing compose to intercept them.
