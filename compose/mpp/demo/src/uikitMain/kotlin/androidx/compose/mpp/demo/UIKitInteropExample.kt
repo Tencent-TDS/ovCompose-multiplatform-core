@@ -267,9 +267,9 @@ val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
                                 super.didMoveToWindow()
 
                                 if (window != null) {
-                                    println("MKMapView appeared, tag = $tag, index = $index")
+                                    println("MKMapView appeared, tag = $tag, index = ${this.index}")
                                 } else {
-                                    println("MKMapView disappeared, tag = $tag, index = $index")
+                                    println("MKMapView disappeared, tag = $tag, index = ${this.index}")
                                 }
                             }
                         }.apply {
