@@ -157,7 +157,7 @@ internal open class InteropViewHolder(
         layoutNode
     }
 
-    override fun onReuse() {
+    override fun onReuse() = container.scheduleUpdate {
         reset()
     }
 
@@ -167,7 +167,7 @@ internal open class InteropViewHolder(
         //  discuss it with Google when this code is commonized
     }
 
-    override fun onRelease() {
+    override fun onRelease() = container.scheduleUpdate {
         release()
     }
 

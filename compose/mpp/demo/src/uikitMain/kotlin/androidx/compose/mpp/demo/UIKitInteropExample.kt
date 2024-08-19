@@ -285,9 +285,7 @@ val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
                             }
                         }
                     },
-                    onReset = {
-                        println("${it.tag} onReset")
-                    },
+                    onReset = null,
                     onRelease = {
                         allocations -= 1
                     }
