@@ -41,4 +41,20 @@ internal class UIKitInteropPlatformDetails<T: InteropView>(
                 isEnabled = properties.isNativeAccessibilityEnabled,
                 interopWrappingView = holder.group as InteropWrappingView
             )
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is UIKitInteropPlatformDetails<*>) return false
+
+        if (properties != other.properties) return false
+        if (listener != other.listener) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = properties.hashCode()
+        result = 31 * result + (listener?.hashCode() ?: 0)
+        return result
+    }
 }
