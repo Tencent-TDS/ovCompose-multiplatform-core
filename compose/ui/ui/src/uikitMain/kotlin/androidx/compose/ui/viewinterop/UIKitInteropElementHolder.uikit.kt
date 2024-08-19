@@ -22,12 +22,9 @@ import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.asCGRect
-import androidx.compose.ui.unit.asCGSize
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.toDpRect
-import androidx.compose.ui.unit.toDpSize
 import androidx.compose.ui.unit.toRect
-import androidx.compose.ui.unit.toSize
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectIntersection
@@ -65,13 +62,6 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
         compositeKeyHash = compositeKeyHash
     )
 
-    private enum class VisibilityState {
-        DETACHED,
-        NOT_VISIBLE,
-        APPEARING,
-        VISIBLE
-    }
-
     private var currentUnclippedRect: IntRect? = null
     private var currentClippedRect: IntRect? = null
     private var currentUserComponentRect: IntRect? = null
@@ -81,16 +71,6 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
      * [currentUserComponentRect] due to scheduling.
      */
     protected abstract var userComponentCGRect: CValue<CGRect>
-    private var visibilityState = VisibilityState.NOT_VISIBLE
-
-    /**
-     * Will be down-cast from [platformDetails] to [UIKitInteropPlatformDetails] when the
-     * platform details are set.
-     */
-    private var typedPlatformDetails: UIKitInteropPlatformDetails<T>? = null
-
-    private val listener: UIKitInteropListener<T>?
-        get() = typedPlatformDetails?.listener
 
     override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
         val rootCoordinates = layoutCoordinates.findRootCoordinates()
@@ -149,27 +129,6 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
                     userComponentCGRect = newUserComponentCGRect
                 }
 
-                // Check if component size changed
-                val newUserComponentSize =
-                    if (userComponentRect.size != currentUserComponentRect?.size) {
-                        userComponentRect.size
-                    } else {
-                        null
-                    }
-
-                val listener = listener
-                // Schedule invoking callbacks with updated data
-                if (listener != null && newUserComponentSize != null) {
-                    val cgSize = newUserComponentSize
-                        .toSize()
-                        .toDpSize(density)
-                        .asCGSize()
-
-                    container.scheduleUpdate {
-                        listener.onResize(typedInteropView, cgSize)
-                    }
-                }
-
                 currentUserComponentRect = userComponentRect
             }
         }
@@ -199,124 +158,21 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
             CGRectIntersection(cgRect, group.bounds)
         ).not()
 
-    private fun onWillAppear() {
-        listener?.onWillAppear(typedInteropView)
-    }
-
-    private fun onDidAppear() {
-        listener?.onDidAppear(typedInteropView)
-    }
-
-    private fun onWillDisappear() {
-        listener?.onWillDisappear(typedInteropView)
-    }
-
-    private fun onDidDisappear() {
-        listener?.onDidDisappear(typedInteropView)
-    }
-
-    protected fun insertInvokingVisibilityCallbacks(block: () -> Unit) {
-        val isVisibleAfterBlockExecution = isVisible(userComponentCGRect)
-
-        onWillAppear()
-        block()
-
-        if (isVisibleAfterBlockExecution) {
-            onDidAppear()
-            visibilityState = VisibilityState.VISIBLE
-        } else {
-            visibilityState = VisibilityState.APPEARING
-        }
-    }
-
-    protected fun changeFrameInvokingVisibilityCallbacks(newFrame: CValue<CGRect>, block: () -> Unit) {
-        val isVisibleAfterBlockExecution = isVisible(cgRect = newFrame)
-
-        if (isVisibleAfterBlockExecution) {
-            when (visibilityState) {
-                VisibilityState.NOT_VISIBLE -> {
-                    onWillAppear()
-                }
-
-                VisibilityState.APPEARING, VisibilityState.VISIBLE, VisibilityState.DETACHED -> {
-                    // no-op
-                }
-            }
-        } else {
-            when (visibilityState) {
-                VisibilityState.NOT_VISIBLE, VisibilityState.DETACHED -> {
-                    // no-op
-                }
-
-                VisibilityState.VISIBLE, VisibilityState.APPEARING -> {
-                    // In case of APPEARING the chain of event is this:
-                    // onWillAppear -> onWillDisappear -> onDidDisappear
-                    // which is by design and aligns with how UIViewControllers behave.
-                    onWillDisappear()
-                }
-            }
-        }
-
-        block()
-
-        if (isVisibleAfterBlockExecution) {
-            when (visibilityState) {
-                VisibilityState.NOT_VISIBLE, VisibilityState.APPEARING -> {
-                    onDidAppear()
-                    visibilityState = VisibilityState.VISIBLE
-                }
-
-                VisibilityState.VISIBLE, VisibilityState.DETACHED -> {
-                    // no-op
-                }
-            }
-        } else {
-            when (visibilityState) {
-                VisibilityState.NOT_VISIBLE, VisibilityState.DETACHED -> {
-                    // no-op
-                }
-
-                VisibilityState.APPEARING, VisibilityState.VISIBLE -> {
-                    onDidDisappear()
-                    visibilityState = VisibilityState.NOT_VISIBLE
-                }
-            }
-        }
-    }
-
-    protected fun removeInvokingVisibilityCallbacks(block: () -> Unit) {
-        when (visibilityState) {
-            VisibilityState.VISIBLE, VisibilityState.APPEARING -> {
-                // In case of APPEARING the chain of event is this:
-                // onWillAppear -> onWillDisappear -> onDidDisappear
-                // which is by design and aligns with how UIViewControllers behave.
-
-                onWillDisappear()
-                block()
-                onDidDisappear()
-            }
-
-            VisibilityState.NOT_VISIBLE -> {
-                // View is already not visible, just remove it from the hierarchy
-                block()
-            }
-
-            VisibilityState.DETACHED -> {
-                // TODO: it should be an impossible states but happens because `unplace` can be
-                //  called twice. When the changes are down-streamed, this needs to be uncommented
-                //  to reinforce an invariant coming from this assumption
-                // throw IllegalStateException()
-            }
-        }
-
-        visibilityState = VisibilityState.DETACHED
-    }
-
     override fun onPlatformDetailsChanged() {
         super.onPlatformDetailsChanged()
 
-        typedPlatformDetails = platformDetails as UIKitInteropPlatformDetails<T>?
+        val platformDetails = platformDetails
 
-        interopWrappingView.interactionMode = typedPlatformDetails?.properties?.interactionMode
+        if (platformDetails == null) {
+            interopWrappingView.interactionMode = null
+        } else {
+            val uiKitInteropPlatformDetails =
+                checkNotNull(platformDetails as? UIKitInteropPlatformDetails) {
+                    "UIKitInteropElementHolder can only be used with UIKitInteropPlatformDetails"
+                }
+
+            interopWrappingView.interactionMode =
+                uiKitInteropPlatformDetails.properties.interactionMode
+        }
     }
 }

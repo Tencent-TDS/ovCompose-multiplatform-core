@@ -21,9 +21,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 
-internal class UIKitInteropPlatformDetails<T: InteropView>(
-    val properties: UIKitInteropProperties,
-    val listener: UIKitInteropListener<T>?
+internal class UIKitInteropPlatformDetails(
+    val properties: UIKitInteropProperties
 ): InteropPlatformDetails {
     override fun platformModifier(holder: InteropViewHolder): Modifier =
         Modifier
@@ -44,17 +43,12 @@ internal class UIKitInteropPlatformDetails<T: InteropView>(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is UIKitInteropPlatformDetails<*>) return false
+        if (other !is UIKitInteropPlatformDetails) return false
 
         if (properties != other.properties) return false
-        if (listener != other.listener) return false
 
         return true
     }
 
-    override fun hashCode(): Int {
-        var result = properties.hashCode()
-        result = 31 * result + (listener?.hashCode() ?: 0)
-        return result
-    }
+    override fun hashCode(): Int = properties.hashCode()
 }

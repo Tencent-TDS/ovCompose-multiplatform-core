@@ -41,11 +41,8 @@ import platform.UIKit.UIViewController
  * Use it to avoid reallocation of [T].
  * @property properties The properties configuring the behavior of [T]. Default value is
  * [UIKitInteropProperties.Default]
- * @property listener Implementation of [UIKitInteropListener] reacting to events of [T]
- * transitioning to specific states you can execute some workload along.
  *
  * @see UIKitInteropProperties
- * @see UIKitInteropListener
  */
 @Composable
 fun <T : UIViewController> UIKitViewController(
@@ -55,13 +52,12 @@ fun <T : UIViewController> UIKitViewController(
     onRelease: (T) -> Unit = NoOp,
     onReset: ((T) -> Unit)? = null,
     properties: UIKitInteropProperties = UIKitInteropProperties.Default,
-    listener: UIKitInteropListener<T>? = null,
 ) {
     val interopContainer = LocalInteropContainer.current
     val parentViewController = LocalUIViewController.current
 
-    val platformDetails = remember(properties, listener) {
-        UIKitInteropPlatformDetails(properties, listener)
+    val platformDetails = remember(properties) {
+        UIKitInteropPlatformDetails(properties)
     }
 
     InteropView(

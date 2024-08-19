@@ -35,21 +35,25 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.UIKitInteropListener
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
-import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.objcPtr
 import kotlinx.cinterop.readValue
 import kotlinx.coroutines.delay
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
-import platform.CoreGraphics.CGSize
 import platform.Foundation.NSSelectorFromString
 import platform.MapKit.MKMapView
-import platform.UIKit.*
+import platform.UIKit.NSTextAlignmentCenter
+import platform.UIKit.UIColor
+import platform.UIKit.UIControlEventEditingChanged
+import platform.UIKit.UIEvent
+import platform.UIKit.UILabel
+import platform.UIKit.UITextField
+import platform.UIKit.UIView
+import platform.UIKit.UIViewController
 
-private class BlueViewController: UIViewController(nibName = null, bundle = null) {
+private class BlueViewController : UIViewController(nibName = null, bundle = null) {
     val label = UILabel()
 
     override fun loadView() {
@@ -89,7 +93,7 @@ private class BlueViewController: UIViewController(nibName = null, bundle = null
     }
 }
 
-private class TouchReactingView: UIView(frame = CGRectZero.readValue()) {
+private class TouchReactingView : UIView(frame = CGRectZero.readValue()) {
     init {
         setUserInteractionEnabled(true)
 
@@ -145,32 +149,6 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                 modifier = Modifier.fillMaxWidth().height(200.dp),
                 update = {
                     println("MKMapView updated")
-                },
-                listener = object : UIKitInteropListener<MKMapView> {
-                    val tag = temp
-                    init {
-                        println("Listener created $tag")
-                    }
-
-                    override fun onDidAppear(component: MKMapView) {
-                        println("onDidAppear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
-                    }
-
-                    override fun onDidDisappear(component: MKMapView) {
-                        println("onDidDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}, tag = $tag")
-                    }
-
-                    override fun onWillAppear(component: MKMapView) {
-                        println("onWillAppear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
-                    }
-
-                    override fun onWillDisappear(component: MKMapView) {
-                        println("onWillDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}, tag = $tag")
-                    }
-
-                    override fun onResize(component: MKMapView, size: CValue<CGSize>) {
-                        println("onResize frame: ${NSStringFromCGRect(component.frame)}")
-                    }
                 }
             )
         }
@@ -184,7 +162,8 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                     .height(100.dp)
                     .onGloballyPositioned { coordinates ->
                         val rootCoordinates = coordinates.findRootCoordinates()
-                        val box = rootCoordinates.localBoundingBoxOf(coordinates, clipBounds = false)
+                        val box =
+                            rootCoordinates.localBoundingBoxOf(coordinates, clipBounds = false)
                         updatedValue = box.topLeft
                     },
                 update = { viewController ->
@@ -213,12 +192,18 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                         interactionMode = null
                     )
                 )
+
                 2 -> UIKitView(
                     factory = { TouchReactingView() },
                     modifier = Modifier.fillMaxWidth().height(40.dp),
                 )
+
                 3 -> TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
-                4 -> ComposeUITextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth().height(40.dp))
+                4 -> ComposeUITextField(
+                    text,
+                    onValueChange = { text = it },
+                    Modifier.fillMaxWidth().height(40.dp)
+                )
             }
         }
     }
@@ -252,7 +237,11 @@ private fun ComposeUITextField(value: String, onValueChange: (String) -> Unit, m
         },
         modifier = modifier,
         update = { textField ->
-            println("Update called for UITextField(0x${textField.objcPtr().toLong().toString(16)}, value = $value")
+            println(
+                "Update called for UITextField(0x${
+                    textField.objcPtr().toLong().toString(16)
+                }, value = $value"
+            )
             textField.text = value
         }
     )
@@ -283,27 +272,6 @@ val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
                     },
                     onRelease = {
                         allocations -= 1
-                    },
-                    listener = object : UIKitInteropListener<MKMapView> {
-                        override fun onDidAppear(component: MKMapView) {
-                            println("${component.tag} onDidAppear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
-                        }
-
-                        override fun onDidDisappear(component: MKMapView) {
-                            println("${component.tag} onDidDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
-                        }
-
-                        override fun onWillAppear(component: MKMapView) {
-                            println("${component.tag} onWillAppear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
-                        }
-
-                        override fun onWillDisappear(component: MKMapView) {
-                            println("${component.tag} onWillDisappear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
-                        }
-
-                        override fun onResize(component: MKMapView, size: CValue<CGSize>) {
-                            println("${component.tag} onResize frame: ${NSStringFromCGRect(component.frame)}")
-                        }
                     }
                 )
             }
