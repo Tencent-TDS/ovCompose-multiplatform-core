@@ -36,7 +36,6 @@ import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectIntersection
 import platform.CoreGraphics.CGRectIsEmpty
-import platform.CoreGraphics.CGRectIsNull
 
 internal abstract class UIKitInteropElementHolder<T : InteropView>(
     factory: () -> T,
