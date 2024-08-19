@@ -261,7 +261,17 @@ val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
                 UIKitView(
                     factory = {
                         val view = object : MKMapView(frame = CGRectZero.readValue()) {
+                            var index = 0
 
+                            override fun didMoveToWindow() {
+                                super.didMoveToWindow()
+
+                                if (window != null) {
+                                    println("MKMapView appeared, tag = $tag, index = $index")
+                                } else {
+                                    println("MKMapView disappeared, tag = $tag, index = $index")
+                                }
+                            }
                         }.apply {
                             tag = allocationsCounter.toLong()
                         }
@@ -275,6 +285,7 @@ val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
                         println("Update called for tag = ${it.tag}, index = $index")
                     },
                     onReset = {
+                        it.index = index
                         println("Reset called for tag = ${it.tag}, index = $index")
                     },
                     onRelease = {
