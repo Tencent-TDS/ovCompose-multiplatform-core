@@ -41,10 +41,8 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     factory: () -> T,
     interopContainer: InteropContainer,
     group: InteropWrappingView,
-    properties: UIKitInteropProperties,
-    private val listener: UIKitInteropListener<T>?,
     compositeKeyHash: Int
-) : TypedInteropViewHolder<T>(
+) : TypedInteropViewHolder<T, UIKitInteropPlatformDetails<T>>(
     factory = factory,
     interopContainer = interopContainer,
     group = group,
@@ -56,35 +54,18 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
             //  and autolayout system if possible
             //  https://youtrack.jetbrains.com/issue/CMP-5873/iOS-investigate-intrinsic-sizing-of-interop-elements
         }
-    },
-    isInteractive = properties.isInteractive,
-    platformModifier = Modifier
-        // Make the canvas transparent in that area to make the interop view behind visible
-        .drawBehind {
-            drawRect(
-                color = Color.Transparent,
-                blendMode = BlendMode.Clear
-            )
-        }
-        .nativeAccessibility(
-            isEnabled = properties.isNativeAccessibilityEnabled,
-            interopWrappingView = group
-        )
+    }
 ) {
     constructor(
         factory: () -> T,
         interopContainer: InteropContainer,
-        properties: UIKitInteropProperties,
-        callbacks: UIKitInteropListener<T>?,
         compositeKeyHash: Int,
     ) : this(
         factory = factory,
         interopContainer = interopContainer,
         group = InteropWrappingView(
-            interactionMode = properties.interactionMode
+            interactionMode = null
         ),
-        properties,
-        callbacks,
         compositeKeyHash = compositeKeyHash
     )
 
@@ -105,6 +86,9 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
      */
     protected abstract var userComponentCGRect: CValue<CGRect>
     private var visibilityState = VisibilityState.NOT_VISIBLE
+
+    private val listener: UIKitInteropListener<T>?
+        get() = platformDetails?.listener
 
     override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
         val rootCoordinates = layoutCoordinates.findRootCoordinates()
@@ -171,6 +155,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
                         null
                     }
 
+                val listener = listener
                 // Schedule invoking callbacks with updated data
                 if (listener != null && newUserComponentSize != null) {
                     val cgSize = newUserComponentSize
@@ -323,5 +308,12 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
         }
 
         visibilityState = VisibilityState.DETACHED
+    }
+
+    override fun onPlatformDetailsChanged() {
+        super.onPlatformDetailsChanged()
+
+        val wrappingView = group as InteropWrappingView
+        wrappingView.interactionMode = platformDetails?.properties?.interactionMode
     }
 }

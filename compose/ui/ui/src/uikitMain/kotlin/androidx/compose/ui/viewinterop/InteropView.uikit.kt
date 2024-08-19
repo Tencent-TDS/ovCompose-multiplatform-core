@@ -51,7 +51,7 @@ internal actual typealias InteropViewGroup = UIView
  * @see UIKitInteropInteractionMode
  */
 internal class InteropWrappingView(
-    val interactionMode: UIKitInteropInteractionMode?
+    var interactionMode: UIKitInteropInteractionMode?
 ) : CMPInteropWrappingView(frame = CGRectZero.readValue()) {
     var actualAccessibilityContainer: Any? = null
 

@@ -40,27 +40,29 @@ internal val NoOp: Any.() -> Unit = {}
  * Base class for any concrete implementation of [InteropViewHolder] that holds a specific type
  * of InteropView to be implemented by the platform-specific [TypedInteropViewHolder] subclass
  */
-internal abstract class TypedInteropViewHolder<T : InteropView>(
+internal abstract class TypedInteropViewHolder<T : InteropView, D : InteropPlatformDetails>(
     factory: () -> T,
     interopContainer: InteropContainer,
     group: InteropViewGroup,
     compositeKeyHash: Int,
-    measurePolicy: MeasurePolicy,
-    isInteractive: Boolean,
-    platformModifier: Modifier
+    measurePolicy: MeasurePolicy
 ) : InteropViewHolder(
     interopContainer,
     group,
     compositeKeyHash,
-    measurePolicy,
-    isInteractive,
-    platformModifier
+    measurePolicy
 ) {
     protected val typedInteropView = factory()
 
     override fun getInteropView(): InteropView? {
         return typedInteropView
     }
+
+    var platformDetails: D? = null
+        set(value) {
+            field = value
+            onPlatformDetailsChanged()
+        }
 
     /**
      * A block containing the update logic for [T], to be forwarded to user.
@@ -95,6 +97,10 @@ internal abstract class TypedInteropViewHolder<T : InteropView>(
                 typedInteropView.apply(releaseBlock)
             }
         }
+
+    open fun onPlatformDetailsChanged() {
+        platformModifier = platformDetails?.platformModifier(this) ?: Modifier
+    }
 }
 
 /**
@@ -104,8 +110,8 @@ internal abstract class TypedInteropViewHolder<T : InteropView>(
  * @see [AndroidView.android.kt:createAndroidViewNodeFactory]
  */
 @Composable
-private fun <T : InteropView> createInteropViewLayoutNodeFactory(
-    factory: (compositeKeyHash: Int) -> TypedInteropViewHolder<T>
+private fun <T : InteropView, D : InteropPlatformDetails> createInteropViewLayoutNodeFactory(
+    factory: (compositeKeyHash: Int) -> TypedInteropViewHolder<T, D>
 ): () -> LayoutNode {
     val compositeKeyHash = currentCompositeKeyHash
 
@@ -123,9 +129,10 @@ private fun <T : InteropView> createInteropViewLayoutNodeFactory(
  */
 @Composable
 @UiComposable
-internal fun <T : InteropView> InteropView(
-    factory: (compositeKeyHash: Int) -> TypedInteropViewHolder<T>,
+internal fun <T : InteropView, D : InteropPlatformDetails> InteropView(
+    factory: (compositeKeyHash: Int) -> TypedInteropViewHolder<T, D>,
     modifier: Modifier,
+    platformDetails: D,
     onReset: ((T) -> Unit)? = null,
     onRelease: (T) -> Unit = NoOp,
     update: (T) -> Unit = NoOp
@@ -141,29 +148,31 @@ internal fun <T : InteropView> InteropView(
         ComposeNode<LayoutNode, DefaultUiApplier>(
             factory = createInteropViewLayoutNodeFactory(factory),
             update = {
-                updateParameters<T>(
+                updateParameters<T, D>(
                     compositionLocalMap,
+                    platformDetails,
                     materializedModifier,
                     density,
                     compositeKeyHash
                 )
-                set(update) { requireViewFactoryHolder<T>().updateBlock = it }
-                set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
+                set(update) { requireViewFactoryHolder<T, D>().updateBlock = it }
+                set(onRelease) { requireViewFactoryHolder<T, D>().releaseBlock = it }
             }
         )
     } else {
         ReusableComposeNode<LayoutNode, DefaultUiApplier>(
             factory = createInteropViewLayoutNodeFactory(factory),
             update = {
-                updateParameters<T>(
+                updateParameters<T, D>(
                     compositionLocalMap,
+                    platformDetails,
                     materializedModifier,
                     density,
                     compositeKeyHash
                 )
-                set(onReset) { requireViewFactoryHolder<T>().resetBlock = it }
-                set(update) { requireViewFactoryHolder<T>().updateBlock = it }
-                set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
+                set(onReset) { requireViewFactoryHolder<T, D>().resetBlock = it }
+                set(update) { requireViewFactoryHolder<T, D>().updateBlock = it }
+                set(onRelease) { requireViewFactoryHolder<T, D>().releaseBlock = it }
             }
         )
     }
@@ -173,15 +182,17 @@ internal fun <T : InteropView> InteropView(
  * Updates the parameters of the [LayoutNode] in the current [Updater] with the given values.
  * @see [AndroidView.android.kt:updateViewHolderParams]
  */
-private fun <T : InteropView> Updater<LayoutNode>.updateParameters(
+private fun <T : InteropView, D : InteropPlatformDetails> Updater<LayoutNode>.updateParameters(
     compositionLocalMap: CompositionLocalMap,
+    platformDetails: D,
     modifier: Modifier,
     density: Density,
     compositeKeyHash: Int
 ) {
     set(compositionLocalMap, SetResolvedCompositionLocals)
-    set(modifier) { requireViewFactoryHolder<T>().modifier = it }
-    set(density) { requireViewFactoryHolder<T>().density = it }
+    set(platformDetails) { requireViewFactoryHolder<T, D>().platformDetails = it }
+    set(modifier) { requireViewFactoryHolder<T, D>().modifier = it }
+    set(density) { requireViewFactoryHolder<T, D>().density = it }
     set(compositeKeyHash, SetCompositeKeyHash)
 }
 
@@ -192,8 +203,8 @@ private fun <T : InteropView> Updater<LayoutNode>.updateParameters(
  * property and it's safe to cast from [InteropViewHolder]
  */
 @Suppress("UNCHECKED_CAST")
-private fun <T : InteropView> LayoutNode.requireViewFactoryHolder(): TypedInteropViewHolder<T> {
+private fun <T : InteropView, D : InteropPlatformDetails> LayoutNode.requireViewFactoryHolder(): TypedInteropViewHolder<T, D> {
     // This LayoutNode is created and managed internally here, so it's safe to cast
-    return checkNotNull(interopViewFactoryHolder) as TypedInteropViewHolder<T>
+    return checkNotNull(interopViewFactoryHolder) as TypedInteropViewHolder<T, D>
 }
 

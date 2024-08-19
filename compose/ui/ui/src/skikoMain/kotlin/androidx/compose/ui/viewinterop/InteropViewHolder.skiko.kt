@@ -35,18 +35,14 @@ private fun abstractInvocationError(name: String): Nothing {
  * It's an actual implementation of `expect class [InteropViewFactoryHolder]`
  *
  * @see InteropViewFactoryHolder
- *
- * @param platformModifier The modifier that is specific to the platform.
  */
 internal open class InteropViewHolder(
     val container: InteropContainer,
     val group: InteropViewGroup,
     private val compositeKeyHash: Int,
-    measurePolicy: MeasurePolicy,
-    isInteractive: Boolean,
-    platformModifier: Modifier
+    measurePolicy: MeasurePolicy
 ) : ComposeNodeLifecycleCallback {
-    private var onModifierChanged: ((Modifier) -> Unit)? = null
+    private var onModifierChanged: (() -> Unit)? = null
 
     /**
      * User-provided modifier that will be reapplied if changed.
@@ -55,7 +51,18 @@ internal open class InteropViewHolder(
         set(value) {
             if (value !== field) {
                 field = value
-                onModifierChanged?.invoke(value)
+                onModifierChanged?.invoke()
+            }
+        }
+
+    /**
+     * Modifier provided by the platform-specific holder.
+     */
+    protected var platformModifier: Modifier = Modifier
+        set(value) {
+            if (value !== field) {
+                field = value
+                onModifierChanged?.invoke()
             }
         }
 
@@ -118,6 +125,38 @@ internal open class InteropViewHolder(
         }
     }
 
+    /**
+     * Construct a [LayoutNode] that is linked to this [InteropViewHolder].
+     */
+    val layoutNode: LayoutNode by lazy {
+        val layoutNode = LayoutNode()
+
+        layoutNode.interopViewFactoryHolder = this
+
+        val coreModifier = Modifier
+            .trackInteropPlacement(this)
+            .onGloballyPositioned { layoutCoordinates ->
+                layoutAccordingTo(layoutCoordinates)
+                // TODO: Should be the same as [Owner.onInteropViewLayoutChange]?
+//                container.onInteropViewLayoutChange(this)
+            }
+
+        layoutNode.compositeKeyHash = compositeKeyHash
+
+        layoutNode.modifier = modifier then platformModifier then coreModifier
+
+        onModifierChanged = {
+            layoutNode.modifier = modifier then platformModifier then coreModifier
+        }
+
+        layoutNode.density = density
+        onDensityChanged = { layoutNode.density = it }
+
+        layoutNode.measurePolicy = measurePolicy
+
+        layoutNode
+    }
+
     override fun onReuse() {
         reset()
     }
@@ -130,35 +169,6 @@ internal open class InteropViewHolder(
 
     override fun onRelease() {
         release()
-    }
-
-    /**
-     * Construct a [LayoutNode] that is linked to this [InteropViewHolder].
-     */
-    val layoutNode: LayoutNode by lazy {
-        val layoutNode = LayoutNode()
-
-        layoutNode.interopViewFactoryHolder = this
-
-        val coreModifier = platformModifier
-            .pointerInteropFilter(isInteractive = isInteractive, interopViewHolder = this)
-            .trackInteropPlacement(this)
-            .onGloballyPositioned { layoutCoordinates ->
-                layoutAccordingTo(layoutCoordinates)
-                // TODO: Should be the same as [Owner.onInteropViewLayoutChange]?
-//                container.onInteropViewLayoutChange(this)
-            }
-
-        layoutNode.compositeKeyHash = compositeKeyHash
-        layoutNode.modifier = modifier then coreModifier
-        onModifierChanged = { layoutNode.modifier = it then coreModifier }
-
-        layoutNode.density = density
-        onDensityChanged = { layoutNode.density = it }
-
-        layoutNode.measurePolicy = measurePolicy
-
-        layoutNode
     }
 
     fun place() {
