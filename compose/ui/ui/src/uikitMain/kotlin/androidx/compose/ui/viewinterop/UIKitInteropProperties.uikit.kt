@@ -56,8 +56,8 @@ import platform.CoreGraphics.CGSize
  */
 @Immutable
 class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
-    internal val interactionMode: UIKitInteropInteractionMode? = UIKitInteropInteractionMode.Cooperative(),
-    internal val isNativeAccessibilityEnabled: Boolean = false
+    val interactionMode: UIKitInteropInteractionMode? = UIKitInteropInteractionMode.Cooperative(),
+    val isNativeAccessibilityEnabled: Boolean = false
 ) {
     /**
      * Indicates whether the user can interact with the interop component.

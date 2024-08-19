@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +41,7 @@ import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.objcPtr
 import kotlinx.cinterop.readValue
+import kotlinx.coroutines.delay
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSize
@@ -126,8 +128,18 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
 
     LazyColumn(Modifier.fillMaxSize()) {
         item {
+            var temp by remember { mutableStateOf(0) }
+
+            LaunchedEffect(Unit) {
+                while (true) {
+                    temp += 1
+                    delay(1000)
+                }
+            }
+
             UIKitView(
                 factory = {
+                    println("Factory called $temp")
                     MKMapView()
                 },
                 modifier = Modifier.fillMaxWidth().height(200.dp),
@@ -135,6 +147,10 @@ val UIKitInteropExample = Screen.Example("UIKitInterop") {
                     println("MKMapView updated")
                 },
                 listener = object : UIKitInteropListener<MKMapView> {
+                    init {
+                        println("Listener created $temp")
+                    }
+
                     override fun onDidAppear(component: MKMapView) {
                         println("onDidAppear frame: ${NSStringFromCGRect(component.frame)}, isAttached = ${component.window != null}")
                     }
