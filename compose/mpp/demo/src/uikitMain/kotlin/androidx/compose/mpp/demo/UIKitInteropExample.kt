@@ -36,12 +36,15 @@ import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
+import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.objcPtr
 import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.delay
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
+import platform.CoreGraphics.CGSize
 import platform.Foundation.NSSelectorFromString
 import platform.MapKit.MKMapView
 import platform.UIKit.NSTextAlignmentCenter
@@ -256,16 +259,31 @@ val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
             items(100) {
                 UIKitView(
                     factory = {
-                        allocations += 1
-                        val view = MKMapView().apply {
-                            tag = allocations.toLong()
+                        val view = object : MKMapView(frame = CGRectZero.readValue()) {
+                            var hasAppeared by mutableStateOf(null as Boolean?)
+
+                            override fun didMoveToWindow() {
+                                super.didMoveToWindow()
+
+                                println(window)
+                                hasAppeared = superview != null
+                            }
+                        }.apply {
+                            tag = it.toLong()
                         }
+                        allocations += 1
 
                         view
                     },
                     modifier = Modifier.fillMaxWidth().height(200.dp),
-                    update = {
-                        println("MKMapView updated")
+                    update = { view ->
+                        view.hasAppeared?.let {
+                            if (it) {
+                                println("${view.tag} has appeared")
+                            } else {
+                                println("${view.tag} has disappeared")
+                            }
+                        }
                     },
                     onReset = {
                         println("${it.tag} onReset")
