@@ -252,40 +252,31 @@ private fun ComposeUITextField(value: String, onValueChange: (String) -> Unit, m
 
 val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
     var allocations: Int by remember { mutableStateOf(0) }
+    var allocationsCounter by remember { mutableStateOf(0) }
 
     Column(Modifier.fillMaxSize()) {
         Text("Maps allocated: $allocations")
         LazyColumn(Modifier.fillMaxSize()) {
-            items(100) {
+            items(100) { index ->
                 UIKitView(
                     factory = {
                         val view = object : MKMapView(frame = CGRectZero.readValue()) {
-                            var hasAppeared by mutableStateOf(null as Boolean?)
 
-                            override fun didMoveToWindow() {
-                                super.didMoveToWindow()
-
-                                println("window is $window")
-                                hasAppeared = window != null
-                            }
                         }.apply {
-                            tag = it.toLong()
+                            tag = allocationsCounter.toLong()
                         }
                         allocations += 1
+                        allocationsCounter += 1
 
                         view
                     },
                     modifier = Modifier.fillMaxWidth().height(200.dp),
-                    update = { view ->
-                        view.hasAppeared?.let {
-                            if (it) {
-                                println("${view.tag} has appeared")
-                            } else {
-                                println("${view.tag} has disappeared")
-                            }
-                        }
+                    update = {
+                        println("Update called for tag = ${it.tag}, index = $index")
                     },
-                    onReset = null,
+                    onReset = {
+                        println("Reset called for tag = ${it.tag}, index = $index")
+                    },
                     onRelease = {
                         allocations -= 1
                     }
