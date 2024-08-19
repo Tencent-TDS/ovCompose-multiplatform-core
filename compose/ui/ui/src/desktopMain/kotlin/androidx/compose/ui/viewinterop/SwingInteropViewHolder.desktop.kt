@@ -46,7 +46,7 @@ internal class SwingInteropViewHolder<T : Component>(
     group: InteropViewGroup,
     focusSwitcher: InteropFocusSwitcher,
     compositeKeyHash: Int,
-) : TypedInteropViewHolder<T, SwingInteropPlatformDetails>(
+) : TypedInteropViewHolder<T>(
     factory,
     container,
     group,

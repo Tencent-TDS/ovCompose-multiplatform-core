@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.Color
 internal class SwingInteropPlatformDetails: InteropPlatformDetails {
     override fun platformModifier(holder: InteropViewHolder): Modifier =
         Modifier
-            .trackInteropPlacement(holder)
+            .pointerInteropFilter(holder)
             .drawBehind {
                 // Clear interop area to make visible the component under our canvas.
                 drawRect(

@@ -42,7 +42,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     interopContainer: InteropContainer,
     group: InteropWrappingView,
     compositeKeyHash: Int
-) : TypedInteropViewHolder<T, UIKitInteropPlatformDetails<T>>(
+) : TypedInteropViewHolder<T>(
     factory = factory,
     interopContainer = interopContainer,
     group = group,
@@ -87,8 +87,14 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     protected abstract var userComponentCGRect: CValue<CGRect>
     private var visibilityState = VisibilityState.NOT_VISIBLE
 
+    /**
+     * Will be down-cast from [platformDetails] to [UIKitInteropPlatformDetails] when the
+     * platform details are set.
+     */
+    private var typedPlatformDetails: UIKitInteropPlatformDetails<T>? = null
+
     private val listener: UIKitInteropListener<T>?
-        get() = platformDetails?.listener
+        get() = typedPlatformDetails?.listener
 
     override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
         val rootCoordinates = layoutCoordinates.findRootCoordinates()
@@ -313,7 +319,9 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     override fun onPlatformDetailsChanged() {
         super.onPlatformDetailsChanged()
 
+        typedPlatformDetails = platformDetails as UIKitInteropPlatformDetails<T>?
+
         val wrappingView = group as InteropWrappingView
-        wrappingView.interactionMode = platformDetails?.properties?.interactionMode
+        wrappingView.interactionMode = typedPlatformDetails?.properties?.interactionMode
     }
 }
