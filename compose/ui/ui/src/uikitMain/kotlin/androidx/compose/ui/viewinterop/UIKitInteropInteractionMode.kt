@@ -29,6 +29,7 @@ sealed interface UIKitInteropInteractionMode {
      * Represents a mode where the touches are not processed by the Compose UI if the interop view
      * is hit by the initial touch in the gesture.
      */
+    @ExperimentalComposeUiApi
     data object NonCooperative : UIKitInteropInteractionMode
 
     /**
@@ -45,10 +46,11 @@ sealed interface UIKitInteropInteractionMode {
      * want to scroll the container despite the first touch being landed on the interop view.
      *
      * @property delay Indicates how much time in milliseconds is given for Compose to intercept
-     * the touches before delivering them to the interop view. The default value is [DEFAULT_DELAY].
+     * the touches before delivering them to the interop view. The default value is [DefaultDelay].
      */
+    @ExperimentalComposeUiApi
     class Cooperative(
-        val delay: Int = DEFAULT_DELAY
+        val delay: Int = DefaultDelay
     ) : UIKitInteropInteractionMode {
         init {
             require(delay > 0) { "Delay must be a positive value" }
@@ -59,7 +61,7 @@ sealed interface UIKitInteropInteractionMode {
              * The default delay in milliseconds before the touch is delivered to the interop view.
              * Same as the default delay in [UIScrollView].
              */
-            const val DEFAULT_DELAY = 150
+            const val DefaultDelay = 150
         }
     }
 }
