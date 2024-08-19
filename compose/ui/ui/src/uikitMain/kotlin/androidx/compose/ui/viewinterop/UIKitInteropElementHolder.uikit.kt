@@ -16,10 +16,6 @@
 
 package androidx.compose.ui.viewinterop
 
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.MeasurePolicy
@@ -40,12 +36,12 @@ import platform.CoreGraphics.CGRectIsEmpty
 internal abstract class UIKitInteropElementHolder<T : InteropView>(
     factory: () -> T,
     interopContainer: InteropContainer,
-    group: InteropWrappingView,
+    private val interopWrappingView: InteropWrappingView,
     compositeKeyHash: Int
 ) : TypedInteropViewHolder<T>(
     factory = factory,
     interopContainer = interopContainer,
-    group = group,
+    group = interopWrappingView,
     compositeKeyHash = compositeKeyHash,
     measurePolicy = MeasurePolicy { _, constraints ->
         layout(constraints.minWidth, constraints.minHeight) {
@@ -63,7 +59,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     ) : this(
         factory = factory,
         interopContainer = interopContainer,
-        group = InteropWrappingView(
+        interopWrappingView = InteropWrappingView(
             interactionMode = null
         ),
         compositeKeyHash = compositeKeyHash
@@ -321,7 +317,6 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
 
         typedPlatformDetails = platformDetails as UIKitInteropPlatformDetails<T>?
 
-        val wrappingView = group as InteropWrappingView
-        wrappingView.interactionMode = typedPlatformDetails?.properties?.interactionMode
+        interopWrappingView.interactionMode = typedPlatformDetails?.properties?.interactionMode
     }
 }
