@@ -40,8 +40,8 @@ import androidx.compose.ui.node.SnapshotInvalidationTracker
 import androidx.compose.ui.platform.GlobalSnapshotManager
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.util.trace
-import kotlin.coroutines.CoroutineContext
 import kotlin.concurrent.Volatile
+import kotlin.coroutines.CoroutineContext
 
 /**
  * BaseComposeScene is an internal abstract class that implements the ComposeScene interface.
@@ -79,7 +79,7 @@ internal abstract class BaseComposeScene(
         private set
 
     private var isInvalidationDisabled = false
-    private var hasPendingDisabledInvalidations = false
+    private var hasPostponedInvalidations = false
     private inline fun <T> postponeInvalidation(traceTag: String, crossinline block: () -> T): T = trace(traceTag) {
         check(!isClosed) { "postponeInvalidation called after ComposeScene is closed" }
         isInvalidationDisabled = true
@@ -93,7 +93,7 @@ internal abstract class BaseComposeScene(
             isInvalidationDisabled = false
         }.also {
             updateInvalidations()
-            hasPendingDisabledInvalidations = false
+            hasPostponedInvalidations = false
         }
     }
 
@@ -102,10 +102,10 @@ internal abstract class BaseComposeScene(
     protected fun updateInvalidations() {
         hasPendingDraws = frameClock.hasAwaiters ||
             snapshotInvalidationTracker.hasInvalidations ||
-            hasPendingDisabledInvalidations
+            hasPostponedInvalidations
         if (hasPendingDraws && !isClosed && composition != null) {
             if (isInvalidationDisabled) {
-                hasPendingDisabledInvalidations = true
+                hasPostponedInvalidations = true
             } else {
                 invalidate()
             }
