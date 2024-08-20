@@ -18,6 +18,13 @@ package androidx.compose.ui.viewinterop
 
 import androidx.compose.ui.Modifier
 
+/**
+ * An interface for platform-specific configurable details of how interop is implemented on a specific
+ * platform.
+ *
+ * It's needed in case the [InteropViewHolder] is reused with new properties and the modifier
+ * chain needs to be changed within ComposeNode Updater
+ */
 internal interface InteropPlatformDetails {
     fun platformModifier(holder: InteropViewHolder): Modifier
 }
