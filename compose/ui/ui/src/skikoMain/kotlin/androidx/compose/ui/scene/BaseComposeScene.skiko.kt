@@ -79,6 +79,7 @@ internal abstract class BaseComposeScene(
         private set
 
     private var isInvalidationDisabled = false
+    private var hasPendingDisabledInvalidations = false
     private inline fun <T> postponeInvalidation(traceTag: String, crossinline block: () -> T): T = trace(traceTag) {
         check(!isClosed) { "postponeInvalidation called after ComposeScene is closed" }
         isInvalidationDisabled = true
@@ -92,6 +93,7 @@ internal abstract class BaseComposeScene(
             isInvalidationDisabled = false
         }.also {
             updateInvalidations()
+            hasPendingDisabledInvalidations = false
         }
     }
 
@@ -99,9 +101,14 @@ internal abstract class BaseComposeScene(
     private var hasPendingDraws = true
     protected fun updateInvalidations() {
         hasPendingDraws = frameClock.hasAwaiters ||
-            snapshotInvalidationTracker.hasInvalidations
-        if (hasPendingDraws && !isInvalidationDisabled && !isClosed && composition != null) {
-            invalidate()
+            snapshotInvalidationTracker.hasInvalidations ||
+            hasPendingDisabledInvalidations
+        if (hasPendingDraws && !isClosed && composition != null) {
+            if (isInvalidationDisabled) {
+                hasPendingDisabledInvalidations = true
+            } else {
+                invalidate()
+            }
         }
     }
 
