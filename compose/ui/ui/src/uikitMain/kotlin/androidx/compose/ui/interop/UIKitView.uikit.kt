@@ -86,7 +86,7 @@ fun <T : UIView> UIKitView(
     // Since this strategy is already implied, changes to this argument can't be processed in a
     // sane manner
     if (onResize != DefaultViewResize) {
-        println("WARNING: custom `onResize` is not supported in deprecated [UIKitView], it will do nothing. If you need to perform changes based on latest calculated size - use [UIKitInteropListener.onResize]")
+        println("WARNING: custom `onResize` is not supported in deprecated [UIKitView], it will do nothing. If you need to perform changes based on latest calculated size - override `UIView.layoutSubviews`")
     }
 
     val backgroundColor by remember(background) { mutableStateOf(background.toUIColor()) }
@@ -168,7 +168,7 @@ fun <T : UIViewController> UIKitViewController(
     // Since this strategy is already implied, changes to this argument can't be processed in a
     // sane manner
     if (onResize != DefaultViewControllerResize) {
-        println("WARNING: custom `onResize` is not supported in deprecated [UIKitViewController], it will do nothing. If you need to perform changes based on latest calculated size - use [UIKitInteropListener.onResize]")
+        println("WARNING: custom `onResize` is not supported in deprecated [UIKitViewController], it will do nothing. If you need to perform changes based on latest calculated size - override `UIViewController.viewDidLayoutSubviews`")
     }
 
     val backgroundColor by remember(background) { mutableStateOf(background.toUIColor()) }
