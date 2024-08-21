@@ -107,13 +107,13 @@ private sealed interface InteractionUIViewHitTestResult {
     data object NonCooperativeChildView : InteractionUIViewHitTestResult
 
     /**
-     * Hit test result is Cooperative child view, that allows a delay of [delayInMilliseconds] milliseconds.
+     * Hit test result is Cooperative child view, that allows a delay of [delayMillis] milliseconds.
      */
     class CooperativeChildView(
-        val delayInMilliseconds: Int
+        val delayMillis: Int
     ) : InteractionUIViewHitTestResult {
-        val delayInSeconds: Double
-            get() = delayInMilliseconds.toDouble() / 1000.0
+        val delaySeconds: Double
+            get() = delayMillis.toDouble() / 1000.0
     }
 }
 
@@ -272,7 +272,7 @@ private class GestureRecognizerHandlerImpl(
                 when (val cooperativeChildView = hitTestResult) {
                     is InteractionUIViewHitTestResult.CooperativeChildView ->
                         gestureRecognizer?.scheduleFailure(
-                            cooperativeChildView.delayInSeconds
+                            cooperativeChildView.delaySeconds
                         )
                     else -> {}
                 }
@@ -608,7 +608,7 @@ internal class InteractionUIView(
                 when (interactionMode) {
                     is UIKitInteropInteractionMode.Cooperative -> {
                         InteractionUIViewHitTestResult.CooperativeChildView(
-                            delayInMilliseconds = interactionMode.delayMs
+                            delayMillis = interactionMode.delayMillis
                         )
                     }
 
