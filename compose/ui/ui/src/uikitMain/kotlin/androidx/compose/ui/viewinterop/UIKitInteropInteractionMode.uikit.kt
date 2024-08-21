@@ -45,28 +45,28 @@ sealed interface UIKitInteropInteractionMode {
      * This mode is useful when the interop view is inside a scrollable container and the user might
      * want to scroll the container despite the first touch being landed on the interop view.
      *
-     * @property delay Indicates how much time in milliseconds is given for Compose to intercept
-     * the touches before delivering them to the interop view. The default value is [DefaultDelay].
+     * @property delayMs Indicates how much time in milliseconds is given for Compose to intercept
+     * the touches before delivering them to the interop view. The default value is [DefaultDelayMs].
      */
     @ExperimentalComposeUiApi
     class Cooperative(
-        val delay: Int = DefaultDelay
+        val delayMs: Int = DefaultDelayMs
     ) : UIKitInteropInteractionMode {
         init {
-            require(delay > 0) { "Delay must be a positive value" }
+            require(delayMs > 0) { "Delay must be a positive value" }
         }
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is Cooperative) return false
 
-            if (delay != other.delay) return false
+            if (delayMs != other.delayMs) return false
 
             return true
         }
 
         override fun hashCode(): Int {
-            return delay.hashCode()
+            return delayMs.hashCode()
         }
 
         companion object {
@@ -74,7 +74,7 @@ sealed interface UIKitInteropInteractionMode {
              * The default delay in milliseconds before the touch is delivered to the interop view.
              * Same as the default delay in [UIScrollView].
              */
-            const val DefaultDelay = 150
+            const val DefaultDelayMs = 150
         }
     }
 }

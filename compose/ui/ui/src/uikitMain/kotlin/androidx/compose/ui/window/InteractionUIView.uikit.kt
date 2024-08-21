@@ -608,7 +608,7 @@ internal class InteractionUIView(
                 when (interactionMode) {
                     is UIKitInteropInteractionMode.Cooperative -> {
                         InteractionUIViewHitTestResult.CooperativeChildView(
-                            delay = interactionMode.delay
+                            delay = interactionMode.delayMs
                         )
                     }
 
