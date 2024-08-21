@@ -107,13 +107,13 @@ private sealed interface InteractionUIViewHitTestResult {
     data object NonCooperativeChildView : InteractionUIViewHitTestResult
 
     /**
-     * Hit test result is Cooperative child view, that allows a delay of [delay] milliseconds.
+     * Hit test result is Cooperative child view, that allows a delay of [delayInMilliseconds] milliseconds.
      */
     class CooperativeChildView(
-        val delay: Int
+        val delayInMilliseconds: Int
     ) : InteractionUIViewHitTestResult {
         val delayInSeconds: Double
-            get() = delay.toDouble() / 1000.0
+            get() = delayInMilliseconds.toDouble() / 1000.0
     }
 }
 
@@ -608,7 +608,7 @@ internal class InteractionUIView(
                 when (interactionMode) {
                     is UIKitInteropInteractionMode.Cooperative -> {
                         InteractionUIViewHitTestResult.CooperativeChildView(
-                            delay = interactionMode.delayMs
+                            delayInMilliseconds = interactionMode.delayMs
                         )
                     }
 
