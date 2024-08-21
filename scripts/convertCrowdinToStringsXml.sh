@@ -16,9 +16,24 @@
 # limitations under the License.
 #
 
+#
+# The script rearranges and copies the localized strings files from the Crowding Service
+#  export archive to the `compose/ui/ui/src/uikitMain/res` using the appropriate directory
+#  structure for the `UpdateTranslationsTask`.
+# The script:
+#  - moves each `<locale>/general/string.xml` to `values-<locale>/string.xml`;
+#  - creates `values/strings.xml` for the default locale;
+#  - change certain locale keys to match with the required `UpdateTranslationsTask` locales.
+#
+# Usage:
+#  - Export localized strings Archive from the Crowding Service and extract it;
+#  - Run in terminal from `scripts` directory:
+#  ./convertCrowdinToStringsXml.sh <path_to_extracted_crowding_archive>
+#
+
 # Directory to go through
 crowding_res_path=$1
-target_dir='res'
+target_dir='../compose/ui/ui/src/uikitMain/res'
 
 # Check if directory path is not empty
 if [ -z "$crowding_res_path" ]; then
