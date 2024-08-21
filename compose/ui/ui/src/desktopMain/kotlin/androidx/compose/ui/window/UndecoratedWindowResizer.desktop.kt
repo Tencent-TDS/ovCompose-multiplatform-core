@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -29,7 +30,6 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.awt.Cursor
 import java.awt.Dimension
@@ -37,11 +37,13 @@ import java.awt.MouseInfo
 import java.awt.Point
 import java.awt.Window
 
-internal val DefaultBorderThickness = 8.dp
+/**
+ * The thickness of the border resizer for undecorated windows.
+ */
+val LocalUndecoratedWindowResizerBorderThickness = staticCompositionLocalOf { 8.dp }
 
 internal class UndecoratedWindowResizer(
     private val window: Window,
-    private var borderThickness: Dp = DefaultBorderThickness
 ) {
     var enabled: Boolean by mutableStateOf(false)
 
@@ -52,6 +54,7 @@ internal class UndecoratedWindowResizer(
     @Composable
     fun Content(modifier: Modifier) {
         if (enabled) {
+            val borderThickness = LocalUndecoratedWindowResizerBorderThickness.current
             Layout(
                 {
                     Side(Cursor.W_RESIZE_CURSOR, Side.Left)

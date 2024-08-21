@@ -4254,6 +4254,10 @@ public final class androidx/compose/ui/window/Tray_desktopKt {
 	public static final fun rememberTrayState (Landroidx/compose/runtime/Composer;I)Landroidx/compose/ui/window/TrayState;
 }
 
+public final class androidx/compose/ui/window/UndecoratedWindowResizer_desktopKt {
+	public static final fun getLocalUndecoratedWindowResizerBorderThickness ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+}
+
 public abstract interface class androidx/compose/ui/window/WindowExceptionHandler {
 	public abstract fun onException (Ljava/lang/Throwable;)V
 }
