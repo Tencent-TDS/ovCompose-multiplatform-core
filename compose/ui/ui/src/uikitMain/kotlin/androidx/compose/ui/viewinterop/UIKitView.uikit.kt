@@ -36,7 +36,9 @@ import platform.UIKit.UIView
  * composition forever. Use it to release resources and stop jobs associated with [T].
  * @param onReset If not null, this callback is invoked when this composable node is
  * reused in the composition instead of being recreated. Use it to reset the state of [T] to
- * some blank state. If null, this composable node can not be reused.
+ * some blank state. This is a function that will be executed instead of [factory] if the node
+ * containing [T] was reused. If null, [T] will not be reused, a new instance of [T] will be created
+ * using [factory] every time this function enters the composition.
  * @property properties The properties configuring the behavior of [T]. Default value is
  * [UIKitInteropProperties.Default]
  *

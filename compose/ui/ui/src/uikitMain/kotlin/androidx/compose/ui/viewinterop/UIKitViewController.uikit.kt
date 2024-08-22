@@ -35,10 +35,11 @@ import platform.UIKit.UIViewController
  * Invoked once initially and then every time the state it reads changes.
  * @param onRelease A callback invoked as a signal that the [T] has exited the
  * composition forever. Use it to release resources and stop jobs associated with [T].
- * @param onReset If not null, this callback is invoked when the [T] is
+ * @param onReset If not null, this callback is invoked when this composable node is
  * reused in the composition instead of being recreated. Use it to reset the state of [T] to
- * some blank state. If null, this composable can not be reused.
- * Use it to avoid reallocation of [T].
+ * some blank state. This is a function that will be executed instead of [factory] if the node
+ * containing [T] was reused. If null, [T] will not be reused, a new instance of [T] will be created
+ * using [factory] every time this function enters the composition.
  * @property properties The properties configuring the behavior of [T]. Default value is
  * [UIKitInteropProperties.Default]
  *
