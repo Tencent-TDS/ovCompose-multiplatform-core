@@ -43,12 +43,15 @@ internal class UIKitInteropViewHolder<T : UIView>(
         }
 
     override fun insertInteropView(root: InteropViewGroup, index: Int) {
+        println("${typedInteropView.tag} insertInteropView")
         root.insertSubview(group, index.toLong())
 
         super.insertInteropView(root, index)
     }
 
     override fun removeInteropView(root: InteropViewGroup) {
+        println("${typedInteropView.tag} removeInteropView")
+
         group.removeFromSuperview()
 
         super.removeInteropView(root)
