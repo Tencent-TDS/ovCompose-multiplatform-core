@@ -21,7 +21,7 @@
 #  export archive to the `compose/ui/ui/src/uikitMain/res` using the appropriate directory
 #  structure for the `UpdateTranslationsTask`.
 # The script:
-#  - moves each `<locale>/general/string.xml` to `values-<locale>/string.xml`;
+#  - copies each `<locale>/general/string.xml` to `values-<locale>/string.xml`;
 #  - creates `values/strings.xml` for the default locale;
 #  - change certain locale keys to match with the required `UpdateTranslationsTask` locales.
 #
