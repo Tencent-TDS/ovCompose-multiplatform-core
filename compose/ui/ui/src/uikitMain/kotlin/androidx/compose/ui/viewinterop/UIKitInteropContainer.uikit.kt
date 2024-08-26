@@ -104,7 +104,13 @@ internal class UIKitInteropContainer(
     override fun unplace(holder: InteropViewHolder) {
         val interopView = requireNotNull(holder.getInteropView())
 
+        if (!interopViews.contains(interopView)) {
+            // TODO: remove when unplace is called only once
+            return
+        }
+
         interopViews.remove(interopView)
+
         if (interopViews.isEmpty()) {
             transaction.state = UIKitInteropState.ENDED
             snapshotObserver.stop()
