@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.Button
 import androidx.compose.material.DropdownMenu
@@ -32,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.UIKitInteropInteractionMode
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
 import androidx.compose.ui.viewinterop.UIKitView
@@ -39,25 +41,26 @@ import platform.MapKit.MKMapView
 
 @OptIn(ExperimentalComposeUiApi::class)
 val UpdatableInteropPropertiesExample = Screen.Example("Updatable interop properties") {
-    var interactionMode by remember { mutableStateOf(0) }
-
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {
-        item(100) {
+        items(100) {
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
+                var interactionMode by remember { mutableStateOf(0) }
+
                 UIKitView(
-                    modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
                     factory = { MKMapView() },
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
                     properties = UIKitInteropProperties(
                         interactionMode = when (interactionMode) {
                             1 -> UIKitInteropInteractionMode.Cooperative()
                             2 -> UIKitInteropInteractionMode.NonCooperative
                             else -> null
                         }
-                    )
+                    ),
+                    onReset = { }
                 )
 
                 var isDropdownExpanded by remember { mutableStateOf(false) }
