@@ -176,6 +176,11 @@ internal open class InteropViewHolder(
     }
 
     fun unplace() {
+        if (!container.contains(this)) {
+            // TODO: remove when unplace is called only once
+            return
+        }
+
         container.unplace(this)
     }
 

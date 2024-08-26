@@ -25,6 +25,7 @@ import androidx.compose.material.Button
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,53 +38,62 @@ import androidx.compose.ui.viewinterop.UIKitInteropProperties
 import androidx.compose.ui.viewinterop.UIKitView
 import platform.MapKit.MKMapView
 
+fun Int.interactionModeToString(): String = when (this) {
+    1 -> "Cooperative"
+    2 -> "Non-cooperative"
+    else -> "Non-interactive"
+}
+
 @OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun ConfigurableMap(index: Int) {
+    var interactionMode by remember { mutableStateOf(0) }
+
+    UIKitView(
+        factory = { MKMapView().also { it.tag = index.toLong() } },
+        modifier = Modifier.fillMaxWidth().height(200.dp),
+        properties = UIKitInteropProperties(
+            interactionMode = when (interactionMode) {
+                1 -> UIKitInteropInteractionMode.Cooperative()
+                2 -> UIKitInteropInteractionMode.NonCooperative
+                else -> null
+            }
+        ),
+        update = {
+            println("Updated $index")
+        },
+        onReset = {
+            it.tag = index.toLong()
+            println("Reset $index")
+        }
+    )
+
+    var isDropdownExpanded by remember { mutableStateOf(false) }
+
+    Button(
+        onClick = { isDropdownExpanded = true }
+    ) {
+        Text("Interaction mode: ${interactionMode.interactionModeToString()}")
+    }
+
+    DropdownMenu(
+        expanded = isDropdownExpanded,
+        onDismissRequest = { isDropdownExpanded = false }
+    ) {
+        for (i in 0 until 3) {
+            DropdownMenuItem(onClick = { interactionMode = i }) {
+                Text(i.interactionModeToString())
+            }
+        }
+    }
+}
+
 val UpdatableInteropPropertiesExample = Screen.Example("Updatable interop properties") {
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {
-        items(100) {
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                var interactionMode by remember { mutableStateOf(0) }
-
-                UIKitView(
-                    factory = { MKMapView() },
-                    modifier = Modifier.fillMaxWidth().height(200.dp),
-                    properties = UIKitInteropProperties(
-                        interactionMode = when (interactionMode) {
-                            1 -> UIKitInteropInteractionMode.Cooperative()
-                            2 -> UIKitInteropInteractionMode.NonCooperative
-                            else -> null
-                        }
-                    ),
-                    onReset = { }
-                )
-
-                var isDropdownExpanded by remember { mutableStateOf(false) }
-
-                Button(
-                    onClick = { isDropdownExpanded = true }
-                ) {
-                    Text("Change interaction mode")
-                }
-
-                DropdownMenu(
-                    expanded = isDropdownExpanded,
-                    onDismissRequest = { isDropdownExpanded = false }
-                ) {
-                    DropdownMenuItem(onClick = { interactionMode = 0 }) {
-                        Text("Non-interactive")
-                    }
-                    DropdownMenuItem(onClick = { interactionMode = 1 }) {
-                        Text("Cooperative")
-                    }
-                    DropdownMenuItem(onClick = { interactionMode = 2 }) {
-                        Text("Non-cooperative")
-                    }
-                }
-            }
+        items(100) { index ->
+            ConfigurableMap(index)
         }
     }
 }
