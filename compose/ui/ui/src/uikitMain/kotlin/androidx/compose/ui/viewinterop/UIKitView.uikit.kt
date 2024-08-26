@@ -60,6 +60,7 @@ fun <T : UIView> UIKitView(
             UIKitInteropViewHolder(
                 factory,
                 interopContainer,
+                properties,
                 compositeKeyHash,
             )
         },

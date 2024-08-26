@@ -36,15 +36,12 @@ import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
-import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.objcPtr
 import kotlinx.cinterop.readValue
-import kotlinx.cinterop.useContents
 import kotlinx.coroutines.delay
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
-import platform.CoreGraphics.CGSize
 import platform.Foundation.NSSelectorFromString
 import platform.MapKit.MKMapView
 import platform.UIKit.NSTextAlignmentCenter
@@ -128,7 +125,7 @@ private class TouchReactingView : UIView(frame = CGRectZero.readValue()) {
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
-val UIKitInteropExample = Screen.Example("UIKitInterop") {
+val InteropExample = Screen.Example("Interop") {
     var text by remember { mutableStateOf("Type something") }
     var updatedValue by remember { mutableStateOf(null as Offset?) }
 
@@ -250,7 +247,7 @@ private fun ComposeUITextField(value: String, onValueChange: (String) -> Unit, m
     )
 }
 
-val UIKitReusableMapsExample = Screen.Example("UIKitReusableMapsExample") {
+val ReusableMapsExample = Screen.Example("Reusable maps") {
     var allocations: Int by remember { mutableStateOf(0) }
     var allocationsCounter by remember { mutableStateOf(0) }
 

@@ -28,10 +28,12 @@ internal class UIKitInteropViewControllerHolder<T : UIViewController>(
     factory: () -> T,
     interopContainer: InteropContainer,
     private val parentViewController: UIViewController,
+    properties: UIKitInteropProperties,
     compositeKeyHash: Int,
 ) : UIKitInteropElementHolder<T>(
     factory,
     interopContainer,
+    properties,
     compositeKeyHash
 ) {
     init {

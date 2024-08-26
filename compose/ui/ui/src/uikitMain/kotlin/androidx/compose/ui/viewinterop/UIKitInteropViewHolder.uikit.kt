@@ -23,10 +23,12 @@ import platform.UIKit.UIView
 internal class UIKitInteropViewHolder<T : UIView>(
     factory: () -> T,
     interopContainer: InteropContainer,
+    properties: UIKitInteropProperties,
     compositeKeyHash: Int,
 ) : UIKitInteropElementHolder<T>(
     factory,
     interopContainer,
+    properties,
     compositeKeyHash
 ) {
     init {

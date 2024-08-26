@@ -63,6 +63,7 @@ fun <T : UIViewController> UIKitViewController(
                 factory,
                 interopContainer,
                 parentViewController,
+                properties,
                 compositeKeyHash
             )
         },
