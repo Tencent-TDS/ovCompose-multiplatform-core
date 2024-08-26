@@ -55,10 +55,6 @@ fun <T : UIView> UIKitView(
 ) {
     val interopContainer = LocalInteropContainer.current
 
-    val platformDetails = remember(properties) {
-        UIKitInteropPlatformDetails(properties)
-    }
-
     InteropView(
         factory = { compositeKeyHash ->
             UIKitInteropViewHolder(
@@ -68,9 +64,13 @@ fun <T : UIView> UIKitView(
             )
         },
         modifier,
-        platformDetails,
         onReset,
         onRelease,
-        update
+        update = {
+            update(it)
+
+            val holder = interopContainer.holderOfView(it) as? UIKitInteropViewHolder<*>
+            holder?.properties = properties
+        }
     )
 }

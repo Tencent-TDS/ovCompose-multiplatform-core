@@ -20,18 +20,12 @@ import androidx.compose.runtime.currentCompositeKeyHash
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.EmptyLayout
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.viewinterop.InteropPlatformDetails
 import androidx.compose.ui.viewinterop.InteropView
-import androidx.compose.ui.viewinterop.InteropViewHolder
 import androidx.compose.ui.viewinterop.LocalInteropContainer
-import androidx.compose.ui.viewinterop.SwingInteropPlatformDetails
 import androidx.compose.ui.viewinterop.SwingInteropViewHolder
-import androidx.compose.ui.viewinterop.trackInteropPlacement
 import java.awt.Component
 import java.awt.Container
 import java.awt.event.FocusEvent
@@ -92,14 +86,11 @@ public fun <T : Component> SwingPanel(
 
     EmptyLayout(focusSwitcher.backwardTrackerModifier)
 
-    val platformDetails = remember { SwingInteropPlatformDetails() }
-
     InteropView(
         factory = {
             interopViewHolder
         },
         modifier,
-        platformDetails,
         update = {
             it.background = background.toAwtColor()
             update(it)

@@ -52,17 +52,11 @@ internal abstract class TypedInteropViewHolder<T : InteropView>(
     compositeKeyHash,
     measurePolicy
 ) {
-    protected val typedInteropView = factory()
+    val typedInteropView = factory()
 
     override fun getInteropView(): InteropView? {
         return typedInteropView
     }
-
-    var platformDetails: InteropPlatformDetails? = null
-        set(value) {
-            field = value
-            onPlatformDetailsChanged()
-        }
 
     /**
      * A block containing the update logic for [T], to be forwarded to user.
@@ -97,10 +91,6 @@ internal abstract class TypedInteropViewHolder<T : InteropView>(
                 typedInteropView.apply(releaseBlock)
             }
         }
-
-    open fun onPlatformDetailsChanged() {
-        platformModifier = platformDetails?.platformModifier(this) ?: Modifier
-    }
 }
 
 /**
@@ -132,10 +122,9 @@ private fun <T : InteropView> createInteropViewLayoutNodeFactory(
 internal fun <T : InteropView> InteropView(
     factory: (compositeKeyHash: Int) -> TypedInteropViewHolder<T>,
     modifier: Modifier,
-    platformDetails: InteropPlatformDetails,
     onReset: ((T) -> Unit)? = null,
     onRelease: (T) -> Unit = NoOp,
-    update: (T) -> Unit = NoOp
+    update: (T) -> Unit = NoOp,
 ) {
     val compositeKeyHash = currentCompositeKeyHash
     val materializedModifier = currentComposer.materialize(modifier)
@@ -150,11 +139,11 @@ internal fun <T : InteropView> InteropView(
             update = {
                 updateParameters<T>(
                     compositionLocalMap,
-                    platformDetails,
                     materializedModifier,
                     density,
                     compositeKeyHash
                 )
+
                 set(update) { requireViewFactoryHolder<T>().updateBlock = it }
                 set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
             }
@@ -165,11 +154,11 @@ internal fun <T : InteropView> InteropView(
             update = {
                 updateParameters<T>(
                     compositionLocalMap,
-                    platformDetails,
                     materializedModifier,
                     density,
                     compositeKeyHash
                 )
+
                 set(onReset) { requireViewFactoryHolder<T>().resetBlock = it }
                 set(update) { requireViewFactoryHolder<T>().updateBlock = it }
                 set(onRelease) { requireViewFactoryHolder<T>().releaseBlock = it }
@@ -184,13 +173,11 @@ internal fun <T : InteropView> InteropView(
  */
 private fun <T : InteropView> Updater<LayoutNode>.updateParameters(
     compositionLocalMap: CompositionLocalMap,
-    platformDetails: InteropPlatformDetails,
     modifier: Modifier,
     density: Density,
     compositeKeyHash: Int
 ) {
     set(compositionLocalMap, SetResolvedCompositionLocals)
-    set(platformDetails) { requireViewFactoryHolder<T>().platformDetails = it }
     set(modifier) { requireViewFactoryHolder<T>().modifier = it }
     set(density) { requireViewFactoryHolder<T>().density = it }
     set(compositeKeyHash, SetCompositeKeyHash)

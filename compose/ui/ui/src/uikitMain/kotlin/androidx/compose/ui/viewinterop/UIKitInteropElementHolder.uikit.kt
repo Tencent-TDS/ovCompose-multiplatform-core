@@ -16,6 +16,10 @@
 
 package androidx.compose.ui.viewinterop
 
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.MeasurePolicy
@@ -34,6 +38,7 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     factory: () -> T,
     interopContainer: InteropContainer,
     private val interopWrappingView: InteropWrappingView,
+    properties: UIKitInteropProperties,
     compositeKeyHash: Int
 ) : TypedInteropViewHolder<T>(
     factory = factory,
@@ -52,25 +57,39 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
     constructor(
         factory: () -> T,
         interopContainer: InteropContainer,
+        properties: UIKitInteropProperties,
         compositeKeyHash: Int,
     ) : this(
-        factory = factory,
-        interopContainer = interopContainer,
+        factory,
+        interopContainer,
         interopWrappingView = InteropWrappingView(
             interactionMode = null
         ),
-        compositeKeyHash = compositeKeyHash
+        properties,
+        compositeKeyHash
     )
 
     private var currentUnclippedRect: IntRect? = null
     private var currentClippedRect: IntRect? = null
     private var currentUserComponentRect: IntRect? = null
 
+    var properties = properties
+        set(value) {
+            if (field != value) {
+                field = value
+                onPropertiesChanged()
+            }
+        }
+
     /**
      * Immediate frame of underlying user component. Can be different from
      * [currentUserComponentRect] due to scheduling.
      */
     protected abstract var userComponentCGRect: CValue<CGRect>
+
+    init {
+        onPropertiesChanged()
+    }
 
     override fun layoutAccordingTo(layoutCoordinates: LayoutCoordinates) {
         val rootCoordinates = layoutCoordinates.findRootCoordinates()
@@ -158,21 +177,23 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
             CGRectIntersection(cgRect, group.bounds)
         ).not()
 
-    override fun onPlatformDetailsChanged() {
-        super.onPlatformDetailsChanged()
+    private fun onPropertiesChanged() {
+        interopWrappingView.interactionMode = properties.interactionMode
 
-        val platformDetails = platformDetails
-
-        if (platformDetails == null) {
-            interopWrappingView.interactionMode = null
-        } else {
-            val uiKitInteropPlatformDetails =
-                checkNotNull(platformDetails as? UIKitInteropPlatformDetails) {
-                    "UIKitInteropElementHolder can only be used with UIKitInteropPlatformDetails"
-                }
-
-            interopWrappingView.interactionMode =
-                uiKitInteropPlatformDetails.properties.interactionMode
-        }
+        platformModifier = Modifier
+            .pointerInteropFilter(
+                isInteractive = properties.isInteractive,
+                this
+            )
+            .drawBehind {
+                drawRect(
+                    color = Color.Transparent,
+                    blendMode = BlendMode.Clear
+                )
+            }
+            .nativeAccessibility(
+                isEnabled = properties.isNativeAccessibilityEnabled,
+                interopWrappingView
+            )
     }
 }
