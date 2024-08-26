@@ -191,6 +191,11 @@ internal class SwingInteropContainer(
     }
 
     override fun unplace(holder: InteropViewHolder) {
+        if (!interopComponents.contains(holder.group)) {
+            // TODO: remove when unplace is called only once
+            return
+        }
+
         scheduleUpdate {
             holder.removeInteropView(root = root)
         }
