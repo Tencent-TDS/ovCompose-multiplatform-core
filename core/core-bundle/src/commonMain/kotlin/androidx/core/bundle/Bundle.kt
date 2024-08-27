@@ -41,6 +41,7 @@ expect class Bundle() {
     fun putDouble(key: String?, value: Double)
     fun putString(key: String?, value: String?)
     fun putCharSequence(key: String?, value: CharSequence?)
+    fun putBundle(key: String?, value: Bundle?)
     fun putIntegerArrayList(key: String?, value: ArrayList<Int>?)
     fun putStringArrayList(key: String?, value: ArrayList<String>?)
     fun putBooleanArray(key: String?, value: BooleanArray?)
@@ -53,7 +54,6 @@ expect class Bundle() {
     fun putDoubleArray(key: String?, value: DoubleArray?)
     fun putStringArray(key: String?, value: Array<String>?)
     fun putCharSequenceArray(key: String?, value: Array<CharSequence>?)
-    fun putBundle(key: String?, value: Bundle?)
 
     fun getBoolean(key: String?): Boolean
     fun getBoolean(key: String?, defaultValue: Boolean): Boolean
@@ -75,6 +75,7 @@ expect class Bundle() {
     fun getString(key: String?, defaultValue: String): String
     fun getCharSequence(key: String?): CharSequence?
     fun getCharSequence(key: String?, defaultValue: CharSequence): CharSequence
+    fun getBundle(key: String?): Bundle?
     fun getIntegerArrayList(key: String?): ArrayList<Int>?
     fun getStringArrayList(key: String?): ArrayList<String>?
     fun getBooleanArray(key: String?): BooleanArray?
@@ -87,7 +88,6 @@ expect class Bundle() {
     fun getDoubleArray(key: String?): DoubleArray?
     fun getStringArray(key: String?): Array<String>?
     fun getCharSequenceArray(key: String?): Array<CharSequence>?
-    fun getBundle(key: String?): Bundle?
 
     @Deprecated("Use the type-safe specific APIs depending on the type of the item to be retrieved")
     operator fun get(key: String?): Any?
@@ -95,5 +95,7 @@ expect class Bundle() {
 
 /**
  * Returns a new [Bundle] with the given key/value pairs as elements.
+ *
+ * @throws IllegalArgumentException When a value is not a supported type of [Bundle].
  */
 expect fun bundleOf(vararg pairs: Pair<String, Any?>): Bundle
