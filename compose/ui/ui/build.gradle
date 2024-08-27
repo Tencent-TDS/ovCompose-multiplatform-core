@@ -226,8 +226,10 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             jsWasmMain.dependsOn(notMobileMain)
             macosMain.dependsOn(notMobileMain)
 
+            webCommonW3C {}
+
             jsMain {
-                kotlin.srcDir("src/webCommonW3C/kotlin")
+                dependsOn(webCommonW3C)
                 dependsOn(jsWasmMain)
                 dependencies {
                     api(libs.skikoCommon)
@@ -235,7 +237,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             }
 
             wasmJsMain {
-                kotlin.srcDir("src/webCommonW3C/kotlin")
+                dependsOn(webCommonW3C)
                 dependsOn(jsWasmMain)
                 dependencies {
                     implementation(libs.kotlinStdlib)
