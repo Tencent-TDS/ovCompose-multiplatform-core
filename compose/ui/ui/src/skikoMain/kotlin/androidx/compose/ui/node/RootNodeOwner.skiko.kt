@@ -67,7 +67,6 @@ import androidx.compose.ui.platform.RenderNodeLayer
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
-import androidx.compose.ui.scene.OwnerDragAndDropManager
 import androidx.compose.ui.semantics.EmptySemanticsElement
 import androidx.compose.ui.semantics.EmptySemanticsModifier
 import androidx.compose.ui.semantics.SemanticsOwner
@@ -122,8 +121,7 @@ internal class RootNodeOwner(
             platformContext.parentFocusManager.clearFocus(true)
         },
     )
-
-    val dragAndDropManager = OwnerDragAndDropManager(platformContext)
+    val dragAndDropOwner = DragAndDropOwner(platformContext.dragAndDropManager)
 
     private val rootSemanticsNode = EmptySemanticsModifier()
 
@@ -140,7 +138,7 @@ internal class RootNodeOwner(
             }
         }
         .then(focusOwner.modifier)
-        .then(dragAndDropManager.modifier)
+        .then(dragAndDropOwner.modifier)
         .semantics {
             // This makes the reported role of the root node "PANEL", which is ignored by VoiceOver
             // (which is what we want).
@@ -330,7 +328,7 @@ internal class RootNodeOwner(
         ): Nothing {
             awaitCancellation()
         }
-        override val dragAndDropManager = this@RootNodeOwner.dragAndDropManager
+        override val dragAndDropManager = this@RootNodeOwner.dragAndDropOwner
         override val pointerIconService = PointerIconServiceImpl()
         override val focusOwner get() = this@RootNodeOwner.focusOwner
         override val windowInfo get() = platformContext.windowInfo

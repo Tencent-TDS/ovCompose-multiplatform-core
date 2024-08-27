@@ -48,6 +48,7 @@ import androidx.compose.ui.platform.DesktopTextInputService
 import androidx.compose.ui.platform.EmptyViewConfiguration
 import androidx.compose.ui.platform.PlatformComponent
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.PlatformDragAndDropManager
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
@@ -333,7 +334,9 @@ internal class ComposeSceneMediator(
      */
     private var keyboardModifiersRequireUpdate = false
 
-    private val dragAndDropManager = AwtDragAndDropManager(container, getScene = { scene })
+    private val dragAndDropManager = AwtDragAndDropManager(container) {
+        scene.dragAndDropTarget
+    }
 
     init {
         // Transparency is used during redrawer creation that triggered by [addNotify], so
@@ -700,14 +703,8 @@ internal class ComposeSceneMediator(
             return true
         }
 
-        override fun startDrag(
-            transferData: DragAndDropTransferData,
-            decorationSize: Size,
-            drawDragDecoration: DrawScope.() -> Unit
-        ) = dragAndDropManager.startDrag(
-            transferData, decorationSize, drawDragDecoration
-        )
-
+        override val dragAndDropManager: PlatformDragAndDropManager
+            get() = this@ComposeSceneMediator.dragAndDropManager
         override val rootForTestListener
             get() = this@ComposeSceneMediator.rootForTestListener
         override val semanticsOwnerListener
