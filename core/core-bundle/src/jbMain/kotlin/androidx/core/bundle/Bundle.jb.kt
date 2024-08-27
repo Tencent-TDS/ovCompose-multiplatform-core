@@ -45,8 +45,8 @@ actual class Bundle internal constructor(
     actual fun putString(key: String?, value: String?) { setObject(key, value) }
     actual fun putCharSequence(key: String?, value: CharSequence?) { setObject(key, value) }
     actual fun putBundle(key: String?, value: Bundle?) { setObject(key, value) }
-    actual fun putIntegerArrayList(key: String?, value: ArrayList<Int>?) { setObject(key, value) }
-    actual fun putStringArrayList(key: String?, value: ArrayList<String>?) { setObject(key, value) }
+    actual fun putIntegerArrayList(key: String?, value: ArrayList<Int?>?) { setObject(key, value) }
+    actual fun putStringArrayList(key: String?, value: ArrayList<String?>?) { setObject(key, value) }
     actual fun putBooleanArray(key: String?, value: BooleanArray?) { setObject(key, value) }
     actual fun putByteArray(key: String?, value: ByteArray?) { setObject(key, value) }
     actual fun putShortArray(key: String?, value: ShortArray?) { setObject(key, value) }
@@ -55,9 +55,13 @@ actual class Bundle internal constructor(
     actual fun putLongArray(key: String?, value: LongArray?) { setObject(key, value) }
     actual fun putFloatArray(key: String?, value: FloatArray?) { setObject(key, value) }
     actual fun putDoubleArray(key: String?, value: DoubleArray?) { setObject(key, value) }
-    actual fun putStringArray(key: String?, value: Array<String>?) { setObject(key, value) }
-    actual fun putCharSequenceArray(key: String?, value: Array<CharSequence>?) { setObject(key, value) }
+    actual fun putStringArray(key: String?, value: Array<String?>?) { setObject(key, value) }
+    actual fun putCharSequenceArray(key: String?, value: Array<CharSequence?>?) { setObject(key, value) }
 
+    // Narrowed alternative of Android's [putParcelableArray]
+    fun putBundleArray(key: String?, value: Array<Bundle?>?) { setObject(key, value) }
+
+    @Suppress("NOTHING_TO_INLINE", "KotlinRedundantDiagnosticSuppress")
     private inline fun <T> setObject(key: String?, value: T) {
         bundleData[key] = value
     }
@@ -86,8 +90,8 @@ actual class Bundle internal constructor(
     actual fun getCharSequence(key: String?, defaultValue: CharSequence): CharSequence =
         getCharSequence(key) ?: defaultValue
     actual fun getBundle(key: String?): Bundle? = getObject(key)
-    actual fun getIntegerArrayList(key: String?): ArrayList<Int>? = getArrayList(key)
-    actual fun getStringArrayList(key: String?): ArrayList<String>? = getArrayList(key)
+    actual fun getIntegerArrayList(key: String?): ArrayList<Int?>? = getArrayList(key)
+    actual fun getStringArrayList(key: String?): ArrayList<String?>? = getArrayList(key)
     actual fun getBooleanArray(key: String?): BooleanArray? = getObject(key)
     actual fun getByteArray(key: String?): ByteArray? = getObject(key)
     actual fun getShortArray(key: String?): ShortArray? = getObject(key)
@@ -96,8 +100,11 @@ actual class Bundle internal constructor(
     actual fun getLongArray(key: String?): LongArray? = getObject(key)
     actual fun getFloatArray(key: String?): FloatArray? = getObject(key)
     actual fun getDoubleArray(key: String?): DoubleArray? = getObject(key)
-    actual fun getStringArray(key: String?): Array<String>? = getArray(key)
-    actual fun getCharSequenceArray(key: String?): Array<CharSequence>? = getArray(key)
+    actual fun getStringArray(key: String?): Array<String?>? = getArray(key)
+    actual fun getCharSequenceArray(key: String?): Array<CharSequence?>? = getArray(key)
+
+    // Narrowed alternative of Android's [getParcelableArray]
+    fun getBundleArray(key: String?): Array<Bundle?>? = getArray(key)
 
     @Deprecated("Use the type-safe specific APIs depending on the type of the item to be retrieved")
     actual operator fun get(key: String?): Any? = bundleData.get(key)
@@ -123,10 +130,10 @@ actual class Bundle internal constructor(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private inline fun <reified T : Any> getArrayList(key: String?): ArrayList<T>? {
+    private inline fun <reified T : Any> getArrayList(key: String?): ArrayList<T?>? {
         val value = bundleData.get(key) ?: return null
         return try {
-            value as ArrayList<T>?
+            value as ArrayList<T?>?
         } catch (e: ClassCastException) {
             typeWarning(key, value, "ArrayList<" + T::class.canonicalName!! + ">", e)
             null
@@ -134,10 +141,10 @@ actual class Bundle internal constructor(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private inline fun <reified T : Any> getArray(key: String?): Array<T>? {
+    private inline fun <reified T : Any> getArray(key: String?): Array<T?>? {
         val value = bundleData.get(key) ?: return null
         return try {
-            value as Array<T>?
+            value as Array<T?>?
         } catch (e: ClassCastException) {
             typeWarning(key, value, "Array<" + T::class.canonicalName!! + ">", e)
             null
