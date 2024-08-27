@@ -46,7 +46,7 @@ fun Int.interactionModeToString(): String = when (this) {
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun ConfigurableMap(index: Int) {
+fun ConfigutableMap(index: Int) {
     var interactionMode by remember { mutableStateOf(0) }
 
     UIKitView(
@@ -88,12 +88,35 @@ fun ConfigurableMap(index: Int) {
     }
 }
 
+@Composable
+fun ConfigurableMap(nestInsideBox: Boolean, index: Int) {
+    if (nestInsideBox) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            ConfigutableMap(index)
+        }
+    } else {
+        ConfigutableMap(index)
+    }
+
+}
+
 val UpdatableInteropPropertiesExample = Screen.Example("Updatable interop properties") {
+    var nestInsideBox by remember { mutableStateOf(false) }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {
+        item {
+            Button(
+                onClick = { nestInsideBox = !nestInsideBox }
+            ) {
+                Text("Toggle nesting, current: $nestInsideBox")
+            }
+        }
         items(100) { index ->
-            ConfigurableMap(index)
+            ConfigurableMap(nestInsideBox, index)
         }
     }
 }
