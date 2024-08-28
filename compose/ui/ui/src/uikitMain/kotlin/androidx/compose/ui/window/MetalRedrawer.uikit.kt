@@ -218,9 +218,6 @@ internal class MetalRedrawer(
         target = DisplayLinkProxy {
             val targetTimestamp = currentTargetTimestamp ?: return@DisplayLinkProxy
 
-            // Run all scheduled operations in current Run Loop first, then do rendering.
-            NSRunLoop.currentRunLoop().runUntilDate(NSDate())
-
             displayLinkConditions.onDisplayLinkTick {
                 draw(waitUntilCompletion = false, targetTimestamp)
             }

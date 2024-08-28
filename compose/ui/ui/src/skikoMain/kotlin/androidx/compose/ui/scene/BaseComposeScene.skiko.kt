@@ -89,6 +89,7 @@ internal abstract class BaseComposeScene(
             snapshotInvalidationTracker.sendAndPerformSnapshotChanges()
             snapshotInvalidationTracker.performSnapshotChangesSynchronously(block)
         } finally {
+            snapshotInvalidationTracker.sendAndPerformSnapshotChanges()
             isInvalidationDisabled = false
         }.also {
             updateInvalidations()
@@ -97,18 +98,11 @@ internal abstract class BaseComposeScene(
 
     @Volatile
     private var hasPendingDraws = true
-    private var hasPostponedInvalidations = false
     protected fun updateInvalidations() {
         hasPendingDraws = frameClock.hasAwaiters ||
-            snapshotInvalidationTracker.hasInvalidations ||
-            hasPostponedInvalidations
-        if (hasPendingDraws && !isClosed && composition != null) {
-            if (isInvalidationDisabled) {
-                hasPostponedInvalidations = true
-            } else {
-                hasPostponedInvalidations = false
-                invalidate()
-            }
+            snapshotInvalidationTracker.hasInvalidations
+        if (hasPendingDraws && !isInvalidationDisabled && !isClosed && composition != null) {
+            invalidate()
         }
     }
 
@@ -212,6 +206,7 @@ internal abstract class BaseComposeScene(
             nativeEvent = nativeEvent,
             button = button
         )
+        recomposer.performScheduledEffects()
     }
 
     // TODO(demin): return Boolean (when it is consumed)
@@ -236,10 +231,13 @@ internal abstract class BaseComposeScene(
             nativeEvent = nativeEvent,
             button = button
         )
+        recomposer.performScheduledEffects()
     }
 
     override fun sendKeyEvent(keyEvent: KeyEvent): Boolean = postponeInvalidation("BaseComposeScene:sendKeyEvent") {
-        inputHandler.onKeyEvent(keyEvent)
+        inputHandler.onKeyEvent(keyEvent).also {
+            recomposer.performScheduledEffects()
+        }
     }
 
     private fun doMeasureAndLayout() {
