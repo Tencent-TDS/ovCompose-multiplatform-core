@@ -61,6 +61,7 @@ abstract class AndroidXExtension(val project: Project) : ExtensionAware {
         // `./gradlew :compose:compiler:compiler:publishToMavenLocal -Pandroidx.versionExtraCheckEnabled=false`
         val composeCustomVersion = project.providers.environmentVariable("COMPOSE_CUSTOM_VERSION")
         val composeCustomGroup = project.providers.environmentVariable("COMPOSE_CUSTOM_GROUP")
+        val versionMetadata = project.providers.gradleProperty("jetbrains.publication.version.metadata")
         // service that can compute group/version for a project
         versionService = project.gradle.sharedServices.registerIfAbsent(
             "libraryVersionsService",
@@ -78,7 +79,13 @@ abstract class AndroidXExtension(val project: Project) : ExtensionAware {
                     it.startsWith("jetbrains.publication.version.")
                 }.associate {  propertyName ->
                     val tag = propertyName.replace("jetbrains.publication.version.", "")
-                    val version = project.properties[propertyName] as String
+                    val versionMain = project.properties[propertyName] as String
+                    val versionAddition = if (versionMetadata.get().isNullOrBlank()) {
+                        ""
+                    } else {
+                        "+${versionMetadata.get()}"
+                    }
+                    val version = versionMain + versionAddition
                     tag to version
                 }
                 allOverriddenVersions
