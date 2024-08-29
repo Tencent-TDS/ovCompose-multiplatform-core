@@ -27,6 +27,7 @@ import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.NonCancellable.isActive
@@ -36,11 +37,18 @@ import org.w3c.dom.events.MouseEventInit
 
 class MouseEventsTest : OnCanvasTests {
 
+    @BeforeTest
+    fun setup() {
+        // We should use this method whenever we are relying on the fact that document coordinates start exactly at (0, 0)
+        // TODO: strictly speaking, this way one test suit affects the other in that sense that styles can be injected by different tests suite
+        OnCanvasTests.injectDefaultStyles()
+    }
+
     @Test
     fun testPointerEvents() = runTest {
         val pointerEvents = mutableListOf<PointerEvent>()
 
-        createComposeWindow {
+        composableContent {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -89,7 +97,7 @@ class MouseEventsTest : OnCanvasTests {
         var primaryClickedCounter = 0
         var secondaryClickedCounter = 0
 
-        createComposeWindow {
+        composableContent {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -120,7 +128,7 @@ class MouseEventsTest : OnCanvasTests {
     fun testPointerButtonIsNullForNoClickEvents() = runTest {
         var event: PointerEvent? = null
 
-        createComposeWindow {
+        composableContent {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

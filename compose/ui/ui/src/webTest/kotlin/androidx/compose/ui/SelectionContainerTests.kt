@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -44,6 +45,13 @@ import org.w3c.dom.events.MouseEventInit
 
 class SelectionContainerTests : OnCanvasTests {
 
+    @BeforeTest
+    fun setup() {
+        // We should use this method whenever we are relying on the fact that document coordinates start exactly at (0, 0)
+        // TODO: strictly speaking, this way one test suit affects the other in that sense that styles can be injected by different tests suite
+        OnCanvasTests.injectDefaultStyles()
+    }
+
     private fun HTMLCanvasElement.doClick() {
         dispatchEvent(MouseEvent("mousedown", MouseEventInit(5, 5, 5, 5, buttons = 1, button = 1)))
         dispatchEvent(MouseEvent("mouseup", MouseEventInit(5, 5, 5, 5, buttons = 0, button = 1)))
@@ -57,7 +65,7 @@ class SelectionContainerTests : OnCanvasTests {
 
         var viewConfiguration: ViewConfiguration? = null
 
-        createComposeWindow {
+        composableContent {
             var selection by remember { mutableStateOf<Selection?>(null) }
 
             androidx.compose.foundation.text.selection.SelectionContainer(
@@ -119,7 +127,7 @@ class SelectionContainerTests : OnCanvasTests {
 
         var viewConfiguration: ViewConfiguration? = null
 
-        createComposeWindow {
+        composableContent {
             var selection by remember { mutableStateOf<Selection?>(null) }
 
             androidx.compose.foundation.text.selection.SelectionContainer(
@@ -171,7 +179,7 @@ class SelectionContainerTests : OnCanvasTests {
 
         var viewConfiguration: ViewConfiguration? = null
 
-        createComposeWindow {
+        composableContent {
             var selection by remember { mutableStateOf<Selection?>(null) }
 
             androidx.compose.foundation.text.selection.SelectionContainer(
