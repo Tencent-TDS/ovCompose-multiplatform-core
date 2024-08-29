@@ -37,13 +37,6 @@ import org.w3c.dom.events.MouseEventInit
 
 class MouseEventsTest : OnCanvasTests {
 
-    @BeforeTest
-    fun setup() {
-        // We should use this method whenever we are relying on the fact that document coordinates start exactly at (0, 0)
-        // TODO: strictly speaking, this way one test suit affects the other in that sense that styles can be injected by different tests suite
-        OnCanvasTests.injectDefaultStyles()
-    }
-
     @Test
     fun testPointerEvents() = runTest {
         val pointerEvents = mutableListOf<PointerEvent>()

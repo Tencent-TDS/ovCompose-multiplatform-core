@@ -17,7 +17,6 @@
 package androidx.compose.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.window.CanvasBasedWindow
 import androidx.compose.ui.window.ComposeWindow
 import androidx.compose.ui.window.DefaultWindowState
 import kotlinx.browser.document
@@ -40,7 +39,7 @@ internal interface OnCanvasTests {
 
     companion object {
         private var injected: Boolean = false
-        fun injectDefaultStyles() {
+        private fun injectDefaultStyles() {
             if (injected) return
             injected = true
             document.head!!.appendChild(
@@ -72,8 +71,10 @@ internal interface OnCanvasTests {
     }
 
     fun composableContent(content: @Composable () -> Unit) {
+        // We should use this method whenever we are relying on the fact that document coordinates start exactly at (0, 0)
+        // TODO: strictly speaking, this way one test suit affects the other in that sense that styles can be injected by different tests suite
+        injectDefaultStyles()
         resetCanvas()
-
         createComposeViewport(content)
     }
 
