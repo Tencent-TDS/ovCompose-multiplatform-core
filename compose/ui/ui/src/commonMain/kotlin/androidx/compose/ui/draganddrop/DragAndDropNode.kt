@@ -138,6 +138,12 @@ internal interface DragAndDropStartTransferScope {
  * single node, or moves to a sibling of the node.
  *
  * This intended to be used directly only by [DragAndDropManager].
+ *
+ * @param onStartTransfer A lambda function that is called when a drag-and-drop transfer is started.
+ *   It takes an [Offset] representing the position of the input pointer.
+ * @param onDropTargetValidate A lambda function that is used to validate the drop target during
+ *   a drag-and-drop operation. It takes a [DragAndDropEvent] and returns a [DragAndDropTarget] if
+ *   the target is valid, or `null` otherwise.
  */
 internal class DragAndDropNode(
     private var onStartTransfer: (DragAndDropStartTransferScope.(Offset) -> Unit)? = null,
