@@ -32,7 +32,6 @@ import java.io.FileInputStream
  *
  * @throws IllegalArgumentException if there is no [resourcePath] in resources
  */
-@ExperimentalComposeUiApi
 @Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 internal inline fun <T> useResource(
     resourcePath: String,
@@ -65,7 +64,6 @@ inline fun <T> useResource(
  * @throws IllegalArgumentException if there is no [resourcePath] in resources
  */
 @PublishedApi
-@ExperimentalComposeUiApi
 @Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 internal fun openResource(
     resourcePath: String,
@@ -105,7 +103,6 @@ interface ResourceLoader {
          * project. Ability to load from dependent modules resources is not guaranteed in the future.
          * Use explicit `ClassLoaderResourceLoader` instance if such guarantee is needed.
          */
-        @ExperimentalComposeUiApi
         val Default = ClassLoaderResourceLoader()
     }
     fun load(resourcePath: String): InputStream
