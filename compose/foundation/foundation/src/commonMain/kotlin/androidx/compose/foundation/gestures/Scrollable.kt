@@ -506,19 +506,6 @@ private class ScrollableNode(
 
     override fun onPreKeyEvent(event: KeyEvent) = false
 
-    override fun onPointerEvent(
-        pointerEvent: PointerEvent,
-        pass: PointerEventPass,
-        bounds: IntSize
-    ) {
-        if (pointerEvent.changes.fastAny { canDrag.invoke(it) }) {
-            super.onPointerEvent(pointerEvent, pass, bounds)
-        }
-        if (pass == PointerEventPass.Main && pointerEvent.type == PointerEventType.Scroll) {
-            processMouseWheelEvent(pointerEvent, bounds)
-        }
-    }
-
     override fun SemanticsPropertyReceiver.applySemantics() {
         if (enabled && (scrollByAction == null || scrollByOffsetAction == null)) {
             setScrollSemanticsActions()
