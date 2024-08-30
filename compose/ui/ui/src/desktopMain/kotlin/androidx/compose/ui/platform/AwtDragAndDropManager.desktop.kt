@@ -218,6 +218,7 @@ internal class AwtDragAndDropManager(
             val event = DragAndDropEvent(dtde)
             val dragAndDropTarget = dragAndDropTarget()
             val accepted = dragAndDropTarget.onDrop(event)
+            dragAndDropTarget.onEnded(event)
             dtde.acceptDrop(dtde.dropAction)
             dtde.dropComplete(accepted)
         }
