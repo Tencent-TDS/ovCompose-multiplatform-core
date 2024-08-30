@@ -17,6 +17,7 @@
 package androidx.compose.ui.test
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.InfiniteAnimationPolicy
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
@@ -39,6 +41,9 @@ import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.cancellation.CancellationException
@@ -320,11 +325,12 @@ class SkikoComposeUiTest @InternalTestApi constructor(
     }
 
     override fun setContent(composable: @Composable () -> Unit) {
+        val content = ProvideTestCompositionLocals(composable)
         if (isOnUiThread()) {
-            scene.setContent(content = composable)
+            scene.setContent(content = content)
         } else {
             runOnUiThread {
-                scene.setContent(content = composable)
+                scene.setContent(content = content)
             }
 
             // Only wait for idleness if not on the UI thread. If we are on the UI thread, the
@@ -431,6 +437,19 @@ class SkikoComposeUiTest @InternalTestApi constructor(
     private inner class TestComposeSceneContext : ComposeSceneContext {
         override val platformContext = TestContext()
     }
+
+    private val lifecycleOwner = TestLifecycleOwner()
+
+    override fun sendLifecycleEvent(event: Lifecycle.Event) {
+        lifecycleOwner.lifecycle.handleLifecycleEvent(event)
+    }
+
+    private fun ProvideTestCompositionLocals(composable: @Composable () -> Unit): @Composable () -> Unit = {
+        CompositionLocalProvider(
+            LocalLifecycleOwner provides lifecycleOwner,
+            content = composable
+        )
+    }
 }
 
 @ExperimentalTestApi
@@ -449,4 +468,9 @@ actual sealed interface ComposeUiTest : SemanticsNodeInteractionsProvider {
     actual fun registerIdlingResource(idlingResource: IdlingResource)
     actual fun unregisterIdlingResource(idlingResource: IdlingResource)
     actual fun setContent(composable: @Composable () -> Unit)
+    fun sendLifecycleEvent(event: Lifecycle.Event)
+}
+
+private class TestLifecycleOwner : LifecycleOwner {
+    override val lifecycle = LifecycleRegistry(this)
 }

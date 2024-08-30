@@ -147,10 +147,17 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.kotlinTest)
             }
 
-            skikoMain {
-                dependsOn(commonMain)
+            skikoMain.dependencies {
+                implementation(project(":lifecycle:lifecycle-common"))
+                implementation(project(":lifecycle:lifecycle-runtime"))
             }
 
+            skikoTest.dependencies {
+                implementation(libs.kotlinTest)
+                implementation(project(":lifecycle:lifecycle-runtime-compose"))
+            }
+
+            skikoMain.dependsOn(commonMain)
             desktopMain.dependsOn(skikoMain)
             jsNativeMain.dependsOn(skikoMain)
             jsMain.dependsOn(jsNativeMain)
@@ -168,6 +175,15 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             androidCommonTest.dependsOn(commonTest)
             androidTest.dependsOn(androidCommonTest)
             androidAndroidTest.dependsOn(androidCommonTest)
+
+            desktopTest {
+                dependsOn(skikoTest)
+                dependencies {
+                    implementation(libs.skikoCurrentOs)
+                }
+            }
+            nativeTest.dependsOn(skikoTest)
+            wasmJsTest.dependsOn(skikoTest)
         }
     }
 
