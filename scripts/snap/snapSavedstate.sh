@@ -1,1 +1,0 @@
-$(dirname "$0")/impl/snapToJbMain.sh 'savedstate'
