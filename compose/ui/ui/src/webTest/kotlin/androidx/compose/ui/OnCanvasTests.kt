@@ -17,7 +17,8 @@
 package androidx.compose.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.window.CanvasBasedWindow
+import androidx.compose.ui.window.ComposeWindow
+import androidx.compose.ui.window.DefaultWindowState
 import kotlinx.browser.document
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.w3c.dom.HTMLCanvasElement
+import org.w3c.dom.HTMLStyleElement
+import org.w3c.dom.events.Event
 
 /**
  * An interface with helper functions to initialise the tests
@@ -33,9 +36,28 @@ import org.w3c.dom.HTMLCanvasElement
 private const val canvasId: String = "canvasApp"
 
 internal interface OnCanvasTests {
+
+    companion object {
+        private var injected: Boolean = false
+        private fun injectDefaultStyles() {
+            if (injected) return
+            injected = true
+            document.head!!.appendChild(
+                (document.createElement("style") as HTMLStyleElement).apply {
+                    type = "text/css"
+                    appendChild(
+                        document.createTextNode(
+                            "body { margin: 0;}}"
+                        )
+                    )
+                }
+            )
+        }
+    }
+
     fun getCanvas() = document.getElementById(canvasId) as HTMLCanvasElement
 
-    fun resetCanvas(): HTMLCanvasElement {
+    private fun resetCanvas() {
         /** TODO: [kotlin.test.AfterTest] is fixed only in kotlin 2.0
         see https://youtrack.jetbrains.com/issue/KT-61888
          */
@@ -46,11 +68,25 @@ internal interface OnCanvasTests {
         canvas.setAttribute("tabindex", "0")
 
         document.body!!.appendChild(canvas)
-        return canvas
     }
 
-    fun createComposeWindow(content: @Composable () -> Unit) {
-        CanvasBasedWindow(canvasElementId = canvasId, content = content)
+    fun composableContent(content: @Composable () -> Unit) {
+        // We should use this method whenever we are relying on the fact that document coordinates start exactly at (0, 0)
+        // TODO: strictly speaking, this way one test suit affects the other in that sense that styles can be injected by different tests suite
+        injectDefaultStyles()
+        resetCanvas()
+        createComposeViewport(content)
+    }
+
+    fun createComposeViewport(content: @Composable () -> Unit) {
+        ComposeWindow(canvas = getCanvas(), content = content, state = DefaultWindowState(document.documentElement!!))
+    }
+
+    fun dispatchEvents(vararg events: Any) {
+        val canvas = getCanvas()
+        for (event in events) {
+            canvas.dispatchEvent(event as Event)
+        }
     }
 }
 

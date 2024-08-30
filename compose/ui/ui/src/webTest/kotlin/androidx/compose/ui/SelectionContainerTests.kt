@@ -33,7 +33,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import kotlinx.browser.document
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -45,11 +44,6 @@ import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.MouseEventInit
 
 class SelectionContainerTests : OnCanvasTests {
-
-    @BeforeTest
-    fun setup() {
-        resetCanvas()
-    }
 
     private fun HTMLCanvasElement.doClick() {
         dispatchEvent(MouseEvent("mousedown", MouseEventInit(5, 5, 5, 5, buttons = 1, button = 1)))
@@ -64,7 +58,7 @@ class SelectionContainerTests : OnCanvasTests {
 
         var viewConfiguration: ViewConfiguration? = null
 
-        createComposeWindow {
+        composableContent {
             var selection by remember { mutableStateOf<Selection?>(null) }
 
             androidx.compose.foundation.text.selection.SelectionContainer(
@@ -126,7 +120,7 @@ class SelectionContainerTests : OnCanvasTests {
 
         var viewConfiguration: ViewConfiguration? = null
 
-        createComposeWindow {
+        composableContent {
             var selection by remember { mutableStateOf<Selection?>(null) }
 
             androidx.compose.foundation.text.selection.SelectionContainer(
@@ -178,7 +172,7 @@ class SelectionContainerTests : OnCanvasTests {
 
         var viewConfiguration: ViewConfiguration? = null
 
-        createComposeWindow {
+        composableContent {
             var selection by remember { mutableStateOf<Selection?>(null) }
 
             androidx.compose.foundation.text.selection.SelectionContainer(
