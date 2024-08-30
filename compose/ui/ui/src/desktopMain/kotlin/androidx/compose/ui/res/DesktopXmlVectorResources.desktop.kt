@@ -36,7 +36,7 @@ import org.xml.sax.InputSource
  * will be drawn with the specified size, density will have no effect.
  * @return the decoded vector image associated with the image
  */
-@Deprecated("Migrate to the compose resources library")
+@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 fun loadXmlImageVector(
     inputSource: InputSource,
     density: Density

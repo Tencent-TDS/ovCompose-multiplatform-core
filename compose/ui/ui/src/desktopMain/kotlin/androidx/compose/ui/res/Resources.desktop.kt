@@ -33,7 +33,7 @@ import java.io.FileInputStream
  * @throws IllegalArgumentException if there is no [resourcePath] in resources
  */
 @ExperimentalComposeUiApi
-@Deprecated("Migrate to the compose resources library")
+@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 internal inline fun <T> useResource(
     resourcePath: String,
     loader: ResourceLoader,
@@ -50,7 +50,7 @@ internal inline fun <T> useResource(
  *
  * @throws IllegalArgumentException if there is no [resourcePath] in resources
  */
-@Deprecated("Migrate to the compose resources library")
+@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 inline fun <T> useResource(
     resourcePath: String,
     block: (InputStream) -> T
@@ -66,7 +66,7 @@ inline fun <T> useResource(
  */
 @PublishedApi
 @ExperimentalComposeUiApi
-@Deprecated("Migrate to the compose resources library")
+@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 internal fun openResource(
     resourcePath: String,
     loader: ResourceLoader
@@ -82,7 +82,7 @@ internal fun openResource(
  * @throws IllegalArgumentException if there is no [resourcePath] in resources
  */
 @PublishedApi
-@Deprecated("Migrate to the compose resources library")
+@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 internal fun openResource(
     resourcePath: String,
 ): InputStream {
@@ -97,7 +97,7 @@ internal fun openResource(
  * Also the resource should be always available to load, and if you need to handle exceptions,
  * it is better to use these functions as well.
  */
-@Deprecated("Migrate to the compose resources library")
+@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 interface ResourceLoader {
     companion object {
         /**
@@ -114,7 +114,7 @@ interface ResourceLoader {
 /**
  * Resource loader based on JVM current context class loader.
  */
-@Deprecated("Migrate to the compose resources library")
+@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 class ClassLoaderResourceLoader : ResourceLoader {
     override fun load(resourcePath: String): InputStream {
         // TODO(https://github.com/JetBrains/compose-jb/issues/618): probably we shouldn't use
@@ -129,7 +129,7 @@ class ClassLoaderResourceLoader : ResourceLoader {
 /**
  * Resource loader from the file system relative to a certain root location.
  */
-@Deprecated("Migrate to the compose resources library")
+@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 class FileResourceLoader(val root: File) : ResourceLoader {
     override fun load(resourcePath: String): InputStream {
         return FileInputStream(File(root, resourcePath))

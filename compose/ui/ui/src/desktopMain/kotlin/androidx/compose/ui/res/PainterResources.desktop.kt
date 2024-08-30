@@ -50,7 +50,7 @@ import org.xml.sax.InputSource
  * @param loader  resources loader
  * @return [Painter] used for drawing the loaded resource
  */
-@Deprecated("Migrate to the compose resources library")
+@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 @Composable
 fun painterResource(
     resourcePath: String
@@ -59,7 +59,7 @@ fun painterResource(
     ResourceLoader.Default
 )
 
-@Deprecated("Migrate to the compose resources library")
+@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 @Composable
 fun painterResource(
     resourcePath: String,
