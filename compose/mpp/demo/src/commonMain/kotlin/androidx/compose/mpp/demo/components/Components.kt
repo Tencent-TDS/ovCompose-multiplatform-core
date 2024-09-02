@@ -30,6 +30,7 @@ import androidx.compose.mpp.demo.components.material3.SearchBarExample
 import androidx.compose.mpp.demo.components.material3.WindowSizeClassExample
 import androidx.compose.mpp.demo.components.popup.Popups
 import androidx.compose.mpp.demo.textfield.TextFields
+import androidx.compose.runtime.Composable
 
 private val MaterialComponents = Screen.Selection(
     "material",
@@ -61,4 +62,5 @@ val Components = Screen.Selection(
     Screen.Example("Selection") { SelectionExample() },
     Screen.Example("Pager") { PagerExample() },
     Screen.Example("WindowAdaptiveInfo") { AdaptiveExample() },
+    Screen.Example("Drag and Drop") { DragAndDropExample() }
 )
