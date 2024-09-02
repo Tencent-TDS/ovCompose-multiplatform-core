@@ -47,7 +47,6 @@ import java.awt.dnd.DropTargetDragEvent
 import java.awt.dnd.DropTargetDropEvent
 import java.awt.dnd.DropTargetEvent
 import java.awt.dnd.DropTargetListener
-import java.awt.event.InputEvent
 import java.awt.event.MouseEvent
 import java.awt.image.BufferedImage
 import javax.swing.JComponent
@@ -216,11 +215,10 @@ internal class AwtDragAndDropManager(
 
         override fun drop(dtde: DropTargetDropEvent) {
             val event = DragAndDropEvent(dtde)
-            val dragAndDropTarget = dragAndDropTarget()
-            val accepted = dragAndDropTarget.onDrop(event)
-            dragAndDropTarget.onEnded(event)
             dtde.acceptDrop(dtde.dropAction)
-            dtde.dropComplete(accepted)
+            val dragAndDropTarget = dragAndDropTarget()
+            dtde.dropComplete(dragAndDropTarget.onDrop(event))
+            dragAndDropTarget.onEnded(event)
         }
 
         private fun DragAndDropEvent(dragEvent: DropTargetDragEvent) = DragAndDropEvent(
