@@ -442,6 +442,7 @@ public final class androidx/compose/ui/awt/ComposeDialog : javax/swing/JDialog {
 	public final fun getCompositionLocalContext ()Landroidx/compose/runtime/CompositionLocalContext;
 	public final fun getExceptionHandler ()Landroidx/compose/ui/window/WindowExceptionHandler;
 	public final fun getRenderApi ()Lorg/jetbrains/skiko/GraphicsApi;
+	public final fun getUndecoratedResizerThickness-D9Ej5fM ()F
 	public final fun getWindowHandle ()J
 	public final fun isTransparent ()Z
 	public final fun onRenderApiChanged (Lkotlin/jvm/functions/Function0;)V
@@ -459,6 +460,7 @@ public final class androidx/compose/ui/awt/ComposeDialog : javax/swing/JDialog {
 	public fun setResizable (Z)V
 	public final fun setTransparent (Z)V
 	public fun setUndecorated (Z)V
+	public final fun setUndecoratedResizerThickness-0680j_4 (F)V
 }
 
 public final class androidx/compose/ui/awt/ComposePanel : javax/swing/JLayeredPane {
@@ -514,6 +516,7 @@ public final class androidx/compose/ui/awt/ComposeWindow : javax/swing/JFrame {
 	public final fun getExceptionHandler ()Landroidx/compose/ui/window/WindowExceptionHandler;
 	public final fun getPlacement ()Landroidx/compose/ui/window/WindowPlacement;
 	public final fun getRenderApi ()Lorg/jetbrains/skiko/GraphicsApi;
+	public final fun getUndecoratedResizerThickness-D9Ej5fM ()F
 	public final fun getWindowHandle ()J
 	public final fun isMinimized ()Z
 	public final fun isTransparent ()Z
@@ -534,6 +537,7 @@ public final class androidx/compose/ui/awt/ComposeWindow : javax/swing/JFrame {
 	public fun setResizable (Z)V
 	public final fun setTransparent (Z)V
 	public fun setUndecorated (Z)V
+	public final fun setUndecoratedResizerThickness-0680j_4 (F)V
 }
 
 public final class androidx/compose/ui/awt/RenderSettings {
@@ -4137,8 +4141,9 @@ public abstract interface class androidx/compose/ui/window/DialogWindowScope : a
 public final class androidx/compose/ui/window/Dialog_desktopKt {
 	public static final fun Dialog (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/window/DialogState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;ZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
 	public static final fun Dialog (ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun DialogWindow (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/window/DialogState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;Landroidx/compose/ui/window/WindowDecoration;ZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
 	public static final synthetic fun DialogWindow (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/window/DialogState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;ZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
-	public static final fun DialogWindow (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/window/DialogState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;ZZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
+	public static final synthetic fun DialogWindow (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/window/DialogState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;ZZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
 	public static final fun DialogWindow (ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
@@ -4254,8 +4259,30 @@ public final class androidx/compose/ui/window/Tray_desktopKt {
 	public static final fun rememberTrayState (Landroidx/compose/runtime/Composer;I)Landroidx/compose/ui/window/TrayState;
 }
 
-public final class androidx/compose/ui/window/UndecoratedWindowResizer_desktopKt {
-	public static final fun getLocalUndecoratedWindowResizerBorderThickness ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+public abstract interface class androidx/compose/ui/window/WindowDecoration {
+	public static final field Companion Landroidx/compose/ui/window/WindowDecoration$Companion;
+}
+
+public final class androidx/compose/ui/window/WindowDecoration$Companion {
+	public final fun fromFlag (Z)Landroidx/compose/ui/window/WindowDecoration;
+}
+
+public final class androidx/compose/ui/window/WindowDecoration$System : androidx/compose/ui/window/WindowDecoration {
+	public static final field $stable I
+	public static final field INSTANCE Landroidx/compose/ui/window/WindowDecoration$System;
+}
+
+public final class androidx/compose/ui/window/WindowDecoration$Undecorated : androidx/compose/ui/window/WindowDecoration {
+	public static final field $stable I
+	public synthetic fun <init> (FILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (FLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getResizerThickness-D9Ej5fM ()F
+	public fun hashCode ()I
+}
+
+public final class androidx/compose/ui/window/WindowDecoration_desktopKt {
+	public static final fun getDefaultWindowResizerThickness ()F
 }
 
 public abstract interface class androidx/compose/ui/window/WindowExceptionHandler {
@@ -4381,9 +4408,12 @@ public final class androidx/compose/ui/window/WindowState_desktopKt {
 
 public final class androidx/compose/ui/window/Window_desktopKt {
 	public static final fun MenuBar (Landroidx/compose/ui/window/FrameWindowScope;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;I)V
-	public static final fun Window (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/window/WindowState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;ZZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
+	public static final fun Window (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/window/WindowState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;Landroidx/compose/ui/window/WindowDecoration;ZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
+	public static final synthetic fun Window (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/window/WindowState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;ZZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
 	public static final fun Window (ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
-	public static final fun singleWindowApplication (Landroidx/compose/ui/window/WindowState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;ZZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function3;)V
+	public static final fun singleWindowApplication (Landroidx/compose/ui/window/WindowState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;Landroidx/compose/ui/window/WindowDecoration;ZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function3;)V
+	public static final synthetic fun singleWindowApplication (Landroidx/compose/ui/window/WindowState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;ZZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function3;)V
+	public static synthetic fun singleWindowApplication$default (Landroidx/compose/ui/window/WindowState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;Landroidx/compose/ui/window/WindowDecoration;ZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
 	public static synthetic fun singleWindowApplication$default (Landroidx/compose/ui/window/WindowState;ZLjava/lang/String;Landroidx/compose/ui/graphics/painter/Painter;ZZZZZZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
 }
 
