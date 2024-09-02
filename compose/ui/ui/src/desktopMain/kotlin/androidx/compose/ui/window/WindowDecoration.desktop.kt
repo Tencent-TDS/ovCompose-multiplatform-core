@@ -28,7 +28,7 @@ interface WindowDecoration {
     /**
      * Specifies that the default system decoration should be used.
      */
-    object System : WindowDecoration
+    object SystemDefault : WindowDecoration
 
     /**
      * Specifies that the window should be undecorated.
@@ -49,11 +49,11 @@ interface WindowDecoration {
 
     companion object {
         /**
-         * Returns [WindowDecoration.System] if [undecorated] is `false`, or [Undecorated] with
-         * default resizer thickness, if `true`.
+         * Returns [WindowDecoration.SystemDefault] if [undecorated] is `false`, or [Undecorated]
+         * with default resizer thickness, if `true`.
          */
         fun fromFlag(undecorated: Boolean): WindowDecoration =
-            if (undecorated) System else Undecorated()
+            if (undecorated) SystemDefault else Undecorated()
     }
 
 }
@@ -67,4 +67,7 @@ val DefaultWindowResizerThickness: Dp = 8.dp
  * Returns the resizer thickness of the given [WindowDecoration].
  */
 internal val WindowDecoration.resizerThickness: Dp
-    get() = if (this is WindowDecoration.Undecorated) resizerThickness else DefaultWindowResizerThickness
+    get() = when {
+        this is WindowDecoration.Undecorated -> resizerThickness
+        else -> DefaultWindowResizerThickness
+    }
