@@ -4260,16 +4260,11 @@ public final class androidx/compose/ui/window/Tray_desktopKt {
 }
 
 public abstract interface class androidx/compose/ui/window/WindowDecoration {
-	public static final field Companion Landroidx/compose/ui/window/WindowDecoration$Companion;
 }
 
-public final class androidx/compose/ui/window/WindowDecoration$Companion {
-	public final fun fromFlag (Z)Landroidx/compose/ui/window/WindowDecoration;
-}
-
-public final class androidx/compose/ui/window/WindowDecoration$System : androidx/compose/ui/window/WindowDecoration {
+public final class androidx/compose/ui/window/WindowDecoration$SystemDefault : androidx/compose/ui/window/WindowDecoration {
 	public static final field $stable I
-	public static final field INSTANCE Landroidx/compose/ui/window/WindowDecoration$System;
+	public static final field INSTANCE Landroidx/compose/ui/window/WindowDecoration$SystemDefault;
 }
 
 public final class androidx/compose/ui/window/WindowDecoration$Undecorated : androidx/compose/ui/window/WindowDecoration {

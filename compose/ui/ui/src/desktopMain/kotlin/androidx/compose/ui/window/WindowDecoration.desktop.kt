@@ -19,6 +19,8 @@ package androidx.compose.ui.window
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.WindowDecoration.SystemDefault
+import androidx.compose.ui.window.WindowDecoration.Undecorated
 
 /**
  * Defines the options for window decoration.
@@ -46,16 +48,6 @@ interface WindowDecoration {
             return resizerThickness.hashCode()
         }
     }
-
-    companion object {
-        /**
-         * Returns [WindowDecoration.SystemDefault] if [undecorated] is `false`, or [Undecorated]
-         * with default resizer thickness, if `true`.
-         */
-        fun fromFlag(undecorated: Boolean): WindowDecoration =
-            if (undecorated) SystemDefault else Undecorated()
-    }
-
 }
 
 /**
@@ -68,6 +60,13 @@ val DefaultWindowResizerThickness: Dp = 8.dp
  */
 internal val WindowDecoration.resizerThickness: Dp
     get() = when {
-        this is WindowDecoration.Undecorated -> resizerThickness
+        this is Undecorated -> resizerThickness
         else -> DefaultWindowResizerThickness
     }
+
+/**
+ * Returns [WindowDecoration.SystemDefault] if [undecorated] is `false`, or [Undecorated]
+ * with default resizer thickness, if `true`.
+ */
+internal fun windowDecorationFromFlag(undecorated: Boolean): WindowDecoration =
+    if (undecorated) SystemDefault else Undecorated()
