@@ -83,8 +83,26 @@ fun Dialog(
 )
 
 @Deprecated(
-    level = DeprecationLevel.HIDDEN,
-    message = "Replaced by an overload that also takes alwaysOnTop",
+    level = DeprecationLevel.WARNING,
+    message = "Replaced by an overload that takes a decoration argument",
+    replaceWith = ReplaceWith("DialogWindow(" +
+        "onCloseRequest," +
+        "state," +
+        "visible," +
+        "title," +
+        "icon," +
+        "if (undecorated) WindowDecoration.Undecorated() else WindowDecoration.SystemDefault," +
+        "transparent," +
+        "resizable," +
+        "enabled," +
+        "focusable," +
+        "alwaysOnTop," +
+        "onPreviewKeyEvent," +
+        "onKeyEvent," +
+        "content" +
+        ")",
+        "androidx.compose.ui.window.WindowDecoration"
+    )
 )
 @Composable
 fun DialogWindow(
@@ -179,8 +197,26 @@ fun DialogWindow(
  * @param content content of the dialog
  */
 @Deprecated(
-    level = DeprecationLevel.HIDDEN,
+    level = DeprecationLevel.WARNING,
     message = "Replaced by an overload that takes a decoration argument",
+    replaceWith = ReplaceWith("DialogWindow(" +
+        "onCloseRequest," +
+        "state," +
+        "visible," +
+        "title," +
+        "icon," +
+        "if (undecorated) WindowDecoration.Undecorated() else WindowDecoration.SystemDefault," +
+        "transparent," +
+        "resizable," +
+        "enabled," +
+        "focusable," +
+        "alwaysOnTop," +
+        "onPreviewKeyEvent," +
+        "onKeyEvent," +
+        "content" +
+        ")",
+        "androidx.compose.ui.window.WindowDecoration"
+    )
 )
 @Composable
 fun DialogWindow(

@@ -330,8 +330,26 @@ fun Window(
  * @param content Content of the window
  */
 @Deprecated(
-    level = DeprecationLevel.HIDDEN,
+    level = DeprecationLevel.WARNING,
     message = "Replaced by an overload that takes a decoration argument",
+    replaceWith = ReplaceWith("Window(" +
+        "onCloseRequest," +
+        "state," +
+        "visible," +
+        "title," +
+        "icon," +
+        "if (undecorated) WindowDecoration.Undecorated() else WindowDecoration.SystemDefault," +
+        "transparent," +
+        "resizable," +
+        "enabled," +
+        "focusable," +
+        "alwaysOnTop," +
+        "onPreviewKeyEvent," +
+        "onKeyEvent," +
+        "content" +
+        ")",
+        "androidx.compose.ui.window.WindowDecoration"
+    )
 )
 @Composable
 fun Window(
@@ -340,7 +358,7 @@ fun Window(
     visible: Boolean = true,
     title: String = "Untitled",
     icon: Painter? = null,
-    undecorated: Boolean = false,
+    undecorated: Boolean,
     transparent: Boolean = false,
     resizable: Boolean = true,
     enabled: Boolean = true,
@@ -514,15 +532,33 @@ fun singleWindowApplication(
  * @param content Content of the window
  */
 @Deprecated(
-    level = DeprecationLevel.HIDDEN,
+    level = DeprecationLevel.WARNING,
     message = "Replaced by an overload that takes a decoration argument",
+    replaceWith = ReplaceWith("singleWindowApplication(" +
+        "state," +
+        "visible," +
+        "title," +
+        "icon," +
+        "if (undecorated) WindowDecoration.Undecorated() else WindowDecoration.SystemDefault," +
+        "transparent," +
+        "resizable," +
+        "enabled," +
+        "focusable," +
+        "alwaysOnTop," +
+        "onPreviewKeyEvent," +
+        "onKeyEvent," +
+        "content," +
+        "exitProcessOnExit" +
+        ")",
+        "androidx.compose.ui.window.WindowDecoration"
+    )
 )
 fun singleWindowApplication(
     state: WindowState = WindowState(),
     visible: Boolean = true,
     title: String = "Untitled",
     icon: Painter? = null,
-    undecorated: Boolean = false,
+    undecorated: Boolean,
     transparent: Boolean = false,
     resizable: Boolean = true,
     enabled: Boolean = true,
