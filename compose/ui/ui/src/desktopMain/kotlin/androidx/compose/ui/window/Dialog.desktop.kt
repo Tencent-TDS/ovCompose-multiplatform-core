@@ -412,7 +412,7 @@ fun DialogWindow(
             updater.update {
                 set(currentTitle, dialog::setTitle)
                 set(currentIcon, dialog::setIcon)
-                set(currentDecoration is WindowDecoration.Undecorated, dialog::setUndecoratedSafely)
+                set(currentDecoration is UndecoratedWindowDecoration, dialog::setUndecoratedSafely)
                 set(currentTransparent, dialog::isTransparent::set)
                 set(currentResizable, dialog::setResizable)
                 set(currentEnabled, dialog::setEnabled)

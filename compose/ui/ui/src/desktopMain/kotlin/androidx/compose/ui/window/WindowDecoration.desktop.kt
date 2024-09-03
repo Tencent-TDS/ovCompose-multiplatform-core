@@ -19,57 +19,64 @@ package androidx.compose.ui.window
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.WindowDecoration.Companion.Undecorated
 import androidx.compose.ui.window.WindowDecoration.SystemDefault
-import androidx.compose.ui.window.WindowDecoration.Undecorated
 
 /**
  * Defines the options for window decoration.
  */
-interface WindowDecoration {
+sealed interface WindowDecoration {
 
     /**
      * Specifies that the default system decoration should be used.
      */
-    object SystemDefault : WindowDecoration
+    data object SystemDefault : WindowDecoration
 
-    /**
-     * Specifies that the window should be undecorated.
-     *
-     * If it is resizable, the given thickness will be used for the edge resizers.
-     */
-    @Immutable
-    class Undecorated(val resizerThickness: Dp = DefaultResizerThickness) : WindowDecoration {
-        override fun equals(other: Any?): Boolean {
-            if (other !is Undecorated) return false
-            return other.resizerThickness == resizerThickness
-        }
-
-        override fun hashCode(): Int {
-            return resizerThickness.hashCode()
-        }
-
-        companion object {
-            /**
-             * The default thickness of the resizers in an undecorated window.
-             */
-            val DefaultResizerThickness: Dp = 8.dp
+    companion object {
+        /**
+         * Specifies that the window should be undecorated.
+         *
+         * If it is resizable, the given thickness will be used for the edge resizers.
+         */
+        fun Undecorated(
+            resizerThickness: Dp = UndecoratedWindowDecoration.DefaultResizerThickness
+        ) : WindowDecoration {
+            return UndecoratedWindowDecoration(resizerThickness)
         }
     }
 }
 
+@Immutable
+internal class UndecoratedWindowDecoration(val resizerThickness: Dp): WindowDecoration {
+    override fun equals(other: Any?): Boolean {
+        if (other !is UndecoratedWindowDecoration) return false
+        return other.resizerThickness == resizerThickness
+    }
+
+    override fun hashCode(): Int {
+        return resizerThickness.hashCode()
+    }
+
+    companion object {
+        /**
+         * The default thickness of the resizers in an undecorated window.
+         */
+        val DefaultResizerThickness: Dp = 8.dp
+    }
+}
 
 /**
  * Returns the resizer thickness of the given [WindowDecoration].
  */
 internal val WindowDecoration.resizerThickness: Dp
     get() = when {
-        this is Undecorated -> resizerThickness
-        else -> Undecorated.DefaultResizerThickness
+        this is UndecoratedWindowDecoration -> resizerThickness
+        else -> UndecoratedWindowDecoration.DefaultResizerThickness
     }
 
 /**
- * Returns [WindowDecoration.SystemDefault] if [undecorated] is `false`, or [Undecorated]
- * with default resizer thickness, if `true`.
+ * Returns [WindowDecoration.SystemDefault] if [undecorated] is `false`, or
+ * [UndecoratedWindowDecoration] with default resizer thickness, if `true`.
  */
 internal fun windowDecorationFromFlag(undecorated: Boolean): WindowDecoration =
     if (undecorated) SystemDefault else Undecorated()

@@ -228,7 +228,7 @@ fun Window(
             updater.update {
                 set(currentTitle, window::setTitle)
                 set(currentIcon, window::setIcon)
-                set(currentDecoration is WindowDecoration.Undecorated, window::setUndecoratedSafely)
+                set(currentDecoration is UndecoratedWindowDecoration, window::setUndecoratedSafely)
                 set(currentTransparent, window::isTransparent::set)
                 set(currentResizable, window::setResizable)
                 set(currentEnabled, window::setEnabled)
