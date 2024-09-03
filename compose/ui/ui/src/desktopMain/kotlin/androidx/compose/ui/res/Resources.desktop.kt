@@ -16,10 +16,7 @@
 
 package androidx.compose.ui.res
 
-import androidx.compose.ui.ExperimentalComposeUiApi
 import java.io.InputStream
-import java.io.File
-import java.io.FileInputStream
 
 /**
  * Open [InputStream] from a resource stored in resources for the application, calls the [block]
