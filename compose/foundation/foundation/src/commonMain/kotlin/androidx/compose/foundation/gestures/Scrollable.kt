@@ -544,7 +544,9 @@ private class ScrollableNode(
         pass: PointerEventPass,
         bounds: IntSize
     ) {
-        super.onPointerEvent(pointerEvent, pass, bounds)
+        if (pointerEvent.changes.fastAny { canDrag.invoke(it) }) {
+            super.onPointerEvent(pointerEvent, pass, bounds)
+        }
         mouseWheelScrollNode.pointerInputNode.onPointerEvent(pointerEvent, pass, bounds)
     }
 
