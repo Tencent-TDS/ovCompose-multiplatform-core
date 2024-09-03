@@ -50,7 +50,6 @@ internal fun openResource(
 /**
  * Resource loader based on JVM current context class loader.
  */
-@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
 private object ClassLoaderResourceLoader {
     fun load(resourcePath: String): InputStream {
         // TODO(https://github.com/JetBrains/compose-jb/issues/618): probably we shouldn't use
