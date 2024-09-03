@@ -39,7 +39,7 @@ sealed interface WindowDecoration {
          * If it is resizable, the given thickness will be used for the edge resizers.
          */
         fun Undecorated(
-            resizerThickness: Dp = UndecoratedWindowDecoration.DefaultResizerThickness
+            resizerThickness: Dp = WindowDecorationDefaults.ResizerThickness
         ) : WindowDecoration {
             return UndecoratedWindowDecoration(resizerThickness)
         }
@@ -56,13 +56,16 @@ internal class UndecoratedWindowDecoration(val resizerThickness: Dp): WindowDeco
     override fun hashCode(): Int {
         return resizerThickness.hashCode()
     }
+}
 
-    companion object {
-        /**
-         * The default thickness of the resizers in an undecorated window.
-         */
-        val DefaultResizerThickness: Dp = 8.dp
-    }
+/**
+ * Default values for window decoration.
+ */
+object WindowDecorationDefaults {
+    /**
+     * The default thickness of the resizers in an undecorated window.
+     */
+    val ResizerThickness: Dp = 8.dp
 }
 
 /**
@@ -71,7 +74,7 @@ internal class UndecoratedWindowDecoration(val resizerThickness: Dp): WindowDeco
 internal val WindowDecoration.resizerThickness: Dp
     get() = when {
         this is UndecoratedWindowDecoration -> resizerThickness
-        else -> UndecoratedWindowDecoration.DefaultResizerThickness
+        else -> WindowDecorationDefaults.ResizerThickness
     }
 
 /**

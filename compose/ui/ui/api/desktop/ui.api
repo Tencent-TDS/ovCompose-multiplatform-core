@@ -4260,25 +4260,26 @@ public final class androidx/compose/ui/window/Tray_desktopKt {
 }
 
 public abstract interface class androidx/compose/ui/window/WindowDecoration {
+	public static final field Companion Landroidx/compose/ui/window/WindowDecoration$Companion;
+}
+
+public final class androidx/compose/ui/window/WindowDecoration$Companion {
+	public final fun Undecorated-0680j_4 (F)Landroidx/compose/ui/window/WindowDecoration;
+	public static synthetic fun Undecorated-0680j_4$default (Landroidx/compose/ui/window/WindowDecoration$Companion;FILjava/lang/Object;)Landroidx/compose/ui/window/WindowDecoration;
 }
 
 public final class androidx/compose/ui/window/WindowDecoration$SystemDefault : androidx/compose/ui/window/WindowDecoration {
 	public static final field $stable I
 	public static final field INSTANCE Landroidx/compose/ui/window/WindowDecoration$SystemDefault;
-}
-
-public final class androidx/compose/ui/window/WindowDecoration$Undecorated : androidx/compose/ui/window/WindowDecoration {
-	public static final field $stable I
-	public static final field Companion Landroidx/compose/ui/window/WindowDecoration$Undecorated$Companion;
-	public synthetic fun <init> (FILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (FLkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getResizerThickness-D9Ej5fM ()F
 	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
-public final class androidx/compose/ui/window/WindowDecoration$Undecorated$Companion {
-	public final fun getDefaultResizerThickness-D9Ej5fM ()F
+public final class androidx/compose/ui/window/WindowDecorationDefaults {
+	public static final field $stable I
+	public static final field INSTANCE Landroidx/compose/ui/window/WindowDecorationDefaults;
+	public final fun getResizerThickness-D9Ej5fM ()F
 }
 
 public abstract interface class androidx/compose/ui/window/WindowExceptionHandler {
