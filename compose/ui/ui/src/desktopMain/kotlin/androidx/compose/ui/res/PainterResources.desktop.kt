@@ -71,7 +71,6 @@ fun painterResource(
 }
 
 @Composable
-@OptIn(ExperimentalComposeUiApi::class)
 private fun rememberSvgResource(
     resourcePath: String,
     loader: ResourceLoader = ResourceLoader.Default
@@ -85,7 +84,6 @@ private fun rememberSvgResource(
 }
 
 @Composable
-@OptIn(ExperimentalComposeUiApi::class)
 private fun rememberVectorXmlResource(
     resourcePath: String,
     loader: ResourceLoader = ResourceLoader.Default
@@ -100,7 +98,6 @@ private fun rememberVectorXmlResource(
 }
 
 @Composable
-@OptIn(ExperimentalComposeUiApi::class)
 private fun rememberBitmapResource(
     resourcePath: String,
     loader: ResourceLoader = ResourceLoader.Default

@@ -103,7 +103,7 @@ interface ResourceLoader {
          * project. Ability to load from dependent modules resources is not guaranteed in the future.
          * Use explicit `ClassLoaderResourceLoader` instance if such guarantee is needed.
          */
-        val Default = ClassLoaderResourceLoader()
+        val Default: ResourceLoader = ClassLoaderResourceLoader()
     }
     fun load(resourcePath: String): InputStream
 }
@@ -111,8 +111,7 @@ interface ResourceLoader {
 /**
  * Resource loader based on JVM current context class loader.
  */
-@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
-class ClassLoaderResourceLoader : ResourceLoader {
+private class ClassLoaderResourceLoader : ResourceLoader {
     override fun load(resourcePath: String): InputStream {
         // TODO(https://github.com/JetBrains/compose-jb/issues/618): probably we shouldn't use
         //  contextClassLoader here, as it is not defined in threads created by non-JVM
@@ -120,15 +119,5 @@ class ClassLoaderResourceLoader : ResourceLoader {
         val resource = contextClassLoader.getResourceAsStream(resourcePath)
             ?: (::ClassLoaderResourceLoader.javaClass).getResourceAsStream(resourcePath)
         return requireNotNull(resource) { "Resource $resourcePath not found" }
-    }
-}
-
-/**
- * Resource loader from the file system relative to a certain root location.
- */
-@Deprecated("Migrate to the Compose resources library. See https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-images-resources.html")
-class FileResourceLoader(val root: File) : ResourceLoader {
-    override fun load(resourcePath: String): InputStream {
-        return FileInputStream(File(root, resourcePath))
     }
 }
