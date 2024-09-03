@@ -82,4 +82,4 @@ internal val WindowDecoration.resizerThickness: Dp
  * [UndecoratedWindowDecoration] with default resizer thickness, if `true`.
  */
 internal fun windowDecorationFromFlag(undecorated: Boolean): WindowDecoration =
-    if (undecorated) SystemDefault else Undecorated()
+    if (undecorated) Undecorated() else SystemDefault
