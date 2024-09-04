@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.graphics.layer
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -48,18 +50,18 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
+import kotlin.math.abs
 import org.jetbrains.skia.Picture
 import org.jetbrains.skia.PictureRecorder
 import org.jetbrains.skia.Point3
 
-// TODO https://youtrack.jetbrains.com/issue/COMPOSE-1254/Integration.-Implement-GraphicsLayer
-// TODO https://youtrack.jetbrains.com/issue/CMP-5892/Apply-changes-from-1.7.0-beta06-from-AndroidGraphicsLayer.android.kt
-
 actual class GraphicsLayer internal constructor() {
-
     private val pictureDrawScope = CanvasDrawScope()
     private val pictureRecorder = PictureRecorder()
     private var picture: Picture? = null
+
+    // Composable state marker for tracking drawing invalidations.
+    private val drawState = mutableStateOf(Unit, neverEqualPolicy())
 
     private var matrixDirty = true
     private val matrix = Matrix()
@@ -88,56 +90,74 @@ actual class GraphicsLayer internal constructor() {
         private set
 
     actual var alpha: Float = 1f
+        set(value) {
+            field = value
+            requestDraw()
+        }
 
     actual var scaleX: Float = 1f
         set(value) {
-            invalidateMatrix()
             field = value
+            invalidateMatrix()
         }
     actual var scaleY: Float = 1f
         set(value) {
-            invalidateMatrix()
             field = value
+            invalidateMatrix()
         }
     actual var translationX: Float = 0f
         set(value) {
-            invalidateMatrix()
             field = value
+            invalidateMatrix()
         }
     actual var translationY: Float = 0f
         set(value) {
-            invalidateMatrix()
             field = value
+            invalidateMatrix()
         }
     actual var shadowElevation: Float = 0f
+        set(value) {
+            field = value
+            requestDraw()
+        }
+
     actual var rotationX: Float = 0f
         set(value) {
-            invalidateMatrix()
             field = value
+            invalidateMatrix()
         }
     actual var rotationY: Float = 0f
         set(value) {
-            invalidateMatrix()
             field = value
+            invalidateMatrix()
         }
     actual var rotationZ: Float = 0f
         set(value) {
-            invalidateMatrix()
             field = value
+            invalidateMatrix()
         }
 
     actual var cameraDistance: Float = DefaultCameraDistance
         set(value) {
-            invalidateMatrix()
             field = value
+            invalidateMatrix()
         }
 
     actual var renderEffect: RenderEffect? = null
+        set(value) {
+            field = value
+            requestDraw()
+        }
 
     private var density: Density = Density(1f)
 
     private fun invalidateMatrix() {
         matrixDirty = true
+        requestDraw()
+    }
+
+    private fun requestDraw() {
+        drawState.value = Unit
     }
 
     private fun updateLayerConfiguration() {
@@ -151,6 +171,10 @@ actual class GraphicsLayer internal constructor() {
         size: IntSize,
         block: DrawScope.() -> Unit
     ) {
+        // Close previous picture
+        picture?.close()
+        picture = null
+
         this.density = density
         this.size = size
         updateLayerConfiguration()
@@ -191,6 +215,10 @@ actual class GraphicsLayer internal constructor() {
     }
 
     actual var clip: Boolean = false
+        set(value) {
+            field = value
+            requestDraw()
+        }
 
     private inline fun createOutlineWithPosition(
         outlineTopLeft: Offset,
@@ -219,20 +247,20 @@ actual class GraphicsLayer internal constructor() {
                     if (roundRectCornerRadius > 0f) {
                         Outline.Rounded(
                             RoundRect(
-                                outlineTopLeft.x.toFloat(),
-                                outlineTopLeft.y.toFloat(),
-                                outlineTopLeft.x.toFloat() + outlineSize.width,
-                                outlineTopLeft.y.toFloat() + outlineSize.height,
-                                CornerRadius(roundRectCornerRadius)
+                                left = outlineTopLeft.x,
+                                top = outlineTopLeft.y,
+                                right = outlineTopLeft.x + outlineSize.width,
+                                bottom = outlineTopLeft.y + outlineSize.height,
+                                cornerRadius = CornerRadius(roundRectCornerRadius)
                             )
                         )
                     } else {
                         Outline.Rectangle(
                             Rect(
-                                outlineTopLeft.x.toFloat(),
-                                outlineTopLeft.y.toFloat(),
-                                outlineTopLeft.x.toFloat() + outlineSize.width,
-                                outlineTopLeft.y.toFloat() + outlineSize.height
+                                left = outlineTopLeft.x,
+                                top = outlineTopLeft.y,
+                                right = outlineTopLeft.x + outlineSize.width,
+                                bottom = outlineTopLeft.y + outlineSize.height
                             )
                         )
                     }
@@ -245,9 +273,7 @@ actual class GraphicsLayer internal constructor() {
     }
 
     internal actual fun draw(canvas: Canvas, parentLayer: GraphicsLayer?) {
-        if (isReleased) {
-            return
-        }
+        if (isReleased) return
 
         parentLayer?.addSubLayer(this)
 
@@ -296,6 +322,9 @@ actual class GraphicsLayer internal constructor() {
                 canvas.save()
             }
 
+            // Read the state because any changes to the state should trigger re-drawing.
+            drawState.value
+
             canvas.nativeCanvas.drawPicture(it, null, null)
 
             canvas.restore()
@@ -326,13 +355,21 @@ actual class GraphicsLayer internal constructor() {
 
     actual var pivotOffset: Offset = Offset.Unspecified
         set(value) {
-            invalidateMatrix()
             field = value
+            invalidateMatrix()
         }
 
     actual var blendMode: BlendMode = BlendMode.SrcOver
+        set(value) {
+            field = value
+            requestDraw()
+        }
 
     actual var colorFilter: ColorFilter? = null
+        set(value) {
+            field = value
+            requestDraw()
+        }
 
     private fun resetOutlineParams() {
         internalOutline = null
@@ -370,32 +407,50 @@ actual class GraphicsLayer internal constructor() {
     }
 
     private fun updateMatrix() {
-        if (matrixDirty) {
-            val pivotX: Float
-            val pivotY: Float
-            if (pivotOffset.isUnspecified) {
-                pivotX = size.width / 2f
-                pivotY = size.height / 2f
-            } else {
-                pivotX = pivotOffset.x
-                pivotY = pivotOffset.y
-            }
-            matrix.reset()
-            matrix *= Matrix().apply {
-                translate(x = -pivotX, y = -pivotY)
-            }
-            matrix *= Matrix().apply {
-                translate(translationX, translationY)
-                rotateX(rotationX)
-                rotateY(rotationY)
-                rotateZ(rotationZ)
-                scale(scaleX, scaleY)
-            }
-            matrix *= Matrix().apply {
-                translate(x = pivotX, y = pivotY)
-            }
-            matrixDirty = false
+        if (!matrixDirty) return
+
+        val pivotX: Float
+        val pivotY: Float
+        if (pivotOffset.isUnspecified) {
+            pivotX = size.width / 2f
+            pivotY = size.height / 2f
+        } else {
+            pivotX = pivotOffset.x
+            pivotY = pivotOffset.y
         }
+
+        matrix.reset()
+        matrix.translate(x = -pivotX, y = -pivotY)
+        matrix *= Matrix().apply {
+            rotateZ(rotationZ)
+            rotateY(rotationY)
+            rotateX(rotationX)
+            scale(scaleX, scaleY)
+        }
+        // Perspective transform should be applied only in case of rotations to avoid
+        // multiply application in hierarchies.
+        // See Android's frameworks/base/libs/hwui/RenderProperties.cpp for reference
+        if (!rotationX.isZero() || !rotationY.isZero()) {
+            matrix *= Matrix().apply {
+                // The camera location is passed in inches, set in pt
+                val depth = cameraDistance * 72f
+                this[2, 3] = -1f / depth
+            }
+        }
+        matrix *= Matrix().apply {
+            translate(x = pivotX + translationX, y = pivotY + translationY)
+        }
+
+        // Third column and row are irrelevant for 2D space.
+        // Zeroing required to get correct inverse transformation matrix.
+        matrix[2, 0] = 0f
+        matrix[2, 1] = 0f
+        matrix[2, 3] = 0f
+        matrix[0, 2] = 0f
+        matrix[1, 2] = 0f
+        matrix[3, 2] = 0f
+
+        matrixDirty = false
     }
 
     actual var isReleased: Boolean = false
@@ -414,8 +469,16 @@ actual class GraphicsLayer internal constructor() {
     }
 
     actual var ambientShadowColor: Color = Color.Black
+        set(value) {
+            field = value
+            requestDraw()
+        }
 
     actual var spotShadowColor: Color = Color.Black
+        set(value) {
+            field = value
+            requestDraw()
+        }
 
     private fun requiresLayer(): Boolean {
         val alphaNeedsLayer = alpha < 1f && compositingStrategy != CompositingStrategy.ModulateAlpha
@@ -456,3 +519,7 @@ actual class GraphicsLayer internal constructor() {
     actual suspend fun toImageBitmap(): ImageBitmap =
         ImageBitmap(size.width, size.height).apply { draw(Canvas(this), null) }
 }
+
+// Copy from Android's frameworks/base/libs/hwui/utils/MathUtils.h
+private const val NON_ZERO_EPSILON = 0.001f
+private inline fun Float.isZero(): Boolean = abs(this) <= NON_ZERO_EPSILON
