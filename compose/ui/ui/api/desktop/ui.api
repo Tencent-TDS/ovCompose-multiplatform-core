@@ -3466,12 +3466,6 @@ public final class androidx/compose/ui/platform/WindowInfo$DefaultImpls {
 	public static fun getKeyboardModifiers-k7X9c1A (Landroidx/compose/ui/platform/WindowInfo;)I
 }
 
-public final class androidx/compose/ui/res/ClassLoaderResourceLoader : androidx/compose/ui/res/ResourceLoader {
-	public static final field $stable I
-	public fun <init> ()V
-	public fun load (Ljava/lang/String;)Ljava/io/InputStream;
-}
-
 public final class androidx/compose/ui/res/DesktopSvgResources_desktopKt {
 	public static final fun loadSvgPainter (Ljava/io/InputStream;Landroidx/compose/ui/unit/Density;)Landroidx/compose/ui/graphics/painter/Painter;
 }
@@ -3480,34 +3474,16 @@ public final class androidx/compose/ui/res/DesktopXmlVectorResources_desktopKt {
 	public static final fun loadXmlImageVector (Lorg/xml/sax/InputSource;Landroidx/compose/ui/unit/Density;)Landroidx/compose/ui/graphics/vector/ImageVector;
 }
 
-public final class androidx/compose/ui/res/FileResourceLoader : androidx/compose/ui/res/ResourceLoader {
-	public static final field $stable I
-	public fun <init> (Ljava/io/File;)V
-	public final fun getRoot ()Ljava/io/File;
-	public fun load (Ljava/lang/String;)Ljava/io/InputStream;
-}
-
 public final class androidx/compose/ui/res/ImageResources_desktopKt {
 	public static final fun loadImageBitmap (Ljava/io/InputStream;)Landroidx/compose/ui/graphics/ImageBitmap;
 }
 
 public final class androidx/compose/ui/res/PainterResources_desktopKt {
 	public static final fun painterResource (Ljava/lang/String;Landroidx/compose/runtime/Composer;I)Landroidx/compose/ui/graphics/painter/Painter;
-	public static final fun painterResource (Ljava/lang/String;Landroidx/compose/ui/res/ResourceLoader;Landroidx/compose/runtime/Composer;I)Landroidx/compose/ui/graphics/painter/Painter;
-}
-
-public abstract interface class androidx/compose/ui/res/ResourceLoader {
-	public static final field Companion Landroidx/compose/ui/res/ResourceLoader$Companion;
-	public abstract fun load (Ljava/lang/String;)Ljava/io/InputStream;
-}
-
-public final class androidx/compose/ui/res/ResourceLoader$Companion {
-	public final fun getDefault ()Landroidx/compose/ui/res/ClassLoaderResourceLoader;
 }
 
 public final class androidx/compose/ui/res/Resources_desktopKt {
 	public static final fun openResource (Ljava/lang/String;)Ljava/io/InputStream;
-	public static final fun openResource (Ljava/lang/String;Landroidx/compose/ui/res/ResourceLoader;)Ljava/io/InputStream;
 	public static final fun useResource (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
 }
 
