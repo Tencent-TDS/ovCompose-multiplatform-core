@@ -222,7 +222,7 @@ class SkikoComposeUiTest @InternalTestApi constructor(
         density = density,
         size = size,
         coroutineContext = coroutineContext,
-        composeSceneContext = TestComposeSceneContext(),
+        platformContext = TestContext(),
         invalidate = { }
     )
 
@@ -426,10 +426,6 @@ class SkikoComposeUiTest @InternalTestApi constructor(
 
         override val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener?
             get() = this@SkikoComposeUiTest.semanticsOwnerListener
-    }
-
-    private inner class TestComposeSceneContext : ComposeSceneContext {
-        override val platformContext = TestContext()
     }
 }
 

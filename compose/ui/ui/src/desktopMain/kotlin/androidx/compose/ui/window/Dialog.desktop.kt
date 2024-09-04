@@ -27,8 +27,7 @@ import androidx.compose.ui.awt.ComposeDialog
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.scene.LocalComposeScene
-import androidx.compose.ui.scene.platformContext
+import androidx.compose.ui.scene.LocalComposeSceneContext
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.ComponentUpdater
@@ -48,7 +47,9 @@ import javax.swing.JDialog
 
 @Deprecated(
     message = "Replaced by DialogWindow",
-    replaceWith = ReplaceWith("DialogWindow(onCloseRequest, state, visible, title, icon, undecorated, transparent, resizable, enabled, focusable, onPreviewKeyEvent, onKeyEvent, content)")
+    replaceWith = ReplaceWith("DialogWindow(onCloseRequest, state, visible, title, " +
+        "icon, undecorated, transparent, resizable, enabled, focusable, " +
+        "onPreviewKeyEvent, onKeyEvent, content)")
 )
 @Composable
 fun Dialog(
@@ -518,7 +519,7 @@ fun DialogWindow(
     val windowExceptionHandlerFactory by rememberUpdatedState(
         LocalWindowExceptionHandlerFactory.current
     )
-    val parentPlatformContext = LocalComposeScene.current?.platformContext
+    val parentPlatformContext = LocalComposeSceneContext.current?.platformContext
     val layoutDirection = LocalLayoutDirection.current
     AwtWindow(
         visible = visible,

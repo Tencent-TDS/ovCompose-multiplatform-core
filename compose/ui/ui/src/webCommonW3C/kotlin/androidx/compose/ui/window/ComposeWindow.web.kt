@@ -45,9 +45,7 @@ import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WebTextInputService
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.CanvasLayersComposeScene
-import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.ComposeScenePointer
-import androidx.compose.ui.scene.platformContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -220,9 +218,7 @@ internal class ComposeWindow(
 
     private val scene = CanvasLayersComposeScene(
         coroutineContext = Dispatchers.Main,
-        composeSceneContext = object : ComposeSceneContext {
-            override val platformContext get() = this@ComposeWindow.platformContext
-        },
+        platformContext = platformContext,
         density = density,
         invalidate = skiaLayer::needRedraw,
     )
@@ -387,7 +383,7 @@ internal class ComposeWindow(
         event: TouchEvent,
         offset: Offset,
     ) {
-        val inputModeManager = scene.platformContext.inputModeManager
+        val inputModeManager = platformContext.inputModeManager
         if (inputModeManager.inputMode != InputMode.Touch) {
             inputModeManager.requestInputMode(InputMode.Touch)
         }

@@ -3529,14 +3529,13 @@ public final class androidx/compose/ui/res/Resources_desktopKt {
 }
 
 public final class androidx/compose/ui/scene/CanvasLayersComposeScene_skikoKt {
-	public static final fun CanvasLayersComposeScene-3tKcejY (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Landroidx/compose/ui/unit/IntSize;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/scene/ComposeSceneContext;Lkotlin/jvm/functions/Function0;)Landroidx/compose/ui/scene/ComposeScene;
-	public static synthetic fun CanvasLayersComposeScene-3tKcejY$default (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Landroidx/compose/ui/unit/IntSize;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/scene/ComposeSceneContext;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Landroidx/compose/ui/scene/ComposeScene;
+	public static final fun CanvasLayersComposeScene-3tKcejY (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Landroidx/compose/ui/unit/IntSize;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/platform/PlatformContext;Lkotlin/jvm/functions/Function0;)Landroidx/compose/ui/scene/ComposeScene;
+	public static synthetic fun CanvasLayersComposeScene-3tKcejY$default (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Landroidx/compose/ui/unit/IntSize;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/platform/PlatformContext;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Landroidx/compose/ui/scene/ComposeScene;
 }
 
 public abstract interface class androidx/compose/ui/scene/ComposeScene {
 	public abstract fun calculateContentSize-YbymL2g ()J
 	public abstract fun close ()V
-	public abstract fun createLayer (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;ZLandroidx/compose/runtime/CompositionContext;)Landroidx/compose/ui/scene/ComposeSceneLayer;
 	public abstract fun getCompositionLocalContext ()Landroidx/compose/runtime/CompositionLocalContext;
 	public abstract fun getDensity ()Landroidx/compose/ui/unit/Density;
 	public abstract fun getDragAndDropTarget ()Landroidx/compose/ui/scene/ComposeSceneDragAndDropTarget;
@@ -3561,7 +3560,7 @@ public abstract interface class androidx/compose/ui/scene/ComposeScene {
 
 public abstract interface class androidx/compose/ui/scene/ComposeSceneContext {
 	public static final field Companion Landroidx/compose/ui/scene/ComposeSceneContext$Companion;
-	public fun createPlatformLayer (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;ZLandroidx/compose/runtime/CompositionContext;)Landroidx/compose/ui/scene/ComposeSceneLayer;
+	public fun createLayer (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;ZLandroidx/compose/runtime/CompositionContext;)Landroidx/compose/ui/scene/ComposeSceneLayer;
 	public fun getPlatformContext ()Landroidx/compose/ui/platform/PlatformContext;
 }
 
@@ -3627,19 +3626,9 @@ public final class androidx/compose/ui/scene/ComposeScenePointer {
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class androidx/compose/ui/scene/MultiLayerComposeScene_skikoKt {
-	public static final fun MultiLayerComposeScene-3tKcejY (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Landroidx/compose/ui/unit/IntSize;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/scene/ComposeSceneContext;Lkotlin/jvm/functions/Function0;)Landroidx/compose/ui/scene/ComposeScene;
-	public static synthetic fun MultiLayerComposeScene-3tKcejY$default (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Landroidx/compose/ui/unit/IntSize;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/scene/ComposeSceneContext;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Landroidx/compose/ui/scene/ComposeScene;
-}
-
 public final class androidx/compose/ui/scene/PlatformLayersComposeScene_skikoKt {
 	public static final fun PlatformLayersComposeScene-3tKcejY (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Landroidx/compose/ui/unit/IntSize;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/scene/ComposeSceneContext;Lkotlin/jvm/functions/Function0;)Landroidx/compose/ui/scene/ComposeScene;
 	public static synthetic fun PlatformLayersComposeScene-3tKcejY$default (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Landroidx/compose/ui/unit/IntSize;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/scene/ComposeSceneContext;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Landroidx/compose/ui/scene/ComposeScene;
-}
-
-public final class androidx/compose/ui/scene/SingleLayerComposeScene_skikoKt {
-	public static final fun SingleLayerComposeScene-3tKcejY (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Landroidx/compose/ui/unit/IntSize;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/scene/ComposeSceneContext;Lkotlin/jvm/functions/Function0;)Landroidx/compose/ui/scene/ComposeScene;
-	public static synthetic fun SingleLayerComposeScene-3tKcejY$default (Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Landroidx/compose/ui/unit/IntSize;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/scene/ComposeSceneContext;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Landroidx/compose/ui/scene/ComposeScene;
 }
 
 public final class androidx/compose/ui/semantics/AccessibilityAction {

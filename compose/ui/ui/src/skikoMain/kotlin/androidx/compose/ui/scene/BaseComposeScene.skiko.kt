@@ -38,7 +38,6 @@ import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.node.SnapshotInvalidationTracker
 import androidx.compose.ui.platform.GlobalSnapshotManager
-import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.util.trace
 import kotlin.concurrent.Volatile
 import kotlin.coroutines.CoroutineContext
@@ -53,7 +52,6 @@ import kotlin.coroutines.CoroutineContext
 @OptIn(InternalComposeUiApi::class)
 internal abstract class BaseComposeScene(
     coroutineContext: CoroutineContext,
-    val composeSceneContext: ComposeSceneContext,
     private val invalidate: () -> Unit,
 ) : ComposeScene {
     protected val snapshotInvalidationTracker = SnapshotInvalidationTracker(::updateInvalidations)
@@ -74,6 +72,8 @@ internal abstract class BaseComposeScene(
 
     protected val compositionContext: CompositionContext
         get() = recomposer.compositionContext
+
+    abstract val composeSceneContext: ComposeSceneContext
 
     protected var isClosed = false
         private set
@@ -142,7 +142,9 @@ internal abstract class BaseComposeScene(
         composition?.dispose()
         composition = createComposition {
             CompositionLocalProvider(
+                @Suppress("DEPRECATION")
                 LocalComposeScene provides this,
+                LocalComposeSceneContext provides composeSceneContext,
                 content = content
             )
         }
@@ -265,13 +267,6 @@ internal abstract class BaseComposeScene(
 
 internal val BaseComposeScene.semanticsOwnerListener
     get() = composeSceneContext.platformContext.semanticsOwnerListener
-
-// TODO: Remove the cast once there is a way to obtain [PlatformContext] without the scene
-internal val ComposeScene.platformContext: PlatformContext
-    get() {
-        this as BaseComposeScene
-        return composeSceneContext.platformContext
-    }
 
 // TODO: Remove the cast once there is a way to obtain it from [PlatformContext]
 internal val ComposeScene.lastKnownPointerPosition: Offset?
