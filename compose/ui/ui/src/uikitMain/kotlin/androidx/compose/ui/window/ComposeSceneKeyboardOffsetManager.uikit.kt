@@ -16,15 +16,8 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.MutableState
-import androidx.compose.ui.scene.ComposeSceneMediator
-import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
-import androidx.compose.ui.uikit.OnFocusBehavior
-import androidx.compose.ui.uikit.density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toDpRect
 import kotlin.math.max
 import kotlin.math.min
 import kotlinx.cinterop.BetaInteropApi
@@ -38,11 +31,12 @@ import platform.CoreGraphics.CGRectGetMinY
 import platform.CoreGraphics.CGRectIsEmpty
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
+import platform.Foundation.NSDate
 import platform.Foundation.NSDefaultRunLoopMode
 import platform.Foundation.NSRunLoop
+import platform.Foundation.runUntilDate
 import platform.QuartzCore.CADisplayLink
 import platform.UIKit.UIView
-import platform.UIKit.UIViewAnimationOptionBeginFromCurrentState
 import platform.UIKit.UIViewAnimationOptionCurveEaseInOut
 import platform.UIKit.UIViewAnimationOptions
 import platform.darwin.NSObject
@@ -51,15 +45,10 @@ import platform.darwin.dispatch_get_main_queue
 import platform.darwin.sel_registerName
 
 internal class ComposeSceneKeyboardOffsetManager(
-    private val configuration: ComposeUIViewControllerConfiguration,
-    private val keyboardOverlapHeightState: MutableState<Dp>,
-    private val viewProvider: () -> UIView,
-    private val composeSceneMediatorProvider: () -> ComposeSceneMediator?,
-    private val onComposeSceneOffsetChanged: (Double) -> Unit,
+    private val view: UIView,
+    private val keyboardOverlapHeightChanged: (Dp) -> Unit
 ) : KeyboardVisibilityObserver {
     private var isDisposed: Boolean = false
-
-    val view get() = viewProvider()
 
     fun start() {
         KeyboardVisibilityListener.addObserver(this)
@@ -77,19 +66,13 @@ internal class ComposeSceneKeyboardOffsetManager(
     }
 
     fun dispose() {
-        check (!isDisposed) { "ComposeSceneKeyboardOffsetManager is already disposed" }
+        check(!isDisposed) { "ComposeSceneKeyboardOffsetManager is already disposed" }
         isDisposed = true
         stop()
     }
 
-    /**
-     * Invisible view to track system keyboard animation
-     */
-    private val animationView: UIView by lazy {
-        UIView(CGRectZero.readValue()).apply {
-            hidden = true
-        }
-    }
+    private val animationViews = mutableListOf<UIView>()
+
     private var keyboardAnimationListener: CADisplayLink? = null
 
     val isAnimating get() = keyboardAnimationListener != null
@@ -107,10 +90,10 @@ internal class ComposeSceneKeyboardOffsetManager(
         animationOptions: UIViewAnimationOptions
     ) {
         adjustViewBounds(
-            KeyboardVisibilityListener.keyboardFrame,
-            targetFrame,
-            max(0.1, duration),
-            animationOptions
+            currentFrame = KeyboardVisibilityListener.keyboardFrame,
+            targetFrame = targetFrame,
+            duration = duration,
+            animationOptions = animationOptions
         )
     }
 
@@ -137,25 +120,24 @@ internal class ComposeSceneKeyboardOffsetManager(
             }
         }
 
-        val bottomIndent = run {
+        val viewBottomIndent = run {
             val screenHeight = screen.bounds.useContents { size.height }
             val composeViewBottomY = screen.coordinateSpace.convertPoint(
                 point = CGPointMake(0.0, view.frame.useContents { size.height }),
                 fromCoordinateSpace = view.coordinateSpace
             ).useContents { y }
-            screenHeight - composeViewBottomY - viewBottomOffset
+            screenHeight - composeViewBottomY
         }
 
         animateKeyboard(
             previousKeyboardHeight = keyboardHeight(currentFrame),
             keyboardHeight = keyboardHeight(targetFrame),
-            viewBottomIndent = bottomIndent,
+            viewBottomIndent = viewBottomIndent,
             duration = duration,
             animationOptions = animationOptions
         )
     }
 
-    @OptIn(ExperimentalComposeApi::class)
     private fun animateKeyboard(
         previousKeyboardHeight: Double,
         keyboardHeight: Double,
@@ -163,37 +145,46 @@ internal class ComposeSceneKeyboardOffsetManager(
         duration: Double,
         animationOptions: UIViewAnimationOptions
     ) {
+        UIView.performWithoutAnimation {
+            animationViews.forEach {
+                it.layer.removeAllAnimations()
+                it.setFrame(CGRectZero.readValue())
+                it.removeFromSuperview()
+            }
+        }
+        keyboardAnimationListener?.invalidate()
+
+        var previousAnimationProgress = 0.0
+        fun updateAnimationValues(progress: Double) {
+            // Adjust [progress] one frame ahead to partially compensate for the delay between the
+            // current keyboard position and the position of the compose scene elements.
+            val adjustedProgress = max(
+                0.0, min(1.0, progress + (progress - previousAnimationProgress))
+            )
+            previousAnimationProgress = progress
+
+            val currentHeight = previousKeyboardHeight +
+                (keyboardHeight - previousKeyboardHeight) * adjustedProgress
+            keyboardOverlapHeightChanged(max(0.0, currentHeight - viewBottomIndent).dp)
+        }
+
+        if (previousKeyboardHeight == keyboardHeight) {
+            updateAnimationValues(1.0)
+            return
+        }
+
+        val animationView = UIView()
+        view.addSubview(animationView)
+        animationViews.add(animationView)
+
         // Animate view from 0 to [animationTargetSize] and normalize to animation progress with
         // range of [0..1] to follow UIKit animation curve values.
         val animationTargetSize = 1000.0
         val animationTargetFrame = CGRectMake(0.0, 0.0, 0.0, animationTargetSize)
+
         fun getCurrentAnimationProgress(): Double {
             val layer = animationView.layer.presentationLayer() ?: return 0.0
             return layer.frame.useContents { size.height / animationTargetSize }
-        }
-
-        fun updateAnimationValues(progress: Double) {
-            val currentHeight = previousKeyboardHeight +
-                (keyboardHeight - previousKeyboardHeight) * progress
-            val currentOverlapHeight = max(0.0, currentHeight - viewBottomIndent)
-
-            val targetBottomOffset = calcFocusedBottomOffsetY(currentOverlapHeight)
-            viewBottomOffset += (targetBottomOffset - viewBottomOffset) * progress
-
-            keyboardOverlapHeightState.value = currentOverlapHeight.dp
-        }
-
-        //attach to root view if needed
-        if (animationView.superview == null) {
-            view.addSubview(animationView)
-        }
-
-        //cancel previous animation
-        animationView.layer.removeAllAnimations()
-        keyboardAnimationListener?.invalidate()
-
-        UIView.performWithoutAnimation {
-            animationView.setFrame(CGRectZero.readValue())
         }
 
         //animation listener
@@ -204,31 +195,28 @@ internal class ComposeSceneKeyboardOffsetManager(
                 @ObjCAction
                 fun animationDidUpdate() {
                     updateAnimationValues(getCurrentAnimationProgress())
+                    NSRunLoop.currentRunLoop.runUntilDate(NSDate())
                 }
             },
             selector = sel_registerName("animationDidUpdate")
         )
         keyboardAnimationListener = keyboardDisplayLink
 
-        fun completeAnimation() {
-            animationView.removeFromSuperview()
-            if (keyboardAnimationListener == keyboardDisplayLink) {
-                keyboardAnimationListener = null
-            }
-            updateAnimationValues(1.0)
-        }
-
         UIView.animateWithDuration(
             duration = duration,
             delay = 0.0,
-            options = animationOptions or UIViewAnimationOptionBeginFromCurrentState,
+            options = animationOptions,
             animations = {
                 animationView.setFrame(animationTargetFrame)
             },
             completion = { isFinished ->
                 keyboardDisplayLink.invalidate()
+                animationView.removeFromSuperview()
                 if (isFinished) {
-                    completeAnimation()
+                    if (keyboardAnimationListener == keyboardDisplayLink) {
+                        keyboardAnimationListener = null
+                    }
+                    updateAnimationValues(1.0)
                 }
             }
         )
@@ -239,47 +227,4 @@ internal class ComposeSceneKeyboardOffsetManager(
             keyboardDisplayLink.addToRunLoop(NSRunLoop.mainRunLoop(), NSDefaultRunLoopMode)
         }
     }
-
-    private fun calcFocusedBottomOffsetY(overlappingHeight: Double): Double {
-        if (configuration.onFocusBehavior != OnFocusBehavior.FocusableAboveKeyboard) {
-            return 0.0
-        }
-        val mediator = composeSceneMediatorProvider()
-        val focusedRect = mediator
-            ?.focusManager
-            ?.getFocusRect()
-            ?.toDpRect(view.density)
-            ?: return 0.0
-
-        val viewHeight = view.frame.useContents { size.height }
-
-        val hiddenPartOfFocusedElement = overlappingHeight - viewHeight + focusedRect.bottom.value
-        return if (hiddenPartOfFocusedElement > 0) {
-            // If focused element is partially hidden by the keyboard, we need to lift it upper
-            val focusedTopY = focusedRect.top.value
-            val isFocusedElementRemainsVisible = hiddenPartOfFocusedElement < focusedTopY
-            if (isFocusedElementRemainsVisible) {
-                // We need to lift focused element to be fully visible
-                min(overlappingHeight, hiddenPartOfFocusedElement)
-            } else {
-                // In this case focused element height is bigger than remain part of the screen after showing the keyboard.
-                // Top edge of focused element should be visible. Same logic on Android.
-                min(overlappingHeight, maxOf(focusedTopY, 0f).toDouble())
-            }
-        } else {
-            // Focused element is not hidden by the keyboard.
-            0.0
-        }
-    }
-
-    private var viewBottomOffset: Double = 0.0
-        set(newValue) {
-            field = newValue
-
-            // In certain edge cases the scene might be disposed before updateAnimationValues is called
-            // Simply don't forward the offset change in this case to avoid calling anything on closed ComposeScene.
-            if (!isDisposed) {
-                onComposeSceneOffsetChanged(newValue)
-            }
-        }
 }

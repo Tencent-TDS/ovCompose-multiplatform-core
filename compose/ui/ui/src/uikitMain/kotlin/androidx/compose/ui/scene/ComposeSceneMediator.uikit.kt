@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -43,22 +42,25 @@ import androidx.compose.ui.platform.DefaultInputModeManager
 import androidx.compose.ui.platform.EmptyViewConfiguration
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
+import androidx.compose.ui.platform.OffsetToFocusedRect
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.platform.adjustedToFocusedRectOffset
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.ExclusiveLayoutConstraints
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
+import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.uikit.layoutConstraintsToCenterInParent
 import androidx.compose.ui.uikit.layoutConstraintsToMatch
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
@@ -84,6 +86,7 @@ import androidx.compose.ui.window.TouchesEventKind
 import androidx.compose.ui.window.UserInputView
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
@@ -184,7 +187,8 @@ internal class ComposeSceneMediator(
 
     private var onKeyEvent: (KeyEvent) -> Boolean = { false }
 
-    private val keyboardOverlapHeightState: MutableState<Dp> = mutableStateOf(0.dp)
+    private var keyboardOverlapHeight by mutableStateOf(0.dp)
+    private var animateKeyboardOffsetChanges by mutableStateOf(false)
 
     private val viewConfiguration: ViewConfiguration =
         object : ViewConfiguration by EmptyViewConfiguration {
@@ -220,8 +224,6 @@ internal class ComposeSceneMediator(
         set(value) {
             scene.compositionLocalContext = value
         }
-
-    val focusManager get() = scene.focusManager
 
     private val userInputViewConstraints = ExclusiveLayoutConstraints()
 
@@ -269,12 +271,12 @@ internal class ComposeSceneMediator(
      * @param point Point in the interaction view coordinate space.
      */
     private fun isPointInsideInteractionBounds(point: CValue<CGPoint>) =
-        interactionBounds.contains(point.asDpOffset().toOffset(view.density).round())
+        interactionBounds.contains(point.asDpOffset().toOffset(this.view.density).round())
 
     @OptIn(ExperimentalComposeApi::class)
     private val semanticsOwnerListener by lazy {
         SemanticsOwnerListenerImpl(
-            view,
+            this.view,
             coroutineContext,
             getAccessibilitySyncOptions = {
                 configuration.accessibilitySyncOptions
@@ -293,17 +295,29 @@ internal class ComposeSceneMediator(
         )
     }
 
+    @OptIn(ExperimentalComposeApi::class)
     private val keyboardManager by lazy {
         ComposeSceneKeyboardOffsetManager(
-            configuration = configuration,
-            keyboardOverlapHeightState = keyboardOverlapHeightState,
-            viewProvider = { viewForKeyboardOffsetTransform },
-            composeSceneMediatorProvider = { this },
-            onComposeSceneOffsetChanged = { offset ->
-                viewForKeyboardOffsetTransform.layer.setAffineTransform(
-                    CGAffineTransformMakeTranslation(0.0, -offset)
-                )
-                scene.invalidatePositionInWindow()
+            view = this.viewForKeyboardOffsetTransform,
+            keyboardOverlapHeightChanged = { height ->
+                if (configuration.platformLayers) {
+                    if (keyboardOverlapHeight != height) {
+                        animateKeyboardOffsetChanges = false
+                    }
+                } else {
+                    val dpOffset = density.adjustedToFocusedRectOffset(
+                        insets = PlatformInsets(bottom = height),
+                        focusedRect = scene.focusManager.getFocusRect(),
+                        size = scene.size,
+                        currentOffset = IntOffset.Zero,
+                    ).y / density.density
+
+                    viewForKeyboardOffsetTransform.layer.setAffineTransform(
+                        CGAffineTransformMakeTranslation(0.0, dpOffset.toDouble())
+                    )
+                    scene.invalidatePositionInWindow()
+                }
+                keyboardOverlapHeight = height
             }
         )
     }
@@ -314,9 +328,12 @@ internal class ComposeSceneMediator(
                 setNeedsRedraw()
                 CATransaction.flush() // clear all animations
             },
-            rootView = view,
+            rootView = this.view,
             viewConfiguration = viewConfiguration,
             focusStack = focusStack,
+            onInputStarted = {
+                animateKeyboardOffsetChanges = true
+            },
             onKeyboardPresses = ::onKeyboardPresses
         ).also {
             KeyboardVisibilityListener.initialize()
@@ -389,22 +406,38 @@ internal class ComposeSceneMediator(
     }
 
     init {
-        view.translatesAutoresizingMaskIntoConstraints = false
-        parentView.addSubview(view)
+        this.view.translatesAutoresizingMaskIntoConstraints = false
+        parentView.addSubview(this.view)
         setLayout(ComposeSceneMediatorLayout.Fill)
 
-        view.embedSubview(userInputView)
+        this.view.embedSubview(userInputView)
     }
 
+    @OptIn(ExperimentalComposeApi::class)
     fun setContent(content: @Composable () -> Unit) {
-        view.runOnceOnAppeared {
+        this.view.runOnceOnAppeared {
             focusStack?.pushAndFocus(userInputView)
 
             scene.setContent {
                 ProvideComposeSceneMediatorCompositionLocals {
-                    interopContainer.TrackInteropPlacementContainer(
-                        content = content
-                    )
+                    if (configuration.platformLayers &&
+                        configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard
+                    ) {
+                        OffsetToFocusedRect(
+                            insets = PlatformInsets(bottom = keyboardOverlapHeight),
+                            getFocusedRect = { scene.focusManager.getFocusRect() },
+                            size = scene.size,
+                            animationDuration = if (animateKeyboardOffsetChanges) {
+                                FOCUS_CHANGE_ANIMATION_DURATION
+                            } else {
+                                0.seconds
+                            }
+                        ) {
+                            interopContainer.TrackInteropPlacementContainer(content)
+                        }
+                    } else {
+                        interopContainer.TrackInteropPlacementContainer(content)
+                    }
                 }
             }
         }
@@ -414,7 +447,7 @@ internal class ComposeSceneMediator(
         targetSize: CValue<CGSize>,
         coordinator: UIViewControllerTransitionCoordinatorProtocol
     ) {
-        val startSnapshotView = view.snapshotViewAfterScreenUpdates(false) ?: return
+        val startSnapshotView = this.view.snapshotViewAfterScreenUpdates(false) ?: return
         startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
         parentView.addSubview(startSnapshotView)
         targetSize.useContents {
@@ -445,7 +478,7 @@ internal class ComposeSceneMediator(
         )
 
         userInputView.setNeedsLayout()
-        view.layoutIfNeeded()
+        this.view.layoutIfNeeded()
     }
 
     fun render(canvas: Canvas, nanoTime: Long) {
@@ -459,13 +492,13 @@ internal class ComposeSceneMediator(
         when (value) {
             ComposeSceneMediatorLayout.Fill -> {
                 userInputViewConstraints.set(
-                    view.layoutConstraintsToMatch(parentView)
+                    this.view.layoutConstraintsToMatch(parentView)
                 )
             }
 
             is ComposeSceneMediatorLayout.Center -> {
                 userInputViewConstraints.set(
-                    view.layoutConstraintsToCenterInParent(parentView, value.size)
+                    this.view.layoutConstraintsToCenterInParent(parentView, value.size)
                 )
             }
         }
@@ -479,7 +512,7 @@ internal class ComposeSceneMediator(
     private fun ProvideComposeSceneMediatorCompositionLocals(content: @Composable () -> Unit) =
         CompositionLocalProvider(
             LocalInteropContainer provides interopContainer,
-            LocalKeyboardOverlapHeight provides keyboardOverlapHeightState.value,
+            LocalKeyboardOverlapHeight provides keyboardOverlapHeight,
             LocalSafeArea provides safeArea,
             LocalLayoutMargins provides layoutMargins,
             content = content
@@ -489,14 +522,14 @@ internal class ComposeSceneMediator(
         onPreviewKeyEvent = { false }
         onKeyEvent = { false }
 
-        view.dispose()
+        this.view.dispose()
         textInputService.stopInput()
         applicationForegroundStateListener.dispose()
         focusStack?.popUntilNext(userInputView)
         keyboardManager.dispose()
         userInputView.dispose()
 
-        view.removeFromSuperview()
+        this.view.removeFromSuperview()
 
         scene.close()
         interopContainer.dispose()
@@ -508,12 +541,12 @@ internal class ComposeSceneMediator(
      * Updates the [ComposeScene] with the properties derived from the [view].
      */
     private fun updateLayout() {
-        density = view.density
+        density = this.view.density
 
-        layoutMargins = view.layoutMargins.toPlatformInsets()
-        safeArea = view.safeAreaInsets.toPlatformInsets()
+        layoutMargins = this.view.layoutMargins.toPlatformInsets()
+        safeArea = this.view.safeAreaInsets.toPlatformInsets()
 
-        val boundsInPx = view.bounds.useContents {
+        val boundsInPx = this.view.bounds.useContents {
             with(density) {
                 asDpRect().toRect()
             }
@@ -556,6 +589,11 @@ internal class ComposeSceneMediator(
             || onPreviewKeyEvent(keyEvent)
             || scene.sendKeyEvent(keyEvent)
             || onKeyEvent(keyEvent)
+
+
+    companion object {
+        private val FOCUS_CHANGE_ANIMATION_DURATION = 0.15.seconds
+    }
 
     @OptIn(ExperimentalComposeApi::class)
     private var viewForKeyboardOffsetTransform = if (configuration.platformLayers) {

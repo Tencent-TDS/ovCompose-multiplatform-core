@@ -59,6 +59,7 @@ internal class UIKitTextInputService(
     private val rootView: UIView,
     private val viewConfiguration: ViewConfiguration,
     private val focusStack: FocusStack?,
+    private val onInputStarted: () -> Unit,
     /**
      * Callback to handle keyboard presses. The parameter is a [Set] of [UIPress] objects.
      * Erasure happens due to K/N not supporting Obj-C lightweight generics.
@@ -138,6 +139,7 @@ internal class UIKitTextInputService(
         textUIView?.inputTraits = getUITextInputTraits(imeOptions)
 
         showSoftwareKeyboard()
+        onInputStarted()
     }
 
     override fun stopInput() {
