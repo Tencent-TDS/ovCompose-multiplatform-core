@@ -327,15 +327,15 @@ actual class GraphicsLayer internal constructor() {
                 restoreCount++
             }
 
-            // Read the state because any changes to the state should trigger re-drawing.
-            drawState.value
-
             canvas.nativeCanvas.drawPicture(it, null, null)
 
             repeat(restoreCount) {
                 canvas.restore()
             }
         }
+
+        // Read the state because any changes to the state should trigger re-drawing.
+        drawState.value
     }
 
     private fun onAddedToParentLayer() {
