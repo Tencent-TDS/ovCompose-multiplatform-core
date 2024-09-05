@@ -24,6 +24,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
@@ -45,11 +46,14 @@ import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
+import androidx.compose.ui.platform.PlatformTextInputMethodRequest
+import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.ExclusiveLayoutConstraints
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
@@ -87,6 +91,8 @@ import kotlin.math.roundToInt
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
 import platform.CoreGraphics.CGAffineTransformMakeTranslation
@@ -596,7 +602,47 @@ internal class ComposeSceneMediator(
         override val textInputService get() = this@ComposeSceneMediator.textInputService
         override val textToolbar get() = this@ComposeSceneMediator.textInputService
         override val semanticsOwnerListener get() = this@ComposeSceneMediator.semanticsOwnerListener
+
+        private val textInputSessionMutex = SessionMutex<IOSTextInputSession>()
+
+        override suspend fun textInputSession(session: suspend PlatformTextInputSessionScope.() -> Nothing): Nothing =
+            textInputSessionMutex.withSessionCancellingPrevious(
+                sessionInitializer = {
+                    IOSTextInputSession(it)
+                },
+                session = session
+            )
     }
+
+    private inner class IOSTextInputSession(
+        coroutineScope: CoroutineScope
+    ) : PlatformTextInputSessionScope, CoroutineScope by coroutineScope {
+        private val innerSessionMutex = SessionMutex<Nothing?>()
+
+        override suspend fun startInputMethod(request: PlatformTextInputMethodRequest): Nothing =
+            innerSessionMutex.withSessionCancellingPrevious(
+                sessionInitializer = { null }
+            ) {
+                suspendCancellableCoroutine<Nothing> { continuation ->
+                    textInputService.startInput(
+                        value = request.state,
+                        imeOptions = request.imeOptions,
+                        editProcessor = request.editProcessor,
+                        onEditCommand = request.onEditCommand,
+                        onImeActionPerformed = request.onImeAction ?: {}
+                    )
+
+                    continuation.invokeOnCancellation {
+                        textInputService.stopInput()
+                    }
+                }
+            }
+
+        override fun updateSelectionState(newState: TextFieldValue) {
+            textInputService.updateState(oldValue = null, newValue = newState)
+        }
+    }
+
 }
 
 private fun TouchesEventKind.toPointerEventType(): PointerEventType =

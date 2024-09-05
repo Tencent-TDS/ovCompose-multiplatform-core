@@ -26,7 +26,9 @@ import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.TextFieldValue
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 
 internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSession(
     state: TransformedTextFieldState,
@@ -67,18 +69,29 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         }
     }
 
-    startInputMethod(
-        SkikoPlatformTextInputMethodRequest(
-            state = TextFieldValue(
-                state.visualText.toString(),
-                state.visualText.selection,
-                state.visualText.composition,
-            ),
-            imeOptions = imeOptions,
-            onEditCommand = ::onEditCommand,
-            onImeAction = onImeAction
+
+    coroutineScope {
+        launch {
+            state.collectImeNotifications{ _, newValue, _ ->
+                val newTextFieldValue = TextFieldValue(newValue.text.toString(), newValue.selection, newValue.composition)
+                updateSelectionState(newTextFieldValue)
+            }
+        }
+
+        startInputMethod(
+            SkikoPlatformTextInputMethodRequest(
+                state = TextFieldValue(
+                    state.visualText.toString(),
+                    state.visualText.selection,
+                    state.visualText.composition,
+                ),
+                imeOptions = imeOptions,
+                onEditCommand = ::onEditCommand,
+                onImeAction = onImeAction,
+                editProcessor = editProcessor,
+            )
         )
-    )
+    }
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -86,5 +99,6 @@ private data class SkikoPlatformTextInputMethodRequest(
     override val state: TextFieldValue,
     override val imeOptions: ImeOptions,
     override val onEditCommand: (List<EditCommand>) -> Unit,
-    override val onImeAction: ((ImeAction) -> Unit)?
+    override val onImeAction: ((ImeAction) -> Unit)?,
+    override val editProcessor: EditProcessor?
 ): PlatformTextInputMethodRequest
