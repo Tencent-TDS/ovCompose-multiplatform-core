@@ -82,14 +82,14 @@ val TextFields = Screen.Selection(
     Screen.Example("BasicTextField2") {
         var textFieldState by remember { mutableStateOf("I am TextField") }
         val textFieldState2 = remember { TextFieldState("I am TextField 2") }
-        Column {
+        Column(Modifier.fillMaxWidth()) {
             BasicTextField(
                 textFieldState,
                 onValueChange = { textFieldState = it },
-                Modifier.padding(16.dp)
+                Modifier.padding(16.dp).fillMaxWidth()
             )
-            Box(Modifier.height(16.dp).fillMaxWidth())
-            BasicTextField(textFieldState2, Modifier.padding(16.dp))
+            Box(Modifier.height(16.dp))
+            BasicTextField(textFieldState2, Modifier.padding(16.dp).fillMaxWidth())
         }
     },
 
