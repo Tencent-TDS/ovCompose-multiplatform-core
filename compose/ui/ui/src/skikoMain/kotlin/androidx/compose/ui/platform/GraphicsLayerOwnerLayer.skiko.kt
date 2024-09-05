@@ -18,7 +18,6 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.MutableRect
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -26,18 +25,15 @@ import androidx.compose.ui.graphics.Fields
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.ReusableGraphicsLayerScope
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.isIdentity
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.layer.setOutline
-import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.prepareTransformationMatrix
 import androidx.compose.ui.internal.checkPreconditionNotNull
 import androidx.compose.ui.internal.requirePrecondition
 import androidx.compose.ui.node.OwnedLayer
@@ -45,7 +41,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.toSize
 
 
 internal class GraphicsLayerOwnerLayer(
@@ -335,25 +330,27 @@ internal class GraphicsLayerOwnerLayer(
     }
 
     private fun updateMatrix() = with(graphicsLayer) {
-        val pivot = if (pivotOffset.isUnspecified) {
-            this@GraphicsLayerOwnerLayer.size.toSize().center
+        val pivotX: Float
+        val pivotY: Float
+        if (pivotOffset.isUnspecified) {
+            pivotX = size.width / 2f
+            pivotY = size.height / 2f
         } else {
-            pivotOffset
+            pivotX = pivotOffset.x
+            pivotY = pivotOffset.y
         }
-
-        matrixCache.reset()
-        matrixCache *= Matrix().apply {
-            translate(x = -pivot.x, y = -pivot.y)
-        }
-        matrixCache *= Matrix().apply {
-            translate(translationX, translationY)
-            rotateX(rotationX)
-            rotateY(rotationY)
-            rotateZ(rotationZ)
-            scale(scaleX, scaleY)
-        }
-        matrixCache *= Matrix().apply {
-            translate(x = pivot.x, y = pivot.y)
-        }
+        prepareTransformationMatrix(
+            matrix = matrixCache,
+            pivotX = pivotX,
+            pivotY = pivotY,
+            translationX = translationX,
+            translationY = translationY,
+            rotationX = rotationX,
+            rotationY = rotationY,
+            rotationZ = rotationZ,
+            scaleX = scaleX,
+            scaleY = scaleY,
+            cameraDistance = cameraDistance
+        )
     }
 }

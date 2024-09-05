@@ -18,12 +18,15 @@ package androidx.compose.ui.graphics.layer
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isUnspecified
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -42,8 +45,10 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.prepareTransformationMatrix
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toSkia
+import androidx.compose.ui.graphics.toSkiaRect
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -178,14 +183,7 @@ actual class GraphicsLayer internal constructor() {
         this.density = density
         this.size = size
         updateLayerConfiguration()
-        val x = topLeft.x.toFloat()
-        val y = topLeft.y.toFloat()
-        val bounds = org.jetbrains.skia.Rect(
-            x,
-            y,
-            x + size.width.toFloat(),
-            y + size.height.toFloat()
-        )
+        val bounds = size.toSize().toRect().toSkiaRect()
         val canvas = pictureRecorder.beginRecording(bounds)
         val skiaCanvas = canvas.asComposeCanvas() as SkiaBackedCanvas
         skiaCanvas.alphaMultiplier = if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
@@ -275,13 +273,17 @@ actual class GraphicsLayer internal constructor() {
     internal actual fun draw(canvas: Canvas, parentLayer: GraphicsLayer?) {
         if (isReleased) return
 
+        var restoreCount = 0
         parentLayer?.addSubLayer(this)
 
         picture?.let {
             configureOutline()
 
             updateMatrix()
+
             canvas.save()
+            restoreCount++
+
             canvas.concat(matrix)
             canvas.translate(topLeft.x.toFloat(), topLeft.y.toFloat())
 
@@ -291,6 +293,7 @@ actual class GraphicsLayer internal constructor() {
 
             if (clip || shadowElevation > 0f) {
                 canvas.save()
+                restoreCount++
 
                 when (val outline = internalOutline) {
                     is Outline.Rectangle ->
@@ -318,8 +321,10 @@ actual class GraphicsLayer internal constructor() {
                         }
                     }
                 )
+                restoreCount++
             } else {
                 canvas.save()
+                restoreCount++
             }
 
             // Read the state because any changes to the state should trigger re-drawing.
@@ -327,13 +332,9 @@ actual class GraphicsLayer internal constructor() {
 
             canvas.nativeCanvas.drawPicture(it, null, null)
 
-            canvas.restore()
-
-            if (clip) {
+            repeat(restoreCount) {
                 canvas.restore()
             }
-
-            canvas.restore()
         }
     }
 
@@ -418,38 +419,19 @@ actual class GraphicsLayer internal constructor() {
             pivotX = pivotOffset.x
             pivotY = pivotOffset.y
         }
-
-        matrix.reset()
-        matrix.translate(x = -pivotX, y = -pivotY)
-        matrix *= Matrix().apply {
-            rotateZ(rotationZ)
-            rotateY(rotationY)
-            rotateX(rotationX)
-            scale(scaleX, scaleY)
-        }
-        // Perspective transform should be applied only in case of rotations to avoid
-        // multiply application in hierarchies.
-        // See Android's frameworks/base/libs/hwui/RenderProperties.cpp for reference
-        if (!rotationX.isZero() || !rotationY.isZero()) {
-            matrix *= Matrix().apply {
-                // The camera location is passed in inches, set in pt
-                val depth = cameraDistance * 72f
-                this[2, 3] = -1f / depth
-            }
-        }
-        matrix *= Matrix().apply {
-            translate(x = pivotX + translationX, y = pivotY + translationY)
-        }
-
-        // Third column and row are irrelevant for 2D space.
-        // Zeroing required to get correct inverse transformation matrix.
-        matrix[2, 0] = 0f
-        matrix[2, 1] = 0f
-        matrix[2, 3] = 0f
-        matrix[0, 2] = 0f
-        matrix[1, 2] = 0f
-        matrix[3, 2] = 0f
-
+        prepareTransformationMatrix(
+            matrix = matrix,
+            pivotX = pivotX,
+            pivotY = pivotY,
+            translationX = translationX,
+            translationY = translationY,
+            rotationX = rotationX,
+            rotationY = rotationY,
+            rotationZ = rotationZ,
+            scaleX = scaleX,
+            scaleY = scaleY,
+            cameraDistance = cameraDistance
+        )
         matrixDirty = false
     }
 
@@ -519,7 +501,3 @@ actual class GraphicsLayer internal constructor() {
     actual suspend fun toImageBitmap(): ImageBitmap =
         ImageBitmap(size.width, size.height).apply { draw(Canvas(this), null) }
 }
-
-// Copy from Android's frameworks/base/libs/hwui/utils/MathUtils.h
-private const val NON_ZERO_EPSILON = 0.001f
-private inline fun Float.isZero(): Boolean = abs(this) <= NON_ZERO_EPSILON
