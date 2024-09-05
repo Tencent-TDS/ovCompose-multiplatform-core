@@ -276,6 +276,9 @@ actual class GraphicsLayer internal constructor() {
         var restoreCount = 0
         parentLayer?.addSubLayer(this)
 
+        // Read the state because any changes to the state should trigger re-drawing.
+        drawState.value
+
         picture?.let {
             configureOutline()
 
@@ -333,9 +336,6 @@ actual class GraphicsLayer internal constructor() {
                 canvas.restore()
             }
         }
-
-        // Read the state because any changes to the state should trigger re-drawing.
-        drawState.value
     }
 
     private fun onAddedToParentLayer() {
