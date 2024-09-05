@@ -307,7 +307,7 @@ internal class ComposeSceneMediator(
                 } else {
                     val dpOffset = density.adjustedToFocusedRectOffset(
                         insets = PlatformInsets(bottom = height),
-                        focusedRect = scene.focusManager.getFocusRect(),
+                        focusedRect = getFocusedRect(),
                         size = scene.size,
                         currentOffset = IntOffset.Zero,
                     ).y / density.density
@@ -328,7 +328,7 @@ internal class ComposeSceneMediator(
                 setNeedsRedraw()
                 CATransaction.flush() // clear all animations
             },
-            rootView = this.view,
+            rootView = view,
             viewConfiguration = viewConfiguration,
             focusStack = focusStack,
             onInputStarted = {
@@ -413,6 +413,13 @@ internal class ComposeSceneMediator(
         this.view.embedSubview(userInputView)
     }
 
+    private var lastFocusedRect: Rect? = null
+    private fun getFocusedRect(): Rect? {
+        return scene.focusManager.getFocusRect()?.also {
+            lastFocusedRect = it
+        } ?: lastFocusedRect
+    }
+
     @OptIn(ExperimentalComposeApi::class)
     fun setContent(content: @Composable () -> Unit) {
         this.view.runOnceOnAppeared {
@@ -425,7 +432,7 @@ internal class ComposeSceneMediator(
                     ) {
                         OffsetToFocusedRect(
                             insets = PlatformInsets(bottom = keyboardOverlapHeight),
-                            getFocusedRect = { scene.focusManager.getFocusRect() },
+                            getFocusedRect = ::getFocusedRect,
                             size = scene.size,
                             animationDuration = if (animateKeyboardOffsetChanges) {
                                 FOCUS_CHANGE_ANIMATION_DURATION

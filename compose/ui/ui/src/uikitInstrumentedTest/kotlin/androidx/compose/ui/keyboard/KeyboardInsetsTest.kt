@@ -90,7 +90,7 @@ class KeyboardInsetsTest {
         }
 
         assertEquals(screenSize.height - keyboardHeight, textRectInWindow?.bottom)
-        assertEquals(screenSize.height, textRectInRoot?.bottom)
+        assertEquals(screenSize.height - keyboardHeight, textRectInRoot?.bottom)
 
         focusRequester.freeFocus()
         hideKeyboard(animated = false)

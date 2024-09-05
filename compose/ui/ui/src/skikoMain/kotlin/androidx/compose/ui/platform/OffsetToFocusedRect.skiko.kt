@@ -42,19 +42,21 @@ internal fun OffsetToFocusedRect(
     animationDuration: Duration,
     content: @Composable () -> Unit
 ) {
-    var currentOffset by remember { mutableStateOf(IntOffset.Zero) }
+    var currentOffset by remember { mutableStateOf<IntOffset?>(null) }
     var startOffset by remember { mutableStateOf(IntOffset.Zero) }
     var offsetProgress by remember { mutableStateOf(1f) }
     val density = LocalDensity.current
 
+    fun currentOffsetOrZero() = currentOffset ?: IntOffset.Zero
+
     LaunchedEffect(insets, animationDuration) {
-        startOffset = currentOffset
+        startOffset = currentOffsetOrZero()
         if (animationDuration.isPositive()) {
             if (startOffset == density.adjustedToFocusedRectOffset(
                     insets = insets,
                     focusedRect = getFocusedRect(),
                     size = size,
-                    currentOffset = currentOffset
+                    currentOffset = currentOffsetOrZero()
                 )
             ) {
                 offsetProgress = 1f
@@ -75,7 +77,7 @@ internal fun OffsetToFocusedRect(
                 insets = insets,
                 focusedRect = getFocusedRect(),
                 size = size,
-                currentOffset = currentOffset
+                currentOffset = currentOffsetOrZero()
             )
 
             // Intentionally update state within composition to trigger second measure and
@@ -89,7 +91,7 @@ internal fun OffsetToFocusedRect(
                 placeables.maxOfOrNull { it.height } ?: constraints.minHeight
             ) {
                 placeables.forEach {
-                    it.place(currentOffset)
+                    it.place(currentOffsetOrZero())
                 }
             }
         }

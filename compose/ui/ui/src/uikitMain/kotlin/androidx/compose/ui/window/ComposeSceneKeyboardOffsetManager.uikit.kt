@@ -31,10 +31,8 @@ import platform.CoreGraphics.CGRectGetMinY
 import platform.CoreGraphics.CGRectIsEmpty
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
-import platform.Foundation.NSDate
 import platform.Foundation.NSDefaultRunLoopMode
 import platform.Foundation.NSRunLoop
-import platform.Foundation.runUntilDate
 import platform.QuartzCore.CADisplayLink
 import platform.UIKit.UIView
 import platform.UIKit.UIViewAnimationOptionCurveEaseInOut
@@ -126,7 +124,7 @@ internal class ComposeSceneKeyboardOffsetManager(
                 point = CGPointMake(0.0, view.frame.useContents { size.height }),
                 fromCoordinateSpace = view.coordinateSpace
             ).useContents { y }
-            screenHeight - composeViewBottomY
+            screenHeight - composeViewBottomY + view.frame.useContents { origin.y }
         }
 
         animateKeyboard(
@@ -195,7 +193,6 @@ internal class ComposeSceneKeyboardOffsetManager(
                 @ObjCAction
                 fun animationDidUpdate() {
                     updateAnimationValues(getCurrentAnimationProgress())
-                    NSRunLoop.currentRunLoop.runUntilDate(NSDate())
                 }
             },
             selector = sel_registerName("animationDidUpdate")
