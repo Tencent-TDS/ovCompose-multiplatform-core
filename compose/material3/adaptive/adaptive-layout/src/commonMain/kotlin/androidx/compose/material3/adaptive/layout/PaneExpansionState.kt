@@ -218,7 +218,8 @@ private fun List<PaneExpansionAnchor>.toPositions(
             anchors.add(maxExpansionWidth * anchor.percentage / 100)
         }
     }
-    anchors.sort()
+    //https://youtrack.jetbrains.com/issue/KT-70005
+    if (anchors.isNotEmpty()) anchors.sort()
     return anchors
 }
 

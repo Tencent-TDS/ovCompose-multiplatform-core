@@ -24,6 +24,7 @@ import androidx.compose.mpp.demo.components.material3.AlertDialog3Example
 import androidx.compose.mpp.demo.components.material3.BottomSheetScaffoldExample
 import androidx.compose.mpp.demo.components.material3.DateTimePickerExample
 import androidx.compose.mpp.demo.components.material3.DropdownMenu3Example
+import androidx.compose.mpp.demo.components.material3.ListDetailPaneScaffoldExample
 import androidx.compose.mpp.demo.components.material3.ModalBottomSheet3Example
 import androidx.compose.mpp.demo.components.material3.ModalNavigationDrawerExample
 import androidx.compose.mpp.demo.components.material3.SearchBarExample
@@ -48,6 +49,7 @@ private val Material3Components = Screen.Selection(
     Screen.Example("ModalNavigationDrawer") { ModalNavigationDrawerExample() },
     Screen.Example("SearchBar") { SearchBarExample() },
     Screen.Example("WindowSizeClass") { WindowSizeClassExample() },
+    Screen.Example("ListDetailPaneScaffoldExample") { ListDetailPaneScaffoldExample() },
 )
 
 val Components = Screen.Selection(
