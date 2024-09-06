@@ -72,8 +72,19 @@ class DragAndDropTransferAction private constructor(private val name: String) {
     }
 
     companion object {
+        /**
+         * Indicates the dragged object should be copied into the target.
+         */
         val Copy = DragAndDropTransferAction("Copy")
+
+        /**
+         * Indicates the dragged object should be moved ("cut" and "pasted") into the target.
+         */
         val Move = DragAndDropTransferAction("Move")
+
+        /**
+         * Indicates the dragged object should be linked to at the target.
+         */
         val Link = DragAndDropTransferAction("Link")
     }
 }

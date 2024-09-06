@@ -50,7 +50,7 @@ internal val UIView.density: Density
         val contentSizeCategory = traitCollection.preferredContentSizeCategory ?: UIContentSizeCategoryUnspecified
 
         return Density(
-            density = screen.nativeScale.toFloat(),
+            density = screen.scale.toFloat(),
             fontScale = uiContentSizeCategoryToFontScaleMap[contentSizeCategory] ?: 1.0f
         )
     }

@@ -142,6 +142,25 @@ internal class UIKitTextInputService(
         onInputStarted()
     }
 
+    fun startInput(
+        value: TextFieldValue,
+        imeOptions: ImeOptions,
+        editProcessor: EditProcessor?,
+        onEditCommand: (List<EditCommand>) -> Unit,
+        onImeActionPerformed: (ImeAction) -> Unit
+    ) {
+        currentInput = CurrentInput(value, onEditCommand)
+        _tempCurrentInputSession = editProcessor
+        currentImeOptions = imeOptions
+        currentImeActionHandler = onImeActionPerformed
+
+        attachIntermediateTextInputView()
+        textUIView?.input = createSkikoInput()
+        textUIView?.inputTraits = getUITextInputTraits(imeOptions)
+
+        showSoftwareKeyboard()
+    }
+
     override fun stopInput() {
         currentInput = null
         _tempCurrentInputSession = null

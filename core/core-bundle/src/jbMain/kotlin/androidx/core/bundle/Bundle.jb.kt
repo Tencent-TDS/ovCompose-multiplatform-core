@@ -214,12 +214,36 @@ actual fun bundleOf(vararg pairs: Pair<String, Any?>): Bundle = Bundle(pairs.siz
             is LongArray -> putLongArray(key, value)
             is ShortArray -> putShortArray(key, value)
 
-            else -> {
-                val valueType = value::class.canonicalName
-                throw IllegalArgumentException("Illegal value type $valueType for key \"$key\"")
+            // Reference arrays
+            is ArrayList<*> -> putArrayList(key, value)
+            // Perform extra round (with copy) because of compatibility purposes.
+            // Unlike Android, `listOf` result might be not castable to `ArrayList`.
+            is List<*> -> putArrayList(key, ArrayList(value))
+
+            else -> throwIllegalValueType(key, value)
+        }
+    }
+}
+
+@Suppress("UNCHECKED_CAST")
+private inline fun Bundle.putArrayList(key: String?, value: ArrayList<*>) {
+    // Unlike JVM, there is no reflection available to check component type
+    when (value.firstOrNull()) {
+        is Int -> putIntegerArrayList(key, value as ArrayList<Int?>?)
+        is String -> putStringArrayList(key, value as ArrayList<String?>?)
+        else -> {
+            if (value.isEmpty()) {
+                putStringArrayList(key, value as ArrayList<String?>?)
+            } else {
+                throwIllegalValueType(key, value)
             }
         }
     }
+}
+
+private inline fun throwIllegalValueType(key: String?, value: Any): Nothing {
+    val valueType = value::class.canonicalName
+    throw IllegalArgumentException("Illegal value type $valueType for key \"$key\"")
 }
 
 internal expect val <T : Any> KClass<T>.canonicalName: String?
