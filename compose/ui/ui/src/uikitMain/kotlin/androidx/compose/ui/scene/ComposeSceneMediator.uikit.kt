@@ -568,14 +568,14 @@ internal class ComposeSceneMediator(
         onPreviewKeyEvent = { false }
         onKeyEvent = { false }
 
-        this.view.dispose()
+        view.dispose()
         textInputService.stopInput()
         applicationForegroundStateListener.dispose()
         focusStack?.popUntilNext(userInputView)
         keyboardManager.dispose()
         userInputView.dispose()
 
-        this.view.removeFromSuperview()
+        view.removeFromSuperview()
 
         scene.close()
         interopContainer.dispose()
@@ -587,12 +587,12 @@ internal class ComposeSceneMediator(
      * Updates the [ComposeScene] with the properties derived from the [view].
      */
     private fun updateLayout() {
-        density = this.view.density
+        density = view.density
 
-        layoutMargins = this.view.layoutMargins.toPlatformInsets()
-        safeArea = this.view.safeAreaInsets.toPlatformInsets()
+        layoutMargins = view.layoutMargins.toPlatformInsets()
+        safeArea = view.safeAreaInsets.toPlatformInsets()
 
-        val boundsInPx = this.view.bounds.useContents {
+        val boundsInPx = view.bounds.useContents {
             with(density) {
                 asDpRect().toRect()
             }
