@@ -181,4 +181,37 @@ class TestBasicsTest {
         rule.unregisterIdlingResource(idlingResource)
         test(expectedValue = "first")
     }
+
+    @Test(timeout = 500)
+    fun infiniteLoopInLaunchedEffectDoesNotHang() = runComposeUiTest {
+        setContent {
+            LaunchedEffect(Unit) {
+                while (true) {
+                    delay(1000)
+                }
+            }
+        }
+    }
+
+    @Test(timeout = 500)
+    fun delayInLaunchedEffectIsExecutedAfterAdvancingClock() = runComposeUiTest {
+        var value = 0
+        mainClock.autoAdvance = false
+        setContent {
+            LaunchedEffect(Unit) {
+                repeat(5) {
+                    delay(1000)
+                    value = it+1
+                }
+            }
+        }
+
+        assertEquals(0, value)
+        mainClock.advanceTimeBy(999, ignoreFrameDuration = true)
+        assertEquals(0, value)
+        mainClock.advanceTimeBy(2, ignoreFrameDuration = true)
+        assertEquals(1, value)
+        mainClock.advanceTimeBy(2000, ignoreFrameDuration = true)
+        assertEquals(3, value)
+    }
 }

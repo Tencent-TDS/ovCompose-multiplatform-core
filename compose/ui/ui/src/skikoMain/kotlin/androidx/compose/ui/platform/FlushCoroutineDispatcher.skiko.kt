@@ -67,11 +67,15 @@ internal class FlushCoroutineDispatcher(
     }
 
     /**
-     * Whether the dispatcher has any tasks scheduled or currently running.
+     * Whether the dispatcher has immediate tasks pending.
      */
-    fun hasTasks() = synchronized(tasksLock) {
-        immediateTasks.isNotEmpty() || delayedTasks.isNotEmpty()
-    } || isPerformingRun
+    fun hasImmediateTasks() = isPerformingRun ||
+        synchronized(tasksLock) { immediateTasks.isNotEmpty() }
+
+    /**
+     * Whether the dispatcher has delayed tasks pending.
+     */
+    fun hasDelayedTasks() = synchronized(tasksLock) { delayedTasks.isNotEmpty() }
 
     /**
      * Perform all scheduled tasks and wait for the tasks which are already

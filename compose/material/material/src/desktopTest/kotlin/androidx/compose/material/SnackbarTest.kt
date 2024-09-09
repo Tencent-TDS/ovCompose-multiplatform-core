@@ -16,39 +16,43 @@
 
 package androidx.compose.material
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.runComposeUiTest
 import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
-import org.junit.Rule
 import org.junit.Test
 
 
 class SnackbarTest {
-    @get:Rule
-    val rule = createComposeRule()
-
+    @OptIn(ExperimentalTestApi::class)
     @Test
-    fun testQueueing() {
+    fun testQueueing() = runComposeUiTest {
         var snackbarsShown = 0
-
-        rule.setContent {
-            val scope = rememberCoroutineScope()
+        setContent {
             val state = remember { SnackbarHostState() }
 
-            Scaffold(
-                snackbarHost = { SnackbarHost(state) }
-            ) {
-                scope.launch {
-                    (1..4).forEach {
-                        state.showSnackbar(it.toString())
-                        snackbarsShown = it
+            SnackbarHost(state)
+
+            LaunchedEffect(Unit) {
+                repeat(4) {
+                    launch {
+                        state.showSnackbar(snackbarsShown.toString())
+                        snackbarsShown++
                     }
                 }
             }
         }
 
-        assertEquals(4, snackbarsShown)
+        // The snackbars are shown sequentially. The coroutines calling `showSnackbar` are blocked
+        // and released by a `LaunchedEffect` (in the composition) after the snackbar duration
+        // completes. That's why each pair of `advanceTimeBy` and `waitForIdle` only shows one
+        // snackbar.
+        (1..4).forEach {
+            mainClock.advanceTimeBy(60_000)
+            waitForIdle()
+            assertEquals(it, snackbarsShown)
+        }
     }
 }
