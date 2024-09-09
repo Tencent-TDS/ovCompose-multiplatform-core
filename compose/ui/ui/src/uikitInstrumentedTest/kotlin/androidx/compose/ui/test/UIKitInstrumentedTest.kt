@@ -68,8 +68,11 @@ import platform.UIKit.valueWithCGRect
 internal fun runUIKitInstrumentedTest(
     testBlock: UIKitInstrumentedTest.() -> Unit
 ) = with(UIKitInstrumentedTest()) {
-    testBlock()
-    tearDown()
+    try {
+        testBlock()
+    } finally {
+        tearDown()
+    }
 }
 
 @OptIn(ExperimentalForeignApi::class)
