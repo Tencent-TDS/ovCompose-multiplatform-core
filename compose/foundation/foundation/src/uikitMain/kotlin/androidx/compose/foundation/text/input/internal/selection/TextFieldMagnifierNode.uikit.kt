@@ -21,10 +21,9 @@ import androidx.compose.foundation.isPlatformMagnifierSupported
 import androidx.compose.foundation.text.Handle
 import androidx.compose.foundation.text.input.internal.TextLayoutState
 import androidx.compose.foundation.text.input.internal.TransformedTextFieldState
-import androidx.compose.foundation.text.input.internal.coerceIn
 import androidx.compose.foundation.text.input.internal.fromTextLayoutToCore
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
-import androidx.compose.foundation.text.selection.MagnifierPostTravelDp
+import androidx.compose.foundation.text.selection.MagnifierPostTravel
 import androidx.compose.foundation.text.selection.visibleBounds
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -207,7 +206,7 @@ private fun calculateSelectionMagnifierCenterIOS(
     val layoutResult = textLayoutState.layoutResult ?: return Offset.Unspecified
 
     // hide magnifier when selection goes below the text field
-    if (dragPosition.y > layoutResult.lastBaseline + MagnifierPostTravelDp * density) {
+    if (dragPosition.y > layoutResult.lastBaseline + MagnifierPostTravel.value * density) {
         return Offset.Unspecified
     }
 
@@ -220,14 +219,14 @@ private fun calculateSelectionMagnifierCenterIOS(
         val line = layoutResult.getLineForOffset(textOffset)
         val top = layoutResult.getLineTop(line)
         val bottom = layoutResult.getLineBottom(line)
-        (((bottom - top) / 2) + top)
+        ((bottom - top) / 2) + top
     } else {
         coreNodeBounds.center.y
     }
 
     val offset = textLayoutState.fromTextLayoutToCore(Offset(dragPosition.x, centerY))
 
-    return offset.copy(
+    return Offset(
         x = offset.x.coerceIn(
             -magnifierSize.width / 4f,
             coreNodeBounds.right + magnifierSize.width / 4

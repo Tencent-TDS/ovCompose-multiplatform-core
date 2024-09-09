@@ -28,10 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 
 internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier {
     if (!isPlatformMagnifierSupported()) {
@@ -107,7 +106,7 @@ private fun calculateSelectionMagnifierCenterIOS(
         .translateDecorationToInnerCoordinates(localDragPosition)
 
     // hide magnifier when selection goes below the text field
-    if (innerDragPosition.y > layoutResult.lastBaseline + MagnifierPostTravelDp * density) {
+    if (innerDragPosition.y > layoutResult.lastBaseline + MagnifierPostTravel.value * density) {
         return Offset.Unspecified
     }
 
@@ -139,7 +138,7 @@ private fun calculateSelectionMagnifierCenterIOS(
 /**
  * Bottom drag point below the last text baseline after that magnifier is dismissed
  * */
-internal const val MagnifierPostTravelDp = 36
+internal val MagnifierPostTravel = 36.dp
 
 /**
  * Multiplier for height tolerance calculation.
