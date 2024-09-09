@@ -85,7 +85,7 @@ internal class TextFieldMagnifierNodeImpl(
     ObserverModifierNode,
     CompositionLocalConsumerModifierNode {
 
-    private var sourceCenter by mutableStateOf(Offset.Zero)
+    private var sourceCenter by mutableStateOf(Offset.Unspecified)
     private var color by mutableStateOf(Color.Unspecified)
     private var density by mutableStateOf(Density(1f,1f))
     private var magnifierSize by mutableStateOf(DpSize.Zero)
