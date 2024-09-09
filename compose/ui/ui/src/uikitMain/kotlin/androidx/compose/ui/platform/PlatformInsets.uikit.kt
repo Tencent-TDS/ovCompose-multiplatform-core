@@ -21,8 +21,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
 
 /**
  * Composition local for SafeArea of ComposeUIViewController
@@ -54,8 +54,10 @@ private object SafeAreaInsetsConfig : InsetsConfig {
         val keyboardOverlapHeight = LocalKeyboardOverlapHeight.current
         CompositionLocalProvider(
             LocalSafeArea provides if (safeInsets) PlatformInsets() else safeArea,
-            LocalLayoutMargins provides if (safeInsets) layoutMargins.exclude(safeArea) else layoutMargins,
-            LocalKeyboardOverlapHeight provides if (ime) 0.dp else max(0.dp, keyboardOverlapHeight - safeArea.bottom),
+            LocalLayoutMargins provides
+                if (safeInsets) layoutMargins.exclude(safeArea) else layoutMargins,
+            LocalKeyboardOverlapHeight provides
+                if (ime) 0.dp else (keyboardOverlapHeight - safeArea.bottom).coerceAtLeast(0.dp),
             content = content
         )
     }
