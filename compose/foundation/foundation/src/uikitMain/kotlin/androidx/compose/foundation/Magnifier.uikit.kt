@@ -318,9 +318,9 @@ internal class MagnifierNode(
         if (sourceCenterInView != null) {
             // Calculate magnifier center if it's provided. Only accept if the returned value is
             // specified. Then add [anchorPositionInWindow] for relative positioning.
-            magnifierCenter?.invoke(density)
-                ?.takeIf { it.isSpecified }
-                ?.let { anchorPositionInWindow + it }
+            //magnifierCenter?.invoke(density)
+            //    ?.takeIf { it.isSpecified }
+            //    ?.let { anchorPositionInWindow + it }
 
             magnifier.update(sourceCenter = sourceCenterInView)
             updateSizeIfNecessary()
