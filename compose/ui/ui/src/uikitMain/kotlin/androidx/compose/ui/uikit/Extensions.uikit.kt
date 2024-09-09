@@ -18,6 +18,11 @@ package androidx.compose.ui.uikit
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.dp
+import kotlinx.cinterop.CValue
+import kotlinx.cinterop.useContents
+import platform.CoreGraphics.CGRect
 import platform.UIKit.UIColor
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraExtraLarge
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraLarge
@@ -85,3 +90,12 @@ internal fun Color.toUIColor(): UIColor? =
             alpha = alpha.toDouble(),
         )
     }
+
+internal fun CValue<CGRect>.toDpRect() = useContents {
+    DpRect(
+        left = origin.x.dp,
+        top = origin.y.dp,
+        right = origin.x.dp + size.width.dp,
+        bottom = origin.y.dp + size.height.dp,
+    )
+}

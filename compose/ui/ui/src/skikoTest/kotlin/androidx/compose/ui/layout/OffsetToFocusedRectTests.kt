@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.platform
+package androidx.compose.ui.layout
 
+import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.DpSize

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.platform
+package androidx.compose.ui.layout
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,7 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -40,23 +41,22 @@ internal fun OffsetToFocusedRect(
     getFocusedRect: () -> Rect?,
     size: IntSize?,
     animationDuration: Duration,
-    content: @Composable () -> Unit
+    animationCompletion: () -> Unit,
+    content: @Composable () -> Unit,
 ) {
-    var currentOffset by remember { mutableStateOf<IntOffset?>(null) }
+    var currentOffset by remember { mutableStateOf(IntOffset.Zero) }
     var startOffset by remember { mutableStateOf(IntOffset.Zero) }
     var offsetProgress by remember { mutableStateOf(1f) }
     val density = LocalDensity.current
 
-    fun currentOffsetOrZero() = currentOffset ?: IntOffset.Zero
-
     LaunchedEffect(insets, animationDuration) {
-        startOffset = currentOffsetOrZero()
+        startOffset = currentOffset
         if (animationDuration.isPositive()) {
             if (startOffset == density.adjustedToFocusedRectOffset(
                     insets = insets,
                     focusedRect = getFocusedRect(),
                     size = size,
-                    currentOffset = currentOffsetOrZero()
+                    currentOffset = currentOffset
                 )
             ) {
                 offsetProgress = 1f
@@ -65,6 +65,7 @@ internal fun OffsetToFocusedRect(
                     offsetProgress = it
                 }
             }
+            animationCompletion()
         } else {
             offsetProgress = 1f
         }
@@ -77,7 +78,7 @@ internal fun OffsetToFocusedRect(
                 insets = insets,
                 focusedRect = getFocusedRect(),
                 size = size,
-                currentOffset = currentOffsetOrZero()
+                currentOffset = currentOffset
             )
 
             // Intentionally update state within composition to trigger second measure and
@@ -91,7 +92,7 @@ internal fun OffsetToFocusedRect(
                 placeables.maxOfOrNull { it.height } ?: constraints.minHeight
             ) {
                 placeables.forEach {
-                    it.place(currentOffsetOrZero())
+                    it.place(currentOffset)
                 }
             }
         }

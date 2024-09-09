@@ -19,7 +19,6 @@ package androidx.compose.ui.window
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
-import kotlin.math.min
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ObjCAction
@@ -31,8 +30,8 @@ import platform.CoreGraphics.CGRectGetMinY
 import platform.CoreGraphics.CGRectIsEmpty
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
-import platform.Foundation.NSDefaultRunLoopMode
 import platform.Foundation.NSRunLoop
+import platform.Foundation.NSRunLoopCommonModes
 import platform.QuartzCore.CADisplayLink
 import platform.UIKit.UIView
 import platform.UIKit.UIViewAnimationOptionCurveEaseInOut
@@ -152,17 +151,9 @@ internal class ComposeSceneKeyboardOffsetManager(
         }
         keyboardAnimationListener?.invalidate()
 
-        var previousAnimationProgress = 0.0
         fun updateAnimationValues(progress: Double) {
-            // Adjust [progress] one frame ahead to partially compensate for the delay between the
-            // current keyboard position and the position of the compose scene elements.
-            val adjustedProgress = max(
-                0.0, min(1.0, progress + (progress - previousAnimationProgress))
-            )
-            previousAnimationProgress = progress
-
             val currentHeight = previousKeyboardHeight +
-                (keyboardHeight - previousKeyboardHeight) * adjustedProgress
+                (keyboardHeight - previousKeyboardHeight) * progress
             keyboardOverlapHeightChanged(max(0.0, currentHeight - viewBottomIndent).dp)
         }
 
@@ -221,7 +212,7 @@ internal class ComposeSceneKeyboardOffsetManager(
         // where view's presentationLayer sometimes gets end bounds on the first animation frame
         // instead of the initial one.
         dispatch_async(dispatch_get_main_queue()) {
-            keyboardDisplayLink.addToRunLoop(NSRunLoop.mainRunLoop(), NSDefaultRunLoopMode)
+            keyboardDisplayLink.addToRunLoop(NSRunLoop.mainRunLoop, NSRunLoopCommonModes)
         }
     }
 }

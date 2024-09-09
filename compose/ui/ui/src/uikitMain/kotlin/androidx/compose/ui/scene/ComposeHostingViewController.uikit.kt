@@ -111,7 +111,8 @@ internal class ComposeHostingViewController(
         InterfaceOrientation.Portrait
     )
     private val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
-    private val focusStack = FocusStack()
+
+    var focusStack: FocusStack? = FocusStack()
     private val windowContext = PlatformWindowContext().apply {
         isWindowFocused = true
     }
