@@ -19,12 +19,10 @@ package androidx.compose.ui.keyboard
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
@@ -74,7 +72,7 @@ class KeyboardInsetsTest {
         setContent {
             Box(Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.ime)
+                .imePadding()
                 .onGloballyPositioned { coordinates ->
                     // Since you can have multiple layouts per render cycle, remember the last
                     // one and add it for further analysis during the render phase.
@@ -149,7 +147,7 @@ class KeyboardInsetsTest {
         setContent {
             Box(Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.ime)
+                .imePadding()
                 .drawWithContent {
                     refreshTimings.add(TimeSource.Monotonic.markNow())
                 }
@@ -176,87 +174,181 @@ class KeyboardInsetsTest {
     }
 
     @Test
-    fun `test IME insets animation frames with focused text field`() = runUIKitInstrumentedTest {
-        val contentFrames = mutableListOf<DpRect>()
-        var lastContentFrame = DpRect(DpOffset.Unspecified, DpSize.Unspecified)
-        val focusRequester = FocusRequester()
+    fun `test IME insets animation frames with focused text field and canvas layers`() =
+        runUIKitInstrumentedTest {
+            val contentFrames = mutableListOf<DpRect>()
+            var lastContentFrame = DpRect(DpOffset.Unspecified, DpSize.Unspecified)
+            val focusRequester = FocusRequester()
+            val interopView = UIView()
 
-        setContent {
-            Box(Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.ime)
-                .onGloballyPositioned { coordinates ->
-                    // Since you can have multiple layouts per render cycle, remember the last
-                    // one and add it for further analysis during the render phase.
-                    lastContentFrame = coordinates.boundsInWindow().toDpRect(density)
+            setContent({
+                onFocusBehavior = OnFocusBehavior.FocusableAboveKeyboard
+                platformLayers = false
+            }) {
+                Box(Modifier.imePadding()) {
+                    UIKitView(
+                        factory = { interopView },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .onGloballyPositioned { coordinates ->
+                                // Since you can have multiple layouts per render cycle, remember the last
+                                // one and add it for further analysis during the render phase.
+                                lastContentFrame = coordinates.boundsInWindow().toDpRect(density)
+                            }
+                            .drawWithContent {
+                                contentFrames.add(lastContentFrame)
+                            }
+                    )
+                    TextField(
+                        value = "",
+                        onValueChange = {},
+                        modifier = Modifier
+                            .focusRequester(focusRequester)
+                            .align(Alignment.BottomCenter)
+                    )
                 }
-                .drawWithContent {
-                    contentFrames.add(lastContentFrame)
-                }
-            ) {
-                TextField(
-                    value = "",
-                    onValueChange = {},
-                    modifier = Modifier
-                        .focusRequester(focusRequester)
-                        .align(Alignment.BottomCenter)
+            }
+
+            val screenRect = DpRect(origin = DpOffset.Zero, size = screenSize)
+
+            // Show keyboard with animation
+            focusRequester.requestFocus()
+            showKeyboard(animated = true)
+            contentFrames.clear()
+            waitForIdle()
+
+            val visibleRect = DpRect(
+                left = 0.dp,
+                top = 0.dp,
+                right = screenSize.width,
+                bottom = screenSize.height - keyboardHeight
+            )
+
+            assertTrue(contentFrames.count() > 5, "Animation should produce large number of frames")
+            assertEquals(visibleRect, contentFrames.last(), "")
+            contentFrames.forEach {
+                assertEquals(0.dp, it.top, "Content must be top-aligned")
+            }
+            contentFrames.forEachWithPrevious { previousFrame, nextFrame ->
+                assertTrue(
+                    nextFrame.bottom <= previousFrame.bottom,
+                    "Content must shrink up on every frame"
+                )
+                assertTrue(
+                    nextFrame.height <= previousFrame.height,
+                    "Content size must decrease on every frame"
+                )
+            }
+
+            // Hide keyboard with animation
+            focusRequester.freeFocus()
+            hideKeyboard(animated = true)
+            contentFrames.clear()
+            waitForIdle()
+
+            assertTrue(contentFrames.count() > 5, "Animation should produce large number of frames")
+            assertEquals(screenRect, contentFrames.last())
+            contentFrames.forEach {
+                assertEquals(0.dp, it.top, "Content must be top-aligned")
+            }
+            contentFrames.forEachWithPrevious { previousFrame, nextFrame ->
+                assertTrue(
+                    actual = nextFrame.bottom >= previousFrame.bottom,
+                    "Content must expand down on every frame"
+                )
+                assertTrue(
+                    actual = nextFrame.height >= previousFrame.height,
+                    "Content size must increase on every frame"
                 )
             }
         }
 
-        val screenRect = DpRect(origin = DpOffset.Zero, size = screenSize)
+    @Test
+    fun `test IME insets animation frames with focused text field and platform layers`() =
+        runUIKitInstrumentedTest {
+            val contentFrames = mutableListOf<DpRect>()
+            var lastContentFrame = DpRect(DpOffset.Unspecified, DpSize.Unspecified)
+            val focusRequester = FocusRequester()
 
-        // Show keyboard with animation
-        focusRequester.requestFocus()
-        showKeyboard(animated = true)
-        contentFrames.clear()
-        waitForIdle()
+            setContent({
+                onFocusBehavior = OnFocusBehavior.FocusableAboveKeyboard
+                platformLayers = false
+            }) {
+                Box(Modifier
+                    .fillMaxSize()
+                    .imePadding()
+                    .onGloballyPositioned { coordinates ->
+                        // Since you can have multiple layouts per render cycle, remember the last
+                        // one and add it for further analysis during the render phase.
+                        lastContentFrame = coordinates.boundsInWindow().toDpRect(density)
+                    }
+                    .drawWithContent {
+                        contentFrames.add(lastContentFrame)
+                    }
+                ) {
+                    TextField(
+                        value = "",
+                        onValueChange = {},
+                        modifier = Modifier
+                            .focusRequester(focusRequester)
+                            .align(Alignment.BottomCenter)
+                    )
+                }
+            }
 
-        val visibleRect = DpRect(
-            left = 0.dp,
-            top = 0.dp,
-            right = screenSize.width,
-            bottom = screenSize.height - keyboardHeight
-        )
+            val screenRect = DpRect(origin = DpOffset.Zero, size = screenSize)
 
-        assertTrue(contentFrames.count() > 5, "Animation should produce large number of frames")
-        assertEquals(visibleRect, contentFrames.last(), "")
-        contentFrames.forEach {
-            assertEquals(0.dp, it.top, "Content must be top-aligned")
-        }
-        contentFrames.forEachWithPrevious { previousFrame, nextFrame ->
-            assertTrue(
-                nextFrame.bottom <= previousFrame.bottom,
-                "Content must shrink up on every frame"
+            // Show keyboard with animation
+            focusRequester.requestFocus()
+            showKeyboard(animated = true)
+            contentFrames.clear()
+            waitForIdle()
+
+            val visibleRect = DpRect(
+                left = 0.dp,
+                top = 0.dp,
+                right = screenSize.width,
+                bottom = screenSize.height - keyboardHeight
             )
-            assertTrue(
-                nextFrame.height <= previousFrame.height,
-                "Content size must decrease on every frame"
-            )
-        }
 
-        // Hide keyboard with animation
-        focusRequester.freeFocus()
-        hideKeyboard(animated = true)
-        contentFrames.clear()
-        waitForIdle()
+            assertTrue(contentFrames.count() > 5, "Animation should produce large number of frames")
+            assertEquals(visibleRect, contentFrames.last(), "")
+            contentFrames.forEach {
+                assertEquals(0.dp, it.top, "Content must be top-aligned")
+            }
+            contentFrames.forEachWithPrevious { previousFrame, nextFrame ->
+                assertTrue(
+                    nextFrame.bottom <= previousFrame.bottom,
+                    "Content must shrink up on every frame"
+                )
+                assertTrue(
+                    nextFrame.height <= previousFrame.height,
+                    "Content size must decrease on every frame"
+                )
+            }
 
-        assertTrue(contentFrames.count() > 5, "Animation should produce large number of frames")
-        assertEquals(screenRect, contentFrames.last())
-        contentFrames.forEach {
-            assertEquals(0.dp, it.top, "Content must be top-aligned")
+            // Hide keyboard with animation
+            focusRequester.freeFocus()
+            hideKeyboard(animated = true)
+            contentFrames.clear()
+            waitForIdle()
+
+            assertTrue(contentFrames.count() > 5, "Animation should produce large number of frames")
+            assertEquals(screenRect, contentFrames.last())
+            contentFrames.forEach {
+                assertEquals(0.dp, it.top, "Content must be top-aligned")
+            }
+            contentFrames.forEachWithPrevious { previousFrame, nextFrame ->
+                assertTrue(
+                    actual = nextFrame.bottom >= previousFrame.bottom,
+                    "Content must expand down on every frame"
+                )
+                assertTrue(
+                    actual = nextFrame.height >= previousFrame.height,
+                    "Content size must increase on every frame"
+                )
+            }
         }
-        contentFrames.forEachWithPrevious { previousFrame, nextFrame ->
-            assertTrue(
-                actual = nextFrame.bottom >= previousFrame.bottom,
-                "Content must expand down on every frame"
-            )
-            assertTrue(
-                actual = nextFrame.height >= previousFrame.height,
-                "Content size must increase on every frame"
-            )
-        }
-    }
 
     @Test
     fun `test IME insets animation frame rate with focused text field`() =
@@ -272,7 +364,7 @@ class KeyboardInsetsTest {
             setContent {
                 Box(Modifier
                     .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.ime)
+                    .imePadding()
                     .drawWithContent {
                         refreshTimings.add(TimeSource.Monotonic.markNow())
                     }
@@ -321,10 +413,10 @@ class KeyboardInsetsTest {
                 onFocusBehavior = OnFocusBehavior.FocusableAboveKeyboard
                 platformLayers = true
             }) {
-                Box(Modifier.fillMaxSize().padding(bottom = bottomPadding)) {
+                Box(Modifier.padding(bottom = bottomPadding)) {
                     UIKitView(
                         factory = { interopView },
-                        modifier = Modifier.size(1.dp).align(Alignment.BottomCenter)
+                        modifier = Modifier.fillMaxSize()
                     )
                     TextField(
                         value = "",
@@ -371,10 +463,10 @@ class KeyboardInsetsTest {
                 onFocusBehavior = OnFocusBehavior.FocusableAboveKeyboard
                 platformLayers = false
             }) {
-                Box(Modifier.fillMaxSize().padding(bottom = bottomPadding)) {
+                Box(Modifier.padding(bottom = bottomPadding)) {
                     UIKitView(
                         factory = { interopView },
-                        modifier = Modifier.size(1.dp).align(Alignment.BottomCenter)
+                        modifier = Modifier.fillMaxSize()
                     )
                     TextField(
                         value = "",
