@@ -18,7 +18,6 @@ package androidx.build
 
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
-import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.tasks.Copy
@@ -95,18 +94,18 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     override fun wasm(): Unit = multiplatformExtension.run {
         wasmJs {
             browser {
-                testTask(Action<KotlinJsTest> {
+                testTask {
                     it.useKarma {
                         useChrome()
                         useConfigDirectory(
                             project.rootProject.projectDir.resolve("mpp/karma.config.d/wasm")
                         )
                     }
-                })
+                }
             }
         }
 
-        val resourcesDir = "${project.buildDir}/resources"
+        val resourcesDir = project.buildDir.resolve("resources")
         val skikoWasm by project.configurations.creating
 
         // Below code helps configure the tests for k/wasm targets
@@ -114,29 +113,18 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
             skikoWasm("org.jetbrains.skiko:skiko-js-wasm-runtime:${skikoVersion}")
         }
 
-        val unzipTask = project.tasks.register("unzipSkikoForKWasm", Copy::class.java) {
+        val fetchSkikoWasmRuntime = project.tasks.register("fetchSkikoWasmRuntime", Copy::class.java) {
             it.destinationDir = project.file(resourcesDir)
-            it.from(skikoWasm.map { project.zipTree(it) })
-        }
-
-        val loadTestsTask = project.tasks.register("loadTests", Copy::class.java) {
-            it.destinationDir = project.file(resourcesDir)
-            it.from(
-                project.rootProject.projectDir.resolve(
-                    "mpp/load-wasm-tests/load-test-template.mjs"
-                )
-            )
-            it.filter {
-                it.replace("{module-name}", getDashedProjectName())
-            }
-        }
-
-        project.tasks.getByName("wasmJsTestProcessResources").apply {
-            dependsOn(loadTestsTask)
+            it.from(skikoWasm.map { artifact ->
+                project.zipTree(artifact)
+                    .matching { pattern ->
+                        pattern.include("skiko.wasm", "skiko.mjs")
+                    }
+            })
         }
 
         project.tasks.getByName("wasmJsBrowserTest").apply {
-            dependsOn(unzipTask)
+            dependsOn(fetchSkikoWasmRuntime)
         }
 
         val commonMain = sourceSets.getByName("commonMain")
@@ -145,7 +133,7 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
 
         sourceSets.getByName("wasmJsTest").also {
             it.resources.setSrcDirs(it.resources.srcDirs)
-            it.resources.srcDirs(unzipTask.map { it.destinationDir })
+            it.resources.srcDirs(fetchSkikoWasmRuntime.map { it.destinationDir })
         }
     }
 
