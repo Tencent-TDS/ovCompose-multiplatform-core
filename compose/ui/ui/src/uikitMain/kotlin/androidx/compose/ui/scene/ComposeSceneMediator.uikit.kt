@@ -418,57 +418,13 @@ internal class ComposeSceneMediator(
         } ?: lastFocusedRect
     }
 
-    @OptIn(ExperimentalComposeApi::class)
     fun setContent(content: @Composable () -> Unit) {
         view.runOnceOnAppeared {
             focusStack?.pushAndFocus(userInputView)
 
             scene.setContent {
                 ProvideComposeSceneMediatorCompositionLocals {
-                    if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
-                        if (configuration.platformLayers) {
-                            OffsetToFocusedRect(
-                                insets = PlatformInsets(bottom = keyboardOverlapHeight),
-                                getFocusedRect = ::getFocusedRect,
-                                size = scene.size,
-                                animationDuration = if (animateKeyboardOffsetChanges) {
-                                    FOCUS_CHANGE_ANIMATION_DURATION
-                                } else {
-                                    0.seconds
-                                },
-                                animationCompletion = {
-                                    animateKeyboardOffsetChanges = false
-                                }
-                            ) {
-                                interopContainer.TrackInteropPlacementContainer(content = content)
-                            }
-                        } else {
-                            LaunchedEffect(keyboardOverlapHeight) {
-                                scene.invalidatePositionInWindow()
-                            }
-                            LaunchedEffect(animateKeyboardOffsetChanges) {
-                                if (animateKeyboardOffsetChanges) {
-                                    UIView.animateWithDuration(
-                                        duration = FOCUS_CHANGE_ANIMATION_DURATION.toDouble(
-                                            DurationUnit.SECONDS
-                                        ),
-                                        animations = ::updateViewOffset,
-                                        completion = {
-                                            scene.invalidatePositionInWindow()
-                                            animateKeyboardOffsetChanges = false
-                                        }
-                                    )
-                                }
-                            }
-                            OverlayLayout(
-                                modifier = Modifier.onGloballyPositioned {
-                                    updateViewOffset()
-                                }
-                            ) {
-                                interopContainer.TrackInteropPlacementContainer(content = content)
-                            }
-                        }
-                    } else {
+                    FocusAboveKeyboardIfNeeded {
                         interopContainer.TrackInteropPlacementContainer(content = content)
                     }
                 }
@@ -564,6 +520,55 @@ internal class ComposeSceneMediator(
             content = content
         )
 
+    @OptIn(ExperimentalComposeApi::class)
+    @Composable
+    private fun FocusAboveKeyboardIfNeeded(content: @Composable () -> Unit) {
+        if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
+            if (configuration.platformLayers) {
+                OffsetToFocusedRect(
+                    insets = PlatformInsets(bottom = keyboardOverlapHeight),
+                    getFocusedRect = ::getFocusedRect,
+                    size = scene.size,
+                    animationDuration = if (animateKeyboardOffsetChanges) {
+                        FOCUS_CHANGE_ANIMATION_DURATION
+                    } else {
+                        0.seconds
+                    },
+                    animationCompletion = {
+                        animateKeyboardOffsetChanges = false
+                    },
+                    content = content
+                )
+            } else {
+                LaunchedEffect(keyboardOverlapHeight) {
+                    scene.invalidatePositionInWindow()
+                }
+                LaunchedEffect(animateKeyboardOffsetChanges) {
+                    if (animateKeyboardOffsetChanges) {
+                        UIView.animateWithDuration(
+                            duration = FOCUS_CHANGE_ANIMATION_DURATION.toDouble(
+                                DurationUnit.SECONDS
+                            ),
+                            animations = ::updateViewOffset,
+                            completion = {
+                                scene.invalidatePositionInWindow()
+                                animateKeyboardOffsetChanges = false
+                            }
+                        )
+                    }
+                }
+                OverlayLayout(
+                    modifier = Modifier.onGloballyPositioned {
+                        updateViewOffset()
+                    },
+                    content = content
+                )
+            }
+        } else {
+            content()
+        }
+    }
+
     fun dispose() {
         onPreviewKeyEvent = { false }
         onKeyEvent = { false }
@@ -635,11 +640,6 @@ internal class ComposeSceneMediator(
             || onPreviewKeyEvent(keyEvent)
             || scene.sendKeyEvent(keyEvent)
             || onKeyEvent(keyEvent)
-
-
-    companion object {
-        private val FOCUS_CHANGE_ANIMATION_DURATION = 0.15.seconds
-    }
 
     @OptIn(ExperimentalComposeApi::class)
     private var viewForKeyboardOffsetTransform = if (configuration.platformLayers) {
@@ -720,8 +720,9 @@ internal class ComposeSceneMediator(
             textInputService.updateState(oldValue = null, newValue = newState)
         }
     }
-
 }
+
+private val FOCUS_CHANGE_ANIMATION_DURATION = 0.15.seconds
 
 private fun TouchesEventKind.toPointerEventType(): PointerEventType =
     when (this) {
