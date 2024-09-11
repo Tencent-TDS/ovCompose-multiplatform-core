@@ -156,18 +156,20 @@ actual class GraphicsLayer internal constructor() {
 
     private var density: Density = Density(1f)
 
-    private fun invalidateMatrix() {
+    private fun invalidateMatrix(requestDraw: Boolean = true) {
         matrixDirty = true
-        requestDraw()
+        if (requestDraw) {
+            requestDraw()
+        }
     }
 
     private fun requestDraw() {
         drawState.value = Unit
     }
 
-    private fun updateLayerConfiguration() {
+    private fun updateLayerConfiguration(requestDraw: Boolean = true) {
         this.outlineDirty = true
-        invalidateMatrix()
+        invalidateMatrix(requestDraw)
     }
 
     actual fun record(
@@ -182,7 +184,12 @@ actual class GraphicsLayer internal constructor() {
 
         this.density = density
         this.size = size
-        updateLayerConfiguration()
+        updateLayerConfiguration(
+            // [record] doesn't change the state and should not explicitly request drawing
+            // (happens only on the next frame) to avoid infinity invalidation loop.
+            // It's designed to be handled externally.
+            requestDraw = false
+        )
         val bounds = size.toSize().toRect().toSkiaRect()
         val canvas = pictureRecorder.beginRecording(bounds)
         val skiaCanvas = canvas.asComposeCanvas() as SkiaBackedCanvas
