@@ -68,7 +68,6 @@ import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.uikit.layoutConstraintsToCenterInParent
 import androidx.compose.ui.uikit.layoutConstraintsToMatch
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
@@ -436,8 +435,7 @@ internal class ComposeSceneMediator(
         val yOffset = density.adjustedToFocusedRectOffset(
             insets = PlatformInsets(bottom = keyboardOverlapHeight),
             focusedRect = getFocusedRect(),
-            size = scene.size,
-            currentOffset = IntOffset.Zero,
+            size = scene.size
         ).y / density.density
 
         viewForKeyboardOffsetTransform.layer.setAffineTransform(
