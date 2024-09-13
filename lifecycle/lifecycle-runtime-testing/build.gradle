@@ -24,6 +24,7 @@
 
 import androidx.build.PlatformIdentifier
 import androidx.build.LibraryType
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
@@ -88,7 +89,7 @@ androidXMultiplatform {
         wasmJsTest.dependsOn(webTest)
 
         targets.all { target ->
-            if (target.platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.native) {
+            if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet.dependsOn(nativeMain)
                 target.compilations["test"].defaultSourceSet.dependsOn(nativeTest)
             }
