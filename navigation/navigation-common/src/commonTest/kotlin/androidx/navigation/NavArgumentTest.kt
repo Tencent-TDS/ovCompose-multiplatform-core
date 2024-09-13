@@ -16,12 +16,10 @@
 
 package androidx.navigation
 
-import android.os.Bundle
-import androidx.test.filters.SmallTest
-import com.google.common.truth.Truth.assertThat
-import org.junit.Test
+import androidx.core.bundle.Bundle
+import androidx.kruth.assertThat
+import kotlin.test.Test
 
-@SmallTest
 class NavArgumentTest {
     @Test
     @Suppress("DEPRECATION")

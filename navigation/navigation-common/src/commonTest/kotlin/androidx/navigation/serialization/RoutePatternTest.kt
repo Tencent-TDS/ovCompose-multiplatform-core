@@ -16,12 +16,13 @@
 
 package androidx.navigation.serialization
 
-import android.os.Bundle
+import androidx.core.bundle.Bundle
+import androidx.kruth.assertThat
 import androidx.navigation.CollectionNavType
 import androidx.navigation.NavType
-import com.google.common.truth.Truth.assertThat
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
+import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
@@ -33,13 +34,9 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.serializer
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 
 const val PATH_SERIAL_NAME = "www.test.com"
 
-@RunWith(JUnit4::class)
 class RoutePatternTest {
 
     @Test
