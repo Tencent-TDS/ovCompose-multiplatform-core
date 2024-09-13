@@ -95,9 +95,9 @@ import javax.swing.JMenuBar
  * will be visible;
  * - native resources will not be released. They will be released only when [Window]
  * will leave the composition.
- * @param title Title in the titlebar of the window
- * @param icon Icon in the titlebar of the window (for platforms which support this).
- * On macOs individual windows can't have a separate icon. To change the icon in the Dock,
+ * @param title Title in the title bar of the window
+ * @param icon Icon in the title bar of the window (for platforms which support this).
+ * On macOS individual windows can't have a separate icon. To change the icon in the Dock,
  * set it via `iconFile` in build.gradle
  * (https://github.com/JetBrains/compose-jb/tree/master/tutorials/Native_distributions_and_local_execution#platform-specific-options)
  * @param decoration Specifies the decoration for this window.
@@ -118,6 +118,7 @@ import javax.swing.JMenuBar
  * If you return false, the key event will be sent to this [onKeyEvent]'s parent.
  * @param content Content of the window
  */
+@ExperimentalComposeUiApi
 @Composable
 fun Window(
     onCloseRequest: () -> Unit,
@@ -125,7 +126,7 @@ fun Window(
     visible: Boolean = true,
     title: String = "Untitled",
     icon: Painter? = null,
-    decoration: WindowDecoration = WindowDecoration.SystemDefault,
+    decoration: WindowDecoration,
     transparent: Boolean = false,
     resizable: Boolean = true,
     enabled: Boolean = true,
@@ -305,9 +306,9 @@ fun Window(
  * will be visible;
  * - native resources will not be released. They will be released only when [Window]
  * will leave the composition.
- * @param title Title in the titlebar of the window
- * @param icon Icon in the titlebar of the window (for platforms which support this).
- * On macOs individual windows can't have a separate icon. To change the icon in the Dock,
+ * @param title Title in the title bar of the window
+ * @param icon Icon in the title bar of the window (for platforms which support this).
+ * On macOS individual windows can't have a separate icon. To change the icon in the Dock,
  * set it via `iconFile` in build.gradle
  * (https://github.com/JetBrains/compose-jb/tree/master/tutorials/Native_distributions_and_local_execution#platform-specific-options)
  * @param undecorated Disables or enables decorations for this window.
@@ -328,28 +329,6 @@ fun Window(
  * If you return false, the key event will be sent to this [onKeyEvent]'s parent.
  * @param content Content of the window
  */
-@Deprecated(
-    level = DeprecationLevel.WARNING,
-    message = "Replaced by an overload that takes a decoration argument",
-    replaceWith = ReplaceWith("Window(" +
-        "onCloseRequest," +
-        "state," +
-        "visible," +
-        "title," +
-        "icon," +
-        "if (undecorated) WindowDecoration.Undecorated() else WindowDecoration.SystemDefault," +
-        "transparent," +
-        "resizable," +
-        "enabled," +
-        "focusable," +
-        "alwaysOnTop," +
-        "onPreviewKeyEvent," +
-        "onKeyEvent," +
-        "content" +
-        ")",
-        "androidx.compose.ui.window.WindowDecoration"
-    )
-)
 @Composable
 fun Window(
     onCloseRequest: () -> Unit,
@@ -357,7 +336,7 @@ fun Window(
     visible: Boolean = true,
     title: String = "Untitled",
     icon: Painter? = null,
-    undecorated: Boolean,
+    undecorated: Boolean = false,
     transparent: Boolean = false,
     resizable: Boolean = true,
     enabled: Boolean = true,
@@ -414,9 +393,9 @@ fun Window(
  * will be visible;
  * - native resources will not be released. They will be released only when [Window]
  * will leave the composition.
- * @param title Title in the titlebar of the window
- * @param icon Icon in the titlebar of the window (for platforms which support this).
- * On macOs individual windows can't have a separate icon. To change the icon in the Dock,
+ * @param title Title in the title bar of the window
+ * @param icon Icon in the title bar of the window (for platforms which support this).
+ * On macOS individual windows can't have a separate icon. To change the icon in the Dock,
  * set it via `iconFile` in build.gradle
  * (https://github.com/JetBrains/compose-jb/tree/master/tutorials/Native_distributions_and_local_execution#platform-specific-options)
  * @param decoration Specifies the decoration for this window.
@@ -441,12 +420,13 @@ fun Window(
  * (when the last window is closed, and all [LaunchedEffect]s are complete).
  * @param content Content of the window
  */
+@ExperimentalComposeUiApi
 fun singleWindowApplication(
     state: WindowState = WindowState(),
     visible: Boolean = true,
     title: String = "Untitled",
     icon: Painter? = null,
-    decoration: WindowDecoration = WindowDecoration.SystemDefault,
+    decoration: WindowDecoration,
     transparent: Boolean = false,
     resizable: Boolean = true,
     enabled: Boolean = true,
@@ -503,9 +483,9 @@ fun singleWindowApplication(
  * will be visible;
  * - native resources will not be released. They will be released only when [Window]
  * will leave the composition.
- * @param title Title in the titlebar of the window
- * @param icon Icon in the titlebar of the window (for platforms which support this).
- * On macOs individual windows can't have a separate icon. To change the icon in the Dock,
+ * @param title Title in the title bar of the window
+ * @param icon Icon in the title bar of the window (for platforms which support this).
+ * On macOS individual windows can't have a separate icon. To change the icon in the Dock,
  * set it via `iconFile` in build.gradle
  * (https://github.com/JetBrains/compose-jb/tree/master/tutorials/Native_distributions_and_local_execution#platform-specific-options)
  * @param undecorated Disables or enables decorations for this window.
@@ -530,34 +510,12 @@ fun singleWindowApplication(
  * (when the last window is closed, and all [LaunchedEffect]s are complete).
  * @param content Content of the window
  */
-@Deprecated(
-    level = DeprecationLevel.WARNING,
-    message = "Replaced by an overload that takes a decoration argument",
-    replaceWith = ReplaceWith("singleWindowApplication(" +
-        "state," +
-        "visible," +
-        "title," +
-        "icon," +
-        "if (undecorated) WindowDecoration.Undecorated() else WindowDecoration.SystemDefault," +
-        "transparent," +
-        "resizable," +
-        "enabled," +
-        "focusable," +
-        "alwaysOnTop," +
-        "onPreviewKeyEvent," +
-        "onKeyEvent," +
-        "content," +
-        "exitProcessOnExit" +
-        ")",
-        "androidx.compose.ui.window.WindowDecoration"
-    )
-)
 fun singleWindowApplication(
     state: WindowState = WindowState(),
     visible: Boolean = true,
     title: String = "Untitled",
     icon: Painter? = null,
-    undecorated: Boolean,
+    undecorated: Boolean = false,
     transparent: Boolean = false,
     resizable: Boolean = true,
     enabled: Boolean = true,
@@ -596,8 +554,8 @@ fun singleWindowApplication(
  *
  * The [update] block can be run multiple times (on the UI thread as well) due to recomposition,
  * and it is the right place to set [ComposeWindow] properties depending on state.
- * When state changes, the block will be reexecuted to set the new properties.
- * Note the block will also be ran once right after the [create] block completes.
+ * When state changes, the block will be re-executed to set the new properties.
+ * Note the block will also be run once right after the [create] block completes.
  *
  * Window is needed for creating window's that still can't be created with
  * the default Compose function [androidx.compose.ui.window.Window]
