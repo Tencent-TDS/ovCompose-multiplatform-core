@@ -63,6 +63,7 @@ class ScrollTests : OnCanvasTests {
                     modifier = Modifier.height(100.dp).fillMaxWidth().background(Color(237, 40, 57))
                         .onGloballyPositioned { coordinates ->
                             val screenPosition = coordinates.positionOnScreen()
+                            println("FIRST ROW ${screenPosition} \n")
                             if (screenPosition == Offset(0f, -200f)) {
                                 firstRowScrollPositionResolved.sendFromScope(true)
                             }
@@ -88,6 +89,7 @@ class ScrollTests : OnCanvasTests {
                 Box(
                     modifier = Modifier.height(100.dp).fillMaxWidth().background(Color(143, 0, 255)).onGloballyPositioned { coordinates ->
                         val screenPosition = coordinates.positionOnScreen()
+                        println("LAST ROW ${screenPosition} \n")
                         if (screenPosition == Offset(0f, 1000f)) {
                             lastRowScrollPositionResolved.sendFromScope(true)
                         }
