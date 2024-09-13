@@ -17,7 +17,8 @@
 package androidx.compose.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.window.CanvasBasedWindow
+import androidx.compose.ui.window.ComposeWindow
+import androidx.compose.ui.window.DefaultWindowState
 import kotlin.test.BeforeTest
 import kotlinx.browser.document
 import kotlinx.coroutines.CoroutineScope
@@ -56,8 +57,12 @@ internal interface OnCanvasTests {
         document.body!!.appendChild(canvas)
     }
 
-    fun createComposeWindow(content: @Composable () -> Unit) {
-        CanvasBasedWindow(canvasElementId = canvasId, content = content)
+    fun createComposeWindow(content: @Composable () -> Unit): ComposeWindow {
+        return ComposeWindow(
+            canvas = getCanvas(),
+            content = content,
+            state = DefaultWindowState(document.documentElement!!)
+        )
     }
 
     fun dispatchEvents(vararg events: Any) {
