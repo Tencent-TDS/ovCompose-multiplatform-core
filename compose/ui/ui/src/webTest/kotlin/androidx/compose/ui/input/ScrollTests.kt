@@ -52,7 +52,7 @@ class ScrollTests : OnCanvasTests {
             1, onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
 
-        createComposeWindow {
+        val composeWindow = createComposeWindow {
             Column(
                 modifier = Modifier.fillMaxWidth().height(300.dp).wrapContentSize(Alignment.Center)
                     .verticalScroll(
@@ -98,7 +98,7 @@ class ScrollTests : OnCanvasTests {
             }
         }
 
-        dispatchEvents(createWheelEvent(clientX = 100, clientY = 100, deltaX = 0.0, deltaY = 200.0))
+        composeWindow.onWheelEvent(createWheelEvent(clientX = 100, clientY = 100, deltaX = 0.0, deltaY = 200.0))
 
         assertTrue(firstRowScrollPositionResolved.receive(), "first row scroll position is not resolved")
         assertTrue(lastRowScrollPositionResolved.receive(), "last row scroll position is not resolved")
