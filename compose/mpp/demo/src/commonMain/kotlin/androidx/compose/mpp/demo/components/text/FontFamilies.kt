@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.mpp.demo
+package androidx.compose.mpp.demo.components.text
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,27 +29,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 
-
 @Composable
 fun FontFamilies() {
-    val state = rememberScrollState()
-    MaterialTheme {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(10.dp)
-                .verticalScroll(state),
-            verticalArrangement = Arrangement
-                .spacedBy(10.dp)
-        ) {
-            for (fontFamily in listOf(
-                FontFamily.SansSerif,
-                FontFamily.Serif,
-                FontFamily.Monospace,
-                FontFamily.Cursive
-            )) {
-                FontFamilyShowcase(fontFamily)
-            }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(10.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement
+            .spacedBy(10.dp)
+    ) {
+        for (fontFamily in listOf(
+            FontFamily.SansSerif,
+            FontFamily.Serif,
+            FontFamily.Monospace,
+            FontFamily.Cursive
+        )) {
+            FontFamilyShowcase(fontFamily)
         }
     }
 }
@@ -60,15 +56,16 @@ private fun FontFamilyShowcase(fontFamily: FontFamily) {
         Text(
             text = "$fontFamily"
         )
-        Text(
-            text = "The quick brown fox jumps over the lazy dog.",
+        val textStyle =  MaterialTheme.typography.h3.copy(
             fontFamily = fontFamily,
-            style = MaterialTheme.typography.h3
         )
-        Text(
+        TextWithMetrics(
+            text = "The quick brown fox jumps over the lazy dog.",
+            style = textStyle
+        )
+        TextWithMetrics(
             text = "1234567890",
-            fontFamily = fontFamily,
-            style = MaterialTheme.typography.h3
+            style = textStyle
         )
     }
 }

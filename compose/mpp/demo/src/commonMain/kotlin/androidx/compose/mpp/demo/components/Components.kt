@@ -30,6 +30,7 @@ import androidx.compose.mpp.demo.components.material3.ModalNavigationDrawerExamp
 import androidx.compose.mpp.demo.components.material3.SearchBarExample
 import androidx.compose.mpp.demo.components.material3.WindowSizeClassExample
 import androidx.compose.mpp.demo.components.popup.Popups
+import androidx.compose.mpp.demo.components.text.TextDemos
 import androidx.compose.mpp.demo.textfield.TextFields
 import androidx.compose.runtime.Composable
 
@@ -56,6 +57,7 @@ val Components = Screen.Selection(
     "Components",
     Popups,
     Dialogs,
+    TextDemos,
     TextFields,
     LazyLayouts,
     MaterialComponents,
