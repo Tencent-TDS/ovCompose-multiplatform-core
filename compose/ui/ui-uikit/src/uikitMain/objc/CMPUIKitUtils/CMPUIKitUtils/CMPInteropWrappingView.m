@@ -19,7 +19,7 @@
 @implementation CMPInteropWrappingView
 
 - (__nullable id)accessibilityContainer {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 @end

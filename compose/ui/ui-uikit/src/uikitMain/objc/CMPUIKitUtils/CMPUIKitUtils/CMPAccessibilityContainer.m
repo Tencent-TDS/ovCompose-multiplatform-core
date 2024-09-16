@@ -21,15 +21,15 @@ NS_ASSUME_NONNULL_BEGIN
 @implementation CMPAccessibilityContainer
 
 - (NSInteger)accessibilityElementCount {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (NSInteger)indexOfAccessibilityElement:(id)element {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (__nullable id)accessibilityElementAtIndex:(NSInteger)index {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (void)setIsAccessibilityElement:(BOOL)isAccessibilityElement {
@@ -45,7 +45,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (__nullable id)accessibilityContainer {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (void)setAccessibilityFrame:(CGRect)accessibilityFrame {
@@ -53,7 +53,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (CGRect)accessibilityFrame {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 @end

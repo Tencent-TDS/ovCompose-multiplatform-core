@@ -29,7 +29,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (NSArray<UIDragItem *> *)itemsForBeginningSession:(id<UIDragSession>)session interaction:(UIDragInteraction *)interaction {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)dragInteraction:(UIDragInteraction *)interaction sessionAllowsMoveOperation:(id<UIDragSession>)session {
@@ -37,7 +37,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (BOOL)doesSessionAllowMoveOperation:(id<UIDragSession>)session interaction:(UIDragInteraction *)interaction {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)dragInteraction:(UIDragInteraction *)interaction sessionIsRestrictedToDraggingApplication:(id<UIDragSession>)session {
@@ -45,7 +45,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (BOOL)isSessionRestrictedToDraggingApplication:(id<UIDragSession>)session interaction:(UIDragInteraction *)interaction {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (UITargetedDragPreview *_Nullable)dragInteraction:(UIDragInteraction *)interaction previewForLiftingItem:(UIDragItem *)item session:(id<UIDragSession>)session {
@@ -53,7 +53,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (UITargetedDragPreview *_Nullable)previewForLiftingItemInSession:(id<UIDragSession>)session item:(UIDragItem *)item interaction:(UIDragInteraction *)interaction {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (void)dragInteraction:(UIDragInteraction *)interaction session:(id<UIDragSession>)session didEndWithOperation:(UIDropOperation)operation {
@@ -61,7 +61,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)sessionDidEndWithOperation:(id<UIDragSession>)session interaction:(UIDragInteraction *)interaction operation:(UIDropOperation)operation {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 

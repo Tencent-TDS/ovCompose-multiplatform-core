@@ -25,7 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (BOOL)canHandleSession:(id<UIDropSession>)session interaction:(UIDropInteraction *)interaction {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (void)dropInteraction:(UIDropInteraction *)interaction performDrop:(id<UIDropSession>)session {
@@ -33,7 +33,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)performDropFromSession:(id<UIDropSession>)session interaction:(UIDropInteraction *)interaction {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (UIDropProposal *)dropInteraction:(UIDropInteraction *)interaction sessionDidUpdate:(id<UIDropSession>)session {
@@ -41,7 +41,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (UIDropProposal *)proposalForSessionUpdate:(id<UIDropSession>)session interaction:(UIDropInteraction *)interaction {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (void)dropInteraction:(UIDropInteraction *)interaction sessionDidEnd:(id<UIDropSession>)session {
@@ -49,7 +49,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)sessionDidEnd:(id<UIDropSession>)session interaction:(UIDropInteraction *)interaction {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (void)dropInteraction:(UIDropInteraction *)interaction sessionDidEnter:(id<UIDropSession>)session {
@@ -57,7 +57,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)sessionDidEnter:(id<UIDropSession>)session interaction:(UIDropInteraction *)interaction {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (void)dropInteraction:(UIDropInteraction *)interaction sessionDidExit:(id<UIDropSession>)session {
@@ -65,7 +65,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)sessionDidExit:(id<UIDropSession>)session interaction:(UIDropInteraction *)interaction {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 @end

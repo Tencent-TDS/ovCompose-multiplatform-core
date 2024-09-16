@@ -52,7 +52,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (__nullable id)resolveAccessibilityContainer {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 + (__nullable id)accessibilityContainerOfObject:(id)object {
@@ -61,43 +61,43 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (UIAccessibilityTraits)accessibilityTraits {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (NSString *__nullable)accessibilityIdentifier {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (NSString *__nullable)accessibilityHint {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (NSString *__nullable)accessibilityLabel {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (NSString *__nullable)accessibilityValue {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (CGRect)accessibilityFrame {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)isAccessibilityElement {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)accessibilityActivate {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)accessibilityPerformEscape {
@@ -105,11 +105,11 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (BOOL)accessibilityScrollToVisible {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)accessibilityScrollToVisibleWithChild:(id)child {
-    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (void)accessibilityElementDidBecomeFocused {

@@ -19,8 +19,11 @@
 /// Marker for indicating that function is abstract and is expected to be overrided by subclasses
 #define CMP_ABSTRACT_FUNCTION
 
-/// Marker for indicating that fucttion marksed as `CMP_ABSTRACT_FUNCTION`  wasn't overrided or called `super` implementation
-#define CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED assert(false && "This function must be overrided, and not call super implementation");
+/// Macro for assertion failure due to function marked as `CMP_ABSTRACT_FUNCTION`  wasn't overrided or called `super` implementation
+#define CMP_ABSTRACT_FUNCTION_CALLED assert(false && "This function must be overrided, and not call super implementation");
+
+/// Marker for functions which can be override, but have default behavior
+ #define CMP_CAN_OVERRIDE
 
 /// Marker for indicating that raw pointer returned from a function is owned by the caller. It's responsible for releasing it or passing it to
 /// API marked with `CMP_CONSUMED`
