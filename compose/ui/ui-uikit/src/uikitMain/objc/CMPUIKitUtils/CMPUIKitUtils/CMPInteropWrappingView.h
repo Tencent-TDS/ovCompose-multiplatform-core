@@ -21,7 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CMPInteropWrappingView : UIView
 
-- (__nullable id)accessibilityContainer CMP_MUST_BE_OVERRIDED;
+- (__nullable id)accessibilityContainer CMP_ABSTRACT_FUNCTION;
 
 @end
 

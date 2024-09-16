@@ -52,7 +52,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (__nullable id)resolveAccessibilityContainer {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 + (__nullable id)accessibilityContainerOfObject:(id)object {
@@ -61,43 +61,43 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (UIAccessibilityTraits)accessibilityTraits {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (NSString *__nullable)accessibilityIdentifier {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (NSString *__nullable)accessibilityHint {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (NSString *__nullable)accessibilityLabel {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (NSString *__nullable)accessibilityValue {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (CGRect)accessibilityFrame {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (BOOL)isAccessibilityElement {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (BOOL)accessibilityActivate {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (BOOL)accessibilityPerformEscape {
@@ -105,11 +105,11 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (BOOL)accessibilityScrollToVisible {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (BOOL)accessibilityScrollToVisibleWithChild:(id)child {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_NOT_IMPLEMENTED
 }
 
 - (void)accessibilityElementDidBecomeFocused {
