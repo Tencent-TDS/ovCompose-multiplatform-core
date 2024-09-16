@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #import <UIKit/UIKit.h>
 #import "CMPMacros.h"
 
@@ -35,8 +34,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-/// Helper class for encoding the 
-@interface UIDragItem (CMPInitializers)
+/// Helper category for encoding some typed object into `UIDragItem`
+@interface UIDragItem (CMPEncoding)
 
 + (instancetype)cmp_itemWithString:(NSString *)string;
 + (instancetype _Nullable)cmp_itemWithAny:(Class)objectClass object:(id)object;

@@ -29,6 +29,7 @@
 		EAC703E62B8C826E001ECDA6 /* CMPOSLoggerInterval.m in Sources */ = {isa = PBXBuildFile; fileRef = EA82F4FB2B86184F00465418 /* CMPOSLoggerInterval.m */; };
 		EAC703E72B8C826E001ECDA6 /* CMPAccessibilityContainer.m in Sources */ = {isa = PBXBuildFile; fileRef = EA70A7E92B27106100300068 /* CMPAccessibilityContainer.m */; };
 		EADD02902C9846D9003F66E8 /* CMPDragInteractionProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = EADD028F2C9846D9003F66E8 /* CMPDragInteractionProxy.m */; };
+		EADD02932C98484F003F66E8 /* CMPDropInteractionProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = EADD02922C98484F003F66E8 /* CMPDropInteractionProxy.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -95,6 +96,8 @@
 		EAC703DF2B8C8154001ECDA6 /* CMPUIKitUtilsTestApp-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CMPUIKitUtilsTestApp-Bridging-Header.h"; sourceTree = "<group>"; };
 		EADD028E2C9846D9003F66E8 /* CMPDragInteractionProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPDragInteractionProxy.h; sourceTree = "<group>"; };
 		EADD028F2C9846D9003F66E8 /* CMPDragInteractionProxy.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CMPDragInteractionProxy.m; sourceTree = "<group>"; };
+		EADD02912C98484F003F66E8 /* CMPDropInteractionProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPDropInteractionProxy.h; sourceTree = "<group>"; };
+		EADD02922C98484F003F66E8 /* CMPDropInteractionProxy.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CMPDropInteractionProxy.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -150,6 +153,8 @@
 				EA4B52952C2EDEF200FBB55C /* CMPGestureRecognizer.m */,
 				EADD028E2C9846D9003F66E8 /* CMPDragInteractionProxy.h */,
 				EADD028F2C9846D9003F66E8 /* CMPDragInteractionProxy.m */,
+				EADD02912C98484F003F66E8 /* CMPDropInteractionProxy.h */,
+				EADD02922C98484F003F66E8 /* CMPDropInteractionProxy.m */,
 			);
 			path = CMPUIKitUtils;
 			sourceTree = "<group>";
@@ -335,6 +340,7 @@
 				EA70A7EB2B27106100300068 /* CMPAccessibilityElement.m in Sources */,
 				99DCAB0E2BD00F5C002E6AC7 /* CMPTextLoupeSession.m in Sources */,
 				EA82F4FC2B86184F00465418 /* CMPOSLoggerInterval.m in Sources */,
+				EADD02932C98484F003F66E8 /* CMPDropInteractionProxy.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

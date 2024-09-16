@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #import "CMPDragInteractionProxy.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -68,7 +67,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-@implementation UIDragItem (CMPInitializers)
+@implementation UIDragItem (CMPEncoding)
 
 + (instancetype)cmp_itemWithString:(NSString *)string {
     UIDragItem *item = [[UIDragItem alloc] initWithItemProvider:[[NSItemProvider alloc] initWithObject:string]];
