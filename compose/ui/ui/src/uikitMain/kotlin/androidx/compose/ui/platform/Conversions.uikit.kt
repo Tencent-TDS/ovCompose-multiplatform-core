@@ -58,8 +58,7 @@ internal sealed interface CFScopeReleasable {
         }
     }
 
-    data class ColorSpace(val colorSpace: CGColorSpaceRef) :
-        CFScopeReleasable {
+    data class ColorSpace(val colorSpace: CGColorSpaceRef) : CFScopeReleasable {
         override fun release() {
             CGColorSpaceRelease(colorSpace)
         }
