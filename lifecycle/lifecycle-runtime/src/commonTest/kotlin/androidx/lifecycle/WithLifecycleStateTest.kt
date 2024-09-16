@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,18 @@
 
 package androidx.lifecycle
 
-import androidx.test.filters.SmallTest
-import kotlinx.coroutines.Dispatchers
+import androidx.kruth.assertThat
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
-@SmallTest
 class WithLifecycleStateTest {
     @Test
-    fun testInitialResumed() = runBlocking(Dispatchers.Main) {
-        val owner = FakeLifecycleOwner(Lifecycle.State.RESUMED)
+    fun testInitialResumed() = runLifecycleTest {
+        val owner = TestLifecycleOwner(Lifecycle.State.RESUMED)
 
         val expected = "initial value"
         var toRead = expected
@@ -40,8 +37,8 @@ class WithLifecycleStateTest {
     }
 
     @Test
-    fun testBlockRunsWithLifecycleStateChange() = runBlocking(Dispatchers.Main) {
-        val owner = FakeLifecycleOwner()
+    fun testBlockRunsWithLifecycleStateChange() = runLifecycleTest {
+        val owner = TestLifecycleOwner()
 
         val initial = "initial value"
         val afterSetState = "value set after setState"
@@ -57,23 +54,18 @@ class WithLifecycleStateTest {
     }
 
     @Test
-    fun testBlockCancelledWhenInitiallyDestroyed() = runBlocking(Dispatchers.Main) {
-        val owner = FakeLifecycleOwner(Lifecycle.State.CREATED)
+    fun testBlockCancelledWhenInitiallyDestroyed() = runLifecycleTest {
+        val owner = TestLifecycleOwner(Lifecycle.State.CREATED)
         owner.setState(Lifecycle.State.DESTROYED)
 
-        val result = runCatching {
+        assertFailsWith<LifecycleDestroyedException> {
             owner.withStarted {}
         }
-
-        assertTrue(
-            "withStarted threw LifecycleDestroyedException",
-            result.exceptionOrNull() is LifecycleDestroyedException
-        )
     }
 
     @Test
-    fun testBlockCancelledWhenDestroyedWhileSuspended() = runBlocking(Dispatchers.Main) {
-        val owner = FakeLifecycleOwner(Lifecycle.State.CREATED)
+    fun testBlockCancelledWhenDestroyedWhileSuspended() = runLifecycleTest {
+        val owner = TestLifecycleOwner(Lifecycle.State.CREATED)
 
         var launched = false
         val resultTask = async {
@@ -82,14 +74,13 @@ class WithLifecycleStateTest {
         }
         yield()
 
-        assertTrue("test ran to first suspension after successfully launching", launched)
-        assertTrue("withStarted is still active", resultTask.isActive)
+        // test ran to first suspension after successfully launching
+        assertThat(launched).isTrue()
+        // withStarted is still active
+        assertThat(resultTask.isActive).isTrue()
 
         owner.setState(Lifecycle.State.DESTROYED)
 
-        assertTrue(
-            "result threw LifecycleDestroyedException",
-            resultTask.await().exceptionOrNull() is LifecycleDestroyedException
-        )
+        assertThat(resultTask.await().exceptionOrNull()).isInstanceOf<LifecycleDestroyedException>()
     }
 }
