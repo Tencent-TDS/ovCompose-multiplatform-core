@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @RequiresApi(Build.VERSION_CODES.M)
 internal class GraphicsLayerV23(
     ownerView: View,
+    override val ownerId: Long,
     private val canvasHolder: CanvasHolder = CanvasHolder(),
     private val canvasDrawScope: CanvasDrawScope = CanvasDrawScope()
 ) : GraphicsLayerImpl {
@@ -216,13 +217,17 @@ internal class GraphicsLayerV23(
         }
     override var ambientShadowColor: Color = Color.Black
         set(value) {
-            field = value
-            renderNode.setAmbientShadowColor(value.toArgb())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                field = value
+                RenderNodeVerificationHelper28.setAmbientShadowColor(renderNode, value.toArgb())
+            }
         }
     override var spotShadowColor: Color = Color.Black
         set(value) {
-            field = value
-            renderNode.setSpotShadowColor(value.toArgb())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                field = value
+                RenderNodeVerificationHelper28.setSpotShadowColor(renderNode, value.toArgb())
+            }
         }
     override var rotationX: Float = 0f
         set(value) {

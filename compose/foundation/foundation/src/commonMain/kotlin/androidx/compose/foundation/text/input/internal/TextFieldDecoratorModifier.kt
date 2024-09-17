@@ -357,7 +357,13 @@ internal class TextFieldDecoratorModifierNode(
      */
     private var windowInfo: WindowInfo? = null
 
-    private val isFocused: Boolean get() = isElementFocused && windowInfo?.isWindowFocused == true
+    private val isFocused: Boolean
+        get() {
+            // make sure that we read both window focus and element focus for snapshot aware
+            // callers to successfully update when either one changes
+            val isWindowFocused = windowInfo?.isWindowFocused == true
+            return isElementFocused && isWindowFocused
+        }
 
     /**
      * We observe text changes to show/hide text toolbar and cursor handles. This job is only run
@@ -489,11 +495,21 @@ internal class TextFieldDecoratorModifierNode(
         getTextLayoutResult {
             textLayoutState.layoutResult?.let { result -> it.add(result) } ?: false
         }
-        setText { newText ->
-            if (!editable) return@setText false
+        if (editable) {
+            setText { newText ->
+                if (!editable) return@setText false
 
-            textFieldState.replaceAll(newText)
-            true
+                textFieldState.replaceAll(newText)
+                true
+            }
+            insertTextAtCursor { newText ->
+                if (!editable) return@insertTextAtCursor false
+
+                // Finish composing text first because when the field is focused the IME
+                // might set composition.
+                textFieldState.replaceSelectedText(newText, clearComposition = true)
+                true
+            }
         }
         @Suppress("NAME_SHADOWING")
         setSelection { start, end, relativeToOriginal ->
@@ -534,14 +550,6 @@ internal class TextFieldDecoratorModifierNode(
                 textFieldState.selectCharsIn(selectionRange)
             }
             return@setSelection true
-        }
-        insertTextAtCursor { newText ->
-            if (!editable) return@insertTextAtCursor false
-
-            // Finish composing text first because when the field is focused the IME
-            // might set composition.
-            textFieldState.replaceSelectedText(newText, clearComposition = true)
-            true
         }
 
         val effectiveImeAction = keyboardOptions.imeActionOrDefault
@@ -606,6 +614,9 @@ internal class TextFieldDecoratorModifierNode(
             }
         } else {
             disposeInputSession()
+            // only clear the composing region when element loses focus. Window focus lost should
+            // not clear the composing region.
+            textFieldState.editUntransformedTextAsUser { finishComposingText() }
             textFieldState.collapseSelectionToMax()
         }
         stylusHandwritingNode.onFocusEvent(focusState)
@@ -682,7 +693,6 @@ internal class TextFieldDecoratorModifierNode(
         observeReads {
             windowInfo = currentValueOf(LocalWindowInfo)
             onFocusChange()
-            startInputSessionOnWindowFocusChange()
         }
     }
 
@@ -713,15 +723,6 @@ internal class TextFieldDecoratorModifierNode(
         inputSessionJob?.cancel()
         inputSessionJob = null
         stylusHandwritingTrigger?.resetReplayCache()
-    }
-
-    private fun startInputSessionOnWindowFocusChange() {
-        if (windowInfo == null) return
-        // b/326323000: We do not dispose input session on just window focus change until another
-        // item requests focus and we lose element focus status which is handled by onFocusEvent.
-        if (windowInfo?.isWindowFocused == true && isElementFocused) {
-            startInputSession(fromTap = false)
-        }
     }
 
     private fun requireKeyboardController(): SoftwareKeyboardController =

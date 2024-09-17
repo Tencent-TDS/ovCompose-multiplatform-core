@@ -4346,8 +4346,6 @@ class CompositionTests {
             invokeCount++
         }
     }
-    // TODO reenable in https://youtrack.jetbrains.com/issue/COMPOSE-1504/Compose-1.7.-Enable-Strong-Skipping-mode-for-the-sources
-    @Ignore
     @Test
     fun composableWithUnstableParameters_skipped() = compositionTest {
         val consumer = UnstableCompConsumer()
@@ -4635,6 +4633,19 @@ class CompositionTests {
         revalidate()
 
         state.value = true
+        advance()
+        revalidate()
+    }
+
+    @Test // regression test for b/362291064
+    fun avoidsThrashingTheSlotTable() = compositionTest {
+        val count = 100
+        var data by mutableIntStateOf(0)
+        compose { repeat(count) { Linear { Text("Value: $it, data: $data") } } }
+
+        validate { repeat(count) { Linear { Text("Value: $it, data: $data") } } }
+
+        data++
         advance()
         revalidate()
     }

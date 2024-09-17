@@ -49,10 +49,14 @@ val HapticFeedbackExample = Screen.Example("Haptic feedback") {
 
 val IosSpecificFeatures = Screen.Selection(
     "iOS-specific features",
-    NativeModalWithNaviationExample,
+    NativeModalWithNavigationExample,
+    NativePopupWithComposePopupExample,
     HapticFeedbackExample,
     LazyColumnWithInteropViewsExample,
     AccessibilityLiveRegionExample,
     InteropViewAndSemanticsConfigMerge,
-    StatusBarStateExample
+    StatusBarStateExample,
+    InteropExample,
+    ReusableMapsExample,
+    UpdatableInteropPropertiesExample
 )

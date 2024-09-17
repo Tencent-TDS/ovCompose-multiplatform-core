@@ -14,37 +14,53 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
 import androidx.build.AndroidXComposePlugin
-import androidx.build.KmpPlatformsKt
+import androidx.build.JetbrainsAndroidXPlugin
 import androidx.build.LibraryType
-import androidx.build.PlatformIdentifier
-import androidx.build.Publish
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     id("AndroidXComposePlugin")
+    id("JetbrainsAndroidXPlugin")
 }
 
-androidXMultiplatform {
+AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
+JetbrainsAndroidXPlugin.applyAndConfigure(project)
+
+androidXComposeMultiplatform {
     android()
     desktop()
+    darwin()
+    wasm()
+    js()
+}
 
-    defaultPlatform(PlatformIdentifier.ANDROID)
-
+kotlin {
     sourceSets {
         commonMain {
             dependencies {
                 implementation(libs.kotlinStdlibCommon)
                 implementation(project(":compose:material3:material3"))
-                implementation(project(":compose:material3:material3-adaptive"))
-                implementation(project(":compose:material3:material3-window-size-class"))
-                implementation(project(":compose:ui:ui-util"))
+                implementation(project(":compose:material3:adaptive:adaptive"))
+                implementation(project(":compose:ui:ui"))
+                implementation(project(":window:window-core"))
+                api(project(":annotation:annotation"))
             }
         }
 
         commonTest {
             dependencies {
+                implementation(libs.kotlinTest)
+                implementation(project(":kruth:kruth"))
             }
         }
 
@@ -58,9 +74,7 @@ androidXMultiplatform {
         androidMain {
             dependsOn(jvmMain)
             dependencies {
-                api("androidx.annotation:annotation:1.1.0")
-                implementation(project(":lifecycle:lifecycle-runtime-compose"))
-                implementation(project(":window:window"))
+                api("androidx.annotation:annotation-experimental:1.4.0")
             }
         }
 
@@ -83,32 +97,39 @@ androidXMultiplatform {
             dependsOn(jvmTest)
             dependencies {
                 implementation(project(":compose:test-utils"))
-                implementation(project(":window:window-testing"))
+                //implementation(project(":window:window-testing"))
                 implementation(libs.junit)
                 implementation(libs.testRunner)
                 implementation(libs.truth)
             }
         }
 
-        androidUnitTest {
-            dependsOn(jvmTest)
-            dependencies {
-                implementation(libs.junit)
-                implementation(libs.testRunner)
-                implementation(libs.truth)
-            }
-        }
+        skikoMain.dependsOn(commonMain)
+        desktopMain.dependsOn(skikoMain)
+        nonJvmMain.dependsOn(skikoMain)
+        webMain.dependsOn(nonJvmMain)
+        jsMain.dependsOn(webMain)
+        wasmJsMain.dependsOn(webMain)
+        nativeMain.dependsOn(nonJvmMain)
+
+        skikoTest.dependsOn(commonTest)
+        desktopTest.dependsOn(skikoTest)
+        nonJvmTest.dependsOn(skikoTest)
+        webTest.dependsOn(nonJvmTest)
+        jsTest.dependsOn(webTest)
+        wasmJsTest.dependsOn(webTest)
+        nativeTest.dependsOn(nonJvmTest)
     }
 }
 
 android {
-    namespace "androidx.compose.material3.adaptive.navigation.suite"
+    namespace "androidx.compose.material3.adaptive.navigationsuite"
 }
 
 androidx {
     name = "Material Adaptive Navigation Suite"
-    mavenVersion = LibraryVersions.COMPOSE_MATERIAL3_ADAPTIVE_NAVIGATION_SUITE
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2023"
     description = "Compose Material Design Adaptive Navigation Suite Library"
+    //samples(project(":compose:material3:material3-adaptive-navigation-suite:material3-adaptive-navigation-suite-samples"))
 }

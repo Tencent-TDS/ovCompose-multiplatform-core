@@ -20,10 +20,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropManager
+import androidx.compose.ui.draganddrop.DragAndDropModifierNode
+import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.input.pointer.PointerIcon
@@ -32,15 +40,20 @@ import androidx.compose.ui.node.OwnedLayer
 import androidx.compose.ui.node.Owner
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.scene.MultiLayerComposeScene
+import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.TextInputService
+import androidx.compose.ui.text.input.TextInputSession
 import kotlin.reflect.KProperty
+import kotlinx.coroutines.awaitCancellation
 
 /**
  * Platform context that provides platform-specific bindings.
@@ -57,7 +70,7 @@ interface PlatformContext {
      * This is used when rendering the scrim of a dialog - if set to true, a special blending mode
      * will be used to take into account the existing alpha-channel values.
      *
-     * @see MultiLayerComposeScene
+     * @see CanvasLayersComposeScene
      */
     val isWindowTransparent: Boolean get() = false
 
@@ -104,11 +117,20 @@ interface PlatformContext {
     val viewConfiguration: ViewConfiguration get() = EmptyViewConfiguration
     val inputModeManager: InputModeManager
     val textInputService: PlatformTextInputService get() = EmptyPlatformTextInputService
+
+    suspend fun textInputSession(
+        session: suspend PlatformTextInputSessionScope.() -> Nothing
+    ): Nothing {
+        awaitCancellation()
+    }
+
     val textToolbar: TextToolbar get() = EmptyTextToolbar
     fun setPointerIcon(pointerIcon: PointerIcon) = Unit
 
     val parentFocusManager: FocusManager get() = EmptyFocusManager
     fun requestFocus(): Boolean = true
+
+    val dragAndDropManager: PlatformDragAndDropManager get() = EmptyDragAndDropManager
 
     /**
      * The listener to track [RootForTest]s.
@@ -228,6 +250,8 @@ private object EmptyFocusManager : FocusManager {
     override fun moveFocus(focusDirection: FocusDirection) = false
 }
 
+private object EmptyDragAndDropManager : PlatformDragAndDropManager
+
 /**
  * Helper delegate to re-send missing events to a new listener.
  */
@@ -261,3 +285,4 @@ internal class DelegateRootForTestListener : PlatformContext.RootForTestListener
         }
     }
 }
+

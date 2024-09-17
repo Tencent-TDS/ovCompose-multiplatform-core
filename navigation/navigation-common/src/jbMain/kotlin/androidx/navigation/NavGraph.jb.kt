@@ -21,6 +21,7 @@ import androidx.collection.SparseArrayCompat
 import androidx.collection.forEach
 import androidx.collection.size
 import androidx.collection.valueIterator
+import androidx.navigation.serialization.generateHashCode
 import androidx.navigation.serialization.generateRoutePattern
 import androidx.navigation.serialization.generateRouteWithArgs
 import kotlin.jvm.JvmStatic
@@ -39,15 +40,43 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
     private var startDestIdName: String? = null
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public override fun matchDeepLink(route: String): DeepLinkMatch? {
+    public fun matchDeepLinkComprehensive(
+        route: String,
+        searchChildren: Boolean,
+        searchParent: Boolean,
+        lastVisited: NavDestination
+    ): DeepLinkMatch? {
         // First search through any deep links directly added to this NavGraph
-        val bestMatch = super.matchDeepLink(route)
-        // Then search through all child destinations for a matching deep link
-        val bestChildMatch =
-            mapNotNull { child -> child.matchDeepLink(route) }.maxOrNull()
+        val bestMatch = matchDeepLinkRequest(route)
 
-        return listOfNotNull(bestMatch, bestChildMatch).maxOrNull()
+        // If searchChildren is true, search through all child destinations for a matching deeplink
+        val bestChildMatch =
+            if (searchChildren) {
+                mapNotNull { child ->
+                    if (child != lastVisited) child.matchDeepLink(route) else null
+                }
+                    .maxOrNull()
+            } else null
+
+        // If searchParent is true, search through all parents (and their children) destinations
+        // for a matching deeplink
+        val bestParentMatch =
+            parent?.let {
+                if (searchParent && it != lastVisited)
+                    it.matchDeepLinkComprehensive(route, searchChildren, true, this)
+                else null
+            }
+        return listOfNotNull(bestMatch, bestChildMatch, bestParentMatch).maxOrNull()
     }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public override fun matchDeepLink(route: String): DeepLinkMatch? =
+        matchDeepLinkComprehensive(
+            route,
+            searchChildren = true,
+            searchParent = false,
+            lastVisited = this
+        )
 
     public actual fun addDestination(node: NavDestination) {
         val id = node.id
@@ -141,11 +170,11 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
     }
 
     public actual inline fun <reified T> findNode(): NavDestination? =
-        findNode(serializer<T>().hashCode())
+        findNode(serializer<T>().generateHashCode())
 
     @OptIn(InternalSerializationApi::class)
     public actual fun <T> findNode(route: T?): NavDestination? =
-        route?.let { findNode(it::class.serializer().hashCode()) }
+        route?.let { findNode(it::class.serializer().generateHashCode()) }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual fun findNode(route: String, searchParents: Boolean): NavDestination? {
@@ -265,7 +294,7 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
         serializer: KSerializer<T>,
         parseRoute: (NavDestination) -> String,
     ) {
-        val id = serializer.hashCode()
+        val id = serializer.generateHashCode()
         val startDest = findNode(id)
         checkNotNull(startDest) {
             "Cannot find startDestination ${serializer.descriptor.serialName} from NavGraph. " +
@@ -344,14 +373,16 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
 
     public actual companion object {
         @JvmStatic
-        public actual fun NavGraph.findStartDestination(): NavDestination =
-            generateSequence(findNode(startDestinationId)) {
+        public actual fun NavGraph.findStartDestination(): NavDestination = childHierarchy().last()
+
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+        public fun NavGraph.childHierarchy(): Sequence<NavDestination> =
+            generateSequence(this as NavDestination) {
                     if (it is NavGraph) {
                         it.findNode(it.startDestinationId)
                     } else {
                         null
                     }
                 }
-                .last()
     }
 }

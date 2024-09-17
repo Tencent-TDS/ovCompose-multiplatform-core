@@ -112,7 +112,6 @@ kotlin {
                 implementation(libs.espressoCore)
                 implementation(libs.espressoIntents)
                 implementation(libs.truth)
-                implementation(libs.multidex)
 
                 // CustomMessageMissingMethodException: Could not find method implementation() for arguments
                 // implementation(libs.mockitoCore, excludes.bytebuddy)
@@ -151,10 +150,6 @@ kotlin {
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
-
     // Include `*.java` files into the build
     sourceSets["main"].java.srcDir("src/androidMain/java")
     namespace "androidx.navigation"

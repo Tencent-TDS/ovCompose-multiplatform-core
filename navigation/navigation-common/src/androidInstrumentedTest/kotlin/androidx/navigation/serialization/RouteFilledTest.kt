@@ -17,7 +17,6 @@
 package androidx.navigation.serialization
 
 import android.os.Bundle
-import androidx.navigation.CollectionNavType
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
@@ -344,6 +343,40 @@ class RouteFilledTest {
         val clazz = TestClass("test")
         assertThatRouteFilledFrom(clazz, listOf(stringArgument("arg")))
             .isEqualTo("$PATH_SERIAL_NAME/test")
+    }
+
+    @Test
+    fun enumType() {
+        @Serializable
+        @SerialName(PATH_SERIAL_NAME)
+        class TestClass(val arg: TestEnum, val arg2: TestEnum)
+
+        val clazz = TestClass(TestEnum.ONE, TestEnum.TWO)
+        assertThatRouteFilledFrom(
+                clazz,
+                listOf(
+                    enumArgument("arg", TestEnum::class.java),
+                    enumArgument("arg2", TestEnum::class.java)
+                )
+            )
+            .isEqualTo("$PATH_SERIAL_NAME/ONE/TWO")
+    }
+
+    @Test
+    fun enumNullableType() {
+        @Serializable
+        @SerialName(PATH_SERIAL_NAME)
+        class TestClass(val arg: TestEnum?, val arg2: TestEnum?)
+
+        val clazz = TestClass(TestEnum.ONE, null)
+        assertThatRouteFilledFrom(
+                clazz,
+                listOf(
+                    enumArgument("arg", TestEnum::class.java),
+                    enumArgument("arg2", TestEnum::class.java)
+                )
+            )
+            .isEqualTo("$PATH_SERIAL_NAME/ONE/null")
     }
 
     @Test
@@ -776,59 +809,11 @@ private class CustomSerializer : KSerializer<CustomSerializerClass> {
         CustomSerializerClass(decoder.decodeLong())
 }
 
-@Serializable internal data class CustomTypeWithArg(val id: Int)
-
-@Serializable
-@SerialName(PATH_SERIAL_NAME)
-internal class TestClassCollectionArg(val list: List<CustomTypeWithArg>)
-
-internal val collectionNavType =
-    object : CollectionNavType<List<CustomTypeWithArg>>(false) {
-        override fun put(bundle: Bundle, key: String, value: List<CustomTypeWithArg>) {
-            bundle.putStringArrayList(key, ArrayList(value.map { it.id.toString() }))
-        }
-
-        override fun serializeAsValues(value: List<CustomTypeWithArg>): List<String> =
-            value.map { it.id.toString() }
-
-        override fun emptyCollection(): List<CustomTypeWithArg> = emptyList()
-
-        override fun get(bundle: Bundle, key: String): List<CustomTypeWithArg> {
-            return bundle.getStringArrayList(key)?.map { CustomTypeWithArg(it.toInt()) }
-                ?: emptyList()
-        }
-
-        override fun parseValue(value: String): List<CustomTypeWithArg> = listOf()
-
-        override fun serializeAsValue(value: List<CustomTypeWithArg>) = "CustomTypeWithArg"
-    }
-
 private interface TestInterface
-
-internal fun stringArgument(name: String, hasDefaultValue: Boolean = false) =
-    navArgument(name) {
-        type = NavType.StringType
-        nullable = false
-        unknownDefaultValuePresent = hasDefaultValue
-    }
-
-internal fun nullableStringArgument(name: String, hasDefaultValue: Boolean = false) =
-    navArgument(name) {
-        type = NavType.StringType
-        nullable = true
-        unknownDefaultValuePresent = hasDefaultValue
-    }
-
-internal fun intArgument(name: String, hasDefaultValue: Boolean = false) =
-    navArgument(name) {
-        type = NavType.IntType
-        nullable = false
-        unknownDefaultValuePresent = hasDefaultValue
-    }
 
 private fun nullableIntArgument(name: String, hasDefaultValue: Boolean = false) =
     navArgument(name) {
-        type = NullableIntType
+        type = InternalNavType.IntNullableType
         nullable = true
         unknownDefaultValuePresent = hasDefaultValue
     }
@@ -840,30 +825,8 @@ private fun intArrayArgument(name: String, hasDefaultValue: Boolean = false) =
         unknownDefaultValuePresent = hasDefaultValue
     }
 
-private val NullableIntType: NavType<Int?> =
-    object : NavType<Int?>(true) {
-        override val name: String
-            get() = "nullable_integer"
-
-        override fun put(bundle: Bundle, key: String, value: Int?) {
-            value?.let { bundle.putInt(key, value) }
-        }
-
-        @Suppress("DEPRECATION")
-        override fun get(bundle: Bundle, key: String): Int? {
-            val value = bundle[key]
-            return value?.let { it as Int }
-        }
-
-        override fun parseValue(value: String): Int? {
-            return if (value == "null") {
-                null
-            } else if (value.startsWith("0x")) {
-                value.substring(2).toInt(16)
-            } else {
-                value.toInt()
-            }
-        }
-
-        override fun serializeAsValue(value: Int?): String = value?.toString() ?: "null"
-    }
+@Serializable
+private enum class TestEnum {
+    ONE,
+    TWO
+}

@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -209,11 +210,9 @@ private val SeekableTransitionStateTotalDurationChanged: (SeekableTransitionStat
     it.onTotalDurationChanged()
 }
 
-private val SeekableStateObserver: SnapshotStateObserver by lazy(LazyThreadSafetyMode.NONE) {
-    SnapshotStateObserver { it() }.apply {
-        start()
-    }
-}
+// This observer is also accessed from test. It should be otherwise treated as private.
+internal val SeekableStateObserver: SnapshotStateObserver by
+    lazy(LazyThreadSafetyMode.NONE) { SnapshotStateObserver { it() }.apply { start() } }
 
 /**
  * A [TransitionState] that can manipulate the progress of the [Transition] by seeking
@@ -693,9 +692,9 @@ class SeekableTransitionState<S>(
                     currentState = targetState
                     waitForComposition()
                     fraction = 0f
-                    transition.onTransitionEnd()
                 }
             }
+            transition.onTransitionEnd()
         }
     }
 
@@ -835,12 +834,12 @@ fun <T> rememberTransition(
         }
     } else {
         transition.animateTo(transitionState.targetState)
-        DisposableEffect(transition) {
-            onDispose {
-                // Clean up on the way out, to ensure the observers are not stuck in an in-between
-                // state.
-                transition.onDisposed()
-            }
+    }
+    DisposableEffect(transition) {
+        onDispose {
+            // Clean up on the way out, to ensure the observers are not stuck in an in-between
+            // state.
+            transition.onDisposed()
         }
     }
     return transition
@@ -1019,8 +1018,7 @@ class Transition<S> internal constructor(
      * to [Transition]. It's strongly recommended to query this *after* all the animations in the
      * [Transition] are set up.
      */
-    val totalDurationNanos: Long
-        get() = calculateTotalDurationNanos()
+    val totalDurationNanos: Long by derivedStateOf { calculateTotalDurationNanos() }
 
     private fun calculateTotalDurationNanos(): Long {
         var maxDurationNanos = 0L
@@ -1109,6 +1107,7 @@ class Transition<S> internal constructor(
         }
         playTimeNanos = 0
         transitionState.isRunning = false
+        _transitions.fastForEach { it.onTransitionEnd() }
     }
 
     /**
@@ -1389,14 +1388,8 @@ class Transition<S> internal constructor(
         override var value by mutableStateOf(initialValue)
             internal set
         private var velocityVector: V = initialVelocityVector
-        internal val durationNanos: Long
-            get() {
-                // Ensure any change to the duration is observable, since we have an observer
-                // on the Transition for the overall duration change.
-                _durationNanos = animation.durationNanos
-                return _durationNanos
-            }
-        private var _durationNanos by mutableLongStateOf(animation.durationNanos)
+        internal var durationNanos by mutableLongStateOf(animation.durationNanos)
+
         private var isSeeking = false
 
         internal fun onPlayTimeChanged(playTimeNanos: Long, scaleToEnd: Boolean) {
@@ -1447,6 +1440,7 @@ class Transition<S> internal constructor(
                 this.animation.mutableTargetValue = initialValue
             }
             this.animation.mutableInitialValue = initialValue
+            durationNanos = this.animation.durationNanos
             if (resetSnapValue == ResetNoSnap || useOnlyInitialValue) {
                 value = initialValue
             } else {
@@ -1488,26 +1482,25 @@ class Transition<S> internal constructor(
                     velocityVector.newInstance() // 0 velocity
                 )
                 useOnlyInitialValue = true
+                durationNanos = animation.durationNanos
                 return
             }
-            val specWithoutDelay = if (isInterrupted && !isSeeking) {
-                // When interrupted, use the default spring, unless the spec is also a spring.
-                if (animationSpec is SpringSpec<*>) animationSpec else interruptionSpec
-            } else {
-                animationSpec
-            }
-            val spec = if (playTimeNanos <= 0L) {
-                specWithoutDelay
-            } else {
-                delayed(specWithoutDelay, playTimeNanos)
-            }
-            animation = TargetBasedAnimation(
-                spec,
-                typeConverter,
-                initialValue,
-                targetValue,
-                velocityVector
-            )
+            val specWithoutDelay =
+                if (isInterrupted && !isSeeking) {
+                    // When interrupted, use the default spring, unless the spec is also a spring.
+                    if (animationSpec is SpringSpec<*>) animationSpec else interruptionSpec
+                } else {
+                    animationSpec
+                }
+            val spec =
+                if (playTimeNanos <= 0L) {
+                    specWithoutDelay
+                } else {
+                    delayed(specWithoutDelay, playTimeNanos)
+                }
+            animation =
+                TargetBasedAnimation(spec, typeConverter, initialValue, targetValue, velocityVector)
+            durationNanos = animation.durationNanos
             useOnlyInitialValue = false
             onChildAnimationUpdated()
         }
@@ -1538,6 +1531,7 @@ class Transition<S> internal constructor(
                 animation.mutableInitialValue = animationValue
                 animation.mutableTargetValue = animationValue
                 value = animationValue
+                durationNanos = animation.durationNanos
             } else {
                 resetSnapValue = fraction
             }
@@ -1551,13 +1545,15 @@ class Transition<S> internal constructor(
                 initialValueAnimation = animation
                 initialValueState = animationState
             }
-            animation = TargetBasedAnimation(
-                interruptionSpec,
-                typeConverter,
-                value,
-                value,
-                velocityVector.newInstance() // 0 velocity
-            )
+            animation =
+                TargetBasedAnimation(
+                    interruptionSpec,
+                    typeConverter,
+                    value,
+                    value,
+                    velocityVector.newInstance() // 0 velocity
+                )
+            durationNanos = animation.durationNanos
             useOnlyInitialValue = true
         }
 

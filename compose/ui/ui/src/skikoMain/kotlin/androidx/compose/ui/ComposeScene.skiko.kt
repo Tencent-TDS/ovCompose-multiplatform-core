@@ -18,8 +18,6 @@ package androidx.compose.ui
 
 import org.jetbrains.skia.Canvas as SkCanvas
 import androidx.compose.runtime.*
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.key.KeyEvent
@@ -51,11 +49,12 @@ import org.jetbrains.skiko.currentNanoTime
  */
 @Deprecated(
     "Replaced with interface in scene package",
-    replaceWith = ReplaceWith("androidx.compose.ui.scene.ComposeScene")
+    replaceWith = ReplaceWith("androidx.compose.ui.scene.ComposeScene"),
+    level = DeprecationLevel.ERROR
 )
 class ComposeScene internal constructor(
     coroutineContext: CoroutineContext,
-    composeSceneContext: ComposeSceneContext,
+    platformContext: PlatformContext,
     density: Density,
     layoutDirection: LayoutDirection,
     invalidate: () -> Unit
@@ -106,10 +105,8 @@ class ComposeScene internal constructor(
         invalidate: () -> Unit = {}
     ) : this(
         coroutineContext = coroutineContext,
-        composeSceneContext = object : ComposeSceneContext {
-            override val platformContext = object : PlatformContext by PlatformContext.Empty {
-                override val textInputService get() = textInputService
-            }
+        platformContext = object : PlatformContext by PlatformContext.Empty {
+            override val textInputService get() = textInputService
         },
         density = density,
         layoutDirection = layoutDirection,
@@ -162,11 +159,11 @@ class ComposeScene internal constructor(
         invalidate = invalidate
     )
 
-    private val replacement = androidx.compose.ui.scene.MultiLayerComposeScene(
+    private val replacement = androidx.compose.ui.scene.CanvasLayersComposeScene(
         density = density,
         layoutDirection = layoutDirection,
         coroutineContext = coroutineContext,
-        composeSceneContext = composeSceneContext,
+        platformContext = platformContext,
         invalidate = invalidate,
     )
 

@@ -24,11 +24,14 @@ import androidx.compose.mpp.demo.components.material3.AlertDialog3Example
 import androidx.compose.mpp.demo.components.material3.BottomSheetScaffoldExample
 import androidx.compose.mpp.demo.components.material3.DateTimePickerExample
 import androidx.compose.mpp.demo.components.material3.DropdownMenu3Example
+import androidx.compose.mpp.demo.components.material3.ListDetailPaneScaffoldExample
 import androidx.compose.mpp.demo.components.material3.ModalBottomSheet3Example
 import androidx.compose.mpp.demo.components.material3.ModalNavigationDrawerExample
 import androidx.compose.mpp.demo.components.material3.SearchBarExample
+import androidx.compose.mpp.demo.components.material3.WindowSizeClassExample
 import androidx.compose.mpp.demo.components.popup.Popups
 import androidx.compose.mpp.demo.textfield.TextFields
+import androidx.compose.runtime.Composable
 
 private val MaterialComponents = Screen.Selection(
     "material",
@@ -45,6 +48,8 @@ private val Material3Components = Screen.Selection(
     Screen.Example("ModalBottomSheet") { ModalBottomSheet3Example() },
     Screen.Example("ModalNavigationDrawer") { ModalNavigationDrawerExample() },
     Screen.Example("SearchBar") { SearchBarExample() },
+    Screen.Example("WindowSizeClass") { WindowSizeClassExample() },
+    Screen.Example("ListDetailPaneScaffoldExample") { ListDetailPaneScaffoldExample() },
 )
 
 val Components = Screen.Selection(
@@ -58,4 +63,6 @@ val Components = Screen.Selection(
     Screen.Example("NestedScroll") { NestedScrollExample() },
     Screen.Example("Selection") { SelectionExample() },
     Screen.Example("Pager") { PagerExample() },
+    Screen.Example("WindowAdaptiveInfo") { AdaptiveExample() },
+    Screen.Example("Drag and Drop") { DragAndDropExample() }
 )

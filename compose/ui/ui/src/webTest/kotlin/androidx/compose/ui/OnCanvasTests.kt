@@ -16,35 +16,58 @@
 
 package androidx.compose.ui
 
-import kotlin.math.abs
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.window.CanvasBasedWindow
+import kotlin.test.BeforeTest
 import kotlinx.browser.document
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import org.w3c.dom.HTMLCanvasElement
-import org.w3c.dom.asList
+import org.w3c.dom.events.Event
 
 /**
  * An interface with helper functions to initialise the tests
  */
+
+private const val canvasId: String = "canvasApp"
+
 internal interface OnCanvasTests {
 
-    val canvasId: String
-        get() = "canvas1"
+    @BeforeTest
+    fun beforeTest() {
+        resetCanvas()
+    }
 
-    fun createCanvasAndAttach(id: String = canvasId): HTMLCanvasElement {
+    fun getCanvas() = document.getElementById(canvasId) as HTMLCanvasElement
+
+    private fun resetCanvas() {
+        /** TODO: [kotlin.test.AfterTest] is fixed only in kotlin 2.0
+        see https://youtrack.jetbrains.com/issue/KT-61888
+         */
+        document.getElementById(canvasId)?.remove()
+
         val canvas = document.createElement("canvas") as HTMLCanvasElement
         canvas.setAttribute("id", canvasId)
         canvas.setAttribute("tabindex", "0")
 
         document.body!!.appendChild(canvas)
-        return canvas
     }
 
-    fun commonAfterTest() {
-        document.getElementById(canvasId)?.remove()
+    fun createComposeWindow(content: @Composable () -> Unit) {
+        CanvasBasedWindow(canvasElementId = canvasId, content = content)
     }
 
-    fun assertApproximatelyEqual(expected: Float, actual: Float, tolerance: Float = 1f) {
-        if (abs(expected - actual) > tolerance) {
-            throw AssertionError("Expected $expected but got $actual. Difference is more than the allowed delta $tolerance")
+    fun dispatchEvents(vararg events: Any) {
+        val canvas = getCanvas()
+        for (event in events) {
+            canvas.dispatchEvent(event as Event)
         }
     }
+}
+
+internal fun <T> Channel<T>.sendFromScope(value: T, scope: CoroutineScope = GlobalScope) {
+    scope.launch(Dispatchers.Unconfined) { send(value) }
 }

@@ -45,6 +45,7 @@ import androidx.compose.ui.isEqualTo
 import androidx.compose.ui.platform.InsetsConfig
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformInsetsConfig
 import androidx.compose.ui.platform.WindowInfoImpl
@@ -52,7 +53,7 @@ import androidx.compose.ui.platform.ZeroInsetsConfig
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneContext
-import androidx.compose.ui.scene.MultiLayerComposeScene
+import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
@@ -749,12 +750,12 @@ class PopupTest {
         fun invalidate() {
             scene.render(surface.canvas.asComposeCanvas(), 1)
         }
-        scene = MultiLayerComposeScene(
-            composeSceneContext = object : ComposeSceneContext {
-            }.also {
-                val windowInfo = it.platformContext.windowInfo as WindowInfoImpl
+        scene = CanvasLayersComposeScene(
+            platformContext = PlatformContext.Empty.also {
+                val windowInfo = it.windowInfo as WindowInfoImpl
                 windowInfo.containerSize = IntSize(50, 50)
             },
+            coroutineContext = coroutineContext,
             invalidate = ::invalidate
         )
         try {

@@ -28,7 +28,6 @@ import androidx.compose.ui.awt.AwtEventListener
 import androidx.compose.ui.awt.AwtEventListeners
 import androidx.compose.ui.awt.RenderSettings
 import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
@@ -51,10 +50,11 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.awt.Component
 import java.awt.Window
-import java.awt.event.ComponentEvent
 import java.awt.event.ComponentAdapter
+import java.awt.event.ComponentEvent
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
 import java.awt.event.WindowListener
@@ -355,16 +355,14 @@ internal class ComposeContainer(
         val density = container.density
         return when (layerType) {
             LayerType.OnSameCanvas ->
-                MultiLayerComposeScene(
+                CanvasLayersComposeScene(
                     density = density,
                     layoutDirection = layoutDirection,
                     coroutineContext = mediator.coroutineContext,
-                    composeSceneContext = createComposeSceneContext(
-                        platformContext = mediator.platformContext
-                    ),
+                    platformContext = mediator.platformContext,
                     invalidate = mediator::onComposeInvalidation,
                 )
-            else -> SingleLayerComposeScene(
+            else -> PlatformLayersComposeScene(
                 density = density,
                 layoutDirection = layoutDirection,
                 coroutineContext = mediator.coroutineContext,
@@ -471,12 +469,12 @@ internal class ComposeContainer(
     private inner class ComposeSceneContextImpl(
         override val platformContext: PlatformContext,
     ) : ComposeSceneContext {
-        override fun createPlatformLayer(
+        override fun createLayer(
             density: Density,
             layoutDirection: LayoutDirection,
             focusable: Boolean,
             compositionContext: CompositionContext
-        ): ComposeSceneLayer = this@ComposeContainer.createPlatformLayer(
+        ): ComposeSceneLayer = createPlatformLayer(
             density = density,
             layoutDirection = layoutDirection,
             focusable = focusable,

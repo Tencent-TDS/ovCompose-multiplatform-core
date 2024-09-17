@@ -23,13 +23,13 @@ import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.pointer.InteropViewCatchPointerModifier
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.viewinterop.InteropView
+import androidx.compose.ui.viewinterop.pointerInteropFilter
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import org.jetbrains.skiko.currentNanoTime
@@ -53,15 +55,8 @@ import org.jetbrains.skiko.currentNanoTime
  *
  * @see ComposeScene
  */
+@Deprecated("Use LocalComposeSceneContext instead")
 internal val LocalComposeScene = staticCompositionLocalOf<ComposeScene?> { null }
-
-/**
- * The local [ComposeScene] is typically not-null. This extension can be used in these cases.
- */
-@Composable
-internal fun CompositionLocal<ComposeScene?>.requireCurrent(): ComposeScene {
-    return current ?: error("CompositionLocal LocalComposeScene not provided")
-}
 
 /**
  * A virtual container that encapsulates Compose UI content. UI content can be constructed via
@@ -114,6 +109,12 @@ interface ComposeScene {
      * @see FocusManager
      */
     val focusManager: ComposeSceneFocusManager
+
+    /**
+     * The object through which drag-and-drop implementations report drop-target events to the
+     * scene.
+     */
+    val dragAndDropTarget: ComposeSceneDragAndDropTarget
 
     /**
      * Close all resources and subscriptions. Not calling this method when [ComposeScene] is no
@@ -233,32 +234,12 @@ interface ComposeScene {
     fun sendKeyEvent(keyEvent: KeyEvent): Boolean
 
     /**
-     * If [position] is inside interop view, then [ComposeScene] skip touches to forward it to
-     * platform interop view.
-     *
-     * @see InteropViewCatchPointerModifier
+     * Perform hit test and return the [InteropView] associated with the resulting node
+     * in case it has a [Modifier.pointerInteropFilter], otherwise return null.
+     * @param position The position of the hit test.
+     * @return The [InteropView] associated with the resulting node in case there is any, or null.
      */
-    @Deprecated("To be removed. Temporary hack for iOS interop")
-    fun hitTestInteropView(position: Offset): Boolean
-
-    /**
-     * Creates a new [ComposeSceneLayer] with the specified parameters.
-     * It's used to create a new layer for [Popup] or [Dialog].
-     *
-     * @see rememberComposeSceneLayer
-     *
-     * @param density The density of the layer.
-     * @param layoutDirection The layout direction of the layer.
-     * @param focusable Indicates whether the layer is focusable.
-     * @param compositionContext The composition context for the layer.
-     * @return The created [ComposeSceneLayer].
-     */
-    fun createLayer(
-        density: Density,
-        layoutDirection: LayoutDirection,
-        focusable: Boolean,
-        compositionContext: CompositionContext,
-    ): ComposeSceneLayer
+    fun hitTestInteropView(position: Offset): InteropView?
 }
 
 private fun currentTimeForEvent(): Long =
