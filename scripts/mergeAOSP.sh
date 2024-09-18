@@ -60,9 +60,7 @@ resetSubFolder "./compose/**/skikoTest/**"
 resetSubFolder "./compose/**/desktopTest/**"	
 resetSubFolder "./compose/desktop/**"	
 # specify folders that doesn't exist in JetBrains fork, because Git might treat some files as renames to these folders
-resetSubFolder "./compose/**/linuxx64StubsMain/**"
-resetSubFolder "./compose/**/linuxx64StubsTest/**"
-resetSubFolder "./compose/**/jvmStubsMain/**"
-resetSubFolder "./compose/**/jvmStubsTest/**"
+resetSubFolder "./compose/**/*StubsMain/**"
+resetSubFolder "./compose/**/*StubsTest/**"
 resetSubFolder "./compose/**/nonAndroidMain/**"
 
