@@ -43,8 +43,12 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -76,7 +80,7 @@ fun runSkikoComposeUiTest(
 }
 
 @InternalTestApi
-@OptIn(InternalComposeUiApi::class, ExperimentalTestApi::class, ExperimentalCoroutinesApi::class)
+@OptIn(InternalComposeUiApi::class, ExperimentalTestApi::class)
 fun runInternalSkikoComposeUiTest(
     width: Int = 1024,
     height: Int = 768,
@@ -155,7 +159,7 @@ class SkikoComposeUiTest @InternalTestApi constructor(
     private val testScope = TestScope(coroutineDispatcher)
     override val mainClock: MainTestClock = MainTestClockImpl(
         testScheduler = coroutineDispatcher.scheduler,
-        frameDelayMillis = 16L,
+        frameDelayMillis = FRAME_DELAY_MILLIS,
         onTimeAdvanced = ::render
     )
     private val uncaughtExceptionHandler = UncaughtExceptionHandler()
@@ -185,7 +189,9 @@ class SkikoComposeUiTest @InternalTestApi constructor(
     fun <R> runTest(block: SkikoComposeUiTest.() -> R): R {
         return composeRootRegistry.withRegistry {
             withScene {
-                block()
+                renderingAtFrameRate {
+                    block()
+                }
             }
         }
     }
@@ -201,6 +207,21 @@ class SkikoComposeUiTest @InternalTestApi constructor(
             // call runTest instead of deprecated cleanupTestCoroutines()
             testScope.runTest { }
             uncaughtExceptionHandler.throwUncaught()
+        }
+    }
+
+    private inline fun <R> renderingAtFrameRate(block: () -> R): R {
+        val scope = CoroutineScope(coroutineContext)
+        return try {
+            scope.launch {
+                while (isActive) {
+                    delay(FRAME_DELAY_MILLIS)
+                    render(mainClock.currentTime)
+                }
+            }
+            block()
+        } finally {
+            scope.cancel("Run completed")
         }
     }
 
@@ -446,3 +467,5 @@ actual sealed interface ComposeUiTest : SemanticsNodeInteractionsProvider {
     actual fun unregisterIdlingResource(idlingResource: IdlingResource)
     actual fun setContent(composable: @Composable () -> Unit)
 }
+
+private const val FRAME_DELAY_MILLIS = 16L

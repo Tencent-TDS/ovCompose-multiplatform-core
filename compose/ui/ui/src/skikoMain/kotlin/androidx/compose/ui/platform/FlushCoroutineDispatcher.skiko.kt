@@ -79,7 +79,7 @@ internal class FlushCoroutineDispatcher(
 
     /**
      * Perform all scheduled tasks and wait for the tasks which are already
-     * performing in the [scope]
+     * performing in the [scope].
      */
     fun flush() = performRun {
         // Run tasks until they're empty in order to executed even ones that are added by the tasks

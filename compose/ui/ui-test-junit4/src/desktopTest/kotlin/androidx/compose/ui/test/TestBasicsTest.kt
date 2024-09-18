@@ -20,7 +20,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -29,6 +33,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.atomicfu.atomic
@@ -36,6 +41,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.junit.Assert
 import org.junit.Rule
 
 
@@ -213,5 +219,36 @@ class TestBasicsTest {
         assertEquals(1, value)
         mainClock.advanceTimeBy(2000, ignoreFrameDuration = true)
         assertEquals(3, value)
+    }
+
+    @Test
+    fun advancingClockCausesRecompositions() = runComposeUiTest {
+        var value by mutableStateOf(0)
+        val compositionValues = mutableListOf<Int>()
+        setContent {
+            compositionValues.add(value)
+            val capturedValue = value
+            LaunchedEffect(capturedValue) {
+                delay(1000)
+                value = capturedValue + 1
+            }
+        }
+
+        Assert.assertEquals(0, value)
+        mainClock.advanceTimeBy(10000)
+        assertContentEquals(0..9, compositionValues)
+    }
+
+    @Test
+    fun launchedEffectsRunAfterComposition() = runComposeUiTest {
+        val actions = mutableListOf<String>()
+        setContent {
+            LaunchedEffect(Unit) {
+                actions.add("LaunchedEffect")
+            }
+            actions.add("Composition")
+        }
+
+        assertContentEquals(listOf("Composition", "LaunchedEffect"), actions)
     }
 }

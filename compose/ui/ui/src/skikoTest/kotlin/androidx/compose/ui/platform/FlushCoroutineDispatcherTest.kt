@@ -23,7 +23,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 
 class FlushCoroutineDispatcherTest {
 
@@ -145,5 +147,19 @@ class FlushCoroutineDispatcherTest {
         }
 
         assertEquals(2, executionCount)
+    }
+
+    @Test
+    fun blocked_task_becomes_immediate_when_unblocked() = runTest {
+        val dispatcher = FlushCoroutineDispatcher(this)
+        val channel = Channel<Unit>(capacity = 1)
+        launch(dispatcher) {
+            channel.receive()
+        }
+        testScheduler.advanceTimeBy(1.milliseconds)
+        assertFalse(dispatcher.hasImmediateTasks())
+        assertFalse(dispatcher.hasDelayedTasks())
+        channel.trySend(Unit)
+        assertTrue(dispatcher.hasImmediateTasks())
     }
 }

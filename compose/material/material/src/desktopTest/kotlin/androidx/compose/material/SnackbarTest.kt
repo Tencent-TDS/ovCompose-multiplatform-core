@@ -28,31 +28,45 @@ import org.junit.Test
 class SnackbarTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun testQueueing() = runComposeUiTest {
+    fun testParallelQueueing() = runComposeUiTest {
         var snackbarsShown = 0
+        mainClock.autoAdvance = false
         setContent {
             val state = remember { SnackbarHostState() }
-
             SnackbarHost(state)
 
             LaunchedEffect(Unit) {
                 repeat(4) {
                     launch {
-                        state.showSnackbar(snackbarsShown.toString())
+                        state.showSnackbar(it.toString())
                         snackbarsShown++
                     }
                 }
             }
         }
 
-        // The snackbars are shown sequentially. The coroutines calling `showSnackbar` are blocked
-        // and released by a `LaunchedEffect` (in the composition) after the snackbar duration
-        // completes. That's why each pair of `advanceTimeBy` and `waitForIdle` only shows one
-        // snackbar.
-        (1..4).forEach {
-            mainClock.advanceTimeBy(60_000)
-            waitForIdle()
-            assertEquals(it, snackbarsShown)
+        mainClock.advanceTimeBy(60_000)  // Should be larger than 4 * SnackbarDuration.Short
+        assertEquals(4, snackbarsShown)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun testSequentialQueueing() = runComposeUiTest {
+        var snackbarsShown = 0
+        mainClock.autoAdvance = false
+        setContent {
+            val state = remember { SnackbarHostState() }
+            SnackbarHost(state)
+
+            LaunchedEffect(Unit) {
+                repeat(4) {
+                    state.showSnackbar(it.toString())
+                    snackbarsShown++
+                }
+            }
         }
+
+        mainClock.advanceTimeBy(60_000)  // Should be larger than 4 * SnackbarDuration.Short
+        assertEquals(4, snackbarsShown)
     }
 }
