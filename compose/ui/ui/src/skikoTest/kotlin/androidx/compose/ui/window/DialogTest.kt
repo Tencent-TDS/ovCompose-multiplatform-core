@@ -256,6 +256,7 @@ class DialogTest {
 
         assertEquals(null, lastValueInComposition)
         showDialog = true
+        mainClock.advanceTimeBy(1000)
         waitForIdle()
         assertEquals(2, lastValueInComposition)
     }
