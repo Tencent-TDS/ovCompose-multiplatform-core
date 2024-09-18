@@ -316,7 +316,7 @@ internal class RootNodeOwner(
         override val inputModeManager get() = platformContext.inputModeManager
         override val clipboardManager = PlatformClipboardManager()
         override val accessibilityManager = DefaultAccessibilityManager()
-        override val graphicsContext: GraphicsContext = GraphicsContext()
+        override val graphicsContext: GraphicsContext = GraphicsContext(snapshotObserver.observer)
         override val textToolbar get() = platformContext.textToolbar
         override val autofillTree = AutofillTree()
         override val autofill: Autofill?  get() = null
