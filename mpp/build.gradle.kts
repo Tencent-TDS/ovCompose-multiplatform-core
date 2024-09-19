@@ -188,16 +188,27 @@ tasks.register("checkDesktop") {
 }
 
 tasks.register("testWeb") {
-    dependsOn(":compose:runtime:runtime:jsTest")
-    dependsOn(":compose:runtime:runtime:wasmJsTest")
-    dependsOn(":compose:ui:ui:compileTestKotlinJs")
-    // TODO: ideally we want to run all wasm tests that are possible but now we deal only with modules that have skikoTests
+    dependsOn(testWebJs)
+    dependsOn(testWebWasm)
+}
 
-    dependsOn(":compose:foundation:foundation:wasmJsBrowserTest")
-    dependsOn(":compose:material3:material3:wasmJsBrowserTest")
-    dependsOn(":compose:ui:ui-text:wasmJsBrowserTest")
-    dependsOn(":compose:ui:ui:wasmJsBrowserTest")
-    dependsOn(":collection:collection:wasmJsBrowserTest")
+val testWebJs = tasks.register("testWebJs") {
+    dependsOn(":collection:collection:compileTestKotlinJs")
+    dependsOn(":compose:foundation:foundation:compileTestKotlinJs")
+    dependsOn(":compose:material3:material3:compileTestKotlinJs")
+    dependsOn(":compose:runtime:runtime:jsTest")
+    dependsOn(":compose:ui:ui-text:compileTestKotlinJs")
+    dependsOn(":compose:ui:ui:compileTestKotlinJs")
+}
+
+val testWebWasm = tasks.register("testWebWasm") {
+    // TODO: ideally we want to run all wasm tests that are possible but now we deal only with modules that have skikoTests
+    dependsOn(":collection:collection:wasmJsTest")
+    dependsOn(":compose:foundation:foundation:wasmJsTest")
+    dependsOn(":compose:material3:material3:wasmJsTest")
+    dependsOn(":compose:runtime:runtime:wasmJsTest")
+    dependsOn(":compose:ui:ui-text:wasmJsTest")
+    dependsOn(":compose:ui:ui:wasmJsTest")
 }
 
 tasks.register("testUIKit") {
