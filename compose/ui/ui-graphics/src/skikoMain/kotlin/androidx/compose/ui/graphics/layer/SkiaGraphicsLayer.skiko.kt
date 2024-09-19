@@ -217,7 +217,10 @@ actual class GraphicsLayer internal constructor(
         ) {
             snapshotObserver.observeReads(
                 scope = this,
-                onValueChangedForScope = { it.requestDraw() },
+                onValueChangedForScope = {
+                    // Can be called from another thread
+                    it.requestDraw()
+                },
                 block = block
             )
         }
@@ -464,6 +467,8 @@ actual class GraphicsLayer internal constructor(
             childDependenciesTracker.removeDependencies {
                 it.onRemovedFromParentLayer()
             }
+
+            snapshotObserver.clear(this)
         }
     }
 
