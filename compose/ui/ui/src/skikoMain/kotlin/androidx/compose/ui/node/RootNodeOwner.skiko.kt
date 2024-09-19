@@ -36,6 +36,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
@@ -125,6 +126,7 @@ internal class RootNodeOwner(
 
     private val rootSemanticsNode = EmptySemanticsModifier()
     private val snapshotObserver = snapshotInvalidationTracker.snapshotObserver()
+    private val graphicsContext = SkiaGraphicsContext()
 
     private val rootModifier = EmptySemanticsElement(rootSemanticsNode)
         .focusProperties {
@@ -178,6 +180,7 @@ internal class RootNodeOwner(
         check(!isDisposed) { "RootNodeOwner is already disposed" }
         platformContext.rootForTestListener?.onRootForTestDisposed(rootForTest)
         snapshotObserver.stopObserving()
+        graphicsContext.dispose()
         // we don't need to call root.detach() because root will be garbage collected
         isDisposed = true
     }
@@ -316,7 +319,7 @@ internal class RootNodeOwner(
         override val inputModeManager get() = platformContext.inputModeManager
         override val clipboardManager = PlatformClipboardManager()
         override val accessibilityManager = DefaultAccessibilityManager()
-        override val graphicsContext = GraphicsContext(this@RootNodeOwner.snapshotObserver.observer)
+        override val graphicsContext get() = this@RootNodeOwner.graphicsContext
         override val textToolbar get() = platformContext.textToolbar
         override val autofillTree = AutofillTree()
         override val autofill: Autofill?  get() = null

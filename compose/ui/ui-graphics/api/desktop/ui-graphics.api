@@ -992,8 +992,11 @@ public final class androidx/compose/ui/graphics/SkiaColorFilter_skikoKt {
 	public static final fun asSkiaColorFilter (Landroidx/compose/ui/graphics/ColorFilter;)Lorg/jetbrains/skia/ColorFilter;
 }
 
-public final class androidx/compose/ui/graphics/SkiaGraphicsContext_skikoKt {
-	public static final fun GraphicsContext (Landroidx/compose/runtime/snapshots/SnapshotStateObserver;)Landroidx/compose/ui/graphics/GraphicsContext;
+public final class androidx/compose/ui/graphics/SkiaGraphicsContext : androidx/compose/ui/graphics/GraphicsContext {
+	public fun <init> ()V
+	public fun createGraphicsLayer ()Landroidx/compose/ui/graphics/layer/GraphicsLayer;
+	public final fun dispose ()V
+	public fun releaseGraphicsLayer (Landroidx/compose/ui/graphics/layer/GraphicsLayer;)V
 }
 
 public final class androidx/compose/ui/graphics/SkiaImageAsset_skikoKt {
