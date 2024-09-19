@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.graphics.layer
 
-import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -27,6 +26,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
@@ -968,11 +968,7 @@ class SkiaGraphicsLayerTest {
         verify: ((PixelMap) -> Unit)? = null,
         entireScene: Boolean = false
     ) {
-        val observer = SnapshotStateObserver { command ->
-            command()
-        }
-        observer.start()
-        val graphicsContext = GraphicsContext(observer)
+        val graphicsContext = SkiaGraphicsContext()
         val surfaceWidth = TEST_WIDTH * 2
         val surfaceHeight = TEST_HEIGHT * 2
         val surface = Surface.makeRasterN32Premul(surfaceWidth, surfaceHeight)
@@ -1001,8 +997,7 @@ class SkiaGraphicsLayerTest {
             verify?.invoke(imageBitmap.toPixelMap())
         } finally {
             surface.close()
-            observer.stop()
-            observer.clear()
+            graphicsContext.dispose()
         }
     }
 
