@@ -287,10 +287,8 @@ internal class UIKitDragAndDropManager(
         ): UIDropProposal = withDropSessionContext {
             dragAndDropTarget.onMoved(event)
             if (dragAndDropTarget.hasEligibleDropTarget) {
-                println("Has target")
                 UIDropProposal(UIDropOperationCopy)
             } else {
-                println("Has no target")
                 UIDropProposal(UIDropOperationForbidden)
             }
         } ?: UIDropProposal(UIDropOperationForbidden)
