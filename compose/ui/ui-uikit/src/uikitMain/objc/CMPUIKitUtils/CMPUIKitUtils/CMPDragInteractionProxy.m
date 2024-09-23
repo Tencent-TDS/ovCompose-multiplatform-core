@@ -20,10 +20,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation CMPDragInteractionProxy
 
-+ (NSItemProvider *)itemProviderFromString:(NSString *)string {
-    return [[NSItemProvider alloc] initWithObject:string];
-}
-
 - (NSArray<UIDragItem *> *)dragInteraction:(UIDragInteraction *)interaction itemsForBeginningSession:(id<UIDragSession>)session {
     return [self itemsForBeginningSession:session interaction:interaction];
 }
