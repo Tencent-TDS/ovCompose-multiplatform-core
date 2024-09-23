@@ -16,14 +16,36 @@
 
 package androidx.compose.ui.main
 
-import kotlinx.cinterop.*
-import platform.UIKit.*
-import platform.Foundation.*
+import kotlinx.cinterop.ObjCObjectBase
+import kotlinx.cinterop.autoreleasepool
+import kotlinx.cinterop.cstr
+import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.toCValues
+import platform.Foundation.NSStringFromClass
+import platform.UIKit.UIApplication
+import platform.UIKit.UIApplicationDelegateProtocol
+import platform.UIKit.UIApplicationDelegateProtocolMeta
+import platform.UIKit.UIApplicationMain
+import platform.UIKit.UIResponder
+import platform.UIKit.UIResponderMeta
+import platform.UIKit.UIScreen
+import platform.UIKit.UIViewController
+import platform.UIKit.UIWindow
 
-private var _rootViewController: UIViewController? = null
+private var _makeRootViewController: (() -> UIViewController)? = null
 
-fun defaultUIKitMain(executableName: String, rootViewController: UIViewController) {
-    _rootViewController = rootViewController
+@Deprecated(
+    message = "Replaced by function with postpone controller load",
+    replaceWith = ReplaceWith(
+        expression = "defaultUIKitMain(executableName, makeRootViewController)",
+        imports = arrayOf("androidx.compose.ui.main")
+    )
+)
+fun defaultUIKitMain(executableName: String, rootViewController: UIViewController)
+    = defaultUIKitMain(executableName) { rootViewController }
+
+fun defaultUIKitMain(executableName: String, makeRootViewController: () -> UIViewController) {
+    _makeRootViewController = makeRootViewController
     val args = emptyArray<String>()
     memScoped {
         val argc = args.size + 1
@@ -48,7 +70,7 @@ class DefaultIOSAppDelegate : UIResponder, UIApplicationDelegateProtocol {
 
     override fun application(application: UIApplication, didFinishLaunchingWithOptions: Map<Any?, *>?): Boolean {
         window = UIWindow(frame = UIScreen.mainScreen.bounds)
-        window!!.rootViewController = _rootViewController
+        window!!.rootViewController = _makeRootViewController?.invoke()
         window!!.makeKeyAndVisible()
         return true
     }
