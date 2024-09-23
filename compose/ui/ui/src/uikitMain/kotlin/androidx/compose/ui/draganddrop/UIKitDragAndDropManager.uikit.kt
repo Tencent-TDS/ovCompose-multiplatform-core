@@ -130,7 +130,6 @@ private class DragSessionContext(
         }, cornerRadius = cornerRadius)
         parameters.backgroundColor = UIColor.clearColor
         parameters.visiblePath = path
-        parameters.visiblePath = path
 
         val preview = UITargetedDragPreview(
             view = decorationView,
