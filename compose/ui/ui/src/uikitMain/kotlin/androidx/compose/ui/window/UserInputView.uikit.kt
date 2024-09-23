@@ -169,8 +169,7 @@ private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDele
         // descendant views (aka interop views).
         // In other cases, it's allowed to recognize simultaneously, so this method will not be
         // called
-        val result = gestureRecognizer.view != otherGestureRecognizer.view
-        return result
+        return gestureRecognizer.view != otherGestureRecognizer.view
     }
 }
 
