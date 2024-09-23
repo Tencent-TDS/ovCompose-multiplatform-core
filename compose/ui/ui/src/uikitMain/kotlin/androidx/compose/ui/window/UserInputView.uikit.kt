@@ -144,9 +144,7 @@ private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDele
 
         // Only allow simultaneous recognition if the other gesture recognizer is attached to the same view
         // or to a view up in the hierarchy
-        val result = otherView == view || otherIsAscendant
-        //            println("${gestureRecognizer.className} recognizes with ${otherGestureRecognizer.className}: $result")
-        return result
+        return otherView == view || otherIsAscendant
     }
 
     override fun gestureRecognizerShouldRequireFailureOfGestureRecognizer(
