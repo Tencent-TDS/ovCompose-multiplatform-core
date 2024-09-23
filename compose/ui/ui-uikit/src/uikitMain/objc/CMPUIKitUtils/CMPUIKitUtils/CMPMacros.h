@@ -23,7 +23,7 @@
 #define CMP_ABSTRACT_FUNCTION_CALLED assert(false && "This function must be overrided, and not call super implementation");
 
 /// Marker for functions which can be override, but have default behavior
- #define CMP_CAN_OVERRIDE
+#define CMP_CAN_OVERRIDE
 
 /// Marker for indicating that raw pointer returned from a function is owned by the caller. It's responsible for releasing it or passing it to
 /// API marked with `CMP_CONSUMED`
