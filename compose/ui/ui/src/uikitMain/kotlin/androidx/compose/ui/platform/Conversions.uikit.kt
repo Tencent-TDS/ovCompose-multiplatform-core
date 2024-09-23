@@ -39,7 +39,7 @@ import platform.UIKit.UIImage
  * Convert [androidx.compose.ui.graphics.Color] to iOS UIKit [UIColor]
  * Assumes that source color is in sRGB color space.
  */
-fun Color.toUIColor() = UIColor.colorWithRed(
+internal fun Color.toUIColor() = UIColor.colorWithRed(
     red = red.toDouble(),
     green = green.toDouble(),
     blue = blue.toDouble(),
@@ -147,7 +147,7 @@ internal fun ImageBitmap.toCGImage(): CGImageRef? = withCFReleaseScope {
 /**
  * Creates a iOS UIKit [UIImage] with the contents of [ImageBitmap].
  */
-fun ImageBitmap.toUIImage(): UIImage? = withCFReleaseScope {
+internal fun ImageBitmap.toUIImage(): UIImage? = withCFReleaseScope {
     toCGImage()?.releasedAfterScopeEnds()?.let {
         UIImage.imageWithCGImage(it)
     }
