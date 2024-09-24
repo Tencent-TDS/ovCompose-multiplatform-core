@@ -114,7 +114,7 @@ interface ComposeScene {
      * The object through which drag-and-drop implementations report drop-target events to the
      * scene.
      */
-    val dragAndDropTarget: ComposeSceneDragAndDropTarget
+    val dragAndDrop: ComposeSceneDragAndDrop
 
     /**
      * Close all resources and subscriptions. Not calling this method when [ComposeScene] is no

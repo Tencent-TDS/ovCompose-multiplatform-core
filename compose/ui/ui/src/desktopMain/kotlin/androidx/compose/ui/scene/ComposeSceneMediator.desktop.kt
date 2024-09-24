@@ -337,7 +337,7 @@ internal class ComposeSceneMediator(
     private var keyboardModifiersRequireUpdate = false
 
     private val dragAndDropManager = AwtDragAndDropManager(container) {
-        scene.dragAndDropTarget
+        scene.dragAndDrop
     }
 
     init {

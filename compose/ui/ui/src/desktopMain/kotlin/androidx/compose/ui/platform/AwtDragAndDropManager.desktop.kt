@@ -31,7 +31,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toAwtImage
-import androidx.compose.ui.scene.ComposeSceneDragAndDropTarget
+import androidx.compose.ui.scene.ComposeSceneDragAndDrop
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
@@ -81,7 +81,7 @@ internal fun DragAndDropTransferAction.Companion.fromAwtAction(
  */
 internal class AwtDragAndDropManager(
     private val rootContainer: JComponent,
-    private val dragAndDropTarget: () -> ComposeSceneDragAndDropTarget
+    private val getComposeDragAndDrop: () -> ComposeSceneDragAndDrop
 ) : PlatformDragAndDropManager {
     private val density: Density
         get() = rootContainer.density
@@ -175,15 +175,15 @@ internal class AwtDragAndDropManager(
      * Receives and processes events from the [DropTarget] installed in the root component.
      */
     private val dropTargetListener = object : DropTargetListener {
-        override fun dragEnter(dtde: DropTargetDragEvent) {
+        override fun dragEnter(dtde: DropTargetDragEvent) = with(dtde) {
             val event = DragAndDropEvent(dtde)
-            val dragAndDropTarget = dragAndDropTarget()
+            val composeDragAndDrop = getComposeDragAndDrop()
 
             // There's no drag-start event in AWT, so start in dragEnter, and stop in dragExit
-            val acceptedTransfer = dragAndDropTarget.acceptDragAndDropTransfer(event)
+            val acceptedTransfer = composeDragAndDrop.acceptDragAndDropTransfer(event)
             if (acceptedTransfer) {
-                dragAndDropTarget.onStarted(event)
-                dragAndDropTarget.onEntered(event)
+                composeDragAndDrop.onStarted(event)
+                composeDragAndDrop.onEntered(event)
             } else {
                 dtde.rejectDrag()
             }
@@ -191,16 +191,16 @@ internal class AwtDragAndDropManager(
 
         override fun dragExit(dte: DropTargetEvent) {
             val event = DragAndDropEvent(dte)
-            val dragAndDropTarget = dragAndDropTarget()
-            dragAndDropTarget.onExited(event)
-            dragAndDropTarget.onEnded(event)
+            val composeDragAndDrop = getComposeDragAndDrop()
+            composeDragAndDrop.onExited(event)
+            composeDragAndDrop.onEnded(event)
         }
 
         override fun dragOver(dtde: DropTargetDragEvent) {
             val event = DragAndDropEvent(dtde)
-            val dragAndDropTarget = dragAndDropTarget()
-            dragAndDropTarget.onMoved(event)
-            if (dragAndDropTarget.hasEligibleDropTarget) {
+            val composeDragAndDrop = getComposeDragAndDrop()
+            composeDragAndDrop.onMoved(event)
+            if (composeDragAndDrop.hasEligibleDropTarget) {
                 dtde.acceptDrag(dtde.dropAction)
             } else {
                 dtde.rejectDrag()
@@ -209,16 +209,16 @@ internal class AwtDragAndDropManager(
 
         override fun dropActionChanged(dtde: DropTargetDragEvent) {
             val event = DragAndDropEvent(dtde)
-            val dragAndDropTarget = dragAndDropTarget()
-            dragAndDropTarget.onChanged(event)
+            val composeDragAndDrop = getComposeDragAndDrop()
+            composeDragAndDrop.onChanged(event)
         }
 
         override fun drop(dtde: DropTargetDropEvent) {
             val event = DragAndDropEvent(dtde)
             dtde.acceptDrop(dtde.dropAction)
-            val dragAndDropTarget = dragAndDropTarget()
-            dtde.dropComplete(dragAndDropTarget.onDrop(event))
-            dragAndDropTarget.onEnded(event)
+            val composeDragAndDrop = getComposeDragAndDrop()
+            dtde.dropComplete(composeDragAndDrop.onDrop(event))
+            composeDragAndDrop.onEnded(event)
         }
 
         private fun DragAndDropEvent(dragEvent: DropTargetDragEvent) = DragAndDropEvent(

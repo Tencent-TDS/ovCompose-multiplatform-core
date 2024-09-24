@@ -17,28 +17,60 @@
 package androidx.compose.ui.scene
 
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropNode
+import androidx.compose.ui.draganddrop.DragAndDropStartTransferScope
 import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.DragAndDropTransferData
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.node.DragAndDropOwner
+import androidx.compose.ui.platform.PlatformDragAndDropManager
+import androidx.compose.ui.platform.PlatformDragAndDropSource
 
-/**
- * The object provided by [ComposeScene] to allow reporting drop-target events to it.
- */
+/** Provides API for [PlatformDragAndDropManager] to integrate [ComposeScene] with the platform. */
+// TODO: Extract to interface and implement it in [DragAndDropNode]
 @InternalComposeUiApi
-class ComposeSceneDragAndDropTarget internal constructor(
+class ComposeSceneDragAndDrop internal constructor(
     private val dragAndDropOwner: () -> DragAndDropOwner,
 ) : DragAndDropTarget {
     private var startedNode: DragAndDropNode? = null
     private val currentNode: DragAndDropNode
         get() = dragAndDropOwner().rootDragAndDropNode
 
+    /**
+     * Indicates whether there is a child that is eligible to receive a drop gesture immediately.
+     * This is true if the last move happened over a child that is interested in receiving a drop.
+     */
     val hasEligibleDropTarget: Boolean
         get() = currentNode.hasEligibleDropTarget
 
+    /**
+     * The entry point to register interest in a drag and drop session for receiving data.
+     *
+     * @return true to indicate interest in the contents of a drag and drop session, false indicates
+     *   no interest. If false is returned, this [Modifier] will not receive any [DragAndDropTarget]
+     *   events.
+     */
     fun acceptDragAndDropTransfer(startEvent: DragAndDropEvent): Boolean {
         ensureStarted(null, startEvent)
         return currentNode.acceptDragAndDropTransfer(startEvent)
+    }
+
+    /**
+     * Initiates a drag-and-drop operation for transferring data.
+     *
+     * @param offset the offset value representing position of the input pointer.
+     * @param isTransferStarted a lambda function that returns true if the drag-and-drop transfer
+     *   has started, or false otherwise.
+     */
+    fun PlatformDragAndDropSource.StartTransferScope.startDragAndDropTransfer(
+        offset: Offset,
+        isTransferStarted: () -> Boolean
+    ): Unit = with(currentNode) {
+        asDragAndDropStartTransferScope().startDragAndDropTransfer(offset, isTransferStarted)
     }
 
     override fun onDrop(event: DragAndDropEvent): Boolean {
@@ -87,3 +119,18 @@ class ComposeSceneDragAndDropTarget internal constructor(
         }
     }
 }
+
+// TODO: Remove after combine [DragAndDropStartTransferScope] and [PlatformDragAndDropSource]
+private fun PlatformDragAndDropSource.StartTransferScope.asDragAndDropStartTransferScope(): DragAndDropStartTransferScope =
+    object : DragAndDropStartTransferScope {
+        override fun startDragAndDropTransfer(
+            transferData: DragAndDropTransferData,
+            decorationSize: Size,
+            drawDragDecoration: DrawScope.() -> Unit
+        ): Boolean =
+            this@asDragAndDropStartTransferScope.startDragAndDropTransfer(
+                transferData = transferData,
+                decorationSize = decorationSize,
+                drawDragDecoration = drawDragDecoration
+            )
+    }

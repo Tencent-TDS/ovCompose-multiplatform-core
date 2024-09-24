@@ -88,26 +88,3 @@ interface PlatformDragAndDropSource {
         ): Boolean
     }
 }
-
-@InternalComposeUiApi
-interface PlatformDragAndDropTarget : DragAndDropTarget {
-    /**
-     * Indicates whether there is a child that is eligible to receive a drop gesture immediately.
-     * This is true if the last move happened over a child that is interested in receiving a drop.
-     */
-    val hasEligibleDropTarget: Boolean
-
-    /**
-     * The entry point to register interest in a drag and drop session for receiving data.
-     *
-     * @return true to indicate interest in the contents of a drag and drop session, false
-     * indicates no interest. If false is returned, this [Modifier] will not receive any
-     * [DragAndDropTarget] events.
-     *
-     * All [DragAndDropModifierNode] instances in the hierarchy will be given an opportunity
-     * to participate in a drag and drop session via this method.
-     */
-    fun acceptDragAndDropTransfer(
-        startEvent: DragAndDropEvent
-    ): Boolean
-}

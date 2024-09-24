@@ -279,9 +279,7 @@ internal class ComposeSceneMediator(
 
     private val dragAndDropManager = UIKitDragAndDropManager(
         view = userInputView,
-        getDragAndDropTarget = {
-            scene.dragAndDropTarget
-        }
+        getComposeDragAndDrop = { scene.dragAndDrop },
     )
 
     /**
