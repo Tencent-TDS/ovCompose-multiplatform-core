@@ -17,12 +17,19 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.assertThat
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.isEqualTo
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.*
 import kotlin.math.PI
 import kotlin.math.cos
@@ -511,6 +518,76 @@ class RenderNodeLayerTest {
         childLayer.invalidate()
         parentLayer.drawLayer(canvas, null)
         assertThat(parentDrawCount).isEqualTo(3)
+    }
+
+    // we run in UI thread to not be in concurrent with GlobalSnapshotManager
+    // we have to be non-concurrent with it to not have races with sendApplyNotifications
+    // it is currently hard to isolate Snapshot changes
+    // because SnapshotStateObserver/sendApplyNotifications are coupled with global state
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun invalidate_on_state_change() = runComposeUiTest {
+        runOnUiThread {
+            var drawCount = 0
+            var invalidateCount = 0
+            var state by mutableStateOf(0f)
+            val layer = TestRenderNodeLayer(
+                invalidateParentLayer = {
+                    invalidateCount++
+                },
+                drawBlock = { canvas, _ ->
+                    canvas.drawLine(Offset(0f, state), Offset.Zero, Paint())
+                    drawCount++
+                },
+            )
+
+            val surface = Surface.makeRasterN32Premul(100, 100)
+            val canvas = surface.canvas
+            val stateObserver = SnapshotStateObserver { it.invoke() }
+
+            fun draw() {
+                stateObserver.observeReads(Unit, { layer.invalidate() }) {
+                    layer.drawLayer(canvas.asComposeCanvas(), null)
+                }
+            }
+
+            try {
+                stateObserver.start()
+
+                draw()
+                Snapshot.sendApplyNotifications()
+                assertEquals(0, invalidateCount)
+                assertEquals(1, drawCount)  // no cache, draw
+
+                draw()
+                Snapshot.sendApplyNotifications()
+                assertEquals(0, invalidateCount)
+                assertEquals(1, drawCount) // no draw, as it is cached
+
+                state = 1f
+                Snapshot.sendApplyNotifications()
+                assertEquals(1, invalidateCount)  // invalidate, as draw state changed
+                assertEquals(1, drawCount)
+
+                state = 2f
+                Snapshot.sendApplyNotifications()
+                assertEquals(2, invalidateCount)  // invalidate, as draw state changed again
+                assertEquals(1, drawCount)
+
+                draw()
+                Snapshot.sendApplyNotifications()
+                assertEquals(2, invalidateCount)
+                assertEquals(2, drawCount)  // draw, because we invalidated and cache cleared
+
+                draw()
+                Snapshot.sendApplyNotifications()
+                assertEquals(2, invalidateCount)
+                assertEquals(2, drawCount) // no draw, as it is cached
+            } finally {
+                stateObserver.stop()
+                stateObserver.clear()
+            }
+        }
     }
 
     private fun TestRenderNodeLayer(
