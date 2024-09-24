@@ -146,9 +146,10 @@ private def configure(target, isDevice, architecture, testTarget) {
             utils {
                 headersPath.eachFileRecurse {
                     if (it.name.endsWith('.h')) {
-                        headers(it)
+                        extraOpts("-header", it.name)
                     }
                 }
+                compilerOpts("-I${headersPath}")
             }
         }
     }
