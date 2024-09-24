@@ -84,21 +84,6 @@ internal expect fun SelectionHandle(
     modifier: Modifier,
 )
 
-@Composable
-internal fun SelectionHandle(
-    offsetProvider: OffsetProvider,
-    isStartHandle: Boolean,
-    direction: ResolvedTextDirection,
-    handlesCrossed: Boolean,
-    minTouchTargetSize: DpSize,
-    modifier: Modifier,
-) {
-    SelectionHandle(
-        offsetProvider, isStartHandle, direction,
-        handlesCrossed, minTouchTargetSize, 0f, modifier,
-    )
-}
-
 /**
  * Avoids boxing of [Offset] which is an inline value class.
  */
