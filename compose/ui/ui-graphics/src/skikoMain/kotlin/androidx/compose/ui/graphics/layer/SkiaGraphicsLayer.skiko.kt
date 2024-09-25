@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.graphics.layer
 
+import androidx.compose.runtime.SnapshotMutationPolicy
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
@@ -66,7 +67,10 @@ actual class GraphicsLayer internal constructor(
     private var picture: Picture? = null
 
     // Composable state marker for tracking drawing invalidations.
-    private val drawState = mutableStateOf(Unit, neverEqualPolicy())
+    private val drawState = mutableStateOf(Unit, object : SnapshotMutationPolicy<Unit> {
+        override fun equivalent(a: Unit, b: Unit): Boolean = false
+        override fun merge(previous: Unit, current: Unit, applied: Unit) = current
+    })
 
     private var matrixDirty = true
     private val matrix = Matrix()

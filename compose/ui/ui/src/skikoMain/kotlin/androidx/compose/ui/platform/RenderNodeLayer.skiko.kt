@@ -17,6 +17,7 @@
 package androidx.compose.ui.platform
 
 import org.jetbrains.skia.Rect as SkRect
+import androidx.compose.runtime.SnapshotMutationPolicy
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.ui.geometry.MutableRect
@@ -86,7 +87,10 @@ internal class RenderNodeLayer(
     private var isDestroyed = false
 
     // Composable state marker for tracking drawing invalidations.
-    private val drawState = mutableStateOf(Unit, neverEqualPolicy())
+    private val drawState = mutableStateOf(Unit, object : SnapshotMutationPolicy<Unit> {
+        override fun equivalent(a: Unit, b: Unit): Boolean = false
+        override fun merge(previous: Unit, current: Unit, applied: Unit) = current
+    })
 
     private var transformOrigin: TransformOrigin = TransformOrigin.Center
     private var translationX: Float = 0f
