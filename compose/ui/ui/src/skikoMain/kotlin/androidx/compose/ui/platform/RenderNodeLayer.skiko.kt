@@ -223,9 +223,10 @@ internal class RenderNodeLayer(
     }
 
     override fun drawLayer(canvas: Canvas, parentLayer: GraphicsLayer?) {
-
-        // Read the state because any changes to the state should trigger re-drawing.
-        drawState.value
+        if (parentLayer != null) {
+            // Read the state because any changes to the state should trigger re-drawing of [GraphicsLayer].
+            drawState.value
+        }
 
         if (picture == null) {
             val measureDrawBounds = !clip || shadowElevation > 0
