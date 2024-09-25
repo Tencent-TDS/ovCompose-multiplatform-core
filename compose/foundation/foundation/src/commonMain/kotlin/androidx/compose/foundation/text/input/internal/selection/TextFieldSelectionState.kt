@@ -1216,14 +1216,16 @@ internal class TextFieldSelectionState(
         } else {
             selection.end
         }
-        return layoutResult.multiParagraph.getLineHeight(offset)
+        val line = layoutResult.getLineForOffset(offset)
+        return layoutResult.multiParagraph.getLineHeight(line)
     }
 
     private fun getCursorLineHeight(): Float {
         val layoutResult = textLayoutState.layoutResult ?: return 0f
         val selection = textFieldState.visualText.selection
         if (!selection.collapsed) return 0f
-        return layoutResult.multiParagraph.getLineHeight(selection.start)
+        val line = layoutResult.getLineForOffset(selection.start)
+        return layoutResult.multiParagraph.getLineHeight(line)
     }
 
     private fun getHandlePosition(isStartHandle: Boolean): Offset {
