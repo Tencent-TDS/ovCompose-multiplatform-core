@@ -179,37 +179,37 @@ class BasicTextFieldSelectionHandleTest {
     private fun SkikoComposeUiTest.TestHandleShape(
         cursor: Rect,
         isStartHandler: Boolean,
-        stickWidth: Dp = 2.dp,
-        knobRadius: Dp = 6.dp,
+        lineWidth: Dp = 2.dp,
+        circleRadius: Dp = 6.dp,
     ) = density.run {
-        val stickRect = cursor.copy(
-            left = cursor.bottomCenter.x - stickWidth.toPx() / 2,
-            right = cursor.bottomCenter.x + stickWidth.toPx() / 2,
+        val lineRect = cursor.copy(
+            left = cursor.bottomCenter.x - lineWidth.toPx() / 2,
+            right = cursor.bottomCenter.x + lineWidth.toPx() / 2,
         )
-        val knobCenter = Offset(
+        val circleCenter = Offset(
             x = cursor.bottomCenter.x,
             y = if (isStartHandler) {
-                cursor.top - knobRadius.toPx()
+                cursor.top - circleRadius.toPx()
             } else {
-                cursor.bottom + knobRadius.toPx()
+                cursor.bottom + circleRadius.toPx()
             }
         )
-        val knobRect = Rect(center = knobCenter, radius = knobRadius.toPx())
+        val circleRect = Rect(center = circleCenter, radius = circleRadius.toPx())
 
-        SelectionHandleShape(stickRect, knobRect)
+        SelectionHandleShape(lineRect, circleRect)
     }
 
     private data class SelectionHandleShape(
-        val stickRect: Rect,
-        val knobRect: Rect
+        val lineRect: Rect,
+        val circleRect: Rect
     ) {
         fun containsInner(point: IntOffset): Boolean =
-            stickRect.roundToIntRect().contains(point) ||
-                knobRect.roundToIntRect().deflate(1).containsInOval(point)
+            lineRect.roundToIntRect().contains(point) ||
+                circleRect.roundToIntRect().deflate(1).containsInOval(point)
 
         fun containsOuter(point: IntOffset): Boolean =
-            stickRect.roundToIntRect().contains(point) ||
-                knobRect.roundToIntRect().inflate(1).containsInOval(point)
+            lineRect.roundToIntRect().contains(point) ||
+                circleRect.roundToIntRect().inflate(1).containsInOval(point)
 
         private fun IntRect.containsInOval(point: IntOffset): Boolean {
             val normX = (point.x + 0.5 - center.x) / (width / 2)
