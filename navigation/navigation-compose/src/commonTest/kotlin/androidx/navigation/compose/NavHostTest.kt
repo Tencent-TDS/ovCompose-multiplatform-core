@@ -1220,12 +1220,3 @@ private class TestViewModelStoreOwnerWithDefaults(
     override val defaultViewModelProviderFactory: ViewModelProvider.Factory = TestViewModelFactory(),
     override val defaultViewModelCreationExtras: CreationExtras = CreationExtras.Empty,
 ) : ViewModelStoreOwner, HasDefaultViewModelProviderFactory
-
-@OptIn(ExperimentalTestApi::class)
-internal fun ComposeUiTest.setContentWithLifecycleOwner(content: @Composable () -> Unit) {
-    setContent {
-        CompositionLocalProvider(LocalLifecycleOwner provides TestLifecycleOwner(Lifecycle.State.RESUMED)) {
-            content()
-        }
-    }
-}
