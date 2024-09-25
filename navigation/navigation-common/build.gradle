@@ -45,25 +45,10 @@ androidXMultiplatform {
     mac()
     linux()
     ios()
-    js()
-    wasm()
+    js { browser() }
+    wasm { browser() }
 
     defaultPlatform(PlatformIdentifier.ANDROID)
-}
-
-kotlin {
-    js {
-        browser()
-    }
-    wasmJs()
-
-    watchosArm64()
-    watchosArm32()
-    watchosX64()
-    watchosSimulatorArm64()
-    tvosArm64()
-    tvosX64()
-    tvosSimulatorArm64()
 
     sourceSets {
         commonMain {
@@ -169,6 +154,16 @@ kotlin {
             }
         }
     }
+}
+
+kotlin {
+    watchosArm64()
+    watchosArm32()
+    watchosX64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosX64()
+    tvosSimulatorArm64()
 }
 
 android {

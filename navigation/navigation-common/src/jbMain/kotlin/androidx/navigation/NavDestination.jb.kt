@@ -89,7 +89,7 @@ public actual open class NavDestination actual constructor(
     public actual constructor(navigator: Navigator<out NavDestination>) : this(navigator.name)
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public var id: Int = 0
+    public actual var id: Int = 0
 
     public actual var route: String? = null
         set(route) {
