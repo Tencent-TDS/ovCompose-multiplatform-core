@@ -27,6 +27,10 @@ import kotlin.reflect.KType
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.serializer
 
+// TODO: Use [RegexOption.DOT_MATCHES_ALL] once available in common
+//  https://youtrack.jetbrains.com/issue/KT-67574
+private const val ANY_SYMBOLS_IN_THE_TAIL = "([\\s\\S]+?)?"
+
 public actual class NavDeepLink
 internal actual constructor(
     public actual val uriPattern: String?,
@@ -244,8 +248,6 @@ internal actual constructor(
         inputParams?.forEach { inputParam ->
             val argMatchResult =
                 storedParam.paramRegex?.let {
-                    // TODO: Use [RegexOption.DOT_MATCHES_ALL] once available in common
-                    //  https://youtrack.jetbrains.com/issue/KT-67574
                     Regex(it).find(inputParam)
                 }
             // check if this particular arg value matches the expected regex.
@@ -466,7 +468,7 @@ internal actual constructor(
         }
         // we need to specifically escape any .* instances to ensure
         // they are still treated as wildcards in our final regex
-        pathRegex = uriRegex.toString().replace(".*", "\\E.*\\Q")
+        pathRegex = uriRegex.toString().saveWildcardInRegex()
     }
 
     private fun parseQuery(): MutableMap<String, ParamQuery> {
@@ -496,9 +498,7 @@ internal actual constructor(
                     val inputLiteral = queryParam.substring(appendPos, result.range.first)
                     argRegex.append(Regex.escape(inputLiteral))
                 }
-                // TODO: Revert to "(.+?)?" when [RegexOption.DOT_MATCHES_ALL] will be available
-                //  https://youtrack.jetbrains.com/issue/KT-67574
-                argRegex.append("([\\s\\S]+?)?")
+                argRegex.append(ANY_SYMBOLS_IN_THE_TAIL)
                 appendPos = result.range.last + 1
                 result = result.next()
             }
@@ -509,7 +509,7 @@ internal actual constructor(
 
             // Save the regex with wildcards unquoted, and add the param to the map with its
             // name as the key
-            param.paramRegex = argRegex.toString().replace(".*", "\\E.*\\Q")
+            param.paramRegex = argRegex.toString().saveWildcardInRegex()
             paramArgMap[paramName] = param
         }
         return paramArgMap
@@ -542,6 +542,15 @@ internal actual constructor(
         fragRegex.append("$")
         return fragArgs to fragRegex.toString()
     }
+
+    //for more info see #Regexp.escape platform actuals
+    private fun String.saveWildcardInRegex(): String =
+        //non-js regex escaping
+        if (this.contains("\\Q") && this.contains("\\E")) replace(".*", "\\E.*\\Q")
+        //js regex escaping
+        else if (this.contains("\\.\\*")) replace("\\.\\*", ".*")
+        //fallback
+        else this
 
     init {
         parsePath()
