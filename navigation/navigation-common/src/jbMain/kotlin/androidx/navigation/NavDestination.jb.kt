@@ -124,7 +124,7 @@ public actual open class NavDestination actual constructor(
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public actual open fun matchDeepLink(route: String): DeepLinkMatch? {
+    public actual fun matchDeepLink(route: String): DeepLinkMatch? {
         val matchingDeepLink =
             if (this is NavGraph) {
                 matchDeepLinkComprehensive(
@@ -139,7 +139,7 @@ public actual open class NavDestination actual constructor(
         return matchingDeepLink
     }
 
-    internal fun matchDeepLinkRequest(route: String): DeepLinkMatch? {
+    internal open fun matchDeepLinkRequest(route: String): DeepLinkMatch? {
         if (deepLinks.isEmpty()) {
             return null
         }

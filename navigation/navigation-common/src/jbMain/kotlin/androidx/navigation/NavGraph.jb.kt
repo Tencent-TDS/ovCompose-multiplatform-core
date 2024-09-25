@@ -47,13 +47,13 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
         lastVisited: NavDestination
     ): DeepLinkMatch? {
         // First search through any deep links directly added to this NavGraph
-        val bestMatch = matchDeepLinkRequest(route)
+        val bestMatch = super.matchDeepLinkRequest(route)
 
         // If searchChildren is true, search through all child destinations for a matching deeplink
         val bestChildMatch =
             if (searchChildren) {
                 mapNotNull { child ->
-                    if (child != lastVisited) child.matchDeepLink(route) else null
+                    if (child != lastVisited) child.matchDeepLinkRequest(route) else null
                 }
                     .maxOrNull()
             } else null
@@ -70,7 +70,7 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public override fun matchDeepLink(route: String): DeepLinkMatch? =
+    public override fun matchDeepLinkRequest(route: String): DeepLinkMatch? =
         matchDeepLinkComprehensive(
             route,
             searchChildren = true,
