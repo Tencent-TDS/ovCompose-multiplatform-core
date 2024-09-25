@@ -16,19 +16,16 @@
 
 package androidx.navigation.compose
 
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.kruth.assertThat
 import androidx.navigation.testing.TestNavigatorState
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.filters.MediumTest
-import com.google.common.truth.Truth.assertThat
-import org.junit.Test
-import org.junit.runner.RunWith
+import kotlin.test.Test
 
-@MediumTest
-@RunWith(AndroidJUnit4::class)
+@OptIn(ExperimentalTestApi::class)
 class ComposeNavigatorTest {
 
     @Test
-    fun testNavigateAndPopUpdatesBackStack() {
+    fun testNavigateAndPopUpdatesBackStack() = runComposeUiTestOnUiThread {
         val navigator = ComposeNavigator()
         val navigatorState = TestNavigatorState()
         navigator.onAttach(navigatorState)

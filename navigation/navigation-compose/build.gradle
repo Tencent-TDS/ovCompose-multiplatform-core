@@ -18,6 +18,7 @@ import androidx.build.JetbrainsAndroidXPlugin
 import androidx.build.AndroidXComposePlugin
 import androidx.build.Publish
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 
 plugins {
     id("AndroidXPlugin")
@@ -39,6 +40,8 @@ androidXComposeMultiplatform {
 }
 
 kotlin {
+    wasmJs { browser() }
+
     sourceSets {
         commonMain {
             dependencies {
@@ -64,6 +67,22 @@ kotlin {
             }
         }
 
+        commonTest {
+            dependencies {
+                implementation(libs.kotlinStdlib)
+                implementation(libs.kotlinCoroutinesTest)
+                implementation(libs.kotlinTest)
+                implementation(project(":compose:material:material"))
+                implementation(project(":navigation:navigation-testing"))
+                implementation(project(":internal-testutils-navigation"))
+                implementation(project(":lifecycle:lifecycle-common"))
+                implementation(project(":lifecycle:lifecycle-viewmodel"))
+                implementation(project(":lifecycle:lifecycle-viewmodel-savedstate"))
+                implementation(project(":kruth:kruth"))
+                implementation(project(":compose:ui:ui-test"))
+            }
+        }
+
         androidMain {
             dependsOn(commonMain)
             dependencies {
@@ -72,6 +91,7 @@ kotlin {
         }
 
         androidInstrumentedTest {
+            dependsOn(commonTest)
             dependencies {
                 implementation(project(":compose:material:material"))
                 implementation project(":compose:test-utils")
@@ -91,23 +111,46 @@ kotlin {
             }
         }
 
+
         jbMain.dependsOn(commonMain)
-        desktopMain.dependsOn(jbMain)
-        nativeMain.dependsOn(jbMain)
-        webMain.dependsOn(jbMain)
+        jbTest.dependsOn(commonTest)
+
+        desktopMain {
+            dependsOn(jvmMain)
+            dependsOn(jbMain)
+        }
+        desktopTest {
+            dependsOn(jvmTest)
+            dependsOn(jbTest)
+            dependencies {
+                implementation(libs.skikoCurrentOs)
+                implementation(libs.kotlinCoroutinesSwing)
+            }
+        }
+        nonJvmMain.dependsOn(jbMain)
+        nativeMain.dependsOn(nonJvmMain)
+        webMain.dependsOn(nonJvmMain)
+        darwinMain.dependsOn(nativeMain)
+        linuxMain.dependsOn(nativeMain)
+
+        nonJvmTest.dependsOn(jbTest)
+        nativeTest.dependsOn(nonJvmTest)
+        webTest.dependsOn(nonJvmTest)
+        darwinTest.dependsOn(nativeTest)
+        linuxTest.dependsOn(nativeTest)
 
         targets.all { target ->
             if (target.platformType == KotlinPlatformType.native) {
-                target.compilations["main"].defaultSourceSet {
-                    dependsOn(nativeMain)
+                if (target.konanTarget.family.appleFamily) {
+                    target.compilations["main"].defaultSourceSet.dependsOn(darwinMain)
+                    target.compilations["test"].defaultSourceSet.dependsOn(darwinTest)
+                } else if (target.konanTarget.family == org.jetbrains.kotlin.konan.target.Family.LINUX) {
+                    target.compilations["main"].defaultSourceSet.dependsOn(linuxMain)
+                    target.compilations["test"].defaultSourceSet.dependsOn(linuxTest)
                 }
-            } else if (target.platformType in [
-                    KotlinPlatformType.js,
-                    KotlinPlatformType.wasm
-            ]) {
-                target.compilations["main"].defaultSourceSet {
-                    dependsOn(webMain)
-                }
+            } else if (target.platformType in [KotlinPlatformType.js, KotlinPlatformType.wasm]) {
+                target.compilations["main"].defaultSourceSet.dependsOn(webMain)
+                target.compilations["test"].defaultSourceSet.dependsOn(webTest)
             }
         }
     }
