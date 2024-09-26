@@ -72,7 +72,7 @@ config.frameworks.push("webpack-output");
 config.customLaunchers = {
     ChromeForComposeTests: {
         base: "Chrome",
-        flags: ["--disable-search-engine-choice-screen"]
+        flags: ["--no-sandbox", "--disable-search-engine-choice-screen"]
     }
 }
 
