@@ -204,7 +204,7 @@ public actual open class NavDestination actual constructor(
      * from KClass.
      */
     @get:IdRes
-    public actual var id: Int = 0
+    public var id: Int = 0
         set(@IdRes id) {
             field = id
             idName = null

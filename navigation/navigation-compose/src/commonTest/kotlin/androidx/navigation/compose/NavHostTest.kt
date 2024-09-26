@@ -986,7 +986,7 @@ class NavHostTest {
 
         runOnIdle {
             navController.navigate("second") {
-                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                popUpTo(navController.graph.findStartDestination().route!!) { saveState = true }
 
                 launchSingleTop = true
                 restoreState = true
@@ -995,7 +995,7 @@ class NavHostTest {
 
         runOnIdle {
             navController.navigate("start") {
-                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                popUpTo(navController.graph.findStartDestination().route!!) { saveState = true }
 
                 launchSingleTop = true
                 restoreState = true

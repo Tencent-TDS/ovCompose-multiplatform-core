@@ -102,9 +102,6 @@ public expect open class NavDestination(
     public open val displayName: String
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) get
 
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public var id: Int
-
     /**
      * Add a deep link to this destination. Matching Uris sent to
      * [NavController.handleDeepLink] or [NavController.navigate] will
