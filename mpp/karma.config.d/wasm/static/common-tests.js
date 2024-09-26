@@ -29,7 +29,7 @@ window.addEventListener("unhandledrejection", (event) => {
     try {
         console.log(`[web] unhandled Promise rejection ${event.reason} \n`);
     } catch (e) {
-        console.log(e);
+        console.log('[web] failed to retrieve Promise rejection reason', e.message, '\n');
     }
 });
 
@@ -37,7 +37,7 @@ window.addEventListener("rejectionhandled", (event) => {
         try {
             console.log(`[web] handled Promise rejection ${event.reason} \n`);
         } catch (e) {
-            console.log(e);
+            console.log('[web] failed to retrieve Promise rejection reason', e.message, '\n');
         }
     }, false
 );
