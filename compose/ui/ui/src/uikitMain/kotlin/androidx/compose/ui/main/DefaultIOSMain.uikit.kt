@@ -35,8 +35,9 @@ import platform.UIKit.UIWindow
 private var _rootViewController: UIViewController? = null
 
 @Deprecated(
-    "Crashes app under some circumstances. Will be removed in the upcoming release.",
-    ReplaceWith("Create UIApplication on your own if needed.")
+    "Not supposed to be a public API. Will be removed in the upcoming release.",
+    ReplaceWith("Follow the guidelines to create an iOS application:" +
+        "https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-multiplatform-create-first-app.html")
 )
 fun defaultUIKitMain(executableName: String, rootViewController: UIViewController) {
     _rootViewController = rootViewController
@@ -51,8 +52,9 @@ fun defaultUIKitMain(executableName: String, rootViewController: UIViewControlle
 }
 
 @Deprecated(
-    "Will be removed in the upcoming release.",
-    ReplaceWith("Implement UIApplicationDelegate on your own if needed.")
+    "Not supposed to be a public API. Will be removed in the upcoming release.",
+    ReplaceWith("Follow the guidelines to create an iOS application:" +
+        "https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-multiplatform-create-first-app.html")
 )
 class DefaultIOSAppDelegate : UIResponder, UIApplicationDelegateProtocol {
     companion object Companion : UIResponderMeta(), UIApplicationDelegateProtocolMeta
