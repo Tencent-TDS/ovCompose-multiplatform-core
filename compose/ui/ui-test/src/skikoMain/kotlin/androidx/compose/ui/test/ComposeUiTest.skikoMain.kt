@@ -302,11 +302,8 @@ class SkikoComposeUiTest @InternalTestApi constructor(
     }
 
     override fun <T> runOnIdle(action: () -> T): T {
-        // We are waiting for idle before and AFTER `action` to guarantee that changes introduced
-        // in `action` are propagated to components. In Android's version, it's executed in the
-        // Main thread which has similar effects.
         waitForIdle()
-        return action().also { waitForIdle() }
+        return runOnUiThread(action)
     }
 
     override fun waitUntil(

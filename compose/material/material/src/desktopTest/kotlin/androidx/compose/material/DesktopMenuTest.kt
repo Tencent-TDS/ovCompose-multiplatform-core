@@ -223,19 +223,15 @@ class DesktopMenuTest {
             }
         }
 
-        fun performKeyDownAndUp(key: Key) {
-            onNodeWithTag("dropDownMenu").apply {
-                performKeyPress(KeyEvent(key, KeyEventType.KeyDown))
-                performKeyPress(KeyEvent(key, KeyEventType.KeyUp))
-            }
+        fun performKeyDownAndUp(key: Key) = onNodeWithTag("dropDownMenu").apply {
+            performKeyPress(KeyEvent(key, KeyEventType.KeyDown))
+            performKeyPress(KeyEvent(key, KeyEventType.KeyUp))
         }
 
         fun assertClicksCount(i1: Int, i2: Int, i3: Int) {
-            runOnIdle {
-                assertThat(item1Clicked).isEqualTo(i1)
-                assertThat(item2Clicked).isEqualTo(i2)
-                assertThat(item3Clicked).isEqualTo(i3)
-            }
+            assertThat(item1Clicked).isEqualTo(i1)
+            assertThat(item2Clicked).isEqualTo(i2)
+            assertThat(item3Clicked).isEqualTo(i3)
         }
 
         performKeyDownAndUp(Key.DirectionDown)

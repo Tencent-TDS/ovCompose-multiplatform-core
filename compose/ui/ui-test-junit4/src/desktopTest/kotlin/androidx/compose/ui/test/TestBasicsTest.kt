@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -238,5 +239,46 @@ class TestBasicsTest {
         val initialTime = mainClock.currentTime
         waitForIdle()
         assertEquals(initialTime, mainClock.currentTime)
+    }
+
+    @Test
+    fun runOnIdleExecutesOnUiThread() = runComposeUiTest {
+        lateinit var mainThread: Thread
+        setContent {
+            mainThread = Thread.currentThread()
+        }
+        runOnIdle {
+            assertEquals(Thread.currentThread(), mainThread)
+        }
+    }
+
+    @Test
+    fun runOnIdleExecutesWhenIdle() = runComposeUiTest {
+        var sourceValue by mutableIntStateOf(0)
+        var targetValue = 0
+        setContent {
+            LaunchedEffect(sourceValue) {
+                targetValue = sourceValue
+            }
+        }
+        sourceValue = 1
+        runOnIdle {
+            assertEquals(targetValue, 1)
+        }
+    }
+
+    @Test
+    fun runOnIdleDoesNotWaitForIdleAfterward() = runComposeUiTest {
+        var sourceValue by mutableIntStateOf(0)
+        var targetValue = 0
+        setContent {
+            LaunchedEffect(sourceValue) {
+                targetValue = sourceValue
+            }
+        }
+        runOnIdle {
+            sourceValue = 1
+        }
+        assertEquals(targetValue, 0)
     }
 }
