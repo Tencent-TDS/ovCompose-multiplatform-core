@@ -32,20 +32,14 @@ import platform.UIKit.UIScreen
 import platform.UIKit.UIViewController
 import platform.UIKit.UIWindow
 
-private var _makeRootViewController: (() -> UIViewController)? = null
+private var _rootViewController: UIViewController? = null
 
 @Deprecated(
-    message = "Replaced by function with postpone controller load",
-    replaceWith = ReplaceWith(
-        expression = "defaultUIKitMain(executableName, makeRootViewController)",
-        imports = arrayOf("androidx.compose.ui.main")
-    )
+    "Crashes app under some circumstances. Will be removed in the upcoming release.",
+    ReplaceWith("Create UIApplication on your own if needed.")
 )
-fun defaultUIKitMain(executableName: String, rootViewController: UIViewController)
-    = defaultUIKitMain(executableName) { rootViewController }
-
-fun defaultUIKitMain(executableName: String, makeRootViewController: () -> UIViewController) {
-    _makeRootViewController = makeRootViewController
+fun defaultUIKitMain(executableName: String, rootViewController: UIViewController) {
+    _rootViewController = rootViewController
     val args = emptyArray<String>()
     memScoped {
         val argc = args.size + 1
@@ -56,6 +50,10 @@ fun defaultUIKitMain(executableName: String, makeRootViewController: () -> UIVie
     }
 }
 
+@Deprecated(
+    "Will be removed in the upcoming release.",
+    ReplaceWith("Implement UIApplicationDelegate on your own if needed.")
+)
 class DefaultIOSAppDelegate : UIResponder, UIApplicationDelegateProtocol {
     companion object Companion : UIResponderMeta(), UIApplicationDelegateProtocolMeta
 
@@ -70,7 +68,7 @@ class DefaultIOSAppDelegate : UIResponder, UIApplicationDelegateProtocol {
 
     override fun application(application: UIApplication, didFinishLaunchingWithOptions: Map<Any?, *>?): Boolean {
         window = UIWindow(frame = UIScreen.mainScreen.bounds)
-        window!!.rootViewController = _makeRootViewController?.invoke()
+        window!!.rootViewController = _rootViewController
         window!!.makeKeyAndVisible()
         return true
     }

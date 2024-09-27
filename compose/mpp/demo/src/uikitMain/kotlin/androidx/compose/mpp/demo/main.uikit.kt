@@ -21,34 +21,30 @@ fun main(vararg args: String) {
     androidx.compose.ui.util.enableTraceOSLog()
 
     val arg = args.firstOrNull() ?: ""
-    defaultUIKitMain("ComposeDemo") {
-        ComposeUIViewController(configure = {
-            accessibilitySyncOptions =
-                AccessibilitySyncOptions.WhenRequiredByAccessibilityServices(object :
-                    AccessibilityDebugLogger {
-                    override fun log(message: Any?) {
-                        if (message == null) {
-                            println()
-                        } else {
-                            println("[a11y]: $message")
-                        }
-                    }
-                })
-
-            delegate = object : ComposeUIViewControllerDelegate {
-                override val preferredStatusBarStyle: UIStatusBarStyle?
-                    get() = preferredStatusBarStyleValue
-
-                override val prefersStatusBarHidden: Boolean?
-                    get() = prefersStatusBarHiddenValue
-
-                override val preferredStatysBarAnimation: UIStatusBarAnimation?
-                    get() = preferredStatysBarAnimationValue
+    defaultUIKitMain("ComposeDemo", ComposeUIViewController(configure = {
+        accessibilitySyncOptions = AccessibilitySyncOptions.WhenRequiredByAccessibilityServices(object: AccessibilityDebugLogger {
+            override fun log(message: Any?) {
+                if (message == null) {
+                    println()
+                } else {
+                    println("[a11y]: $message")
+                }
             }
-        }) {
-            IosDemo(arg)
+        })
+
+        delegate = object : ComposeUIViewControllerDelegate {
+            override val preferredStatusBarStyle: UIStatusBarStyle?
+                get() = preferredStatusBarStyleValue
+
+            override val prefersStatusBarHidden: Boolean?
+                get() = prefersStatusBarHiddenValue
+
+            override val preferredStatysBarAnimation: UIStatusBarAnimation?
+                get() = preferredStatysBarAnimationValue
         }
-    }
+    }) {
+        IosDemo(arg)
+    })
 }
 
 @Composable
