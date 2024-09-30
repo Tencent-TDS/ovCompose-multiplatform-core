@@ -49,7 +49,7 @@ private object UnknownDragData : DragData
 @OptIn(ExperimentalComposeUiApi::class)
 private class DragDataFilesListImpl(
     private val transferable: Transferable
-) : DragData.FilesList, androidx.compose.ui.DragData.FilesList {
+) : DragData.FilesList {
     override fun readFiles(): List<String> {
         val files = transferable.getTransferData(DataFlavor.javaFileListFlavor) as List<*>
         return files.filterIsInstance<File>().map { it.toURI().toString() }
@@ -60,7 +60,7 @@ private class DragDataFilesListImpl(
 @OptIn(ExperimentalComposeUiApi::class)
 private class DragDataImageImpl(
     private val transferable: Transferable
-) : DragData.Image, androidx.compose.ui.DragData.Image {
+) : DragData.Image {
     override fun readImage(): Painter {
         return (transferable.getTransferData(DataFlavor.imageFlavor) as Image).painter()
     }
@@ -88,7 +88,7 @@ private class DragDataImageImpl(
 private class DragDataTextImpl(
     private val bestTextFlavor: DataFlavor,
     private val transferable: Transferable
-) : DragData.Text, androidx.compose.ui.DragData.Text {
+) : DragData.Text {
     override val bestMimeType: String = bestTextFlavor.mimeType
 
     override fun readText(): String {
@@ -96,10 +96,3 @@ private class DragDataTextImpl(
         return reader.readText()
     }
 }
-
-/**
- * Returns the same value as [Transferable.dragData] but as an instance of the deprecated
- * `androidx.compose.ui.DragData`. Remove this, along with the rest of the deprecated DnD API in 1.8
- */
-@Suppress("DEPRECATION_ERROR")
-internal fun Transferable.deprecatedDragData() = dragData() as androidx.compose.ui.DragData
