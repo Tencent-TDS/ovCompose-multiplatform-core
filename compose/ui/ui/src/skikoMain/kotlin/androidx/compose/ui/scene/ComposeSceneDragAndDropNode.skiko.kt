@@ -33,7 +33,7 @@ import androidx.compose.ui.platform.PlatformDragAndDropSource
 /** Provides API for [PlatformDragAndDropManager] to integrate [ComposeScene] with the platform. */
 // TODO: Extract to interface and implement it in [DragAndDropNode]
 @InternalComposeUiApi
-class ComposeSceneDragAndDrop internal constructor(
+class ComposeSceneDragAndDropNode internal constructor(
     private val dragAndDropOwner: () -> DragAndDropOwner,
 ) : DragAndDropTarget {
     private var startedNode: DragAndDropNode? = null

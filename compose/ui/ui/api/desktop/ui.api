@@ -3533,9 +3533,9 @@ public abstract interface class androidx/compose/ui/scene/ComposeScene {
 	public abstract fun close ()V
 	public abstract fun getCompositionLocalContext ()Landroidx/compose/runtime/CompositionLocalContext;
 	public abstract fun getDensity ()Landroidx/compose/ui/unit/Density;
-	public abstract fun getDragAndDrop ()Landroidx/compose/ui/scene/ComposeSceneDragAndDrop;
 	public abstract fun getFocusManager ()Landroidx/compose/ui/scene/ComposeSceneFocusManager;
 	public abstract fun getLayoutDirection ()Landroidx/compose/ui/unit/LayoutDirection;
+	public abstract fun getRootDragAndDropNode ()Landroidx/compose/ui/scene/ComposeSceneDragAndDropNode;
 	public abstract fun getSize-bOM6tXw ()Landroidx/compose/ui/unit/IntSize;
 	public abstract fun hasInvalidations ()Z
 	public abstract fun hitTestInteropView-k-4lQ0M (J)Ljava/lang/Object;
@@ -3563,7 +3563,7 @@ public final class androidx/compose/ui/scene/ComposeSceneContext$Companion {
 	public final fun getEmpty ()Landroidx/compose/ui/scene/ComposeSceneContext;
 }
 
-public final class androidx/compose/ui/scene/ComposeSceneDragAndDrop : androidx/compose/ui/draganddrop/DragAndDropTarget {
+public final class androidx/compose/ui/scene/ComposeSceneDragAndDropNode : androidx/compose/ui/draganddrop/DragAndDropTarget {
 	public static final field $stable I
 	public final fun acceptDragAndDropTransfer (Landroidx/compose/ui/draganddrop/DragAndDropEvent;)Z
 	public final fun getHasEligibleDropTarget ()Z

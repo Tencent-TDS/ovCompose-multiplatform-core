@@ -17,7 +17,6 @@
 package androidx.compose.ui.scene
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.LaunchedEffect
@@ -39,15 +38,12 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.pointerInteropFilter
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.Popup
 import org.jetbrains.skiko.currentNanoTime
 
 /**
@@ -114,7 +110,7 @@ interface ComposeScene {
      * The object through which drag-and-drop implementations report drop-target events to the
      * scene.
      */
-    val dragAndDrop: ComposeSceneDragAndDrop
+    val rootDragAndDropNode: ComposeSceneDragAndDropNode
 
     /**
      * Close all resources and subscriptions. Not calling this method when [ComposeScene] is no
