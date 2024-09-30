@@ -76,7 +76,16 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
 
     override fun js(): Unit = multiplatformExtension.run {
         js(KotlinJsCompilerType.IR) {
-            browser()
+            browser {
+                testTask {
+                    it.useKarma {
+                        useChrome()
+                        useConfigDirectory(
+                            project.rootProject.projectDir.resolve("mpp/karma.config.d/js")
+                        )
+                    }
+                }
+            }
         }
 
         val commonMain = sourceSets.getByName("commonMain")
