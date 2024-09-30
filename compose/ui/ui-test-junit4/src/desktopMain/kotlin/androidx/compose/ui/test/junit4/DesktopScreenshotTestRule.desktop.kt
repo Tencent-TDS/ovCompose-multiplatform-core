@@ -82,23 +82,6 @@ class ScreenshotTestRule internal constructor(
         }
     }
 
-    @Suppress("DEPRECATION")
-    @Deprecated(
-        "Use assertImageAgainstGolden directly instead",
-        replaceWith = ReplaceWith("assertImageAgainstGolden(surface.makeImageSnapshot())")
-    )
-    fun snap(surface: Surface, idSuffix: String? = null) {
-        assertImageAgainstGolden(surface.makeImageSnapshot(), idSuffix)
-    }
-
-    @Deprecated(
-        "Use assertImageAgainstGolden directly instead",
-        replaceWith = ReplaceWith("assertImageAgainstGolden(image)")
-    )
-    fun write(image: Image, idSuffix: String? = null) {
-        assertImageAgainstGolden(image, idSuffix)
-    }
-
     /**
      * Asserts the given image against the golden identified by the given name.
      *
