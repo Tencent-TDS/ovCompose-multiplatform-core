@@ -291,7 +291,7 @@ class SkikoComposeUiTest @InternalTestApi constructor(
             advanceIfNeededAndRenderNextFrame()
             uncaughtExceptionHandler.throwUncaught()
             if (!areAllResourcesIdle()) {
-                sleep(IDLING_RESOURCES_CHECK_INTERVAL_MS)
+                delay(IDLING_RESOURCES_CHECK_INTERVAL_MS)
             }
             yield()
         }
