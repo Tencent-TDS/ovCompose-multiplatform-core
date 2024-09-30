@@ -44,19 +44,20 @@ internal class FlushCoroutineDispatcher(
     private val scope = CoroutineScope(scope.coroutineContext.minusKey(Job))
     private var immediateTasks = ArrayDeque<Runnable>()
     private val delayedTasks = ArrayDeque<Runnable>()
-    private val tasksLock = createSynchronizedObject()
+    private val immediateTasksLock = createSynchronizedObject()
+    private val delayedTasksLock = createSynchronizedObject()
     private var immediateTasksSwap = ArrayDeque<Runnable>()
     @Volatile
     private var isPerformingRun = false
     private val runLock = createSynchronizedObject()
     
     override fun dispatch(context: CoroutineContext, block: Runnable) {
-        synchronized(tasksLock) {
+        synchronized(immediateTasksLock) {
             immediateTasks.add(block)
         }
         scope.launch {
             performRun {
-                val isTaskAlive = synchronized(tasksLock) {
+                val isTaskAlive = synchronized(immediateTasksLock) {
                     immediateTasks.remove(block)
                 }
                 if (isTaskAlive) {
@@ -70,12 +71,12 @@ internal class FlushCoroutineDispatcher(
      * Whether the dispatcher has immediate tasks pending.
      */
     fun hasImmediateTasks() = isPerformingRun ||
-        synchronized(tasksLock) { immediateTasks.isNotEmpty() }
+        synchronized(immediateTasksLock) { immediateTasks.isNotEmpty() }
 
     /**
      * Whether the dispatcher has delayed tasks pending.
      */
-    fun hasDelayedTasks() = synchronized(tasksLock) { delayedTasks.isNotEmpty() }
+    fun hasDelayedTasks() = synchronized(delayedTasksLock) { delayedTasks.isNotEmpty() }
 
     /**
      * Perform all scheduled tasks and wait for the tasks which are already
@@ -85,7 +86,7 @@ internal class FlushCoroutineDispatcher(
         // Run tasks until they're empty in order to executed even ones that are added by the tasks
         // pending at the start
         while (true) {
-            synchronized(tasksLock) {
+            synchronized(immediateTasksLock) {
                 if (immediateTasks.isEmpty())
                     return@performRun
 
@@ -112,13 +113,13 @@ internal class FlushCoroutineDispatcher(
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun scheduleResumeAfterDelay(timeMillis: Long, continuation: CancellableContinuation<Unit>) {
         val block = Runnable { continuation.resume(Unit, null) }
-        synchronized(tasksLock) {
+        synchronized(delayedTasksLock) {
             delayedTasks.add(block)
         }
         val job = scope.launch {
             kotlinx.coroutines.delay(timeMillis)
             performRun {
-                val isTaskAlive = synchronized(tasksLock) {
+                val isTaskAlive = synchronized(delayedTasksLock) {
                     delayedTasks.remove(block)
                 }
                 if (isTaskAlive) {
@@ -128,7 +129,7 @@ internal class FlushCoroutineDispatcher(
         }
         continuation.invokeOnCancellation {
             job.cancel()
-            synchronized(tasksLock) {
+            synchronized(delayedTasksLock) {
                 delayedTasks.remove(block)
             }
         }

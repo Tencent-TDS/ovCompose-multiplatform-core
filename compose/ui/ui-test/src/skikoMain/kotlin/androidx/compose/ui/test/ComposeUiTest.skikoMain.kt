@@ -29,7 +29,6 @@ import androidx.compose.ui.platform.InfiniteAnimationPolicy
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.scene.ComposeSceneContext
 import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.text.input.EditCommand
@@ -189,7 +188,7 @@ class SkikoComposeUiTest @InternalTestApi constructor(
     fun <R> runTest(block: SkikoComposeUiTest.() -> R): R {
         return composeRootRegistry.withRegistry {
             withScene {
-                renderingAtFrameRate {
+                withRenderLoop {
                     block()
                 }
             }
@@ -210,13 +209,15 @@ class SkikoComposeUiTest @InternalTestApi constructor(
         }
     }
 
-    private inline fun <R> renderingAtFrameRate(block: () -> R): R {
+    private inline fun <R> withRenderLoop(block: () -> R): R {
         val scope = CoroutineScope(coroutineContext)
         return try {
             scope.launch {
                 while (isActive) {
                     delay(FRAME_DELAY_MILLIS)
-                    render(mainClock.currentTime)
+                    runOnUiThread {
+                        render(mainClock.currentTime)
+                    }
                 }
             }
             block()
@@ -225,18 +226,14 @@ class SkikoComposeUiTest @InternalTestApi constructor(
         }
     }
 
+    /**
+     * Render the scene at the given time.
+     */
     private fun render(timeMillis: Long) {
         scene.render(
             surface.canvas.asComposeCanvas(),
             timeMillis * NanoSecondsPerMilliSecond
         )
-    }
-
-    private fun renderNextFrame() = runOnUiThread {
-        render(mainClock.currentTime)
-        if (mainClock.autoAdvance) {
-            mainClock.advanceTimeByFrame()
-        }
     }
 
     private fun createUi() = CanvasLayersComposeScene(
@@ -247,49 +244,54 @@ class SkikoComposeUiTest @InternalTestApi constructor(
         invalidate = { }
     )
 
-    private fun shouldPumpTime(): Boolean {
-        return mainClock.autoAdvance &&
-            (Snapshot.current.hasPendingChanges()
-                || Snapshot.isApplyObserverNotificationPending
-                || scene.hasInvalidations())
+    private fun advanceIfNeededAndRenderNextFrame() {
+        if (mainClock.autoAdvance) {
+            mainClock.advanceTimeByFrame()
+            // The rendering is done by withRenderLoop
+        } else {
+            runOnUiThread {
+                render(mainClock.currentTime)
+            }
+        }
     }
 
     @OptIn(InternalComposeUiApi::class)
     private fun isIdle(): Boolean {
-        var i = 0
-        while (i < 100 && shouldPumpTime()) {
-            mainClock.advanceTimeByFrame()
-            ++i
+        if (composeRootRegistry.getComposeRoots().any { it.hasPendingMeasureOrLayout }) {
+            return false
         }
 
-        val hasPendingMeasureOrLayout = composeRootRegistry.getComposeRoots().any {
-            it.hasPendingMeasureOrLayout
+        if (!mainClock.autoAdvance) {
+            return true
         }
 
-        return !shouldPumpTime() && !hasPendingMeasureOrLayout && areAllResourcesIdle()
+        return !Snapshot.current.hasPendingChanges()
+                && !Snapshot.isApplyObserverNotificationPending
+                && !scene.hasInvalidations()
+                && areAllResourcesIdle()
     }
 
     override fun waitForIdle() {
         // TODO: consider adding a timeout to avoid an infinite loop?
-        do {
-            // always check even if we are idle
-            uncaughtExceptionHandler.throwUncaught()
-            renderNextFrame()
+        // always check even if we are idle
+        uncaughtExceptionHandler.throwUncaught()
+        while (!isIdle()) {
+            advanceIfNeededAndRenderNextFrame()
             uncaughtExceptionHandler.throwUncaught()
             if (!areAllResourcesIdle()) {
                 sleep(IDLING_RESOURCES_CHECK_INTERVAL_MS)
             }
-        } while (!isIdle())
+        }
     }
 
     override suspend fun awaitIdle() {
         // always check even if we are idle
         uncaughtExceptionHandler.throwUncaught()
         while (!isIdle()) {
-            renderNextFrame()
+            advanceIfNeededAndRenderNextFrame()
             uncaughtExceptionHandler.throwUncaught()
             if (!areAllResourcesIdle()) {
-                delay(IDLING_RESOURCES_CHECK_INTERVAL_MS)
+                sleep(IDLING_RESOURCES_CHECK_INTERVAL_MS)
             }
             yield()
         }
@@ -315,9 +317,11 @@ class SkikoComposeUiTest @InternalTestApi constructor(
         val startTime = currentNanoTime()
         val timeoutNanos = timeoutMillis * NanoSecondsPerMilliSecond
         while (!condition()) {
-            renderNextFrame()
+            advanceIfNeededAndRenderNextFrame()
             if (currentNanoTime() - startTime > timeoutNanos) {
-                buildWaitUntilTimeoutMessage(timeoutMillis, conditionDescription)
+                throw ComposeTimeoutException(
+                    buildWaitUntilTimeoutMessage(timeoutMillis, conditionDescription)
+                )
             }
         }
 

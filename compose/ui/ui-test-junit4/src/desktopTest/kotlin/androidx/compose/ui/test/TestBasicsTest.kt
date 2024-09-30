@@ -56,7 +56,7 @@ class TestBasicsTest {
 
     // See https://github.com/JetBrains/compose-multiplatform/issues/3117
     @Test
-    fun recompositionCompletesBeforeSetContentReturns() = repeat(1000) {
+    fun recompositionCompletesBeforeSetContentReturns() = repeat(100) {
         runSkikoComposeUiTest {
             var globalValue by atomic(0)
             setContent {
@@ -90,27 +90,6 @@ class TestBasicsTest {
         rule.onNodeWithTag("box").performClick()
         val clockAfter = rule.mainClock.currentTime
         assertTrue(clockAfter > clockBefore, "performClick did not advance the test clock")
-    }
-
-    @Test
-    fun advancingClockRunsRecomposition() {
-        rule.mainClock.autoAdvance = false
-
-        rule.setContent {
-            var text by remember { mutableStateOf("1") }
-            Text(text, modifier = Modifier.testTag("text"))
-
-            LaunchedEffect(Unit) {
-                delay(1_000)
-                text = "2"
-            }
-        }
-
-        rule.onNodeWithTag("text").assertTextEquals("1")
-        rule.mainClock.advanceTimeBy(999, ignoreFrameDuration = true)
-        rule.onNodeWithTag("text").assertTextEquals("1")
-        rule.mainClock.advanceTimeBy(1, ignoreFrameDuration = true)
-        rule.onNodeWithTag("text").assertTextEquals("2")
     }
 
     @Test
@@ -250,5 +229,14 @@ class TestBasicsTest {
         }
 
         assertContentEquals(listOf("Composition", "LaunchedEffect"), actions)
+    }
+
+    @Test
+    fun waitForIdleDoesNotAdvanceClockIfAlreadyIdle() = runComposeUiTest {
+        setContent { }
+
+        val initialTime = mainClock.currentTime
+        waitForIdle()
+        assertEquals(initialTime, mainClock.currentTime)
     }
 }

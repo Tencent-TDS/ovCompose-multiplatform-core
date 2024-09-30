@@ -229,10 +229,9 @@ class RenderPhasesTest {
         assertContentEquals(emptyList(), phases)
         startTest = true
         mainClock.advanceTimeByFrame()
-        waitForIdle()  // Make the effects run
         assertContentEquals(
             expected = listOf("draw", "launchedWithFrame", "launchedFromComposition", "launchedFromEffect"),
-            actual = phases.subList(0, 4),
+            actual = phases
         )
     }
 
