@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:JvmName("ImageComposeScene_skikoMainKt")
+
 package androidx.compose.ui
 
 import androidx.compose.runtime.Composable
@@ -28,11 +30,11 @@ import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
-import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.CanvasLayersComposeScene
+import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -40,6 +42,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlin.coroutines.CoroutineContext
+import kotlin.jvm.JvmName
 import kotlin.time.Duration
 import kotlin.time.DurationUnit.NANOSECONDS
 import kotlin.time.ExperimentalTime
@@ -173,14 +176,6 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
      * After calling this method, you cannot call any other method of this [ImageComposeScene].
      */
     fun close(): Unit = scene.close()
-
-    @Deprecated(
-        message = "The scene isn't tracking list of roots anymore",
-        level = DeprecationLevel.ERROR,
-        replaceWith = ReplaceWith("SkiaRootForTest.onRootCreatedCallback")
-    )
-    val roots: Set<RootForTest>
-        get() = throw NotImplementedError()
 
     /**
      * Constraints used to measure and layout content.

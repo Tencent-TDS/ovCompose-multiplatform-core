@@ -128,45 +128,13 @@ public final class androidx/compose/ui/CombinedModifier : androidx/compose/ui/Mo
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class androidx/compose/ui/ComposableSingletons$ImageComposeScene_skikoMainKt {
-	public static final field INSTANCE Landroidx/compose/ui/ComposableSingletons$ImageComposeScene_skikoMainKt;
+public final class androidx/compose/ui/ComposableSingletons$ImageComposeScene_skikoKt {
+	public static final field INSTANCE Landroidx/compose/ui/ComposableSingletons$ImageComposeScene_skikoKt;
 	public static field lambda-1 Lkotlin/jvm/functions/Function2;
 	public static field lambda-2 Lkotlin/jvm/functions/Function2;
 	public fun <init> ()V
 	public final fun getLambda-1$ui ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda-2$ui ()Lkotlin/jvm/functions/Function2;
-}
-
-public final class androidx/compose/ui/ComposeScene {
-	public static final field $stable I
-	public fun <init> (Landroidx/compose/ui/text/input/PlatformTextInputService;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Lkotlin/jvm/functions/Function0;)V
-	public synthetic fun <init> (Landroidx/compose/ui/text/input/PlatformTextInputService;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun <init> (Landroidx/compose/ui/text/input/PlatformTextInputService;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Lkotlin/jvm/functions/Function0;)V
-	public synthetic fun <init> (Landroidx/compose/ui/text/input/PlatformTextInputService;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun <init> (Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Lkotlin/jvm/functions/Function0;)V
-	public synthetic fun <init> (Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/unit/LayoutDirection;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun <init> (Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Lkotlin/jvm/functions/Function0;)V
-	public synthetic fun <init> (Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun calculateContentSize-YbymL2g ()J
-	public final fun close ()V
-	public final fun getCompositionLocalContext ()Landroidx/compose/runtime/CompositionLocalContext;
-	public final fun getConstraints-msEJaDk ()J
-	public final fun getContentSize-YbymL2g ()J
-	public final fun getDensity ()Landroidx/compose/ui/unit/Density;
-	public final fun getLayoutDirection ()Landroidx/compose/ui/unit/LayoutDirection;
-	public final fun getRoots ()Ljava/util/Set;
-	public final fun hasInvalidations ()Z
-	public final fun render (Lorg/jetbrains/skia/Canvas;J)V
-	public final fun sendKeyEvent-ZmokQxo (Ljava/lang/Object;)Z
-	public final fun sendPointerEvent-BGSDPeU (IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)V
-	public static synthetic fun sendPointerEvent-BGSDPeU$default (Landroidx/compose/ui/ComposeScene;IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)V
-	public final fun sendPointerEvent-WlEVilQ (ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)V
-	public static synthetic fun sendPointerEvent-WlEVilQ$default (Landroidx/compose/ui/ComposeScene;ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)V
-	public final fun setCompositionLocalContext (Landroidx/compose/runtime/CompositionLocalContext;)V
-	public final fun setConstraints-BRTryo0 (J)V
-	public final fun setContent (Lkotlin/jvm/functions/Function2;)V
-	public final fun setDensity (Landroidx/compose/ui/unit/Density;)V
-	public final fun setLayoutDirection (Landroidx/compose/ui/unit/LayoutDirection;)V
 }
 
 public final class androidx/compose/ui/ComposeUiFlags {
@@ -206,7 +174,6 @@ public final class androidx/compose/ui/ImageComposeScene {
 	public final fun getConstraints-msEJaDk ()J
 	public final fun getContentSize-YbymL2g ()J
 	public final fun getLayoutDirection ()Landroidx/compose/ui/unit/LayoutDirection;
-	public final fun getRoots ()Ljava/util/Set;
 	public final fun hasInvalidations ()Z
 	public final fun render (J)Lorg/jetbrains/skia/Image;
 	public static synthetic fun render$default (Landroidx/compose/ui/ImageComposeScene;JILjava/lang/Object;)Lorg/jetbrains/skia/Image;
