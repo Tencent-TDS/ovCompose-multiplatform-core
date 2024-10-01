@@ -25,6 +25,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropNode
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
@@ -38,6 +39,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.PlatformDragAndDropManager
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -107,8 +109,10 @@ interface ComposeScene {
     val focusManager: ComposeSceneFocusManager
 
     /**
-     * The object through which drag-and-drop implementations report drop-target events to the
-     * scene.
+     * The root drag&drop node that provides APIs for [PlatformDragAndDropManager] to integrate
+     * [ComposeScene] with the platform.
+     *
+     * @see DragAndDropNode
      */
     val rootDragAndDropNode: ComposeSceneDragAndDropNode
 

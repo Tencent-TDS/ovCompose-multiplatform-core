@@ -175,7 +175,7 @@ internal class AwtDragAndDropManager(
      * Receives and processes events from the [DropTarget] installed in the root component.
      */
     private val dropTargetListener = object : DropTargetListener {
-        override fun dragEnter(dtde: DropTargetDragEvent) = with(dtde) {
+        override fun dragEnter(dtde: DropTargetDragEvent) {
             val event = DragAndDropEvent(dtde)
             val rootNode = getComposeRootDragAndDropNode()
 
