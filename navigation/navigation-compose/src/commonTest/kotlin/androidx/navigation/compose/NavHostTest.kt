@@ -34,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
@@ -62,7 +61,6 @@ import androidx.navigation.createGraph
 import androidx.navigation.navigation
 import androidx.navigation.plusAssign
 import androidx.navigation.testing.TestNavHostController
-import androidx.savedstate.SavedStateRegistry
 import androidx.testutils.TestNavigator
 import androidx.testutils.test
 import kotlin.reflect.KClass
@@ -1088,9 +1086,9 @@ class NavHostTest {
 
         runOnIdle { navController.navigate(second) }
 
-        assertThat(model.wasCleared).isFalse()
-
         runOnIdle { navController.popBackStack() }
+
+        assertThat(model.wasCleared).isFalse()
 
         waitForIdle()
 
