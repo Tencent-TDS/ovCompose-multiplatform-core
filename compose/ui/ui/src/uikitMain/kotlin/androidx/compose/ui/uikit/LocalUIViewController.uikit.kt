@@ -22,7 +22,8 @@ import platform.UIKit.UIViewController
 /**
  * Public value to get UIViewController of Compose window for library authors.
  * Maybe useful for features, like VideoPlayer and Bottom menus.
- * Please use it careful and don't remove another views.
+ * Please use it carefully and don't add or remove other views - check
+ * [androidx.compose.ui.interop.UIKitView] for those purposes.
  */
 val LocalUIViewController = staticCompositionLocalOf<UIViewController> {
     error("CompositionLocal UIViewController not provided")
