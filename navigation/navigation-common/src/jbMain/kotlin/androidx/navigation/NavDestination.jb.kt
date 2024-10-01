@@ -108,6 +108,41 @@ public actual open class NavDestination actual constructor(
     public actual open val displayName: String
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) get() = navigatorName
 
+    /**
+     * Checks the given deep link [Uri], and determines whether it matches a Uri pattern added to
+     * the destination by a call to [addDeepLink] . It returns `true` if the deep link is a valid
+     * match, and `false` otherwise.
+     *
+     * This should be called prior to [NavController.navigate] to ensure the deep link can be
+     * navigated to.
+     *
+     * @param deepLink to the destination reachable from the current NavGraph
+     * @return True if the deepLink exists for the destination.
+     * @see NavDestination.addDeepLink
+     * @see NavController.navigate
+     * @see NavDestination.hasDeepLink
+     */
+    public actual open fun hasDeepLink(deepLink: DeepLinkUri): Boolean {
+        return hasDeepLink(NavDeepLinkRequest(deepLink, null, null))
+    }
+
+    /**
+     * Checks the given [NavDeepLinkRequest], and determines whether it matches a [NavDeepLink]
+     * added to the destination by a call to [addDeepLink]. It returns `true` if the request is a
+     * valid match, and `false` otherwise.
+     *
+     * This should be called prior to [NavController.navigate] to ensure the deep link can be
+     * navigated to.
+     *
+     * @param deepLinkRequest to the destination reachable from the current NavGraph
+     * @return True if the deepLink exists for the destination.
+     * @see NavDestination.addDeepLink
+     * @see NavController.navigate
+     */
+    public actual open fun hasDeepLink(deepLinkRequest: NavDeepLinkRequest): Boolean {
+        return matchDeepLink(deepLinkRequest) != null
+    }
+
     public actual fun addDeepLink(uriPattern: String) {
         addDeepLink(NavDeepLink.Builder().setUriPattern(uriPattern).build())
     }
@@ -125,29 +160,40 @@ public actual open class NavDestination actual constructor(
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual fun matchDeepLink(route: String): DeepLinkMatch? {
+        val request = NavDeepLinkRequest.Builder.fromUri(createRoute(route).toDeepLinkUri()).build()
         val matchingDeepLink =
             if (this is NavGraph) {
                 matchDeepLinkComprehensive(
-                    route,
+                    request,
                     searchChildren = false,
                     searchParent = false,
                     lastVisited = this
                 )
             } else {
-                matchDeepLinkRequest(route)
+                matchDeepLink(request)
             }
         return matchingDeepLink
     }
 
-    internal open fun matchDeepLinkRequest(route: String): DeepLinkMatch? {
+    /**
+     * Determines if this NavDestination has a deep link matching the given Uri.
+     *
+     * @param navDeepLinkRequest The request to match against all deep links added in [addDeepLink]
+     * @return The matching [NavDestination] and the appropriate [Bundle] of arguments extracted
+     *   from the Uri, or null if no match was found.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public actual open fun matchDeepLink(navDeepLinkRequest: NavDeepLinkRequest): DeepLinkMatch? {
         if (deepLinks.isEmpty()) {
             return null
         }
-        val internalRoute = createRoute(route)
         var bestMatch: DeepLinkMatch? = null
         for (deepLink in deepLinks) {
+            val uri = navDeepLinkRequest.uri
             // includes matching args for path, query, and fragment
-            val matchingArguments = deepLink.getMatchingArguments(internalRoute, _arguments)
+            val matchingArguments = if (uri != null) {
+                deepLink.getMatchingArguments(uri, _arguments)
+            } else null
             if (matchingArguments != null) {
                 val newMatch = DeepLinkMatch(
                     destination = this,

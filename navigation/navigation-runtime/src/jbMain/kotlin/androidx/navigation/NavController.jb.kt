@@ -927,7 +927,7 @@ public actual open class NavController {
             }
         if (_graph != null && backQueue.isEmpty()) {
             val deepLinked =
-                !deepLinkHandled && handleDeepLink()
+                !deepLinkHandled && handleDeepLink(null) //TODO handle startup deeplink
             if (!deepLinked) {
                 // Navigate to the first destination in the graph
                 // if we haven't deep linked to a destination
@@ -939,9 +939,30 @@ public actual open class NavController {
     }
 
     @MainThread
-    private fun handleDeepLink(): Boolean {
-        // TODO handle deep link
-        return false
+    public fun handleDeepLink(uri: DeepLinkUri?): Boolean {
+        if (uri == null) return false
+        val currGraph = backQueue.getTopGraph()
+        val matchingDeepLink =
+            currGraph.matchDeepLinkComprehensive(
+                navDeepLinkRequest = NavDeepLinkRequest.Builder.fromUri(uri).build(),
+                searchChildren = true,
+                searchParent = true,
+                lastVisited = currGraph
+            )
+
+        if (matchingDeepLink != null) {
+            val destination = matchingDeepLink.destination
+            val args = destination.addInDefaultArgs(matchingDeepLink.matchingArgs) ?: Bundle()
+            val node = matchingDeepLink.destination
+            navigate(node, args, null, null)
+            return true
+        } else {
+            println(
+                "Navigation destination that matches route $uri cannot be found in the " +
+                    "navigation graph $_graph"
+            )
+            return false
+        }
     }
 
     public actual open val currentDestination: NavDestination?
@@ -1020,20 +1041,60 @@ public actual open class NavController {
         )
     }
 
+    /**
+     * Navigate to a destination via the given [NavDeepLinkRequest]. [NavDestination.hasDeepLink]
+     * should be called on [the navigation graph][graph] prior to calling this method to check if
+     * the deep link is valid. If an invalid deep link is given, an [IllegalArgumentException] will
+     * be thrown.
+     *
+     * @param request deepLinkRequest to the destination reachable from the current NavGraph
+     * @throws IllegalArgumentException if the given deep link request is invalid
+     */
     @MainThread
-    private fun navigateInternal(
-        route: String,
+    public actual open fun navigate(request: NavDeepLinkRequest) {
+        navigate(request, null)
+    }
+
+    /**
+     * Navigate to a destination via the given [NavDeepLinkRequest]. [NavDestination.hasDeepLink]
+     * should be called on [the navigation graph][graph] prior to calling this method to check if
+     * the deep link is valid. If an invalid deep link is given, an [IllegalArgumentException] will
+     * be thrown.
+     *
+     * @param request deepLinkRequest to the destination reachable from the current NavGraph
+     * @param navOptions special options for this navigation operation
+     * @throws IllegalArgumentException if the given deep link request is invalid
+     */
+    @MainThread
+    public actual open fun navigate(request: NavDeepLinkRequest, navOptions: NavOptions?) {
+        navigate(request, navOptions, null)
+    }
+
+    /**
+     * Navigate to a destination via the given [NavDeepLinkRequest]. [NavDestination.hasDeepLink]
+     * should be called on [the navigation graph][graph] prior to calling this method to check if
+     * the deep link is valid. If an invalid deep link is given, an [IllegalArgumentException] will
+     * be thrown.
+     *
+     * @param request deepLinkRequest to the destination reachable from the current NavGraph
+     * @param navOptions special options for this navigation operation
+     * @param navigatorExtras extras to pass to the Navigator
+     * @throws IllegalArgumentException if the given deep link request is invalid
+     */
+    @MainThread
+    public actual open fun navigate(
+        request: NavDeepLinkRequest,
         navOptions: NavOptions?,
         navigatorExtras: Navigator.Extras?
     ) {
         requireNotNull(_graph) {
-            "Cannot navigate to $route. Navigation graph has not been set for " +
+            "Cannot navigate to $request. Navigation graph has not been set for " +
                 "NavController $this."
         }
         val currGraph = backQueue.getTopGraph()
         val deepLinkMatch =
             currGraph.matchDeepLinkComprehensive(
-                route = route,
+                navDeepLinkRequest = request,
                 searchChildren = true,
                 searchParent = true,
                 lastVisited = currGraph
@@ -1045,7 +1106,7 @@ public actual open class NavController {
             navigate(node, args, navOptions, navigatorExtras)
         } else {
             throw IllegalArgumentException(
-                "Navigation destination that matches route $route cannot be found in the " +
+                "Navigation destination that matches route $request cannot be found in the " +
                     "navigation graph $_graph"
             )
         }
@@ -1429,8 +1490,8 @@ public actual open class NavController {
         navOptions: NavOptions?,
         navigatorExtras: Navigator.Extras?
     ) {
-        navigateInternal(
-            route = route,
+        navigate(
+            request = NavDeepLinkRequest.Builder.fromUri(createRoute(route).toDeepLinkUri()).build(),
             navOptions = navOptions,
             navigatorExtras = navigatorExtras
         )

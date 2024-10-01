@@ -141,5 +141,49 @@ internal class Uri {
         }
 
         private val HEX_DIGITS = "0123456789ABCDEF".toCharArray()
+
+        /**
+         * Parses a path out of this given URI string.
+         *
+         * @param uriString URI string
+         * @param ssi scheme separator index, -1 for a relative URI
+         *
+         * @return the path
+         */
+        fun parsePath(uriString: String, ssi: Int): String {
+            val length = uriString.length
+
+            // Find start of path.
+            var pathStart: Int
+            if (length > ssi + 2 && uriString[ssi + 1] == '/' && uriString[ssi + 2] == '/') {
+                // Skip over authority to path.
+                pathStart = ssi + 3
+                LOOP@ while (pathStart < length) {
+                    when (uriString[pathStart]) {
+                        '?', '#' -> return "" // Empty path.
+                        '/', '\\' ->
+                            // Per http://url.spec.whatwg.org/#host-state, the \ character
+                            // is treated as if it were a / character when encountered in a
+                            // host
+                            break@LOOP
+                    }
+                    pathStart++
+                }
+            } else {
+                // Path starts immediately after scheme separator.
+                pathStart = ssi + 1
+            }
+
+            // Find end of path.
+            var pathEnd = pathStart
+            LOOP@ while (pathEnd < length) {
+                when (uriString[pathEnd]) {
+                    '?', '#' -> break@LOOP
+                }
+                pathEnd++
+            }
+
+            return uriString.substring(pathStart, pathEnd)
+        }
     }
 }

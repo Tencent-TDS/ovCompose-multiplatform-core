@@ -16,19 +16,15 @@
 
 package androidx.navigation
 
-import androidx.navigation.NavOptionsTest.TestClass
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.filters.SmallTest
-import com.google.common.truth.Truth.assertThat
-import com.google.common.truth.Truth.assertWithMessage
+import androidx.kruth.assertThat
+import androidx.kruth.assertWithMessage
+import kotlin.test.Test
+import kotlin.test.fail
 import kotlinx.serialization.Serializable
-import org.junit.Assert.fail
-import org.junit.Test
-import org.junit.runner.RunWith
 
-@SmallTest
-@RunWith(AndroidJUnit4::class)
 class NavDeepLinkBuilderTest {
+
+    @Serializable class TestClass
 
     @Test
     fun buildDeepLinkAllSet() {

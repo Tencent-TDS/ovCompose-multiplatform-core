@@ -377,6 +377,49 @@ public expect open class NavController {
     )
 
     /**
+     * Navigate to a destination via the given [NavDeepLinkRequest]. [NavDestination.hasDeepLink]
+     * should be called on [the navigation graph][graph] prior to calling this method to check if
+     * the deep link is valid. If an invalid deep link is given, an [IllegalArgumentException] will
+     * be thrown.
+     *
+     * @param request deepLinkRequest to the destination reachable from the current NavGraph
+     * @throws IllegalArgumentException if the given deep link request is invalid
+     */
+    @MainThread
+    public open fun navigate(request: NavDeepLinkRequest)
+
+    /**
+     * Navigate to a destination via the given [NavDeepLinkRequest]. [NavDestination.hasDeepLink]
+     * should be called on [the navigation graph][graph] prior to calling this method to check if
+     * the deep link is valid. If an invalid deep link is given, an [IllegalArgumentException] will
+     * be thrown.
+     *
+     * @param request deepLinkRequest to the destination reachable from the current NavGraph
+     * @param navOptions special options for this navigation operation
+     * @throws IllegalArgumentException if the given deep link request is invalid
+     */
+    @MainThread
+    public open fun navigate(request: NavDeepLinkRequest, navOptions: NavOptions?)
+
+    /**
+     * Navigate to a destination via the given [NavDeepLinkRequest]. [NavDestination.hasDeepLink]
+     * should be called on [the navigation graph][graph] prior to calling this method to check if
+     * the deep link is valid. If an invalid deep link is given, an [IllegalArgumentException] will
+     * be thrown.
+     *
+     * @param request deepLinkRequest to the destination reachable from the current NavGraph
+     * @param navOptions special options for this navigation operation
+     * @param navigatorExtras extras to pass to the Navigator
+     * @throws IllegalArgumentException if the given deep link request is invalid
+     */
+    @MainThread
+    public open fun navigate(
+        request: NavDeepLinkRequest,
+        navOptions: NavOptions?,
+        navigatorExtras: Navigator.Extras?
+    )
+
+    /**
      * Saves all navigation controller state to a Bundle.
      *
      * State may be restored from a bundle returned from this method by calling

@@ -1869,7 +1869,7 @@ public actual open class NavController(
      * @throws IllegalArgumentException if the given deep link request is invalid
      */
     @MainThread
-    public open fun navigate(request: NavDeepLinkRequest) {
+    public actual open fun navigate(request: NavDeepLinkRequest) {
         navigate(request, null)
     }
 
@@ -1884,7 +1884,7 @@ public actual open class NavController(
      * @throws IllegalArgumentException if the given deep link request is invalid
      */
     @MainThread
-    public open fun navigate(request: NavDeepLinkRequest, navOptions: NavOptions?) {
+    public actual open fun navigate(request: NavDeepLinkRequest, navOptions: NavOptions?) {
         navigate(request, navOptions, null)
     }
 
@@ -1900,7 +1900,7 @@ public actual open class NavController(
      * @throws IllegalArgumentException if the given deep link request is invalid
      */
     @MainThread
-    public open fun navigate(
+    public actual open fun navigate(
         request: NavDeepLinkRequest,
         navOptions: NavOptions?,
         navigatorExtras: Navigator.Extras?
