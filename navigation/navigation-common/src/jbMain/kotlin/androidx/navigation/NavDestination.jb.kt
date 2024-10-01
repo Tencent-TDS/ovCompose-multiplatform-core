@@ -18,6 +18,8 @@ package androidx.navigation
 
 import androidx.annotation.RestrictTo
 import androidx.core.bundle.Bundle
+import androidx.core.uri.Uri
+import androidx.core.uri.UriUtils
 import androidx.navigation.serialization.generateHashCode
 import androidx.navigation.serialization.generateRoutePattern
 import kotlin.jvm.JvmStatic
@@ -122,7 +124,7 @@ public actual open class NavDestination actual constructor(
      * @see NavController.navigate
      * @see NavDestination.hasDeepLink
      */
-    public actual open fun hasDeepLink(deepLink: DeepLinkUri): Boolean {
+    public actual open fun hasDeepLink(deepLink: Uri): Boolean {
         return hasDeepLink(NavDeepLinkRequest(deepLink, null, null))
     }
 
@@ -160,7 +162,7 @@ public actual open class NavDestination actual constructor(
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual fun matchDeepLink(route: String): DeepLinkMatch? {
-        val request = NavDeepLinkRequest.Builder.fromUri(createRoute(route).toDeepLinkUri()).build()
+        val request = NavDeepLinkRequest.Builder.fromUri(UriUtils.parse(createRoute(route))).build()
         val matchingDeepLink =
             if (this is NavGraph) {
                 matchDeepLinkComprehensive(

@@ -31,6 +31,8 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.serialization.generateRouteWithArgs
 import kotlin.collections.removeFirst as removeFirstKt
 import kotlin.collections.removeLast as removeLastKt
+import androidx.core.uri.Uri
+import androidx.core.uri.UriUtils
 import androidx.navigation.NavGraph.Companion.childHierarchy
 import androidx.navigation.serialization.generateHashCode
 import kotlin.jvm.JvmOverloads
@@ -939,7 +941,7 @@ public actual open class NavController {
     }
 
     @MainThread
-    public fun handleDeepLink(uri: DeepLinkUri?): Boolean {
+    public fun handleDeepLink(uri: Uri?): Boolean {
         if (uri == null) return false
         val currGraph = backQueue.getTopGraph()
         val matchingDeepLink =
@@ -1491,7 +1493,7 @@ public actual open class NavController {
         navigatorExtras: Navigator.Extras?
     ) {
         navigate(
-            request = NavDeepLinkRequest.Builder.fromUri(createRoute(route).toDeepLinkUri()).build(),
+            request = NavDeepLinkRequest.Builder.fromUri(UriUtils.parse(createRoute(route))).build(),
             navOptions = navOptions,
             navigatorExtras = navigatorExtras
         )

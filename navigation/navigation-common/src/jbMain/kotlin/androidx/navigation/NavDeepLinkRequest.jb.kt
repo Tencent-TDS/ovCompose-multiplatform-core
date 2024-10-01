@@ -17,98 +17,8 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
-import androidx.navigation.internal.Uri
+import androidx.core.uri.Uri
 import kotlin.jvm.JvmStatic
-
-public actual abstract class DeepLinkUri {
-    actual abstract fun getFragment(): String?
-    actual abstract fun getQuery(): String?
-    actual abstract fun getPathSegments(): List<String>
-    actual open fun getQueryParameters(key: String): List<String> = error("Abstract implementation")
-    actual open fun getQueryParameterNames(): Set<String> = error("Abstract implementation")
-}
-
-fun String.toDeepLinkUri(): DeepLinkUri = ActualDeepLinkUri(this)
-
-internal class ActualDeepLinkUri(
-    private val uriString: String
-) : DeepLinkUri() {
-
-    private companion object {
-        private val QUERY_PATTERN = Regex("^[^?#]+\\?([^#]*).*")
-        private val FRAGMENT_PATTERN = Regex("#(.+)")
-    }
-
-    private val _query: String? by lazy {
-        QUERY_PATTERN.find(uriString)?.groups?.get(1)?.value
-    }
-
-    private val _fragment: String? by lazy {
-        FRAGMENT_PATTERN.find(uriString)?.groups?.get(1)?.value
-    }
-
-    private val schemeSeparatorIndex by lazy { uriString.indexOf(':') }
-
-    private val _pathSegments: List<String> by lazy {
-        val ssi = schemeSeparatorIndex
-        if (ssi > -1) {
-            if (ssi + 1 == uriString.length) return@lazy emptyList()
-            if (uriString.getOrNull(ssi + 1) != '/') return@lazy emptyList()
-        }
-
-        val path = Uri.parsePath(uriString, ssi)
-
-        path.split('/').map { Uri.decode(it) }
-    }
-
-    override fun getFragment(): String? = _fragment
-
-    override fun getQuery(): String? = _query
-
-    override fun getPathSegments(): List<String> = _pathSegments
-
-    private fun isHierarchical(): Boolean {
-        if (schemeSeparatorIndex == -1) return true // All relative URIs are hierarchical.
-        if (uriString.length == schemeSeparatorIndex + 1) return false // No ssp.
-
-        // If the ssp starts with a '/', this is hierarchical.
-        return uriString[schemeSeparatorIndex + 1] == '/'
-    }
-
-    override fun getQueryParameters(key: String): List<String> {
-        require(isHierarchical())
-        val query = _query ?: return emptyList()
-        val encodedKey = Uri.encode(key)
-
-        return query.split('&').mapNotNull {
-            val i = it.indexOf('=')
-            when {
-                i == -1  -> if (it == encodedKey) "" else null
-                it.substring(0, i) == encodedKey -> { Uri.decode(it.substring(i + 1)) }
-                else -> null
-            }
-        }
-    }
-
-    override fun getQueryParameterNames(): Set<String> {
-        require(isHierarchical())
-        val query = _query ?: return emptySet()
-
-        return query.split('&').map {
-            val index = it.indexOf('=')
-            if (index == -1) return@map it
-            else Uri.decode(it.substring(0, index))
-        }.toSet()
-    }
-
-    override fun toString(): String = uriString
-}
-
-internal actual object UriUtils {
-    actual fun encode(s: String?, allow: String?): String? = Uri.encode(s!!, allow)
-    actual fun decode(s: String?): String? = Uri.decode(s!!)
-    actual fun parse(uriString: String?): DeepLinkUri = ActualDeepLinkUri(uriString!!)
-}
 
 /**
  * A request for a deep link in a [NavDestination].
@@ -124,7 +34,7 @@ actual constructor(
      *
      * @see NavDeepLink.uriPattern
      */
-    public actual open val uri: DeepLinkUri?,
+    public actual open val uri: Uri?,
     /**
      * The action from the NavDeepLinkRequest.
      *
@@ -161,7 +71,7 @@ actual constructor(
 
     /** A builder for constructing [NavDeepLinkRequest] instances. */
     public actual class Builder private constructor() {
-        private var uri: DeepLinkUri? = null
+        private var uri: Uri? = null
         private var action: String? = null
         private var mimeType: String? = null
 
@@ -171,7 +81,7 @@ actual constructor(
          * @param uri The uri to add to the NavDeepLinkRequest
          * @return This builder.
          */
-        public actual fun setUri(uri: DeepLinkUri): Builder {
+        public actual fun setUri(uri: Uri): Builder {
             this.uri = uri
             return this
         }
@@ -223,7 +133,7 @@ actual constructor(
              * @return a [Builder] instance
              */
             @JvmStatic
-            public actual fun fromUri(uri: DeepLinkUri): Builder {
+            public actual fun fromUri(uri: Uri): Builder {
                 val builder = Builder()
                 builder.setUri(uri)
                 return builder

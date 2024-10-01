@@ -17,6 +17,7 @@ package androidx.navigation
 
 import androidx.annotation.RestrictTo
 import androidx.core.bundle.Bundle
+import androidx.core.uri.Uri
 import kotlin.jvm.JvmStatic
 import kotlin.reflect.KClass
 import kotlinx.serialization.InternalSerializationApi
@@ -116,7 +117,7 @@ public expect open class NavDestination(
      * @see NavController.navigate
      * @see NavDestination.hasDeepLink
      */
-    public open fun hasDeepLink(deepLink: DeepLinkUri): Boolean
+    public open fun hasDeepLink(deepLink: Uri): Boolean
 
     /**
      * Checks the given [NavDeepLinkRequest], and determines whether it matches a [NavDeepLink]

@@ -17,21 +17,8 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
+import androidx.core.uri.Uri
 import kotlin.jvm.JvmStatic
-
-public expect abstract class DeepLinkUri {
-    abstract fun getFragment(): String?
-    abstract fun getQuery(): String?
-    abstract fun getPathSegments(): List<String>
-    fun getQueryParameters(key: String): List<String>
-    fun getQueryParameterNames(): Set<String>
-}
-
-internal expect object UriUtils {
-    fun encode(s: String?, allow: String? = null): String?
-    fun decode(s: String?): String?
-    fun parse(uriString: String?): DeepLinkUri
-}
 
 /**
  * A request for a deep link in a [NavDestination].
@@ -42,14 +29,14 @@ internal expect object UriUtils {
 public expect open class NavDeepLinkRequest
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 constructor(
-    uri: DeepLinkUri?, action: String?, mimeType: String?,
+    uri: Uri?, action: String?, mimeType: String?,
 ) {
     /**
      * The uri from the NavDeepLinkRequest.
      *
      * @see NavDeepLink.uriPattern
      */
-    public open val uri: DeepLinkUri?
+    public open val uri: Uri?
 
     /**
      * The action from the NavDeepLinkRequest.
@@ -74,7 +61,7 @@ constructor(
          * @param uri The uri to add to the NavDeepLinkRequest
          * @return This builder.
          */
-        public fun setUri(uri: DeepLinkUri): Builder
+        public fun setUri(uri: Uri): Builder
 
         /**
          * Set the action for the [NavDeepLinkRequest].
@@ -110,7 +97,7 @@ constructor(
              * @return a [Builder] instance
              */
             @JvmStatic
-            public fun fromUri(uri: DeepLinkUri): Builder
+            public fun fromUri(uri: Uri): Builder
 
             /**
              * Creates a [NavDeepLinkRequest.Builder] with a set action.

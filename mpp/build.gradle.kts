@@ -37,6 +37,13 @@ val libraryToComponents = mapOf(
             neverRedirect = true
         ),
     ),
+    "CORE_URI" to listOf(
+        ComposeComponent(
+            path = ":core:core-uri",
+            supportedPlatforms = ComposePlatforms.ALL_AOSP,
+            neverRedirect = true
+        ),
+    ),
     "COMPOSE" to listOf(
         // TODO https://youtrack.jetbrains.com/issue/CMP-1604/Publish-public-collection-annotation-libraries-with-a-separate-version
         // They are part of COMPOSE versioning

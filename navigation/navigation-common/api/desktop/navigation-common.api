@@ -4,15 +4,6 @@ public abstract class androidx/navigation/CollectionNavType : androidx/navigatio
 	public abstract fun serializeAsValues (Ljava/lang/Object;)Ljava/util/List;
 }
 
-public abstract class androidx/navigation/DeepLinkUri {
-	public fun <init> ()V
-	public abstract fun getFragment ()Ljava/lang/String;
-	public abstract fun getPathSegments ()Ljava/util/List;
-	public abstract fun getQuery ()Ljava/lang/String;
-	public fun getQueryParameterNames ()Ljava/util/Set;
-	public fun getQueryParameters (Ljava/lang/String;)Ljava/util/List;
-}
-
 public abstract interface class androidx/navigation/FloatingWindow {
 }
 
@@ -93,7 +84,7 @@ public final class androidx/navigation/NavDeepLink {
 	public fun <init> (Ljava/lang/String;)V
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAction ()Ljava/lang/String;
-	public final fun getMatchingArguments (Landroidx/navigation/DeepLinkUri;Ljava/util/Map;)Landroidx/core/bundle/Bundle;
+	public final fun getMatchingArguments (Landroidx/core/uri/Uri;Ljava/util/Map;)Landroidx/core/bundle/Bundle;
 	public final fun getMimeType ()Ljava/lang/String;
 	public final fun getMimeTypeMatchRating (Ljava/lang/String;)I
 	public final fun getUriPattern ()Ljava/lang/String;
@@ -132,10 +123,10 @@ public final class androidx/navigation/NavDeepLinkDslBuilderKt {
 }
 
 public class androidx/navigation/NavDeepLinkRequest {
-	public fun <init> (Landroidx/navigation/DeepLinkUri;Ljava/lang/String;Ljava/lang/String;)V
+	public fun <init> (Landroidx/core/uri/Uri;Ljava/lang/String;Ljava/lang/String;)V
 	public fun getAction ()Ljava/lang/String;
 	public fun getMimeType ()Ljava/lang/String;
-	public fun getUri ()Landroidx/navigation/DeepLinkUri;
+	public fun getUri ()Landroidx/core/uri/Uri;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -144,20 +135,16 @@ public final class androidx/navigation/NavDeepLinkRequest$Builder {
 	public final fun build ()Landroidx/navigation/NavDeepLinkRequest;
 	public static final fun fromAction (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
 	public static final fun fromMimeType (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
-	public static final fun fromUri (Landroidx/navigation/DeepLinkUri;)Landroidx/navigation/NavDeepLinkRequest$Builder;
+	public static final fun fromUri (Landroidx/core/uri/Uri;)Landroidx/navigation/NavDeepLinkRequest$Builder;
 	public final fun setAction (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
 	public final fun setMimeType (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
-	public final fun setUri (Landroidx/navigation/DeepLinkUri;)Landroidx/navigation/NavDeepLinkRequest$Builder;
+	public final fun setUri (Landroidx/core/uri/Uri;)Landroidx/navigation/NavDeepLinkRequest$Builder;
 }
 
 public final class androidx/navigation/NavDeepLinkRequest$Builder$Companion {
 	public final fun fromAction (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
 	public final fun fromMimeType (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
-	public final fun fromUri (Landroidx/navigation/DeepLinkUri;)Landroidx/navigation/NavDeepLinkRequest$Builder;
-}
-
-public final class androidx/navigation/NavDeepLinkRequest_jbKt {
-	public static final fun toDeepLinkUri (Ljava/lang/String;)Landroidx/navigation/DeepLinkUri;
+	public final fun fromUri (Landroidx/core/uri/Uri;)Landroidx/navigation/NavDeepLinkRequest$Builder;
 }
 
 public class androidx/navigation/NavDestination {
@@ -178,7 +165,7 @@ public class androidx/navigation/NavDestination {
 	public final fun getNavigatorName ()Ljava/lang/String;
 	public final fun getParent ()Landroidx/navigation/NavGraph;
 	public final fun getRoute ()Ljava/lang/String;
-	public fun hasDeepLink (Landroidx/navigation/DeepLinkUri;)Z
+	public fun hasDeepLink (Landroidx/core/uri/Uri;)Z
 	public fun hasDeepLink (Landroidx/navigation/NavDeepLinkRequest;)Z
 	public static final fun hasRoute (Landroidx/navigation/NavDestination;Lkotlin/reflect/KClass;)Z
 	public final fun hasRoute (Ljava/lang/String;Landroidx/core/bundle/Bundle;)Z

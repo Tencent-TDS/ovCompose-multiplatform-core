@@ -20,15 +20,6 @@ import android.net.Uri
 import androidx.annotation.RestrictTo
 import java.lang.StringBuilder
 
-public actual typealias DeepLinkUri = Uri
-
-@Suppress("NOTHING_TO_INLINE")
-internal actual object UriUtils {
-    actual inline fun encode(s: String?, allow: String?): String? = Uri.encode(s, allow)
-    actual inline fun decode(s: String?): String? = Uri.decode(s)
-    actual inline fun parse(uriString: String?): Uri = Uri.parse(uriString)
-}
-
 /**
  * A request for a deep link in a [NavDestination].
  *

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-package androidx.navigation
+package androidx.core.uri
 
-import androidx.core.uri.Uri
+public actual typealias Uri = android.net.Uri
 
-internal fun NavDestination.matchDeepLink(uri: Uri) =
-    matchDeepLink(NavDeepLinkRequest(uri, null, null))
+@Suppress("NOTHING_TO_INLINE")
+public actual object UriUtils {
+    actual inline fun encode(s: String?, allow: String?): String? = Uri.encode(s, allow)
+    actual inline fun decode(s: String?): String? = Uri.decode(s)
+    actual inline fun parse(uriString: String?): Uri = Uri.parse(uriString)
+}

@@ -367,8 +367,12 @@ private fun Project.isMultiplatformPublicationEnabled(): Boolean {
     return extensions.findByType<KotlinMultiplatformExtension>() != null
 }
 
+private val coreKmpLibraries = setOf(
+    ":core:core-bundle",
+    ":core:core-uri",
+)
 private fun Project.configureMultiplatformPublication(componentFactory: SoftwareComponentFactory) {
-    if (project.path != ":core:core-bundle") return
+    if (project.path !in coreKmpLibraries) return
     val multiplatformExtension = extensions.findByType<KotlinMultiplatformExtension>()!!
     multiplatformExtension.targets.all { target ->
         if (target is KotlinAndroidTarget) {

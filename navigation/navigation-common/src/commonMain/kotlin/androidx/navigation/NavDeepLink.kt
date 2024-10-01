@@ -18,6 +18,8 @@ package androidx.navigation
 import androidx.annotation.RestrictTo
 import androidx.core.bundle.Bundle
 import androidx.core.bundle.bundleOf
+import androidx.core.uri.Uri
+import androidx.core.uri.UriUtils
 import androidx.navigation.serialization.generateRoutePattern
 import kotlin.jvm.JvmStatic
 import kotlin.jvm.JvmSuppressWildcards
@@ -117,7 +119,7 @@ internal constructor(
         }
     }
 
-    internal fun matches(uri: DeepLinkUri): Boolean {
+    internal fun matches(uri: Uri): Boolean {
         return matches(NavDeepLinkRequest(uri, null, null))
     }
 
@@ -130,7 +132,7 @@ internal constructor(
         } else matchMimeType(deepLinkRequest.mimeType)
     }
 
-    private fun matchUri(uri: DeepLinkUri?): Boolean {
+    private fun matchUri(uri: Uri?): Boolean {
         // If the null status of both are not the same return false.
         return if (uri == null == (pathPattern != null)) {
             false
@@ -177,7 +179,7 @@ internal constructor(
      *    unknown default values)
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public fun getMatchingArguments(deepLink: DeepLinkUri, arguments: Map<String, NavArgument?>): Bundle? {
+    public fun getMatchingArguments(deepLink: Uri, arguments: Map<String, NavArgument?>): Bundle? {
         // first check overall uri pattern for quick return if general pattern does not match
         val result = pathPattern?.matchEntire(deepLink.toString()) ?: return null
 
@@ -203,7 +205,7 @@ internal constructor(
      * returns empty bundle if this Deeplink's path pattern does not match with the uri.
      */
     internal fun getMatchingPathAndQueryArgs(
-        deepLink: DeepLinkUri?,
+        deepLink: Uri?,
         arguments: Map<String, NavArgument?>
     ): Bundle {
         val bundle = Bundle()
@@ -259,7 +261,7 @@ internal constructor(
     }
 
     private fun getMatchingQueryArguments(
-        deepLink: DeepLinkUri,
+        deepLink: Uri,
         bundle: Bundle,
         arguments: Map<String, NavArgument?>
     ): Boolean {
@@ -356,7 +358,7 @@ internal constructor(
         return true
     }
 
-    internal fun calculateMatchingPathSegments(requestedLink: DeepLinkUri?): Int {
+    internal fun calculateMatchingPathSegments(requestedLink: Uri?): Int {
         if (requestedLink == null || uriPattern == null) return 0
 
         val requestedPathSegments = requestedLink.getPathSegments()

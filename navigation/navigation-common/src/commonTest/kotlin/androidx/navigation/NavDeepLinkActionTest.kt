@@ -16,6 +16,7 @@
 
 package androidx.navigation
 
+import androidx.core.uri.UriUtils
 import androidx.kruth.assertThat
 import androidx.kruth.assertWithMessage
 import kotlin.test.Test

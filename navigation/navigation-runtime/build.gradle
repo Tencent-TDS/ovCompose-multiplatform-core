@@ -68,6 +68,7 @@ kotlin {
                 api project(":annotation:annotation")
                 implementation project(":collection:collection")
                 api project(":core:core-bundle")
+                api project(":core:core-uri")
                 api project(":lifecycle:lifecycle-common")
                 api project(":lifecycle:lifecycle-runtime")
                 api project(":lifecycle:lifecycle-viewmodel")
