@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,16 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.interop
+package androidx.compose.ui.uikit
 
-import androidx.compose.ui.uikit.LocalUIViewController as LocalUIViewController2
+import androidx.compose.runtime.staticCompositionLocalOf
+import platform.UIKit.UIViewController
 
 /**
- * public value to get UIViewController of Compose window for library authors.
+ * Public value to get UIViewController of Compose window for library authors.
  * Maybe useful for features, like VideoPlayer and Bottom menus.
  * Please use it careful and don't remove another views.
  */
-@Deprecated(
-    message = "LocalUIViewController was moved to androidx.compose.ui.uikit",
-    replaceWith = ReplaceWith(
-        expression = "LocalUIViewController",
-        imports = arrayOf("androidx.compose.ui.uikit.LocalUIViewController")
-    )
-)
-val LocalUIViewController get() = LocalUIViewController2
+val LocalUIViewController = staticCompositionLocalOf<UIViewController> {
+    error("CompositionLocal UIViewController not provided")
+}

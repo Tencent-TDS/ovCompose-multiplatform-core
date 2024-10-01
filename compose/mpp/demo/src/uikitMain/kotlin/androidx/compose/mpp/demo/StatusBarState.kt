@@ -33,7 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.unit.dp
 import platform.UIKit.UIStatusBarAnimation
 import platform.UIKit.UIStatusBarStyleDarkContent
