@@ -2083,10 +2083,6 @@ public final class androidx/compose/material3/carousel/CarouselStateKt {
 	public static final fun rememberCarouselState (ILkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)Landroidx/compose/material3/carousel/CarouselState;
 }
 
-public final class androidx/compose/material3/internal/CalendarModel_skikoKt {
-	public static final fun formatWithSkeleton (JLjava/lang/String;Ljava/util/Locale;Ljava/util/Map;)Ljava/lang/String;
-}
-
 public final class androidx/compose/material3/pulltorefresh/PullToRefreshDefaults {
 	public static final field $stable I
 	public static final field INSTANCE Landroidx/compose/material3/pulltorefresh/PullToRefreshDefaults;
