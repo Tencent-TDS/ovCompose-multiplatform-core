@@ -540,7 +540,7 @@ internal constructor(
          */
         public inline fun <reified T : Any> setUriPattern(
             basePath: String,
-            typeMap: Map<KType, @JvmSuppressWildcards NavType<*>>,
+            typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
         ): Builder = setUriPattern(basePath, T::class, typeMap)
 
         @OptIn(InternalSerializationApi::class)
@@ -548,7 +548,7 @@ internal constructor(
         public fun <T : Any> setUriPattern(
             basePath: String,
             route: KClass<T>,
-            typeMap: Map<KType, NavType<*>>,
+            typeMap: Map<KType, NavType<*>> = emptyMap(),
         ): Builder {
             this.uriPattern = route.serializer().generateRoutePattern(typeMap, basePath)
             return this
