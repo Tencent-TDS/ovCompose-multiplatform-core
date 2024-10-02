@@ -20,7 +20,7 @@ public actual typealias Uri = android.net.Uri
 
 @Suppress("NOTHING_TO_INLINE")
 public actual object UriUtils {
-    actual inline fun encode(s: String?, allow: String?): String? = Uri.encode(s, allow)
-    actual inline fun decode(s: String?): String? = Uri.decode(s)
-    actual inline fun parse(uriString: String?): Uri = Uri.parse(uriString)
+    actual inline fun encode(s: String, allow: String?): String = Uri.encode(s, allow)
+    actual inline fun decode(s: String): String = Uri.decode(s)
+    actual inline fun parse(uriString: String): Uri = Uri.parse(uriString)
 }

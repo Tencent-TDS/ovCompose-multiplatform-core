@@ -228,7 +228,7 @@ internal constructor(
         val result = fragPattern?.matchEntire(fragment.toString()) ?: return
 
         this.fragArgs.mapIndexed { index, argumentName ->
-            val value = UriUtils.decode(result.groups[index + 1]?.value).orEmpty()
+            val value = result.groups[index + 1]?.value?.let { UriUtils.decode(it) }.orEmpty()
             val argument = arguments[argumentName]
             try {
                 parseArgument(bundle, argumentName, value, argument)
@@ -245,7 +245,7 @@ internal constructor(
         arguments: Map<String, NavArgument?>
     ): Boolean {
         this.pathArgs.mapIndexed { index, argumentName ->
-            val value = UriUtils.decode(result.groups[index + 1]?.value).orEmpty()
+            val value = result.groups[index + 1]?.value?.let { UriUtils.decode(it) }.orEmpty()
             val argument = arguments[argumentName]
             try {
                 parseArgument(bundle, argumentName, value, argument)
@@ -690,7 +690,7 @@ internal constructor(
     private fun parseQuery(): MutableMap<String, ParamQuery> {
         val paramArgMap = mutableMapOf<String, ParamQuery>()
         if (!isParameterizedQuery) return paramArgMap
-        val uri = UriUtils.parse(uriPattern)
+        val uri = UriUtils.parse(uriPattern!!)
 
         for (paramName in uri.getQueryParameterNames()) {
             val argRegex = StringBuilder()

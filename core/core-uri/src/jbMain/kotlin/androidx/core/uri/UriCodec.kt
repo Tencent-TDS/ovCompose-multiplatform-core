@@ -71,11 +71,10 @@ internal object UriCodec {
      * invalid inputs. Else, U+FFFd is emitted to the output in place of invalid input octets.
      */
     fun decode(
-        s: String?,
+        s: String,
         convertPlus: Boolean = false,
         throwOnFailure: Boolean = false
-    ): String? {
-        s ?: return null
+    ): String {
         val builder = StringBuilder(s.length)
         appendDecoded(builder, s, convertPlus, throwOnFailure)
         return builder.toString()

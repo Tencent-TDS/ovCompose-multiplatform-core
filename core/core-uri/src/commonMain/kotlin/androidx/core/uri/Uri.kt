@@ -40,10 +40,9 @@ public expect object UriUtils {
      * @param s string to encode
      * @param allow set of additional characters to allow in the encoded form,
      *  null if no characters should be skipped
-     * @return an encoded version of s suitable for use as a URI component,
-     *  or null if s is null
+     * @return an encoded version of s suitable for use as a URI component
      */
-    fun encode(s: String?, allow: String? = null): String?
+    fun encode(s: String, allow: String? = null): String
 
     /**
      * Decodes '%'-escaped octets in the given string using the UTF-8 scheme.
@@ -51,17 +50,15 @@ public expect object UriUtils {
      * ("\\uFFFD").
      *
      * @param s encoded string to decode
-     * @return the given string with escaped octets decoded, or null if
-     *  s is null
+     * @return the given string with escaped octets decoded
      */
-    fun decode(s: String?): String?
+    fun decode(s: String): String
 
     /**
      * Creates a Uri which parses the given encoded URI string.
      *
      * @param uriString an RFC 2396-compliant, encoded URI
-     * @throws NullPointerException if uriString is null
      * @return Uri for this given uri string
      */
-    fun parse(uriString: String?): Uri
+    fun parse(uriString: String): Uri
 }

@@ -37,9 +37,7 @@ internal object InternalUri {
      *  null if no characters should be skipped
      * @return an encoded version of s suitable for use as a URI component
      */
-    fun encode(s: String?, allow: String? = null): String? {
-        s ?: return null
-
+    fun encode(s: String, allow: String? = null): String {
         // Lazily-initialized buffers.
         var encoded: StringBuilder? = null
 
@@ -121,7 +119,7 @@ internal object InternalUri {
      * @return the given string with escaped octets decoded, or null if
      *  s is null
      */
-    fun decode(s: String?): String? =
+    fun decode(s: String): String =
         UriCodec.decode(s, convertPlus = false, throwOnFailure = false)
 
     /**

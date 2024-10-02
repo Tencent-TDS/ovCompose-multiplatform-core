@@ -26,9 +26,9 @@ public actual abstract class Uri {
 }
 
 public actual object UriUtils {
-    actual fun encode(s: String?, allow: String?): String? = InternalUri.encode(s, allow)
-    actual fun decode(s: String?): String? = InternalUri.decode(s)
-    actual fun parse(uriString: String?): Uri = ActualUri(uriString!!)
+    actual fun encode(s: String, allow: String?): String = InternalUri.encode(s, allow)
+    actual fun decode(s: String): String = InternalUri.decode(s)
+    actual fun parse(uriString: String): Uri = ActualUri(uriString)
 }
 
 private class ActualUri(

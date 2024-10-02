@@ -569,7 +569,7 @@ public actual abstract class NavType<T> actual constructor(
                  * parsing null receivers of [kotlin.toString] into "null".
                  */
                 override fun serializeAsValue(value: String?): String {
-                    return UriUtils.encode(value) ?: "null"
+                    return value?.let { UriUtils.encode(it) } ?: "null"
                 }
             }
 
@@ -604,7 +604,7 @@ public actual abstract class NavType<T> actual constructor(
                     value.contentDeepEquals(other)
 
                 override fun serializeAsValues(value: Array<String>?): List<String> =
-                    value?.map { UriUtils.encode(it) ?: "null" } ?: emptyList()
+                    value?.map { UriUtils.encode(it) } ?: emptyList()
 
                 override fun emptyCollection(): Array<String> = arrayOf()
             }
@@ -642,7 +642,7 @@ public actual abstract class NavType<T> actual constructor(
                 }
 
                 override fun serializeAsValues(value: List<String>?): List<String> =
-                    value?.map { UriUtils.encode(it) ?: "null" } ?: emptyList()
+                    value?.map { UriUtils.encode(it) } ?: emptyList()
 
                 override fun emptyCollection(): List<String> = emptyList()
             }
