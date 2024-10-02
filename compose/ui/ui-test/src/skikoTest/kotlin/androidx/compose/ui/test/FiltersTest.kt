@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,42 +25,20 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.Popup
-import org.junit.Rule
-import org.junit.Test
+import kotlin.test.Test
 
 
 /**
  * Tests the filters (e.g. [hasParent]) functionality of the testing framework.
  */
+@OptIn(ExperimentalTestApi::class)
 class FiltersTest {
 
-    @get:Rule
-    val rule = createComposeRule()
-
     @Test
-    fun testIsDialogOnDialogWindow() {
-        rule.setContent {
-            DialogWindow(
-                onCloseRequest = {},
-            ) {
-                Text(
-                    text = "Text",
-                    modifier = Modifier.testTag("tag")
-                )
-
-            }
-        }
-
-        rule.onNodeWithTag("tag").assert(hasAnyAncestor(isDialog()))
-    }
-
-    @Test
-    fun testIsDialogOnDialog() {
-        rule.setContent {
+    fun testIsDialogOnDialog() = runComposeUiTest {
+        setContent {
             Dialog(
                 onDismissRequest = {}
             ) {
@@ -72,12 +50,12 @@ class FiltersTest {
             }
         }
 
-        rule.onNodeWithTag("tag").assert(hasAnyAncestor(isDialog()))
+        onNodeWithTag("tag").assert(hasAnyAncestor(isDialog()))
     }
 
     @Test
-    fun testIsPopup() {
-        rule.setContent {
+    fun testIsPopup() = runComposeUiTest {
+        setContent {
             Popup {
                 Text(
                     text = "Text",
@@ -86,23 +64,23 @@ class FiltersTest {
             }
         }
 
-        rule.onNodeWithTag("tag").assert(hasAnyAncestor(isPopup()))
+        onNodeWithTag("tag").assert(hasAnyAncestor(isPopup()))
     }
 
     @Test
-    fun testHasAnyChild() {
-        rule.setContent {
+    fun testHasAnyChild() = runComposeUiTest {
+        setContent {
             Box(Modifier.testTag("box")) {
                 Text(text = "text")
             }
         }
 
-        rule.onNodeWithTag("box").assert(hasAnyChild(hasText("text")))
+        onNodeWithTag("box").assert(hasAnyChild(hasText("text")))
     }
 
     @Test
-    fun testHasAnyAncestor() {
-        rule.setContent {
+    fun testHasAnyAncestor() = runComposeUiTest {
+        setContent {
             Box(Modifier.testTag("ancestor1")) {
                 Box(Modifier.testTag("ancestor2")) {
                     Text(text = "text")
@@ -110,57 +88,57 @@ class FiltersTest {
             }
         }
 
-        rule.onNodeWithText("text").assert(hasAnyAncestor(hasTestTag("ancestor1")))
-        rule.onNodeWithText("text").assert(hasAnyAncestor(hasTestTag("ancestor2")))
+        onNodeWithText("text").assert(hasAnyAncestor(hasTestTag("ancestor1")))
+        onNodeWithText("text").assert(hasAnyAncestor(hasTestTag("ancestor2")))
     }
 
     @Test
-    fun testHasAnyParent() {
-        rule.setContent {
+    fun testHasAnyParent() = runComposeUiTest {
+        setContent {
             Box(Modifier.testTag("parent")) {
                 Text(text = "text")
             }
         }
 
-        rule.onNodeWithText("text").assert(hasParent(hasTestTag("parent")))
+        onNodeWithText("text").assert(hasParent(hasTestTag("parent")))
     }
 
     @Test
-    fun testHasAnySibling() {
-        rule.setContent {
+    fun testHasAnySibling() = runComposeUiTest {
+        setContent {
             Box {
                 Text(text = "text1")
                 Text(text = "text2")
             }
         }
 
-        rule.onNodeWithText("text1").assert(hasAnySibling(hasText("text2")))
+        onNodeWithText("text1").assert(hasAnySibling(hasText("text2")))
     }
 
     @Test
-    fun testIsRoot() {
-        rule.setContent {
+    fun testIsRoot() = runComposeUiTest {
+        setContent {
             Text(text = "text")
         }
 
-        rule.onNodeWithText("text").assert(hasParent(isRoot()))
+        onNodeWithText("text").assert(hasParent(isRoot()))
     }
 
     @Test
-    fun testHasSetTextAction() {
-        rule.setContent {
+    fun testHasSetTextAction() = runComposeUiTest {
+        setContent {
             TextField(
                 value = "text",
                 onValueChange = {}
             )
         }
 
-        rule.onNodeWithText("text").assert(hasSetTextAction())
+        onNodeWithText("text").assert(hasSetTextAction())
     }
 
     @Test
-    fun testHasScrollAction() {
-        rule.setContent {
+    fun testHasScrollAction() = runComposeUiTest {
+        setContent {
             Column(
                 Modifier
                     .verticalScroll(rememberScrollState())
@@ -171,12 +149,12 @@ class FiltersTest {
             }
         }
 
-        rule.onNodeWithTag("tag").assert(hasScrollAction())
+        onNodeWithTag("tag").assert(hasScrollAction())
     }
 
     @Test
-    fun testHasNoScrollAction() {
-        rule.setContent {
+    fun testHasNoScrollAction() = runComposeUiTest {
+        setContent {
             Column(
                 Modifier.testTag("tag")
             ) {
@@ -185,12 +163,12 @@ class FiltersTest {
             }
         }
 
-        rule.onNodeWithTag("tag").assert(hasNoScrollAction())
+        onNodeWithTag("tag").assert(hasNoScrollAction())
     }
 
     @Test
-    fun testHasScrollToIndexAction() {
-        rule.setContent {
+    fun testHasScrollToIndexAction() = runComposeUiTest {
+        setContent {
             LazyColumn(
                 Modifier.testTag("tag")
             ) {
@@ -200,12 +178,12 @@ class FiltersTest {
             }
         }
 
-        rule.onNodeWithTag("tag").assert(hasScrollToIndexAction())
+        onNodeWithTag("tag").assert(hasScrollToIndexAction())
     }
 
     @Test
-    fun testHasScrollToKeyAction() {
-        rule.setContent {
+    fun testHasScrollToKeyAction() = runComposeUiTest {
+        setContent {
             LazyColumn(
                 Modifier.testTag("tag")
             ) {
@@ -215,12 +193,12 @@ class FiltersTest {
             }
         }
 
-        rule.onNodeWithTag("tag").assert(hasScrollToKeyAction())
+        onNodeWithTag("tag").assert(hasScrollToKeyAction())
     }
 
     @Test
-    fun testHasScrollToNodeAction() {
-        rule.setContent {
+    fun testHasScrollToNodeAction() = runComposeUiTest {
+        setContent {
             LazyColumn(
                 Modifier.testTag("tag")
             ) {
@@ -230,6 +208,6 @@ class FiltersTest {
             }
         }
 
-        rule.onNodeWithTag("tag").assert(hasScrollToNodeAction())
+        onNodeWithTag("tag").assert(hasScrollToNodeAction())
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,20 +20,15 @@ import androidx.compose.material.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import org.junit.Rule
-import org.junit.Test
+import kotlin.test.Test
 
 /**
  * Tests the text-actions functionality of the test framework.
  */
 @OptIn(ExperimentalTestApi::class)
 class TextActionsTest {
-
-    @get:Rule
-    val rule = createComposeRule()
 
     @Composable
     fun TestTextField(text: String) {
@@ -46,12 +41,12 @@ class TextActionsTest {
     }
 
     @Test
-    fun testPerformTextClearance() {
-        rule.setContent {
+    fun testPerformTextClearance() = runComposeUiTest {
+        setContent {
             TestTextField("hello")
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             assertTextEquals("hello")
             performTextClearance()
             assertTextEquals("")
@@ -59,12 +54,12 @@ class TextActionsTest {
     }
 
     @Test
-    fun testPerformTextReplacement() {
-        rule.setContent {
+    fun testPerformTextReplacement() = runComposeUiTest {
+        setContent {
             TestTextField("hello")
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             assertTextEquals("hello")
             performTextReplacement("compose")
             assertTextEquals("compose")
@@ -72,12 +67,12 @@ class TextActionsTest {
     }
 
     @Test
-    fun testPerformTextInput() {
-        rule.setContent {
+    fun testPerformTextInput() = runComposeUiTest {
+        setContent {
             TestTextField("compose")
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             assertTextEquals("compose")
             performTextInput("hello ")
             assertTextEquals("hello compose")  // The caret is at 0 initially
@@ -85,12 +80,12 @@ class TextActionsTest {
     }
 
     @Test
-    fun testPerformTextInputSelection() {
-        rule.setContent {
+    fun testPerformTextInputSelection() = runComposeUiTest  {
+        setContent {
             TestTextField("hello")
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             assertTextEquals("hello")
             performTextInputSelection(TextRange(5))
             performTextInput(" compose")

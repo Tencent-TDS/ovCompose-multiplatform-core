@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,13 +27,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import org.junit.Rule
-import org.junit.Test
 
 
 /**
@@ -42,13 +40,10 @@ import org.junit.Test
 @OptIn(ExperimentalTestApi::class, ExperimentalFoundationApi::class)
 class MouseInputTest {
 
-    @get:Rule
-    val rule = createComposeRule()
-
     @Test
-    fun testPerformClick() {
+    fun testPerformClick() = runComposeUiTest {
         var clicked = false
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -59,16 +54,16 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performClick()
             assertTrue(clicked, "Click event not received")
         }
     }
 
     @Test
-    fun testMouseClick() {
+    fun testMouseClick() = runComposeUiTest {
         var clicked = false
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -79,7 +74,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 click()
             }
@@ -88,7 +83,7 @@ class MouseInputTest {
     }
 
     @Test
-    fun testMousePressDragAndRelease() {
+    fun testMousePressDragAndRelease() = runComposeUiTest {
         var pressDetected = false
         var dragDetected = false
         var releaseDetected = false
@@ -99,7 +94,7 @@ class MouseInputTest {
             assertEquals(expectedRelease, releaseDetected, "Release detection mismatch")
         }
 
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -119,7 +114,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 press()
             }
@@ -152,11 +147,11 @@ class MouseInputTest {
     }
 
     @Test
-    fun testMouseEnterExit() {
+    fun testMouseEnterExit() = runComposeUiTest {
         var mouseEnterDetected = false
         var mouseExitDetected = false
 
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -170,7 +165,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 enter()
             }
@@ -184,10 +179,10 @@ class MouseInputTest {
     }
 
     @Test
-    fun updatePointerToDoesNotSendMoveEvent() {
+    fun updatePointerToDoesNotSendMoveEvent() = runComposeUiTest {
         var mouseMoveDetected = false
 
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -198,7 +193,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 updatePointerTo(Offset(10f, 10f))
                 press()
@@ -209,10 +204,10 @@ class MouseInputTest {
     }
 
     @Test
-    fun testScroll() {
+    fun testScroll() = runComposeUiTest {
         var scrollDelta = Offset.Unspecified
 
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -228,7 +223,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 scroll(50f, ScrollWheel.Vertical)
             }
@@ -242,10 +237,10 @@ class MouseInputTest {
     }
 
     @Test
-    fun testClick() {
+    fun testClick() = runComposeUiTest {
         var clickDetected = false
 
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -256,7 +251,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 click()
             }
@@ -265,10 +260,10 @@ class MouseInputTest {
     }
 
     @Test
-    fun testRightClick() {
+    fun testRightClick() = runComposeUiTest {
         var rightClickDetected = false
 
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -279,7 +274,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 rightClick()
             }
@@ -288,10 +283,10 @@ class MouseInputTest {
     }
 
     @Test
-    fun testDoubleClick() {
+    fun testDoubleClick() = runComposeUiTest {
         var doubleClickDetected = false
 
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -306,7 +301,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 doubleClick()
             }
@@ -315,10 +310,10 @@ class MouseInputTest {
     }
 
     @Test
-    fun testTripleClick() {
+    fun testTripleClick() = runComposeUiTest {
         var clickCount = 0
 
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -332,7 +327,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 tripleClick()
             }
@@ -341,10 +336,10 @@ class MouseInputTest {
     }
 
     @Test
-    fun testLongClick() {
+    fun testLongClick() = runComposeUiTest {
         var longClickDetected = false
 
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -359,7 +354,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 longClick()
             }
@@ -368,10 +363,10 @@ class MouseInputTest {
     }
 
     @Test
-    fun testDragAndDrop() {
+    fun testDragAndDrop() = runComposeUiTest {
         var dragOffset = Offset.Zero
 
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -384,7 +379,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 dragAndDrop(
                     start = Offset(10f, 10f),
@@ -400,10 +395,10 @@ class MouseInputTest {
     }
 
     @Test
-    fun testSmoothScroll() {
+    fun testSmoothScroll() = runComposeUiTest {
         var scrollDelta = Offset.Zero
 
-        rule.setContent {
+        setContent {
             Box(
                 Modifier
                     .testTag("tag")
@@ -419,7 +414,7 @@ class MouseInputTest {
             )
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        onNodeWithTag("tag").apply {
             performMouseInput {
                 smoothScroll(50f, scrollWheel = ScrollWheel.Vertical)
             }

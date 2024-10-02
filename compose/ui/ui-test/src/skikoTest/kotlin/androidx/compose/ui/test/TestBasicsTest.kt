@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,19 +31,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.junit.Assert
-import org.junit.Rule
+import kotlinx.coroutines.test.runTest
 
 
 /**
@@ -52,13 +51,10 @@ import org.junit.Rule
 @OptIn(ExperimentalTestApi::class)
 class TestBasicsTest {
 
-    @get:Rule
-    val rule = createComposeRule()
-
-    // See https://github.com/JetBrains/compose-multiplatform/issues/3117
+    // See https://github.com/JetBains/compose-multiplatform/issues/3117
     @Test
     fun recompositionCompletesBeforeSetContentReturns() = repeat(100) {
-        runSkikoComposeUiTest {
+        runComposeUiTest {
             var globalValue by atomic(0)
             setContent {
                 var localValue by remember { mutableStateOf(0) }
@@ -82,38 +78,38 @@ class TestBasicsTest {
     }
 
     @Test
-    fun inputEventAdvancesClock() {
-        rule.setContent {
+    fun inputEventAdvancesClock() = runComposeUiTest {
+        setContent {
             Box(Modifier.testTag("box"))
         }
 
-        val clockBefore = rule.mainClock.currentTime
-        rule.onNodeWithTag("box").performClick()
-        val clockAfter = rule.mainClock.currentTime
+        val clockBefore = mainClock.currentTime
+        onNodeWithTag("box").performClick()
+        val clockAfter = mainClock.currentTime
         assertTrue(clockAfter > clockBefore, "performClick did not advance the test clock")
     }
 
     @Test
-    fun obtainingSemanticsNodeInteractionWaitsUntilIdle() {
+    fun obtainingSemanticsNodeInteractionWaitsUntilIdle() = runComposeUiTest {
         var text by mutableStateOf("1")
 
-        rule.setContent {
+        setContent {
             Text(text, modifier = Modifier.testTag("text"))
         }
 
-        rule.onNodeWithTag("text").assertTextEquals("1")
+        onNodeWithTag("text").assertTextEquals("1")
         text = "2"
-        rule.onNodeWithTag("text").assertTextEquals("2")
+        onNodeWithTag("text").assertTextEquals("2")
     }
 
     @Test
-    fun testCaptureToImage() {
+    fun testCaptureToImage() = runComposeUiTest {
         val color = Color.Green
-        rule.setContent {
+        setContent {
             Box(Modifier.testTag("box").size(20.dp).background(color))
         }
 
-        val screenshot = rule.onNodeWithTag("box").captureToImage()
+        val screenshot = onNodeWithTag("box").captureToImage()
 
         assertEquals(20, screenshot.width)
         assertEquals(20, screenshot.height)
@@ -128,9 +124,9 @@ class TestBasicsTest {
     }
 
     @Test
-    fun testIdlingResource() {
+    fun testIdlingResource() = runComposeUiTest {
         var text by mutableStateOf("")
-        rule.setContent {
+        setContent {
             Text(
                 text = text,
                 modifier = Modifier.testTag("text")
@@ -152,7 +148,7 @@ class TestBasicsTest {
                 isIdle = true
             }
             try {
-                rule.onNodeWithTag("text").assertTextEquals(expectedValue)
+                onNodeWithTag("text").assertTextEquals(expectedValue)
             } finally {
                 job.cancel()
             }
@@ -160,26 +156,41 @@ class TestBasicsTest {
 
         // With the idling resource registered, we expect the test to wait until the second value
         // has been set.
-        rule.registerIdlingResource(idlingResource)
+        registerIdlingResource(idlingResource)
         test(expectedValue = "second")
 
         // Without the idling resource registered, we expect the test to see the first value
-        rule.unregisterIdlingResource(idlingResource)
+        unregisterIdlingResource(idlingResource)
         test(expectedValue = "first")
     }
 
-    @Test(timeout = 500)
-    fun infiniteLoopInLaunchedEffectDoesNotHang() = runComposeUiTest {
-        setContent {
-            LaunchedEffect(Unit) {
-                while (true) {
-                    delay(1000)
+    @Test
+    fun infiniteDelayLoopInLaunchedEffectDoesNotHang() = runComposeUiTest {
+        runTest(timeout = 500.milliseconds) {
+            var runDelayLoop by mutableStateOf(false)
+            var effectLaunched = false
+            setContent {
+                if (runDelayLoop) {
+                    LaunchedEffect(Unit) {
+                        effectLaunched = true
+                        while (true) {
+                            delay(1000)
+                        }
+                    }
                 }
             }
+
+            // We can't just run the delay loop immediately because `setContent` calls `waitForIdle`
+            // before returning, and because it's a blocking call, the `runTest` timeout will have
+            // no effect on it. Meaning if the test fails (the delay-loop causes hanging), the test
+            // itself will hang.
+            runDelayLoop = true
+            awaitIdle()
+            assertTrue(effectLaunched)
         }
     }
 
-    @Test(timeout = 500)
+    @Test
     fun delayInLaunchedEffectIsExecutedAfterAdvancingClock() = runComposeUiTest {
         var value = 0
         mainClock.autoAdvance = false
@@ -214,7 +225,7 @@ class TestBasicsTest {
             }
         }
 
-        Assert.assertEquals(0, value)
+        assertEquals(0, value)
         mainClock.advanceTimeBy(10000)
         assertContentEquals(0..9, compositionValues)
     }
@@ -243,12 +254,9 @@ class TestBasicsTest {
 
     @Test
     fun runOnIdleExecutesOnUiThread() = runComposeUiTest {
-        lateinit var mainThread: Thread
-        setContent {
-            mainThread = Thread.currentThread()
-        }
+        setContent { }
         runOnIdle {
-            assertEquals(Thread.currentThread(), mainThread)
+            assertTrue(isOnUiThread())
         }
     }
 

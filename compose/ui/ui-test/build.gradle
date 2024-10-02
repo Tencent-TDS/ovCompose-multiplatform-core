@@ -166,6 +166,24 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.skiko)
             }
 
+            skikoTest.dependencies {
+                api(project(":compose:foundation:foundation"))
+                api(project(":compose:material:material"))
+                implementation(libs.kotlinTest)
+                implementation(libs.atomicFu)
+            }
+            skikoTest.dependsOn(commonTest)
+
+            desktopTest.dependencies {
+                implementation(libs.skikoCurrentOs)
+            }
+            desktopTest.dependsOn(skikoTest)
+            desktopTest.dependsOn(jvmTest)
+
+            wasmJsTest.dependsOn(skikoTest)
+            jsTest.dependsOn(skikoTest)
+            nativeTest.dependsOn(skikoTest)
+
             androidCommonTest.dependsOn(commonTest)
             androidTest.dependsOn(androidCommonTest)
             androidAndroidTest.dependsOn(androidCommonTest)

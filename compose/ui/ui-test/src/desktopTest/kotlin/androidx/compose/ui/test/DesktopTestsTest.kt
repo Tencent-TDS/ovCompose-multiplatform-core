@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,20 +18,92 @@ package androidx.compose.ui.test
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asSkiaBitmap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogWindow
+import androidx.compose.ui.window.Window
 import java.nio.file.Files
 import kotlin.io.path.readBytes
 import kotlin.io.path.writeBytes
+import kotlin.test.Test
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
-import org.junit.Test
 
+/**
+ * Tests desktop-specified Test APIs.
+ */
 @OptIn(ExperimentalTestApi::class)
-class UseComposeUiTest {
+class DesktopTestsTest {
+
+    @Test
+    fun testNodeInDialogWindow() = runComposeUiTest {
+        var show by mutableStateOf(true)
+        setContent {
+            if (show) {
+                DialogWindow(
+                    onCloseRequest = {},
+                ) {
+                    Text(
+                        text = "Text",
+                        modifier = Modifier.testTag("tag")
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("tag").assertExists()
+
+        show = false
+        onNodeWithTag("tag").assertDoesNotExist()
+    }
+
+    @Test
+    fun testNodeInWindow() = runComposeUiTest {
+        var show by mutableStateOf(true)
+        setContent {
+            if (show) {
+                Window(
+                    onCloseRequest = {},
+                ) {
+                    Text(
+                        text = "Text",
+                        modifier = Modifier.testTag("tag")
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("tag").assertExists()
+
+        show = false
+        onNodeWithTag("tag").assertDoesNotExist()
+    }
+
+    @Test
+    fun testIsDialogOnDialogWindow() = runComposeUiTest {
+        setContent {
+            DialogWindow(
+                onCloseRequest = {},
+            ) {
+                Text(
+                    text = "Text",
+                    modifier = Modifier.testTag("tag")
+                )
+
+            }
+        }
+
+        onNodeWithTag("tag").assert(hasAnyAncestor(isDialog()))
+    }
+
     @Test
     fun testDrawSquare() = runDesktopComposeUiTest(10, 10) {
         setContent {

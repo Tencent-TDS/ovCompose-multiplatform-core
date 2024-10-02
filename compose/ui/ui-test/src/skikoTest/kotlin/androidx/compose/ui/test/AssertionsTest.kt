@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,17 @@
 package androidx.compose.ui.test
 
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.Button
+import androidx.compose.material.Checkbox
+import androidx.compose.material.RadioButton
+import androidx.compose.material.Slider
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -32,50 +36,44 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogWindow
-import androidx.compose.ui.window.Window
+import kotlin.test.Test
 import kotlin.test.assertFails
-import org.junit.Rule
-import org.junit.Test
 
 
 /**
- * Tests the assert (e.g. [assertTextEquals]) functionality of the testing framework.
+ * Tests the assertion (e.g. [assertTextEquals]) functionality of the testing framework.
  */
+@OptIn(ExperimentalTestApi::class)
 class AssertionsTest {
 
-    @get:Rule
-    val rule = createComposeRule()
-
     @Test
-    fun testAssertExists() {
-        rule.setContent {
+    fun testAssertExists() = runComposeUiTest {
+        setContent {
             Box(Modifier.testTag("tag"))
         }
 
-        rule.onNodeWithTag("tag").assertExists()
+        onNodeWithTag("tag").assertExists()
         assertFails {
-            rule.onNodeWithTag("non-tag").assertExists()
+            onNodeWithTag("non-tag").assertExists()
         }
     }
 
     @Test
-    fun testAssertDoesNotExist() {
-        rule.setContent {
+    fun testAssertDoesNotExist() = runComposeUiTest {
+        setContent {
             Box(Modifier.testTag("tag"))
         }
 
-        rule.onNodeWithTag("text").assertDoesNotExist()
+        onNodeWithTag("text").assertDoesNotExist()
         assertFails {
-            rule.onNodeWithTag("tag").assertDoesNotExist()
+            onNodeWithTag("tag").assertDoesNotExist()
         }
     }
 
     @Test
-    fun testAssertIsDisplayed() {
-        rule.setContent {
+    fun testAssertIsDisplayed() = runComposeUiTest {
+        setContent {
             Column(
                 Modifier.size(100.dp)
             ) {
@@ -92,15 +90,15 @@ class AssertionsTest {
             }
         }
 
-        rule.onNodeWithTag("tag1").assertIsDisplayed()
+        onNodeWithTag("tag1").assertIsDisplayed()
         assertFails {
-            rule.onNodeWithTag("tag2").assertIsDisplayed()
+            onNodeWithTag("tag2").assertIsDisplayed()
         }
     }
 
     @Test
-    fun testAssertIsNotDisplayed() {
-        rule.setContent {
+    fun testAssertIsNotDisplayed() = runComposeUiTest {
+        setContent {
             Column(
                 Modifier.size(100.dp)
             ) {
@@ -117,15 +115,15 @@ class AssertionsTest {
             }
         }
 
-        rule.onNodeWithTag("tag2").assertIsNotDisplayed()
+        onNodeWithTag("tag2").assertIsNotDisplayed()
         assertFails {
-            rule.onNodeWithTag("tag1").assertIsNotDisplayed()
+            onNodeWithTag("tag1").assertIsNotDisplayed()
         }
     }
 
     @Test
-    fun testAssertIsEnabled() {
-        rule.setContent {
+    fun testAssertIsEnabled() = runComposeUiTest {
+        setContent {
             Button(
                 onClick = {},
                 enabled = true,
@@ -138,15 +136,15 @@ class AssertionsTest {
             ) {}
         }
 
-        rule.onNodeWithTag("tag1").assertIsEnabled()
+        onNodeWithTag("tag1").assertIsEnabled()
         assertFails {
-            rule.onNodeWithTag("tag2").assertIsEnabled()
+            onNodeWithTag("tag2").assertIsEnabled()
         }
     }
 
     @Test
-    fun testAssertIsNotEnabled() {
-        rule.setContent {
+    fun testAssertIsNotEnabled() = runComposeUiTest {
+        setContent {
             Button(
                 onClick = {},
                 enabled = true,
@@ -159,15 +157,15 @@ class AssertionsTest {
             ) {}
         }
 
-        rule.onNodeWithTag("tag2").assertIsNotEnabled()
+        onNodeWithTag("tag2").assertIsNotEnabled()
         assertFails {
-            rule.onNodeWithTag("tag1").assertIsNotEnabled()
+            onNodeWithTag("tag1").assertIsNotEnabled()
         }
     }
 
     @Test
-    fun testAssertIsOn() {
-        rule.setContent {
+    fun testAssertIsOn() = runComposeUiTest {
+        setContent {
             Checkbox(
                 checked = true,
                 onCheckedChange = { },
@@ -180,15 +178,15 @@ class AssertionsTest {
             )
         }
 
-        rule.onNodeWithTag("tag1").assertIsOn()
+        onNodeWithTag("tag1").assertIsOn()
         assertFails {
-            rule.onNodeWithTag("tag2").assertIsOn()
+            onNodeWithTag("tag2").assertIsOn()
         }
     }
 
     @Test
-    fun testAssertIsOff() {
-        rule.setContent {
+    fun testAssertIsOff() = runComposeUiTest {
+        setContent {
             Checkbox(
                 checked = true,
                 onCheckedChange = { },
@@ -201,15 +199,15 @@ class AssertionsTest {
             )
         }
 
-        rule.onNodeWithTag("tag2").assertIsOff()
+        onNodeWithTag("tag2").assertIsOff()
         assertFails {
-            rule.onNodeWithTag("tag1").assertIsOff()
+            onNodeWithTag("tag1").assertIsOff()
         }
     }
 
     @Test
-    fun testAssertIsSelected() {
-        rule.setContent {
+    fun testAssertIsSelected() = runComposeUiTest {
+        setContent {
             RadioButton(
                 selected = true,
                 onClick = { },
@@ -222,15 +220,15 @@ class AssertionsTest {
             )
         }
 
-        rule.onNodeWithTag("tag1").assertIsSelected()
+        onNodeWithTag("tag1").assertIsSelected()
         assertFails {
-            rule.onNodeWithTag("tag2").assertIsSelected()
+            onNodeWithTag("tag2").assertIsSelected()
         }
     }
 
     @Test
-    fun testAssertIsNotSelected() {
-        rule.setContent {
+    fun testAssertIsNotSelected() = runComposeUiTest {
+        setContent {
             RadioButton(
                 selected = true,
                 onClick = { },
@@ -243,15 +241,15 @@ class AssertionsTest {
             )
         }
 
-        rule.onNodeWithTag("tag2").assertIsNotSelected()
+        onNodeWithTag("tag2").assertIsNotSelected()
         assertFails {
-            rule.onNodeWithTag("tag1").assertIsNotSelected()
+            onNodeWithTag("tag1").assertIsNotSelected()
         }
     }
 
     @Test
-    fun testAssertIsToggleable() {
-        rule.setContent {
+    fun testAssertIsToggleable() = runComposeUiTest {
+        setContent {
             Checkbox(
                 checked = false,
                 onCheckedChange = { },
@@ -263,15 +261,15 @@ class AssertionsTest {
             )
         }
 
-        rule.onNodeWithTag("tag1").assertIsToggleable()
+        onNodeWithTag("tag1").assertIsToggleable()
         assertFails {
-            rule.onNodeWithTag("tag2").assertIsToggleable()
+            onNodeWithTag("tag2").assertIsToggleable()
         }
     }
 
     @Test
-    fun testAssertIsSelectable() {
-        rule.setContent {
+    fun testAssertIsSelectable() = runComposeUiTest {
+        setContent {
             RadioButton(
                 selected = false,
                 onClick = { },
@@ -283,15 +281,15 @@ class AssertionsTest {
             )
         }
 
-        rule.onNodeWithTag("tag1").assertIsSelectable()
+        onNodeWithTag("tag1").assertIsSelectable()
         assertFails {
-            rule.onNodeWithTag("tag2").assertIsSelectable()
+            onNodeWithTag("tag2").assertIsSelectable()
         }
     }
 
     @Test
-    fun testAssertIsFocused() {
-        rule.setContent {
+    fun testAssertIsFocused() = runComposeUiTest {
+        setContent {
             val focusRequester = remember { FocusRequester() }
             Box(
                 Modifier
@@ -309,16 +307,16 @@ class AssertionsTest {
             }
         }
 
-        rule.onNodeWithTag("tag1").assertIsFocused()
+        onNodeWithTag("tag1").assertIsFocused()
         assertFails {
-            rule.onNodeWithTag("tag2").assertIsFocused()
+            onNodeWithTag("tag2").assertIsFocused()
         }
     }
 
     @Test
-    fun testAssertIsNotFocused() {
-        rule.setContent {
-            rule.setContent {
+    fun testAssertIsNotFocused() = runComposeUiTest {
+        setContent {
+            setContent {
                 val focusRequester = remember { FocusRequester() }
                 Box(
                     Modifier
@@ -337,15 +335,15 @@ class AssertionsTest {
             }
         }
 
-        rule.onNodeWithTag("tag2").assertIsNotFocused()
+        onNodeWithTag("tag2").assertIsNotFocused()
         assertFails {
-            rule.onNodeWithTag("tag1").assertIsNotFocused()
+            onNodeWithTag("tag1").assertIsNotFocused()
         }
     }
 
     @Test
-    fun testAssertContentDescriptionEquals() {
-        rule.setContent {
+    fun testAssertContentDescriptionEquals() = runComposeUiTest {
+        setContent {
             Button(
                 onClick = {},
                 modifier = Modifier.testTag("tag1")
@@ -361,15 +359,15 @@ class AssertionsTest {
             }
         }
 
-        rule.onNodeWithTag("tag1").assertContentDescriptionEquals("desc1", "desc2")
+        onNodeWithTag("tag1").assertContentDescriptionEquals("desc1", "desc2")
         assertFails {
-            rule.onNodeWithTag("tag2").assertContentDescriptionEquals("desc1", "desc2")
+            onNodeWithTag("tag2").assertContentDescriptionEquals("desc1", "desc2")
         }
     }
 
     @Test
-    fun testAssertContentDescriptionContains() {
-        rule.setContent {
+    fun testAssertContentDescriptionContains() = runComposeUiTest {
+        setContent {
             Button(
                 onClick = {},
                 modifier = Modifier.testTag("tag1")
@@ -385,16 +383,16 @@ class AssertionsTest {
             }
         }
 
-        rule.onNodeWithTag("tag1").assertContentDescriptionContains("desc1")
-        rule.onNodeWithTag("tag1").assertContentDescriptionContains("desc2")
+        onNodeWithTag("tag1").assertContentDescriptionContains("desc1")
+        onNodeWithTag("tag1").assertContentDescriptionContains("desc2")
         assertFails {
-            rule.onNodeWithTag("tag2").assertContentDescriptionContains("desc1")
+            onNodeWithTag("tag2").assertContentDescriptionContains("desc1")
         }
     }
 
     @Test
-    fun testAssertTextEquals() {
-        rule.setContent {
+    fun testAssertTextEquals() = runComposeUiTest {
+        setContent {
             Text(
                 text = "Hello, Compose",
                 modifier = Modifier.testTag("tag1")
@@ -406,16 +404,16 @@ class AssertionsTest {
             )
         }
 
-        rule.onNodeWithTag("tag1").assertTextEquals("Hello, Compose")
-        rule.onNodeWithTag("tag2").assertTextEquals("Hello, TextField")
+        onNodeWithTag("tag1").assertTextEquals("Hello, Compose")
+        onNodeWithTag("tag2").assertTextEquals("Hello, TextField")
         assertFails {
-            rule.onNodeWithTag("tag1").assertTextEquals("Hello")
+            onNodeWithTag("tag1").assertTextEquals("Hello")
         }
     }
 
     @Test
-    fun testAssertTextContains() {
-        rule.setContent {
+    fun testAssertTextContains() = runComposeUiTest {
+        setContent {
             Button(
                 onClick = {},
                 modifier = Modifier.testTag("tag")
@@ -425,28 +423,28 @@ class AssertionsTest {
             }
         }
 
-        rule.onNodeWithTag("tag").assertTextContains("text1")
-        rule.onNodeWithTag("tag").assertTextContains("text2")
+        onNodeWithTag("tag").assertTextContains("text1")
+        onNodeWithTag("tag").assertTextContains("text2")
         assertFails {
-            rule.onNodeWithTag("tag").assertTextContains("Hello")
+            onNodeWithTag("tag").assertTextContains("Hello")
         }
     }
 
     @Test
-    fun testAssertValueEquals() {
-        rule.setContent {
+    fun testAssertValueEquals() = runComposeUiTest {
+        setContent {
             Box(Modifier.semantics { stateDescription = "desc" }.testTag("tag"))
         }
 
-        rule.onNodeWithTag("tag").assertValueEquals("desc")
+        onNodeWithTag("tag").assertValueEquals("desc")
         assertFails {
-            rule.onNodeWithTag("tag").assertValueEquals("text")
+            onNodeWithTag("tag").assertValueEquals("text")
         }
     }
 
     @Test
-    fun testAssertRangeInfoEquals() {
-        rule.setContent {
+    fun testAssertRangeInfoEquals() = runComposeUiTest {
+        setContent {
             Slider(
                 valueRange = 0f..100f,
                 value = 50f,
@@ -455,14 +453,14 @@ class AssertionsTest {
             )
         }
 
-        rule.onNodeWithTag("tag").assertRangeInfoEquals(
+        onNodeWithTag("tag").assertRangeInfoEquals(
             ProgressBarRangeInfo(
                 current = 50f,
                 range = 0f..100f
             )
         )
         assertFails {
-            rule.onNodeWithTag("tag").assertRangeInfoEquals(
+            onNodeWithTag("tag").assertRangeInfoEquals(
                 ProgressBarRangeInfo(
                     current = 49f,
                     range = 0f..100f
@@ -472,8 +470,8 @@ class AssertionsTest {
     }
 
     @Test
-    fun testAssertHasClickAction() {
-        rule.setContent {
+    fun testAssertHasClickAction() = runComposeUiTest {
+        setContent {
             Button(
                 onClick = {},
                 modifier = Modifier.testTag("tag1")
@@ -484,15 +482,15 @@ class AssertionsTest {
             )
         }
 
-        rule.onNodeWithTag("tag1").assertHasClickAction()
+        onNodeWithTag("tag1").assertHasClickAction()
         assertFails {
-            rule.onNodeWithTag("tag2").assertHasClickAction()
+            onNodeWithTag("tag2").assertHasClickAction()
         }
     }
 
     @Test
-    fun testAssertHasNoClickAction() {
-        rule.setContent {
+    fun testAssertHasNoClickAction() = runComposeUiTest {
+        setContent {
             Button(
                 onClick = {},
                 modifier = Modifier.testTag("tag1")
@@ -503,15 +501,15 @@ class AssertionsTest {
             )
         }
 
-        rule.onNodeWithTag("tag2").assertHasNoClickAction()
+        onNodeWithTag("tag2").assertHasNoClickAction()
         assertFails {
-            rule.onNodeWithTag("tag1").assertHasNoClickAction()
+            onNodeWithTag("tag1").assertHasNoClickAction()
         }
     }
 
     @Test
-    fun testAssertAny() {
-        rule.setContent {
+    fun testAssertAny() = runComposeUiTest {
+        setContent {
             Text(
                 text = "Hello",
                 modifier = Modifier.testTag("tag")
@@ -522,16 +520,16 @@ class AssertionsTest {
             )
         }
 
-        rule.onAllNodesWithTag("tag").assertAny(hasText("Hello"))
-        rule.onAllNodesWithTag("tag").assertAny(hasText("Compose"))
+        onAllNodesWithTag("tag").assertAny(hasText("Hello"))
+        onAllNodesWithTag("tag").assertAny(hasText("Compose"))
         assertFails {
-            rule.onAllNodesWithTag("tag").assertAny(hasText("Text"))
+            onAllNodesWithTag("tag").assertAny(hasText("Text"))
         }
     }
 
     @Test
-    fun testAssertAll() {
-        rule.setContent {
+    fun testAssertAll() = runComposeUiTest {
+        setContent {
             Text(
                 text = "Hello, World",
                 modifier = Modifier.testTag("tag")
@@ -542,53 +540,9 @@ class AssertionsTest {
             )
         }
 
-        rule.onAllNodesWithTag("tag").assertAll(hasText("Hello", substring = true))
+        onAllNodesWithTag("tag").assertAll(hasText("Hello", substring = true))
         assertFails {
-            rule.onAllNodesWithTag("tag").assertAll(hasText("World", substring = true))
+            onAllNodesWithTag("tag").assertAll(hasText("World", substring = true))
         }
-    }
-
-    @Test
-    fun testNodeInDialogWindow() {
-        var show by mutableStateOf(true)
-        rule.setContent {
-            if (show) {
-                DialogWindow(
-                    onCloseRequest = {},
-                ) {
-                    Text(
-                        text = "Text",
-                        modifier = Modifier.testTag("tag")
-                    )
-                }
-            }
-        }
-
-        rule.onNodeWithTag("tag").assertExists()
-
-        show = false
-        rule.onNodeWithTag("tag").assertDoesNotExist()
-    }
-
-    @Test
-    fun testNodeInWindow() {
-        var show by mutableStateOf(true)
-        rule.setContent {
-            if (show) {
-                Window(
-                    onCloseRequest = {},
-                ) {
-                    Text(
-                        text = "Text",
-                        modifier = Modifier.testTag("tag")
-                    )
-                }
-            }
-        }
-
-        rule.onNodeWithTag("tag").assertExists()
-
-        show = false
-        rule.onNodeWithTag("tag").assertDoesNotExist()
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,20 +22,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.Rule
-import org.junit.Test
 
 
 /**
@@ -43,9 +40,6 @@ import org.junit.Test
  */
 @OptIn(ExperimentalTestApi::class)
 class KeyInputTest {
-
-    @get:Rule
-    val rule = createComposeRule()
 
     @Composable
     private fun FocusedBox(
@@ -70,16 +64,16 @@ class KeyInputTest {
     }
 
     @Test
-    fun testKeyDownAndUp() {
+    fun testKeyDownAndUp() = runComposeUiTest {
         var keyEvent: KeyEvent? = null
 
-        rule.setContent {
+        setContent {
             FocusedBox {
                 keyEvent = it
             }
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        with(onNodeWithTag("tag")) {
             performKeyInput {
                 keyDown(Key.C)
             }
@@ -102,12 +96,12 @@ class KeyInputTest {
     }
 
     @Test
-    fun testIsKeyDown() {
-        rule.setContent {
+    fun testIsKeyDown() = runComposeUiTest {
+        setContent {
             FocusedBox()
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        with(onNodeWithTag("tag")) {
             performKeyInput {
                 keyDown(Key.C)
                 assertTrue(isKeyDown(Key.C), "Key is not down")
@@ -119,16 +113,16 @@ class KeyInputTest {
     }
 
     @Test
-    fun testPressKey() {
+    fun testPressKey() = runComposeUiTest {
         val keyEvents = mutableListOf<KeyEvent>()
 
-        rule.setContent {
+        setContent {
             FocusedBox {
                 keyEvents.add(it)
             }
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        with(onNodeWithTag("tag")) {
             performKeyInput {
                 pressKey(Key.C)
             }
@@ -145,16 +139,16 @@ class KeyInputTest {
     }
 
     @Test
-    fun testWithKeyDown() {
+    fun testWithKeyDown() = runComposeUiTest {
         val keyEvents = mutableListOf<KeyEvent>()
 
-        rule.setContent {
+        setContent {
             FocusedBox {
                 keyEvents.add(it)
             }
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        with(onNodeWithTag("tag")) {
             performKeyInput {
                 withKeyDown(Key.ShiftLeft) {
                     pressKey(Key.C)
@@ -189,16 +183,16 @@ class KeyInputTest {
     }
 
     @Test
-    fun testWithKeyToggled() {
+    fun testWithKeyToggled() = runComposeUiTest {
         val keyEvents = mutableListOf<KeyEvent>()
 
-        rule.setContent {
+        setContent {
             FocusedBox {
                 keyEvents.add(it)
             }
         }
 
-        with(rule.onNodeWithTag("tag")) {
+        with(onNodeWithTag("tag")) {
             performKeyInput {
                 withKeyToggled(Key.CapsLock) {
                     assertTrue(isCapsLockOn)

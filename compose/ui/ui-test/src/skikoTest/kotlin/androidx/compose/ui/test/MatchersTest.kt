@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,23 +24,19 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.AnnotatedString
-import org.junit.Rule
-import org.junit.Test
+import kotlin.test.Test
 
 
 /**
  * Tests the node-finding (e.g. [onNodeWithTag]) functionality of the testing framework.
  */
+@OptIn(ExperimentalTestApi::class)
 class MatchersTest {
 
-    @get:Rule
-    val rule = createComposeRule()
-
     @Test
-    fun testNodeWithTag() {
-        rule.setContent {
+    fun testNodeWithTag() = runComposeUiTest {
+        setContent {
             Box(
                 Modifier.testTag("tag")
             ) {
@@ -51,25 +47,25 @@ class MatchersTest {
             }
         }
 
-        rule.onNodeWithTag("tag").assertExists()
-        rule.onNodeWithTag("mark").assertDoesNotExist()
-        rule.onNodeWithTag("text1", useUnmergedTree = false).assertDoesNotExist()
-        rule.onNodeWithTag("text1", useUnmergedTree = true).assertExists()
+        onNodeWithTag("tag").assertExists()
+        onNodeWithTag("mark").assertDoesNotExist()
+        onNodeWithTag("text1", useUnmergedTree = false).assertDoesNotExist()
+        onNodeWithTag("text1", useUnmergedTree = true).assertExists()
     }
 
     @Test
-    fun testAllNodesWithTag() {
-        rule.setContent {
+    fun testAllNodesWithTag() = runComposeUiTest {
+        setContent {
             Box(Modifier.testTag("tag"))
             Text("text", Modifier.testTag("tag"))
         }
 
-        rule.onAllNodesWithTag("tag").assertCountEquals(2)
+        onAllNodesWithTag("tag").assertCountEquals(2)
     }
 
     @Test
-    fun testNodeWithText() {
-        rule.setContent {
+    fun testNodeWithText() = runComposeUiTest {
+        setContent {
             Text("text")
             Button(onClick = {}) {
                 Text("Hello", Modifier.testTag("text1"))
@@ -77,33 +73,33 @@ class MatchersTest {
             }
         }
 
-        rule.onNodeWithText("text").assertExists()
-        rule.onNodeWithText("Text").assertDoesNotExist()
-        rule.onNodeWithText("Text", ignoreCase = true).assertExists()
-        rule.onNodeWithText("Hello").assertHasClickAction()  // Button
-        rule.onNodeWithText("Hello", useUnmergedTree = true).assertHasNoClickAction() // Text
-        rule.onNodeWithText("tex").assertDoesNotExist()
-        rule.onNodeWithText("tex", substring = true).assertExists()
+        onNodeWithText("text").assertExists()
+        onNodeWithText("Text").assertDoesNotExist()
+        onNodeWithText("Text", ignoreCase = true).assertExists()
+        onNodeWithText("Hello").assertHasClickAction()  // Button
+        onNodeWithText("Hello", useUnmergedTree = true).assertHasNoClickAction() // Text
+        onNodeWithText("tex").assertDoesNotExist()
+        onNodeWithText("tex", substring = true).assertExists()
     }
 
     @Test
-    fun testAllNodesWithText() {
-        rule.setContent {
+    fun testAllNodesWithText() = runComposeUiTest {
+        setContent {
             Text("text")
             Text("text")
             Text("long text")
             Text("Text")
         }
 
-        rule.onAllNodesWithText("text").assertCountEquals(2)
-        rule.onAllNodesWithText("text", substring = true).assertCountEquals(3)
-        rule.onAllNodesWithText("text", ignoreCase = true).assertCountEquals(3)
-        rule.onAllNodesWithText("text", ignoreCase = true, substring = true).assertCountEquals(4)
+        onAllNodesWithText("text").assertCountEquals(2)
+        onAllNodesWithText("text", substring = true).assertCountEquals(3)
+        onAllNodesWithText("text", ignoreCase = true).assertCountEquals(3)
+        onAllNodesWithText("text", ignoreCase = true, substring = true).assertCountEquals(4)
     }
 
     @Test
-    fun testNodeWithContentDescription() {
-        rule.setContent {
+    fun testNodeWithContentDescription() = runComposeUiTest {
+        setContent {
             Box(Modifier.semantics { contentDescription = "desc" })
             Button(onClick = {}) {
                 Box(Modifier.semantics { contentDescription = "Hello" })
@@ -111,35 +107,35 @@ class MatchersTest {
             }
         }
 
-        rule.onNodeWithContentDescription("desc").assertExists()
-        rule.onNodeWithContentDescription("Desc").assertDoesNotExist()
-        rule.onNodeWithContentDescription("Desc", ignoreCase = true).assertExists()
-        rule.onNodeWithContentDescription("Hello").assertHasClickAction()  // Button
-        rule.onNodeWithContentDescription("Hello", useUnmergedTree = true)  // Text
+        onNodeWithContentDescription("desc").assertExists()
+        onNodeWithContentDescription("Desc").assertDoesNotExist()
+        onNodeWithContentDescription("Desc", ignoreCase = true).assertExists()
+        onNodeWithContentDescription("Hello").assertHasClickAction()  // Button
+        onNodeWithContentDescription("Hello", useUnmergedTree = true)  // Text
             .assertHasNoClickAction()
-        rule.onNodeWithContentDescription("des").assertDoesNotExist()
-        rule.onNodeWithContentDescription("desc", substring = true).assertExists()
+        onNodeWithContentDescription("des").assertDoesNotExist()
+        onNodeWithContentDescription("desc", substring = true).assertExists()
     }
 
     @Test
-    fun testAllNodesWithContentDescription() {
-        rule.setContent {
+    fun testAllNodesWithContentDescription() = runComposeUiTest {
+        setContent {
             Box(Modifier.semantics { contentDescription = "desc" })
             Box(Modifier.semantics { contentDescription = "desc" })
             Box(Modifier.semantics { contentDescription = "long desc" })
             Box(Modifier.semantics { contentDescription = "Desc" })
         }
 
-        rule.onAllNodesWithContentDescription("desc").assertCountEquals(2)
-        rule.onAllNodesWithContentDescription("desc", substring = true).assertCountEquals(3)
-        rule.onAllNodesWithContentDescription("desc", ignoreCase = true).assertCountEquals(3)
-        rule.onAllNodesWithContentDescription("desc", substring = true, ignoreCase = true)
+        onAllNodesWithContentDescription("desc").assertCountEquals(2)
+        onAllNodesWithContentDescription("desc", substring = true).assertCountEquals(3)
+        onAllNodesWithContentDescription("desc", ignoreCase = true).assertCountEquals(3)
+        onAllNodesWithContentDescription("desc", substring = true, ignoreCase = true)
             .assertCountEquals(4)
     }
 
     @Test
-    fun testOnNode() {
-        rule.setContent {
+    fun testOnNode() = runComposeUiTest {
+        setContent {
             Text("Hello", Modifier.semantics { contentDescription = "text" })
             Text("Compose")
         }
@@ -154,10 +150,10 @@ class MatchersTest {
             expectedValue = listOf(desc)
         )
 
-        rule.onNode(
+        onNode(
             matcher = expectText("Hello").and(expectContentDescription("text"))
         ).assertExists()
-        rule.onNode(
+        onNode(
             matcher = expectText("Compose").and(expectContentDescription("text"))
         ).assertDoesNotExist()
     }
