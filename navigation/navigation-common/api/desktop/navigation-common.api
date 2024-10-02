@@ -102,6 +102,7 @@ public final class androidx/navigation/NavDeepLink$Builder {
 	public final fun setMimeType (Ljava/lang/String;)Landroidx/navigation/NavDeepLink$Builder;
 	public final fun setUriPattern (Ljava/lang/String;)Landroidx/navigation/NavDeepLink$Builder;
 	public final fun setUriPattern (Ljava/lang/String;Lkotlin/reflect/KClass;Ljava/util/Map;)Landroidx/navigation/NavDeepLink$Builder;
+	public static synthetic fun setUriPattern$default (Landroidx/navigation/NavDeepLink$Builder;Ljava/lang/String;Lkotlin/reflect/KClass;Ljava/util/Map;ILjava/lang/Object;)Landroidx/navigation/NavDeepLink$Builder;
 }
 
 public abstract interface annotation class androidx/navigation/NavDeepLinkDsl : java/lang/annotation/Annotation {
