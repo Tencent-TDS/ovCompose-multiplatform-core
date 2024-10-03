@@ -30,7 +30,7 @@ import kotlin.math.abs
 import kotlin.math.sign
 import kotlin.math.sqrt
 
-internal expect val AssumePointerMoveStoppedMilliseconds: Int
+private const val AssumePointerMoveStoppedMilliseconds: Int = 40
 internal expect val HistorySize: Int
 
 // TODO(b/204895043): Keep value in sync with VelocityPathFinder.HorizonMilliSeconds
@@ -232,7 +232,7 @@ internal constructor(
         val newestSample: DataPointAtTime = samples[index] ?: return 0f
 
         var previousSample: DataPointAtTime = newestSample
-        var previousDirection: Boolean? = null
+        var afterPointerStop = false
 
         // Starting with the most recent PointAtTime sample, iterate backwards while
         // the samples represent continuous motion.
@@ -247,7 +247,11 @@ internal constructor(
                 } else {
                     newestSample
                 }
-            if (age > HorizonMilliseconds || delta > AssumePointerMoveStoppedMilliseconds) {
+            if (delta > AssumePointerMoveStoppedMilliseconds) {
+                afterPointerStop = true
+                break
+            }
+            if (age > HorizonMilliseconds) {
                 break
             }
 
@@ -258,7 +262,13 @@ internal constructor(
             sampleCount += 1
         } while (sampleCount < HistorySize)
 
-        if (sampleCount >= minSampleSize && shouldUseDataPoints(dataPoints, time, sampleCount)) {
+        if (sampleCount >= minSampleSize && shouldUseDataPoints(
+                dataPoints,
+                time,
+                sampleCount,
+                afterPointerStop
+            )
+        ) {
             // Choose computation logic based on strategy.
             return when (strategy) {
                 Strategy.Impulse -> {
@@ -351,7 +361,8 @@ private fun Array<DataPointAtTime?>.set(index: Int, time: Long, dataPoint: Float
 internal expect fun VelocityTracker1D.shouldUseDataPoints(
     points: FloatArray,
     times: FloatArray,
-    count: Int
+    count: Int,
+    afterPointerStop: Boolean
 ): Boolean
 
 
