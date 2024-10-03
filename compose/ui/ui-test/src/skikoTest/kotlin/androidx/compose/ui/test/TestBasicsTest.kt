@@ -37,6 +37,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -288,5 +289,15 @@ class TestBasicsTest {
             sourceValue = 1
         }
         assertEquals(targetValue, 0)
+    }
+
+    @Test
+    fun emptyTestPerformance() {
+        repeat(1000) {
+            runComposeUiTest {
+                setContent {
+                }
+            }
+        }
     }
 }
