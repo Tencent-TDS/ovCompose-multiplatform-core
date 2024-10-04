@@ -2745,7 +2745,7 @@ public actual open class NavController(
             return iterator.asSequence().firstOrNull { entry -> entry.destination !is NavGraph }
         }
 
-    public companion object {
+    public actual companion object {
         private const val TAG = "NavController"
         private const val KEY_NAVIGATOR_STATE = "android-support-nav:controller:navigatorState"
         private const val KEY_NAVIGATOR_STATE_NAMES =
@@ -2786,7 +2786,7 @@ public actual open class NavController(
          */
         @JvmStatic
         @NavDeepLinkSaveStateControl
-        public fun enableDeepLinkSaveState(saveState: Boolean) {
+        public actual fun enableDeepLinkSaveState(saveState: Boolean) {
             deepLinkSaveState = saveState
         }
     }

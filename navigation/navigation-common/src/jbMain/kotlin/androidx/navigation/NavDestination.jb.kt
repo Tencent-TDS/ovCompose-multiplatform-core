@@ -211,6 +211,31 @@ public actual open class NavDestination actual constructor(
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public fun buildDeepLinkDestinations(previousDestination: NavDestination? = null): List<NavDestination> {
+        val hierarchy = ArrayDeque<NavDestination>()
+        var current: NavDestination? = this
+        do {
+            val parent = current!!.parent
+            if (
+            // If the current destination is a sibling of the previous, just add it straightaway
+                previousDestination?.parent != null &&
+                previousDestination.parent!!.findNode(current.id) === current
+            ) {
+                hierarchy.addFirst(current)
+                break
+            }
+            if (parent == null || parent.startDestinationId != current.id) {
+                hierarchy.addFirst(current)
+            }
+            if (parent == previousDestination) {
+                break
+            }
+            current = parent
+        } while (current != null)
+        return hierarchy.toList()
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual fun hasRoute(route: String, arguments: Bundle?): Boolean {
         // this matches based on routePattern
         if (this.route == route) return true

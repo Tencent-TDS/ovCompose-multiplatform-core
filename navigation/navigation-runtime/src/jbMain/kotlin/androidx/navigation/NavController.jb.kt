@@ -36,6 +36,7 @@ import androidx.core.uri.UriUtils
 import androidx.navigation.NavGraph.Companion.childHierarchy
 import androidx.navigation.serialization.generateHashCode
 import kotlin.jvm.JvmOverloads
+import kotlin.jvm.JvmStatic
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -954,9 +955,45 @@ public actual open class NavController {
 
         if (matchingDeepLink != null) {
             val destination = matchingDeepLink.destination
-            val args = destination.addInDefaultArgs(matchingDeepLink.matchingArgs) ?: Bundle()
-            val node = matchingDeepLink.destination
-            navigate(node, args, null, null)
+            val deepLinkNodes = destination.buildDeepLinkDestinations()
+            val globalArgs = destination.addInDefaultArgs(matchingDeepLink.matchingArgs) ?: Bundle()
+            val args = arrayOfNulls<Bundle>(deepLinkNodes.size)
+            for (index in args.indices) {
+                val arguments = Bundle()
+                arguments.putAll(globalArgs)
+                args[index] = arguments
+            }
+
+            // Start with a cleared task starting at our root when we're on our own task
+            if (!backQueue.isEmpty()) {
+                popBackStackInternal(_graph!!.id, true)
+            }
+
+            var index = 0
+            while (index < deepLinkNodes.size) {
+                val node = deepLinkNodes[index]
+                val arguments = args[index++]
+                navigate(
+                    node,
+                    arguments,
+                    navOptions {
+                        val changingGraphs =
+                            node is NavGraph &&
+                                node.hierarchy.none { it == currentDestination?.parent }
+                        if (changingGraphs && deepLinkSaveState) {
+                            // If we are navigating to a 'sibling' graph (one that isn't part
+                            // of the current destination's hierarchy), then we need to saveState
+                            // to ensure that each graph has its own saved state that users can
+                            // return to
+                            popUpTo(graph.findStartDestination().id) { saveState = true }
+                            // Note we specifically don't call restoreState = true
+                            // as our deep link should support multiple instances of the
+                            // same graph in a row
+                        }
+                    },
+                    null
+                )
+            }
             return true
         } else {
             println(
@@ -1705,7 +1742,7 @@ public actual open class NavController {
             return iterator.asSequence().firstOrNull { entry -> entry.destination !is NavGraph }
         }
 
-    public companion object {
+    public actual companion object {
         private const val KEY_NAVIGATOR_STATE =
             "multiplatform-support-nav:controller:navigatorState"
         private const val KEY_NAVIGATOR_STATE_NAMES =
@@ -1721,5 +1758,21 @@ public actual open class NavController {
             "multiplatform-support-nav:controller:backStackStates:"
         private const val KEY_DEEP_LINK_HANDLED: String =
             "multiplatform-support-nav:controller:deepLinkHandled"
+
+        private var deepLinkSaveState = true
+
+        /**
+         * By default, [handleDeepLink] will automatically add calls to
+         * [NavOptions.Builder.setPopUpTo] with a `saveState` of `true` when the deep link takes you
+         * to another graph (e.g., a different navigation graph than the one your start destination
+         * is in).
+         *
+         * You can disable this behavior by passing `false` for [saveState].
+         */
+        @JvmStatic
+        @NavDeepLinkSaveStateControl
+        public actual fun enableDeepLinkSaveState(saveState: Boolean) {
+            deepLinkSaveState = saveState
+        }
     }
 }

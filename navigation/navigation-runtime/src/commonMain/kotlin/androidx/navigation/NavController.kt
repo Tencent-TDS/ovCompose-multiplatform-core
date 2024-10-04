@@ -23,6 +23,7 @@ import androidx.core.bundle.Bundle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelStore
 import kotlin.jvm.JvmOverloads
+import kotlin.jvm.JvmStatic
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlinx.coroutines.flow.Flow
@@ -516,6 +517,20 @@ public expect open class NavController {
      * than two visible entries
      */
     public open val previousBackStackEntry: NavBackStackEntry?
+
+    companion object {
+        /**
+         * By default, [handleDeepLink] will automatically add calls to
+         * [NavOptions.Builder.setPopUpTo] with a `saveState` of `true` when the deep link takes you
+         * to another graph (e.g., a different navigation graph than the one your start destination
+         * is in).
+         *
+         * You can disable this behavior by passing `false` for [saveState].
+         */
+        @JvmStatic
+        @NavDeepLinkSaveStateControl
+        public fun enableDeepLinkSaveState(saveState: Boolean)
+    }
 }
 
 /**

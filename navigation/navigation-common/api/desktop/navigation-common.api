@@ -156,6 +156,8 @@ public class androidx/navigation/NavDestination {
 	public final fun addDeepLink (Landroidx/navigation/NavDeepLink;)V
 	public final fun addDeepLink (Ljava/lang/String;)V
 	public final fun addInDefaultArgs (Landroidx/core/bundle/Bundle;)Landroidx/core/bundle/Bundle;
+	public final fun buildDeepLinkDestinations (Landroidx/navigation/NavDestination;)Ljava/util/List;
+	public static synthetic fun buildDeepLinkDestinations$default (Landroidx/navigation/NavDestination;Landroidx/navigation/NavDestination;ILjava/lang/Object;)Ljava/util/List;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getArguments ()Ljava/util/Map;
 	public fun getDisplayName ()Ljava/lang/String;
