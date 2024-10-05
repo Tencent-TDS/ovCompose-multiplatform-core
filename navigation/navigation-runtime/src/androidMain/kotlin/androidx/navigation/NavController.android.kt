@@ -1820,7 +1820,7 @@ public actual open class NavController(
      * @see NavController.navigate
      */
     @MainThread
-    public open fun navigate(deepLink: Uri) {
+    public actual open fun navigate(deepLink: Uri) {
         navigate(NavDeepLinkRequest(deepLink, null, null))
     }
 
@@ -1835,7 +1835,7 @@ public actual open class NavController(
      * @see NavController.navigate
      */
     @MainThread
-    public open fun navigate(deepLink: Uri, navOptions: NavOptions?) {
+    public actual open fun navigate(deepLink: Uri, navOptions: NavOptions?) {
         navigate(NavDeepLinkRequest(deepLink, null, null), navOptions, null)
     }
 
@@ -1851,7 +1851,7 @@ public actual open class NavController(
      * @see NavController.navigate
      */
     @MainThread
-    public open fun navigate(
+    public actual open fun navigate(
         deepLink: Uri,
         navOptions: NavOptions?,
         navigatorExtras: Navigator.Extras?

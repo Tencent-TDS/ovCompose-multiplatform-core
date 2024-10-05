@@ -20,6 +20,7 @@ import androidx.annotation.CallSuper
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.core.bundle.Bundle
+import androidx.core.uri.Uri
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelStore
 import kotlin.jvm.JvmOverloads
@@ -374,6 +375,49 @@ public expect open class NavController {
         route: T,
         navOptions: NavOptions? = null,
         navigatorExtras: Navigator.Extras? = null
+    )
+
+    /**
+     * Navigate to a destination via the given deep link [Uri]. [NavDestination.hasDeepLink] should
+     * be called on [the navigation graph][graph] prior to calling this method to check if the deep
+     * link is valid. If an invalid deep link is given, an [IllegalArgumentException] will be
+     * thrown.
+     *
+     * @param deepLink deepLink to the destination reachable from the current NavGraph
+     * @see NavController.navigate
+     */
+    @MainThread
+    public open fun navigate(deepLink: Uri)
+
+    /**
+     * Navigate to a destination via the given deep link [Uri]. [NavDestination.hasDeepLink] should
+     * be called on [the navigation graph][graph] prior to calling this method to check if the deep
+     * link is valid. If an invalid deep link is given, an [IllegalArgumentException] will be
+     * thrown.
+     *
+     * @param deepLink deepLink to the destination reachable from the current NavGraph
+     * @param navOptions special options for this navigation operation
+     * @see NavController.navigate
+     */
+    @MainThread
+    public open fun navigate(deepLink: Uri, navOptions: NavOptions?)
+
+    /**
+     * Navigate to a destination via the given deep link [Uri]. [NavDestination.hasDeepLink] should
+     * be called on [the navigation graph][graph] prior to calling this method to check if the deep
+     * link is valid. If an invalid deep link is given, an [IllegalArgumentException] will be
+     * thrown.
+     *
+     * @param deepLink deepLink to the destination reachable from the current NavGraph
+     * @param navOptions special options for this navigation operation
+     * @param navigatorExtras extras to pass to the Navigator
+     * @see NavController.navigate
+     */
+    @MainThread
+    public open fun navigate(
+        deepLink: Uri,
+        navOptions: NavOptions?,
+        navigatorExtras: Navigator.Extras?
     )
 
     /**
