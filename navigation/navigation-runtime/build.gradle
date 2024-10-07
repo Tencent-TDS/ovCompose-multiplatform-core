@@ -136,6 +136,8 @@ kotlin {
             dependsOn(jbMain)
         }
 
+        webMain.dependsOn(jbMain)
+
         targets.all { target ->
             if (target.platformType !in [
                     KotlinPlatformType.androidJvm,
@@ -145,6 +147,14 @@ kotlin {
                 target.compilations["main"].defaultSourceSet {
                     dependsOn(nonJvmMain)
                 }
+            }
+        }
+
+        targets.all { target ->
+            if (target.platformType == KotlinPlatformType.native) {
+                target.compilations["main"].defaultSourceSet.dependsOn(jbMain)
+            } else if (target.platformType in [KotlinPlatformType.js, KotlinPlatformType.wasm]) {
+                target.compilations["main"].defaultSourceSet.dependsOn(webMain)
             }
         }
     }
