@@ -30,20 +30,42 @@ actual fun configureBrowserNavigation(window: Window, navController: NavControll
 
     window.addEventListener("popstate", { event: Event ->
         if (event is PopStateEvent) { //back or forward in the browser
-            val state = event.state?.unsafeCast<JsString>().toString()
+            val state = event.state.toString()
 
             val restoredRoutes = state.lines()
             val currentBackStack = navController.currentBackStack.value
+            val currentRoutes = currentBackStack.filter { it.destination !is NavGraph }
+                .mapNotNull { it.getRouteWithArgs() }
+
+            var commonTail = -1
+            restoredRoutes.forEachIndexed { index, restoredRoute ->
+                if (index >= currentRoutes.size) {
+                    return@forEachIndexed
+                }
+                if (restoredRoute == currentRoutes[index]) {
+                    commonTail = index
+                }
+            }
 
             //don't handle next navigation calls
             updateState = false
 
-            //clear current stack
-            currentBackStack.firstOrNull { it.destination !is NavGraph }?.let { root ->
-                root.destination.route?.let { navController.popBackStack(it, true) }
+            if (commonTail == -1) {
+                //clear full stack
+                currentRoutes.firstOrNull()?.let { root ->
+                    navController.popBackStack(root, true)
+                }
+            } else {
+                currentRoutes[commonTail].let { lastCommon ->
+                    navController.popBackStack(lastCommon, false)
+                }
             }
+
             //restore stack
-            restoredRoutes.forEach { route -> navController.navigate(route) }
+            if (commonTail < restoredRoutes.size - 1) {
+                val newRoutes = restoredRoutes.subList(commonTail + 1, restoredRoutes.size)
+                newRoutes.forEach { route -> navController.navigate(route) }
+            }
         }
     })
 
