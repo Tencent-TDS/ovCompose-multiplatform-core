@@ -16,7 +16,10 @@
 
 package androidx.navigation
 
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import org.w3c.dom.PopStateEvent
 import org.w3c.dom.Window
@@ -24,69 +27,90 @@ import org.w3c.dom.events.Event
 
 actual typealias BrowserWindow = Window
 
-actual fun configureBrowserNavigation(window: Window, navController: NavController) {
-    var initState = true
-    var updateState = true
+actual suspend fun Window.bindToNavigation(navController: NavController) {
+    coroutineScope {
+        val localWindow = this@bindToNavigation
+        var initState = true
+        var updateState = true
 
-    window.addEventListener("popstate", { event: Event ->
-        if (event is PopStateEvent) { //back or forward in the browser
-            val state = event.state.toString()
+        launch {
+            localWindow.popStateEvents().collect { event ->
+                val state = event.state.toString()
 
-            val restoredRoutes = state.lines()
-            val currentBackStack = navController.currentBackStack.value
-            val currentRoutes = currentBackStack.filter { it.destination !is NavGraph }
-                .mapNotNull { it.getRouteWithArgs() }
+                val restoredRoutes = state.lines()
+                val currentBackStack = navController.currentBackStack.value
+                val currentRoutes = currentBackStack.filter { it.destination !is NavGraph }
+                    .mapNotNull { it.getRouteWithArgs() }
 
-            var commonTail = -1
-            restoredRoutes.forEachIndexed { index, restoredRoute ->
-                if (index >= currentRoutes.size) {
-                    return@forEachIndexed
+                var commonTail = -1
+                restoredRoutes.forEachIndexed { index, restoredRoute ->
+                    if (index >= currentRoutes.size) {
+                        return@forEachIndexed
+                    }
+                    if (restoredRoute == currentRoutes[index]) {
+                        commonTail = index
+                    }
                 }
-                if (restoredRoute == currentRoutes[index]) {
-                    commonTail = index
-                }
-            }
 
-            //don't handle next navigation calls
-            updateState = false
+                //don't handle next navigation calls
+                updateState = false
 
-            if (commonTail == -1) {
-                //clear full stack
-                currentRoutes.firstOrNull()?.let { root ->
-                    navController.popBackStack(root, true)
-                }
-            } else {
-                currentRoutes[commonTail].let { lastCommon ->
-                    navController.popBackStack(lastCommon, false)
-                }
-            }
-
-            //restore stack
-            if (commonTail < restoredRoutes.size - 1) {
-                val newRoutes = restoredRoutes.subList(commonTail + 1, restoredRoutes.size)
-                newRoutes.forEach { route -> navController.navigate(route) }
-            }
-        }
-    })
-
-    //global listener is fine here
-    GlobalScope.launch {
-        navController.currentBackStack.collect { stack ->
-            val routes = stack.filter { it.destination !is NavGraph }
-                .map { it.getRouteWithArgs() ?: return@collect }
-
-            val newUri = window.location.run { "$protocol//$host/${routes.last()}" }
-            val state = routes.joinToString("\n")
-
-            if (updateState) {
-                if (initState) {
-                    window.history.replaceState(state.toJsString(), "", newUri)
-                    initState = false
+                if (commonTail == -1) {
+                    //clear full stack
+                    currentRoutes.firstOrNull()?.let { root ->
+                        navController.popBackStack(root, true)
+                    }
                 } else {
-                    window.history.pushState(state.toJsString(), "", newUri)
+                    currentRoutes[commonTail].let { lastCommon ->
+                        navController.popBackStack(lastCommon, false)
+                    }
+                }
+
+                //restore stack
+                if (commonTail < restoredRoutes.size - 1) {
+                    val newRoutes = restoredRoutes.subList(commonTail + 1, restoredRoutes.size)
+                    newRoutes.forEach { route -> navController.navigate(route) }
                 }
             }
-            updateState = true
         }
+
+        launch {
+            navController.currentBackStack.collect { stack ->
+                if (stack.isEmpty()) return@collect
+
+                val routes = stack.filter { it.destination !is NavGraph }
+                    .map { it.getRouteWithArgs() ?: return@collect }
+
+                val newUri = with(localWindow.location) { "$protocol//$host/${routes.last()}" }
+                val state = routes.joinToString("\n")
+
+
+                if (updateState) {
+                    if (initState) {
+                        localWindow.history.replaceState(state.toJsString(), "", newUri)
+                        initState = false
+                    } else {
+                        localWindow.history.pushState(state.toJsString(), "", newUri)
+                    }
+                }
+                updateState = true
+            }
+        }
+    }
+}
+
+private fun Window.popStateEvents(): Flow<PopStateEvent> = callbackFlow {
+    val localWindow = this@popStateEvents
+    val callback: (Event) -> Unit = { event: Event ->
+        if (!isClosedForSend) {
+            if (event is PopStateEvent) {
+                trySend(event)
+            }
+        }
+    }
+
+    localWindow.addEventListener("popstate", callback)
+    awaitClose {
+        localWindow.removeEventListener("popstate", callback)
     }
 }

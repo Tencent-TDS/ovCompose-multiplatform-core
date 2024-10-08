@@ -24,12 +24,11 @@ import androidx.navigation.NavGraph
 expect abstract class BrowserWindow
 
 /**
- * Configures the browser navigation for the given window and navigation controller.
+ * Bind the browser navigation state to the given navigation controller.
  *
- * @param window an instance of browser's window to be configured
  * @param navController an instance of NavController handling the navigation logic
  */
-expect fun configureBrowserNavigation(window: BrowserWindow, navController: NavController)
+expect suspend fun BrowserWindow.bindToNavigation(navController: NavController)
 
 private val argPlaceholder = Regex("""\{*.\}""")
 internal fun NavBackStackEntry.getRouteWithArgs(): String? {
