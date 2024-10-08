@@ -139,6 +139,8 @@ androidXMultiplatform {
                 target.compilations["test"].defaultSourceSet.dependsOn(webTest)
             }
         }
+
+        wasmJsTest.kotlin.srcDirs("src/jsTest/kotlin")
     }
 }
 
