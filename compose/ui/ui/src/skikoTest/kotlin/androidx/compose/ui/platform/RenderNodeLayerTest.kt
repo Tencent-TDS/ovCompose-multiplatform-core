@@ -601,12 +601,8 @@ class RenderNodeLayerTest {
     )
 
     private fun assertMapping(from: Offset, to: Offset) {
-        // TODO: Fix precision and lower tolerance back.
-        //  It's a regression after performance optimizations from https://r.android.com/3127234
-        //  Now the error is up to 0.17346 in a few tests
-        //  https://youtrack.jetbrains.com/issue/CMP-6764
-        assertEquals(from, matrix.map(to), 0.2f)
-        assertEquals(to, inverseMatrix.map(from), 0.2f)
+        assertEquals(from, matrix.map(to), 0.001f)
+        assertEquals(to, inverseMatrix.map(from), 0.001f)
     }
 
     private fun assertEquals(expected: Offset, actual: Offset, absoluteTolerance: Float) {
