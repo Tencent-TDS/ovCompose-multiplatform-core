@@ -17,18 +17,6 @@
 package androidx.navigation
 
 import androidx.core.bundle.Bundle
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavController
-import androidx.navigation.NavGraph
-
-expect abstract class BrowserWindow
-
-/**
- * Bind the browser navigation state to the given navigation controller.
- *
- * @param navController an instance of NavController handling the navigation logic
- */
-expect suspend fun BrowserWindow.bindToNavigation(navController: NavController)
 
 private val argPlaceholder = Regex("""\{*.\}""")
 internal fun NavBackStackEntry.getRouteWithArgs(): String? {

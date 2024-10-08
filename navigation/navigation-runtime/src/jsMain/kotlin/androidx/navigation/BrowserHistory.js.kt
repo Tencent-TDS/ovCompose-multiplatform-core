@@ -25,9 +25,12 @@ import org.w3c.dom.PopStateEvent
 import org.w3c.dom.Window
 import org.w3c.dom.events.Event
 
-actual typealias BrowserWindow = Window
-
-actual suspend fun Window.bindToNavigation(navController: NavController) {
+/**
+ * Bind the browser navigation state to the given navigation controller.
+ *
+ * @param navController an instance of NavController handling the navigation logic
+ */
+suspend fun Window.bindToNavigation(navController: NavController) {
     coroutineScope {
         val localWindow = this@bindToNavigation
         var initState = true
