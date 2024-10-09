@@ -28,6 +28,7 @@ import org.w3c.dom.events.Event
 suspend fun Window.bindToNavigation(navController: NavController) {
     coroutineScope {
         val localWindow = this@bindToNavigation
+        val appAddress = with(localWindow.location) { origin + pathname }.removeSuffix("/")
         var initState = true
         var updateState = true
 
@@ -79,7 +80,7 @@ suspend fun Window.bindToNavigation(navController: NavController) {
                 val routes = stack.filter { it.destination !is NavGraph }
                     .map { it.getRouteWithArgs() ?: return@collect }
 
-                val newUri = with(localWindow.location) { "$protocol//$host/${routes.last()}" }
+                val newUri = "$appAddress/${routes.last()}"
                 val state = routes.joinToString("\n")
 
 
