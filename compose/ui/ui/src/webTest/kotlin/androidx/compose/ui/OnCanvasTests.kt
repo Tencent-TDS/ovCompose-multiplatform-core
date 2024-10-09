@@ -17,7 +17,7 @@
 package androidx.compose.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.window.CanvasBasedWindow
+import androidx.compose.ui.window.ComposeViewport
 import kotlin.test.BeforeTest
 import kotlinx.browser.document
 import kotlinx.coroutines.CoroutineScope
@@ -34,11 +34,36 @@ import org.w3c.dom.events.Event
 
 private const val canvasId: String = "canvasApp"
 
+private external interface CanReplaceChildren {
+    // this is a standard method for (among other things) emptying DOM element content
+    // https://developer.mozilla.org/en-US/docs/Web/API/Element/replaceChildren
+    // TODO: add this to our kotlin web external definitions
+    fun replaceChildren()
+}
+
 internal interface OnCanvasTests {
-    fun getCanvas() = document.getElementById(canvasId) as HTMLCanvasElement
+
+    @BeforeTest
+    fun beforeTest() {
+        /** TODO: [kotlin.test.AfterTest] is fixed only in kotlin 2.0
+        see https://youtrack.jetbrains.com/issue/KT-61888
+         */
+        resetCanvas()
+    }
+
+    private fun resetCanvas() {
+        (getCanvasContainer() as CanReplaceChildren).replaceChildren()
+    }
+
+    private fun getCanvasContainer() = document.getElementById(canvasId) ?: error("failed to get canvas with id ${canvasId}")
+
+    fun getCanvas(): HTMLCanvasElement {
+        val canvas = (getCanvasContainer().querySelector("canvas") as? HTMLCanvasElement) ?: error("failed to get canvas")
+        return canvas
+    }
 
     fun createComposeWindow(content: @Composable () -> Unit) {
-        CanvasBasedWindow(canvasElementId = canvasId, content = content)
+        ComposeViewport(canvasId, content = content)
     }
 
     fun dispatchEvents(vararg events: Any) {
