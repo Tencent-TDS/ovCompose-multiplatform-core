@@ -19,11 +19,15 @@ package androidx.navigation
 import org.w3c.dom.Window
 
 /**
- * Bind the browser navigation state to the given navigation controller.
+ * Binds the browser window state to the given navigation controller.
  *
- * @param navController an instance of NavController handling the navigation logic
+ * @param navController The `NavController` instance to bind to browser window navigation.
+ * @param getBackStackEntryPath An optional function that returns the path to show for a given `NavBackStackEntry`.
  */
-suspend fun Window.bindToNavigation(navController: NavController) {
+internal suspend fun Window.bindToNavigation(
+    navController: NavController,
+    getBackStackEntryPath: (entry: NavBackStackEntry) -> String = { "/${it.getRouteWithArgs().orEmpty()}"}
+) {
     @Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
-    (this as BrowserWindow).bindToNavigation(navController)
+    (this as BrowserWindow).bindToNavigation(navController, getBackStackEntryPath)
 }

@@ -25,11 +25,15 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 
 /**
- * Bind the browser navigation state to the given navigation controller.
+ * Binds the browser window state to the given navigation controller.
  *
- * @param navController an instance of NavController handling the navigation logic
+ * @param navController The `NavController` instance to bind to browser window navigation.
+ * @param getBackStackEntryPath A function that returns the path to show for a given `NavBackStackEntry`.
  */
-internal suspend fun BrowserWindow.bindToNavigation(navController: NavController) {
+internal suspend fun BrowserWindow.bindToNavigation(
+    navController: NavController,
+    getBackStackEntryPath: (entry: NavBackStackEntry) -> String
+) {
     coroutineScope {
         val localWindow = this@bindToNavigation
         val appAddress = with(localWindow.location) { origin + pathname }.removeSuffix("/")
@@ -81,10 +85,11 @@ internal suspend fun BrowserWindow.bindToNavigation(navController: NavController
             navController.currentBackStack.collect { stack ->
                 if (stack.isEmpty()) return@collect
 
-                val routes = stack.filter { it.destination !is NavGraph }
-                    .map { it.getRouteWithArgs() ?: return@collect }
+                val entries = stack.filter { it.destination !is NavGraph }
+                if (entries.isEmpty()) return@collect
+                val routes = entries.map { it.getRouteWithArgs() ?: return@collect }
 
-                val newUri = "$appAddress/${routes.last()}"
+                val newUri = appAddress + getBackStackEntryPath(entries.last())
                 val state = routes.joinToString("\n")
 
 
@@ -119,7 +124,7 @@ private fun BrowserWindow.popStateEvents(): Flow<BrowserPopStateEvent> = callbac
 }
 
 private val argPlaceholder = Regex("""\{*.\}""")
-private fun NavBackStackEntry.getRouteWithArgs(): String? {
+internal fun NavBackStackEntry.getRouteWithArgs(): String? {
     val entry = this
     val route = entry.destination.route ?: return null
     if (!route.contains(argPlaceholder)) return route
