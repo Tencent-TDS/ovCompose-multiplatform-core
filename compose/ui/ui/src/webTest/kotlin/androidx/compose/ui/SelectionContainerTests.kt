@@ -38,13 +38,13 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
-import org.w3c.dom.Element
+import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.MouseEventInit
 
 class SelectionContainerTests : OnCanvasTests {
 
-    private fun Element.doClick() {
+    private fun HTMLCanvasElement.doClick() {
         dispatchEvent(MouseEvent("mousedown", MouseEventInit(5, 5, 5, 5, buttons = 1, button = 1)))
         dispatchEvent(MouseEvent("mouseup", MouseEventInit(5, 5, 5, 5, buttons = 0, button = 1)))
     }
