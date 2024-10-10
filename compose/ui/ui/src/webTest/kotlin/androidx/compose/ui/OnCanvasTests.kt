@@ -32,7 +32,7 @@ import org.w3c.dom.events.Event
  * An interface with helper functions to initialise the tests
  */
 
-private const val canvasId: String = "canvasApp"
+private const val containerId: String = "canvasApp"
 
 private external interface CanReplaceChildren {
     // this is a standard method for (among other things) emptying DOM element content
@@ -55,7 +55,7 @@ internal interface OnCanvasTests {
         (getCanvasContainer() as CanReplaceChildren).replaceChildren()
     }
 
-    private fun getCanvasContainer() = document.getElementById(canvasId) ?: error("failed to get canvas with id ${canvasId}")
+    private fun getCanvasContainer() = document.getElementById(containerId) ?: error("failed to get canvas with id ${containerId}")
 
     fun getCanvas(): HTMLCanvasElement {
         val canvas = (getCanvasContainer().querySelector("canvas") as? HTMLCanvasElement) ?: error("failed to get canvas")
@@ -63,7 +63,7 @@ internal interface OnCanvasTests {
     }
 
     fun createComposeWindow(content: @Composable () -> Unit) {
-        ComposeViewport(canvasId, content = content)
+        ComposeViewport(containerId, content = content)
     }
 
     fun dispatchEvents(vararg events: Any) {
