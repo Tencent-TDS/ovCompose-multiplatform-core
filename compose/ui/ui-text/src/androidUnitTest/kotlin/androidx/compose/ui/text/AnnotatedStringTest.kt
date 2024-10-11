@@ -37,12 +37,13 @@ class AnnotatedStringTest {
 
         val paragraphs = annotatedString.normalizedParagraphStyles(defaultParagraphStyle)
 
-        assertThat(paragraphs).isEqualTo(
-            listOf(
-                Range(defaultParagraphStyle.merge(paragraphStyle), 0, 5),
-                Range(defaultParagraphStyle, 5, text.length)
+        assertThat(paragraphs)
+            .isEqualTo(
+                listOf(
+                    Range(defaultParagraphStyle.merge(paragraphStyle), 0, 5),
+                    Range(defaultParagraphStyle, 5, text.length)
+                )
             )
-        )
     }
 
     @Test
@@ -99,49 +100,65 @@ class AnnotatedStringTest {
     @Test
     fun plus_operator_creates_a_new_annotated_string() {
         val text1 = "Hello"
-        val spanStyles1 = listOf(
-            Range(SpanStyle(color = Color.Red), 0, 3),
-            Range(SpanStyle(color = Color.Blue), 2, 4)
-        )
-        val paragraphStyles1 = listOf(
-            Range(ParagraphStyle(lineHeight = 20.sp), 0, 1),
-            Range(ParagraphStyle(lineHeight = 30.sp), 1, 5)
-        )
-        val annotations1 = listOf(
-            Range("annotation1", 0, 2, "scope1"),
-            Range("annotation1", 3, 5, "scope1")
-        )
-        val annotatedString1 = AnnotatedString(
-            text = text1,
-            spanStylesOrNull = spanStyles1,
-            paragraphStylesOrNull = paragraphStyles1,
-            annotations = annotations1
-        )
+        val annotations1 =
+            listOf(
+                Range(SpanStyle(color = Color.Red), 0, 3),
+                Range(SpanStyle(color = Color.Blue), 2, 4),
+                Range(ParagraphStyle(lineHeight = 20.sp), 0, 1),
+                Range(ParagraphStyle(lineHeight = 30.sp), 1, 5),
+                Range(StringAnnotation("annotation1"), 0, 2, "scope1"),
+                Range(StringAnnotation("annotation1"), 3, 5, "scope1")
+            )
+        val annotatedString1 = AnnotatedString(text = text1, annotations = annotations1)
 
         val text2 = "World"
         val spanStyle = SpanStyle(color = Color.Cyan)
         val paragraphStyle = ParagraphStyle(lineHeight = 10.sp)
-        val annotatedString2 = AnnotatedString(
-            text = text2,
-            spanStylesOrNull = listOf(Range(spanStyle, 0, text2.length)),
-            paragraphStylesOrNull = listOf(Range(paragraphStyle, 0, text2.length)),
-            annotations = listOf(Range("annotation2", 0, text2.length, "scope2"))
-        )
-
-        assertThat(annotatedString1 + annotatedString2).isEqualTo(
+        val annotatedString2 =
             AnnotatedString(
-                "$text1$text2",
-                spanStyles1 + listOf(
-                    Range(spanStyle, text1.length, text1.length + text2.length)
-                ),
-                paragraphStyles1 + listOf(
-                    Range(paragraphStyle, text1.length, text1.length + text2.length)
-                ),
-                annotations1 + listOf(
-                    Range("annotation2", text1.length, text1.length + text2.length, "scope2")
+                text = text2,
+                annotations =
+                    listOf(
+                        Range(spanStyle, 0, text2.length),
+                        Range(paragraphStyle, 0, text2.length),
+                        Range(StringAnnotation("annotation2"), 0, text2.length, "scope2")
+                    ),
+            )
+
+        assertThat(annotatedString1 + annotatedString2)
+            .isEqualTo(
+                AnnotatedString(
+                    "$text1$text2",
+                    annotations1 +
+                        listOf(
+                            Range(spanStyle, text1.length, text1.length + text2.length),
+                            Range(paragraphStyle, text1.length, text1.length + text2.length),
+                            Range(
+                                StringAnnotation("annotation2"),
+                                text1.length,
+                                text1.length + text2.length,
+                                "scope2"
+                            )
+                        )
                 )
             )
-        )
+
+        assertThat((annotatedString1 + annotatedString2).spanStyles)
+            .isEqualTo(
+                listOf(
+                    Range(SpanStyle(color = Color.Red), 0, 3),
+                    Range(SpanStyle(color = Color.Blue), 2, 4),
+                    Range(spanStyle, text1.length, text1.length + text2.length),
+                )
+            )
+        assertThat((annotatedString1 + annotatedString2).paragraphStyles)
+            .isEqualTo(
+                listOf(
+                    Range(ParagraphStyle(lineHeight = 20.sp), 0, 1),
+                    Range(ParagraphStyle(lineHeight = 30.sp), 1, 5),
+                    Range(paragraphStyle, text1.length, text1.length + text2.length),
+                )
+            )
     }
 
     @Test
@@ -153,169 +170,136 @@ class AnnotatedStringTest {
 
     @Test
     fun subSequence_returns_empty_text_for_start_equals_end() {
-        val annotatedString = with(AnnotatedString.Builder()) {
-            withStyle(SpanStyle(fontSize = 12.sp)) {
-                append("a")
-            }
-            withStyle(SpanStyle(fontSize = 12.sp)) {
-                append("b")
-            }
-            withStyle(ParagraphStyle(lineHeight = 14.sp)) {
-                append("c")
-            }
-            toAnnotatedString()
-        }.subSequence(1, 1)
+        val annotatedString =
+            with(AnnotatedString.Builder()) {
+                    withStyle(SpanStyle(fontSize = 12.sp)) { append("a") }
+                    withStyle(SpanStyle(fontSize = 12.sp)) { append("b") }
+                    withStyle(ParagraphStyle(lineHeight = 14.sp)) { append("c") }
+                    toAnnotatedString()
+                }
+                .subSequence(1, 1)
 
-        assertThat(annotatedString).isEqualTo(
-            AnnotatedString("", listOf(Range(SpanStyle(fontSize = 12.sp), 0, 0)))
-        )
+        assertThat(annotatedString)
+            .isEqualTo(AnnotatedString("", listOf(Range(SpanStyle(fontSize = 12.sp), 0, 0))))
     }
 
     @Test
     fun subSequence_returns_original_text_for_text_range_is_full_range() {
-        val annotatedString = with(AnnotatedString.Builder()) {
-            withStyle(SpanStyle(fontSize = 12.sp)) {
-                append("a")
+        val annotatedString =
+            with(AnnotatedString.Builder()) {
+                withStyle(SpanStyle(fontSize = 12.sp)) { append("a") }
+                withStyle(SpanStyle(fontSize = 12.sp)) { append("b") }
+                withStyle(ParagraphStyle(lineHeight = 14.sp)) { append("c") }
+                toAnnotatedString()
             }
-            withStyle(SpanStyle(fontSize = 12.sp)) {
-                append("b")
-            }
-            withStyle(ParagraphStyle(lineHeight = 14.sp)) {
-                append("c")
-            }
-            toAnnotatedString()
-        }
 
         assertThat(annotatedString.subSequence(0, 3)).isSameInstanceAs(annotatedString)
     }
 
     @Test
     fun subSequence_doesNot_include_styles_before_the_start() {
-        val annotatedString = with(AnnotatedString.Builder()) {
-            withStyle(SpanStyle(fontSize = 12.sp)) {
-                append("a")
+        val annotatedString =
+            with(AnnotatedString.Builder()) {
+                withStyle(SpanStyle(fontSize = 12.sp)) { append("a") }
+                withStyle(ParagraphStyle(lineHeight = 14.sp)) { append("b") }
+                append("c")
+                toAnnotatedString()
             }
-            withStyle(ParagraphStyle(lineHeight = 14.sp)) {
-                append("b")
-            }
-            append("c")
-            toAnnotatedString()
-        }
 
-        assertThat(annotatedString.subSequence("ab".length, annotatedString.length)).isEqualTo(
-            AnnotatedString("c")
-        )
+        assertThat(annotatedString.subSequence("ab".length, annotatedString.length))
+            .isEqualTo(AnnotatedString("c"))
     }
 
     @Test
     fun subSequence_doesNot_include_styles_after_the_end() {
-        val annotatedString = with(AnnotatedString.Builder()) {
-            append("a")
-            withStyle(SpanStyle(fontSize = 12.sp)) {
-                append("b")
+        val annotatedString =
+            with(AnnotatedString.Builder()) {
+                append("a")
+                withStyle(SpanStyle(fontSize = 12.sp)) { append("b") }
+                withStyle(ParagraphStyle(lineHeight = 14.sp)) { append("c") }
+                toAnnotatedString()
             }
-            withStyle(ParagraphStyle(lineHeight = 14.sp)) {
-                append("c")
-            }
-            toAnnotatedString()
-        }
 
-        assertThat(annotatedString.subSequence(0, "a".length)).isEqualTo(
-            AnnotatedString("a")
-        )
+        assertThat(annotatedString.subSequence(0, "a".length)).isEqualTo(AnnotatedString("a"))
     }
 
     @Test
     fun subSequence_collapsed_item_with_itemStart_equalTo_rangeStart() {
         val style = SpanStyle(fontSize = 12.sp)
-        val annotatedString = with(AnnotatedString.Builder()) {
-            append("abc")
-            // add collapsed item at the beginning of b
-            addStyle(style, 1, 1)
-            toAnnotatedString()
-        }
+        val annotatedString =
+            with(AnnotatedString.Builder()) {
+                append("abc")
+                // add collapsed item at the beginning of b
+                addStyle(style, 1, 1)
+                toAnnotatedString()
+            }
 
-        assertThat(annotatedString.subSequence(1, 2)).isEqualTo(
-            AnnotatedString("b", listOf(Range(style, 0, 0)))
-        )
+        assertThat(annotatedString.subSequence(1, 2))
+            .isEqualTo(AnnotatedString("b", listOf(Range(style, 0, 0))))
     }
 
     @Test
     fun subSequence_collapses_included_item() {
         val style = SpanStyle(fontSize = 12.sp)
-        val annotatedString = with(AnnotatedString.Builder()) {
-            append("a")
-            // will collapse this style in subsequence
-            withStyle(style) {
-                append("b")
+        val annotatedString =
+            with(AnnotatedString.Builder()) {
+                append("a")
+                // will collapse this style in subsequence
+                withStyle(style) { append("b") }
+                append("c")
+                toAnnotatedString()
             }
-            append("c")
-            toAnnotatedString()
-        }
 
         // subsequence with 1,1 will remove text, but include the style
-        assertThat(annotatedString.subSequence(1, 1)).isEqualTo(
-            AnnotatedString("", listOf(Range(style, 0, 0)))
-        )
+        assertThat(annotatedString.subSequence(1, 1))
+            .isEqualTo(AnnotatedString("", listOf(Range(style, 0, 0))))
     }
 
     @Test
     fun subSequence_collapses_covering_item() {
         val style = SpanStyle(fontSize = 12.sp)
-        val annotatedString = with(AnnotatedString.Builder()) {
-            withStyle(style) {
-                append("abc")
+        val annotatedString =
+            with(AnnotatedString.Builder()) {
+                withStyle(style) { append("abc") }
+                toAnnotatedString()
             }
-            toAnnotatedString()
-        }
 
-        assertThat(annotatedString.subSequence(1, 1)).isEqualTo(
-            AnnotatedString("", listOf(Range(style, 0, 0)))
-        )
+        assertThat(annotatedString.subSequence(1, 1))
+            .isEqualTo(AnnotatedString("", listOf(Range(style, 0, 0))))
     }
 
     @Test
     fun subSequence_with_collapsed_range_with_collapsed_item() {
         val style = SpanStyle(fontSize = 12.sp)
-        val annotatedString = with(AnnotatedString.Builder()) {
-            append("abc")
-            // add collapsed item at the beginning of b
-            addStyle(style, 1, 1)
-            toAnnotatedString()
-        }
+        val annotatedString =
+            with(AnnotatedString.Builder()) {
+                append("abc")
+                // add collapsed item at the beginning of b
+                addStyle(style, 1, 1)
+                toAnnotatedString()
+            }
 
-        assertThat(annotatedString.subSequence(1, 1)).isEqualTo(
-            AnnotatedString("", listOf(Range(style, 0, 0)))
-        )
+        assertThat(annotatedString.subSequence(1, 1))
+            .isEqualTo(AnnotatedString("", listOf(Range(style, 0, 0))))
     }
 
     @Test
     fun subSequence_includes_partial_matches() {
-        val annotatedString = with(AnnotatedString.Builder()) {
-            withStyle(SpanStyle(fontSize = 12.sp)) {
-                append("ab")
+        val annotatedString =
+            with(AnnotatedString.Builder()) {
+                withStyle(SpanStyle(fontSize = 12.sp)) { append("ab") }
+                withStyle(SpanStyle(fontSize = 12.sp)) { append("c") }
+                withStyle(ParagraphStyle(lineHeight = 14.sp)) { append("de") }
+                toAnnotatedString()
             }
-            withStyle(SpanStyle(fontSize = 12.sp)) {
-                append("c")
-            }
-            withStyle(ParagraphStyle(lineHeight = 14.sp)) {
-                append("de")
-            }
-            toAnnotatedString()
-        }
 
-        val expectedString = with(AnnotatedString.Builder()) {
-            withStyle(SpanStyle(fontSize = 12.sp)) {
-                append("b")
+        val expectedString =
+            with(AnnotatedString.Builder()) {
+                withStyle(SpanStyle(fontSize = 12.sp)) { append("b") }
+                withStyle(SpanStyle(fontSize = 12.sp)) { append("c") }
+                withStyle(ParagraphStyle(lineHeight = 14.sp)) { append("d") }
+                toAnnotatedString()
             }
-            withStyle(SpanStyle(fontSize = 12.sp)) {
-                append("c")
-            }
-            withStyle(ParagraphStyle(lineHeight = 14.sp)) {
-                append("d")
-            }
-            toAnnotatedString()
-        }
 
         val subSequence = annotatedString.subSequence("a".length, "abcd".length)
 
@@ -346,15 +330,14 @@ class AnnotatedStringTest {
             append("ef")
         }
         // Collapsed range equals to end, no annotation
-        assertThat(annotatedString.subSequence(4, 4))
-            .isEqualTo(AnnotatedString(""))
+        assertThat(annotatedString.subSequence(4, 4)).isEqualTo(AnnotatedString(""))
 
         // Collapsed range equals to start, has annotation
         assertThat(annotatedString.subSequence(2, 2))
             .isEqualTo(
                 AnnotatedString(
                     "",
-                    annotations = listOf(Range("annotation1", 0, 0, "scope1"))
+                    annotations = listOf(Range(StringAnnotation("annotation1"), 0, 0, "scope1"))
                 )
             )
 
@@ -363,7 +346,7 @@ class AnnotatedStringTest {
             .isEqualTo(
                 AnnotatedString(
                     "",
-                    annotations = listOf(Range("annotation1", 0, 0, "scope1"))
+                    annotations = listOf(Range(StringAnnotation("annotation1"), 0, 0, "scope1"))
                 )
             )
     }
@@ -382,7 +365,7 @@ class AnnotatedStringTest {
             .isEqualTo(
                 AnnotatedString(
                     "abc",
-                    annotations = listOf(Range("annotation1", 2, 3, "scope1"))
+                    annotations = listOf(Range(StringAnnotation("annotation1"), 2, 3, "scope1"))
                 )
             )
 
@@ -391,7 +374,7 @@ class AnnotatedStringTest {
             .isEqualTo(
                 AnnotatedString(
                     "de",
-                    annotations = listOf(Range("annotation1", 0, 1, "scope1"))
+                    annotations = listOf(Range(StringAnnotation("annotation1"), 0, 1, "scope1"))
                 )
             )
     }
@@ -411,7 +394,7 @@ class AnnotatedStringTest {
             .isEqualTo(
                 AnnotatedString(
                     "abcde",
-                    annotations = listOf(Range("annotation1", 2, 4, "scope1"))
+                    annotations = listOf(Range(StringAnnotation("annotation1"), 2, 4, "scope1"))
                 )
             )
 
@@ -420,7 +403,7 @@ class AnnotatedStringTest {
             .isEqualTo(
                 AnnotatedString(
                     "cd",
-                    annotations = listOf(Range("annotation1", 0, 2, "scope1"))
+                    annotations = listOf(Range(StringAnnotation("annotation1"), 0, 2, "scope1"))
                 )
             )
     }
@@ -455,26 +438,18 @@ class AnnotatedStringTest {
     fun constructor_function_with_single_spanStyle() {
         val text = "a"
         val spanStyle = SpanStyle(color = Color.Red)
-        assertThat(
-            AnnotatedString(text, spanStyle)
-        ).isEqualTo(
-            AnnotatedString(text, listOf(Range(spanStyle, 0, text.length)))
-        )
+        assertThat(AnnotatedString(text, spanStyle))
+            .isEqualTo(AnnotatedString(text, listOf(Range(spanStyle, 0, text.length))))
     }
 
     @Test
     fun constructor_function_with_single_paragraphStyle() {
         val text = "a"
         val paragraphStyle = ParagraphStyle(lineHeight = 12.sp)
-        assertThat(
-            AnnotatedString(text, paragraphStyle)
-        ).isEqualTo(
-            AnnotatedString(
-                text,
-                listOf(),
-                listOf(Range(paragraphStyle, 0, text.length))
+        assertThat(AnnotatedString(text, paragraphStyle))
+            .isEqualTo(
+                AnnotatedString(text, listOf(), listOf(Range(paragraphStyle, 0, text.length)))
             )
-        )
     }
 
     @Test
@@ -482,15 +457,14 @@ class AnnotatedStringTest {
         val text = "a"
         val spanStyle = SpanStyle(color = Color.Red)
         val paragraphStyle = ParagraphStyle(lineHeight = 12.sp)
-        assertThat(
-            AnnotatedString(text, spanStyle, paragraphStyle)
-        ).isEqualTo(
-            AnnotatedString(
-                text,
-                listOf(Range(spanStyle, 0, text.length)),
-                listOf(Range(paragraphStyle, 0, text.length))
+        assertThat(AnnotatedString(text, spanStyle, paragraphStyle))
+            .isEqualTo(
+                AnnotatedString(
+                    text,
+                    listOf(Range(spanStyle, 0, text.length)),
+                    listOf(Range(paragraphStyle, 0, text.length))
+                )
             )
-        )
     }
 
     @Test

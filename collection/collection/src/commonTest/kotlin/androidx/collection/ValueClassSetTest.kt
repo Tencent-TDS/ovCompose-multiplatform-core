@@ -33,7 +33,8 @@ import kotlin.test.assertTrue
 //     -e "s/vALUE_CLASS/testValueClass/g" -e "s/BACKING_PROPERTY/value.toLong()/g" \
 //     -e "s/TO_PARAM/.toULong()/g" -e "s/PRIMITIVE/Long/g" -e "s/VALUE_PKG/androidx.collection/" \
 //     collection/collection/template/ValueClassSet.kt.template \
-//     > collection/collection/src/commonTest/kotlin/androidx/collection/template/TestValueClassSet.kt
+//     >
+// collection/collection/src/commonTest/kotlin/androidx/collection/template/TestValueClassSet.kt
 
 @OptIn(ExperimentalUnsignedTypes::class)
 internal class ValueClassSetTest {
@@ -87,9 +88,7 @@ internal class ValueClassSetTest {
         assertEquals(2, set.size)
         val elements = ULongArray(2)
         var index = 0
-        set.forEach { element ->
-            elements[index++] = element.value
-        }
+        set.forEach { element -> elements[index++] = element.value }
         elements.sort()
         assertEquals(1UL, elements[0])
         assertEquals(2UL, elements[1])
@@ -232,12 +231,7 @@ internal class ValueClassSetTest {
     fun removeAllTestValueClassSet() {
         val set = mutableTestValueClassSetOf(TestValueClass(1UL), TestValueClass(2UL))
         assertFalse(
-            set.removeAll(
-                mutableTestValueClassSetOf(
-                    TestValueClass(3UL),
-                    TestValueClass(5UL)
-                )
-            )
+            set.removeAll(mutableTestValueClassSetOf(TestValueClass(3UL), TestValueClass(5UL)))
         )
         assertEquals(2, set.size)
         assertTrue(
@@ -258,11 +252,12 @@ internal class ValueClassSetTest {
         val set = mutableTestValueClassSetOf(TestValueClass(1UL), TestValueClass(2UL))
         set -= mutableTestValueClassSetOf(TestValueClass(3UL), TestValueClass(5UL))
         assertEquals(2, set.size)
-        set -= mutableTestValueClassSetOf(
-            TestValueClass(3UL),
-            TestValueClass(1UL),
-            TestValueClass(5UL)
-        )
+        set -=
+            mutableTestValueClassSetOf(
+                TestValueClass(3UL),
+                TestValueClass(1UL),
+                TestValueClass(5UL)
+            )
         assertEquals(1, set.size)
         assertFalse(TestValueClass(1UL) in set)
     }
@@ -289,9 +284,7 @@ internal class ValueClassSetTest {
 
             val elements = ULongArray(i)
             var index = 0
-            set.forEach { element ->
-                elements[index++] = element.value
-            }
+            set.forEach { element -> elements[index++] = element.value }
             elements.sort()
 
             index = 0
@@ -324,10 +317,7 @@ internal class ValueClassSetTest {
 
         set += TestValueClass(1UL)
         set += TestValueClass(5UL)
-        assertTrue(
-            "[>1<, >5<]" == set.toString() ||
-                "[>5<, >1<]" == set.toString()
-        )
+        assertTrue("[>1<, >5<]" == set.toString() || "[>5<, >1<]" == set.toString())
     }
 
     @Test
@@ -424,14 +414,15 @@ internal class ValueClassSetTest {
 
     @Test
     fun trim() {
-        val set = mutableTestValueClassSetOf().also {
-            it += TestValueClass(1UL)
-            it += TestValueClass(2UL)
-            it += TestValueClass(3UL)
-            it += TestValueClass(4UL)
-            it += TestValueClass(5UL)
-            it += TestValueClass(7UL)
-        }
+        val set =
+            mutableTestValueClassSetOf().also {
+                it += TestValueClass(1UL)
+                it += TestValueClass(2UL)
+                it += TestValueClass(3UL)
+                it += TestValueClass(4UL)
+                it += TestValueClass(5UL)
+                it += TestValueClass(7UL)
+            }
         val capacity = set.capacity
         assertEquals(0, set.trim())
         set.clear()
@@ -515,11 +506,12 @@ internal class ValueClassSetTest {
 
     @Test
     fun mutableTestValueClassSetOfThree() {
-        val set = mutableTestValueClassSetOf(
-            TestValueClass(1UL),
-            TestValueClass(2UL),
-            TestValueClass(3UL)
-        )
+        val set =
+            mutableTestValueClassSetOf(
+                TestValueClass(1UL),
+                TestValueClass(2UL),
+                TestValueClass(3UL)
+            )
         assertEquals(3, set.size)
         assertTrue(TestValueClass(1UL) in set)
         assertTrue(TestValueClass(2UL) in set)

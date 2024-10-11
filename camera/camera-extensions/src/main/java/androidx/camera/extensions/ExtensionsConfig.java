@@ -17,7 +17,6 @@
 package androidx.camera.extensions;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.impl.CameraConfig;
 import androidx.camera.core.impl.Config;
 import androidx.camera.core.impl.Identifier;
@@ -28,7 +27,6 @@ import androidx.camera.core.impl.UseCaseConfigFactory;
 /**
  * Implementation of CameraConfig which provides the extensions capability.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 class ExtensionsConfig implements CameraConfig {
     // Option Declarations:
     // *********************************************************************************************
@@ -104,6 +102,20 @@ class ExtensionsConfig implements CameraConfig {
         @Override
         public Builder setZslDisabled(boolean disabled) {
             mConfig.insertOption(OPTION_ZSL_DISABLED, disabled);
+            return this;
+        }
+
+        @NonNull
+        @Override
+        public Builder setPostviewSupported(boolean supported) {
+            mConfig.insertOption(OPTION_POSTVIEW_SUPPORTED, supported);
+            return this;
+        }
+
+        @NonNull
+        @Override
+        public Builder setCaptureProcessProgressSupported(boolean supported) {
+            mConfig.insertOption(OPTION_CAPTURE_PROCESS_PROGRESS_SUPPORTED, supported);
             return this;
         }
     }

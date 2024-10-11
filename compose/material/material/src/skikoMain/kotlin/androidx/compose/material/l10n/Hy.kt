@@ -28,4 +28,5 @@ internal fun Translations.hy() = mapOf(
     Strings.DefaultErrorMessage to "Սխալ ներածում",
     Strings.SliderRangeStart to "Ընդգրկույթի սկիզբ",
     Strings.SliderRangeEnd to "Ընդգրկույթի վերջ",
+    Strings.SnackbarPaneTitle to "Ծանուցում",
 )

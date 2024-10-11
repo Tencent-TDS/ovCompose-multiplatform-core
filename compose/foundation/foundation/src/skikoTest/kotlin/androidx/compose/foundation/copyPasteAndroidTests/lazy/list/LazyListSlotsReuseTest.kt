@@ -16,8 +16,10 @@
 
 package androidx.compose.foundation.copyPasteAndroidTests.lazy.list
 
+import androidx.compose.foundation.assertThat
 import androidx.compose.foundation.assertWithMessage
 import androidx.compose.foundation.isEqualTo
+import androidx.compose.foundation.isTrue
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,15 +33,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import kotlin.test.Ignore
+import androidx.compose.ui.util.fastForEach
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -47,40 +50,31 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalTestApi::class)
 class LazyListSlotsReuseTest {
 
-    val density = Density(1f)
-    val itemsSizePx = 30f
-    val itemsSizeDp = with(density) { itemsSizePx.toDp() }
+    private val density = Density(1f)
+    private val itemsSizePx = 30f
+    private val itemsSizeDp = with(density) { itemsSizePx.toDp() }
 
     @Test
     fun scroll1ItemScrolledOffItemIsKeptForReuse() = runSkikoComposeUiTest {
         lateinit var state: LazyListState
         lateinit var scope: CoroutineScope
         setContent {
-            scope = rememberCoroutineScope()
             state = rememberLazyListState()
-            LazyColumn(
-                Modifier.height(itemsSizeDp * 1.5f),
-                state
-            ) {
+            scope = rememberCoroutineScope()
+            LazyColumn(Modifier.height(itemsSizeDp * 1.5f), state) {
                 items(100) {
                     Spacer(Modifier.height(itemsSizeDp).fillParentMaxWidth().testTag("$it"))
                 }
             }
         }
 
-        onNodeWithTag("0")
-            .assertIsDisplayed()
+        val id0 = onNodeWithTag("0").semanticsId()
+        onNodeWithTag("0").assertIsDisplayed()
 
-        runOnIdle {
-            scope.launch {
-                state.scrollToItem(1)
-            }
-        }
+        runOnIdle { scope.launch { state.scrollToItem(1) } }
 
-        onNodeWithTag("0")
-            .assertIsDeactivated()
-        onNodeWithTag("1")
-            .assertIsDisplayed()
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
+        onNodeWithTag("1").assertIsDisplayed()
     }
 
     @Test
@@ -88,35 +82,25 @@ class LazyListSlotsReuseTest {
         lateinit var state: LazyListState
         lateinit var scope: CoroutineScope
         setContent {
-            scope = rememberCoroutineScope()
             state = rememberLazyListState()
-            LazyColumn(
-                Modifier.height(itemsSizeDp * 1.5f),
-                state
-            ) {
+            scope = rememberCoroutineScope()
+            LazyColumn(Modifier.height(itemsSizeDp * 1.5f), state) {
                 items(100) {
                     Spacer(Modifier.height(itemsSizeDp).fillParentMaxWidth().testTag("$it"))
                 }
             }
         }
 
-        onNodeWithTag("0")
-            .assertIsDisplayed()
-        onNodeWithTag("1")
-            .assertIsDisplayed()
+        val id0 = onNodeWithTag("0").semanticsId()
+        val id1 = onNodeWithTag("1").semanticsId()
+        onNodeWithTag("0").assertIsDisplayed()
+        onNodeWithTag("1").assertIsDisplayed()
 
-        runOnIdle {
-            scope.launch {
-                state.scrollToItem(2)
-            }
-        }
+        runOnIdle { scope.launch { state.scrollToItem(2) } }
 
-        onNodeWithTag("0")
-            .assertIsDeactivated()
-        onNodeWithTag("1")
-            .assertIsDeactivated()
-        onNodeWithTag("2")
-            .assertIsDisplayed()
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id1)
+        onNodeWithTag("2").assertIsDisplayed()
     }
 
     @Test
@@ -124,32 +108,27 @@ class LazyListSlotsReuseTest {
         lateinit var state: LazyListState
         lateinit var scope: CoroutineScope
         setContent {
-            scope = rememberCoroutineScope()
             state = rememberLazyListState()
-            LazyColumn(
-                Modifier.height(itemsSizeDp * (DefaultMaxItemsToRetain + 0.5f)),
-                state
-            ) {
+            scope = rememberCoroutineScope()
+            LazyColumn(Modifier.height(itemsSizeDp * (DefaultMaxItemsToRetain + 0.5f)), state) {
                 items(100) {
                     Spacer(Modifier.height(itemsSizeDp).fillParentMaxWidth().testTag("$it"))
                 }
             }
         }
-
-        runOnIdle {
-            scope.launch {
-                state.scrollToItem(DefaultMaxItemsToRetain + 1)
-            }
-        }
-
+        // Semantics IDs must be fetched before scrolling.
+        val deactivatedIds = mutableListOf<Int>()
         repeat(DefaultMaxItemsToRetain) {
-            onNodeWithTag("$it")
-                .assertIsDeactivated()
+            deactivatedIds.add(onNodeWithTag("$it").semanticsId())
         }
-        onNodeWithTag("$DefaultMaxItemsToRetain")
-            .assertDoesNotExist()
-        onNodeWithTag("${DefaultMaxItemsToRetain + 1}")
-            .assertIsDisplayed()
+
+        runOnIdle { scope.launch { state.scrollToItem(DefaultMaxItemsToRetain + 1) } }
+
+        deactivatedIds.fastForEach {
+            onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(it)
+        }
+        onNodeWithTag("$DefaultMaxItemsToRetain").assertDoesNotExist()
+        onNodeWithTag("${DefaultMaxItemsToRetain + 1}").assertIsDisplayed()
     }
 
     @Test
@@ -157,22 +136,19 @@ class LazyListSlotsReuseTest {
         lateinit var state: LazyListState
         lateinit var scope: CoroutineScope
         setContent {
-            scope = rememberCoroutineScope()
             state = rememberLazyListState()
-            LazyColumn(
-                Modifier.height(itemsSizeDp * 1.5f),
-                state
-            ) {
+            scope = rememberCoroutineScope()
+            LazyColumn(Modifier.height(itemsSizeDp * 1.5f), state) {
                 items(100) {
                     Spacer(Modifier.height(itemsSizeDp).fillParentMaxWidth().testTag("$it"))
                 }
             }
         }
 
-        onNodeWithTag("0")
-            .assertIsDisplayed()
-        onNodeWithTag("1")
-            .assertIsDisplayed()
+        val id0 = onNodeWithTag("0").semanticsId()
+        val id1 = onNodeWithTag("1").semanticsId()
+        onNodeWithTag("0").assertIsDisplayed()
+        onNodeWithTag("1").assertIsDisplayed()
 
         runOnIdle {
             scope.launch {
@@ -186,20 +162,15 @@ class LazyListSlotsReuseTest {
         }
 
         // recycled
-        onNodeWithTag("1")
-            .assertDoesNotExist()
+        onNodeWithTag("1").assertDoesNotExist()
 
         // in buffer
-        onNodeWithTag("0")
-            .assertIsDeactivated()
-        onNodeWithTag("2")
-            .assertIsDeactivated()
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id1)
 
         // visible
-        onNodeWithTag("3")
-            .assertIsDisplayed()
-        onNodeWithTag("4")
-            .assertIsDisplayed()
+        onNodeWithTag("3").assertIsDisplayed()
+        onNodeWithTag("4").assertIsDisplayed()
     }
 
     @Test
@@ -207,12 +178,9 @@ class LazyListSlotsReuseTest {
         lateinit var state: LazyListState
         lateinit var scope: CoroutineScope
         setContent {
-            scope = rememberCoroutineScope()
             state = rememberLazyListState()
-            LazyColumn(
-                Modifier.height(itemsSizeDp * 1.5f),
-                state
-            ) {
+            scope = rememberCoroutineScope()
+            LazyColumn(Modifier.height(itemsSizeDp * 1.5f), state) {
                 items(100) {
                     Spacer(Modifier.height(itemsSizeDp).fillParentMaxWidth().testTag("$it"))
                 }
@@ -222,28 +190,30 @@ class LazyListSlotsReuseTest {
             scope.launch {
                 state.scrollToItem(1) // buffer is [0]
                 state.scrollToItem(2) // 0 used, buffer is [1]
+            }
+        }
+
+        // 3 should be visible at this point, so save its ID to check later
+        val id3 = onNodeWithTag("3").semanticsId()
+
+        runOnIdle {
+            scope.launch {
                 state.scrollToItem(3) // 1 used, buffer is [2]
                 state.scrollToItem(4) // 2 used, buffer is [3]
             }
         }
 
         // recycled
-        onNodeWithTag("0")
-            .assertDoesNotExist()
-        onNodeWithTag("1")
-            .assertDoesNotExist()
-        onNodeWithTag("2")
-            .assertDoesNotExist()
+        onNodeWithTag("0").assertDoesNotExist()
+        onNodeWithTag("1").assertDoesNotExist()
+        onNodeWithTag("2").assertDoesNotExist()
 
         // in buffer
-        onNodeWithTag("3")
-            .assertIsDeactivated()
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id3)
 
         // visible
-        onNodeWithTag("4")
-            .assertIsDisplayed()
-        onNodeWithTag("5")
-            .assertIsDisplayed()
+        onNodeWithTag("4").assertIsDisplayed()
+        onNodeWithTag("5").assertIsDisplayed()
     }
 
     @Test
@@ -251,17 +221,18 @@ class LazyListSlotsReuseTest {
         lateinit var state: LazyListState
         lateinit var scope: CoroutineScope
         setContent {
-            scope = rememberCoroutineScope()
             state = rememberLazyListState(10)
-            LazyColumn(
-                Modifier.height(itemsSizeDp * 1.5f),
-                state
-            ) {
+            scope = rememberCoroutineScope()
+            LazyColumn(Modifier.height(itemsSizeDp * 1.5f), state) {
                 items(100) {
                     Spacer(Modifier.height(itemsSizeDp).fillParentMaxWidth().testTag("$it"))
                 }
             }
         }
+
+        val id10 = onNodeWithTag("10").semanticsId()
+        val id11 = onNodeWithTag("11").semanticsId()
+
         runOnIdle {
             scope.launch {
                 state.scrollToItem(8) // buffer is [10, 11]
@@ -269,16 +240,12 @@ class LazyListSlotsReuseTest {
         }
 
         // in buffer
-        onNodeWithTag("10")
-            .assertIsDeactivated()
-        onNodeWithTag("11")
-            .assertIsDeactivated()
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id10)
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id11)
 
         // visible
-        onNodeWithTag("8")
-            .assertIsDisplayed()
-        onNodeWithTag("9")
-            .assertIsDisplayed()
+        onNodeWithTag("8").assertIsDisplayed()
+        onNodeWithTag("9").assertIsDisplayed()
     }
 
     @Test
@@ -286,12 +253,9 @@ class LazyListSlotsReuseTest {
         lateinit var state: LazyListState
         lateinit var scope: CoroutineScope
         setContent {
-            scope = rememberCoroutineScope()
             state = rememberLazyListState(10)
-            LazyColumn(
-                Modifier.height(itemsSizeDp * 1.5f),
-                state
-            ) {
+            scope = rememberCoroutineScope()
+            LazyColumn(Modifier.height(itemsSizeDp * 1.5f), state) {
                 items(100) {
                     Spacer(Modifier.height(itemsSizeDp).fillParentMaxWidth().testTag("$it"))
                 }
@@ -301,60 +265,58 @@ class LazyListSlotsReuseTest {
             scope.launch {
                 state.scrollToItem(9) // buffer is [11]
                 state.scrollToItem(7) // 11 reused, buffer is [9]
+            }
+        }
+        // 8 should be visible at this point, so save its ID to check later
+        val id8 = onNodeWithTag("8").semanticsId()
+        runOnIdle {
+            scope.launch {
                 state.scrollToItem(6) // 9 reused, buffer is [8]
             }
         }
 
         // in buffer
-        onNodeWithTag("8")
-            .assertIsDeactivated()
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id8)
 
         // visible
-        onNodeWithTag("6")
-            .assertIsDisplayed()
-        onNodeWithTag("7")
-            .assertIsDisplayed()
+        onNodeWithTag("6").assertIsDisplayed()
+        onNodeWithTag("7").assertIsDisplayed()
     }
 
     @Test
     fun scrollingBackReusesTheSameSlot() = runSkikoComposeUiTest {
         lateinit var state: LazyListState
+        lateinit var scope: CoroutineScope
         var counter0 = 0
         var counter1 = 0
 
-        val measureCountModifier0 = Modifier.layout { measurable, constraints ->
-            counter0++
-            val placeable = measurable.measure(constraints)
-            layout(placeable.width, placeable.height) {
-                placeable.place(IntOffset.Zero)
+        val measureCountModifier0 =
+            Modifier.layout { measurable, constraints ->
+                counter0++
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, placeable.height) { placeable.place(IntOffset.Zero) }
             }
-        }
 
-        val measureCountModifier1 = Modifier.layout { measurable, constraints ->
-            counter1++
-            val placeable = measurable.measure(constraints)
-            layout(placeable.width, placeable.height) {
-                placeable.place(IntOffset.Zero)
+        val measureCountModifier1 =
+            Modifier.layout { measurable, constraints ->
+                counter1++
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, placeable.height) { placeable.place(IntOffset.Zero) }
             }
-        }
 
-        lateinit var scope: CoroutineScope
         setContent {
-            scope = rememberCoroutineScope()
             state = rememberLazyListState()
-            LazyColumn(
-                Modifier.height(itemsSizeDp * 1.5f),
-                state
-            ) {
+            scope = rememberCoroutineScope()
+            LazyColumn(Modifier.height(itemsSizeDp * 1.5f), state) {
                 items(100) {
-                    val modifier = when (it) {
-                        0 -> measureCountModifier0
-                        1 -> measureCountModifier1
-                        else -> Modifier
-                    }
+                    val modifier =
+                        when (it) {
+                            0 -> measureCountModifier0
+                            1 -> measureCountModifier1
+                            else -> Modifier
+                        }
                     Spacer(
-                        Modifier
-                            .height(itemsSizeDp)
+                        Modifier.height(itemsSizeDp)
                             .fillParentMaxWidth()
                             .testTag("$it")
                             .then(modifier)
@@ -365,6 +327,15 @@ class LazyListSlotsReuseTest {
         runOnIdle {
             scope.launch {
                 state.scrollToItem(2) // buffer is [0, 1]
+            }
+        }
+
+        // 2 and 3 should be visible at this point, so save its ID to check later
+        val id2 = onNodeWithTag("2").semanticsId()
+        val id3 = onNodeWithTag("3").semanticsId()
+
+        runOnIdle {
+            scope.launch {
                 counter0 = 0
                 counter1 = 0
                 state.scrollToItem(0) // scrolled back, 0 and 1 are reused back. buffer: [2, 3]
@@ -373,75 +344,56 @@ class LazyListSlotsReuseTest {
 
         runOnIdle {
             assertWithMessage("Item 0 measured $counter0 times, expected 0.")
-                .that(counter0).isEqualTo(0)
+                .that(counter0)
+                .isEqualTo(0)
             assertWithMessage("Item 1 measured $counter1 times, expected 0.")
-                .that(counter1).isEqualTo(0)
+                .that(counter1)
+                .isEqualTo(0)
         }
 
-        onNodeWithTag("0")
-            .assertIsDisplayed()
-        onNodeWithTag("1")
-            .assertIsDisplayed()
+        onNodeWithTag("0").assertIsDisplayed()
+        onNodeWithTag("1").assertIsDisplayed()
 
-        onNodeWithTag("2")
-            .assertIsDeactivated()
-        onNodeWithTag("3")
-            .assertIsDeactivated()
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id2)
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id3)
     }
 
-    // TODO https://youtrack.jetbrains.com/issue/COMPOSE-751/Merge-1.6.-Fix-differentContentTypes-test
-    @Ignore
     @Test
     fun differentContentTypes() = runSkikoComposeUiTest {
         lateinit var state: LazyListState
+        lateinit var scope: CoroutineScope
         val visibleItemsCount = (DefaultMaxItemsToRetain + 1) * 2
         val startOfType1 = DefaultMaxItemsToRetain + 1
-        lateinit var scope: CoroutineScope
         setContent {
-            scope = rememberCoroutineScope()
             state = rememberLazyListState()
-            LazyColumn(
-                Modifier.height(itemsSizeDp * (visibleItemsCount - 0.5f)),
-                state
-            ) {
-                items(
-                    100,
-                    contentType = { if (it >= startOfType1) 1 else 0 }
-                ) {
+            scope = rememberCoroutineScope()
+            LazyColumn(Modifier.height(itemsSizeDp * (visibleItemsCount - 0.5f)), state) {
+                items(100, contentType = { if (it >= startOfType1) 1 else 0 }) {
                     Spacer(Modifier.height(itemsSizeDp).fillMaxWidth().testTag("$it"))
                 }
             }
         }
 
+        val deactivatedIds = mutableListOf<Int>()
         for (i in 0 until visibleItemsCount) {
-            onNodeWithTag("$i")
-                .assertIsDisplayed()
+            deactivatedIds.add(onNodeWithTag("$i").semanticsId())
+            onNodeWithTag("$i").assertIsDisplayed()
         }
-
-        runOnIdle {
-            scope.launch {
-                state.scrollToItem(visibleItemsCount)
-            }
-        }
-
-        onNodeWithTag("$visibleItemsCount")
-            .assertIsDisplayed()
-
-        // [DefaultMaxItemsToRetain] items of type 0 are left for reuse
-        for (i in 0 until DefaultMaxItemsToRetain) {
-            onNodeWithTag("$i")
-                .assertIsDeactivated()
-        }
-        onNodeWithTag("$DefaultMaxItemsToRetain")
-            .assertDoesNotExist()
-
-        // and 7 items of type 1
         for (i in startOfType1 until startOfType1 + DefaultMaxItemsToRetain) {
-            onNodeWithTag("$i")
-                .assertIsDeactivated()
+            deactivatedIds.add(onNodeWithTag("$i").fetchSemanticsNode().id)
         }
-        onNodeWithTag("${startOfType1 + DefaultMaxItemsToRetain}")
-            .assertDoesNotExist()
+
+        runOnIdle { scope.launch { state.scrollToItem(visibleItemsCount) } }
+
+        onNodeWithTag("$visibleItemsCount").assertIsDisplayed()
+
+        // [DefaultMaxItemsToRetain] items of type 0 are left for reuse and 7 items of type 1
+        deactivatedIds.fastForEach {
+            onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(it)
+        }
+
+        onNodeWithTag("$DefaultMaxItemsToRetain").assertDoesNotExist()
+        onNodeWithTag("${startOfType1 + DefaultMaxItemsToRetain}").assertDoesNotExist()
     }
 
     @Test
@@ -449,28 +401,26 @@ class LazyListSlotsReuseTest {
         lateinit var state: LazyListState
         lateinit var scope: CoroutineScope
         setContent {
-            scope = rememberCoroutineScope()
             state = rememberLazyListState()
-            LazyColumn(
-                Modifier.height(itemsSizeDp * 2.5f),
-                state
-            ) {
-                val content = @Composable { tag: String ->
-                    Spacer(Modifier.height(itemsSizeDp).width(10.dp).testTag(tag))
-                }
-                item(contentType = "not-to-reuse-0") {
-                    content("0")
-                }
-                item(contentType = "reuse") {
-                    content("1")
-                }
+            scope = rememberCoroutineScope()
+            LazyColumn(Modifier.height(itemsSizeDp * 2.5f), state) {
+                val content =
+                    @Composable { tag: String ->
+                        Spacer(Modifier.height(itemsSizeDp).width(10.dp).testTag(tag))
+                    }
+                item(contentType = "not-to-reuse-0") { content("0") }
+                item(contentType = "reuse") { content("1") }
                 items(
                     List(100) { it + 2 },
-                    contentType = { if (it == 10) "reuse" else "not-to-reuse-$it" }) {
+                    contentType = { if (it == 10) "reuse" else "not-to-reuse-$it" }
+                ) {
                     content("$it")
                 }
             }
         }
+
+        val id0 = onNodeWithTag("0").semanticsId()
+        val id1 = onNodeWithTag("1").semanticsId()
 
         runOnIdle {
             scope.launch {
@@ -479,10 +429,8 @@ class LazyListSlotsReuseTest {
             }
         }
 
-        onNodeWithTag("0")
-            .assertIsDeactivated()
-        onNodeWithTag("1")
-            .assertIsDeactivated()
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id1)
 
         runOnIdle {
             scope.launch {
@@ -491,16 +439,19 @@ class LazyListSlotsReuseTest {
             }
         }
 
-        onNodeWithTag("0")
-            .assertIsDeactivated()
-        onNodeWithTag("1")
-            .assertDoesNotExist()
-        onNodeWithTag("9")
-            .assertIsDisplayed()
-        onNodeWithTag("10")
-            .assertIsDisplayed()
-        onNodeWithTag("11")
-            .assertIsDisplayed()
+        onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
+        onNodeWithTag("1").assertDoesNotExist()
+        onNodeWithTag("9").assertIsDisplayed()
+        onNodeWithTag("10").assertIsDisplayed()
+        onNodeWithTag("11").assertIsDisplayed()
+    }
+
+    private fun SemanticsNode.assertLayoutDeactivatedById(id: Int) {
+        children.fastForEach {
+            if (it.id == id) {
+                assertThat(it.layoutInfo.isDeactivated).isTrue()
+            }
+        }
     }
 }
 

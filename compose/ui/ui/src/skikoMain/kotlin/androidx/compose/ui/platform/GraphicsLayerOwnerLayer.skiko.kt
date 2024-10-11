@@ -297,6 +297,9 @@ internal class GraphicsLayerOwnerLayer(
         matrix.timesAssign(getMatrix())
     }
 
+    override val underlyingMatrix: Matrix
+        get() = getMatrix()
+
     override fun inverseTransform(matrix: Matrix) {
         val inverse = getInverseMatrix()
         if (inverse != null) {

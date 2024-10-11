@@ -19,17 +19,14 @@ package androidx.room.compiler.codegen.kotlin
 import androidx.room.compiler.codegen.XAnnotationSpec
 import androidx.room.compiler.codegen.XCodeBlock
 import androidx.room.compiler.codegen.XPropertySpec
+import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.PropertySpec
 
-internal class KotlinPropertySpec(
-    override val name: String,
-    internal val actual: PropertySpec
-) : KotlinLang(), XPropertySpec {
+internal class KotlinPropertySpec(override val name: String, internal val actual: PropertySpec) :
+    KotlinLang(), XPropertySpec {
 
-    internal class Builder(
-        private val name: String,
-        internal val actual: PropertySpec.Builder
-    ) : KotlinLang(), XPropertySpec.Builder {
+    internal class Builder(private val name: String, internal val actual: PropertySpec.Builder) :
+        KotlinLang(), XPropertySpec.Builder {
 
         override fun addAnnotation(annotation: XAnnotationSpec) = apply {
             require(annotation is KotlinAnnotationSpec)
@@ -39,6 +36,11 @@ internal class KotlinPropertySpec(
         override fun initializer(initExpr: XCodeBlock) = apply {
             require(initExpr is KotlinCodeBlock)
             actual.initializer(initExpr.actual)
+        }
+
+        override fun getter(code: XCodeBlock) = apply {
+            require(code is KotlinCodeBlock)
+            actual.getter(FunSpec.getterBuilder().addCode(code.actual).build())
         }
 
         override fun build(): XPropertySpec {

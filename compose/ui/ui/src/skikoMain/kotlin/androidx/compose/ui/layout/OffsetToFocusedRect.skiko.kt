@@ -23,12 +23,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.unit.toSize
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -54,9 +57,8 @@ internal fun OffsetToFocusedRect(
         if (animationDuration.isPositive()) {
             if (startOffset == density.adjustedToFocusedRectOffset(
                     insets = insets,
-                    focusedRect = getFocusedRect(),
-                    size = size,
-                    currentOffset = currentOffset
+                    focusedRect = getFocusedRect()?.translate(-currentOffset.toOffset()),
+                    size = size
                 )
             ) {
                 offsetProgress = 1f
@@ -76,9 +78,8 @@ internal fun OffsetToFocusedRect(
         measurePolicy = { measurables, constraints ->
             val endOffset = density.adjustedToFocusedRectOffset(
                 insets = insets,
-                focusedRect = getFocusedRect(),
-                size = size,
-                currentOffset = currentOffset
+                focusedRect = getFocusedRect()?.translate(-currentOffset.toOffset()),
+                size = size
             )
 
             // Intentionally update state within composition to trigger second measure and
@@ -102,8 +103,7 @@ internal fun OffsetToFocusedRect(
 internal fun Density.adjustedToFocusedRectOffset(
     insets: PlatformInsets,
     focusedRect: Rect?,
-    size: IntSize?,
-    currentOffset: IntOffset,
+    size: IntSize?
 ): IntOffset {
     focusedRect ?: return IntOffset.Zero
     size ?: return IntOffset.Zero
@@ -111,22 +111,31 @@ internal fun Density.adjustedToFocusedRectOffset(
         return IntOffset.Zero
     }
 
-    return IntOffset(
-        x = directionalFocusOffset(
-            contentSize = size.width.toFloat(),
-            contentInsetStart = insets.left.toPx(),
-            contentInsetEnd = insets.right.toPx(),
-            focusStart = focusedRect.left - currentOffset.x,
-            focusEnd = focusedRect.right - currentOffset.x
-        ),
-        y = directionalFocusOffset(
-            contentSize = size.height.toFloat(),
-            contentInsetStart = insets.top.toPx(),
-            contentInsetEnd = insets.bottom.toPx(),
-            focusStart = focusedRect.top - currentOffset.y,
-            focusEnd = focusedRect.bottom - currentOffset.y
+    val visibleAfterOffset = Rect(offset = Offset.Zero, size = size.toSize())
+        .intersect(focusedRect)
+        .isEmpty
+        .not()
+
+    return if (visibleAfterOffset) {
+        IntOffset(
+            x = directionalFocusOffset(
+                contentSize = size.width.toFloat(),
+                contentInsetStart = insets.left.toPx(),
+                contentInsetEnd = insets.right.toPx(),
+                focusStart = focusedRect.left,
+                focusEnd = focusedRect.right
+            ),
+            y = directionalFocusOffset(
+                contentSize = size.height.toFloat(),
+                contentInsetStart = insets.top.toPx(),
+                contentInsetEnd = insets.bottom.toPx(),
+                focusStart = focusedRect.top,
+                focusEnd = focusedRect.bottom,
+            )
         )
-    )
+    } else {
+        IntOffset.Zero
+    }
 }
 
 private fun directionalFocusOffset(

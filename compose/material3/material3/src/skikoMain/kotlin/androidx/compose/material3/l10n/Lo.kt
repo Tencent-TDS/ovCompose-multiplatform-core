@@ -33,6 +33,7 @@ internal fun Translations.lo() = mapOf(
     Strings.MenuCollapsed to "ຫຍໍ້ລົງແລ້ວ",
     Strings.ToggleDropdownMenu to "ສະ​ຫຼັບເມນູແບບເລື່ອນລົງ",
     Strings.SnackbarDismiss to "ປິດໄວ້",
+    Strings.SnackbarPaneTitle to "ແຈ້ງເຕືອນ",
     Strings.SearchBarSearch to "ຊອກຫາ",
     Strings.SuggestionsAvailable to "ມີຄຳແນະນຳຢູ່ຂ້າງລຸ່ມ",
     Strings.DatePickerTitle to "ເລືອກວັນທີ",
@@ -85,4 +86,6 @@ internal fun Translations.lo() = mapOf(
     Strings.TimePickerHour to "ຊົ່ວໂມງ",
     Strings.TimePickerMinuteTextField to "ສຳລັບນາທີ",
     Strings.TimePickerHourTextField to "ສຳລັບຊົ່ວໂມງ",
+    Strings.CloseRail to "ປິດແຖບຂ້າງ",
+    Strings.WideNavigationRailPaneTitle to "ແຖບຂ້າງສຳລັບນຳທາງໄປຫາສ່ວນຕ່າງໆ",
 )

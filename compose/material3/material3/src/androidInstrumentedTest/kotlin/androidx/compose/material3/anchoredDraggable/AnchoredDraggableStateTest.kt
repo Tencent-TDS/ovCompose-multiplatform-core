@@ -19,6 +19,7 @@ package androidx.compose.material3.anchoredDraggable
 import androidx.compose.animation.core.FloatSpringSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
@@ -39,16 +40,22 @@ import androidx.compose.material3.internal.snapTo
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MonotonicFrameClock
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.testutils.WithTouchSlop
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -59,11 +66,13 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.round
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import java.util.concurrent.TimeUnit
+import junit.framework.TestCase.assertEquals
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -200,7 +209,7 @@ class AnchoredDraggableStateTest {
         val state =
             AnchoredDraggableState(
                 initialValue = A,
-                animationSpec = tween(animationDuration, easing = LinearEasing),
+                animationSpec = { tween(animationDuration, easing = LinearEasing) },
                 positionalThreshold = { distance -> distance * 0.5f },
                 velocityThreshold = defaultVelocityThreshold
             )
@@ -334,7 +343,7 @@ class AnchoredDraggableStateTest {
         val restorationTester = StateRestorationTester(rule)
 
         val initialState = C
-        val animationSpec = tween<Float>(durationMillis = 1000)
+        val animationSpec = { tween<Float>(durationMillis = 1000) }
         val state =
             AnchoredDraggableState(
                 initialValue = initialState,
@@ -529,7 +538,7 @@ class AnchoredDraggableStateTest {
                 initialValue = A,
                 positionalThreshold = defaultPositionalThreshold,
                 velocityThreshold = defaultVelocityThreshold,
-                animationSpec = animationSpec
+                animationSpec = { animationSpec }
             )
         lateinit var scope: CoroutineScope
 
@@ -985,6 +994,64 @@ class AnchoredDraggableStateTest {
             )
     }
 
+    @Test
+    fun draggableAnchors_draggableOffsetTaggedAsMotionFrameOfReference() {
+        var offset by mutableStateOf(IntOffset(0, 0))
+        val offsets =
+            listOf(
+                IntOffset(0, 0),
+                IntOffset(5, 20),
+                IntOffset(25, 0),
+                IntOffset(100, 10),
+            )
+        var coords: LayoutCoordinates? = null
+        var rootCoords: LayoutCoordinates? = null
+        val state =
+            AnchoredDraggableState(
+                initialValue = 0,
+                positionalThreshold = defaultPositionalThreshold,
+                velocityThreshold = defaultVelocityThreshold,
+                animationSpec = { spring() }
+            )
+        var value by mutableIntStateOf(0)
+        rule.setContent {
+            Box(Modifier.onGloballyPositioned { rootCoords = it }.offset { offset }) {
+                LaunchedEffect(value) { state.snapTo(value) }
+                Box(
+                    Modifier.draggableAnchors(state, Orientation.Vertical) { _, _ ->
+                            DraggableAnchors { repeat(5) { it at it * 100f } } to 0
+                        }
+                        .fillMaxSize()
+                ) {
+                    Box(Modifier.fillMaxSize().onGloballyPositioned { coords = it })
+                }
+            }
+        }
+
+        repeat(5) {
+            value = it
+            rule.waitForIdle()
+
+            repeat(4) {
+                offset = offsets[it]
+                rule.runOnIdle {
+                    val excludeOffset =
+                        rootCoords!!
+                            .localPositionOf(coords!!, includeMotionFrameOfReference = false)
+                            .round()
+                    val includeOffset =
+                        rootCoords!!
+                            .localPositionOf(coords!!, includeMotionFrameOfReference = true)
+                            .round()
+                    assertEquals(
+                        includeOffset - IntOffset(0, state.requireOffset().roundToInt()),
+                        excludeOffset
+                    )
+                }
+            }
+        }
+    }
+
     private suspend fun suspendIndefinitely() = suspendCancellableCoroutine<Unit> {}
 
     private class HandPumpTestFrameClock : MonotonicFrameClock {
@@ -1005,5 +1072,5 @@ class AnchoredDraggableStateTest {
 
     private val defaultVelocityThreshold: () -> Float = { with(rule.density) { 125.dp.toPx() } }
 
-    private val defaultAnimationSpec = tween<Float>()
+    private val defaultAnimationSpec = { tween<Float>() }
 }

@@ -16,21 +16,17 @@
 
 package androidx.core.location;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import android.annotation.SuppressLint;
 import android.location.Location;
 import android.os.Build.VERSION;
 import android.os.Bundle;
-import android.os.SystemClock;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.FloatRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
-import androidx.core.util.Preconditions;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -109,13 +105,12 @@ public final class LocationCompat {
      * based on the difference between system time and the location time. This should be taken as a
      * best "guess" at what the elapsed realtime might have been, but if the clock used for
      * location derivation is different from the system clock, the results may be inaccurate.
+     * @deprecated Call {@link Location#getElapsedRealtimeNanos()} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "location.getElapsedRealtimeNanos()")
     public static long getElapsedRealtimeNanos(@NonNull Location location) {
-        if (VERSION.SDK_INT >= 17) {
-            return Api17Impl.getElapsedRealtimeNanos(location);
-        } else {
-            return MILLISECONDS.toNanos(getElapsedRealtimeMillis(location));
-        }
+        return location.getElapsedRealtimeNanos();
     }
 
     /**
@@ -124,21 +119,7 @@ public final class LocationCompat {
      * @see #getElapsedRealtimeNanos(Location)
      */
     public static long getElapsedRealtimeMillis(@NonNull Location location) {
-        if (VERSION.SDK_INT >= 17) {
-            return NANOSECONDS.toMillis(Api17Impl.getElapsedRealtimeNanos(location));
-        } else {
-            long timeDeltaMs = System.currentTimeMillis() - location.getTime();
-            long elapsedRealtimeMs = SystemClock.elapsedRealtime();
-            if (timeDeltaMs < 0) {
-                // don't return an elapsed realtime from the future
-                return elapsedRealtimeMs;
-            } else if (timeDeltaMs > elapsedRealtimeMs) {
-                // don't return an elapsed realtime from before boot
-                return 0;
-            } else {
-                return elapsedRealtimeMs - timeDeltaMs;
-            }
-        }
+        return NANOSECONDS.toMillis(location.getElapsedRealtimeNanos());
     }
 
     /**
@@ -357,19 +338,18 @@ public final class LocationCompat {
     /**
      * Returns the Mean Sea Level altitude of the location in meters.
      *
+     * <p>This is only valid if {@link #hasMslAltitude(Location)} is true.
+     *
      * <p>NOTE: On API levels below 34, the concept of Mean Sea Level altitude does not exist. In
      * order to allow for backwards compatibility and testing however, this method will attempt
      * to read a double extra with the key {@link #EXTRA_MSL_ALTITUDE} and return the result.
      *
-     * @throws IllegalStateException if the Mean Sea Level altitude of the location is not set
      * @see Location#getMslAltitudeMeters()
      */
     public static double getMslAltitudeMeters(@NonNull Location location) {
         if (VERSION.SDK_INT >= 34) {
             return Api34Impl.getMslAltitudeMeters(location);
         }
-        Preconditions.checkState(hasMslAltitude(location),
-                "The Mean Sea Level altitude of the location is not set.");
         return getOrCreateExtras(location).getDouble(EXTRA_MSL_ALTITUDE);
     }
 
@@ -431,22 +411,20 @@ public final class LocationCompat {
      * altitude of the location falls within {@link #getMslAltitudeMeters(Location)} +/- this
      * uncertainty.
      *
+     * <p>This is only valid if {@link #hasMslAltitudeAccuracy(Location)} is true.
+     *
      * <p>NOTE: On API levels below 34, the concept of Mean Sea Level altitude accuracy does not
      * exist. In order to allow for backwards compatibility and testing however, this method will
      * attempt to read a float extra with the key {@link #EXTRA_MSL_ALTITUDE_ACCURACY} and return
      * the result.
      *
-     * @throws IllegalStateException if the Mean Sea Level altitude accuracy of the location is not
-     *                               set
-     * @see Location#setMslAltitudeAccuracyMeters(float)
+     * @see Location#getMslAltitudeAccuracyMeters()
      */
     public static @FloatRange(from = 0.0) float getMslAltitudeAccuracyMeters(
             @NonNull Location location) {
         if (VERSION.SDK_INT >= 34) {
             return Api34Impl.getMslAltitudeAccuracyMeters(location);
         }
-        Preconditions.checkState(hasMslAltitudeAccuracy(location),
-                "The Mean Sea Level altitude accuracy of the location is not set.");
         return getOrCreateExtras(location).getFloat(EXTRA_MSL_ALTITUDE_ACCURACY);
     }
 
@@ -516,16 +494,12 @@ public final class LocationCompat {
      *
      * @see android.location.LocationManager#addTestProvider
      */
+    @SuppressWarnings("deprecation")
     public static boolean isMock(@NonNull Location location) {
-        if (VERSION.SDK_INT >= 18) {
-            return Api18Impl.isMock(location);
+        if (VERSION.SDK_INT >= 31) {
+            return Api31Impl.isMock(location);
         } else {
-            Bundle extras = location.getExtras();
-            if (extras == null) {
-                return false;
-            }
-
-            return extras.getBoolean(EXTRA_IS_MOCK, false);
+            return location.isFromMockProvider();
         }
     }
 
@@ -537,9 +511,9 @@ public final class LocationCompat {
      * boolean extra with the key {@link #EXTRA_IS_MOCK} to mark the location as mock. Be aware that
      * this will overwrite any prior extra value under the same key.
      */
+    @SuppressLint("BanUncheckedReflection")
     public static void setMock(@NonNull Location location, boolean mock) {
-        if (VERSION.SDK_INT >= 18) {
-            try {
+        try {
                 getSetIsFromMockProviderMethod().invoke(location, mock);
             } catch (NoSuchMethodException e) {
                 Error error = new NoSuchMethodError();
@@ -552,25 +526,6 @@ public final class LocationCompat {
             } catch (InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
-        } else {
-            Bundle extras = location.getExtras();
-            if (extras == null) {
-                if (mock) {
-                    extras = new Bundle();
-                    extras.putBoolean(EXTRA_IS_MOCK, true);
-                    location.setExtras(extras);
-                }
-            } else {
-                if (mock) {
-                    extras.putBoolean(EXTRA_IS_MOCK, true);
-                } else {
-                    extras.remove(EXTRA_IS_MOCK);
-                    if (extras.isEmpty()) {
-                        location.setExtras(null);
-                    }
-                }
-            }
-        }
     }
 
     @RequiresApi(34)
@@ -579,43 +534,35 @@ public final class LocationCompat {
         private Api34Impl() {
         }
 
-        @DoNotInline
         static double getMslAltitudeMeters(Location location) {
             return location.getMslAltitudeMeters();
         }
 
-        @DoNotInline
         static void setMslAltitudeMeters(Location location, double mslAltitudeMeters) {
             location.setMslAltitudeMeters(mslAltitudeMeters);
         }
 
-        @DoNotInline
         static boolean hasMslAltitude(Location location) {
             return location.hasMslAltitude();
         }
 
-        @DoNotInline
         static void removeMslAltitude(Location location) {
             location.removeMslAltitude();
         }
 
-        @DoNotInline
         static float getMslAltitudeAccuracyMeters(Location location) {
             return location.getMslAltitudeAccuracyMeters();
         }
 
-        @DoNotInline
         static void setMslAltitudeAccuracyMeters(Location location,
                 float mslAltitudeAccuracyMeters) {
             location.setMslAltitudeAccuracyMeters(mslAltitudeAccuracyMeters);
         }
 
-        @DoNotInline
         static boolean hasMslAltitudeAccuracy(Location location) {
             return location.hasMslAltitudeAccuracy();
         }
 
-        @DoNotInline
         static void removeMslAltitudeAccuracy(Location location) {
             location.removeMslAltitudeAccuracy();
         }
@@ -626,17 +573,14 @@ public final class LocationCompat {
 
         private Api33Impl() {}
 
-        @DoNotInline
         static void removeVerticalAccuracy(Location location) {
             location.removeVerticalAccuracy();
         }
 
-        @DoNotInline
         static void removeSpeedAccuracy(Location location) {
             location.removeSpeedAccuracy();
         }
 
-        @DoNotInline
         static void removeBearingAccuracy(Location location) {
             location.removeBearingAccuracy();
         }
@@ -647,7 +591,6 @@ public final class LocationCompat {
 
         private Api29Impl() {}
 
-        @DoNotInline
         static void removeVerticalAccuracy(Location location) {
             if (!location.hasVerticalAccuracy()) {
                 return;
@@ -659,7 +602,6 @@ public final class LocationCompat {
             location.setElapsedRealtimeUncertaintyNanos(elapsedRealtimeUncertaintyNs);
         }
 
-        @DoNotInline
         static void removeSpeedAccuracy(Location location) {
             if (!location.hasSpeedAccuracy()) {
                 return;
@@ -671,7 +613,6 @@ public final class LocationCompat {
             location.setElapsedRealtimeUncertaintyNanos(elapsedRealtimeUncertaintyNs);
         }
 
-        @DoNotInline
         static void removeBearingAccuracy(Location location) {
             if (!location.hasBearingAccuracy()) {
                 return;
@@ -689,7 +630,6 @@ public final class LocationCompat {
 
         private Api28Impl() {}
 
-        @DoNotInline
         static void removeVerticalAccuracy(Location location) {
             if (!location.hasVerticalAccuracy()) {
                 return;
@@ -746,7 +686,6 @@ public final class LocationCompat {
             }
         }
 
-        @DoNotInline
         static void removeSpeedAccuracy(Location location) {
             if (!location.hasSpeedAccuracy()) {
                 return;
@@ -803,7 +742,6 @@ public final class LocationCompat {
             }
         }
 
-        @DoNotInline
         static void removeBearingAccuracy(Location location) {
             if (!location.hasBearingAccuracy()) {
                 return;
@@ -867,22 +805,18 @@ public final class LocationCompat {
         private Api26Impl() {
         }
 
-        @DoNotInline
         static boolean hasVerticalAccuracy(Location location) {
             return location.hasVerticalAccuracy();
         }
 
-        @DoNotInline
         static float getVerticalAccuracyMeters(Location location) {
             return location.getVerticalAccuracyMeters();
         }
 
-        @DoNotInline
         static void setVerticalAccuracyMeters(Location location, float verticalAccuracyM) {
             location.setVerticalAccuracyMeters(verticalAccuracyM);
         }
 
-        @DoNotInline
         static void removeVerticalAccuracy(Location location) {
             try {
                 byte fieldsMask = getFieldsMaskField().getByte(location);
@@ -895,22 +829,18 @@ public final class LocationCompat {
             }
         }
 
-        @DoNotInline
         static boolean hasSpeedAccuracy(Location location) {
             return location.hasSpeedAccuracy();
         }
 
-        @DoNotInline
         static float getSpeedAccuracyMetersPerSecond(Location location) {
             return location.getSpeedAccuracyMetersPerSecond();
         }
 
-        @DoNotInline
         static void setSpeedAccuracyMetersPerSecond(Location location, float speedAccuracyMps) {
             location.setSpeedAccuracyMetersPerSecond(speedAccuracyMps);
         }
 
-        @DoNotInline
         static void removeSpeedAccuracy(Location location) {
             try {
                 byte fieldsMask = getFieldsMaskField().getByte(location);
@@ -927,22 +857,18 @@ public final class LocationCompat {
             }
         }
 
-        @DoNotInline
         static boolean hasBearingAccuracy(Location location) {
             return location.hasBearingAccuracy();
         }
 
-        @DoNotInline
         static float getBearingAccuracyDegrees(Location location) {
             return location.getBearingAccuracyDegrees();
         }
 
-        @DoNotInline
         static void setBearingAccuracyDegrees(Location location, float bearingAccuracyD) {
             location.setBearingAccuracyDegrees(bearingAccuracyD);
         }
 
-        @DoNotInline
         static void removeBearingAccuracy(Location location) {
             try {
                 byte fieldsMask = getFieldsMaskField().getByte(location);
@@ -957,30 +883,6 @@ public final class LocationCompat {
                 error.initCause(e);
                 throw error;
             }
-        }
-    }
-
-    @RequiresApi(18)
-    private static class Api18Impl {
-
-        private Api18Impl() {
-        }
-
-        @DoNotInline
-        static boolean isMock(Location location) {
-            return location.isFromMockProvider();
-        }
-    }
-
-    @RequiresApi(17)
-    private static class Api17Impl {
-
-        private Api17Impl() {
-        }
-
-        @DoNotInline
-        static long getElapsedRealtimeNanos(Location location) {
-            return location.getElapsedRealtimeNanos();
         }
     }
 
@@ -1065,6 +967,17 @@ public final class LocationCompat {
             if (extras.isEmpty()) {
                 location.setExtras(null);
             }
+        }
+    }
+
+    @RequiresApi(31)
+    static class Api31Impl {
+        private Api31Impl() {
+            // This class is not instantiable.
+        }
+
+        static boolean isMock(Location location) {
+            return location.isMock();
         }
     }
 }

@@ -336,9 +336,10 @@ internal class ComposeSceneMediator(
      */
     private var keyboardModifiersRequireUpdate = false
 
-    private val dragAndDropManager = AwtDragAndDropManager(container) {
-        scene.dragAndDropTarget
-    }
+    private val dragAndDropManager = AwtDragAndDropManager(
+        rootContainer = container,
+        getComposeRootDragAndDropNode = { scene.rootDragAndDropNode },
+    )
 
     init {
         // Transparency is used during redrawer creation that triggered by [addNotify], so

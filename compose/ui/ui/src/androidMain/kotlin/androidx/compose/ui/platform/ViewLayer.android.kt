@@ -42,9 +42,7 @@ import androidx.compose.ui.unit.IntSize
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 
-/**
- * View implementation of OwnedLayer.
- */
+/** View implementation of OwnedLayer. */
 internal class ViewLayer(
     val ownerView: AndroidComposeView,
     val container: DrawChildContainer,
@@ -58,12 +56,14 @@ internal class ViewLayer(
     // Value of the layerModifier's clipToBounds property
     private var clipToBounds = false
     private var clipBoundsCache: android.graphics.Rect? = null
-    private val manualClipPath: Path? get() =
-        if (!clipToOutline || outlineResolver.outlineClipSupported) {
-            null
-        } else {
-            outlineResolver.clipPath
-        }
+    private val manualClipPath: Path?
+        get() =
+            if (!clipToOutline || outlineResolver.outlineClipSupported) {
+                null
+            } else {
+                outlineResolver.clipPath
+            }
+
     var isInvalidated = false
         private set(value) {
             if (value != field) {
@@ -71,15 +71,19 @@ internal class ViewLayer(
                 ownerView.notifyLayerIsDirty(this, value)
             }
         }
+
     private var drawnWithZ = false
     private val canvasHolder = CanvasHolder()
 
     private val matrixCache = LayerMatrixCache(getMatrix)
 
+    override val underlyingMatrix: Matrix
+        get() = matrixCache.calculateMatrix(this)
+
     /**
-     * Local copy of the transform origin as GraphicsLayerModifier can be implemented
-     * as a model object. Update this field within [updateLayerProperties] and use it
-     * in [resize] or other methods
+     * Local copy of the transform origin as GraphicsLayerModifier can be implemented as a model
+     * object. Update this field within [updateLayerProperties] and use it in [resize] or other
+     * methods
      */
     private var mTransformOrigin: TransformOrigin = TransformOrigin.Center
 
@@ -93,17 +97,16 @@ internal class ViewLayer(
     override val layerId: Long = generateViewId().toLong()
 
     override val ownerViewId: Long
-        get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            UniqueDrawingIdApi29.getUniqueDrawingId(ownerView)
-        } else {
-            -1
-        }
+        get() =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                UniqueDrawingIdApi29.getUniqueDrawingId(ownerView)
+            } else {
+                -1
+            }
 
     @RequiresApi(29)
     private object UniqueDrawingIdApi29 {
-        @JvmStatic
-        @androidx.annotation.DoNotInline
-        fun getUniqueDrawingId(view: View) = view.uniqueDrawingId
+        @JvmStatic fun getUniqueDrawingId(view: View) = view.uniqueDrawingId
     }
 
     /**
@@ -168,13 +171,14 @@ internal class ViewLayer(
             resetClipBounds()
             this.clipToOutline = clipToOutline
         }
-        val shapeChanged = outlineResolver.update(
-            scope.outline,
-            scope.alpha,
-            clipToOutline,
-            scope.shadowElevation,
-            scope.size
-        )
+        val shapeChanged =
+            outlineResolver.update(
+                scope.outline,
+                scope.alpha,
+                clipToOutline,
+                scope.shadowElevation,
+                scope.size
+            )
         if (outlineResolver.cacheIsDirty) {
             updateOutlineResolver()
         }
@@ -209,22 +213,21 @@ internal class ViewLayer(
         }
 
         if (maybeChangedFields and Fields.CompositingStrategy != 0) {
-            mHasOverlappingRendering = when (scope.compositingStrategy) {
-                CompositingStrategy.Offscreen -> {
-                    setLayerType(LAYER_TYPE_HARDWARE, null)
-                    true
+            mHasOverlappingRendering =
+                when (scope.compositingStrategy) {
+                    CompositingStrategy.Offscreen -> {
+                        setLayerType(LAYER_TYPE_HARDWARE, null)
+                        true
+                    }
+                    CompositingStrategy.ModulateAlpha -> {
+                        setLayerType(LAYER_TYPE_NONE, null)
+                        false
+                    }
+                    else -> { // CompositingStrategy.Auto
+                        setLayerType(LAYER_TYPE_NONE, null)
+                        true
+                    }
                 }
-
-                CompositingStrategy.ModulateAlpha -> {
-                    setLayerType(LAYER_TYPE_NONE, null)
-                    false
-                }
-
-                else -> { // CompositingStrategy.Auto
-                    setLayerType(LAYER_TYPE_NONE, null)
-                    true
-                }
-            }
         }
         mutatedFields = scope.mutatedFields
     }
@@ -248,24 +251,26 @@ internal class ViewLayer(
     }
 
     private fun updateOutlineResolver() {
-        this.outlineProvider = if (outlineResolver.androidOutline != null) {
-            OutlineProvider
-        } else {
-            null
-        }
+        this.outlineProvider =
+            if (outlineResolver.androidOutline != null) {
+                OutlineProvider
+            } else {
+                null
+            }
     }
 
     private fun resetClipBounds() {
-        this.clipBounds = if (clipToBounds) {
-            if (clipBoundsCache == null) {
-                clipBoundsCache = android.graphics.Rect(0, 0, width, height)
+        this.clipBounds =
+            if (clipToBounds) {
+                if (clipBoundsCache == null) {
+                    clipBoundsCache = android.graphics.Rect(0, 0, width, height)
+                } else {
+                    clipBoundsCache!!.set(0, 0, width, height)
+                }
+                clipBoundsCache
             } else {
-                clipBoundsCache!!.set(0, 0, width, height)
+                null
             }
-            clipBoundsCache
-        } else {
-            null
-        }
     }
 
     override fun resize(size: IntSize) {
@@ -331,8 +336,7 @@ internal class ViewLayer(
         }
     }
 
-    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-    }
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {}
 
     override fun destroy() {
         isInvalidated = false
@@ -363,22 +367,17 @@ internal class ViewLayer(
 
     override fun mapOffset(point: Offset, inverse: Boolean): Offset {
         return if (inverse) {
-            matrixCache.calculateInverseMatrix(this)?.map(point) ?: Offset.Infinite
+            matrixCache.mapInverse(this, point)
         } else {
-            matrixCache.calculateMatrix(this).map(point)
+            matrixCache.map(this, point)
         }
     }
 
     override fun mapBounds(rect: MutableRect, inverse: Boolean) {
         if (inverse) {
-            val matrix = matrixCache.calculateInverseMatrix(this)
-            if (matrix != null) {
-                matrix.map(rect)
-            } else {
-                rect.set(0f, 0f, 0f, 0f)
-            }
+            matrixCache.mapInverse(this, rect)
         } else {
-            matrixCache.calculateMatrix(this).map(rect)
+            matrixCache.map(this, rect)
         }
     }
 
@@ -391,6 +390,7 @@ internal class ViewLayer(
         } else {
             visibility = VISIBLE
         }
+        matrixCache.reset()
         clipToBounds = false
         drawnWithZ = false
         mTransformOrigin = TransformOrigin.Center
@@ -415,12 +415,13 @@ internal class ViewLayer(
             matrix.set(newMatrix)
         }
 
-        val OutlineProvider = object : ViewOutlineProvider() {
-            override fun getOutline(view: View, outline: android.graphics.Outline) {
-                view as ViewLayer
-                outline.set(view.outlineResolver.androidOutline!!)
+        val OutlineProvider =
+            object : ViewOutlineProvider() {
+                override fun getOutline(view: View, outline: android.graphics.Outline) {
+                    view as ViewLayer
+                    outline.set(view.outlineResolver.androidOutline!!)
+                }
             }
-        }
         private var updateDisplayListIfDirtyMethod: Method? = null
         private var recreateDisplayList: Field? = null
         var hasRetrievedMethod = false
@@ -440,23 +441,27 @@ internal class ViewLayer(
                         recreateDisplayList =
                             View::class.java.getDeclaredField("mRecreateDisplayList")
                     } else {
-                        val getDeclaredMethod = Class::class.java.getDeclaredMethod(
-                            "getDeclaredMethod",
-                            String::class.java,
-                            arrayOf<Class<*>>()::class.java
-                        )
-                        updateDisplayListIfDirtyMethod = getDeclaredMethod.invoke(
-                            View::class.java,
-                            "updateDisplayListIfDirty", emptyArray<Class<*>>()
-                        ) as Method?
-                        val getDeclaredField = Class::class.java.getDeclaredMethod(
-                            "getDeclaredField",
-                            String::class.java
-                        )
-                        recreateDisplayList = getDeclaredField.invoke(
-                            View::class.java,
-                            "mRecreateDisplayList"
-                        ) as Field?
+                        val getDeclaredMethod =
+                            Class::class
+                                .java
+                                .getDeclaredMethod(
+                                    "getDeclaredMethod",
+                                    String::class.java,
+                                    arrayOf<Class<*>>()::class.java
+                                )
+                        updateDisplayListIfDirtyMethod =
+                            getDeclaredMethod.invoke(
+                                View::class.java,
+                                "updateDisplayListIfDirty",
+                                emptyArray<Class<*>>()
+                            ) as Method?
+                        val getDeclaredField =
+                            Class::class
+                                .java
+                                .getDeclaredMethod("getDeclaredField", String::class.java)
+                        recreateDisplayList =
+                            getDeclaredField.invoke(View::class.java, "mRecreateDisplayList")
+                                as Field?
                     }
                     updateDisplayListIfDirtyMethod?.isAccessible = true
                     recreateDisplayList?.isAccessible = true
@@ -473,7 +478,6 @@ internal class ViewLayer(
 @RequiresApi(Build.VERSION_CODES.S)
 private object ViewLayerVerificationHelper31 {
 
-    @androidx.annotation.DoNotInline
     fun setRenderEffect(view: View, target: RenderEffect?) {
         view.setRenderEffect(target?.asAndroidRenderEffect())
     }
@@ -482,12 +486,10 @@ private object ViewLayerVerificationHelper31 {
 @RequiresApi(Build.VERSION_CODES.P)
 private object ViewLayerVerificationHelper28 {
 
-    @androidx.annotation.DoNotInline
     fun setOutlineAmbientShadowColor(view: View, target: Int) {
         view.outlineAmbientShadowColor = target
     }
 
-    @androidx.annotation.DoNotInline
     fun setOutlineSpotShadowColor(view: View, target: Int) {
         view.outlineSpotShadowColor = target
     }

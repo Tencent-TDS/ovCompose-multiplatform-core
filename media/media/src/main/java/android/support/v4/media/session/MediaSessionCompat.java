@@ -65,7 +65,6 @@ import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.ViewConfiguration;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
@@ -553,15 +552,9 @@ public class MediaSessionCompat {
                     ? Looper.myLooper() : Looper.getMainLooper());
             setCallback(new Callback() {}, handler);
             mImpl.setMediaButtonReceiver(mbrIntent);
-        } else if (android.os.Build.VERSION.SDK_INT >= 19) {
+        } else {
             mImpl = new MediaSessionImplApi19(context, tag, mbrComponent, mbrIntent,
                     session2Token, sessionInfo);
-        } else if (android.os.Build.VERSION.SDK_INT >= 18) {
-            mImpl = new MediaSessionImplApi18(context, tag, mbrComponent, mbrIntent,
-                    session2Token, sessionInfo);
-        } else {
-            mImpl = new MediaSessionImplBase(context, tag, mbrComponent, mbrIntent, session2Token,
-                    sessionInfo);
         }
         mController = new MediaControllerCompat(context, this);
 
@@ -2287,17 +2280,14 @@ public class MediaSessionCompat {
         private static class Api21Impl {
             private Api21Impl() {}
 
-            @DoNotInline
             static MediaSession.QueueItem createQueueItem(MediaDescription description, long id) {
                 return new MediaSession.QueueItem(description, id);
             }
 
-            @DoNotInline
             static MediaDescription getDescription(MediaSession.QueueItem queueItem) {
                 return queueItem.getDescription();
             }
 
-            @DoNotInline
             static long getQueueId(MediaSession.QueueItem queueItem) {
                 return queueItem.getQueueId();
             }
@@ -3758,7 +3748,6 @@ public class MediaSessionCompat {
         }
     }
 
-    @RequiresApi(18)
     static class MediaSessionImplApi18 extends MediaSessionImplBase {
         private static boolean sIsMbrPendingIntentSupported = true;
 
@@ -3844,7 +3833,6 @@ public class MediaSessionCompat {
         }
     }
 
-    @RequiresApi(19)
     static class MediaSessionImplApi19 extends MediaSessionImplApi18 {
         MediaSessionImplApi19(Context context, String tag, ComponentName mbrComponent,
                 PendingIntent mbrIntent, VersionedParcelable session2Token, Bundle sessionInfo) {
@@ -4316,9 +4304,9 @@ public class MediaSessionCompat {
             @Override
             public Bundle getSessionInfo() {
                 MediaSessionImplApi21 mediaSessionImpl = mMediaSessionImplRef.get();
-                return mediaSessionImpl.mSessionInfo == null
-                        ? null
-                        : new Bundle(mediaSessionImpl.mSessionInfo);
+                return mediaSessionImpl != null && mediaSessionImpl.mSessionInfo != null
+                        ? new Bundle(mediaSessionImpl.mSessionInfo)
+                        : null;
             }
 
             @Override

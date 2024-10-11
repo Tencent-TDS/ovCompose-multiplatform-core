@@ -42,25 +42,10 @@ androidXMultiplatform {
     mac()
     linux()
     ios()
-    js()
-    wasm()
+    js { browser() }
+    wasm { browser() }
 
     defaultPlatform(PlatformIdentifier.ANDROID)
-}
-
-kotlin {
-    js {
-        browser()
-    }
-    wasmJs()
-
-    watchosArm64()
-    watchosArm32()
-    watchosX64()
-    watchosSimulatorArm64()
-    tvosArm64()
-    tvosX64()
-    tvosSimulatorArm64()
 
     sourceSets {
         commonMain {
@@ -68,6 +53,7 @@ kotlin {
                 api project(":annotation:annotation")
                 implementation project(":collection:collection")
                 api project(":core:core-bundle")
+                api project(":core:core-uri")
                 api project(":lifecycle:lifecycle-common")
                 api project(":lifecycle:lifecycle-runtime")
                 api project(":lifecycle:lifecycle-viewmodel")
@@ -84,12 +70,15 @@ kotlin {
             dependencies {
                 implementation(libs.kotlinStdlib)
                 implementation(libs.kotlinTest)
+                implementation(libs.kotlinCoroutinesTest)
+                implementation(project(":kruth:kruth"))
+                implementation(project(":navigation:navigation-testing"))
+                implementation(project(":internal-testutils-navigation"))
             }
         }
 
-        jvmMain {
-            dependsOn(commonMain)
-        }
+        jvmMain.dependsOn(commonMain)
+        jvmTest.dependsOn(commonTest)
 
         androidMain {
             dependsOn(jvmMain)
@@ -101,8 +90,6 @@ kotlin {
         androidInstrumentedTest {
             dependsOn(commonTest)
             dependencies {
-//                implementation(project(":navigation:navigation-testing"))
-                implementation(project(":internal-testutils-navigation"))
                 implementation(project(":internal-testutils-runtime"))
                 implementation(libs.testExtJunit)
                 implementation(libs.testExtTruth)
@@ -111,7 +98,6 @@ kotlin {
                 implementation(libs.testRules)
                 implementation(libs.espressoCore)
                 implementation(libs.espressoIntents)
-                implementation(libs.truth)
 
                 // CustomMessageMissingMethodException: Could not find method implementation() for arguments
                 // implementation(libs.mockitoCore, excludes.bytebuddy)
@@ -122,6 +108,7 @@ kotlin {
         }
 
         jbMain.dependsOn(commonMain)
+        jbTest.dependsOn(commonTest)
 
         nonJvmMain {
             dependsOn(jbMain)
@@ -129,24 +116,42 @@ kotlin {
                 implementation(libs.atomicFu)
             }
         }
+        nonJvmTest.dependsOn(jbTest)
 
         desktopMain {
             dependsOn(jvmMain)
             dependsOn(jbMain)
         }
+        desktopTest {
+            dependsOn(jvmTest)
+            dependsOn(jbTest)
+        }
+
+        webMain.dependsOn(nonJvmMain)
+        webTest.dependsOn(nonJvmTest)
 
         targets.all { target ->
-            if (target.platformType !in [
-                    KotlinPlatformType.androidJvm,
-                    KotlinPlatformType.jvm,
-                    KotlinPlatformType.common
-            ]) {
-                target.compilations["main"].defaultSourceSet {
-                    dependsOn(nonJvmMain)
-                }
+            if (target.platformType == KotlinPlatformType.native) {
+                target.compilations["main"].defaultSourceSet.dependsOn(nonJvmMain)
+                target.compilations["test"].defaultSourceSet.dependsOn(nonJvmTest)
+            } else if (target.platformType in [KotlinPlatformType.js, KotlinPlatformType.wasm]) {
+                target.compilations["main"].defaultSourceSet.dependsOn(webMain)
+                target.compilations["test"].defaultSourceSet.dependsOn(webTest)
             }
         }
+
+        wasmJsTest.kotlin.srcDirs("src/jsTest/kotlin")
     }
+}
+
+kotlin {
+    watchosArm64()
+    watchosArm32()
+    watchosX64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosX64()
+    tvosSimulatorArm64()
 }
 
 android {

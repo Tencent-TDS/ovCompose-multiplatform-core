@@ -33,6 +33,7 @@ internal fun Translations.ne() = mapOf(
     Strings.MenuCollapsed to "कोल्याप्स गरिएको छ",
     Strings.ToggleDropdownMenu to "ड्रपडाउन मेनु टगल गर्नुहोस्",
     Strings.SnackbarDismiss to "खारेज गर्नुहोस्",
+    Strings.SnackbarPaneTitle to "अलर्ट",
     Strings.SearchBarSearch to "खोज्नुहोस्",
     Strings.SuggestionsAvailable to "सुझावहरू तल दिइएका छन्",
     Strings.DatePickerTitle to "मिति चयन गर्नुहोस्",
@@ -85,4 +86,6 @@ internal fun Translations.ne() = mapOf(
     Strings.TimePickerHour to "घण्टा",
     Strings.TimePickerMinuteTextField to "मिनेटका लागि",
     Strings.TimePickerHourTextField to "घण्टाका लागि",
+    Strings.CloseRail to "रेल बन्द गर्नुहोस्",
+    Strings.WideNavigationRailPaneTitle to "नेभिगेसन रेल",
 )

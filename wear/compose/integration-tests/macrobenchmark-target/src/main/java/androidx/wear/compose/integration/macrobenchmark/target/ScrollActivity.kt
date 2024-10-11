@@ -37,7 +37,7 @@ import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 
 class ScrollActivity : ComponentActivity() {
-    private var itemHeightDp: Dp = 20.dp
+    private var itemHeightDp: Dp = 60.dp
     private var defaultItemSpacingDp: Dp = 8.dp
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,22 +47,26 @@ class ScrollActivity : ComponentActivity() {
             MaterialTheme {
                 ScalingLazyColumn(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(
-                        space = defaultItemSpacingDp,
-                        alignment = Alignment.CenterVertically
-                    ),
+                    verticalArrangement =
+                        Arrangement.spacedBy(
+                            space = defaultItemSpacingDp,
+                            alignment = Alignment.CenterVertically
+                        ),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 30.dp),
                     state = rememberScalingLazyListState(),
                     modifier = Modifier.semantics { contentDescription = CONTENT_DESCRIPTION }
                 ) {
                     items(5000) { it ->
                         Box(
-                            Modifier
-                                .requiredHeight(itemHeightDp)
+                            Modifier.requiredHeight(itemHeightDp)
                                 .background(MaterialTheme.colors.surface)
                                 .fillMaxSize()
                         ) {
-                            Text(text = "Item $it", color = MaterialTheme.colors.onSurface)
+                            Text(
+                                modifier = Modifier.align(Alignment.Center),
+                                text = "Item $it",
+                                color = MaterialTheme.colors.onSurface
+                            )
                         }
                     }
                 }

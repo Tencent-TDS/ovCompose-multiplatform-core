@@ -28,4 +28,5 @@ internal fun Translations.lt() = mapOf(
     Strings.DefaultErrorMessage to "Netinkama įvestis",
     Strings.SliderRangeStart to "Diapazono pradžia",
     Strings.SliderRangeEnd to "Diapazono pabaiga",
+    Strings.SnackbarPaneTitle to "Įspėjimas",
 )

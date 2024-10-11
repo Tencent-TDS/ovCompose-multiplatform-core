@@ -46,7 +46,10 @@ class ConstraintControllerTest {
     @SmallTest
     fun testTrackViaFlow() = runBlocking {
         tracker.setDeviceActive()
-        val tester = launchTester(testIdleController.track())
+        // not actually used by TestDeviceIdleConstraintController,
+        // only NetworkRequestContoller uses it.
+        val constraints = Constraints.NONE
+        val tester = launchTester(testIdleController.track(constraints))
         assertThat(tester.awaitNext()).isEqualTo(ConstraintsNotMet)
         assertThat(tracker.tracking).isTrue()
         tracker.setDeviceIdle()
@@ -58,20 +61,22 @@ class ConstraintControllerTest {
     @Test
     @SmallTest
     fun testIsConstrained() {
-        val constrained = OneTimeWorkRequest.Builder(TestWorker::class.java)
-            .setConstraints(Constraints(requiresDeviceIdle = true)).build().workSpec
+        val constrained =
+            OneTimeWorkRequest.Builder(TestWorker::class.java)
+                .setConstraints(Constraints(requiresDeviceIdle = true))
+                .build()
+                .workSpec
         val unconstrained = OneTimeWorkRequest.Builder(TestWorker::class.java).build().workSpec
         tracker.setDeviceActive()
-        assertThat(testIdleController.isConstrained(unconstrained)).isFalse()
-        assertThat(testIdleController.isConstrained(constrained)).isTrue()
+        assertThat(testIdleController.isCurrentlyConstrained(unconstrained)).isFalse()
+        assertThat(testIdleController.isCurrentlyConstrained(constrained)).isTrue()
         tracker.setDeviceIdle()
-        assertThat(testIdleController.isConstrained(unconstrained)).isFalse()
-        assertThat(testIdleController.isConstrained(constrained)).isFalse()
+        assertThat(testIdleController.isCurrentlyConstrained(unconstrained)).isFalse()
+        assertThat(testIdleController.isCurrentlyConstrained(constrained)).isFalse()
     }
 
-    private class TestDeviceIdleConstraintController(
-        tracker: ConstraintTracker<Boolean>
-    ) : ConstraintController<Boolean>(tracker) {
+    private class TestDeviceIdleConstraintController(tracker: ConstraintTracker<Boolean>) :
+        BaseConstraintController<Boolean>(tracker) {
         override val reason = WorkInfo.STOP_REASON_CONSTRAINT_DEVICE_IDLE
 
         override fun hasConstraint(workSpec: WorkSpec): Boolean {
@@ -81,12 +86,14 @@ class ConstraintControllerTest {
         override fun isConstrained(value: Boolean) = !value
     }
 
-    private class FakeConstraintTracker : ConstraintTracker<Boolean>(
-        ApplicationProvider.getApplicationContext(),
-        InstantWorkTaskExecutor()
-    ) {
+    private class FakeConstraintTracker :
+        ConstraintTracker<Boolean>(
+            ApplicationProvider.getApplicationContext(),
+            InstantWorkTaskExecutor()
+        ) {
         var tracking = false
         var deviceIdle = false
+
         override fun startTracking() {
             tracking = true
         }

@@ -20,9 +20,11 @@ import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.pm.ServiceInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -36,7 +38,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RestrictTo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -276,7 +277,7 @@ public class CustomTabsClient {
      *
      * {@see PendingSession}
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @ExperimentalPendingSession
     @NonNull
     public static CustomTabsSession.PendingSession newPendingSession(
             @NonNull Context context, @Nullable final CustomTabsCallback callback, int id) {
@@ -401,6 +402,7 @@ public class CustomTabsClient {
                     throws RemoteException {
                 if (callback == null) return;
                 mHandler.post(new Runnable() {
+                    @SuppressWarnings("NullAway") // b/316641009
                     @Override
                     public void run() {
                         callback.onActivityResized(height, width, extras);
@@ -432,6 +434,29 @@ public class CustomTabsClient {
                     }
                 });
             }
+
+            @Override
+            public void onMinimized(@NonNull Bundle extras) throws RemoteException {
+                if (callback == null) return;
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onMinimized(extras);
+                    }
+                });
+            }
+
+            @Override
+            public void onUnminimized(@NonNull Bundle extras)
+                    throws RemoteException {
+                if (callback == null) return;
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onUnminimized(extras);
+                    }
+                });
+            }
         };
     }
 
@@ -440,10 +465,38 @@ public class CustomTabsClient {
      * and turn it into a {@link CustomTabsSession}.
      *
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @ExperimentalPendingSession
     @SuppressWarnings("NullAway") // TODO: b/141869399
     @Nullable
     public CustomTabsSession attachSession(@NonNull CustomTabsSession.PendingSession session) {
         return newSessionInternal(session.getCallback(), session.getId());
+    }
+
+    /**
+     * Check whether the Custom Tabs provider supports multi-network feature {@link
+     * CustomTabsIntent.Builder#setNetwork}, i.e. be able to bind a custom tab to a
+     * particular network.
+     *
+     * @param context Application context.
+     * @param provider the package name of Custom Tabs provider.
+     * @return whether a Custom Tabs provider supports multi-network feature.
+     * @see CustomTabsIntent.Builder#setNetwork and CustomTabsService#CATEGORY_SET_NETWORK.
+     */
+    public static boolean isSetNetworkSupported(@NonNull Context context,
+            @NonNull String provider) {
+        PackageManager pm = context.getPackageManager();
+        List<ResolveInfo> services = pm.queryIntentServices(
+                new Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION),
+                PackageManager.GET_RESOLVED_FILTER);
+        for (ResolveInfo service : services) {
+            ServiceInfo serviceInfo = service.serviceInfo;
+            if (serviceInfo != null && provider.equals(serviceInfo.packageName)) {
+                IntentFilter filter = service.filter;
+                if (filter != null && filter.hasCategory(CustomTabsService.CATEGORY_SET_NETWORK)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

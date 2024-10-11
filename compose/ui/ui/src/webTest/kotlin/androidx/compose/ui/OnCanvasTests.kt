@@ -33,36 +33,38 @@ import org.w3c.dom.events.Event
  * An interface with helper functions to initialise the tests
  */
 
-private const val canvasId: String = "canvasApp"
+private const val containerId: String = "canvasApp"
+
+private external interface CanReplaceChildren {
+    // this is a standard method for (among other things) emptying DOM element content
+    // https://developer.mozilla.org/en-US/docs/Web/API/Element/replaceChildren
+    // TODO: add this to our kotlin web external definitions
+    fun replaceChildren()
+}
 
 internal interface OnCanvasTests {
 
     @BeforeTest
     fun beforeTest() {
-        resetCanvas()
-    }
-
-    fun getCanvas() = document.getElementById(canvasId) as HTMLCanvasElement
-
-    private fun resetCanvas() {
         /** TODO: [kotlin.test.AfterTest] is fixed only in kotlin 2.0
         see https://youtrack.jetbrains.com/issue/KT-61888
          */
-        document.getElementById(canvasId)?.remove()
-
-        val canvas = document.createElement("canvas") as HTMLCanvasElement
-        canvas.setAttribute("id", canvasId)
-        canvas.setAttribute("tabindex", "0")
-
-        document.body!!.appendChild(canvas)
+        resetCanvas()
     }
 
-    fun createComposeWindow(content: @Composable () -> Unit): ComposeWindow {
-        return ComposeWindow(
-            canvas = getCanvas(),
-            content = content,
-            state = DefaultWindowState(document.documentElement!!)
-        )
+    private fun resetCanvas() {
+        (getCanvasContainer() as CanReplaceChildren).replaceChildren()
+    }
+
+    private fun getCanvasContainer() = document.getElementById(containerId) ?: error("failed to get canvas with id ${containerId}")
+
+    fun getCanvas(): HTMLCanvasElement {
+        val canvas = (getCanvasContainer().querySelector("canvas") as? HTMLCanvasElement) ?: error("failed to get canvas")
+        return canvas
+    }
+
+    fun createComposeWindow(content: @Composable () -> Unit) {
+        ComposeViewport(containerId, content = content)
     }
 
     fun dispatchEvents(vararg events: Any) {

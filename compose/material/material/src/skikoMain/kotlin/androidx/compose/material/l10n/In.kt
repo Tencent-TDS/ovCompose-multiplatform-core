@@ -28,4 +28,5 @@ internal fun Translations.`in`() = mapOf(
     Strings.DefaultErrorMessage to "Input tidak valid",
     Strings.SliderRangeStart to "Rentang awal",
     Strings.SliderRangeEnd to "Rentang akhir",
+    Strings.SnackbarPaneTitle to "Pemberitahuan",
 )

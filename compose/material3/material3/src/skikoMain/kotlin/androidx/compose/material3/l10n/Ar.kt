@@ -33,6 +33,7 @@ internal fun Translations.ar() = mapOf(
     Strings.MenuCollapsed to "مصغَّرة",
     Strings.ToggleDropdownMenu to "توسيع القائمة المنسدلة أو تصغيرها",
     Strings.SnackbarDismiss to "إغلاق",
+    Strings.SnackbarPaneTitle to "تنبيه",
     Strings.SearchBarSearch to "شريط بحث",
     Strings.SuggestionsAvailable to "إليك الاقتراحات",
     Strings.DatePickerTitle to "اختيار تاريخ",
@@ -85,4 +86,6 @@ internal fun Translations.ar() = mapOf(
     Strings.TimePickerHour to "ساعة",
     Strings.TimePickerMinuteTextField to "الدقائق",
     Strings.TimePickerHourTextField to "الساعات",
+    Strings.CloseRail to "إغلاق الشريط",
+    Strings.WideNavigationRailPaneTitle to "شريط التنقّل",
 )

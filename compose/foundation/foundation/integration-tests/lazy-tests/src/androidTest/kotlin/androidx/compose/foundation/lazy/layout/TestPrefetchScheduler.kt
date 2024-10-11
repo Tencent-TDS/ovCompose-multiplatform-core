@@ -18,22 +18,22 @@ package androidx.compose.foundation.lazy.layout
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 
-@OptIn(ExperimentalFoundationApi::class)
+@ExperimentalFoundationApi
 internal class TestPrefetchScheduler : PrefetchScheduler {
 
     private var activeRequests = mutableListOf<PrefetchRequest>()
+
     override fun schedulePrefetch(prefetchRequest: PrefetchRequest) {
         activeRequests.add(prefetchRequest)
     }
 
     fun executeActiveRequests() {
-        activeRequests.forEach {
-            with(it) { scope.execute() }
-        }
+        activeRequests.forEach { with(it) { scope.execute() } }
         activeRequests.clear()
     }
 
-    private val scope = object : PrefetchRequestScope {
-        override fun availableTimeNanos(): Long = Long.MAX_VALUE
-    }
+    private val scope =
+        object : PrefetchRequestScope {
+            override fun availableTimeNanos(): Long = Long.MAX_VALUE
+        }
 }

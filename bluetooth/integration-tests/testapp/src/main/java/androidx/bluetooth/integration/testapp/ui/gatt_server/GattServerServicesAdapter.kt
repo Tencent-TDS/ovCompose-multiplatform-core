@@ -31,8 +31,9 @@ class GattServerServicesAdapter(
 ) : RecyclerView.Adapter<GattServerServicesAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_gatt_server_service, parent, false)
+        val view =
+            LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_gatt_server_service, parent, false)
         return ViewHolder(view)
     }
 
@@ -50,8 +51,8 @@ class GattServerServicesAdapter(
         private val buttonAddCharacteristic: Button =
             itemView.findViewById(R.id.button_add_characteristic)
 
-        private val recyclerViewServiceCharacteristic: RecyclerView =
-            itemView.findViewById(R.id.recycler_view_service_characteristic)
+        private val recyclerViewServiceCharacteristics: RecyclerView =
+            itemView.findViewById(R.id.recycler_view_service_characteristics)
 
         private var currentGattService: GattService? = null
 
@@ -66,9 +67,8 @@ class GattServerServicesAdapter(
 
             textViewUuid.text = gattService.uuid.toString()
 
-            recyclerViewServiceCharacteristic.adapter = GattServerCharacteristicsAdapter(
-                gattService.characteristics
-            )
+            recyclerViewServiceCharacteristics.adapter =
+                GattServerServiceCharacteristicsAdapter(gattService.characteristics)
         }
     }
 }

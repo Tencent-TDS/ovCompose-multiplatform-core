@@ -44,27 +44,40 @@ public final class androidx/compose/ui/util/ListUtilsKt {
 	public static final fun fastMapNotNull (Ljava/util/List;Lkotlin/jvm/functions/Function1;)Ljava/util/List;
 	public static final fun fastMapTo (Ljava/util/List;Ljava/util/Collection;Lkotlin/jvm/functions/Function1;)Ljava/util/Collection;
 	public static final fun fastMaxBy (Ljava/util/List;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public static final fun fastMaxOfOrDefault (Ljava/util/List;Ljava/lang/Comparable;Lkotlin/jvm/functions/Function1;)Ljava/lang/Comparable;
 	public static final fun fastMaxOfOrNull (Ljava/util/List;Lkotlin/jvm/functions/Function1;)Ljava/lang/Comparable;
 	public static final fun fastMinByOrNull (Ljava/util/List;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
 	public static final fun fastReduce (Ljava/util/List;Lkotlin/jvm/functions/Function2;)Ljava/lang/Object;
 	public static final fun fastSumBy (Ljava/util/List;Lkotlin/jvm/functions/Function1;)I
 	public static final fun fastZip (Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function2;)Ljava/util/List;
 	public static final fun fastZipWithNext (Ljava/util/List;Lkotlin/jvm/functions/Function2;)Ljava/util/List;
+	public static final fun throwNoSuchElementException (Ljava/lang/String;)Ljava/lang/Void;
+	public static final fun throwUnsupportedOperationException (Ljava/lang/String;)V
 }
 
 public final class androidx/compose/ui/util/MathHelpersKt {
 	public static final fun fastCbrt (F)F
 	public static final fun fastCoerceAtLeast (DD)D
 	public static final fun fastCoerceAtLeast (FF)F
+	public static final fun fastCoerceAtLeast (II)I
+	public static final fun fastCoerceAtLeast (JJ)J
 	public static final fun fastCoerceAtMost (DD)D
 	public static final fun fastCoerceAtMost (FF)F
+	public static final fun fastCoerceAtMost (II)I
+	public static final fun fastCoerceAtMost (JJ)J
 	public static final fun fastCoerceIn (DDD)D
 	public static final fun fastCoerceIn (FFF)F
+	public static final fun fastCoerceIn (III)I
+	public static final fun fastCoerceIn (JJJ)J
+	public static final fun fastIsFinite (D)Z
+	public static final fun fastIsFinite (F)Z
 	public static final fun fastMaxOf (FFFF)F
 	public static final fun fastMinOf (FFFF)F
 	public static final fun lerp (FFF)F
 	public static final fun lerp (IIF)I
 	public static final fun lerp (JJF)J
+	public static final fun normalizedAngleCos (F)F
+	public static final fun normalizedAngleSin (F)F
 }
 
 public final class androidx/compose/ui/util/Trace_jbKt {

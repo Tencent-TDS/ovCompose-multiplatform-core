@@ -29,7 +29,6 @@ import androidx.work.impl.background.gcm.GcmTaskConverter.EXECUTION_WINDOW_SIZE_
 import com.google.android.gms.gcm.Task
 import java.util.concurrent.TimeUnit
 import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.greaterThan
 import org.hamcrest.Matchers.lessThanOrEqualTo
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -77,14 +76,13 @@ class GcmTaskConverterTest {
         val now = System.currentTimeMillis()
         `when`(mTaskConverter.now()).thenReturn(now)
 
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.METERED)
-            .setRequiresCharging(true)
-            .build()
+        val constraints =
+            Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.METERED)
+                .setRequiresCharging(true)
+                .build()
 
-        val request = OneTimeWorkRequestBuilder<TestWorker>()
-            .setConstraints(constraints)
-            .build()
+        val request = OneTimeWorkRequestBuilder<TestWorker>().setConstraints(constraints).build()
 
         val task = mTaskConverter.convert(request.workSpec)
         val expected = request.workSpec.calculateNextRunTime()
@@ -107,13 +105,10 @@ class GcmTaskConverterTest {
         val now = System.currentTimeMillis()
         `when`(mTaskConverter.now()).thenReturn(now)
 
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.UNMETERED)
-            .build()
+        val constraints =
+            Constraints.Builder().setRequiredNetworkType(NetworkType.UNMETERED).build()
 
-        val request = OneTimeWorkRequestBuilder<TestWorker>()
-            .setConstraints(constraints)
-            .build()
+        val request = OneTimeWorkRequestBuilder<TestWorker>().setConstraints(constraints).build()
 
         val task = mTaskConverter.convert(request.workSpec)
         val expected = request.workSpec.calculateNextRunTime()
@@ -137,9 +132,10 @@ class GcmTaskConverterTest {
         val now = System.currentTimeMillis()
         `when`(mTaskConverter.now()).thenReturn(now)
 
-        val request = OneTimeWorkRequestBuilder<TestWorker>()
-            .setInitialDelay(initialDelay, TimeUnit.SECONDS)
-            .build()
+        val request =
+            OneTimeWorkRequestBuilder<TestWorker>()
+                .setInitialDelay(initialDelay, TimeUnit.SECONDS)
+                .build()
 
         val task = mTaskConverter.convert(request.workSpec)
         val expected = request.workSpec.calculateNextRunTime()
@@ -162,9 +158,7 @@ class GcmTaskConverterTest {
         val now = System.currentTimeMillis()
         `when`(mTaskConverter.now()).thenReturn(now)
 
-        val request = OneTimeWorkRequestBuilder<TestWorker>()
-            .setInitialRunAttemptCount(1)
-            .build()
+        val request = OneTimeWorkRequestBuilder<TestWorker>().setInitialRunAttemptCount(1).build()
 
         val workSpec = request.workSpec
         val task = mTaskConverter.convert(request.workSpec)
@@ -189,8 +183,7 @@ class GcmTaskConverterTest {
         val now = System.currentTimeMillis()
         `when`(mTaskConverter.now()).thenReturn(now)
 
-        val request = PeriodicWorkRequestBuilder<TestWorker>(15L, TimeUnit.MINUTES)
-            .build()
+        val request = PeriodicWorkRequestBuilder<TestWorker>(15L, TimeUnit.MINUTES).build()
 
         val task = mTaskConverter.convert(request.workSpec)
         val expected = request.workSpec.calculateNextRunTime()
@@ -209,14 +202,14 @@ class GcmTaskConverterTest {
     }
 
     @Test
-    @SdkSuppress(
-        minSdkVersion = 22, // b/269194015 for minSdkVersion = 22
-        maxSdkVersion = WorkManagerImpl.MAX_PRE_JOB_SCHEDULER_API_LEVEL
-    )
+    @SdkSuppress(maxSdkVersion = WorkManagerImpl.MAX_PRE_JOB_SCHEDULER_API_LEVEL)
     fun testPeriodicWorkRequest_withFlex_firstRun() {
-        val request = PeriodicWorkRequestBuilder<TestWorker>(
-            15L, TimeUnit.MINUTES, 5, TimeUnit.MINUTES
-        ).build()
+        val request =
+            PeriodicWorkRequestBuilder<TestWorker>(15L, TimeUnit.MINUTES, 5, TimeUnit.MINUTES)
+                .build()
+        val now = System.currentTimeMillis()
+        `when`(mTaskConverter.now()).thenReturn(now)
+        request.workSpec.lastEnqueueTime = now
 
         val task = mTaskConverter.convert(request.workSpec)
         assertEquals(task.serviceName, WorkManagerGcmService::class.java.name)
@@ -224,23 +217,22 @@ class GcmTaskConverterTest {
         assertEquals(task.isUpdateCurrent, true)
         assertEquals(task.requiredNetwork, Task.NETWORK_STATE_ANY)
         assertEquals(task.requiresCharging, false)
-        assertThat(task.windowStart, greaterThan(0L)) // should be in the future
+        // should be period - flex
+        assertEquals(task.windowStart, TimeUnit.MINUTES.toSeconds(10))
     }
 
     @Test
-    @SdkSuppress(
-        minSdkVersion = 22, // b/269194015 for minSdkVersion = 22
-        maxSdkVersion = WorkManagerImpl.MAX_PRE_JOB_SCHEDULER_API_LEVEL
-    )
+    @SdkSuppress(maxSdkVersion = WorkManagerImpl.MAX_PRE_JOB_SCHEDULER_API_LEVEL)
     fun testPeriodicWorkRequest_withFlex_nextRun() {
         val now = System.currentTimeMillis()
         `when`(mTaskConverter.now()).thenReturn(now)
 
-        val request = PeriodicWorkRequestBuilder<TestWorker>(
-            15L, TimeUnit.MINUTES, 5, TimeUnit.MINUTES
-        ).build()
+        val request =
+            PeriodicWorkRequestBuilder<TestWorker>(15L, TimeUnit.MINUTES, 5, TimeUnit.MINUTES)
+                .build()
 
         request.workSpec.lastEnqueueTime = now
+        request.workSpec.periodCount++
         val expected = TimeUnit.MINUTES.toSeconds(15L)
 
         val task = mTaskConverter.convert(request.workSpec)

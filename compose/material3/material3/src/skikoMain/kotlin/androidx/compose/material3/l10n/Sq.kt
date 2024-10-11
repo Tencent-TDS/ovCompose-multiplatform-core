@@ -33,6 +33,7 @@ internal fun Translations.sq() = mapOf(
     Strings.MenuCollapsed to "Palosur",
     Strings.ToggleDropdownMenu to "Zgjero/palos menynë me lëshim poshtë",
     Strings.SnackbarDismiss to "Hiq",
+    Strings.SnackbarPaneTitle to "Sinjalizim",
     Strings.SearchBarSearch to "Kërkimi",
     Strings.SuggestionsAvailable to "Sugjerimet më poshtë",
     Strings.DatePickerTitle to "Zgjidh datën",
@@ -85,4 +86,6 @@ internal fun Translations.sq() = mapOf(
     Strings.TimePickerHour to "Ora",
     Strings.TimePickerMinuteTextField to "për minuta",
     Strings.TimePickerHourTextField to "për orë",
+    Strings.CloseRail to "Mbyll shinën",
+    Strings.WideNavigationRailPaneTitle to "Shina e shfletimit",
 )

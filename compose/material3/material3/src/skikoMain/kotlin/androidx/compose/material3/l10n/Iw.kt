@@ -33,6 +33,7 @@ internal fun Translations.iw() = mapOf(
     Strings.MenuCollapsed to "התפריט הנפתח מכווץ",
     Strings.ToggleDropdownMenu to "החלפת המצב של התפריט הנפתח",
     Strings.SnackbarDismiss to "סגירה",
+    Strings.SnackbarPaneTitle to "התראה",
     Strings.SearchBarSearch to "חיפוש",
     Strings.SuggestionsAvailable to "הצעות מופיעות למטה",
     Strings.DatePickerTitle to "בחירת תאריך",
@@ -85,4 +86,6 @@ internal fun Translations.iw() = mapOf(
     Strings.TimePickerHour to "שעות",
     Strings.TimePickerMinuteTextField to "דקות",
     Strings.TimePickerHourTextField to "שעות",
+    Strings.CloseRail to "סגירה של פס הניווט",
+    Strings.WideNavigationRailPaneTitle to "פס ניווט",
 )

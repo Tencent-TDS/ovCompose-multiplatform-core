@@ -73,6 +73,6 @@ class TextTests : OnCanvasTests {
         val subtitleAlignment = subtitleOnPositioned.receive()
 
         assertApproximatelyEqual(29f, headingAlignment)
-        assertApproximatelyEqual(19f, subtitleAlignment)
+        assertApproximatelyEqual(17.5f, subtitleAlignment)
     }
 }

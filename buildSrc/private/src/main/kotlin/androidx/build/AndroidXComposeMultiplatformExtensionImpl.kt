@@ -31,7 +31,6 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithSimulatorTests
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
-import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.native.DefaultSimulatorTestRun
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.tomlj.Toml
@@ -77,7 +76,18 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
 
     override fun js(): Unit = multiplatformExtension.run {
         js(KotlinJsCompilerType.IR) {
-            browser()
+            browser {
+                testTask {
+                    it.useKarma {
+                        // We need to set up at least one browser here due to kotlin tooling limitations
+                        // Actual browser configuration is set in mpp/karma.config.d/js/config.js
+                        useChrome()
+                        useConfigDirectory(
+                            project.rootProject.projectDir.resolve("mpp/karma.config.d/js")
+                        )
+                    }
+                }
+            }
         }
 
         val commonMain = sourceSets.getByName("commonMain")
@@ -96,6 +106,8 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
             browser {
                 testTask {
                     it.useKarma {
+                        // We need to set up at least one browser here due to kotlin tooling limitations
+                        // Actual browser configuration is set in mpp/karma.config.d/wasm/config.js
                         useChrome()
                         useConfigDirectory(
                             project.rootProject.projectDir.resolve("mpp/karma.config.d/wasm")
@@ -259,22 +271,6 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     // https://youtrack.jetbrains.com/issue/KT-55751/MPP-Gradle-Consumable-configurations-must-have-unique-attributes
     private val instrumentedTestAttribute = Attribute.of("instrumentedTest", String::class.java)
     private val instrumentedTestCompilationAttribute = Attribute.of("instrumentedTestCompilation", String::class.java)
-
-//    The consumer was configured to find a library for use during 'kotlin-metadata',
-//    preferably optimized for non-jvm, as well as
-//    attribute 'org.jetbrains.kotlin.platform.type'
-//        with value 'native',
-//    attribute 'org.jetbrains.kotlin.native.target'
-//        with value 'ios_simulator_arm64',
-//    attribute 'instrumentedTest'
-//        with value 'Test'.
-//    However we cannot choose between the following variants of project :compose:ui:ui:
-//        - uikitInstrumentedSimArm64ApiElements
-//        - uikitInstrumentedSimArm64MetadataElements
-//        - uikitSimArm64ApiElements
-//        - uikitSimArm64MetadataElements
-
-
     override fun iosInstrumentedTest(): Unit =
         multiplatformExtension.run {
             fun getDeviceName(): String? {

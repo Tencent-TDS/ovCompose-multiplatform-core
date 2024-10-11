@@ -16,15 +16,15 @@
 
 package androidx.compose.ui.graphics.layer
 
+import androidx.compose.runtime.SnapshotMutationPolicy
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
-import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
@@ -55,18 +55,22 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
-import kotlin.math.abs
 import org.jetbrains.skia.Picture
 import org.jetbrains.skia.PictureRecorder
 import org.jetbrains.skia.Point3
 
-actual class GraphicsLayer internal constructor() {
+actual class GraphicsLayer internal constructor(
+    private val snapshotObserver: SnapshotStateObserver
+) {
     private val pictureDrawScope = CanvasDrawScope()
     private val pictureRecorder = PictureRecorder()
     private var picture: Picture? = null
 
     // Composable state marker for tracking drawing invalidations.
-    private val drawState = mutableStateOf(Unit, neverEqualPolicy())
+    private val drawState = mutableStateOf(Unit, object : SnapshotMutationPolicy<Unit> {
+        override fun equivalent(a: Unit, b: Unit): Boolean = false
+        override fun merge(previous: Unit, current: Unit, applied: Unit) = current
+    })
 
     private var matrixDirty = true
     private val matrix = Matrix()
@@ -156,18 +160,20 @@ actual class GraphicsLayer internal constructor() {
 
     private var density: Density = Density(1f)
 
-    private fun invalidateMatrix() {
+    private fun invalidateMatrix(requestDraw: Boolean = true) {
         matrixDirty = true
-        requestDraw()
+        if (requestDraw) {
+            requestDraw()
+        }
     }
 
     private fun requestDraw() {
         drawState.value = Unit
     }
 
-    private fun updateLayerConfiguration() {
+    private fun updateLayerConfiguration(requestDraw: Boolean = true) {
         this.outlineDirty = true
-        invalidateMatrix()
+        invalidateMatrix(requestDraw)
     }
 
     actual fun record(
@@ -182,7 +188,12 @@ actual class GraphicsLayer internal constructor() {
 
         this.density = density
         this.size = size
-        updateLayerConfiguration()
+        updateLayerConfiguration(
+            // [record] doesn't change the state and should not explicitly request drawing
+            // (happens only on the next frame) to avoid infinity invalidation loop.
+            // It's designed to be handled externally.
+            requestDraw = false
+        )
         val bounds = size.toSize().toRect().toSkiaRect()
         val canvas = pictureRecorder.beginRecording(bounds)
         val skiaCanvas = canvas.asComposeCanvas() as SkiaBackedCanvas
@@ -191,9 +202,7 @@ actual class GraphicsLayer internal constructor() {
         } else {
             1.0f
         }
-        childDependenciesTracker.withTracking(
-            onDependencyRemoved = { it.onRemovedFromParentLayer() }
-        ) {
+        trackRecord {
             pictureDrawScope.draw(
                 density,
                 layoutDirection,
@@ -204,6 +213,21 @@ actual class GraphicsLayer internal constructor() {
             )
         }
         picture = pictureRecorder.finishRecordingAsPicture()
+    }
+
+    private fun trackRecord(block: () -> Unit) {
+        childDependenciesTracker.withTracking(
+            onDependencyRemoved = { it.onRemovedFromParentLayer() }
+        ) {
+            snapshotObserver.observeReads(
+                scope = this,
+                onValueChangedForScope = {
+                    // Can be called from another thread
+                    it.requestDraw()
+                },
+                block = block
+            )
+        }
     }
 
     private fun addSubLayer(graphicsLayer: GraphicsLayer) {
@@ -447,6 +471,8 @@ actual class GraphicsLayer internal constructor() {
             childDependenciesTracker.removeDependencies {
                 it.onRemovedFromParentLayer()
             }
+
+            snapshotObserver.clear(this)
         }
     }
 

@@ -43,7 +43,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.collection.ArrayMap;
 import androidx.core.util.ObjectsCompat;
-import androidx.core.util.Pair;
 import androidx.mediarouter.app.MediaRouteDiscoveryFragment;
 import androidx.mediarouter.media.MediaRouteProvider.DynamicGroupRouteController;
 import androidx.mediarouter.media.MediaRouteProvider.DynamicGroupRouteController.DynamicRouteDescriptor;
@@ -473,15 +472,7 @@ public final class MediaRouter {
      */
     @MainThread
     public void selectRoute(@NonNull RouteInfo route) {
-        if (route == null) {
-            throw new IllegalArgumentException("route must not be null");
-        }
-        checkCallingThread();
-
-        if (DEBUG) {
-            Log.d(TAG, "selectRoute: " + route);
-        }
-        getGlobalRouter().selectRoute(route, MediaRouter.UNSELECT_REASON_ROUTE_CHANGED);
+        route.select();
     }
 
     /**
@@ -1154,7 +1145,8 @@ public final class MediaRouter {
             DEVICE_TYPE_UNKNOWN,
             DEVICE_TYPE_TV,
             DEVICE_TYPE_SPEAKER,
-            DEVICE_TYPE_BLUETOOTH,
+            DEVICE_TYPE_REMOTE_SPEAKER,
+            DEVICE_TYPE_BLUETOOTH_A2DP,
             DEVICE_TYPE_AUDIO_VIDEO_RECEIVER,
             DEVICE_TYPE_TABLET,
             DEVICE_TYPE_TABLET_DOCKED,
@@ -1163,6 +1155,18 @@ public final class MediaRouter {
             DEVICE_TYPE_CAR,
             DEVICE_TYPE_SMARTWATCH,
             DEVICE_TYPE_SMARTPHONE,
+            DEVICE_TYPE_BUILTIN_SPEAKER,
+            DEVICE_TYPE_WIRED_HEADSET,
+            DEVICE_TYPE_WIRED_HEADPHONES,
+            DEVICE_TYPE_HDMI,
+            DEVICE_TYPE_USB_DEVICE,
+            DEVICE_TYPE_USB_ACCESSORY,
+            DEVICE_TYPE_DOCK,
+            DEVICE_TYPE_USB_HEADSET,
+            DEVICE_TYPE_HEARING_AID,
+            DEVICE_TYPE_BLE_HEADSET,
+            DEVICE_TYPE_HDMI_ARC,
+            DEVICE_TYPE_HDMI_EARC,
             DEVICE_TYPE_GROUP
         })
         @Retention(RetentionPolicy.SOURCE)
@@ -1189,8 +1193,19 @@ public final class MediaRouter {
          * on a speaker.
          *
          * @see #getDeviceType
+         * @deprecated use {@link #DEVICE_TYPE_BUILTIN_SPEAKER} and
+         * {@link #DEVICE_TYPE_REMOTE_SPEAKER} instead.
          */
+        @Deprecated
         public static final int DEVICE_TYPE_SPEAKER = 2;
+
+        /**
+         * A receiver device type of the route indicating the presentation of the media is happening
+         * on a remote speaker.
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_REMOTE_SPEAKER = 2;
 
         /**
          * A receiver device type of the route indicating the presentation of the media is happening
@@ -1198,8 +1213,7 @@ public final class MediaRouter {
          *
          * @see #getDeviceType
          */
-        @RestrictTo(LIBRARY)
-        public static final int DEVICE_TYPE_BLUETOOTH = 3;
+        public static final int DEVICE_TYPE_BLUETOOTH_A2DP = 3;
 
         /**
          * A receiver device type indicating that the presentation of the media is happening on an
@@ -1257,6 +1271,103 @@ public final class MediaRouter {
          * @see #getDeviceType
          */
         public static final int DEVICE_TYPE_SMARTPHONE = 11;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on a
+         * speaker system (i.e. a mono speaker or stereo speakers) built into the device.
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_BUILTIN_SPEAKER = 12;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on a
+         * headset, which is the combination of a headphones and a microphone.
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_WIRED_HEADSET = 13;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on a pair
+         * of wired headphones.
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_WIRED_HEADPHONES = 14;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on an
+         * HDMI connection.
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_HDMI = 16;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on a USB
+         * audio device.
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_USB_DEVICE = 17;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on a USB
+         * audio device in accessory mode.
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_USB_ACCESSORY = 18;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on an
+         * audio device associated on a dock.
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_DOCK = 19;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on a USB
+         * audio headset.
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_USB_HEADSET = 20;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on a
+         * hearing aid device.
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_HEARING_AID = 21;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on a
+         * Bluetooth Low Energy (BLE) HEADSET.
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_BLE_HEADSET = 22;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on an
+         * Audio Return Channel of an HDMI connection
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_HDMI_ARC = 23;
+
+        /**
+         * A receiver device type indicating the presentation of the media is happening on an
+         * Enhanced Audio Return Channel of an HDMI connection
+         *
+         * @see #getDeviceType
+         */
+        public static final int DEVICE_TYPE_HDMI_EARC = 24;
+
         /**
          * A receiver device type indicating that the presentation of the media is happening on a
          * group of devices.
@@ -1397,8 +1508,7 @@ public final class MediaRouter {
          * speakers, wired headsets, and bluetooth devices.
          *
          * <p>To use system routes, your application should write media sample data to a media
-         * framework API, typically via <a
-         * href="https://developer.android.com/reference/androidx/media3/exoplayer/ExoPlayer">Exoplayer</a>.
+         * framework API, typically via {@link androidx.media3.exoplayer.ExoPlayer ExoPlayer}.
          */
         public boolean isSystemRoute() {
             return mIsSystemRoute;
@@ -1684,7 +1794,7 @@ public final class MediaRouter {
         /** */
         @RestrictTo(LIBRARY)
         public boolean isDefaultOrBluetooth() {
-            if (isDefault() || mDeviceType == DEVICE_TYPE_BLUETOOTH) {
+            if (isDefault() || mDeviceType == DEVICE_TYPE_BLUETOOTH_A2DP) {
                 return true;
             }
             // This is a workaround for platform version 23 or below where the system route
@@ -1860,16 +1970,34 @@ public final class MediaRouter {
          */
         @MainThread
         public void select() {
-            checkCallingThread();
-            getGlobalRouter().selectRoute(this, MediaRouter.UNSELECT_REASON_ROUTE_CHANGED);
+            select(/* syncMediaRoute1Provider= */ true);
         }
+
+        /**
+         * Selects this media route.
+         *
+         * @param syncMediaRoute1Provider Whether this selection should be passed through to {@link
+         *     PlatformMediaRouter1RouteProvider}. Should be false when this call is the result of a
+         *     {@link MediaRouter.Callback#onRouteSelected} call.
+         */
+        @RestrictTo(LIBRARY)
+        @MainThread
+        public void select(boolean syncMediaRoute1Provider) {
+            checkCallingThread();
+            getGlobalRouter()
+                    .selectRoute(
+                            this,
+                            MediaRouter.UNSELECT_REASON_ROUTE_CHANGED,
+                            syncMediaRoute1Provider);
+        }
+
 
         /**
          * Returns true if the route has one or more members
          */
         @RestrictTo(LIBRARY)
         public boolean isGroup() {
-            return getMemberRoutes().size() >= 1;
+            return !mMemberRoutes.isEmpty();
         }
 
         /**
@@ -2207,10 +2335,6 @@ public final class MediaRouter {
 
         private final ProviderMetadata mMetadata;
         private MediaRouteProviderDescriptor mDescriptor;
-
-        ProviderInfo(MediaRouteProvider provider) {
-            this(provider, /* treatRouteDescriptorIdsAsUnique= */ false);
-        }
 
         ProviderInfo(MediaRouteProvider provider, boolean treatRouteDescriptorIdsAsUnique) {
             mProviderInstance = provider;
@@ -2572,6 +2696,7 @@ public final class MediaRouter {
 
         final RouteController mToRouteController;
         final @UnselectReason int mReason;
+        private final boolean mSyncMediaRoute1Provider;
         private final RouteInfo mFromRoute;
         final RouteInfo mToRoute;
         private final RouteInfo mRequestedRoute;
@@ -2583,8 +2708,12 @@ public final class MediaRouter {
         private boolean mFinished = false;
         private boolean mCanceled = false;
 
-        PrepareTransferNotifier(GlobalMediaRouter router, RouteInfo route,
-                @Nullable RouteController routeController, @UnselectReason int reason,
+        PrepareTransferNotifier(
+                GlobalMediaRouter router,
+                RouteInfo route,
+                @Nullable RouteController routeController,
+                @UnselectReason int reason,
+                boolean syncMediaRoute1Provider,
                 @Nullable RouteInfo requestedRoute,
                 @Nullable Collection<DynamicRouteDescriptor> memberRoutes) {
             mRouter = new WeakReference<>(router);
@@ -2592,6 +2721,7 @@ public final class MediaRouter {
             mToRoute = route;
             mToRouteController = routeController;
             mReason = reason;
+            mSyncMediaRoute1Provider = syncMediaRoute1Provider;
             mFromRoute = router.mSelectedRoute;
             mRequestedRoute = requestedRoute;
             mMemberRoutes = (memberRoutes == null) ? null : new ArrayList<>(memberRoutes);
@@ -2688,12 +2818,11 @@ public final class MediaRouter {
             router.mSelectedRouteController = mToRouteController;
 
             if (mRequestedRoute == null) {
-                router.mCallbackHandler.post(GlobalMediaRouter.CallbackHandler.MSG_ROUTE_SELECTED,
-                        new Pair<>(mFromRoute, mToRoute), mReason);
+                router.mCallbackHandler.postRouteSelectedMessage(
+                        mFromRoute, mToRoute, mReason, mSyncMediaRoute1Provider);
             } else {
-                router.mCallbackHandler.post(
-                        GlobalMediaRouter.CallbackHandler.MSG_ROUTE_ANOTHER_SELECTED,
-                        new Pair<>(mRequestedRoute, mToRoute), mReason);
+                router.mCallbackHandler.postAnotherRouteSelectedMessage(
+                        mRequestedRoute, mToRoute, mReason, mSyncMediaRoute1Provider);
             }
 
             router.mRouteControllerMap.clear();

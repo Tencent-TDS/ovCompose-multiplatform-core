@@ -18,7 +18,7 @@ package androidx.navigation
 
 import androidx.annotation.RestrictTo
 import androidx.core.bundle.Bundle
-import androidx.navigation.internal.Uri
+import androidx.core.uri.UriUtils
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
@@ -569,7 +569,7 @@ public actual abstract class NavType<T> actual constructor(
                  * parsing null receivers of [kotlin.toString] into "null".
                  */
                 override fun serializeAsValue(value: String?): String {
-                    return value?.let { Uri.encode(value) } ?: "null"
+                    return value?.let { UriUtils.encode(it) } ?: "null"
                 }
             }
 
@@ -604,7 +604,7 @@ public actual abstract class NavType<T> actual constructor(
                     value.contentDeepEquals(other)
 
                 override fun serializeAsValues(value: Array<String>?): List<String> =
-                    value?.map { Uri.encode(it) } ?: emptyList()
+                    value?.map { UriUtils.encode(it) } ?: emptyList()
 
                 override fun emptyCollection(): Array<String> = arrayOf()
             }
@@ -642,7 +642,7 @@ public actual abstract class NavType<T> actual constructor(
                 }
 
                 override fun serializeAsValues(value: List<String>?): List<String> =
-                    value?.map { Uri.encode(it) } ?: emptyList()
+                    value?.map { UriUtils.encode(it) } ?: emptyList()
 
                 override fun emptyCollection(): List<String> = emptyList()
             }

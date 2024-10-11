@@ -16,18 +16,23 @@
 
 package androidx.room.solver.shortcut.binder
 
+import androidx.room.compiler.codegen.CodeLanguage
+import androidx.room.compiler.codegen.XCodeBlock
 import androidx.room.compiler.codegen.XPropertySpec
 import androidx.room.compiler.codegen.XTypeSpec
+import androidx.room.compiler.codegen.box
+import androidx.room.ext.InvokeWithLambdaParameter
+import androidx.room.ext.LambdaSpec
+import androidx.room.ext.RoomMemberNames.DB_UTIL_PERFORM_BLOCKING
+import androidx.room.ext.SQLiteDriverTypeNames
+import androidx.room.ext.isNotVoid
 import androidx.room.solver.CodeGenScope
 import androidx.room.solver.shortcut.result.DeleteOrUpdateMethodAdapter
 import androidx.room.vo.ShortcutQueryParameter
 
-/**
- * Binder that knows how to write instant (blocking) delete and update methods.
- */
-class InstantDeleteOrUpdateMethodBinder(
-    adapter: DeleteOrUpdateMethodAdapter?
-) : DeleteOrUpdateMethodBinder(adapter) {
+/** Binder that knows how to write instant (blocking) delete and update methods. */
+class InstantDeleteOrUpdateMethodBinder(adapter: DeleteOrUpdateMethodAdapter?) :
+    DeleteOrUpdateMethodBinder(adapter) {
 
     override fun convertAndReturn(
         parameters: List<ShortcutQueryParameter>,
@@ -35,14 +40,60 @@ class InstantDeleteOrUpdateMethodBinder(
         dbProperty: XPropertySpec,
         scope: CodeGenScope
     ) {
-        scope.builder.apply {
-            addStatement("%N.assertNotSuspendingTransaction()", dbProperty)
+        if (adapter == null) {
+            return
         }
-        adapter?.createDeleteOrUpdateMethodBody(
+        val connectionVar = scope.getTmpVar("_connection")
+        val performBlock =
+            InvokeWithLambdaParameter(
+                scope = scope,
+                functionName = DB_UTIL_PERFORM_BLOCKING,
+                argFormat = listOf("%N", "%L", "%L"),
+                args = listOf(dbProperty, /* isReadOnly= */ false, /* inTransaction= */ true),
+                lambdaSpec =
+                    object :
+                        LambdaSpec(
+                            parameterTypeName = SQLiteDriverTypeNames.CONNECTION,
+                            parameterName = connectionVar,
+                            returnTypeName = adapter.returnType.asTypeName().box(),
+                            javaLambdaSyntaxAvailable = scope.javaLambdaSyntaxAvailable
+                        ) {
+                        override fun XCodeBlock.Builder.body(scope: CodeGenScope) {
+                            adapter.generateMethodBody(
+                                scope = scope,
+                                parameters = parameters,
+                                adapters = adapters,
+                                connectionVar = connectionVar
+                            )
+                        }
+                    }
+            )
+        val returnPrefix =
+            when (scope.language) {
+                CodeLanguage.JAVA ->
+                    if (adapter.returnType.isNotVoid()) {
+                        "return "
+                    } else {
+                        ""
+                    }
+                CodeLanguage.KOTLIN -> "return "
+            }
+        scope.builder.add("$returnPrefix%L", performBlock)
+    }
+
+    override fun convertAndReturnCompat(
+        parameters: List<ShortcutQueryParameter>,
+        adapters: Map<String, Pair<XPropertySpec, XTypeSpec>>,
+        dbProperty: XPropertySpec,
+        scope: CodeGenScope
+    ) {
+        adapter?.generateMethodBodyCompat(
             parameters = parameters,
             adapters = adapters,
             dbProperty = dbProperty,
             scope = scope
         )
     }
+
+    override fun isMigratedToDriver() = true
 }

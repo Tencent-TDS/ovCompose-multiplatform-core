@@ -28,6 +28,7 @@ internal fun Translations.pt() = mapOf(
     Strings.DefaultErrorMessage to "Entrada inválida",
     Strings.SliderRangeStart to "Início do intervalo",
     Strings.SliderRangeEnd to "Fim do intervalo",
+    Strings.SnackbarPaneTitle to "Alerta",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -39,6 +40,7 @@ internal fun Translations.ptBR() = mapOf(
     Strings.DefaultErrorMessage to "Entrada inválida",
     Strings.SliderRangeStart to "Início do intervalo",
     Strings.SliderRangeEnd to "Fim do intervalo",
+    Strings.SnackbarPaneTitle to "Alerta",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -50,4 +52,5 @@ internal fun Translations.ptPT() = mapOf(
     Strings.DefaultErrorMessage to "Entrada inválida",
     Strings.SliderRangeStart to "Início do intervalo",
     Strings.SliderRangeEnd to "Fim do intervalo",
+    Strings.SnackbarPaneTitle to "Alerta",
 )

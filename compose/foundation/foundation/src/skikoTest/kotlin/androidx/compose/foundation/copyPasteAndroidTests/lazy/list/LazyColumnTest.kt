@@ -69,6 +69,7 @@ import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -359,8 +360,12 @@ class LazyColumnTest {
         val itemIndexWhenInterrupting = state.firstVisibleItemIndex
         val itemOffsetWhenInterrupting = state.firstVisibleItemScrollOffset
 
-        assertThat(itemIndexWhenInterrupting).isNotEqualTo(0)
-        assertThat(itemOffsetWhenInterrupting).isNotEqualTo(0)
+        // It's wrong to assert that both firstVisibleItemIndex and firstVisibleItemScrollOffset are
+        // not 0 because either one could just happen to be 0, even though the list was scrolled
+        // correctly.
+//        assertThat(itemIndexWhenInterrupting).isNotEqualTo(0)
+//        assertThat(itemOffsetWhenInterrupting).isNotEqualTo(0)
+        assertTrue((itemIndexWhenInterrupting > 0) || (itemOffsetWhenInterrupting > 0))
 
         onNodeWithTag(LazyListTag)
             .performTouchInput { down(center) }

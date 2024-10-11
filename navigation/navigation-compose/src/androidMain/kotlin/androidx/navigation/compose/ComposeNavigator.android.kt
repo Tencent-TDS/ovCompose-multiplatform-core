@@ -36,7 +36,8 @@ import androidx.navigation.compose.ComposeNavigator.Destination
  * [composable].
  */
 @Navigator.Name("composable")
-public actual class ComposeNavigator : Navigator<Destination>() {
+public actual class ComposeNavigator
+actual constructor() : Navigator<Destination>() {
 
     /** Get the map of transitions currently in progress from the [state]. */
     internal actual val transitionsInProgress

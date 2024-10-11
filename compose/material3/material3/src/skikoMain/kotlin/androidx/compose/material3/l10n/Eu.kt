@@ -33,6 +33,7 @@ internal fun Translations.eu() = mapOf(
     Strings.MenuCollapsed to "Tolestuta",
     Strings.ToggleDropdownMenu to "Zabaldu/Tolestu goitibeherako menua",
     Strings.SnackbarDismiss to "Baztertu",
+    Strings.SnackbarPaneTitle to "Alerta",
     Strings.SearchBarSearch to "Bilatu",
     Strings.SuggestionsAvailable to "Iradokizunak daude behean",
     Strings.DatePickerTitle to "Hautatu data bat",
@@ -85,4 +86,6 @@ internal fun Translations.eu() = mapOf(
     Strings.TimePickerHour to "Ordua",
     Strings.TimePickerMinuteTextField to "minutuetarako",
     Strings.TimePickerHourTextField to "ordurako",
+    Strings.CloseRail to "Itxi erraila",
+    Strings.WideNavigationRailPaneTitle to "Nabigazio-erraila",
 )

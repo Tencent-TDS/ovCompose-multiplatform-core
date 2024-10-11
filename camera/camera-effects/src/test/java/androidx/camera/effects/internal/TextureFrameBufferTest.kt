@@ -29,9 +29,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
 
-/**
- * Unit tests for [TextureFrameBuffer].
- */
+/** Unit tests for [TextureFrameBuffer]. */
 @RunWith(RobolectricTestRunner::class)
 @DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
@@ -44,16 +42,15 @@ class TextureFrameBufferTest {
 
     private lateinit var surfaceTexture1: SurfaceTexture
     private lateinit var surface1: Surface
-    private val transform1 = FloatArray(16).apply {
-        Matrix.setIdentityM(this, 0)
-    }
+    private val transform1 = FloatArray(16).apply { Matrix.setIdentityM(this, 0) }
 
     private lateinit var surfaceTexture2: SurfaceTexture
     private lateinit var surface2: Surface
-    private val transform2 = FloatArray(16).apply {
-        Matrix.setIdentityM(this, 0)
-        Matrix.rotateM(this, 0, 90f, 0f, 0f, 1f)
-    }
+    private val transform2 =
+        FloatArray(16).apply {
+            Matrix.setIdentityM(this, 0)
+            Matrix.rotateM(this, 0, 90f, 0f, 0f, 1f)
+        }
 
     @Before
     fun setUp() {
@@ -92,7 +89,7 @@ class TextureFrameBufferTest {
 
         // Assert: the frame has the correct values.
         assertThat(frame.textureId).isEqualTo(1)
-        assertThat(frame.timestampNs).isEqualTo(TIMESTAMP_1)
+        assertThat(frame.timestampNanos).isEqualTo(TIMESTAMP_1)
         assertThat(frame.transform.contentEquals(transform1)).isTrue()
         assertThat(frame.transform).isNotSameInstanceAs(transform1)
         assertThat(frame.surface).isSameInstanceAs(surface1)

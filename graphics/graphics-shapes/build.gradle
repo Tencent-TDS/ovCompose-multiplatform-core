@@ -14,20 +14,52 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.JetbrainsAndroidXPlugin
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
+    id("JetbrainsAndroidXPlugin")
 }
 
+JetbrainsAndroidXPlugin.applyAndConfigure(project)
 
 androidXMultiplatform {
     android()
     desktop()
+    mac()
+    linux()
+    ios()
+    js()
+    wasm()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
+}
+
+kotlin {
+    js {
+        browser()
+    }
+    wasmJs()
+
+    watchosArm64()
+    watchosArm32()
+    watchosX64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosX64()
+    tvosSimulatorArm64()
 
     sourceSets {
         configureEach {
@@ -38,8 +70,8 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 implementation(libs.kotlinStdlibCommon)
-                implementation project(':collection:collection')
-                implementation("androidx.annotation:annotation:1.1.0")
+                implementation(project(":collection:collection"))
+                implementation(project(":annotation:annotation"))
             }
         }
 
@@ -54,8 +86,8 @@ androidXMultiplatform {
             }
         }
 
-        skikoMain {
-            dependsOn(commonMain)
+        jvmTest {
+            dependsOn(commonTest)
             dependencies {
             }
         }
@@ -63,33 +95,13 @@ androidXMultiplatform {
         androidMain {
             dependsOn(jvmMain)
             dependencies {
-                implementation("androidx.core:core-ktx:1.10.0-rc01")
-                implementation("androidx.core:core-ktx:1.8.0")
+                implementation("androidx.core:core-ktx:1.10.0")
+                implementation("androidx.annotation:annotation-experimental:1.4.1")
             }
         }
 
         desktopMain {
-            dependsOn(skikoMain)
             dependsOn(jvmMain)
-            dependencies {
-                implementation(libs.kotlinStdlib)
-            }
-        }
-
-        jvmTest {
-            dependsOn(commonTest)
-            dependencies {
-            }
-        }
-
-        androidUnitTest {
-            dependsOn(jvmTest)
-            dependencies {
-                implementation(libs.testRules)
-                implementation(libs.testRunner)
-                implementation(libs.junit)
-                implementation(libs.truth)
-            }
         }
 
         androidInstrumentedTest {
@@ -104,21 +116,25 @@ androidXMultiplatform {
             }
         }
 
-        desktopTest {
-            dependsOn(jvmTest)
-            dependencies {
-                implementation(libs.truth)
-                implementation(libs.junit)
-                implementation(libs.skikoCurrentOs)
+        nonJvmMain {
+            dependsOn(commonMain)
+        }
+
+        targets.all { target ->
+            if (target.platformType !in [
+                    KotlinPlatformType.androidJvm,
+                    KotlinPlatformType.jvm,
+                    KotlinPlatformType.common
+            ]) {
+                target.compilations["main"].defaultSourceSet {
+                    dependsOn(nonJvmMain)
+                }
             }
         }
     }
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
     namespace "androidx.graphics.shapes"
 }
 
@@ -128,5 +144,5 @@ androidx {
     mavenVersion = LibraryVersions.GRAPHICS_SHAPES
     inceptionYear = "2022"
     description = "create and render rounded polygonal shapes"
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

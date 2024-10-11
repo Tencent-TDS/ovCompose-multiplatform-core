@@ -19,7 +19,6 @@ package androidx.compose.foundation.samples
 import androidx.annotation.Sampled
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
@@ -55,11 +54,9 @@ import kotlin.math.sign
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalFoundationApi::class)
 @Sampled
 @Composable
 fun OverscrollSample() {
-    @OptIn(ExperimentalFoundationApi::class)
     // our custom offset overscroll that offset the element it is applied to when we hit the bound
     // on the scrollable container.
     class OffsetOverscrollEffect(val scope: CoroutineScope) : OverscrollEffect {
@@ -74,22 +71,21 @@ fun OverscrollSample() {
             // relaxation: when we are in progress of the overscroll and user scrolls in the
             // different direction = substract the overscroll first
             val sameDirection = sign(delta.y) == sign(overscrollOffset.value)
-            val consumedByPreScroll = if (abs(overscrollOffset.value) > 0.5 && !sameDirection) {
-                val prevOverscrollValue = overscrollOffset.value
-                val newOverscrollValue = overscrollOffset.value + delta.y
-                if (sign(prevOverscrollValue) != sign(newOverscrollValue)) {
-                    // sign changed, coerce to start scrolling and exit
-                    scope.launch { overscrollOffset.snapTo(0f) }
-                    Offset(x = 0f, y = delta.y + prevOverscrollValue)
-                } else {
-                    scope.launch {
-                        overscrollOffset.snapTo(overscrollOffset.value + delta.y)
+            val consumedByPreScroll =
+                if (abs(overscrollOffset.value) > 0.5 && !sameDirection) {
+                    val prevOverscrollValue = overscrollOffset.value
+                    val newOverscrollValue = overscrollOffset.value + delta.y
+                    if (sign(prevOverscrollValue) != sign(newOverscrollValue)) {
+                        // sign changed, coerce to start scrolling and exit
+                        scope.launch { overscrollOffset.snapTo(0f) }
+                        Offset(x = 0f, y = delta.y + prevOverscrollValue)
+                    } else {
+                        scope.launch { overscrollOffset.snapTo(overscrollOffset.value + delta.y) }
+                        delta.copy(x = 0f)
                     }
-                    delta.copy(x = 0f)
+                } else {
+                    Offset.Zero
                 }
-            } else {
-                Offset.Zero
-            }
             val leftForScroll = delta - consumedByPreScroll
             val consumedByScroll = performScroll(leftForScroll)
             val overscrollDelta = leftForScroll - consumedByScroll
@@ -121,9 +117,8 @@ fun OverscrollSample() {
             get() = overscrollOffset.value != 0f
 
         // as we're building an offset modifiers, let's offset of our value we calculated
-        override val effectModifier: Modifier = Modifier.offset {
-            IntOffset(x = 0, y = overscrollOffset.value.roundToInt())
-        }
+        override val effectModifier: Modifier =
+            Modifier.offset { IntOffset(x = 0, y = overscrollOffset.value.roundToInt()) }
     }
 
     val offset = remember { mutableStateOf(0f) }
@@ -133,18 +128,18 @@ fun OverscrollSample() {
     // let's build a scrollable that scroll until -512 to 512
     val scrollStateRange = (-512f).rangeTo(512f)
     Box(
-        Modifier
-            .size(150.dp)
+        Modifier.size(150.dp)
             .scrollable(
                 orientation = Orientation.Vertical,
-                state = rememberScrollableState { delta ->
-                    // use the scroll data and indicate how much this element consumed.
-                    val oldValue = offset.value
-                    // coerce to our range
-                    offset.value = (offset.value + delta).coerceIn(scrollStateRange)
+                state =
+                    rememberScrollableState { delta ->
+                        // use the scroll data and indicate how much this element consumed.
+                        val oldValue = offset.value
+                        // coerce to our range
+                        offset.value = (offset.value + delta).coerceIn(scrollStateRange)
 
-                    offset.value - oldValue // indicate that we consumed what's needed
-                },
+                        offset.value - oldValue // indicate that we consumed what's needed
+                    },
                 // pass the overscroll to the scrollable so the data is updated
                 overscrollEffect = overscroll
             )
@@ -154,9 +149,10 @@ fun OverscrollSample() {
         Text(
             offset.value.roundToInt().toString(),
             style = TextStyle(fontSize = 32.sp),
-            modifier = Modifier
-                // show the overscroll only on the text, not the containers (just for fun)
-                .overscroll(overscroll)
+            modifier =
+                Modifier
+                    // show the overscroll only on the text, not the containers (just for fun)
+                    .overscroll(overscroll)
         )
     }
 }
@@ -174,16 +170,13 @@ fun OverscrollWithDraggable_Before() {
     }
 
     Box(
-        Modifier
-            .size(100.dp)
-            .draggable(draggableState, orientation = Orientation.Horizontal),
+        Modifier.size(100.dp).draggable(draggableState, orientation = Orientation.Horizontal),
         contentAlignment = Alignment.Center
     ) {
         Text("Drag position $dragPosition")
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Sampled
 @Composable
 fun OverscrollWithDraggable_After() {
@@ -197,10 +190,8 @@ fun OverscrollWithDraggable_After() {
         // Horizontal, so convert the delta to a horizontal offset
         val deltaAsOffset = Offset(delta, 0f)
         // Wrap the original logic inside applyToScroll
-        overscrollEffect.applyToScroll(
-            deltaAsOffset,
-            NestedScrollSource.UserInput
-        ) { remainingOffset ->
+        overscrollEffect.applyToScroll(deltaAsOffset, NestedScrollSource.UserInput) {
+            remainingOffset ->
             val remainingDelta = remainingOffset.x
             val newPosition = (dragPosition + remainingDelta).coerceIn(minPosition, maxPosition)
             // Calculate how much delta we have consumed

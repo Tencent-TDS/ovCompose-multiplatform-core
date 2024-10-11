@@ -16,10 +16,10 @@
 
 package androidx.compose.ui.focus
 
+import android.os.Build
 import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester.Companion.Cancel
 import androidx.compose.ui.focus.FocusStateImpl.ActiveParent
@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,10 +44,8 @@ import org.junit.runner.RunWith
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class FocusTransactionsTest {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Test
     fun reentrantRequestFocus_byCallingRequestFocusWithinOnFocusChanged() {
         // Arrange.
@@ -55,8 +54,7 @@ class FocusTransactionsTest {
         var requestingFocusOnItem2 = false
         rule.setFocusableContent {
             Box(
-                Modifier
-                    .focusRequester(item1)
+                Modifier.focusRequester(item1)
                     .onFocusChanged {
                         item1Focused = it.isFocused
                         if (!item1Focused && requestingFocusOnItem2) {
@@ -70,8 +68,7 @@ class FocusTransactionsTest {
                     .focusTarget()
             )
             Box(
-                Modifier
-                    .focusRequester(item2)
+                Modifier.focusRequester(item2)
                     .onFocusChanged { item2Focused = it.isFocused }
                     .focusTarget()
             )
@@ -91,7 +88,6 @@ class FocusTransactionsTest {
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Test
     fun reentrantRequestFocus_byCallingRequestFocusWithinOnFocusChanged2() {
         // Arrange.
@@ -99,8 +95,7 @@ class FocusTransactionsTest {
         var (item1Focused, item2Focused) = List(2) { false }
         rule.setFocusableContent {
             Box(
-                Modifier
-                    .focusRequester(item1)
+                Modifier.focusRequester(item1)
                     .onFocusChanged {
                         item1Focused = it.isFocused
                         if (item1Focused) item2.requestFocus()
@@ -108,8 +103,7 @@ class FocusTransactionsTest {
                     .focusTarget()
             )
             Box(
-                Modifier
-                    .focusRequester(item2)
+                Modifier.focusRequester(item2)
                     .onFocusChanged { item2Focused = it.isFocused }
                     .focusTarget()
             )
@@ -141,8 +135,7 @@ class FocusTransactionsTest {
             inputModeManager = LocalInputModeManager.current
             view = LocalView.current
             Box(
-                Modifier
-                    .size(10.dp)
+                Modifier.size(10.dp)
                     .focusRequester(box)
                     .onFocusChanged { focusState1 = it }
                     .onFocusChanged {
@@ -155,9 +148,7 @@ class FocusTransactionsTest {
         }
 
         // Act.
-        rule.runOnUiThread {
-            box.requestFocus()
-        }
+        rule.runOnUiThread { box.requestFocus() }
 
         // Assert.
         rule.runOnIdle {
@@ -173,15 +164,21 @@ class FocusTransactionsTest {
                     assertThat(view.isFocused).isTrue()
                 }
                 Touch -> {
-                    assertThat(root.focusOwner.rootState).isEqualTo(Inactive)
-                    assertThat(view.isFocused).isFalse()
+                    // On devices pre-P, clearFocus() will cause a subsequent requestFocus()
+                    // the causes another request for focus on the ComposeView.
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+                        assertThat(root.focusOwner.rootState).isEqualTo(ActiveParent)
+                        assertThat(view.isFocused).isTrue()
+                    } else {
+                        assertThat(root.focusOwner.rootState).isEqualTo(Inactive)
+                        assertThat(view.isFocused).isFalse()
+                    }
                 }
                 else -> error("invalid input mode")
             }
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Test
     fun cancelTakeFocus_fromCustomEnter() {
         // Arrange.
@@ -189,25 +186,13 @@ class FocusTransactionsTest {
         val focusRequester = FocusRequester()
         rule.setFocusableContent {
             view = LocalView.current
-            Box(
-                Modifier
-                    .focusProperties {
-                        enter = { Cancel }
-                    }
-                    .focusTarget()
-            ) {
-                Box(
-                    Modifier
-                        .focusRequester(focusRequester)
-                        .focusTarget()
-                )
+            Box(Modifier.focusProperties { enter = { Cancel } }.focusTarget()) {
+                Box(Modifier.focusRequester(focusRequester).focusTarget())
             }
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
         rule.runOnIdle {
@@ -217,6 +202,7 @@ class FocusTransactionsTest {
         }
     }
 
+    @Ignore("b/325466015")
     @Test
     fun rootFocusNodeHasFocusWhenViewIsFocused() {
         lateinit var view: View
@@ -227,9 +213,7 @@ class FocusTransactionsTest {
         }
 
         // Act.
-        rule.runOnIdle {
-            view.requestFocus()
-        }
+        rule.runOnIdle { view.requestFocus() }
 
         // Assert.
         val root = view as AndroidComposeView

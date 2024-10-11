@@ -24,22 +24,32 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import androidx.appsearch.annotation.Document;
+import androidx.appsearch.app.EmbeddingVector;
 import androidx.appsearch.app.JoinSpec;
 import androidx.appsearch.app.PropertyPath;
 import androidx.appsearch.app.SearchSpec;
+import androidx.appsearch.flags.CheckFlagsRule;
+import androidx.appsearch.flags.DeviceFlagsValueProvider;
+import androidx.appsearch.flags.Flags;
+import androidx.appsearch.flags.RequiresFlagsEnabled;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.junit.Rule;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class SearchSpecCtsTest {
+    @Rule
+    public final CheckFlagsRule mCheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule();
+
     @Test
     public void testBuildSearchSpecWithoutTermMatch() {
         SearchSpec searchSpec = new SearchSpec.Builder().addFilterSchemas("testSchemaType").build();
@@ -115,6 +125,52 @@ public class SearchSpecCtsTest {
         assertThat(searchSpec.isNumericSearchEnabled()).isTrue();
         assertThat(searchSpec.isVerbatimSearchEnabled()).isTrue();
         assertThat(searchSpec.isListFilterQueryLanguageEnabled()).isTrue();
+    }
+
+    @Test
+    public void testBuildSearchSpec_searchSourceLogTag() {
+        SearchSpec searchSpec = new SearchSpec.Builder()
+                .setTermMatch(SearchSpec.TERM_MATCH_PREFIX)
+                .setSearchSourceLogTag("logTag")
+                .build();
+
+        assertThat(searchSpec.getSearchSourceLogTag()).isEqualTo("logTag");
+    }
+
+    @Test
+    public void testBuildSearchSpec_searchSourceLogTag_exceedLengthLimitation() {
+        String longTag = new String(new char[110]);
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> new SearchSpec.Builder()
+                        .setSearchSourceLogTag(longTag));
+        assertThat(e).hasMessageThat().contains(
+                "The maximum supported tag length is 100. This tag is too long");
+    }
+
+    @Test
+    public void testBuildSearchSpec_searchSourceLogTag_defaultIsNull() {
+        SearchSpec searchSpec = new SearchSpec.Builder()
+                .setTermMatch(SearchSpec.TERM_MATCH_PREFIX)
+                .build();
+
+        assertThat(searchSpec.getSearchSourceLogTag()).isNull();
+    }
+
+    // TODO(b/309826655): Flag guard this test.
+    @Test
+    public void testBuildSearchSpec_hasProperty() {
+        SearchSpec searchSpec = new SearchSpec.Builder()
+                .setNumericSearchEnabled(true)
+                .setVerbatimSearchEnabled(true)
+                .setListFilterQueryLanguageEnabled(true)
+                .setListFilterHasPropertyFunctionEnabled(true)
+                .build();
+
+        assertThat(searchSpec.isNumericSearchEnabled()).isTrue();
+        assertThat(searchSpec.isVerbatimSearchEnabled()).isTrue();
+        assertThat(searchSpec.isListFilterQueryLanguageEnabled()).isTrue();
+        assertThat(searchSpec.isListFilterHasPropertyFunctionEnabled()).isTrue();
     }
 
     @Test
@@ -404,6 +460,24 @@ public class SearchSpecCtsTest {
         assertThat(searchSpec.isListFilterQueryLanguageEnabled()).isFalse();
     }
 
+    // TODO(b/309826655): Flag guard this test.
+    @Test
+    public void testSetFeatureEnabledToFalse_hasProperty() {
+        SearchSpec.Builder builder = new SearchSpec.Builder();
+        SearchSpec searchSpec = builder
+                .setListFilterQueryLanguageEnabled(true)
+                .setListFilterHasPropertyFunctionEnabled(true)
+                .build();
+        assertThat(searchSpec.isListFilterQueryLanguageEnabled()).isTrue();
+        assertThat(searchSpec.isListFilterHasPropertyFunctionEnabled()).isTrue();
+
+        searchSpec = builder
+                .setListFilterQueryLanguageEnabled(false)
+                .setListFilterHasPropertyFunctionEnabled(false)
+                .build();
+        assertThat(searchSpec.isListFilterQueryLanguageEnabled()).isFalse();
+        assertThat(searchSpec.isListFilterHasPropertyFunctionEnabled()).isFalse();
+    }
 
     @Test
     public void testInvalidAdvancedRanking() {
@@ -460,20 +534,6 @@ public class SearchSpecCtsTest {
 
         assertThat(searchSpec.getProjections().get("King"))
                 .containsExactly("field3", "field4.subfield3");
-    }
-
-    @Test
-    public void testProjections_withSchemaFilter() throws Exception {
-        SearchSpec.Builder searchSpecBuilder = new SearchSpec.Builder()
-                .setTermMatch(SearchSpec.TERM_MATCH_PREFIX)
-                .addFilterSchemas("Filter")
-                .addProjectionPathsForDocumentClass(King.class, ImmutableList.of(
-                        new PropertyPath("field1"), new PropertyPath("field2.subfield2")));
-
-        IllegalArgumentException exception =
-                assertThrows(IllegalArgumentException.class, searchSpecBuilder::build);
-        assertThat(exception.getMessage())
-                .isEqualTo("Projection requested for schema not in schemas filters: King");
     }
 
     @Test
@@ -553,6 +613,40 @@ public class SearchSpecCtsTest {
     }
 
     @Test
+    public void testGetPropertyFiltersTypePropertyMasks() {
+        SearchSpec searchSpec = new SearchSpec.Builder()
+                .setTermMatch(SearchSpec.TERM_MATCH_PREFIX)
+                .addFilterProperties("TypeA", ImmutableList.of("field1", "field2.subfield2"))
+                .addFilterProperties("TypeB", ImmutableList.of("field7"))
+                .addFilterProperties("TypeC", ImmutableList.of())
+                .build();
+
+        Map<String, List<String>> typePropertyPathMap = searchSpec.getFilterProperties();
+        assertThat(typePropertyPathMap.keySet())
+                .containsExactly("TypeA", "TypeB", "TypeC");
+        assertThat(typePropertyPathMap.get("TypeA")).containsExactly("field1", "field2.subfield2");
+        assertThat(typePropertyPathMap.get("TypeB")).containsExactly("field7");
+        assertThat(typePropertyPathMap.get("TypeC")).isEmpty();
+    }
+
+    @Test
+    public void testFilterSchemas_wildcardProjection() {
+        // Should not crash
+        SearchSpec searchSpec = new SearchSpec.Builder()
+                .addFilterSchemas("ParentType")
+                .addProjection(SearchSpec.SCHEMA_TYPE_WILDCARD, Collections.singletonList("TypeA"))
+                .addFilterProperties(SearchSpec.SCHEMA_TYPE_WILDCARD,
+                        Collections.singletonList("TypeB"))
+                .build();
+
+        assertThat(searchSpec.getFilterSchemas()).containsExactly("ParentType");
+        assertThat(searchSpec.getProjections())
+                .containsExactly(SearchSpec.SCHEMA_TYPE_WILDCARD, ImmutableList.of("TypeA"));
+        assertThat(searchSpec.getFilterProperties())
+                .containsExactly(SearchSpec.SCHEMA_TYPE_WILDCARD, ImmutableList.of("TypeB"));
+    }
+
+    @Test
     public void testRebuild() {
         JoinSpec originalJoinSpec = new JoinSpec.Builder("entityId")
                 .setNestedSearch("joe", new SearchSpec.Builder().addFilterSchemas("Action").build())
@@ -582,5 +676,156 @@ public class SearchSpecCtsTest {
         assertThat(rebuild.getJoinSpec().getNestedQuery()).isEqualTo("");
         assertThat(rebuild.getJoinSpec().getNestedSearchSpec().getFilterSchemas())
                 .containsExactly("CallAction");
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+    public void testEmbeddingSearch() {
+        EmbeddingVector embedding1 = new EmbeddingVector(
+                new float[]{1.1f, 2.2f, 3.3f}, "my_model_v1");
+        EmbeddingVector embedding2 = new EmbeddingVector(
+                new float[]{4.4f, 5.5f, 6.6f, 7.7f}, "my_model_v2");
+        SearchSpec searchSpec = new SearchSpec.Builder()
+                .setListFilterQueryLanguageEnabled(true)
+                .setDefaultEmbeddingSearchMetricType(
+                        SearchSpec.EMBEDDING_SEARCH_METRIC_TYPE_DOT_PRODUCT)
+                .addEmbeddingParameters(embedding1, embedding2)
+                .build();
+        assertThat(searchSpec.isListFilterQueryLanguageEnabled()).isTrue();
+        assertThat(searchSpec.getDefaultEmbeddingSearchMetricType()).isEqualTo(
+                SearchSpec.EMBEDDING_SEARCH_METRIC_TYPE_DOT_PRODUCT);
+        assertThat(searchSpec.getEmbeddingParameters()).containsExactly(embedding1, embedding2);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+    public void testRebuild_embeddingSearch() {
+        EmbeddingVector embedding1 = new EmbeddingVector(
+                new float[]{1.1f, 2.2f, 3.3f}, "my_model_v1");
+        EmbeddingVector embedding2 = new EmbeddingVector(
+                new float[]{4.4f, 5.5f, 6.6f, 7.7f}, "my_model_v2");
+
+        // Create a builder
+        SearchSpec.Builder searchSpecBuilder = new SearchSpec.Builder()
+                .setListFilterQueryLanguageEnabled(true)
+                .setDefaultEmbeddingSearchMetricType(
+                        SearchSpec.EMBEDDING_SEARCH_METRIC_TYPE_DOT_PRODUCT)
+                .addEmbeddingParameters(embedding1);
+        SearchSpec searchSpec1 = searchSpecBuilder.build();
+
+        // Add a new embedding to the builder and rebuild. We should see that the new embedding
+        // is only added to searchSpec2.
+        searchSpecBuilder.addEmbeddingParameters(embedding2);
+        SearchSpec searchSpec2 = searchSpecBuilder.build();
+
+        assertThat(searchSpec1.isListFilterQueryLanguageEnabled()).isTrue();
+        assertThat(searchSpec1.getDefaultEmbeddingSearchMetricType()).isEqualTo(
+                SearchSpec.EMBEDDING_SEARCH_METRIC_TYPE_DOT_PRODUCT);
+        assertThat(searchSpec1.getEmbeddingParameters()).containsExactly(embedding1);
+
+        assertThat(searchSpec2.isListFilterQueryLanguageEnabled()).isTrue();
+        assertThat(searchSpec2.getDefaultEmbeddingSearchMetricType()).isEqualTo(
+                SearchSpec.EMBEDDING_SEARCH_METRIC_TYPE_DOT_PRODUCT);
+        assertThat(searchSpec2.getEmbeddingParameters()).containsExactly(embedding1, embedding2);
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+    public void testBuildSearchSpec_embeddingSearch() {
+        SearchSpec searchSpec = new SearchSpec.Builder()
+                .setNumericSearchEnabled(true)
+                .setVerbatimSearchEnabled(true)
+                .setListFilterQueryLanguageEnabled(true)
+                .setListFilterHasPropertyFunctionEnabled(true)
+                .build();
+
+        assertThat(searchSpec.isNumericSearchEnabled()).isTrue();
+        assertThat(searchSpec.isVerbatimSearchEnabled()).isTrue();
+        assertThat(searchSpec.isListFilterQueryLanguageEnabled()).isTrue();
+        assertThat(searchSpec.isListFilterHasPropertyFunctionEnabled()).isTrue();
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_INFORMATIONAL_RANKING_EXPRESSIONS)
+    public void testInformationalRankingExpressions() {
+        SearchSpec searchSpec = new SearchSpec.Builder()
+                .setOrder(SearchSpec.ORDER_ASCENDING)
+                .setRankingStrategy("this.documentScore()")
+                .addInformationalRankingExpressions("this.relevanceScore()")
+                .addInformationalRankingExpressions(
+                        ImmutableSet.of("this.documentScore() * this.relevanceScore()", "1 + 1"))
+                .build();
+        assertThat(searchSpec.getOrder()).isEqualTo(SearchSpec.ORDER_ASCENDING);
+        assertThat(searchSpec.getRankingStrategy())
+                .isEqualTo(SearchSpec.RANKING_STRATEGY_ADVANCED_RANKING_EXPRESSION);
+        assertThat(searchSpec.getAdvancedRankingExpression())
+                .isEqualTo("this.documentScore()");
+        assertThat(searchSpec.getInformationalRankingExpressions()).containsExactly(
+                "this.relevanceScore()",
+                "this.documentScore() * this.relevanceScore()", "1 + 1").inOrder();
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_INFORMATIONAL_RANKING_EXPRESSIONS)
+    public void testRebuild_informationalRankingExpressions() {
+        SearchSpec.Builder searchSpecBuilder =
+                new SearchSpec.Builder().addInformationalRankingExpressions(
+                        "this.relevanceScore()");
+
+        SearchSpec original = searchSpecBuilder.build();
+        SearchSpec rebuild = searchSpecBuilder
+                .addInformationalRankingExpressions("this.documentScore()")
+                .addInformationalRankingExpressions(
+                        ImmutableSet.of("this.documentScore() * this.relevanceScore()", "1 + 1"))
+                .build();
+
+        // Rebuild won't effect the original object
+        assertThat(original.getInformationalRankingExpressions())
+                .containsExactly("this.relevanceScore()");
+
+        assertThat(rebuild.getInformationalRankingExpressions())
+                .containsExactly("this.relevanceScore()", "this.documentScore()",
+                        "this.documentScore() * this.relevanceScore()", "1 + 1").inOrder();
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_SEARCH_SPEC_SEARCH_STRING_PARAMETERS)
+    public void testSearchSpecStrings_default_isEmpty() {
+        SearchSpec searchSpec = new SearchSpec.Builder().build();
+        assertThat(searchSpec.getSearchStringParameters()).isEmpty();
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_SEARCH_SPEC_SEARCH_STRING_PARAMETERS)
+    public void testSearchSpecStrings_addValues_areCumulative() {
+        SearchSpec.Builder searchSpecBuilder =
+                new SearchSpec.Builder().addSearchStringParameters("A", "b");
+        SearchSpec spec = searchSpecBuilder.build();
+        assertThat(spec.getSearchStringParameters()).containsExactly("A", "b").inOrder();
+
+        searchSpecBuilder.addSearchStringParameters(Arrays.asList("C", "d"));
+        spec = searchSpecBuilder.build();
+        assertThat(spec.getSearchStringParameters()).containsExactly("A", "b", "C", "d").inOrder();
+
+        searchSpecBuilder.addSearchStringParameters("e");
+        spec = searchSpecBuilder.build();
+        assertThat(spec.getSearchStringParameters())
+                .containsExactly("A", "b", "C", "d", "e").inOrder();
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_SEARCH_SPEC_SEARCH_STRING_PARAMETERS)
+    public void testSearchSpecStrings_rebuild_doesntAffectOriginal() {
+        SearchSpec.Builder searchSpecBuilder =
+                new SearchSpec.Builder().addSearchStringParameters("A", "b");
+
+        SearchSpec original = searchSpecBuilder.build();
+        SearchSpec rebuild =
+                searchSpecBuilder.addSearchStringParameters(Arrays.asList("C", "d")).build();
+
+        // Rebuild won't effect the original object
+        assertThat(original.getSearchStringParameters()).containsExactly("A", "b").inOrder();
+        assertThat(rebuild.getSearchStringParameters())
+                .containsExactly("A", "b", "C", "d").inOrder();
     }
 }

@@ -15,9 +15,7 @@
  */
 
 
-
-import androidx.build.Publish
-import androidx.build.RunApiTasks
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -49,7 +47,6 @@ dependencies {
         exclude group: "androidx.camera", module: "camera-core"
     })
 
-    androidTestImplementation(libs.multidex)
     androidTestImplementation(project(path: ":camera:camera-camera2"))
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
@@ -66,6 +63,7 @@ dependencies {
     }
     androidTestImplementation(libs.kotlinStdlib)
     androidTestImplementation(libs.kotlinCoroutinesAndroid)
+    androidTestImplementation(libs.atomicFu)
     androidTestImplementation(project(":concurrent:concurrent-futures-ktx"))
     androidTestImplementation(project(":internal-testutils-truth"))
     androidTestImplementation(project(":camera:camera-camera2-pipe-integration"))
@@ -76,10 +74,6 @@ dependencies {
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
-
     lintOptions {
         enable 'CameraXQuirksClassDetector'
     }
@@ -91,11 +85,11 @@ android {
 
 androidx {
     name = "Camera Video"
-    publish = Publish.SNAPSHOT_AND_RELEASE
-    runApiTasks = new RunApiTasks.Yes("Need to track API surface before moving to publish")
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Video components for the Jetpack Camera Library, a library providing a " +
             "consistent and reliable camera foundation that enables great camera driven " +
             "experiences across all of Android."
     metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

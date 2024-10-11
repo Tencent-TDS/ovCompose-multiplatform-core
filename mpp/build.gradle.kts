@@ -37,6 +37,13 @@ val libraryToComponents = mapOf(
             neverRedirect = true
         ),
     ),
+    "CORE_URI" to listOf(
+        ComposeComponent(
+            path = ":core:core-uri",
+            supportedPlatforms = ComposePlatforms.ALL_AOSP,
+            neverRedirect = true
+        ),
+    ),
     "COMPOSE" to listOf(
         // TODO https://youtrack.jetbrains.com/issue/CMP-1604/Publish-public-collection-annotation-libraries-with-a-separate-version
         // They are part of COMPOSE versioning
@@ -51,9 +58,10 @@ val libraryToComponents = mapOf(
         ComposeComponent(":compose:material:material"),
         ComposeComponent(":compose:material3:material3"),
         ComposeComponent(":compose:material3:material3-common"),
-        ComposeComponent(":compose:material:material-icons-core"),
+        //ComposeComponent(":compose:material:material-icons-core"),
         ComposeComponent(":compose:material:material-ripple"),
-        ComposeComponent(":compose:material:material-navigation"),
+        //disable 'material-navigation' publication until Google releases its version
+        //ComposeComponent(":compose:material:material-navigation"),
         ComposeComponent(":compose:material3:material3-window-size-class"),
         ComposeComponent(":compose:material3:material3-adaptive-navigation-suite"),
         ComposeComponent(":compose:runtime:runtime", supportedPlatforms = ComposePlatforms.ALL),
@@ -155,10 +163,9 @@ tasks.register("publishComposeJbToMavenLocal", ComposePublishingTask::class) {
 
 // isn't included in libraryToComponents for easy conflict resolution
 // (it is changed in integration and should be removed in 1.8)
+// TODO remove this and CI tasks after merging Jetpack Compose 1.8 to jb-main
 val iconsComponents =
-    listOf(
-        ComposeComponent(":compose:material:material-icons-extended"),
-    )
+    emptyList<ComposeComponent>()
 
 fun ComposePublishingTask.iconsPublications() {
     iconsComponents.forEach { publishMultiplatform(it) }
@@ -187,16 +194,27 @@ tasks.register("checkDesktop") {
 }
 
 tasks.register("testWeb") {
-    dependsOn(":compose:runtime:runtime:jsTest")
-    dependsOn(":compose:runtime:runtime:wasmJsTest")
-    dependsOn(":compose:ui:ui:compileTestKotlinJs")
-    // TODO: ideally we want to run all wasm tests that are possible but now we deal only with modules that have skikoTests
+    dependsOn(testWebJs)
+    dependsOn(testWebWasm)
+}
 
-    dependsOn(":compose:foundation:foundation:wasmJsBrowserTest")
-    dependsOn(":compose:material3:material3:wasmJsBrowserTest")
-    dependsOn(":compose:ui:ui-text:wasmJsBrowserTest")
-    dependsOn(":compose:ui:ui:wasmJsBrowserTest")
-    dependsOn(":collection:collection:wasmJsBrowserTest")
+val testWebJs = tasks.register("testWebJs") {
+    dependsOn(":collection:collection:compileTestKotlinJs")
+    dependsOn(":compose:foundation:foundation:compileTestKotlinJs")
+    dependsOn(":compose:material3:material3:compileTestKotlinJs")
+    dependsOn(":compose:runtime:runtime:jsTest")
+    dependsOn(":compose:ui:ui-text:compileTestKotlinJs")
+    dependsOn(":compose:ui:ui:compileTestKotlinJs")
+}
+
+val testWebWasm = tasks.register("testWebWasm") {
+    // TODO: ideally we want to run all wasm tests that are possible but now we deal only with modules that have skikoTests
+    dependsOn(":collection:collection:wasmJsTest")
+    dependsOn(":compose:foundation:foundation:wasmJsTest")
+    dependsOn(":compose:material3:material3:wasmJsTest")
+    dependsOn(":compose:runtime:runtime:wasmJsTest")
+    dependsOn(":compose:ui:ui-text:wasmJsTest")
+    dependsOn(":compose:ui:ui:wasmJsTest")
 }
 
 tasks.register("testUIKit") {

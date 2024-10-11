@@ -1,0 +1,16 @@
+public final class androidx/navigation/testing/TestNavHostController : androidx/navigation/NavHostController {
+	public fun <init> ()V
+	public final fun getBackStack ()Ljava/util/List;
+}
+
+public final class androidx/navigation/testing/TestNavigatorState : androidx/navigation/NavigatorState {
+	public fun <init> ()V
+	public fun createBackStackEntry (Landroidx/navigation/NavDestination;Landroidx/core/bundle/Bundle;)Landroidx/navigation/NavBackStackEntry;
+	public fun markTransitionComplete (Landroidx/navigation/NavBackStackEntry;)V
+	public fun pop (Landroidx/navigation/NavBackStackEntry;Z)V
+	public fun popWithTransition (Landroidx/navigation/NavBackStackEntry;Z)V
+	public fun prepareForTransition (Landroidx/navigation/NavBackStackEntry;)V
+	public fun push (Landroidx/navigation/NavBackStackEntry;)V
+	public final fun restoreBackStackEntry (Landroidx/navigation/NavBackStackEntry;)Landroidx/navigation/NavBackStackEntry;
+}
+

@@ -33,6 +33,7 @@ internal fun Translations.ja() = mapOf(
     Strings.MenuCollapsed to "閉じています",
     Strings.ToggleDropdownMenu to "プルダウン メニューを切り替えます",
     Strings.SnackbarDismiss to "閉じる",
+    Strings.SnackbarPaneTitle to "アラート",
     Strings.SearchBarSearch to "検索",
     Strings.SuggestionsAvailable to "検索候補は次のとおりです",
     Strings.DatePickerTitle to "日付の選択",
@@ -85,4 +86,6 @@ internal fun Translations.ja() = mapOf(
     Strings.TimePickerHour to "時間",
     Strings.TimePickerMinuteTextField to "（分単位）",
     Strings.TimePickerHourTextField to "（時間単位）",
+    Strings.CloseRail to "レールを閉じる",
+    Strings.WideNavigationRailPaneTitle to "ナビゲーション レール",
 )

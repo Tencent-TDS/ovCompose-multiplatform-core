@@ -18,24 +18,21 @@ package androidx.camera.integration.uiwidgets.compose.ui.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Gradient
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.ui.graphics.vector.ImageVector
 
 // Contains each destination screen as an enum
 // and associates an icon to show in the navigation tabs
-enum class ComposeCameraScreen(
-    val icon: ImageVector
-) {
-    ImageCapture(
-        icon = Icons.Filled.CameraAlt
-    ),
-    VideoCapture(
-        icon = Icons.Filled.Videocam
-    );
+enum class ComposeCameraScreen(val icon: ImageVector) {
+    Viewfinder(icon = Icons.Filled.Gradient),
+    ImageCapture(icon = Icons.Filled.CameraAlt),
+    VideoCapture(icon = Icons.Filled.Videocam);
 
     companion object {
         fun fromRoute(route: String?, defaultRoute: ComposeCameraScreen): ComposeCameraScreen {
             return when (route?.substringBefore("/")) {
+                Viewfinder.name -> Viewfinder
                 ImageCapture.name -> ImageCapture
                 VideoCapture.name -> VideoCapture
                 null -> defaultRoute

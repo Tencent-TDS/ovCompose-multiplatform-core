@@ -28,4 +28,5 @@ internal fun Translations.ta() = mapOf(
     Strings.DefaultErrorMessage to "தவறான உள்ளீடு",
     Strings.SliderRangeStart to "வரம்பு தொடக்கம்",
     Strings.SliderRangeEnd to "வரம்பு முடிவு",
+    Strings.SnackbarPaneTitle to "விழிப்பூட்டல்",
 )

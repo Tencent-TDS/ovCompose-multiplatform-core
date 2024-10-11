@@ -28,4 +28,5 @@ internal fun Translations.fi() = mapOf(
     Strings.DefaultErrorMessage to "Virheellinen syöte",
     Strings.SliderRangeStart to "Alueen alku",
     Strings.SliderRangeEnd to "Alueen loppu",
+    Strings.SnackbarPaneTitle to "Ilmoitus",
 )

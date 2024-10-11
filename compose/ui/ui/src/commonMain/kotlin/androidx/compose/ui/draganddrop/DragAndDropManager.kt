@@ -16,27 +16,41 @@
 
 package androidx.compose.ui.draganddrop
 
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 
+/** A platform implementation for drag and drop functionality. */
 internal interface DragAndDropManager {
 
     /**
-     * Returns a boolean value indicating whether requesting drag and drop transfer is supported. If
-     * it's not, the transfer might be initiated only be system and calling
-     * [requestDragAndDropTransfer] will throw an error.
+     * A [Modifier] that can be added to the [Owners][androidx.compose.ui.node.Owner] modifier list
+     * that contains the modifiers required by drag and drop. (Eg, a root drag and drop modifier).
      */
-    val isRequestDragAndDropTransferSupported: Boolean
-        get() = false
+    val modifier: Modifier
 
     /**
-     * Requests a drag and drop transfer. It might throw [UnsupportedOperationException] in case if
-     * the operation is not supported. [isRequestDragAndDropTransferSupported] can be used to check
-     * if it might be performed.
+     * Returns a boolean value indicating whether requesting drag and drop transfer is required. If
+     * it's not, the transfer might be initiated only be system and calling
+     * [requestDragAndDropTransfer] will be ignored.
      */
-    fun requestDragAndDropTransfer(node: DragAndDropNode, offset: Offset) {
-        throw UnsupportedOperationException(
-            "requestDragAndDropTransfer is not supported in the current environment. " +
-                "A Drag & Drop transfer will be initiated by the platform itself"
-        )
-    }
+    val isRequestDragAndDropTransferRequired: Boolean
+
+    /**
+     * Requests a drag and drop transfer. It might ignored in case if the operation performed by
+     * system. [isRequestDragAndDropTransferRequired] can be used to check if it should be used
+     * explicitly.
+     */
+    fun requestDragAndDropTransfer(node: DragAndDropNode, offset: Offset)
+
+    /**
+     * Called to notify this [DragAndDropManager] that a [DragAndDropTarget] is interested in
+     * receiving events for a particular drag and drop session.
+     */
+    fun registerTargetInterest(target: DragAndDropTarget)
+
+    /**
+     * Called to check if a [DragAndDropTarget] has previously registered interest for a drag and
+     * drop session.
+     */
+    fun isInterestedTarget(target: DragAndDropTarget): Boolean
 }

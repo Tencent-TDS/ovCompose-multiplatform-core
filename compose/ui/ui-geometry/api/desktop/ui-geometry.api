@@ -3,16 +3,20 @@ public final class androidx/compose/ui/geometry/CornerRadius {
 	public static final synthetic fun box-impl (J)Landroidx/compose/ui/geometry/CornerRadius;
 	public static final fun component1-impl (J)F
 	public static final fun component2-impl (J)F
+	public static fun constructor-impl (J)J
 	public static final fun copy-OHQCggk (JFF)J
 	public static synthetic fun copy-OHQCggk$default (JFFILjava/lang/Object;)J
 	public static final fun div-Bz7bX_o (JF)J
 	public fun equals (Ljava/lang/Object;)Z
 	public static fun equals-impl (JLjava/lang/Object;)Z
 	public static final fun equals-impl0 (JJ)Z
+	public final fun getPackedValue ()J
 	public static final fun getX-impl (J)F
 	public static final fun getY-impl (J)F
 	public fun hashCode ()I
 	public static fun hashCode-impl (J)I
+	public static final fun isCircular-impl (J)Z
+	public static final fun isZero-impl (J)Z
 	public static final fun minus-vF7b-mM (JJ)J
 	public static final fun plus-vF7b-mM (JJ)J
 	public static final fun times-Bz7bX_o (JF)J
@@ -32,28 +36,61 @@ public final class androidx/compose/ui/geometry/CornerRadiusKt {
 	public static final fun lerp-3Ry4LBc (JJF)J
 }
 
+public final class androidx/compose/ui/geometry/InlineClassHelperKt {
+	public static final field DualFirstNaN J
+	public static final field DualFloatInfinityBase J
+	public static final field DualFloatSignBit J
+	public static final field DualUnsignedFloatMask J
+	public static final field FloatInfinityBase I
+	public static final field Uint64High32 J
+	public static final field Uint64Low32 J
+	public static final field UnspecifiedPackedFloats J
+}
+
 public final class androidx/compose/ui/geometry/MutableRect {
 	public static final field $stable I
 	public fun <init> (FFFF)V
 	public final fun contains-k-4lQ0M (J)Z
+	public final fun deflate (F)V
 	public final fun getBottom ()F
+	public final fun getBottomCenter-F1C5BW0 ()J
+	public final fun getBottomLeft-F1C5BW0 ()J
+	public final fun getBottomRight-F1C5BW0 ()J
+	public final fun getCenter-F1C5BW0 ()J
+	public final fun getCenterLeft-F1C5BW0 ()J
+	public final fun getCenterRight-F1C5BW0 ()J
 	public final fun getHeight ()F
 	public final fun getLeft ()F
+	public final fun getMaxDimension ()F
+	public final fun getMinDimension ()F
 	public final fun getRight ()F
 	public final fun getSize-NH-jbRc ()J
 	public final fun getTop ()F
+	public final fun getTopCenter-F1C5BW0 ()J
+	public final fun getTopLeft-F1C5BW0 ()J
+	public final fun getTopRight-F1C5BW0 ()J
 	public final fun getWidth ()F
+	public final fun inflate (F)V
 	public final fun intersect (FFFF)V
 	public final fun isEmpty ()Z
+	public final fun isFinite ()Z
+	public final fun isInfinite ()Z
+	public final fun overlaps (Landroidx/compose/ui/geometry/MutableRect;)Z
+	public final fun overlaps (Landroidx/compose/ui/geometry/Rect;)Z
 	public final fun set (FFFF)V
 	public final fun setBottom (F)V
 	public final fun setLeft (F)V
 	public final fun setRight (F)V
 	public final fun setTop (F)V
 	public fun toString ()Ljava/lang/String;
+	public final fun translate (FF)V
+	public final fun translate-k-4lQ0M (J)V
 }
 
 public final class androidx/compose/ui/geometry/MutableRectKt {
+	public static final fun MutableRect-0a9Yr6o (JJ)Landroidx/compose/ui/geometry/MutableRect;
+	public static final fun MutableRect-3MmeM6k (JF)Landroidx/compose/ui/geometry/MutableRect;
+	public static final fun MutableRect-tz77jQw (JJ)Landroidx/compose/ui/geometry/MutableRect;
 	public static final fun toRect (Landroidx/compose/ui/geometry/MutableRect;)Landroidx/compose/ui/geometry/Rect;
 }
 
@@ -62,6 +99,7 @@ public final class androidx/compose/ui/geometry/Offset {
 	public static final synthetic fun box-impl (J)Landroidx/compose/ui/geometry/Offset;
 	public static final fun component1-impl (J)F
 	public static final fun component2-impl (J)F
+	public static fun constructor-impl (J)J
 	public static final fun copy-dBAh8RU (JFF)J
 	public static synthetic fun copy-dBAh8RU$default (JFFILjava/lang/Object;)J
 	public static final fun div-tuRUvjQ (JF)J
@@ -70,6 +108,7 @@ public final class androidx/compose/ui/geometry/Offset {
 	public static final fun equals-impl0 (JJ)Z
 	public static final fun getDistance-impl (J)F
 	public static final fun getDistanceSquared-impl (J)F
+	public final fun getPackedValue ()J
 	public static final fun getX-impl (J)F
 	public static final fun getY-impl (J)F
 	public fun hashCode ()I
@@ -218,6 +257,7 @@ public final class androidx/compose/ui/geometry/Size {
 	public static final synthetic fun box-impl (J)Landroidx/compose/ui/geometry/Size;
 	public static final fun component1-impl (J)F
 	public static final fun component2-impl (J)F
+	public static fun constructor-impl (J)J
 	public static final fun copy-xjbvk4A (JFF)J
 	public static synthetic fun copy-xjbvk4A$default (JFFILjava/lang/Object;)J
 	public static final fun div-7Ah8Wj8 (JF)J
@@ -227,6 +267,7 @@ public final class androidx/compose/ui/geometry/Size {
 	public static final fun getHeight-impl (J)F
 	public static final fun getMaxDimension-impl (J)F
 	public static final fun getMinDimension-impl (J)F
+	public final fun getPackedValue ()J
 	public static final fun getWidth-impl (J)F
 	public fun hashCode ()I
 	public static fun hashCode-impl (J)I

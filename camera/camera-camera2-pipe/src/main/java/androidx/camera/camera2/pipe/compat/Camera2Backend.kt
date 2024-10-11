@@ -16,12 +16,12 @@
 
 package androidx.camera.camera2.pipe.compat
 
-import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraBackend
 import androidx.camera.camera2.pipe.CameraBackendId
 import androidx.camera.camera2.pipe.CameraContext
 import androidx.camera.camera2.pipe.CameraController
 import androidx.camera.camera2.pipe.CameraGraph
+import androidx.camera.camera2.pipe.CameraGraphId
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.CameraStatusMonitor.CameraStatus
@@ -37,7 +37,6 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.Flow
 
 /** This is the default [CameraBackend] implementation for CameraPipe based on Camera2. */
-@RequiresApi(21)
 internal class Camera2Backend
 @Inject
 constructor(
@@ -50,12 +49,14 @@ constructor(
 ) : CameraBackend {
     override val id: CameraBackendId
         get() = CameraBackendId("CXCP-Camera2")
+
     override val cameraStatus: Flow<CameraStatus>
         get() = camera2CameraStatusMonitor.cameraStatus
 
     override suspend fun getCameraIds(): List<CameraId> = camera2DeviceCache.getCameraIds()
 
     override fun awaitCameraIds(): List<CameraId>? = camera2DeviceCache.awaitCameraIds()
+
     override fun awaitConcurrentCameraIds(): Set<Set<CameraId>>? =
         camera2DeviceCache.awaitConcurrentCameraIds()
 
@@ -65,11 +66,26 @@ constructor(
     override fun awaitCameraMetadata(cameraId: CameraId): CameraMetadata =
         camera2MetadataCache.awaitCameraMetadata(cameraId)
 
+    override fun disconnect(cameraId: CameraId) {
+        virtualCameraManager.close(cameraId)
+    }
+
+    override fun disconnectAsync(cameraId: CameraId): Deferred<Unit> {
+        TODO(
+            "b/324142928 - Add support in VirtualCameraManager for closing a camera " +
+                "with a deferred result."
+        )
+    }
+
+    override fun disconnectAll() {
+        return virtualCameraManager.closeAll()
+    }
+
     override fun disconnectAllAsync(): Deferred<Unit> {
-        // TODO: VirtualCameraManager needs to be extended to support a suspendable future that can
-        //   be used to wait until close has been called on all camera devices.
-        virtualCameraManager.closeAll()
-        return CompletableDeferred(Unit)
+        TODO(
+            "b/324142928 - Add support in VirtualCameraManager for closing a camera " +
+                "with a deferred result."
+        )
     }
 
     override fun shutdownAsync(): Deferred<Unit> {
@@ -81,6 +97,7 @@ constructor(
 
     override fun createCameraController(
         cameraContext: CameraContext,
+        graphId: CameraGraphId,
         graphConfig: CameraGraph.Config,
         graphListener: GraphListener,
         streamGraph: StreamGraph
@@ -90,12 +107,20 @@ constructor(
             camera2CameraControllerComponent
                 .camera2ControllerConfig(
                     Camera2ControllerConfig(
-                        this, graphConfig, graphListener, streamGraph as StreamGraphImpl
+                        this,
+                        graphId,
+                        graphConfig,
+                        graphListener,
+                        streamGraph as StreamGraphImpl
                     )
                 )
                 .build()
 
         // Create and return a Camera2 CameraController object.
         return cameraControllerComponent.cameraController()
+    }
+
+    override fun prewarm(cameraId: CameraId) {
+        virtualCameraManager.prewarm(cameraId)
     }
 }

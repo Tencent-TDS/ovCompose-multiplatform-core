@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.Publish
+import androidx.build.LibraryType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -31,10 +31,7 @@ plugins {
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
-    buildTypes.all {
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
     sourceSets {
@@ -58,7 +55,17 @@ dependencies {
 
     def extensions_core_version = "androidx.window.extensions.core:core:1.0.0"
     def extensions_version = "androidx.window.extensions:extensions:1.2.0"
-    implementation(extensions_core_version)
+    // A compile only dependency on extnensions.core so that other libraries do not expose it
+    // transitively.
+    compileOnly(extensions_core_version)
+    // A compile only dependency on extnensions.core so that other libraries do not expose it
+    // transitively. The testCompile is added because tests are not getting the dependency
+    // transitively.
+    testImplementation(extensions_core_version)
+    // A compile only dependency on extnensions.core so that other libraries do not expose it
+    // transitively. The androidTestCompile is added because tests are not getting the dependency
+    // transitively.
+    androidTestCompileOnly(extensions_core_version)
     compileOnly(project(":window:sidecar:sidecar"))
     compileOnly(extensions_version)
 
@@ -83,7 +90,6 @@ dependencies {
     androidTestImplementation(libs.mockitoCore, excludes.bytebuddy)
     androidTestImplementation(libs.mockitoKotlin, excludes.bytebuddy)
     androidTestImplementation(libs.kotlinCoroutinesTest)
-    androidTestImplementation(libs.multidex)
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.junit) // Needed for Assert.assertThrows
     androidTestImplementation(extensions_core_version)
@@ -93,7 +99,7 @@ dependencies {
 
 androidx {
     name = "WindowManager"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "WindowManager Jetpack library. Currently only provides additional " +
             "functionality on foldable devices."
@@ -101,5 +107,6 @@ androidx {
     // Suppressing deprecation warnings, since there is a need to maintain compatibility with old
     // Sidecar interface.
     failOnDeprecationWarnings = false
+    legacyDisableKotlinStrictApiMode = true
     samples(project(":window:window-samples"))
 }

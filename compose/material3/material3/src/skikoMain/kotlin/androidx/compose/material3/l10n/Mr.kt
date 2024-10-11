@@ -33,6 +33,7 @@ internal fun Translations.mr() = mapOf(
     Strings.MenuCollapsed to "कोलॅप्स केला आहे",
     Strings.ToggleDropdownMenu to "ड्रॉपडाउन मेनू टॉगल करा",
     Strings.SnackbarDismiss to "डिसमिस करा",
+    Strings.SnackbarPaneTitle to "सूचना",
     Strings.SearchBarSearch to "शोधा",
     Strings.SuggestionsAvailable to "सूचना खाली आहेत",
     Strings.DatePickerTitle to "तारीख निवडा",
@@ -85,4 +86,6 @@ internal fun Translations.mr() = mapOf(
     Strings.TimePickerHour to "तास",
     Strings.TimePickerMinuteTextField to "मिनिटांसाठी",
     Strings.TimePickerHourTextField to "तासासाठी",
+    Strings.CloseRail to "रेल बंद करा",
+    Strings.WideNavigationRailPaneTitle to "नेव्हिगेशन रेल",
 )

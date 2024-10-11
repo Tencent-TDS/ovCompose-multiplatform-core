@@ -19,7 +19,7 @@
 @implementation CMPInteropWrappingView
 
 - (__nullable id)accessibilityContainer {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 @end

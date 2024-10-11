@@ -33,6 +33,7 @@ internal fun Translations.lv() = mapOf(
     Strings.MenuCollapsed to "Sakļauta",
     Strings.ToggleDropdownMenu to "Pārslēgt nolaižamo izvēlni",
     Strings.SnackbarDismiss to "Nerādīt",
+    Strings.SnackbarPaneTitle to "Brīdinājums",
     Strings.SearchBarSearch to "Meklēšana",
     Strings.SuggestionsAvailable to "Tālāk ir sniegti ieteikumi",
     Strings.DatePickerTitle to "Atlasīt datumu",
@@ -85,4 +86,6 @@ internal fun Translations.lv() = mapOf(
     Strings.TimePickerHour to "Stunda",
     Strings.TimePickerMinuteTextField to "minūtēm",
     Strings.TimePickerHourTextField to "stundām",
+    Strings.CloseRail to "Aizvērt joslu",
+    Strings.WideNavigationRailPaneTitle to "Navigācijas josla",
 )
