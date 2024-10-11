@@ -102,7 +102,6 @@ class WasmSelectionTests {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    @Ignore
     fun selectTextStart() {
         textFieldSemanticInteraction("line 1\nline 2\nline 3\nline 4\nline 5") { node, state ->
             node.performKeyInput {
@@ -120,7 +119,6 @@ class WasmSelectionTests {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    @Ignore
     fun selectTextEnd() {
         textFieldSemanticInteraction("line 1\nline 2\nline 3\nline 4\nline 5") { node, state ->
             node.performKeyInput {
