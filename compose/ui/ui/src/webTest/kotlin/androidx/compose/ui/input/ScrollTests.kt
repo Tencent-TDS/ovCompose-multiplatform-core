@@ -63,7 +63,6 @@ class ScrollTests : OnCanvasTests {
                     modifier = Modifier.height(100.dp).fillMaxWidth().background(Color(237, 40, 57))
                         .onGloballyPositioned { coordinates ->
                             val screenPosition = coordinates.positionOnScreen()
-                            println("FIRST ROW ${screenPosition} \n")
                             if (screenPosition == Offset(0f, -200f)) {
                                 firstRowScrollPositionResolved.sendFromScope(true)
                             }
@@ -89,7 +88,6 @@ class ScrollTests : OnCanvasTests {
                 Box(
                     modifier = Modifier.height(100.dp).fillMaxWidth().background(Color(143, 0, 255)).onGloballyPositioned { coordinates ->
                         val screenPosition = coordinates.positionOnScreen()
-                        println("LAST ROW ${screenPosition} \n")
                         if (screenPosition == Offset(0f, 1000f)) {
                             lastRowScrollPositionResolved.sendFromScope(true)
                         }
@@ -98,7 +96,7 @@ class ScrollTests : OnCanvasTests {
             }
         }
 
-        composeWindow.onWheelEvent(createWheelEvent(clientX = 100, clientY = 100, deltaX = 0.0, deltaY = 200.0))
+        dispatchEvents(createWheelEvent(clientX = 100, clientY = 100, deltaX = 0.0, deltaY = 200.0))
 
         assertTrue(firstRowScrollPositionResolved.receive(), "first row scroll position is not resolved")
         assertTrue(lastRowScrollPositionResolved.receive(), "last row scroll position is not resolved")
