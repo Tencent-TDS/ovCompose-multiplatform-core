@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.OnCanvasTests
@@ -31,7 +32,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionOnScreen
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.sendFromScope
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -53,52 +56,59 @@ class ScrollTests : OnCanvasTests {
         )
 
         val composeWindow = createComposeWindow {
-            Column(
-                modifier = Modifier.fillMaxWidth().height(300.dp).wrapContentSize(Alignment.Center)
-                    .verticalScroll(
-                        rememberScrollState()
+            // Setting the density to 2 so the test works correctly on all displays
+            CompositionLocalProvider(LocalDensity provides Density(2f)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().height(300.dp)
+                        .wrapContentSize(Alignment.Center)
+                        .verticalScroll(
+                            rememberScrollState()
+                        )
+                ) {
+                    Box(
+                        modifier = Modifier.height(100.dp).fillMaxWidth()
+                            .background(Color(237, 40, 57))
+                            .onGloballyPositioned { coordinates ->
+                                val screenPosition = coordinates.positionOnScreen()
+                                if (screenPosition == Offset(0f, -200f)) {
+                                    firstRowScrollPositionResolved.sendFromScope(true)
+                                }
+                            }
                     )
-            ) {
-                Box(
-                    modifier = Modifier.height(100.dp).fillMaxWidth().background(Color(237, 40, 57))
-                        .onGloballyPositioned { coordinates ->
+                    Box(
+                        modifier = Modifier.height(100.dp).fillMaxWidth()
+                            .background(Color(255, 88, 0))
+                    )
+                    Box(
+                        modifier = Modifier.height(100.dp).fillMaxWidth()
+                            .background(Color(255, 211, 0))
+                    )
+                    Box(
+                        modifier = Modifier.height(100.dp).fillMaxWidth()
+                            .background(Color(0, 173, 131))
+                    )
+                    Box(
+                        modifier = Modifier.height(100.dp).fillMaxWidth()
+                            .background(Color(190, 219, 237))
+                    )
+                    Box(
+                        modifier = Modifier.height(100.dp).fillMaxWidth()
+                            .background(Color(31, 117, 254))
+                    )
+                    Box(
+                        modifier = Modifier.height(100.dp).fillMaxWidth()
+                            .background(Color(143, 0, 255)).onGloballyPositioned { coordinates ->
                             val screenPosition = coordinates.positionOnScreen()
-                            println("screenPosition1 = $screenPosition \n")
-                            if (screenPosition.y < -200f) {
-                                firstRowScrollPositionResolved.sendFromScope(true)
+                            if (screenPosition == Offset(0f, 1000f)) {
+                                lastRowScrollPositionResolved.sendFromScope(true)
                             }
                         }
-                )
-                Box(
-                    modifier = Modifier.height(100.dp).fillMaxWidth().background(Color(255, 88, 0))
-                )
-                Box(
-                    modifier = Modifier.height(100.dp).fillMaxWidth().background(Color(255, 211, 0))
-                )
-                Box(
-                    modifier = Modifier.height(100.dp).fillMaxWidth().background(Color(0, 173, 131))
-                )
-                Box(
-                    modifier = Modifier.height(100.dp).fillMaxWidth()
-                        .background(Color(190, 219, 237))
-                )
-                Box(
-                    modifier = Modifier.height(100.dp).fillMaxWidth()
-                        .background(Color(31, 117, 254))
-                )
-                Box(
-                    modifier = Modifier.height(100.dp).fillMaxWidth().background(Color(143, 0, 255)).onGloballyPositioned { coordinates ->
-                        val screenPosition = coordinates.positionOnScreen()
-                        println("screenPosition2 = $screenPosition \n")
-                        if (screenPosition.y < 1000f) {
-                            lastRowScrollPositionResolved.sendFromScope(true)
-                        }
-                    }
-                )
+                    )
+                }
             }
         }
 
-        dispatchEvents(createWheelEvent(clientX = 100, clientY = 100, deltaX = 0.0, deltaY = 500.0))
+        dispatchEvents(createWheelEvent(clientX = 100, clientY = 100, deltaX = 0.0, deltaY = 200.0))
 
         assertTrue(firstRowScrollPositionResolved.receive(), "first row scroll position is not resolved")
         assertTrue(lastRowScrollPositionResolved.receive(), "last row scroll position is not resolved")
