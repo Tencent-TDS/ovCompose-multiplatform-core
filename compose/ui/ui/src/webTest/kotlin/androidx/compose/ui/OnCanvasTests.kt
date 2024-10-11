@@ -23,6 +23,7 @@ import kotlinx.browser.document
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.w3c.dom.HTMLCanvasElement
@@ -74,6 +75,6 @@ internal interface OnCanvasTests {
     }
 }
 
-internal fun <T> Channel<T>.sendFromScope(value: T, scope: CoroutineScope = GlobalScope) {
+internal fun <T> Channel<T>.sendFromScope(value: T, scope: CoroutineScope = MainScope()) {
     scope.launch(Dispatchers.Unconfined) { send(value) }
 }
