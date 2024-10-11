@@ -450,7 +450,7 @@ internal class ComposeWindow(
         )
     }
 
-    internal fun onWheelEvent(
+    private fun onWheelEvent(
         event: WheelEvent,
     ) {
         keyboardModeState = KeyboardModeState.Hardware
