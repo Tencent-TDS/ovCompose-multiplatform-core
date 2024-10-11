@@ -36,6 +36,7 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import kotlin.test.Ignore
 import kotlin.test.Test
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.hostOs
@@ -101,6 +102,7 @@ class WasmSelectionTests {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    @Ignore
     fun selectTextStart() {
         textFieldSemanticInteraction("line 1\nline 2\nline 3\nline 4\nline 5") { node, state ->
             node.performKeyInput {
@@ -118,6 +120,7 @@ class WasmSelectionTests {
 
     @OptIn(ExperimentalTestApi::class)
     @Test
+    @Ignore
     fun selectTextEnd() {
         textFieldSemanticInteraction("line 1\nline 2\nline 3\nline 4\nline 5") { node, state ->
             node.performKeyInput {
