@@ -18,8 +18,6 @@ package androidx.compose.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.window.ComposeViewport
-import androidx.compose.ui.window.ComposeWindow
-import androidx.compose.ui.window.DefaultWindowState
 import kotlin.test.BeforeTest
 import kotlinx.browser.document
 import kotlinx.coroutines.CoroutineScope
