@@ -123,22 +123,26 @@ private fun BrowserWindow.popStateEvents(): Flow<BrowserPopStateEvent> = callbac
     }
 }
 
-private val argPlaceholder = Regex("""\{*.\}""")
+private val argPlaceholder = Regex("""\{.*?\}""")
 internal fun NavBackStackEntry.getRouteWithArgs(): String? {
     val entry = this
     val route = entry.destination.route ?: return null
     if (!route.contains(argPlaceholder)) return route
     val args = entry.arguments ?: Bundle()
-    val nameToValue = entry.destination.arguments.map { (name, arg) ->
-        val serializedTypeValue = arg.type.serializeAsValue(arg.type[args, name])
-        name to serializedTypeValue
+    val nameToTypedValue = entry.destination.arguments.mapValues { (name, arg) ->
+        arg.type.serializeAsValue(arg.type[args, name])
     }
 
-    val routeWithFilledArgs =
-        nameToValue.fold(initial = route) { acc, (argumentName: String, value: String) ->
-            acc.replace("{$argumentName}", value)
-        }
-    return routeWithFilledArgs.takeIf { !it.contains(argPlaceholder) }
+    val routeWithFilledArgs = route.replace(argPlaceholder) { match ->
+        val key = match.value.trim('{', '}')
+        nameToTypedValue[key] ?: if (args.containsKey(key)) {
+            //untyped args stored as strings
+            //see: androidx.navigation.NavDeepLink.parseArgument
+            args.getString(key)!!
+        } else ""
+    }
+
+    return routeWithFilledArgs
 }
 
 internal external interface BrowserLocation {

@@ -42,6 +42,9 @@ class BrowserHistoryTest {
                     }
                 }
                 test("screen_5")
+                test("screen_6/{pathId}?q={queryId}") {
+                    argument("pathId") { type = NavType.IntType }
+                }
             }
         }
 
@@ -83,6 +86,15 @@ class BrowserHistoryTest {
             .inOrder()
         assertThat(window.location.toString()).isEqualTo("$appAddress#screen_2")
 
+        navController.navigate("screen_6/123?q=456")
+        advanceUntilIdle()
+
+        assertThat(window.history.length).isEqualTo(4)
+        assertThat(window.history.state.toString().lines())
+            .containsExactly("screen_5", "screen_2", "screen_6/123?q=456")
+            .inOrder()
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_6/123?q=456")
+
         bind.cancel()
     }
 
@@ -112,7 +124,19 @@ class BrowserHistoryTest {
         navController.navigate("screen_2")
         advanceUntilIdle()
 
-        assertThat(window.history.length).isEqualTo(5)
+        navController.navigate("screen_6/123")
+        advanceUntilIdle()
+
+        assertThat(window.history.length).isEqualTo(6)
+        assertThat(window.history.state.toString().lines())
+            .containsExactly("screen_5", "screen_2", "screen_6/123?q=")
+            .inOrder()
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_6/123?q=")
+
+        window.history.back()
+        waitHistoryStateUpdate()
+
+        assertThat(window.history.length).isEqualTo(6)
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_5", "screen_2")
             .inOrder()
@@ -121,7 +145,7 @@ class BrowserHistoryTest {
         window.history.back()
         waitHistoryStateUpdate()
 
-        assertThat(window.history.length).isEqualTo(5)
+        assertThat(window.history.length).isEqualTo(6)
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_5")
             .inOrder()
@@ -130,7 +154,7 @@ class BrowserHistoryTest {
         window.history.back()
         waitHistoryStateUpdate()
 
-        assertThat(window.history.length).isEqualTo(5)
+        assertThat(window.history.length).isEqualTo(6)
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1", "screen_2", "screen_4")
             .inOrder()
@@ -139,7 +163,7 @@ class BrowserHistoryTest {
         window.history.back()
         waitHistoryStateUpdate()
 
-        assertThat(window.history.length).isEqualTo(5)
+        assertThat(window.history.length).isEqualTo(6)
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1", "screen_2")
             .inOrder()
