@@ -51,7 +51,7 @@ class BrowserHistoryTest {
         val navController = NavHostController().apply {
             navigatorProvider.addNavigator(TestNavigator())
         }
-        val appAddress = with(window.location) { origin + pathname }.removeSuffix("/")
+        val appAddress = with(window.location) { origin + pathname }
 
         val bind = launch { window.bindToNavigation(navController) }
         navController.setGraph(navController.createGraph(), null)
@@ -59,7 +59,7 @@ class BrowserHistoryTest {
 
         assertThat(window.history.length).isEqualTo(1)
         assertThat(window.history.state.toString()).isEqualTo("screen_1")
-        assertThat(window.location.toString()).isEqualTo("$appAddress/screen_1")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_1")
 
         navController.navigate("screen_2")
         navController.navigate("screen_4")
@@ -69,7 +69,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1", "screen_2", "screen_4")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress/screen_4")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_4")
 
         navController.navigate("screen_5") {
             popUpTo("screen_1") { inclusive = true }
@@ -81,7 +81,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_5", "screen_2")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress/screen_2")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_2")
 
         bind.cancel()
     }
@@ -92,7 +92,7 @@ class BrowserHistoryTest {
         val navController = NavHostController().apply {
             navigatorProvider.addNavigator(TestNavigator())
         }
-        val appAddress = with(window.location) { origin + pathname }.removeSuffix("/")
+        val appAddress = with(window.location) { origin + pathname }
 
         val bind = launch { window.bindToNavigation(navController) }
         navController.setGraph(navController.createGraph(), null)
@@ -116,7 +116,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_5", "screen_2")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress/screen_2")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_2")
 
         window.history.back()
         waitHistoryStateUpdate()
@@ -125,7 +125,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_5")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress/screen_5")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_5")
 
         window.history.back()
         waitHistoryStateUpdate()
@@ -134,7 +134,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1", "screen_2", "screen_4")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress/screen_4")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_4")
 
         window.history.back()
         waitHistoryStateUpdate()
@@ -143,7 +143,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1", "screen_2")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress/screen_2")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_2")
 
         navController.navigate("screen_2")
         advanceUntilIdle()
@@ -152,7 +152,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1", "screen_2", "screen_2")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress/screen_2")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_2")
 
         window.history.back()
         waitHistoryStateUpdate()
@@ -161,7 +161,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1", "screen_2")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress/screen_2")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_2")
 
         window.history.forward()
         waitHistoryStateUpdate()
@@ -170,7 +170,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1", "screen_2", "screen_2")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress/screen_2")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_2")
 
         bind.cancel()
     }
@@ -181,10 +181,9 @@ class BrowserHistoryTest {
         val navController = NavHostController().apply {
             navigatorProvider.addNavigator(TestNavigator())
         }
-        val appAddress = with(window.location) { origin + pathname }.removeSuffix("/")
-        val hiddenPath = "/hidden"
+        val appAddress = with(window.location) { origin + pathname }
 
-        val bind = launch { window.bindToNavigation(navController) { hiddenPath } }
+        val bind = launch { window.bindToNavigation(navController) { "" } }
         navController.setGraph(navController.createGraph(), null)
         advanceUntilIdle()
 
@@ -195,7 +194,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1", "screen_2")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo(appAddress + hiddenPath)
+        assertThat(window.location.toString()).isEqualTo(appAddress)
 
         window.history.back()
         waitHistoryStateUpdate()
@@ -204,7 +203,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo(appAddress + hiddenPath)
+        assertThat(window.location.toString()).isEqualTo(appAddress)
         bind.cancel()
     }
 

@@ -28,15 +28,15 @@ import kotlinx.coroutines.launch
  * Binds the browser window state to the given navigation controller.
  *
  * @param navController The [NavController] instance to bind to browser window navigation.
- * @param getBackStackEntryPath A function that returns the path to show for a given [NavBackStackEntry].
+ * @param getBackStackEntryRoute A function that returns the route to show for a given [NavBackStackEntry].
  */
 internal suspend fun BrowserWindow.bindToNavigation(
     navController: NavController,
-    getBackStackEntryPath: (entry: NavBackStackEntry) -> String
+    getBackStackEntryRoute: (entry: NavBackStackEntry) -> String
 ) {
     coroutineScope {
         val localWindow = this@bindToNavigation
-        val appAddress = with(localWindow.location) { origin + pathname }.removeSuffix("/")
+        val appAddress = with(localWindow.location) { origin + pathname }
         var initState = true
         var updateState = true
 
@@ -89,7 +89,7 @@ internal suspend fun BrowserWindow.bindToNavigation(
                 if (entries.isEmpty()) return@collect
                 val routes = entries.map { it.getRouteWithArgs() ?: return@collect }
 
-                val newUri = appAddress + getBackStackEntryPath(entries.last())
+                val newUri = appAddress + getBackStackEntryRoute(entries.last())
                 val state = routes.joinToString("\n")
 
 

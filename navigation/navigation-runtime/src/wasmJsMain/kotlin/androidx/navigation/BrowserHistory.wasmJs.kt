@@ -22,14 +22,14 @@ import org.w3c.dom.Window
  * Binds the browser window state to the given navigation controller.
  *
  * @param navController The [NavController] instance to bind to browser window navigation.
- * @param getBackStackEntryPath An optional function that returns the path to show for a given [NavBackStackEntry].
+ * @param getBackStackEntryRoute An optional function that returns the route to show for a given [NavBackStackEntry].
  */
 suspend fun Window.bindToNavigation(
     navController: NavController,
-    getBackStackEntryPath: (entry: NavBackStackEntry) -> String = {
-        "/${it.getRouteWithArgs().orEmpty()}"
+    getBackStackEntryRoute: (entry: NavBackStackEntry) -> String = {
+        it.getRouteWithArgs()?.let { r -> "#$r" }.orEmpty()
     }
 ) {
     @Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
-    (this as BrowserWindow).bindToNavigation(navController, getBackStackEntryPath)
+    (this as BrowserWindow).bindToNavigation(navController, getBackStackEntryRoute)
 }
