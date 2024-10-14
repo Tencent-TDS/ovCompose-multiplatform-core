@@ -16,8 +16,6 @@
 
 package androidx.compose.ui.interop
 
-import androidx.compose.ui.uikit.LocalUIViewController as LocalUIViewController2
-
 /**
  * Public value to get UIViewController of Compose window for library authors.
  * Maybe useful for features, like VideoPlayer and Bottom menus.
@@ -31,4 +29,4 @@ import androidx.compose.ui.uikit.LocalUIViewController as LocalUIViewController2
         imports = arrayOf("androidx.compose.ui.uikit.LocalUIViewController")
     )
 )
-val LocalUIViewController get() = LocalUIViewController2
+val LocalUIViewController get() = androidx.compose.ui.uikit.LocalUIViewController
