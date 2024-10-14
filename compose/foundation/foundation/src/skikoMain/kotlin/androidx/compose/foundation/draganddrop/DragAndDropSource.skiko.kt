@@ -16,15 +16,22 @@
 
 package androidx.compose.foundation.draganddrop
 
+import androidx.compose.foundation.PointerMatcher
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.draw.DrawResult
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerInputScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.jetbrains.skia.Picture
 import org.jetbrains.skia.PictureRecorder
 import org.jetbrains.skia.Rect
@@ -32,7 +39,25 @@ import org.jetbrains.skia.Rect
 @Immutable
 internal actual object DragAndDropSourceDefaults {
     actual val DefaultStartDetector: DragAndDropStartDetector = {
-        detectTapGestures(onLongPress = { offset -> requestDragAndDropTransfer(offset) })
+        detectDragStart(::requestDragAndDropTransfer)
+    }
+}
+
+private suspend fun PointerInputScope.detectDragStart(onDragStart: (Offset) -> Unit) {
+    coroutineScope {
+        launch {
+            detectDragGestures(
+                matcher = PointerMatcher.mouse(PointerButton.Primary),
+                onDragStart = onDragStart,
+                onDrag = { _ -> }
+            )
+        }
+        launch {
+            detectTapGestures(
+                matcher = PointerMatcher.touch,
+                onLongPress = onDragStart
+            )
+        }
     }
 }
 
