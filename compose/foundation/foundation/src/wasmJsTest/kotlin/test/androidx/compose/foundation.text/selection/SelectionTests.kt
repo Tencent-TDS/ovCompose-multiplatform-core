@@ -36,6 +36,7 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import kotlin.test.Ignore
 import kotlin.test.Test
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.hostOs

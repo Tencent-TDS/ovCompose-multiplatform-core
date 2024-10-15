@@ -28,7 +28,6 @@ import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.os.Handler;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -76,12 +75,8 @@ public final class PendingIntentCompat {
             @Flags int flags,
             @Nullable Bundle options,
             boolean isMutable) {
-        if (VERSION.SDK_INT >= 16) {
-            return Api16Impl.getActivities(
-                    context, requestCode, intents, addMutabilityFlags(isMutable, flags), options);
-        } else {
-            return PendingIntent.getActivities(context, requestCode, intents, flags);
-        }
+        return PendingIntent.getActivities(context, requestCode, intents,
+                addMutabilityFlags(isMutable, flags), options);
     }
 
     /**
@@ -135,12 +130,8 @@ public final class PendingIntentCompat {
             @Flags int flags,
             @Nullable Bundle options,
             boolean isMutable) {
-        if (VERSION.SDK_INT >= 16) {
-            return Api16Impl.getActivity(
-                    context, requestCode, intent, addMutabilityFlags(isMutable, flags), options);
-        } else {
-            return PendingIntent.getActivity(context, requestCode, intent, flags);
-        }
+        return PendingIntent.getActivity(context, requestCode, intent,
+                addMutabilityFlags(isMutable, flags), options);
     }
 
     /**
@@ -299,36 +290,10 @@ public final class PendingIntentCompat {
 
     private PendingIntentCompat() {}
 
-    @RequiresApi(16)
-    private static class Api16Impl {
-        private Api16Impl() {}
-
-        @DoNotInline
-        public static @NonNull PendingIntent getActivities(
-                @NonNull Context context,
-                int requestCode,
-                @NonNull @SuppressLint("ArrayReturn") Intent[] intents,
-                @Flags int flags,
-                @Nullable Bundle options) {
-            return PendingIntent.getActivities(context, requestCode, intents, flags, options);
-        }
-
-        @DoNotInline
-        public static @NonNull PendingIntent getActivity(
-                @NonNull Context context,
-                int requestCode,
-                @NonNull Intent intent,
-                @Flags int flags,
-                @Nullable Bundle options) {
-            return PendingIntent.getActivity(context, requestCode, intent, flags, options);
-        }
-    }
-
     @RequiresApi(23)
     private static class Api23Impl {
         private Api23Impl() {}
 
-        @DoNotInline
         public static void send(
                 @NonNull PendingIntent pendingIntent,
                 @NonNull Context context,
@@ -353,7 +318,6 @@ public final class PendingIntentCompat {
     private static class Api26Impl {
         private Api26Impl() {}
 
-        @DoNotInline
         public static PendingIntent getForegroundService(
                 Context context, int requestCode, Intent intent, int flags) {
             return PendingIntent.getForegroundService(context, requestCode, intent, flags);

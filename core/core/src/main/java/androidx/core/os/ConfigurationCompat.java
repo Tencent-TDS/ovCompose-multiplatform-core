@@ -21,7 +21,6 @@ import static android.os.Build.VERSION.SDK_INT;
 import android.content.res.Configuration;
 import android.os.LocaleList;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
@@ -57,20 +56,7 @@ public final class ConfigurationCompat {
             @NonNull Configuration configuration, @NonNull LocaleListCompat locales) {
         if (SDK_INT >= 24) {
             Api24Impl.setLocales(configuration, locales);
-        } else if (SDK_INT >= 17) {
-            Api17Impl.setLocale(configuration, locales);
-        }
-    }
-
-    @RequiresApi(17)
-    static class Api17Impl {
-        private Api17Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static void setLocale(
-                @NonNull Configuration configuration, @NonNull LocaleListCompat locales) {
+        } else {
             if (!locales.isEmpty()) {
                 configuration.setLocale(locales.get(0));
             }
@@ -83,12 +69,10 @@ public final class ConfigurationCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static android.os.LocaleList getLocales(Configuration configuration) {
             return configuration.getLocales();
         }
 
-        @DoNotInline
         static void setLocales(
                 @NonNull Configuration configuration, @NonNull LocaleListCompat locales) {
             configuration.setLocales((LocaleList) locales.unwrap());

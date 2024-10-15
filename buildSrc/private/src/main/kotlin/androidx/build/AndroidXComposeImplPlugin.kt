@@ -17,6 +17,7 @@
 package androidx.build
 
 import androidx.build.dependencies.KOTLIN_NATIVE_VERSION
+import androidx.build.dependencies.kotlinVersion
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.AppPlugin
@@ -45,7 +46,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
-import org.jetbrains.kotlin.gradle.dsl.KotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 import org.jetbrains.kotlin.tooling.core.withClosure
 
 const val composeSourceOption =
@@ -57,7 +58,7 @@ const val composeReportsOption =
 const val enableMetricsArg = "androidx.enableComposeCompilerMetrics"
 const val enableReportsArg = "androidx.enableComposeCompilerReports"
 const val composeStrongSkippingOption =
-    "plugin:androidx.compose.compiler.plugins.kotlin:experimentalStrongSkipping"
+    "plugin:androidx.compose.compiler.plugins.kotlin:strongSkipping"
 const val composeNonSkippingGroupOptimizationOption =
     "plugin:androidx.compose.compiler.plugins.kotlin:nonSkippingGroupOptimization"
 
@@ -127,28 +128,27 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
             }
 
             project.afterEvaluate { projectAfterEvaluate ->
-                projectAfterEvaluate.tasks.withType(KotlinCompile::class.java).configureEach { compile ->
+                projectAfterEvaluate.tasks.withType(KotlinCompilationTask::class.java).configureEach { compile ->
                     // Needed to enable `expect` and `actual` keywords
-                    compile.kotlinOptions.freeCompilerArgs += "-Xmulti-platform"
+                    compile.compilerOptions.freeCompilerArgs.add("-Xmulti-platform")
 
                     // Suppress a warning that 'expect'/'actual' classes are in Beta.
-                    compile.kotlinOptions.freeCompilerArgs += "-Xexpect-actual-classes"
+                    compile.compilerOptions.freeCompilerArgs.add("-Xexpect-actual-classes")
                 }
             }
 
-            project.tasks.withType(KotlinJsCompile::class.java).configureEach { compile ->
-                // val isWasm = compile.kotlinOptions.freeCompilerArgs.contains("-Xwasm")
-
-                compile.kotlinOptions.freeCompilerArgs += listOf(
-                    "-P", "plugin:androidx.compose.compiler.plugins.kotlin:generateDecoys=false",
-                    "-Xklib-enable-signature-clash-checks=false",
+            // TODO: remove when fixing https://youtrack.jetbrains.com/issue/CMP-6792
+            project.tasks.withType(KotlinJsCompile::class.java).configureEach {
+                @Suppress("DEPRECATION")
+                it.kotlinOptions.freeCompilerArgs += listOf(
+                    "-Xklib-enable-signature-clash-checks=false"
                 )
             }
 
             project.tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile>().configureEach {
-                it.kotlinOptions {
-                    freeCompilerArgs += "-opt-in=kotlinx.cinterop.ExperimentalForeignApi"
-                    freeCompilerArgs += "-opt-in=kotlin.experimental.ExperimentalNativeApi"
+                it.compilerOptions {
+                    freeCompilerArgs.add("-opt-in=kotlinx.cinterop.ExperimentalForeignApi")
+                    freeCompilerArgs.add("-opt-in=kotlin.experimental.ExperimentalNativeApi")
                 }
             }
         }
@@ -368,11 +368,19 @@ private fun configureComposeCompilerPlugin(
         val configuration = project.configurations.create(COMPILER_PLUGIN_CONFIGURATION)
         // Add Compose compiler plugin to kotlinPlugin configuration, making sure it works
         // for Playground builds as well
+
+        // TODO: Uncomment when implementing https://youtrack.jetbrains.com/issue/CMP-6792
+//        project.dependencies.add(
+//            COMPILER_PLUGIN_CONFIGURATION,
+//            "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:$kotlinVersion"
+//        )
+
         val compilerPluginVersion = project.properties["jetbrains.compose.compiler.version"] as String
         project.dependencies.add(
             COMPILER_PLUGIN_CONFIGURATION,
             "org.jetbrains.compose.compiler:compiler:$compilerPluginVersion"
         )
+
         val kotlinPlugin = configuration.incoming.artifactView { view ->
             view.attributes { attributes ->
                 attributes.attribute(
@@ -387,7 +395,7 @@ private fun configureComposeCompilerPlugin(
 
         val libraryMetricsDirectory = project.rootProject.getLibraryMetricsDirectory()
         val libraryReportsDirectory = project.rootProject.getLibraryReportsDirectory()
-        project.tasks.withType(KotlinCompile::class.java).configureEach { compile ->
+        project.tasks.withType(KotlinCompilationTask::class.java).configureEach { compile ->
             // Append inputs to KotlinCompile so tasks get invalidated if any of these values change
             compile.inputs.files({ kotlinPlugin })
                 .withPropertyName("composeCompilerExtension")
@@ -404,33 +412,32 @@ private fun configureComposeCompilerPlugin(
             // `freeCompilerArgs` is immutable in `doFirst` for native compilations.
             // It used to be configured with `onlyIf` in upstream too.
             compile.onlyIf {
-                compile.kotlinOptions.freeCompilerArgs += "-Xplugin=${kotlinPlugin.first()}"
+                compile.compilerOptions.freeCompilerArgs.add("-Xplugin=${kotlinPlugin.first()}")
 
                 // Enable Compose strong skipping mode
-                compile.kotlinOptions.freeCompilerArgs +=
+                compile.compilerOptions.freeCompilerArgs.addAll(
                     listOf("-P", "$composeStrongSkippingOption=true")
-                compile.kotlinOptions.freeCompilerArgs +=
+                )
+                compile.compilerOptions.freeCompilerArgs.addAll(
                     listOf("-P", "$composeNonSkippingGroupOptimizationOption=true")
+                )
 
                 if (enableMetricsProvider.orNull == "true") {
                     val metricsDest = File(libraryMetricsDirectory, "compose")
-                    compile.kotlinOptions.freeCompilerArgs +=
-                        listOf(
-                            "-P",
-                            "$composeMetricsOption=${metricsDest.absolutePath}"
-                        )
+                    compile.compilerOptions.freeCompilerArgs.addAll(
+                        listOf("-P", "$composeMetricsOption=${metricsDest.absolutePath}")
+                    )
                 }
                 if ((enableReportsProvider.orNull == "true")) {
                     val reportsDest = File(libraryReportsDirectory, "compose")
-                    compile.kotlinOptions.freeCompilerArgs +=
-                        listOf(
-                            "-P",
-                            "$composeReportsOption=${reportsDest.absolutePath}"
-                        )
+                    compile.compilerOptions.freeCompilerArgs.addAll(
+                        listOf("-P", "$composeReportsOption=${reportsDest.absolutePath}")
+                    )
                 }
                 if (shouldPublish) {
-                    compile.kotlinOptions.freeCompilerArgs +=
+                    compile.compilerOptions.freeCompilerArgs.addAll(
                         listOf("-P", composeSourceOption)
+                    )
                 }
                 true
             }

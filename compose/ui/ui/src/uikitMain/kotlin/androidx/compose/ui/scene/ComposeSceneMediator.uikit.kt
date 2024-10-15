@@ -51,7 +51,6 @@ import androidx.compose.ui.platform.EmptyViewConfiguration
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.PlatformDragAndDropManager
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
@@ -279,9 +278,7 @@ internal class ComposeSceneMediator(
 
     private val dragAndDropManager = UIKitDragAndDropManager(
         view = userInputView,
-        getDragAndDropTarget = {
-            scene.dragAndDropTarget
-        }
+        getComposeRootDragAndDropNode = { scene.rootDragAndDropNode },
     )
 
     /**
@@ -593,7 +590,9 @@ internal class ComposeSceneMediator(
         interopContainer.dispose()
     }
 
-    private fun setNeedsRedraw() = redrawer.setNeedsRedraw()
+    private fun setNeedsRedraw() {
+        redrawer.setNeedsRedraw()
+    }
 
     /**
      * Updates the [ComposeScene] with the properties derived from the [view].

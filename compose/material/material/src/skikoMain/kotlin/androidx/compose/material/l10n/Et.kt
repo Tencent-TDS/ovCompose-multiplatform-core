@@ -28,4 +28,5 @@ internal fun Translations.et() = mapOf(
     Strings.DefaultErrorMessage to "Sobimatu sisend",
     Strings.SliderRangeStart to "Vahemiku algus",
     Strings.SliderRangeEnd to "Vahemiku lõpp",
+    Strings.SnackbarPaneTitle to "Hoiatus",
 )

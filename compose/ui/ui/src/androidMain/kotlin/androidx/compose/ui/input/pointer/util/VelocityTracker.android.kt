@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.input.pointer.util
 
-internal actual const val AssumePointerMoveStoppedMilliseconds: Int = 40
 internal actual const val HistorySize: Int = 20
 
 /**
@@ -25,5 +24,6 @@ internal actual const val HistorySize: Int = 20
 internal actual fun VelocityTracker1D.shouldUseDataPoints(
     points: FloatArray,
     times: FloatArray,
-    count: Int
+    count: Int,
+    afterPointerStop: Boolean
 ): Boolean = true

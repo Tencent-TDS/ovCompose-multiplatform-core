@@ -19,10 +19,10 @@ package androidx.compose.ui.node
 
 import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Applier
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.autofill.Autofill
 import androidx.compose.ui.autofill.AutofillTree
+import androidx.compose.ui.autofill.SemanticAutofill
 import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
@@ -46,7 +46,7 @@ import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
-import androidx.compose.ui.platform.establishTextInputSession
+import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextInputService
@@ -56,30 +56,23 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.InteropView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
 
 /**
- * Owner implements the connection to the underlying view system. On Android, this connects
- * to Android [views][android.view.View] and all layout, draw, input, and accessibility is hooked
+ * Owner implements the connection to the underlying view system. On Android, this connects to
+ * Android [views][android.view.View] and all layout, draw, input, and accessibility is hooked
  * through them.
  */
 internal interface Owner : PositionCalculator {
 
-    /**
-     * The root layout node in the component tree.
-     */
+    /** The root layout node in the component tree. */
     val root: LayoutNode
 
-    /**
-     * Draw scope reused for drawing speed up.
-     */
+    /** Draw scope reused for drawing speed up. */
     val sharedDrawScope: LayoutNodeDrawScope
 
     val rootForTest: RootForTest
 
-    /**
-     * Provide haptic feedback to the user. Use the Android version of haptic feedback.
-     */
+    /** Provide haptic feedback to the user. Use the Android version of haptic feedback. */
     val hapticFeedBack: HapticFeedback
 
     /**
@@ -88,9 +81,7 @@ internal interface Owner : PositionCalculator {
      */
     val inputModeManager: InputModeManager
 
-    /**
-     * Provide clipboard manager to the user. Use the Android version of clipboard manager.
-     */
+    /** Provide clipboard manager to the user. Use the Android version of clipboard manager. */
     val clipboardManager: ClipboardManager
 
     /**
@@ -105,30 +96,29 @@ internal interface Owner : PositionCalculator {
      */
     val graphicsContext: GraphicsContext
 
-    /**
-     * Provide toolbar for text-related actions, such as copy, paste, cut etc.
-     */
+    /** Provide toolbar for text-related actions, such as copy, paste, cut etc. */
     val textToolbar: TextToolbar
 
     /**
-     *  A data structure used to store autofill information. It is used by components that want to
-     *  provide autofill semantics.
-     *  TODO(ralu): Replace with SemanticsTree. This is a temporary hack until we have a semantics
-     *  tree implemented.
+     * A data structure used to store autofill information. It is used by components that want to
+     * provide autofill semantics.
+     *
+     * TODO(ralu): Replace with SemanticsTree. This is a temporary hack until we have a semantics
+     *   tree implemented.
      */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalComposeUiApi
-    @ExperimentalComposeUiApi
     val autofillTree: AutofillTree
 
     /**
      * The [Autofill] class can be used to perform autofill operations. It is used as a
      * CompositionLocal.
      */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalComposeUiApi
-    @ExperimentalComposeUiApi
     val autofill: Autofill?
+
+    /**
+     * The [SemanticAutofill] class can be used to perform autofill operations. It is used as a
+     * CompositionLocal.
+     */
+    val semanticAutofill: SemanticAutofill?
 
     val density: Density
 
@@ -138,15 +128,14 @@ internal interface Owner : PositionCalculator {
 
     val pointerIconService: PointerIconService
 
-    /**
-     * Provide a focus owner that controls focus within Compose.
-     */
+    /** Provide a focus owner that controls focus within Compose. */
     val focusOwner: FocusOwner
 
-    /**
-     * Provide information about the window that hosts this [Owner].
-     */
+    /** Provide information about the window that hosts this [Owner]. */
     val windowInfo: WindowInfo
+
+    /** Provides a queryable and observable index of nodes' bounding rectangles */
+    val rectManager: RectManager
 
     @Deprecated(
         "fontLoader is deprecated, use fontFamilyResolver",
@@ -159,13 +148,9 @@ internal interface Owner : PositionCalculator {
 
     val layoutDirection: LayoutDirection
 
-    /**
-     * `true` when layout should draw debug bounds.
-     */
+    /** `true` when layout should draw debug bounds. */
     var showLayoutBounds: Boolean
-        @RestrictTo(RestrictTo.Scope.LIBRARY)
-        @InternalCoreApi
-        set
+        @RestrictTo(RestrictTo.Scope.LIBRARY) @InternalCoreApi set
 
     /**
      * Called by [LayoutNode] to request the Owner a new measurement+layout. [forceRequest] defines
@@ -182,12 +167,11 @@ internal interface Owner : PositionCalculator {
     )
 
     /**
-     * Called by [LayoutNode] to request the Owner a new layout. [forceRequest] defines
-     * whether the node should bypass the logic that would reject relayout requests, and therefore
-     * force the relayout request to be evaluated even when it's already pending measure/layout.
+     * Called by [LayoutNode] to request the Owner a new layout. [forceRequest] defines whether the
+     * node should bypass the logic that would reject relayout requests, and therefore force the
+     * relayout request to be evaluated even when it's already pending measure/layout.
      *
-     * [affectsLookahead] specifies whether this relayout request is for the lookahead pass
-     * pass.
+     * [affectsLookahead] specifies whether this relayout request is for the lookahead pass pass.
      */
     fun onRequestRelayout(
         layoutNode: LayoutNode,
@@ -202,9 +186,9 @@ internal interface Owner : PositionCalculator {
     fun requestOnPositionedCallback(layoutNode: LayoutNode)
 
     /**
-     * Called by [LayoutNode] when it is attached to the view system and now has an owner.
-     * This is used by [Owner] to track which nodes are associated with it. It will only be
-     * called when [node] is not already attached to an owner.
+     * Called by [LayoutNode] when it is attached to the view system and now has an owner. This is
+     * used by [Owner] to track which nodes are associated with it. It will only be called when
+     * [node] is not already attached to an owner.
      */
     fun onAttach(node: LayoutNode)
 
@@ -216,16 +200,16 @@ internal interface Owner : PositionCalculator {
     fun onDetach(node: LayoutNode)
 
     /**
-     * Returns the position relative to the containing window of the [localPosition],
-     * the position relative to the [Owner]. If the [Owner] is rotated, scaled, or otherwise
-     * transformed relative to the window, this will not be a simple translation.
+     * Returns the position relative to the containing window of the [localPosition], the position
+     * relative to the [Owner]. If the [Owner] is rotated, scaled, or otherwise transformed relative
+     * to the window, this will not be a simple translation.
      */
     fun calculatePositionInWindow(localPosition: Offset): Offset
 
     /**
-     * Returns the position relative to the [Owner] of the [positionInWindow],
-     * the position relative to the window. If the [Owner] is rotated, scaled, or otherwise
-     * transformed relative to the window, this will not be a simple translation.
+     * Returns the position relative to the [Owner] of the [positionInWindow], the position relative
+     * to the window. If the [Owner] is rotated, scaled, or otherwise transformed relative to the
+     * window, this will not be a simple translation.
      */
     fun calculateLocalPosition(positionInWindow: Offset): Offset
 
@@ -257,31 +241,28 @@ internal interface Owner : PositionCalculator {
      */
     fun measureAndLayout(layoutNode: LayoutNode, constraints: Constraints)
 
-    /**
-     * Makes sure the passed [layoutNode] and its subtree is remeasured and has the final sizes.
-     */
+    /** Makes sure the passed [layoutNode] and its subtree is remeasured and has the final sizes. */
     fun forceMeasureTheSubtree(layoutNode: LayoutNode, affectsLookahead: Boolean = false)
 
-    /**
-     * Creates an [OwnedLayer] which will be drawing the passed [drawBlock].
-     */
+    /** Creates an [OwnedLayer] which will be drawing the passed [drawBlock]. */
     fun createLayer(
         drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
         invalidateParentLayer: () -> Unit,
-        explicitLayer: GraphicsLayer? = null
+        explicitLayer: GraphicsLayer? = null,
+        forceUseOldLayers: Boolean = false
     ): OwnedLayer
 
     /**
-     * The semantics have changed. This function will be called when a SemanticsNode is added to
-     * or deleted from the Semantics tree. It will also be called when a SemanticsNode in the
-     * Semantics tree has some property change.
+     * The semantics have changed. This function will be called when a SemanticsNode is added to or
+     * deleted from the Semantics tree. It will also be called when a SemanticsNode in the Semantics
+     * tree has some property change.
      */
     fun onSemanticsChange()
 
-    /**
-     * The position and/or size of the [layoutNode] changed.
-     */
+    /** The position and/or size of the [layoutNode] changed. */
     fun onLayoutChange(layoutNode: LayoutNode)
+
+    fun onLayoutNodeDeactivated(layoutNode: LayoutNode)
 
     /**
      * The position and/or size of an interop view (typically, an android.view.View) has changed. On
@@ -291,17 +272,12 @@ internal interface Owner : PositionCalculator {
     // TODO: Move to InteropViewContainer
     @InternalComposeUiApi fun onInteropViewLayoutChange(view: InteropView)
 
-    /**
-     * The [FocusDirection] represented by the specified keyEvent.
-     */
-
+    /** The [FocusDirection] represented by the specified keyEvent. */
     fun getFocusDirection(keyEvent: KeyEvent): FocusDirection?
 
     val measureIteration: Long
 
-    /**
-     * The [ViewConfiguration] to use in the application.
-     */
+    /** The [ViewConfiguration] to use in the application. */
     val viewConfiguration: ViewConfiguration
 
     /**
@@ -312,33 +288,26 @@ internal interface Owner : PositionCalculator {
 
     val modifierLocalManager: ModifierLocalManager
 
-    /**
-     * CoroutineContext for launching coroutines in Modifier Nodes.
-     */
+    /** CoroutineContext for launching coroutines in Modifier Nodes. */
     val coroutineContext: CoroutineContext
 
-    /**
-     * The scope used to place the outermost layout.
-     */
+    /** The scope used to place the outermost layout. */
     val placementScope: Placeable.PlacementScope
         get() = PlacementScope(this) // default implementation for test owners
 
     /**
-     * Registers a call to be made when the [Applier.onEndChanges] is called. [listener]
-     * should be called in [onEndApplyChanges] and then removed after being called.
+     * Registers a call to be made when the [Applier.onEndChanges] is called. [listener] should be
+     * called in [onEndApplyChanges] and then removed after being called.
      */
     fun registerOnEndApplyChangesListener(listener: () -> Unit)
 
     /**
-     * Called when [Applier.onEndChanges] executes. This must call all listeners registered
-     * in [registerOnEndApplyChangesListener] and then remove them so that they are not
-     * called again.
+     * Called when [Applier.onEndChanges] executes. This must call all listeners registered in
+     * [registerOnEndApplyChangesListener] and then remove them so that they are not called again.
      */
     fun onEndApplyChanges()
 
-    /**
-     * [listener] will be notified after the current or next layout has finished.
-     */
+    /** [listener] will be notified after the current or next layout has finished. */
     fun registerOnLayoutCompletedListener(listener: OnLayoutCompletedListener)
 
     val dragAndDropManager: DragAndDropManager
@@ -355,10 +324,24 @@ internal interface Owner : PositionCalculator {
         session: suspend PlatformTextInputSessionScope.() -> Nothing
     ): Nothing
 
+    /**
+     * Tracks sensitive content on the screen to protect user privacy. Increment sensitive component
+     * count by 1. Implementation may protect user privacy by not showing sensitive content
+     * (username, password etc) to remote viewer during screen share.
+     */
+    fun incrementSensitiveComponentCount() {}
+
+    /**
+     * Tracks sensitive content on the screen to protect user privacy. Decrement sensitive component
+     * count by 1. Implementation may protect user privacy by not showing sensitive content
+     * (username, password etc) to remote viewer during screen share.
+     */
+    fun decrementSensitiveComponentCount() {}
+
     companion object {
         /**
-         * Enables additional (and expensive to do in production) assertions. Useful to be set
-         * to true during the tests covering our core logic.
+         * Enables additional (and expensive to do in production) assertions. Useful to be set to
+         * true during the tests covering our core logic.
          */
         var enableExtraAssertions: Boolean = false
     }

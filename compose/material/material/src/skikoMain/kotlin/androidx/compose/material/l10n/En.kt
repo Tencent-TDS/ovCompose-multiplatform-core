@@ -28,6 +28,7 @@ internal fun Translations.en() = mapOf(
     Strings.DefaultErrorMessage to "Invalid input",
     Strings.SliderRangeStart to "Range start",
     Strings.SliderRangeEnd to "Range end",
+    Strings.SnackbarPaneTitle to "Alert",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -39,6 +40,7 @@ internal fun Translations.enAU() = mapOf(
     Strings.DefaultErrorMessage to "Invalid input",
     Strings.SliderRangeStart to "Range start",
     Strings.SliderRangeEnd to "Range end",
+    Strings.SnackbarPaneTitle to "Alert",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -50,6 +52,7 @@ internal fun Translations.enCA() = mapOf(
     Strings.DefaultErrorMessage to "Invalid input",
     Strings.SliderRangeStart to "Range start",
     Strings.SliderRangeEnd to "Range end",
+    Strings.SnackbarPaneTitle to "Alert",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -61,6 +64,7 @@ internal fun Translations.enGB() = mapOf(
     Strings.DefaultErrorMessage to "Invalid input",
     Strings.SliderRangeStart to "Range start",
     Strings.SliderRangeEnd to "Range end",
+    Strings.SnackbarPaneTitle to "Alert",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -72,4 +76,5 @@ internal fun Translations.enIN() = mapOf(
     Strings.DefaultErrorMessage to "Invalid input",
     Strings.SliderRangeStart to "Range start",
     Strings.SliderRangeEnd to "Range end",
+    Strings.SnackbarPaneTitle to "Alert",
 )

@@ -91,15 +91,16 @@ class LegacyTextInputMethodRequestCursorAnchorInfoTest {
     @Before
     fun setup() {
         inputMethodManager = mock { on { isActive() } doReturn true }
-        textInputService = LegacyTextInputMethodRequest(
-            view = View(context),
-            localToScreen = { matrix ->
-                (textLayoutOffset + decorationBoxBounds.topLeft).let {
-                    matrix.translate(it.x, it.y)
-                }
-            },
-            inputMethodManager = inputMethodManager
-        )
+        textInputService =
+            LegacyTextInputMethodRequest(
+                view = View(context),
+                localToScreen = { matrix ->
+                    (textLayoutOffset + decorationBoxBounds.topLeft).let {
+                        matrix.translate(it.x, it.y)
+                    }
+                },
+                inputMethodManager = inputMethodManager
+            )
         textInputService.startInput(
             value = TextFieldValue(""),
             textInputNode = null,
@@ -411,7 +412,8 @@ class LegacyTextInputMethodRequestCursorAnchorInfoTest {
                 style = input.style,
                 constraints = Constraints(maxWidth = width),
                 density = input.density,
-                fontFamilyResolver = fontFamilyResolver
+                fontFamilyResolver = fontFamilyResolver,
+                overflow = TextOverflow.Clip
             )
 
         return TextLayoutResult(input, paragraph, IntSize(width, ceil(paragraph.height).toInt()))

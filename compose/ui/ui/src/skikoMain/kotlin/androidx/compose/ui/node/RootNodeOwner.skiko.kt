@@ -26,6 +26,8 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.Autofill
 import androidx.compose.ui.autofill.AutofillTree
+import androidx.compose.ui.autofill.SemanticAutofill
+import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.focus.FocusOwnerImpl
@@ -74,6 +76,7 @@ import androidx.compose.ui.semantics.EmptySemanticsModifier
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.input.TextInputService
 import androidx.compose.ui.unit.Constraints
@@ -323,6 +326,8 @@ internal class RootNodeOwner(
         override val textToolbar get() = platformContext.textToolbar
         override val autofillTree = AutofillTree()
         override val autofill: Autofill?  get() = null
+        // TODO https://youtrack.jetbrains.com/issue/CMP-1572/Support-SemanticAutofill
+        override val semanticAutofill: SemanticAutofill? get() = null
         override val density get() = this@RootNodeOwner.density
         override val textInputService =
             TextInputService(platformContext.textInputService)
@@ -337,6 +342,8 @@ internal class RootNodeOwner(
         override val pointerIconService = PointerIconServiceImpl()
         override val focusOwner get() = this@RootNodeOwner.focusOwner
         override val windowInfo get() = platformContext.windowInfo
+        // TODO: 1.8.0-alpha02 Implement ComposeUiFlags.isRectTrackingEnabled
+        override val rectManager = RectManager()
 
         @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
         override val fontLoader = androidx.compose.ui.text.platform.FontLoader()
@@ -436,6 +443,7 @@ internal class RootNodeOwner(
             drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
             invalidateParentLayer: () -> Unit,
             explicitLayer: GraphicsLayer?,
+            forceUseOldLayers: Boolean
         ) = if (explicitLayer != null) {
                 GraphicsLayerOwnerLayer(
                     graphicsLayer = explicitLayer,
@@ -487,6 +495,9 @@ internal class RootNodeOwner(
             )
         }
 
+        override fun onLayoutNodeDeactivated(layoutNode: LayoutNode) {
+        }
+
         @InternalComposeUiApi
         override fun onInteropViewLayoutChange(view: InteropView) {
             // TODO dispatch platform re-layout
@@ -513,12 +524,13 @@ internal class RootNodeOwner(
         override fun localToScreen(localPosition: Offset): Offset =
             platformContext.convertLocalToScreenPosition(localPosition)
 
-        override fun localToScreen(localTransform: Matrix) {
-            throw UnsupportedOperationException(
-                "Construction of local-to-screen matrix is not supported, " +
-                    "use direct conversion instead"
-            )
-        }
+        // TODO: reverted in https://r.android.com/3208275
+//        override fun localToScreen(localTransform: Matrix) {
+//            throw UnsupportedOperationException(
+//                "Construction of local-to-screen matrix is not supported, " +
+//                    "use direct conversion instead"
+//            )
+//        }
 
         private val endApplyChangesListeners = mutableVectorOf<(() -> Unit)?>()
 
@@ -698,5 +710,4 @@ private fun IntSize.toConstraints() = Constraints(maxWidth = width, maxHeight = 
 private object IdentityPositionCalculator: PositionCalculator {
     override fun screenToLocal(positionOnScreen: Offset): Offset = positionOnScreen
     override fun localToScreen(localPosition: Offset): Offset = localPosition
-    override fun localToScreen(localTransform: Matrix) = Unit
 }

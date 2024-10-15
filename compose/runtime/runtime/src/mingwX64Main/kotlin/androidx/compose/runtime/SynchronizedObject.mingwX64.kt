@@ -15,6 +15,7 @@
  */
 package androidx.compose.runtime
 
+import androidx.compose.runtime.internal.currentThreadId
 import kotlinx.atomicfu.*
 
 @PublishedApi

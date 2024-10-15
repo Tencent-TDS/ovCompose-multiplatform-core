@@ -40,6 +40,7 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.screenshot.AndroidXScreenshotTestRule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,11 +51,9 @@ import org.junit.runner.RunWith
 @OptIn(ExperimentalMaterialApi::class)
 class BottomNavigationScreenshotTest {
 
-    @get:Rule
-    val composeTestRule = createComposeRule()
+    @get:Rule val composeTestRule = createComposeRule()
 
-    @get:Rule
-    val screenshotRule = AndroidXScreenshotTestRule(GOLDEN_MATERIAL)
+    @get:Rule val screenshotRule = AndroidXScreenshotTestRule(GOLDEN_MATERIAL)
 
     @Test
     fun lightTheme_defaultColors() {
@@ -78,6 +77,7 @@ class BottomNavigationScreenshotTest {
     }
 
     @Test
+    @Ignore("b/355413615")
     fun lightTheme_defaultColors_pressed() {
         val interactionSource = MutableInteractionSource()
 
@@ -125,6 +125,7 @@ class BottomNavigationScreenshotTest {
     }
 
     @Test
+    @Ignore("b/355413615")
     fun lightTheme_surfaceColors_pressed() {
         val interactionSource = MutableInteractionSource()
 
@@ -172,6 +173,7 @@ class BottomNavigationScreenshotTest {
     }
 
     @Test
+    @Ignore("b/355413615")
     fun darkTheme_defaultColors_pressed() {
         val interactionSource = MutableInteractionSource()
 
@@ -222,6 +224,7 @@ class BottomNavigationScreenshotTest {
     }
 
     @Test
+    @Ignore("b/355413615")
     fun darkTheme_surfaceColors_pressed() {
         val interactionSource = MutableInteractionSource()
 
@@ -274,6 +277,7 @@ class BottomNavigationScreenshotTest {
     }
 
     @Test
+    @Ignore("b/355413615")
     fun darkTheme_primaryColors_pressed() {
         val interactionSource = MutableInteractionSource()
 
@@ -304,7 +308,7 @@ class BottomNavigationScreenshotTest {
      *
      * @param scope [CoroutineScope] used to interact with [MutableInteractionSource]
      * @param interactionSource the [MutableInteractionSource] used for the first
-     * BottomNavigationItem
+     *   BottomNavigationItem
      * @param interaction the [Interaction] to assert for, or `null` if no [Interaction].
      * @param goldenIdentifier the identifier for the corresponding screenshot
      */
@@ -317,9 +321,7 @@ class BottomNavigationScreenshotTest {
         if (interaction != null) {
             composeTestRule.runOnIdle {
                 // Start ripple
-                scope.launch {
-                    interactionSource.emit(interaction)
-                }
+                scope.launch { interactionSource.emit(interaction) }
             }
 
             composeTestRule.waitForIdle()
@@ -330,7 +332,8 @@ class BottomNavigationScreenshotTest {
         }
 
         // Capture and compare screenshots
-        composeTestRule.onNodeWithTag(Tag)
+        composeTestRule
+            .onNodeWithTag(Tag)
             .captureToImage()
             .assertAgainstGolden(screenshotRule, goldenIdentifier)
     }
@@ -341,12 +344,10 @@ class BottomNavigationScreenshotTest {
  * [BottomNavigationItem] is selected, and the rest are not.
  *
  * @param interactionSource the [MutableInteractionSource] for the first [BottomNavigationItem], to
- * control its visual state.
+ *   control its visual state.
  */
 @Composable
-private fun DefaultBottomNavigation(
-    interactionSource: MutableInteractionSource
-) {
+private fun DefaultBottomNavigation(interactionSource: MutableInteractionSource) {
     Box(Modifier.semantics(mergeDescendants = true) {}.testTag(Tag)) {
         BottomNavigation {
             BottomNavigationItem(
@@ -374,11 +375,11 @@ private fun DefaultBottomNavigation(
  * [BottomNavigationItem] is selected, and the rest are not.
  *
  * @param interactionSource the [MutableInteractionSource] for the first [BottomNavigationItem], to
- * control its visual state.
+ *   control its visual state.
  * @param backgroundColor the backgroundColor of the [BottomNavigation]
  * @param selectedContentColor the content color for a selected [BottomNavigationItem] (first item)
  * @param unselectedContentColor the content color for an unselected [BottomNavigationItem] (second
- * and third items)
+ *   and third items)
  */
 @Composable
 private fun CustomBottomNavigation(

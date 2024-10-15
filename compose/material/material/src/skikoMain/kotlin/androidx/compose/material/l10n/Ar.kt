@@ -28,4 +28,5 @@ internal fun Translations.ar() = mapOf(
     Strings.DefaultErrorMessage to "إدخال غير صالح",
     Strings.SliderRangeStart to "بداية النطاق",
     Strings.SliderRangeEnd to "نهاية النطاق",
+    Strings.SnackbarPaneTitle to "تنبيه",
 )

@@ -41,8 +41,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-/** Represents a conversation */
-@ExperimentalCarApi
+/** Represents a text-based conversation (e.g. IM/SMS messages). */
 @CarProtocol
 @KeepFields
 @RequiresCarApi(7)
@@ -62,6 +61,7 @@ public class ConversationItem implements Item {
     private final ConversationCallbackDelegate mConversationCallbackDelegate;
     @NonNull
     private final List<Action> mActions;
+    private final boolean mIndexable;
 
     @Override
     public int hashCode() {
@@ -72,7 +72,8 @@ public class ConversationItem implements Item {
                 mIcon,
                 mIsGroupConversation,
                 mMessages,
-                mActions
+                mActions,
+                mIndexable
         );
     }
 
@@ -95,6 +96,7 @@ public class ConversationItem implements Item {
                         && mIsGroupConversation == otherConversationItem.mIsGroupConversation
                         && Objects.equals(mMessages, otherConversationItem.mMessages)
                         && Objects.equals(mActions, otherConversationItem.mActions)
+                        && mIndexable == otherConversationItem.mIndexable
                 ;
     }
 
@@ -108,6 +110,7 @@ public class ConversationItem implements Item {
         checkState(!mMessages.isEmpty(), "Message list cannot be empty.");
         this.mConversationCallbackDelegate = requireNonNull(builder.mConversationCallbackDelegate);
         this.mActions = CollectionUtils.unmodifiableCopy(builder.mActions);
+        this.mIndexable = builder.mIndexable;
     }
 
     /** Default constructor for serialization. */
@@ -131,6 +134,7 @@ public class ConversationItem implements Item {
                     }
                 });
         mActions = Collections.emptyList();
+        mIndexable = true;
     }
 
     /**
@@ -193,6 +197,16 @@ public class ConversationItem implements Item {
     }
 
     /**
+     * Returns whether this item can be included in indexed lists.
+     *
+     * @see Builder#setIndexable(boolean)
+     */
+    @ExperimentalCarApi
+    public boolean isIndexable() {
+        return mIndexable;
+    }
+
+    /**
      * Verifies that a given {@link Person} has the required fields to be a message sender. Returns
      * the input {@link Person} if valid, or throws an exception if invalid.
      *
@@ -221,6 +235,7 @@ public class ConversationItem implements Item {
         @Nullable
         ConversationCallbackDelegate mConversationCallbackDelegate;
         final List<Action> mActions;
+        boolean mIndexable = true;
 
         /**
          * Specifies a unique identifier for the conversation
@@ -281,7 +296,11 @@ public class ConversationItem implements Item {
             return this;
         }
 
-        /** Specifies a list of messages for the conversation */
+        /**
+         * Specifies a list of messages for the conversation
+         *
+         * <p> The messages should be sorted from oldest to newest.
+         */
         @NonNull
         public Builder setMessages(@NonNull List<CarMessage> messages) {
             mMessages = messages;
@@ -311,6 +330,32 @@ public class ConversationItem implements Item {
             mActionsCopy.add(requireNonNull(action));
             ActionsConstraints.ACTIONS_CONSTRAINTS_CONVERSATION_ITEM.validateOrThrow(mActionsCopy);
             mActions.add(action);
+            return this;
+        }
+
+        /**
+         * Sets whether this item can be included in indexed lists. By default, this is set to
+         * {@code true}.
+         *
+         * <p>The host creates indexed lists to help users navigate through long lists more easily
+         * by sorting, filtering, or some other means.
+         *
+         * <p>For example, a messaging app may show conversations by last message received. If the
+         * app provides these conversations via the {@code SectionedItemTemplate} and enables
+         * {@code #isAlphabeticalIndexingAllowed}, the user will be able to jump to their
+         * conversations that start with a given letter they chose. The messaging app can choose
+         * to hide, for example, service messages from this filtered list by setting this {@code
+         * #setIndexable(false)}.
+         *
+         * <p>Individual items can be set to be included or excluded from filtered lists, but it's
+         * also possible to enable/disable the creation of filtered lists as a whole via the
+         * template's API (eg. {@code SectionedItemTemplate
+         * .Builder#setAlphabeticalIndexingAllowed(Boolean)}).
+         */
+        @ExperimentalCarApi
+        @NonNull
+        public Builder setIndexable(boolean indexable) {
+            mIndexable = indexable;
             return this;
         }
 

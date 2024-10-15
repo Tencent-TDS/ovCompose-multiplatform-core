@@ -48,13 +48,13 @@ import android.widget.FrameLayout;
 import android.widget.OverScroller;
 import android.widget.ScrollView;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.R;
+import androidx.core.os.BuildCompat;
 import androidx.core.view.AccessibilityDelegateCompat;
 import androidx.core.view.DifferentialMotionFlingController;
 import androidx.core.view.DifferentialMotionFlingTarget;
@@ -885,7 +885,7 @@ public class NestedScrollView extends FrameLayout implements NestedScrollingPare
                 mActivePointerId = INVALID_POINTER;
                 recycleVelocityTracker();
                 if (mScroller.springBack(getScrollX(), getScrollY(), 0, 0, 0, getScrollRange())) {
-                    ViewCompat.postInvalidateOnAnimation(this);
+                    postInvalidateOnAnimation();
                 }
                 stopNestedScroll(ViewCompat.TYPE_TOUCH);
                 break;
@@ -993,7 +993,7 @@ public class NestedScrollView extends FrameLayout implements NestedScrollingPare
                     }
                 } else if (mScroller.springBack(getScrollX(), getScrollY(), 0, 0, 0,
                         getScrollRange())) {
-                    ViewCompat.postInvalidateOnAnimation(this);
+                    postInvalidateOnAnimation();
                 }
                 endTouchDrag();
                 break;
@@ -1003,7 +1003,7 @@ public class NestedScrollView extends FrameLayout implements NestedScrollingPare
                 if (mIsBeingDragged && getChildCount() > 0) {
                     if (mScroller.springBack(getScrollX(), getScrollY(), 0, 0, 0,
                             getScrollRange())) {
-                        ViewCompat.postInvalidateOnAnimation(this);
+                        postInvalidateOnAnimation();
                     }
                 }
                 endTouchDrag();
@@ -1171,7 +1171,7 @@ public class NestedScrollView extends FrameLayout implements NestedScrollingPare
         }
 
         if (!mEdgeGlowTop.isFinished() || !mEdgeGlowBottom.isFinished()) {
-            ViewCompat.postInvalidateOnAnimation(this);
+            postInvalidateOnAnimation();
             hitScrollBarrier = false;
         }
 
@@ -1961,6 +1961,11 @@ public class NestedScrollView extends FrameLayout implements NestedScrollingPare
 
         final int range = getScrollRange();
 
+        if (BuildCompat.isAtLeastV()) {
+            Api35Impl.setFrameContentVelocity(NestedScrollView.this,
+                    Math.abs(mScroller.getCurrVelocity()));
+        }
+
         if (unconsumed != 0) {
             // Internal Scroll
             final int oldScrollY = getScrollY();
@@ -1994,7 +1999,7 @@ public class NestedScrollView extends FrameLayout implements NestedScrollingPare
         }
 
         if (!mScroller.isFinished()) {
-            ViewCompat.postInvalidateOnAnimation(this);
+            postInvalidateOnAnimation();
         } else {
             stopNestedScroll(ViewCompat.TYPE_NON_TOUCH);
         }
@@ -2041,7 +2046,7 @@ public class NestedScrollView extends FrameLayout implements NestedScrollingPare
             stopNestedScroll(ViewCompat.TYPE_NON_TOUCH);
         }
         mLastScrollerY = getScrollY();
-        ViewCompat.postInvalidateOnAnimation(this);
+        postInvalidateOnAnimation();
     }
 
     private void abortAnimatedScroll() {
@@ -2317,6 +2322,10 @@ public class NestedScrollView extends FrameLayout implements NestedScrollingPare
                     Integer.MIN_VALUE, Integer.MAX_VALUE, // y
                     0, 0); // overscroll
             runAnimatedScroll(true);
+            if (BuildCompat.isAtLeastV()) {
+                Api35Impl.setFrameContentVelocity(NestedScrollView.this,
+                        Math.abs(mScroller.getCurrVelocity()));
+            }
         }
     }
 
@@ -2366,7 +2375,7 @@ public class NestedScrollView extends FrameLayout implements NestedScrollingPare
             canvas.translate(xTranslation, yTranslation);
             mEdgeGlowTop.setSize(width, height);
             if (mEdgeGlowTop.draw(canvas)) {
-                ViewCompat.postInvalidateOnAnimation(this);
+                postInvalidateOnAnimation();
             }
             canvas.restoreToCount(restoreCount);
         }
@@ -2390,7 +2399,7 @@ public class NestedScrollView extends FrameLayout implements NestedScrollingPare
             canvas.rotate(180, width, 0);
             mEdgeGlowBottom.setSize(width, height);
             if (mEdgeGlowBottom.draw(canvas)) {
-                ViewCompat.postInvalidateOnAnimation(this);
+                postInvalidateOnAnimation();
             }
             canvas.restoreToCount(restoreCount);
         }
@@ -2600,9 +2609,19 @@ public class NestedScrollView extends FrameLayout implements NestedScrollingPare
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean getClipToPadding(ViewGroup viewGroup) {
             return viewGroup.getClipToPadding();
+        }
+    }
+
+    @RequiresApi(35)
+    private static final class Api35Impl {
+        public static void setFrameContentVelocity(View view, float velocity) {
+            try {
+                view.setFrameContentVelocity(velocity);
+            } catch (LinkageError e) {
+                // The setFrameContentVelocity method is unavailable on this device.
+            }
         }
     }
 }

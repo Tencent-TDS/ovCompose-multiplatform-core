@@ -35,14 +35,15 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.AutoCenteringParams
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.integration.demos.common.Centralize
 import androidx.wear.compose.integration.demos.common.ComposableDemo
-import androidx.wear.compose.integration.demos.common.DemoCategory
 import androidx.wear.compose.material3.ExperimentalWearMaterial3Api
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.InlineSlider
 import androidx.wear.compose.material3.InlineSliderColors
 import androidx.wear.compose.material3.InlineSliderDefaults
+import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.samples.InlineSliderSample
 import androidx.wear.compose.material3.samples.InlineSliderSegmentedSample
@@ -50,38 +51,20 @@ import androidx.wear.compose.material3.samples.InlineSliderWithIntegerSample
 
 val SliderDemos =
     listOf(
-        DemoCategory(
-            "Samples",
-            listOf(
-                ComposableDemo("Inline slider") {
-                    Centralize(Modifier.padding(horizontal = 10.dp)) {
-                        InlineSliderSample()
-                    }
-                },
-                ComposableDemo("Segmented inline slider") {
-                    Centralize(Modifier.padding(horizontal = 10.dp)) {
-                        InlineSliderSegmentedSample()
-                    }
-                },
-                ComposableDemo("Integer inline slider") {
-                    Centralize(Modifier.padding(horizontal = 10.dp)) {
-                        InlineSliderWithIntegerSample()
-                    }
-                },
-            )
-        ),
-        DemoCategory(
-            "Demos",
-            listOf(
-                ComposableDemo("Inline slider") { InlineSliderDemo() },
-                ComposableDemo("RTL Inline slider") { InlineSliderRTLDemo() },
-                ComposableDemo("Inline slider segmented") { InlineSliderDemo(segmented = true) },
-                ComposableDemo("With custom color") { InlineSliderCustomColorsDemo() },
-                ComposableDemo("Inline slider with integers") {
-                    InlineSliderWithIntegersDemo()
-                },
-            )
-        )
+        ComposableDemo("Inline slider") {
+            Centralize(Modifier.padding(horizontal = 10.dp)) { InlineSliderSample() }
+        },
+        ComposableDemo("Segmented inline slider") {
+            Centralize(Modifier.padding(horizontal = 10.dp)) { InlineSliderSegmentedSample() }
+        },
+        ComposableDemo("Integer inline slider") {
+            Centralize(Modifier.padding(horizontal = 10.dp)) { InlineSliderWithIntegerSample() }
+        },
+        ComposableDemo("Inline slider Demo") { InlineSliderDemo() },
+        ComposableDemo("RTL Inline slider") { InlineSliderRTLDemo() },
+        ComposableDemo("Inline slider segmented") { InlineSliderDemo(segmented = true) },
+        ComposableDemo("With custom color") { InlineSliderCustomColorsDemo() },
+        ComposableDemo("Inline slider with integers") { InlineSliderWithIntegersDemo() },
     )
 
 @OptIn(ExperimentalWearMaterial3Api::class)
@@ -89,41 +72,38 @@ val SliderDemos =
 fun InlineSliderDemo(segmented: Boolean = false) {
     var enabledValue by remember { mutableFloatStateOf(5f) }
     var disabledValue by remember { mutableFloatStateOf(5f) }
-
-    ScalingLazyColumn(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(
-            space = 4.dp,
-            alignment = Alignment.CenterVertically
-        ),
-        modifier = Modifier.fillMaxSize(),
-        autoCentering = AutoCenteringParams(itemIndex = 0)
-    ) {
-        item {
-            Text("Enabled Slider, value = $enabledValue")
-        }
-        item {
-            DefaultInlineSlider(
-                value = enabledValue,
-                enabled = true,
-                valueRange = 1f..9f,
-                steps = 7,
-                segmented = segmented,
-                onValueChange = { enabledValue = it }
-            )
-        }
-        item {
-            Text("Disabled Slider, value = $disabledValue")
-        }
-        item {
-            DefaultInlineSlider(
-                value = disabledValue,
-                enabled = false,
-                onValueChange = { disabledValue = it },
-                valueRange = 1f..9f,
-                segmented = segmented,
-                steps = 7
-            )
+    val scrollState = rememberScalingLazyListState()
+    ScreenScaffold(scrollState = scrollState) {
+        ScalingLazyColumn(
+            state = scrollState,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement =
+                Arrangement.spacedBy(space = 4.dp, alignment = Alignment.CenterVertically),
+            modifier = Modifier.fillMaxSize(),
+            autoCentering = AutoCenteringParams(itemIndex = 0)
+        ) {
+            item { Text("Enabled Slider, value = $enabledValue") }
+            item {
+                DefaultInlineSlider(
+                    value = enabledValue,
+                    enabled = true,
+                    valueRange = 1f..9f,
+                    steps = 7,
+                    segmented = segmented,
+                    onValueChange = { enabledValue = it }
+                )
+            }
+            item { Text("Disabled Slider, value = $disabledValue") }
+            item {
+                DefaultInlineSlider(
+                    value = disabledValue,
+                    enabled = false,
+                    onValueChange = { disabledValue = it },
+                    valueRange = 1f..9f,
+                    segmented = segmented,
+                    steps = 7
+                )
+            }
         }
     }
 }
@@ -133,36 +113,34 @@ fun InlineSliderDemo(segmented: Boolean = false) {
 fun InlineSliderWithIntegersDemo() {
     var valueWithoutSegments by remember { mutableIntStateOf(5) }
     var valueWithSegments by remember { mutableIntStateOf(5) }
-
-    ScalingLazyColumn(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(
-            space = 4.dp,
-            alignment = Alignment.CenterVertically
-        ),
-        modifier = Modifier.fillMaxSize(),
-        autoCentering = AutoCenteringParams(itemIndex = 0)
-    ) {
-        item {
-            Text("No segments, value = $valueWithoutSegments")
-        }
-        item {
-            DefaultInlineSlider(
-                value = valueWithoutSegments,
-                valueProgression = IntProgression.fromClosedRange(0, 15, 3),
-                segmented = false,
-                onValueChange = { valueWithoutSegments = it })
-        }
-        item {
-            Text("With segments, value = $valueWithSegments")
-        }
-        item {
-            DefaultInlineSlider(
-                value = valueWithSegments,
-                onValueChange = { valueWithSegments = it },
-                valueProgression = IntProgression.fromClosedRange(0, 15, 3),
-                segmented = true
-            )
+    val scrollState = rememberScalingLazyListState()
+    ScreenScaffold(scrollState = scrollState) {
+        ScalingLazyColumn(
+            state = scrollState,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement =
+                Arrangement.spacedBy(space = 4.dp, alignment = Alignment.CenterVertically),
+            modifier = Modifier.fillMaxSize(),
+            autoCentering = AutoCenteringParams(itemIndex = 0)
+        ) {
+            item { Text("No segments, value = $valueWithoutSegments") }
+            item {
+                DefaultInlineSlider(
+                    value = valueWithoutSegments,
+                    valueProgression = IntProgression.fromClosedRange(0, 15, 3),
+                    segmented = false,
+                    onValueChange = { valueWithoutSegments = it }
+                )
+            }
+            item { Text("With segments, value = $valueWithSegments") }
+            item {
+                DefaultInlineSlider(
+                    value = valueWithSegments,
+                    onValueChange = { valueWithSegments = it },
+                    valueProgression = IntProgression.fromClosedRange(0, 15, 3),
+                    segmented = true
+                )
+            }
         }
     }
 }
@@ -178,30 +156,26 @@ fun InlineSliderRTLDemo() {
 @Composable
 fun InlineSliderCustomColorsDemo() {
     var value by remember { mutableFloatStateOf(4.5f) }
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(10.dp)
-    ) {
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().padding(10.dp)) {
         DefaultInlineSlider(
             value = value,
             onValueChange = { value = it },
             valueRange = 3f..6f,
             steps = 5,
             segmented = true,
-            colors = InlineSliderDefaults.colors(
-                containerColor = Color.Green,
-                buttonIconColor = Color.Yellow,
-                selectedBarColor = Color.Magenta,
-                unselectedBarColor = Color.White,
-                barSeparatorColor = Color.Cyan,
-                disabledContainerColor = Color.DarkGray,
-                disabledButtonIconColor = Color.LightGray,
-                disabledSelectedBarColor = Color.Red,
-                disabledUnselectedBarColor = Color.Blue,
-                disabledBarSeparatorColor = Color.Gray
-            ),
+            colors =
+                InlineSliderDefaults.colors(
+                    containerColor = Color.Green,
+                    buttonIconColor = Color.Yellow,
+                    selectedBarColor = Color.Magenta,
+                    unselectedBarColor = Color.White,
+                    barSeparatorColor = Color.Cyan,
+                    disabledContainerColor = Color.DarkGray,
+                    disabledButtonIconColor = Color.LightGray,
+                    disabledSelectedBarColor = Color.Red,
+                    disabledUnselectedBarColor = Color.Blue,
+                    disabledBarSeparatorColor = Color.Gray
+                ),
         )
     }
 }
@@ -210,7 +184,6 @@ fun InlineSliderCustomColorsDemo() {
 @Composable
 fun DefaultInlineSlider(
     value: Float,
-    @Suppress("PrimitiveInLambda")
     onValueChange: (Float) -> Unit,
     steps: Int,
     modifier: Modifier = Modifier,
@@ -239,7 +212,6 @@ fun DefaultInlineSlider(
 @Composable
 fun DefaultInlineSlider(
     value: Int,
-    @Suppress("PrimitiveInLambda")
     onValueChange: (Int) -> Unit,
     valueProgression: IntProgression,
     segmented: Boolean,

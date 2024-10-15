@@ -24,14 +24,13 @@ import android.view.SurfaceControlViewHost
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.RequiresApi
-import androidx.core.view.GestureDetectorCompat
 import kotlin.math.abs
 
 /**
  * A container [ViewGroup] that delegates touch events to the host or the UI provider.
  *
- * Touch events will first be passed to a scroll detector. If a vertical scroll or fling
- * is detected, the gesture will be transferred to the host. Otherwise, the touch event will pass
+ * Touch events will first be passed to a scroll detector. If a vertical scroll or fling is
+ * detected, the gesture will be transferred to the host. Otherwise, the touch event will pass
  * through and be handled by the provider of UI.
  *
  * TODO(b/286829818): Pass scroll events to the UI provider if it can handle scrolls.
@@ -67,9 +66,9 @@ internal class TouchFocusTransferringView(
     private class ScrollDetector(context: Context) : GestureDetector.SimpleOnGestureListener() {
 
         var isScrolling = false
-          private set
+            private set
 
-        private val gestureDetector: GestureDetectorCompat = GestureDetectorCompat(context, this)
+        private val gestureDetector = GestureDetector(context, this)
 
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent, dX: Float, dY: Float): Boolean {
             // A scroll is vertical if its y displacement is greater than its x displacement.

@@ -26,30 +26,22 @@ import java.util.Collections
 internal class DynamicRangeProfilesCompatApi33Impl(
     private val dynamicRangeProfiles: DynamicRangeProfiles
 ) : DynamicRangeProfilesCompat.DynamicRangeProfilesCompatImpl {
+    override val supportedDynamicRanges: Set<DynamicRange>
+        get() = profileSetToDynamicRangeSet(dynamicRangeProfiles.supportedProfiles)
 
     override fun getDynamicRangeCaptureRequestConstraints(
         dynamicRange: DynamicRange
     ): Set<DynamicRange> {
         val dynamicRangeProfile = dynamicRangeToFirstSupportedProfile(dynamicRange)
-        require(dynamicRangeProfile != null) {
-            "DynamicRange is not supported: $dynamicRange"
-        }
+        require(dynamicRangeProfile != null) { "DynamicRange is not supported: $dynamicRange" }
         return profileSetToDynamicRangeSet(
             dynamicRangeProfiles.getProfileCaptureRequestConstraints(dynamicRangeProfile)
         )
     }
 
-    override fun getSupportedDynamicRanges() = profileSetToDynamicRangeSet(
-        dynamicRangeProfiles.supportedProfiles
-    )
-
     override fun isExtraLatencyPresent(dynamicRange: DynamicRange): Boolean {
         val dynamicRangeProfile = dynamicRangeToFirstSupportedProfile(dynamicRange)
-        require(
-            dynamicRangeProfile != null
-        ) {
-            "DynamicRange is not supported: $dynamicRange"
-        }
+        require(dynamicRangeProfile != null) { "DynamicRange is not supported: $dynamicRange" }
         return dynamicRangeProfiles.isExtraLatencyPresent(dynamicRangeProfile)
     }
 
@@ -62,9 +54,7 @@ internal class DynamicRangeProfilesCompatApi33Impl(
         )
 
     private fun profileToDynamicRange(profile: Long): DynamicRange {
-        val result = DynamicRangeConversions.profileToDynamicRange(
-            profile
-        )
+        val result = DynamicRangeConversions.profileToDynamicRange(profile)
         require(result != null) {
             "Dynamic range profile cannot be converted to a DynamicRange object: $profile"
         }

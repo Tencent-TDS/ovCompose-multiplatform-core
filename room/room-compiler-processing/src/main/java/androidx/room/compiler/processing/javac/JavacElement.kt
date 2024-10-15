@@ -47,8 +47,7 @@ internal abstract class JavacElement(
     ): List<XAnnotationBox<T>> {
         // if there is a container annotation and annotation is repeated, we'll get the container.
         if (containerAnnotation != null) {
-            MoreElements
-                .getAnnotationMirror(element, containerAnnotation.java)
+            MoreElements.getAnnotationMirror(element, containerAnnotation.java)
                 .orNull()
                 ?.box(env, containerAnnotation.java)
                 ?.let { containerBox ->
@@ -58,19 +57,26 @@ internal abstract class JavacElement(
         }
         // if there is no container annotation or annotation is not repeated, we'll see the
         // individual value
-        return MoreElements
-            .getAnnotationMirror(element, annotation.java)
+        return MoreElements.getAnnotationMirror(element, annotation.java)
             .orNull()
             ?.box(env, annotation.java)
-            ?.let {
-                listOf(it)
-            } ?: emptyList()
+            ?.let { listOf(it) } ?: emptyList()
     }
 
     override fun getAllAnnotations(): List<XAnnotation> {
-        return element.annotationMirrors.map { mirror -> JavacAnnotation(env, mirror) }
+        return element.annotationMirrors
+            .map { mirror -> JavacAnnotation(env, mirror) }
             .flatMap { annotation ->
-                annotation.unwrapRepeatedAnnotationsFromContainer() ?: listOf(annotation)
+                // TODO(b/313473892): Checking if an annotation needs to be unwrapped can be
+                //  expensive with the XProcessing API, especially if we don't really care about
+                //  annotation values, so do a quick check on the AnnotationMirror first to decide
+                //  if its repeatable. Remove this once we've optimized the general solution in
+                //  unwrapRepeatedAnnotationsFromContainer()
+                if (annotation.mirror.isRepeatable()) {
+                    annotation.unwrapRepeatedAnnotationsFromContainer() ?: listOf(annotation)
+                } else {
+                    listOf(annotation)
+                }
             }
     }
 
@@ -86,9 +92,7 @@ internal abstract class JavacElement(
         return element.toString()
     }
 
-    final override val equalityItems: Array<out Any?> by lazy {
-        arrayOf(element)
-    }
+    final override val equalityItems: Array<out Any?> by lazy { arrayOf(element) }
 
     override fun equals(other: Any?): Boolean {
         return XEquality.equals(this, other)
@@ -108,9 +112,7 @@ internal abstract class JavacElement(
         }
     }
 
-    override val docComment: String? by lazy {
-        env.elementUtils.getDocComment(element)
-    }
+    override val docComment: String? by lazy { env.elementUtils.getDocComment(element) }
 
     override fun validate(): Boolean {
         return SuperficialValidation.validateElement(element)

@@ -34,11 +34,14 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.isIdentity
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.layer.setOutline
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.internal.checkPreconditionNotNull
+import androidx.compose.ui.internal.requirePrecondition
 import androidx.compose.ui.layout.GraphicLayerInfo
 import androidx.compose.ui.node.OwnedLayer
 import androidx.compose.ui.unit.Density
@@ -79,10 +82,13 @@ internal class GraphicsLayerOwnerLayer(
     private var outline: Outline? = null
     private var tmpPath: Path? = null
     /**
-     * Optional paint used when the RenderNode is rendered on a software backed
-     * canvas and is somewhat transparent (i.e. alpha less than 1.0f)
+     * Optional paint used when the RenderNode is rendered on a software backed canvas and is
+     * somewhat transparent (i.e. alpha less than 1.0f)
      */
     private var softwareLayerPaint: Paint? = null
+    private var isMatrixDirty = false
+    private var isInverseMatrixDirty = false
+    private var isIdentity = true
 
     override fun updateLayerProperties(scope: ReusableGraphicsLayerScope) {
         val maybeChangedFields = scope.mutatedFields or mutatedFields
@@ -139,10 +145,11 @@ internal class GraphicsLayerOwnerLayer(
             if (transformOrigin == TransformOrigin.Center) {
                 graphicsLayer.pivotOffset = Offset.Unspecified
             } else {
-                graphicsLayer.pivotOffset = Offset(
-                    transformOrigin.pivotFractionX * size.width,
-                    transformOrigin.pivotFractionY * size.height
-                )
+                graphicsLayer.pivotOffset =
+                    Offset(
+                        transformOrigin.pivotFractionX * size.width,
+                        transformOrigin.pivotFractionY * size.height
+                    )
             }
         }
         if (maybeChangedFields and Fields.Clip != 0) {
@@ -152,12 +159,17 @@ internal class GraphicsLayerOwnerLayer(
             graphicsLayer.renderEffect = scope.renderEffect
         }
         if (maybeChangedFields and Fields.CompositingStrategy != 0) {
-            graphicsLayer.compositingStrategy = when (scope.compositingStrategy) {
-                OldCompositingStrategy.Auto -> CompositingStrategy.Auto
-                OldCompositingStrategy.Offscreen -> CompositingStrategy.Offscreen
-                OldCompositingStrategy.ModulateAlpha -> CompositingStrategy.ModulateAlpha
-                else -> throw IllegalStateException("Not supported composition strategy")
-            }
+            graphicsLayer.compositingStrategy =
+                when (scope.compositingStrategy) {
+                    OldCompositingStrategy.Auto -> CompositingStrategy.Auto
+                    OldCompositingStrategy.Offscreen -> CompositingStrategy.Offscreen
+                    OldCompositingStrategy.ModulateAlpha -> CompositingStrategy.ModulateAlpha
+                    else -> throw IllegalStateException("Not supported composition strategy")
+                }
+        }
+        if (maybeChangedFields and Fields.MatrixAffectingFields != 0) {
+            isMatrixDirty = true
+            isInverseMatrixDirty = true
         }
 
         var outlineChanged = false
@@ -276,10 +288,11 @@ internal class GraphicsLayerOwnerLayer(
     override fun updateDisplayList() {
         if (isDirty) {
             if (transformOrigin != TransformOrigin.Center && graphicsLayer.size != size) {
-                graphicsLayer.pivotOffset = Offset(
-                    transformOrigin.pivotFractionX * size.width,
-                    transformOrigin.pivotFractionY * size.height
-                )
+                graphicsLayer.pivotOffset =
+                    Offset(
+                        transformOrigin.pivotFractionX * size.width,
+                        transformOrigin.pivotFractionY * size.height
+                    )
             }
             graphicsLayer.record(density, layoutDirection, size, recordLambda)
             isDirty = false
@@ -311,23 +324,27 @@ internal class GraphicsLayerOwnerLayer(
     }
 
     override fun mapOffset(point: Offset, inverse: Boolean): Offset {
-        return if (inverse) {
-            getInverseMatrix()?.map(point) ?: Offset.Infinite
+        val matrix =
+            if (inverse) {
+                getInverseMatrix() ?: return Offset.Infinite
+            } else {
+                getMatrix()
+            }
+        return if (isIdentity) {
+            point
         } else {
-            getMatrix().map(point)
+            matrix.map(point)
         }
     }
 
     override fun mapBounds(rect: MutableRect, inverse: Boolean) {
-        if (inverse) {
-            val matrix = getInverseMatrix()
+        val matrix = if (inverse) getInverseMatrix() else getMatrix()
+        if (!isIdentity) {
             if (matrix == null) {
                 rect.set(0f, 0f, 0f, 0f)
             } else {
                 matrix.map(rect)
             }
-        } else {
-            getMatrix().map(rect)
         }
     }
 
@@ -335,10 +352,13 @@ internal class GraphicsLayerOwnerLayer(
         drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
         invalidateParentLayer: () -> Unit
     ) {
-        val context = requireNotNull(context) {
-            "currently reuse is only supported when we manage the layer lifecycle"
+        val context =
+            checkPreconditionNotNull(context) {
+                "currently reuse is only supported when we manage the layer lifecycle"
+            }
+        requirePrecondition(graphicsLayer.isReleased) {
+            "layer should have been released before reuse"
         }
-        require(graphicsLayer.isReleased) { "layer should have been released before reuse" }
 
         // recreate a layer
         graphicsLayer = context.createGraphicsLayer()
@@ -349,6 +369,11 @@ internal class GraphicsLayerOwnerLayer(
         this.invalidateParentLayer = invalidateParentLayer
 
         // reset mutable variables to their initial values
+        isMatrixDirty = false
+        isInverseMatrixDirty = false
+        isIdentity = true
+        matrixCache.reset()
+        inverseMatrixCache?.reset()
         transformOrigin = TransformOrigin.Center
         drawnWithEnabledZ = false
         size = IntSize(Int.MAX_VALUE, Int.MAX_VALUE)
@@ -378,36 +403,55 @@ internal class GraphicsLayerOwnerLayer(
         return matrixCache
     }
 
+    override val underlyingMatrix: Matrix
+        get() = getMatrix()
+
     private fun getInverseMatrix(): Matrix? {
-        val matrix = getMatrix()
         val inverseMatrix = inverseMatrixCache ?: Matrix().also { inverseMatrixCache = it }
-        return if (matrix.invertTo(inverseMatrix)) {
+        if (!isInverseMatrixDirty) {
+            if (inverseMatrix[0, 0].isNaN()) {
+                return null
+            }
+            return inverseMatrix
+        }
+        isInverseMatrixDirty = false
+        val matrix = getMatrix()
+        return if (isIdentity) {
+            matrix
+        } else if (matrix.invertTo(inverseMatrix)) {
             inverseMatrix
         } else {
+            inverseMatrix[0, 0] = Float.NaN
             null
         }
     }
 
-    private fun updateMatrix() = with(graphicsLayer) {
-        val pivot = if (pivotOffset.isUnspecified) {
-            this@GraphicsLayerOwnerLayer.size.toSize().center
-        } else {
-            pivotOffset
-        }
+    private fun updateMatrix() {
+        if (isMatrixDirty) {
+            with(graphicsLayer) {
+                val (x, y) =
+                    if (pivotOffset.isUnspecified) {
+                        this@GraphicsLayerOwnerLayer.size.toSize().center
+                    } else {
+                        pivotOffset
+                    }
 
-        matrixCache.reset()
-        matrixCache *= Matrix().apply {
-            translate(x = -pivot.x, y = -pivot.y)
-        }
-        matrixCache *= Matrix().apply {
-            translate(translationX, translationY)
-            rotateX(rotationX)
-            rotateY(rotationY)
-            rotateZ(rotationZ)
-            scale(scaleX, scaleY)
-        }
-        matrixCache *= Matrix().apply {
-            translate(x = pivot.x, y = pivot.y)
+                matrixCache.resetToPivotedTransform(
+                    x,
+                    y,
+                    translationX,
+                    translationY,
+                    1.0f,
+                    rotationX,
+                    rotationY,
+                    rotationZ,
+                    scaleX,
+                    scaleY,
+                    1.0f
+                )
+            }
+            isMatrixDirty = false
+            isIdentity = matrixCache.isIdentity()
         }
     }
 

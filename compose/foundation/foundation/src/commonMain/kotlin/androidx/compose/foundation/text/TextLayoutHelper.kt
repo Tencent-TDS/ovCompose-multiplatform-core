@@ -63,8 +63,8 @@ internal fun TextLayoutResult.canReuse(
         // measure or display
         return false
     }
-    if (!(
-        layoutInput.text == text &&
+    if (
+        !(layoutInput.text == text &&
             layoutInput.style.hasSameLayoutAffectingAttributes(style) &&
             layoutInput.placeholders == placeholders &&
             layoutInput.maxLines == maxLines &&
@@ -72,8 +72,7 @@ internal fun TextLayoutResult.canReuse(
             layoutInput.overflow == overflow &&
             layoutInput.density == density &&
             layoutInput.layoutDirection == layoutDirection &&
-            layoutInput.fontFamilyResolver == fontFamilyResolver
-        )
+            layoutInput.fontFamilyResolver == fontFamilyResolver)
     ) {
         return false
     }

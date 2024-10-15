@@ -17,59 +17,60 @@
 package androidx.wear.compose.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavOptions
 import androidx.navigation.Navigator
 
 /**
- * Navigator that navigates through [Composable]s. Every destination using this Navigator must
- * set a valid [Composable] by setting it directly on an instantiated [Destination] or calling
+ * Navigator that navigates through [Composable]s. Every destination using this Navigator must set a
+ * valid [Composable] by setting it directly on an instantiated [Destination] or calling
  * [composable].
  */
 @Navigator.Name("wear-navigator")
 public class WearNavigator : Navigator<WearNavigator.Destination>() {
-    /**
-     * Get the map of transitions currently in progress from the [state].
-     */
-    internal val transitionsInProgress get() = state.transitionsInProgress
+    /** Get the map of transitions currently in progress from the [state]. */
+    internal val transitionsInProgress
+        get() = state.transitionsInProgress
 
-    /**
-     * Get the back stack from the [state].
-     */
-    internal val backStack get() = state.backStack
+    /** Get the back stack from the [state]. */
+    internal val backStack
+        get() = state.backStack
+
+    /** Indicates if an entry is being popped from [backStack]. */
+    internal val isPop = mutableStateOf(false)
 
     override fun navigate(
         entries: List<NavBackStackEntry>,
         navOptions: NavOptions?,
         navigatorExtras: Extras?
     ) {
-        entries.forEach { entry ->
-            state.push(entry)
-        }
+        entries.forEach { entry -> state.pushWithTransition(entry) }
+        isPop.value = false
     }
 
     override fun createDestination() = Destination(this) {}
 
     override fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean) {
         state.popWithTransition(popUpTo, savedState)
+        isPop.value = true
     }
 
     /**
-     * Callback that removes the given [NavBackStackEntry] from the [map of the transitions in
-     * progress][transitionsInProgress]. This should be called in conjunction with [navigate] and
-     * [popBackStack] as those call are responsible for adding entries to [transitionsInProgress].
+     * Callback that removes the given [NavBackStackEntry] from the
+     * [map of the transitions in progress][transitionsInProgress]. This should be called in
+     * conjunction with [navigate] and [popBackStack] as those call are responsible for adding
+     * entries to [transitionsInProgress].
      *
-     * Failing to call this method could result in entries being prevented from reaching their
-     * final Lifecycle.State.
+     * Failing to call this method could result in entries being prevented from reaching their final
+     * Lifecycle.State.
      */
     internal fun onTransitionComplete(entry: NavBackStackEntry) {
         state.markTransitionComplete(entry)
     }
 
-    /**
-     * NavDestination specific to [WearNavigator]
-     */
+    /** NavDestination specific to [WearNavigator] */
     @NavDestination.ClassType(Composable::class)
     public class Destination(
         navigator: WearNavigator,

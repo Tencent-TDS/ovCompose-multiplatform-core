@@ -21,7 +21,6 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.TargetBasedAnimation
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ApproachLayoutModifierNode
 import androidx.compose.ui.layout.ApproachMeasureScope
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -35,7 +34,6 @@ import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import kotlin.math.roundToInt
 
 internal fun Modifier.animateBounds(
     animateFraction: () -> Float,
@@ -44,24 +42,22 @@ internal fun Modifier.animateBounds(
     lookaheadScope: LookaheadScope,
     enabled: Boolean
 ) =
-    if (enabled) {
-        this.then(
-            AnimateBoundsElement(
-                animateFraction,
-                sizeAnimationSpec,
-                positionAnimationSpec,
-                lookaheadScope
-            )
+    this.then(
+        AnimateBoundsElement(
+            animateFraction,
+            sizeAnimationSpec,
+            positionAnimationSpec,
+            lookaheadScope,
+            enabled,
         )
-    } else {
-        this
-    }
+    )
 
 private data class AnimateBoundsElement(
     private val animateFraction: () -> Float,
     private val sizeAnimationSpec: FiniteAnimationSpec<IntSize>,
     private val positionAnimationSpec: FiniteAnimationSpec<IntOffset>,
-    private val lookaheadScope: LookaheadScope
+    private val lookaheadScope: LookaheadScope,
+    private val enabled: Boolean
 ) : ModifierNodeElement<AnimateBoundsNode>() {
     private val inspectorInfo = debugInspectorInfo {
         name = "animateBounds"
@@ -69,6 +65,7 @@ private data class AnimateBoundsElement(
         properties["sizeAnimationSpec"] = sizeAnimationSpec
         properties["positionAnimationSpec"] = positionAnimationSpec
         properties["lookaheadScope"] = lookaheadScope
+        properties["enabled"] = enabled
     }
 
     override fun create(): AnimateBoundsNode {
@@ -77,6 +74,7 @@ private data class AnimateBoundsElement(
             sizeAnimationSpec,
             positionAnimationSpec,
             lookaheadScope,
+            enabled,
         )
     }
 
@@ -85,6 +83,7 @@ private data class AnimateBoundsElement(
         node.sizeAnimationSpec = sizeAnimationSpec
         node.positionAnimationSpec = positionAnimationSpec
         node.lookaheadScope = lookaheadScope
+        node.enabled = enabled
     }
 
     override fun InspectorInfo.inspectableProperties() {
@@ -97,6 +96,7 @@ private class AnimateBoundsNode(
     sizeAnimationSpec: FiniteAnimationSpec<IntSize>,
     positionAnimationSpec: FiniteAnimationSpec<IntOffset>,
     var lookaheadScope: LookaheadScope,
+    var enabled: Boolean
 ) : ApproachLayoutModifierNode, Modifier.Node() {
     val sizeTracker = SizeTracker(sizeAnimationSpec)
     val positionTracker = PositionTracker(positionAnimationSpec)
@@ -113,39 +113,38 @@ private class AnimateBoundsNode(
         }
         get() = positionTracker.animationSpec
 
-    override fun isMeasurementApproachInProgress(lookaheadSize: IntSize): Boolean =
-        animateFraction() != 1f
+    // If animateBounds is not enabled, we need to do approach measure at least once so the size
+    // tracker and the position tracker will be kept updated.
+    override fun isMeasurementApproachInProgress(lookaheadSize: IntSize): Boolean {
+        sizeTracker.updateTargetSize(lookaheadSize)
+        return enabled && animateFraction() != 1f
+    }
 
+    // If animateBounds is not enabled, we need to do approach measure at least once so the size
+    // tracker and the position tracker will be kept updated.
     override fun Placeable.PlacementScope.isPlacementApproachInProgress(
         lookaheadCoordinates: LayoutCoordinates
-    ) = animateFraction() != 1f
+    ): Boolean {
+        positionTracker.updateTargetOffset(lookaheadOffset(lookaheadScope))
+        return enabled && animateFraction() != 1f
+    }
 
     override fun ApproachMeasureScope.approachMeasure(
         measurable: Measurable,
         constraints: Constraints
     ): MeasureResult {
-        // When layout changes, the lookahead pass will calculate a new final size for the
-        // child modifier. This lookahead size can be used to animate the size
-        // change, such that the animation starts from the current size and gradually
-        // change towards `lookaheadSize`.
-        sizeTracker.updateTargetSize(lookaheadSize)
+        // Use the current animating fraction to get the approach size and offset of the current
+        // animating layut toward the target size and offset updated in measure().
         val (width, height) = sizeTracker.updateAndGetCurrentSize(animateFraction())
-        // Creates a fixed set of constraints using the animated size
         val animatedConstraints = Constraints.fixed(width, height)
-        // Measure child/children with animated constraints.
         val placeable = measurable.measure(animatedConstraints)
         return layout(placeable.width, placeable.height) {
             coordinates?.let {
-                positionTracker.updateTargetOffset(
-                    with(lookaheadScope) {
-                        lookaheadScopeCoordinates.localLookaheadPositionOf(it).toIntOffset()
-                    }
-                )
                 placeable.place(
-                    with(lookaheadScope) {
-                        positionTracker.updateAndGetCurrentOffset(animateFraction()) -
-                            lookaheadScopeCoordinates.localPositionOf(it, Offset.Zero).toIntOffset()
-                    }
+                    convertOffsetToLookaheadCoordinates(
+                        positionTracker.updateAndGetCurrentOffset(animateFraction()),
+                        lookaheadScope
+                    )
                 )
             }
         }
@@ -214,7 +213,3 @@ private class PositionTracker(var animationSpec: FiniteAnimationSpec<IntOffset>)
         return currentOffset!!
     }
 }
-
-private fun Offset.toIntOffset() = IntOffset(x.roundToInt(), y.roundToInt())
-
-private val InvalidIntSize = IntSize(-1, -1)

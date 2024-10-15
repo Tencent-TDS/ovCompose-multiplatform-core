@@ -33,6 +33,7 @@ internal fun Translations.ru() = mapOf(
     Strings.MenuCollapsed to "Свернуто",
     Strings.ToggleDropdownMenu to "Показать или скрыть раскрывающееся меню",
     Strings.SnackbarDismiss to "Закрыть",
+    Strings.SnackbarPaneTitle to "Оповещение",
     Strings.SearchBarSearch to "Строка поиска",
     Strings.SuggestionsAvailable to "Подсказки показаны ниже",
     Strings.DatePickerTitle to "Выберите дату",
@@ -85,4 +86,6 @@ internal fun Translations.ru() = mapOf(
     Strings.TimePickerHour to "Часы",
     Strings.TimePickerMinuteTextField to "минуты",
     Strings.TimePickerHourTextField to "часы",
+    Strings.CloseRail to "Закрыть боковую панель",
+    Strings.WideNavigationRailPaneTitle to "Боковая панель навигации",
 )

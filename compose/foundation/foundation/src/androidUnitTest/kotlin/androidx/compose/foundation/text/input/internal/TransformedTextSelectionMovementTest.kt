@@ -16,7 +16,6 @@
 
 package androidx.compose.foundation.text.input.internal
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.delete
@@ -28,7 +27,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
-@OptIn(ExperimentalFoundationApi::class)
 @RunWith(JUnit4::class)
 class TransformedTextSelectionMovementTest {
 
@@ -158,22 +156,24 @@ class TransformedTextSelectionMovementTest {
     }
 
     private fun calculateNextCursorPosition(state: TransformedTextFieldState) {
-        val newCursor = calculateAdjacentCursorPosition(
-            state.visualText.toString(),
-            state.visualText.selection.end,
-            forward = true,
-            state
-        )
+        val newCursor =
+            calculateAdjacentCursorPosition(
+                state.visualText.toString(),
+                state.visualText.selection.end,
+                forward = true,
+                state
+            )
         state.placeCursorBeforeCharAt(newCursor)
     }
 
     private fun calculatePreviousCursorPosition(state: TransformedTextFieldState) {
-        val newCursor = calculateAdjacentCursorPosition(
-            state.visualText.toString(),
-            state.visualText.selection.end,
-            forward = false,
-            state
-        )
+        val newCursor =
+            calculateAdjacentCursorPosition(
+                state.visualText.toString(),
+                state.visualText.selection.end,
+                forward = false,
+                state
+            )
         state.placeCursorBeforeCharAt(newCursor)
     }
 }

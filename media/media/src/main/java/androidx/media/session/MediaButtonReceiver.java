@@ -36,7 +36,6 @@ import android.support.v4.media.session.PlaybackStateCompat.MediaKeyAction;
 import android.util.Log;
 import android.view.KeyEvent;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
@@ -318,9 +317,7 @@ public class MediaButtonReceiver extends BroadcastReceiver {
         Intent intent = new Intent(Intent.ACTION_MEDIA_BUTTON);
         intent.setComponent(mbrComponent);
         intent.putExtra(Intent.EXTRA_KEY_EVENT, new KeyEvent(KeyEvent.ACTION_DOWN, keyCode));
-        if (Build.VERSION.SDK_INT >= 16) {
-            intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
-        }
+        intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         return PendingIntent.getBroadcast(context, keyCode, intent,
                 Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
     }
@@ -368,7 +365,6 @@ public class MediaButtonReceiver extends BroadcastReceiver {
          * Returns true if the passed exception is a
          * {@link ForegroundServiceStartNotAllowedException}.
          */
-        @DoNotInline
         public static boolean instanceOfForegroundServiceStartNotAllowedException(
                 IllegalStateException e) {
             return e instanceof ForegroundServiceStartNotAllowedException;
@@ -379,7 +375,6 @@ public class MediaButtonReceiver extends BroadcastReceiver {
          * {@link ForegroundServiceStartNotAllowedException} and throws an exception if the cast
          * fails.
          */
-        @DoNotInline
         public static ForegroundServiceStartNotAllowedException
                 castToForegroundServiceStartNotAllowedException(IllegalStateException e) {
             return (ForegroundServiceStartNotAllowedException) e;

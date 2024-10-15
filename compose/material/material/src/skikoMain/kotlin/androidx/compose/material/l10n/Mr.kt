@@ -28,4 +28,5 @@ internal fun Translations.mr() = mapOf(
     Strings.DefaultErrorMessage to "इनपुट चुकीचे आहे",
     Strings.SliderRangeStart to "रेंजची सुरुवात",
     Strings.SliderRangeEnd to "रेंजचा शेवट",
+    Strings.SnackbarPaneTitle to "सूचना",
 )

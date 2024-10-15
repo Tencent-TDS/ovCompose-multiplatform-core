@@ -17,12 +17,15 @@
 package androidx.glance.appwidget.action
 
 import android.content.Context
+import androidx.annotation.RestrictTo
+import androidx.annotation.RestrictTo.Scope
 import androidx.glance.GlanceId
 import androidx.glance.action.Action
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
 
-internal class RunCallbackAction(
+@RestrictTo(Scope.LIBRARY_GROUP)
+class RunCallbackAction(
     val callbackClass: Class<out ActionCallback>,
     val parameters: ActionParameters
 ) : Action {
@@ -48,8 +51,8 @@ internal class RunCallbackAction(
 
 /**
  * A callback executed in response to the user action, before the content is updated. The
- * implementing class must have a public zero argument constructor, this is used to instantiate
- * the class at runtime.
+ * implementing class must have a public zero argument constructor, this is used to instantiate the
+ * class at runtime.
  */
 interface ActionCallback {
     /**
@@ -59,11 +62,7 @@ interface ActionCallback {
      * @param glanceId the [GlanceId] that triggered this action
      * @param parameters the parameters associated with the action
      */
-    suspend fun onAction(
-        context: Context,
-        glanceId: GlanceId,
-        parameters: ActionParameters
-    )
+    suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters)
 }
 
 /**

@@ -27,6 +27,7 @@ import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.wear.protolayout.StateBuilders.State;
 import androidx.wear.protolayout.expression.Fingerprint;
+import androidx.wear.protolayout.expression.RequiresSchemaVersion;
 import androidx.wear.protolayout.proto.ActionProto;
 
 import java.util.Collections;
@@ -97,11 +98,8 @@ public final class ActionBuilders {
                 .build();
     }
 
-    /**
-     * A string value that can be added to an Android intent's extras.
-     *
-     * @since 1.0
-     */
+    /** A string value that can be added to an Android intent's extras. */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public static final class AndroidStringExtra implements AndroidExtra {
         private final ActionProto.AndroidStringExtra mImpl;
         @Nullable private final Fingerprint mFingerprint;
@@ -111,11 +109,7 @@ public final class ActionBuilders {
             this.mFingerprint = fingerprint;
         }
 
-        /**
-         * Gets the value.
-         *
-         * @since 1.0
-         */
+        /** Gets the value. */
         @NonNull
         public String getValue() {
             return mImpl.getValue();
@@ -162,18 +156,17 @@ public final class ActionBuilders {
         }
 
         /** Builder for {@link AndroidStringExtra}. */
+        @SuppressWarnings("HiddenSuperclass")
         public static final class Builder implements AndroidExtra.Builder {
             private final ActionProto.AndroidStringExtra.Builder mImpl =
                     ActionProto.AndroidStringExtra.newBuilder();
             private final Fingerprint mFingerprint = new Fingerprint(-973795259);
 
+            /** Creates an instance of {@link Builder}. */
             public Builder() {}
 
-            /**
-             * Sets the value.
-             *
-             * @since 1.0
-             */
+            /** Sets the value. */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
             public Builder setValue(@NonNull String value) {
                 mImpl.setValue(value);
@@ -181,6 +174,7 @@ public final class ActionBuilders {
                 return this;
             }
 
+            /** Builds an instance from accumulated values. */
             @Override
             @NonNull
             public AndroidStringExtra build() {
@@ -189,11 +183,8 @@ public final class ActionBuilders {
         }
     }
 
-    /**
-     * An integer value that can be added to an Android intent's extras.
-     *
-     * @since 1.0
-     */
+    /** An integer value that can be added to an Android intent's extras. */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public static final class AndroidIntExtra implements AndroidExtra {
         private final ActionProto.AndroidIntExtra mImpl;
         @Nullable private final Fingerprint mFingerprint;
@@ -203,11 +194,7 @@ public final class ActionBuilders {
             this.mFingerprint = fingerprint;
         }
 
-        /**
-         * Gets the value.
-         *
-         * @since 1.0
-         */
+        /** Gets the value. */
         public int getValue() {
             return mImpl.getValue();
         }
@@ -233,7 +220,6 @@ public final class ActionBuilders {
         }
 
         /** Returns the internal proto instance. */
-        @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         ActionProto.AndroidIntExtra toProto() {
             return mImpl;
@@ -253,18 +239,17 @@ public final class ActionBuilders {
         }
 
         /** Builder for {@link AndroidIntExtra}. */
+        @SuppressWarnings("HiddenSuperclass")
         public static final class Builder implements AndroidExtra.Builder {
             private final ActionProto.AndroidIntExtra.Builder mImpl =
                     ActionProto.AndroidIntExtra.newBuilder();
             private final Fingerprint mFingerprint = new Fingerprint(-1199435881);
 
+            /** Creates an instance of {@link Builder}. */
             public Builder() {}
 
-            /**
-             * Sets the value.
-             *
-             * @since 1.0
-             */
+            /** Sets the value. */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
             public Builder setValue(int value) {
                 mImpl.setValue(value);
@@ -272,6 +257,7 @@ public final class ActionBuilders {
                 return this;
             }
 
+            /** Builds an instance from accumulated values. */
             @Override
             @NonNull
             public AndroidIntExtra build() {
@@ -280,11 +266,8 @@ public final class ActionBuilders {
         }
     }
 
-    /**
-     * A long value that can be added to an Android intent's extras.
-     *
-     * @since 1.0
-     */
+    /** A long value that can be added to an Android intent's extras. */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public static final class AndroidLongExtra implements AndroidExtra {
         private final ActionProto.AndroidLongExtra mImpl;
         @Nullable private final Fingerprint mFingerprint;
@@ -294,11 +277,7 @@ public final class ActionBuilders {
             this.mFingerprint = fingerprint;
         }
 
-        /**
-         * Gets the value.
-         *
-         * @since 1.0
-         */
+        /** Gets the value. */
         public long getValue() {
             return mImpl.getValue();
         }
@@ -324,7 +303,6 @@ public final class ActionBuilders {
         }
 
         /** Returns the internal proto instance. */
-        @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         ActionProto.AndroidLongExtra toProto() {
             return mImpl;
@@ -344,18 +322,17 @@ public final class ActionBuilders {
         }
 
         /** Builder for {@link AndroidLongExtra}. */
+        @SuppressWarnings("HiddenSuperclass")
         public static final class Builder implements AndroidExtra.Builder {
             private final ActionProto.AndroidLongExtra.Builder mImpl =
                     ActionProto.AndroidLongExtra.newBuilder();
             private final Fingerprint mFingerprint = new Fingerprint(-906933303);
 
+            /** Creates an instance of {@link Builder}. */
             public Builder() {}
 
-            /**
-             * Sets the value.
-             *
-             * @since 1.0
-             */
+            /** Sets the value. */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
             public Builder setValue(long value) {
                 mImpl.setValue(value);
@@ -363,6 +340,7 @@ public final class ActionBuilders {
                 return this;
             }
 
+            /** Builds an instance from accumulated values. */
             @Override
             @NonNull
             public AndroidLongExtra build() {
@@ -371,11 +349,8 @@ public final class ActionBuilders {
         }
     }
 
-    /**
-     * A double value that can be added to an Android intent's extras.
-     *
-     * @since 1.0
-     */
+    /** A double value that can be added to an Android intent's extras. */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public static final class AndroidDoubleExtra implements AndroidExtra {
         private final ActionProto.AndroidDoubleExtra mImpl;
         @Nullable private final Fingerprint mFingerprint;
@@ -385,11 +360,7 @@ public final class ActionBuilders {
             this.mFingerprint = fingerprint;
         }
 
-        /**
-         * Gets the value.
-         *
-         * @since 1.0
-         */
+        /** Gets the value. */
         public double getValue() {
             return mImpl.getValue();
         }
@@ -415,7 +386,6 @@ public final class ActionBuilders {
         }
 
         /** Returns the internal proto instance. */
-        @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         ActionProto.AndroidDoubleExtra toProto() {
             return mImpl;
@@ -435,18 +405,17 @@ public final class ActionBuilders {
         }
 
         /** Builder for {@link AndroidDoubleExtra}. */
+        @SuppressWarnings("HiddenSuperclass")
         public static final class Builder implements AndroidExtra.Builder {
             private final ActionProto.AndroidDoubleExtra.Builder mImpl =
                     ActionProto.AndroidDoubleExtra.newBuilder();
             private final Fingerprint mFingerprint = new Fingerprint(-1104636989);
 
+            /** Creates an instance of {@link Builder}. */
             public Builder() {}
 
-            /**
-             * Sets the value.
-             *
-             * @since 1.0
-             */
+            /** Sets the value. */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
             public Builder setValue(double value) {
                 mImpl.setValue(value);
@@ -454,6 +423,7 @@ public final class ActionBuilders {
                 return this;
             }
 
+            /** Builds an instance from accumulated values. */
             @Override
             @NonNull
             public AndroidDoubleExtra build() {
@@ -462,11 +432,8 @@ public final class ActionBuilders {
         }
     }
 
-    /**
-     * A boolean value that can be added to an Android intent's extras.
-     *
-     * @since 1.0
-     */
+    /** A boolean value that can be added to an Android intent's extras. */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public static final class AndroidBooleanExtra implements AndroidExtra {
         private final ActionProto.AndroidBooleanExtra mImpl;
         @Nullable private final Fingerprint mFingerprint;
@@ -477,11 +444,7 @@ public final class ActionBuilders {
             this.mFingerprint = fingerprint;
         }
 
-        /**
-         * Gets the value.
-         *
-         * @since 1.0
-         */
+        /** Gets the value. */
         public boolean getValue() {
             return mImpl.getValue();
         }
@@ -527,18 +490,17 @@ public final class ActionBuilders {
         }
 
         /** Builder for {@link AndroidBooleanExtra}. */
+        @SuppressWarnings("HiddenSuperclass")
         public static final class Builder implements AndroidExtra.Builder {
             private final ActionProto.AndroidBooleanExtra.Builder mImpl =
                     ActionProto.AndroidBooleanExtra.newBuilder();
             private final Fingerprint mFingerprint = new Fingerprint(-1244694745);
 
+            /** Creates an instance of {@link Builder}. */
             public Builder() {}
 
-            /**
-             * Sets the value.
-             *
-             * @since 1.0
-             */
+            /** Sets the value. */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @SuppressLint("MissingGetterMatchingBuilder")
             @NonNull
             public Builder setValue(boolean value) {
@@ -547,6 +509,7 @@ public final class ActionBuilders {
                 return this;
             }
 
+            /** Builds an instance from accumulated values. */
             @Override
             @NonNull
             public AndroidBooleanExtra build() {
@@ -558,9 +521,8 @@ public final class ActionBuilders {
     /**
      * Interface defining an item that can be included in the extras of an intent that will be sent
      * to an Android activity. Supports types in android.os.PersistableBundle, excluding arrays.
-     *
-     * @since 1.0
      */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public interface AndroidExtra {
         /** Get the protocol buffer representation of this object. */
         @RestrictTo(Scope.LIBRARY_GROUP)
@@ -610,11 +572,8 @@ public final class ActionBuilders {
         return androidExtraFromProto(proto, null);
     }
 
-    /**
-     * A launch action to send an intent to an Android activity.
-     *
-     * @since 1.0
-     */
+    /** A launch action to send an intent to an Android activity. */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public static final class AndroidActivity {
         private final ActionProto.AndroidActivity mImpl;
         @Nullable private final Fingerprint mFingerprint;
@@ -624,11 +583,7 @@ public final class ActionBuilders {
             this.mFingerprint = fingerprint;
         }
 
-        /**
-         * Gets the package name to send the intent to, for example, "com.example.weather".
-         *
-         * @since 1.0
-         */
+        /** Gets the package name to send the intent to, for example, "com.example.weather". */
         @NonNull
         public String getPackageName() {
             return mImpl.getPackageName();
@@ -637,19 +592,13 @@ public final class ActionBuilders {
         /**
          * Gets the fully qualified class name (including the package) to send the intent to, for
          * example, "com.example.weather.WeatherOverviewActivity".
-         *
-         * @since 1.0
          */
         @NonNull
         public String getClassName() {
             return mImpl.getClassName();
         }
 
-        /**
-         * Gets the extras to be included in the intent.
-         *
-         * @since 1.0
-         */
+        /** Gets the extras to be included in the intent. */
         @NonNull
         public Map<String, AndroidExtra> getKeyToExtraMapping() {
             Map<String, AndroidExtra> map = new HashMap<>();
@@ -706,13 +655,11 @@ public final class ActionBuilders {
                     ActionProto.AndroidActivity.newBuilder();
             private final Fingerprint mFingerprint = new Fingerprint(-1799520061);
 
+            /** Creates an instance of {@link Builder}. */
             public Builder() {}
 
-            /**
-             * Sets the package name to send the intent to, for example, "com.example.weather".
-             *
-             * @since 1.0
-             */
+            /** Sets the package name to send the intent to, for example, "com.example.weather". */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
             public Builder setPackageName(@NonNull String packageName) {
                 mImpl.setPackageName(packageName);
@@ -723,9 +670,8 @@ public final class ActionBuilders {
             /**
              * Sets the fully qualified class name (including the package) to send the intent to,
              * for example, "com.example.weather.WeatherOverviewActivity".
-             *
-             * @since 1.0
              */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
             public Builder setClassName(@NonNull String className) {
                 mImpl.setClassName(className);
@@ -733,11 +679,8 @@ public final class ActionBuilders {
                 return this;
             }
 
-            /**
-             * Adds an entry into the extras to be included in the intent.
-             *
-             * @since 1.0
-             */
+            /** Adds an entry into the extras to be included in the intent. */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @SuppressLint("MissingGetterMatchingBuilder")
             @NonNull
             public Builder addKeyToExtraMapping(@NonNull String key, @NonNull AndroidExtra extra) {
@@ -759,9 +702,8 @@ public final class ActionBuilders {
      * An action used to launch another activity on the system. This can hold multiple different
      * underlying action types, which will be picked based on what the underlying runtime believes
      * to be suitable.
-     *
-     * @since 1.0
      */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public static final class LaunchAction implements Action {
         private final ActionProto.LaunchAction mImpl;
         @Nullable private final Fingerprint mFingerprint;
@@ -771,11 +713,7 @@ public final class ActionBuilders {
             this.mFingerprint = fingerprint;
         }
 
-        /**
-         * Gets an action to launch an Android activity.
-         *
-         * @since 1.0
-         */
+        /** Gets an action to launch an Android activity. */
         @Nullable
         public AndroidActivity getAndroidActivity() {
             if (mImpl.hasAndroidActivity()) {
@@ -826,18 +764,17 @@ public final class ActionBuilders {
         }
 
         /** Builder for {@link LaunchAction}. */
+        @SuppressWarnings("HiddenSuperclass")
         public static final class Builder implements Action.Builder {
             private final ActionProto.LaunchAction.Builder mImpl =
                     ActionProto.LaunchAction.newBuilder();
             private final Fingerprint mFingerprint = new Fingerprint(2004803940);
 
+            /** Creates an instance of {@link Builder}. */
             public Builder() {}
 
-            /**
-             * Sets an action to launch an Android activity.
-             *
-             * @since 1.0
-             */
+            /** Sets an action to launch an Android activity. */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
             public Builder setAndroidActivity(@NonNull AndroidActivity androidActivity) {
                 mImpl.setAndroidActivity(androidActivity.toProto());
@@ -846,6 +783,7 @@ public final class ActionBuilders {
                 return this;
             }
 
+            /** Builds an instance from accumulated values. */
             @Override
             @NonNull
             public LaunchAction build() {
@@ -854,11 +792,8 @@ public final class ActionBuilders {
         }
     }
 
-    /**
-     * An action used to load (or reload) the layout contents.
-     *
-     * @since 1.0
-     */
+    /** An action used to load (or reload) the layout contents. */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public static final class LoadAction implements Action {
         private final ActionProto.LoadAction mImpl;
         @Nullable private final Fingerprint mFingerprint;
@@ -872,8 +807,6 @@ public final class ActionBuilders {
          * Gets the state to load the next layout with. This will be included in the layout request
          * sent after this action is invoked by a {@link
          * androidx.wear.protolayout.ModifiersBuilders.Clickable}.
-         *
-         * @since 1.0
          */
         @Nullable
         public State getRequestState() {
@@ -905,7 +838,6 @@ public final class ActionBuilders {
         }
 
         /** Returns the internal proto instance. */
-        @RestrictTo(Scope.LIBRARY_GROUP)
         @NonNull
         ActionProto.LoadAction toProto() {
             return mImpl;
@@ -925,20 +857,21 @@ public final class ActionBuilders {
         }
 
         /** Builder for {@link LoadAction}. */
+        @SuppressWarnings("HiddenSuperclass")
         public static final class Builder implements Action.Builder {
             private final ActionProto.LoadAction.Builder mImpl =
                     ActionProto.LoadAction.newBuilder();
             private final Fingerprint mFingerprint = new Fingerprint(674205536);
 
+            /** Creates an instance of {@link Builder}. */
             public Builder() {}
 
             /**
              * Sets the state to load the next layout with. This will be included in the layout
              * request sent after this action is invoked by a {@link
              * androidx.wear.protolayout.ModifiersBuilders.Clickable}.
-             *
-             * @since 1.0
              */
+            @RequiresSchemaVersion(major = 1, minor = 0)
             @NonNull
             public Builder setRequestState(@NonNull State requestState) {
                 mImpl.setRequestState(requestState.toProto());
@@ -947,6 +880,7 @@ public final class ActionBuilders {
                 return this;
             }
 
+            /** Builds an instance from accumulated values. */
             @Override
             @NonNull
             public LoadAction build() {
@@ -955,11 +889,8 @@ public final class ActionBuilders {
         }
     }
 
-    /**
-     * Interface defining an action that can be used by a layout element.
-     *
-     * @since 1.0
-     */
+    /** Interface defining an action that can be used by a layout element. */
+    @RequiresSchemaVersion(major = 1, minor = 0)
     public interface Action {
         /** Get the protocol buffer representation of this object. */
         @RestrictTo(Scope.LIBRARY_GROUP)

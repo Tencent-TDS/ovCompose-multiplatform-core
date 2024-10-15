@@ -44,7 +44,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -64,11 +63,11 @@ fun TriStateCheckboxSample() {
         val (state2, onStateChange2) = remember { mutableStateOf(true) }
 
         // TriStateCheckbox state reflects state of dependent checkboxes
-        val parentState = remember(state, state2) {
-            if (state && state2) ToggleableState.On
-            else if (!state && !state2) ToggleableState.Off
-            else ToggleableState.Indeterminate
-        }
+        val parentState =
+            remember(state, state2) {
+                if (state && state2) ToggleableState.On
+                else if (!state && !state2) ToggleableState.Off else ToggleableState.Indeterminate
+            }
         // click on TriStateCheckbox can set state for dependent checkboxes
         val onParentClick = {
             val s = parentState != ToggleableState.On
@@ -79,9 +78,7 @@ fun TriStateCheckboxSample() {
         TriStateCheckbox(
             state = parentState,
             onClick = onParentClick,
-            colors = CheckboxDefaults.colors(
-                checkedColor = MaterialTheme.colors.primary
-            )
+            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colors.primary)
         )
         Spacer(Modifier.size(25.dp))
         Column(Modifier.padding(10.dp, 0.dp, 0.dp, 0.dp)) {
@@ -92,7 +89,6 @@ fun TriStateCheckboxSample() {
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun FocusedCheckboxSample() {
     Text("The gray circle around this checkbox means it's non-touch focused.  Press Tab to move it")
@@ -100,10 +96,9 @@ fun FocusedCheckboxSample() {
     val focusRequester = FocusRequester()
     Box(Modifier.wrapContentSize(Alignment.TopStart)) {
         Checkbox(
-            modifier = Modifier.wrapContentSize(Alignment.TopStart)
-                .focusRequester(focusRequester),
+            modifier = Modifier.wrapContentSize(Alignment.TopStart).focusRequester(focusRequester),
             checked = true,
-            onCheckedChange = { }
+            onCheckedChange = {}
         )
     }
 
@@ -119,26 +114,19 @@ fun FocusedCheckboxSample() {
 @Composable
 fun CheckboxSample() {
     val checkedState = remember { mutableStateOf(true) }
-    Checkbox(
-        checked = checkedState.value,
-        onCheckedChange = { checkedState.value = it }
-    )
+    Checkbox(checked = checkedState.value, onCheckedChange = { checkedState.value = it })
 }
 
 @Sampled
 @Composable
 fun SwitchSample() {
     val checkedState = remember { mutableStateOf(true) }
-    Switch(
-        checked = checkedState.value,
-        onCheckedChange = { checkedState.value = it }
-    )
+    Switch(checked = checkedState.value, onCheckedChange = { checkedState.value = it })
 
     var pineappleOnPizza by remember { mutableStateOf(true) }
 
     Row(
-        Modifier
-            .padding(16.dp)
+        Modifier.padding(16.dp)
             .toggleable(
                 role = Role.Switch,
                 value = pineappleOnPizza,
@@ -158,14 +146,8 @@ fun RadioButtonSample() {
     var state by remember { mutableStateOf(true) }
     // Note that Modifier.selectableGroup() is essential to ensure correct accessibility behavior
     Row(Modifier.selectableGroup()) {
-        RadioButton(
-            selected = state,
-            onClick = { state = true }
-        )
-        RadioButton(
-            selected = !state,
-            onClick = { state = false }
-        )
+        RadioButton(selected = state, onClick = { state = true })
+        RadioButton(selected = !state, onClick = { state = false })
     }
 }
 
@@ -178,8 +160,7 @@ fun RadioGroupSample() {
     Column(Modifier.selectableGroup()) {
         radioOptions.forEach { text ->
             Row(
-                Modifier
-                    .fillMaxWidth()
+                Modifier.fillMaxWidth()
                     .height(56.dp)
                     .selectable(
                         selected = (text == selectedOption),

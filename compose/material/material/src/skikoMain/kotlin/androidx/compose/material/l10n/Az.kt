@@ -28,4 +28,5 @@ internal fun Translations.az() = mapOf(
     Strings.DefaultErrorMessage to "Yanlış daxiletmə",
     Strings.SliderRangeStart to "Sıranın başlanğıcı",
     Strings.SliderRangeEnd to "Sıranın sonu",
+    Strings.SnackbarPaneTitle to "Xəbərdarlıq",
 )

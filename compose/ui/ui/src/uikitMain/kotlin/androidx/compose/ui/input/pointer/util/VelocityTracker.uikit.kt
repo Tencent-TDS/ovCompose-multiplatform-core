@@ -18,7 +18,6 @@ package androidx.compose.ui.input.pointer.util
 
 import kotlin.math.abs
 
-internal actual const val AssumePointerMoveStoppedMilliseconds: Int = 100
 internal actual const val HistorySize: Int = 40 // Increased to store history on 120 Hz devices
 
 private const val MinimumGestureDurationMilliseconds: Int = 50
@@ -30,14 +29,15 @@ private const val MinimumGestureSpeed: Float = 1.0f // Minimum tracking speed, d
 internal actual fun VelocityTracker1D.shouldUseDataPoints(
     points: FloatArray,
     times: FloatArray,
-    count: Int
+    count: Int,
+    afterPointerStop: Boolean
 ): Boolean {
     if (count == 0) {
         return false
     }
 
     val timeDelta = abs(times[0] - times[count - 1])
-    if (timeDelta < MinimumGestureDurationMilliseconds) {
+    if (timeDelta < MinimumGestureDurationMilliseconds && afterPointerStop) {
         return false
     }
 

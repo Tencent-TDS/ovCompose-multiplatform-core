@@ -502,13 +502,21 @@ class ColorScheme(
     internal var defaultOutlinedIconButtonColorsCached: IconButtonColors? = null
     internal var defaultOutlinedIconToggleButtonColorsCached: IconToggleButtonColors? = null
 
+    internal var defaultToggleButtonColorsCached: ToggleButtonColors? = null
+    internal var defaultElevatedToggleButtonColorsCached: ToggleButtonColors? = null
+    internal var defaultTonalToggleButtonColorsCached: ToggleButtonColors? = null
+    internal var defaultOutlinedToggleButtonColorsCached: ToggleButtonColors? = null
+
+    internal var defaultListItemColorsCached: ListItemColors? = null
+
     internal var defaultMenuItemColorsCached: MenuItemColors? = null
 
     internal var defaultNavigationBarItemColorsCached: NavigationBarItemColors? = null
+    internal var defaultShortNavigationBarItemColorsCached: NavigationItemColors? = null
 
     internal var defaultNavigationRailItemColorsCached: NavigationRailItemColors? = null
-
-    internal var defaultExpressiveNavigationBarItemColorsCached: NavigationItemColors? = null
+    internal var defaultWideWideNavigationRailColorsCached: WideNavigationRailColors? = null
+    internal var defaultWideNavigationRailItemColorsCached: NavigationItemColors? = null
 
     internal var defaultRadioButtonColorsCached: RadioButtonColors? = null
 
@@ -926,15 +934,19 @@ fun ColorScheme.surfaceColorAtElevation(
  * Returns a light Material color scheme.
  *
  * The default color scheme for [MaterialExpressiveTheme]. For dark mode, use [darkColorScheme].
+ *
+ * Example of MaterialExpressiveTheme toggling expressiveLightColorScheme and darkTheme.
+ *
+ * @sample androidx.compose.material3.samples.MaterialExpressiveThemeColorSchemeSample
  */
-// TODO: Mark as experimental if scope is changed to public
-// TODO: Add samples for MaterialExpressiveTheme toggling expressiveLightColorScheme and darkTheme.
-internal fun expressiveLightColorScheme() =
+@ExperimentalMaterial3ExpressiveApi
+fun expressiveLightColorScheme() =
     lightColorScheme(
         // TODO: Replace palette references with color token references when available.
         onPrimaryContainer = PaletteTokens.Primary30,
         onSecondaryContainer = PaletteTokens.Secondary30,
-        onTertiaryContainer = PaletteTokens.Secondary30,
+        onTertiaryContainer = PaletteTokens.Tertiary30,
+        onErrorContainer = PaletteTokens.Error30
     )
 
 /**

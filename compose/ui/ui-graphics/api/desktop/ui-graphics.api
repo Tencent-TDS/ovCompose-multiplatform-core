@@ -416,8 +416,13 @@ public final class androidx/compose/ui/graphics/ImageBitmapConfig$Companion {
 public final class androidx/compose/ui/graphics/ImageBitmapKt {
 	public static final fun ImageBitmap-x__-hDU (IIIZLandroidx/compose/ui/graphics/colorspace/ColorSpace;)Landroidx/compose/ui/graphics/ImageBitmap;
 	public static synthetic fun ImageBitmap-x__-hDU$default (IIIZLandroidx/compose/ui/graphics/colorspace/ColorSpace;ILjava/lang/Object;)Landroidx/compose/ui/graphics/ImageBitmap;
+	public static final fun decodeToImageBitmap ([B)Landroidx/compose/ui/graphics/ImageBitmap;
 	public static final fun toPixelMap (Landroidx/compose/ui/graphics/ImageBitmap;IIII[III)Landroidx/compose/ui/graphics/PixelMap;
 	public static synthetic fun toPixelMap$default (Landroidx/compose/ui/graphics/ImageBitmap;IIII[IIIILjava/lang/Object;)Landroidx/compose/ui/graphics/PixelMap;
+}
+
+public final class androidx/compose/ui/graphics/ImageBitmap_skikoKt {
+	public static final fun createImageBitmap ([B)Landroidx/compose/ui/graphics/ImageBitmap;
 }
 
 public class androidx/compose/ui/graphics/Interval {
@@ -501,6 +506,8 @@ public final class androidx/compose/ui/graphics/Matrix {
 	public static final fun map-impl ([FLandroidx/compose/ui/geometry/MutableRect;)V
 	public static final fun map-impl ([FLandroidx/compose/ui/geometry/Rect;)Landroidx/compose/ui/geometry/Rect;
 	public static final fun reset-impl ([F)V
+	public static final fun resetToPivotedTransform-impl ([FFFFFFFFFFFF)V
+	public static synthetic fun resetToPivotedTransform-impl$default ([FFFFFFFFFFFFILjava/lang/Object;)V
 	public static final fun rotateX-impl ([FF)V
 	public static final fun rotateY-impl ([FF)V
 	public static final fun rotateZ-impl ([FF)V
@@ -1200,6 +1207,8 @@ public final class androidx/compose/ui/graphics/colorspace/ColorSpaces {
 	public final fun getAcescg ()Landroidx/compose/ui/graphics/colorspace/Rgb;
 	public final fun getAdobeRgb ()Landroidx/compose/ui/graphics/colorspace/Rgb;
 	public final fun getBt2020 ()Landroidx/compose/ui/graphics/colorspace/Rgb;
+	public final fun getBt2020Hlg ()Landroidx/compose/ui/graphics/colorspace/Rgb;
+	public final fun getBt2020Pq ()Landroidx/compose/ui/graphics/colorspace/Rgb;
 	public final fun getBt709 ()Landroidx/compose/ui/graphics/colorspace/Rgb;
 	public final fun getCieLab ()Landroidx/compose/ui/graphics/colorspace/ColorSpace;
 	public final fun getCieXyz ()Landroidx/compose/ui/graphics/colorspace/ColorSpace;

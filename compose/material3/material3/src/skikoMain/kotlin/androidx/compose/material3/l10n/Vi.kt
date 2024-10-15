@@ -33,6 +33,7 @@ internal fun Translations.vi() = mapOf(
     Strings.MenuCollapsed to "Đã thu gọn",
     Strings.ToggleDropdownMenu to "Bật/tắt trình đơn thả xuống",
     Strings.SnackbarDismiss to "Đóng",
+    Strings.SnackbarPaneTitle to "Cảnh báo",
     Strings.SearchBarSearch to "Tìm kiếm",
     Strings.SuggestionsAvailable to "Các đề xuất ở bên dưới",
     Strings.DatePickerTitle to "Chọn ngày",
@@ -85,4 +86,6 @@ internal fun Translations.vi() = mapOf(
     Strings.TimePickerHour to "Giờ",
     Strings.TimePickerMinuteTextField to "nhập phút",
     Strings.TimePickerHourTextField to "nhập giờ",
+    Strings.CloseRail to "Đóng dải điều hướng",
+    Strings.WideNavigationRailPaneTitle to "Dải điều hướng",
 )

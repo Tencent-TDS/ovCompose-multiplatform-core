@@ -23,7 +23,6 @@
  */
 
 
-import androidx.build.AndroidXComposePlugin
 import androidx.build.JetbrainsAndroidXPlugin
 import androidx.build.PlatformIdentifier
 import androidx.build.LibraryType

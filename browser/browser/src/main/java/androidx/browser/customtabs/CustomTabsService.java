@@ -68,6 +68,13 @@ public abstract class CustomTabsService extends Service {
             "androidx.browser.customtabs.category.ColorSchemeCustomization";
 
     /**
+     * An Intent filter category to signify that the Custom Tabs provider supports multi-network,
+     * bind a custom tab to a particular network via {@link CustomTabsIntent.Builder#setNetwork}.
+     */
+    public static final String CATEGORY_SET_NETWORK =
+            "androidx.browser.customtabs.category.SetNetwork";
+
+    /**
      * An Intent filter category to signify that the Custom Tabs provider supports Trusted Web
      * Activities (see {@link TrustedWebUtils} for more details).
      */
@@ -207,6 +214,15 @@ public abstract class CustomTabsService extends Service {
             return CustomTabsService.this.mayLaunchUrl(
                     new CustomTabsSessionToken(callback, getSessionIdFromBundle(extras)),
                     url, extras, otherLikelyBundles);
+        }
+
+        @Override
+        @ExperimentalPrefetch
+        public void prefetch(@NonNull ICustomTabsCallback callback, @NonNull Uri url,
+                @NonNull Bundle options) {
+            CustomTabsService.this.prefetch(
+                new CustomTabsSessionToken(callback, getSessionIdFromBundle(options)), url,
+                    PrefetchOptions.fromBundle(options));
         }
 
         @SuppressWarnings("NullAway")  // TODO: b/142938599
@@ -374,6 +390,21 @@ public abstract class CustomTabsService extends Service {
      */
     protected abstract boolean mayLaunchUrl(@NonNull CustomTabsSessionToken sessionToken,
             @Nullable Uri url, @Nullable Bundle extras, @Nullable List<Bundle> otherLikelyBundles);
+
+    /**
+     * Request the browser to start navigational prefetch to the page that will be used for future
+     * navigations.
+     * {@link CustomTabsService#warmup(long)} is required to be called before using this method.
+     * <p>
+     * @param sessionToken       The unique identifier for the session. Can not be null.
+     * @param url                The url to be prefetched for future navigations. Can not be null.
+     * @param options            The option used for prefetch request. Please see
+     *                           {@link PrefetchOptions}.
+     */
+    @ExperimentalPrefetch
+    protected void prefetch(@NonNull CustomTabsSessionToken sessionToken,
+            @NonNull Uri url, @NonNull PrefetchOptions options) {
+    }
 
     /**
      * Unsupported commands that may be provided by the implementation.

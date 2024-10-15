@@ -5,6 +5,7 @@ public final class androidx/compose/ui/unit/Constraints {
 	public static fun constructor-impl (J)J
 	public static final fun copy-Zbe2FdA (JIIII)J
 	public static synthetic fun copy-Zbe2FdA$default (JIIIIILjava/lang/Object;)J
+	public static final fun copyMaxDimensions-msEJaDk (J)J
 	public fun equals (Ljava/lang/Object;)Z
 	public static fun equals-impl (JLjava/lang/Object;)Z
 	public static final fun equals-impl0 (JJ)Z
@@ -35,6 +36,7 @@ public final class androidx/compose/ui/unit/Constraints$Companion {
 }
 
 public final class androidx/compose/ui/unit/ConstraintsKt {
+	public static final field MaxDimensionsAndFocusMask J
 	public static final fun Constraints (IIII)J
 	public static synthetic fun Constraints$default (IIIIILjava/lang/Object;)J
 	public static final fun constrain-4WqzIAM (JJ)J
@@ -152,11 +154,13 @@ public final class androidx/compose/ui/unit/DpKt {
 public final class androidx/compose/ui/unit/DpOffset {
 	public static final field Companion Landroidx/compose/ui/unit/DpOffset$Companion;
 	public static final synthetic fun box-impl (J)Landroidx/compose/ui/unit/DpOffset;
+	public static fun constructor-impl (J)J
 	public static final fun copy-tPigGR8 (JFF)J
 	public static synthetic fun copy-tPigGR8$default (JFFILjava/lang/Object;)J
 	public fun equals (Ljava/lang/Object;)Z
 	public static fun equals-impl (JLjava/lang/Object;)Z
 	public static final fun equals-impl0 (JJ)Z
+	public final fun getPackedValue ()J
 	public static final fun getX-D9Ej5fM (J)F
 	public static final fun getY-D9Ej5fM (J)F
 	public fun hashCode ()I
@@ -245,12 +249,14 @@ public final class androidx/compose/ui/unit/IntOffset {
 	public static final synthetic fun box-impl (J)Landroidx/compose/ui/unit/IntOffset;
 	public static final fun component1-impl (J)I
 	public static final fun component2-impl (J)I
+	public static fun constructor-impl (J)J
 	public static final fun copy-iSbpLlY (JII)J
 	public static synthetic fun copy-iSbpLlY$default (JIIILjava/lang/Object;)J
 	public static final fun div-Bjo55l4 (JF)J
 	public fun equals (Ljava/lang/Object;)Z
 	public static fun equals-impl (JLjava/lang/Object;)Z
 	public static final fun equals-impl0 (JJ)Z
+	public final fun getPackedValue ()J
 	public static final fun getX-impl (J)I
 	public static final fun getY-impl (J)I
 	public fun hashCode ()I
@@ -266,6 +272,7 @@ public final class androidx/compose/ui/unit/IntOffset {
 }
 
 public final class androidx/compose/ui/unit/IntOffset$Companion {
+	public final fun getMax-nOcc-ac ()J
 	public final fun getZero-nOcc-ac ()J
 }
 
@@ -339,11 +346,13 @@ public final class androidx/compose/ui/unit/IntSize {
 	public static final synthetic fun box-impl (J)Landroidx/compose/ui/unit/IntSize;
 	public static final fun component1-impl (J)I
 	public static final fun component2-impl (J)I
+	public static fun constructor-impl (J)J
 	public static final fun div-YEO4UFw (JI)J
 	public fun equals (Ljava/lang/Object;)Z
 	public static fun equals-impl (JLjava/lang/Object;)Z
 	public static final fun equals-impl0 (JJ)Z
 	public static final fun getHeight-impl (J)I
+	public final fun getPackedValue ()J
 	public static final fun getWidth-impl (J)I
 	public fun hashCode ()I
 	public static fun hashCode-impl (J)I
