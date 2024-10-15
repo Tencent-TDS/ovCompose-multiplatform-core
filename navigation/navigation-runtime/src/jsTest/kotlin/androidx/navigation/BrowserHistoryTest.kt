@@ -50,7 +50,7 @@ class BrowserHistoryTest {
 
     @Test
     fun checkBrowserHistoryStateSynchronizedWithNavigation() = runTest {
-        cleanWindowHistory()
+        val initHistoryLength = goToBrowserRoot()
         val navController = NavHostController().apply {
             navigatorProvider.addNavigator(TestNavigator())
         }
@@ -60,7 +60,7 @@ class BrowserHistoryTest {
         navController.setGraph(navController.createGraph(), null)
         advanceUntilIdle()
 
-        assertThat(window.history.length).isEqualTo(1)
+        assertThat(window.history.length).isEqualTo(initHistoryLength)
         assertThat(window.history.state.toString()).isEqualTo("screen_1")
         assertThat(window.location.toString()).isEqualTo("$appAddress#screen_1")
 
@@ -100,15 +100,19 @@ class BrowserHistoryTest {
 
     @Test
     fun checkNavigationSynchronizedWithBrowserHistoryState() = runTest {
-        cleanWindowHistory()
+        val initHistoryLength = goToBrowserRoot()
         val navController = NavHostController().apply {
             navigatorProvider.addNavigator(TestNavigator())
         }
-        val appAddress = with(window.location) { origin + pathname }
-
-        val bind = launch { window.bindToNavigation(navController) }
         navController.setGraph(navController.createGraph(), null)
+
+        val appAddress = with(window.location) { origin + pathname }
+        val bind = launch { window.bindToNavigation(navController) }
         advanceUntilIdle()
+
+        assertThat(window.history.length).isEqualTo(initHistoryLength)
+        assertThat(window.history.state.toString()).isEqualTo("screen_1")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_1")
 
         navController.navigate("screen_2")
         advanceUntilIdle()
@@ -133,8 +137,7 @@ class BrowserHistoryTest {
             .inOrder()
         assertThat(window.location.toString()).isEqualTo("$appAddress#screen_6/123?q=")
 
-        window.history.back()
-        waitHistoryStateUpdate()
+        browserBack()
 
         assertThat(window.history.length).isEqualTo(6)
         assertThat(window.history.state.toString().lines())
@@ -142,8 +145,7 @@ class BrowserHistoryTest {
             .inOrder()
         assertThat(window.location.toString()).isEqualTo("$appAddress#screen_2")
 
-        window.history.back()
-        waitHistoryStateUpdate()
+        browserBack()
 
         assertThat(window.history.length).isEqualTo(6)
         assertThat(window.history.state.toString().lines())
@@ -151,8 +153,7 @@ class BrowserHistoryTest {
             .inOrder()
         assertThat(window.location.toString()).isEqualTo("$appAddress#screen_5")
 
-        window.history.back()
-        waitHistoryStateUpdate()
+        browserBack()
 
         assertThat(window.history.length).isEqualTo(6)
         assertThat(window.history.state.toString().lines())
@@ -160,8 +161,7 @@ class BrowserHistoryTest {
             .inOrder()
         assertThat(window.location.toString()).isEqualTo("$appAddress#screen_4")
 
-        window.history.back()
-        waitHistoryStateUpdate()
+        browserBack()
 
         assertThat(window.history.length).isEqualTo(6)
         assertThat(window.history.state.toString().lines())
@@ -178,8 +178,7 @@ class BrowserHistoryTest {
             .inOrder()
         assertThat(window.location.toString()).isEqualTo("$appAddress#screen_2")
 
-        window.history.back()
-        waitHistoryStateUpdate()
+        browserBack()
 
         assertThat(window.history.length).isEqualTo(3)
         assertThat(window.history.state.toString().lines())
@@ -187,8 +186,7 @@ class BrowserHistoryTest {
             .inOrder()
         assertThat(window.location.toString()).isEqualTo("$appAddress#screen_2")
 
-        window.history.forward()
-        waitHistoryStateUpdate()
+        browserForward()
 
         assertThat(window.history.length).isEqualTo(3)
         assertThat(window.history.state.toString().lines())
@@ -201,15 +199,19 @@ class BrowserHistoryTest {
 
     @Test
     fun checkBrowserUrlCustomization() = runTest {
-        cleanWindowHistory()
+        val initHistoryLength = goToBrowserRoot()
         val navController = NavHostController().apply {
             navigatorProvider.addNavigator(TestNavigator())
         }
-        val appAddress = with(window.location) { origin + pathname }
-
-        val bind = launch { window.bindToNavigation(navController) { "" } }
         navController.setGraph(navController.createGraph(), null)
+
+        val appAddress = with(window.location) { origin + pathname }
+        val bind = launch { window.bindToNavigation(navController) { "" } }
         advanceUntilIdle()
+
+        assertThat(window.history.length).isEqualTo(initHistoryLength)
+        assertThat(window.history.state.toString()).isEqualTo("screen_1")
+        assertThat(window.location.toString()).isEqualTo(appAddress)
 
         navController.navigate("screen_2")
         advanceUntilIdle()
@@ -220,28 +222,113 @@ class BrowserHistoryTest {
             .inOrder()
         assertThat(window.location.toString()).isEqualTo(appAddress)
 
-        window.history.back()
-        waitHistoryStateUpdate()
+        browserBack()
 
         assertThat(window.history.length).isEqualTo(2)
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1")
             .inOrder()
         assertThat(window.location.toString()).isEqualTo(appAddress)
+
+        val nextAddress = "screen_6/123?q=456"
+        window.open("$appAddress#$nextAddress", "_self")!! //like a manual new url loading
+        advanceUntilIdle()
+
+        //compose navigation didn't happen
+        assertThat(window.history.length).isEqualTo(2)
+        assertThat(window.history.state).isNull()
+        assertThat(window.location.toString()).isEqualTo("$appAddress#$nextAddress")
+        assertThat(navController.currentDestination?.route.orEmpty()).isEqualTo("screen_1")
+
+        navController.navigate("screen_3")
+        advanceUntilIdle()
+
+        //and the state was rewritten by the next navigation
+        assertThat(window.history.length).isEqualTo(2)
+        assertThat(window.history.state.toString().lines())
+            .containsExactly("screen_1", "screen_3")
+            .inOrder()
+        assertThat(window.location.toString()).isEqualTo(appAddress)
+
+        browserBack()
+
+        assertThat(window.history.length).isEqualTo(2)
+        assertThat(window.history.state.toString().lines())
+            .containsExactly("screen_1")
+            .inOrder()
+        assertThat(window.location.toString()).isEqualTo(appAddress)
+
+        browserForward()
+
+        assertThat(window.history.length).isEqualTo(2)
+        assertThat(window.history.state.toString().lines())
+            .containsExactly("screen_1", "screen_3")
+            .inOrder()
+        assertThat(window.location.toString()).isEqualTo(appAddress)
+
         bind.cancel()
     }
 
-    private suspend fun cleanWindowHistory() {
+    @Test
+    fun checkInitScreenAndDirectNavigation() = runTest {
+        val initHistoryLength = goToBrowserRoot()
+        val navController = NavHostController().apply {
+            navigatorProvider.addNavigator(TestNavigator())
+        }
+        navController.setGraph(navController.createGraph(), null)
+
+        val appAddress = with(window.location) { origin + pathname }
+        val initAddress = "$appAddress#screen_4"
+        window.history.replaceState(null, "", initAddress)
+
+        val bind = launch { window.bindToNavigation(navController) }
+        advanceUntilIdle()
+
+        assertThat(window.history.length).isEqualTo(initHistoryLength)
+        assertThat(window.history.state.toString().lines())
+            .containsExactly("screen_1", "screen_4")
+            .inOrder()
+        assertThat(window.location.toString()).isEqualTo(initAddress)
+        assertThat(navController.currentDestination?.route.orEmpty()).isEqualTo("screen_4")
+
+        val nextAddress = "screen_6/123?q=456"
+        window.open("$appAddress#$nextAddress", "_self") //like a manual new url loading
+        advanceUntilIdle()
+
+        assertThat(window.history.length).isEqualTo(2)
+        assertThat(window.history.state.toString().lines())
+            .containsExactly("screen_1", "screen_4", nextAddress)
+            .inOrder()
+        assertThat(window.location.toString()).isEqualTo("$appAddress#$nextAddress")
+        assertThat(navController.currentDestination?.route.orEmpty()).isEqualTo("screen_6/{pathId}?q={queryId}")
+
+        bind.cancel()
+    }
+
+    private suspend fun goToBrowserRoot(): Int {
         with(window.history) {
             if (length > 1) {
                 val size = length - 1
                 go(-size)
-                waitHistoryStateUpdate()
+                waitHistoryPopState()
             }
         }
+        val appAddress = with(window.location) { origin + pathname }
+        window.history.replaceState(null, "", appAddress)
+        return window.history.length
     }
 
-    private suspend fun waitHistoryStateUpdate() = suspendCoroutine { cont ->
+    private suspend fun browserBack() {
+        window.history.back()
+        waitHistoryPopState()
+    }
+
+    private suspend fun browserForward() {
+        window.history.forward()
+        waitHistoryPopState()
+    }
+
+    private suspend fun waitHistoryPopState() = suspendCoroutine { cont ->
         window.addEventListener(
             type = "popstate",
             callback = { cont.resume(Unit) },

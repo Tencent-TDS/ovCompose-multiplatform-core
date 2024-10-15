@@ -32,11 +32,16 @@ import kotlinx.coroutines.launch
  */
 internal suspend fun BrowserWindow.bindToNavigation(
     navController: NavController,
-    getBackStackEntryRoute: (entry: NavBackStackEntry) -> String
+    getBackStackEntryRoute: ((entry: NavBackStackEntry) -> String)?
 ) {
     coroutineScope {
         val localWindow = this@bindToNavigation
         val appAddress = with(localWindow.location) { origin + pathname }
+
+        //initial route
+        if (getBackStackEntryRoute == null) {
+            navController.tryToNavigateToUrlFragment(localWindow)
+        }
 
         launch {
             localWindow.popStateEvents().collect { event ->
@@ -44,6 +49,10 @@ internal suspend fun BrowserWindow.bindToNavigation(
 
                 if (state == null) {
                     //if user manually put a new address or open a new page, then there is no state
+                    //if there is no route customization we can try to find the route
+                    if (getBackStackEntryRoute == null) {
+                        navController.tryToNavigateToUrlFragment(localWindow)
+                    }
                     return@collect
                 }
 
@@ -89,7 +98,13 @@ internal suspend fun BrowserWindow.bindToNavigation(
                 if (entries.isEmpty()) return@collect
                 val routes = entries.map { it.getRouteWithArgs() ?: return@collect }
 
-                val newUri = appAddress + getBackStackEntryRoute(entries.last())
+                val currentDestination = entries.last()
+                val currentRoute = if (getBackStackEntryRoute != null) {
+                    getBackStackEntryRoute(currentDestination)
+                } else {
+                    currentDestination.getRouteAsUrlFragment()
+                }
+                val newUri = appAddress + currentRoute
                 val state = routes.joinToString("\n")
 
                 val currentState = localWindow.history.state
@@ -135,7 +150,7 @@ private fun BrowserWindow.popStateEvents(): Flow<BrowserPopStateEvent> = callbac
 }
 
 private val argPlaceholder = Regex("""\{.*?\}""")
-internal fun NavBackStackEntry.getRouteWithArgs(): String? {
+private fun NavBackStackEntry.getRouteWithArgs(): String? {
     val entry = this
     val route = entry.destination.route ?: return null
     if (!route.contains(argPlaceholder)) return route
@@ -156,9 +171,24 @@ internal fun NavBackStackEntry.getRouteWithArgs(): String? {
     return routeWithFilledArgs
 }
 
+private fun NavBackStackEntry.getRouteAsUrlFragment() =
+    getRouteWithArgs()?.let { r -> "#$r" }.orEmpty()
+
+private fun NavController.tryToNavigateToUrlFragment(localWindow: BrowserWindow) {
+    val route = localWindow.location.hash.substringAfter('#', "")
+    if (route.isNotEmpty()) {
+        try {
+            navigate(route)
+        } catch (e: IllegalArgumentException) {
+            localWindow.console.warn("Can't navigate to '$route'")
+        }
+    }
+}
+
 internal external interface BrowserLocation {
     val origin: String
     val pathname: String
+    val hash: String
 }
 
 internal external interface BrowserHistory {
@@ -180,4 +210,9 @@ internal external interface BrowserEventTarget {
 internal external interface BrowserWindow : BrowserEventTarget {
     val location: BrowserLocation
     val history: BrowserHistory
+    val console: BrowserConsole
+}
+
+internal external interface BrowserConsole {
+    fun warn(msg: String)
 }

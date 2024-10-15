@@ -21,14 +21,19 @@ import org.w3c.dom.Window
 /**
  * Binds the browser window state to the given navigation controller.
  *
+ * If `getBackStackEntryRoute` is null, then:
+ *  1) if a browser url contains a destination route on a start then navigates to destination
+ *  2) if a user puts a new destination route to the browser address field then navigates to the new destination
+ *
+ * If there is a custom `getBackStackEntryRoute` implementation,
+ * then we don't have a knowledge how to parse urls to support direct navigation via browser address input
+ *
  * @param navController The [NavController] instance to bind to browser window navigation.
  * @param getBackStackEntryRoute An optional function that returns the route to show for a given [NavBackStackEntry].
  */
 suspend fun Window.bindToNavigation(
     navController: NavController,
-    getBackStackEntryRoute: (entry: NavBackStackEntry) -> String = {
-        it.getRouteWithArgs()?.let { r -> "#$r" }.orEmpty()
-    }
+    getBackStackEntryRoute: ((entry: NavBackStackEntry) -> String)? = null
 ) {
     @Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
     (this as BrowserWindow).bindToNavigation(navController, getBackStackEntryRoute)
