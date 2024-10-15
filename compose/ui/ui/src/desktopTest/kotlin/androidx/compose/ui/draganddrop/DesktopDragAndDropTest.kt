@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui
+package androidx.compose.ui.draganddrop
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,9 +23,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
-import androidx.compose.ui.draganddrop.DragAndDropEvent
-import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.Window
@@ -43,9 +42,8 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.junit.Test
 
-class DragAndDropTest {
+class DesktopDragAndDropTest {
 
-    @OptIn(ExperimentalFoundationApi::class)
     @Test
     fun testDragAndDropTarget() = runApplicationTest {
         lateinit var window: ComposeWindow
@@ -114,7 +112,6 @@ class DragAndDropTest {
      * Tests that drag-target works in the presence of multiple compositions (ComposeScenes)
      * attached to the same root component.
      */
-    @OptIn(ExperimentalFoundationApi::class)
     @Test
     fun dragAndDropTargetWorksAfterShowingPopup() = runApplicationTest {
         lateinit var window: ComposeWindow

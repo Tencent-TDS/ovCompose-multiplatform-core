@@ -20,13 +20,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.draganddrop.DragAndDropTransferData
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asComposeCanvas
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.InfiniteAnimationPolicy
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.PlatformDragAndDropManager
+import androidx.compose.ui.platform.PlatformDragAndDropSource
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.CanvasLayersComposeScene
@@ -446,6 +451,33 @@ class SkikoComposeUiTest @InternalTestApi constructor(
         override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) = Unit
     }
 
+    private inner class TestDragAndDropManager : PlatformDragAndDropManager {
+        override val isRequestDragAndDropTransferRequired: Boolean
+            get() = true
+
+        override fun requestDragAndDropTransfer(
+            source: PlatformDragAndDropSource,
+            offset: Offset
+        ) {
+            var isTransferStarted = false
+            val startTransferScope = object : PlatformDragAndDropSource.StartTransferScope {
+                override fun startDragAndDropTransfer(
+                    transferData: DragAndDropTransferData,
+                    decorationSize: Size,
+                    drawDragDecoration: DrawScope.() -> Unit
+                ): Boolean {
+                    isTransferStarted = true
+                    return true
+                }
+            }
+            with(source) {
+                startTransferScope.startDragAndDropTransfer(offset) {
+                    isTransferStarted
+                }
+            }
+        }
+    }
+
     private inner class TestContext : PlatformContext by PlatformContext.Empty {
         override val windowInfo: WindowInfo = TestWindowInfo()
 
@@ -456,6 +488,8 @@ class SkikoComposeUiTest @InternalTestApi constructor(
 
         override val semanticsOwnerListener: PlatformContext.SemanticsOwnerListener?
             get() = this@SkikoComposeUiTest.semanticsOwnerListener
+
+        override val dragAndDropManager: PlatformDragAndDropManager = TestDragAndDropManager()
     }
 }
 
