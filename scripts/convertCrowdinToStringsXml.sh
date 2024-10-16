@@ -65,7 +65,7 @@ rm -rf $target_dir
 mkdir -p $target_dir
 
 mkdir -p "$target_dir/values"
-cp "$crowding_res_path/en/general/strings.xml" "$target_dir/values/strings.xml"
+cp "$crowding_res_path/en/strings.xml" "$target_dir/values/strings.xml"
 
 for locale_dir in "$crowding_res_path"/*; do
     # Check if it is a directory
@@ -75,14 +75,14 @@ for locale_dir in "$crowding_res_path"/*; do
         locale=$(basename "$locale_dir") # Get the locale name from the directory name
         locale="${locale/-/-r}"
 
-        if [ -f "$locale_dir/general/strings.xml" ]; then
+        if [ -f "$locale_dir/strings.xml" ]; then
             localAlias=$(alias_name $locale)
             if [ "$localAlias" != "" ]; then
                 mkdir -p "$target_dir/values-$localAlias"
-                cp "$locale_dir/general/strings.xml" "$target_dir/values-$localAlias/strings.xml"
+                cp "$locale_dir/strings.xml" "$target_dir/values-$localAlias/strings.xml"
             else
                 mkdir -p "$target_dir/values-$locale"
-                cp "$locale_dir/general/strings.xml" "$target_dir/values-$locale/strings.xml"
+                cp "$locale_dir/strings.xml" "$target_dir/values-$locale/strings.xml"
             fi
         fi
     fi

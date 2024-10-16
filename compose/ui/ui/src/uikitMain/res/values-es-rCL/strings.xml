@@ -15,8 +15,8 @@
   limitations under the License.
   -->
 <resources xmlns:android="http://schemas.android.com/apk/res/android" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="next_page">Faqja tjetër</string>
-    <string name="previous_page">Faqja e mëparshme</string>
-    <string name="first_page">Faqja e pare</string>
-    <string name="last_page">Faqja e fundit</string>
+    <string name="next_page">Página siguiente</string>
+    <string name="previous_page">Página anterior</string>
+    <string name="first_page">Primera página</string>
+    <string name="last_page">Última página</string>
 </resources>
