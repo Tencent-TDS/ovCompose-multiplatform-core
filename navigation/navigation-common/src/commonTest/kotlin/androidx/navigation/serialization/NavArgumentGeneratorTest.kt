@@ -954,10 +954,8 @@ class NavArgumentGeneratorTest {
         assertThat(exception.message)
             .isEqualTo(
                 "Cannot generate NavArguments for polymorphic serializer " +
-                    "kotlinx.serialization.PolymorphicSerializer(baseClass: " +
-                    "class androidx.navigation.serialization." +
-                    "NavArgumentGeneratorTest\$abstractClassInvalid\$TestClass (Kotlin reflection " +
-                    "is not available)). Arguments can only be generated from concrete classes " +
+                    "kotlinx.serialization.PolymorphicSerializer(baseClass: ${TestClass::class})." +
+                    " Arguments can only be generated from concrete classes " +
                     "or objects."
             )
     }
@@ -1001,6 +999,7 @@ class NavArgumentGeneratorTest {
     // and hashcode which will need to be public api.
     private fun assertThat(actual: List<NamedNavArgument>) = actual
 
+    @Serializable
     enum class TestEnum {
         TEST
     }

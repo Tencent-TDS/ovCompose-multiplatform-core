@@ -22,8 +22,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * A Material opinionated implementation of [ThreePaneScaffold] that will display the provided three
- * panes in a canonical list-detail layout.
+ * An opinionated implementation of [ThreePaneScaffold] following Material guidelines that displays
+ * the provided three panes in a canonical [list-detail layout](
+ * https://m3.material.io/foundations/layout/canonical-layouts/list-detail).
+ *
+ * This overload takes a [ThreePaneScaffoldValue] describing the adapted value of each pane within
+ * the scaffold.
  *
  * See usage samples at:
  *
@@ -43,24 +47,95 @@ import androidx.compose.ui.Modifier
  * @param extraPane the extra pane of the scaffold, which is supposed to hold any supplementary info
  *   besides the list and the detail panes, for example, a task list or a mini-calendar view of a
  *   mail app. See [ListDetailPaneScaffoldRole.Extra].
+ * @param paneMotions The specified motion of the panes. By default the value will be calculated by
+ *   [calculateListDetailPaneScaffoldMotion] according to the target [ThreePaneScaffoldValue].
+ * @param paneExpansionDragHandle provide a custom pane expansion drag handle to allow users to
+ *   resize panes and change the pane expansion state by dragging. This is `null` by default, which
+ *   renders no drag handle. Even there's no drag handle, you can still change pane size directly
+ *   via modifying [paneExpansionState].
+ * @param paneExpansionState the state object of pane expansion.
  */
 @ExperimentalMaterial3AdaptiveApi
 @Composable
 fun ListDetailPaneScaffold(
     directive: PaneScaffoldDirective,
     value: ThreePaneScaffoldValue,
-    listPane: @Composable ThreePaneScaffoldScope.() -> Unit,
-    detailPane: @Composable ThreePaneScaffoldScope.() -> Unit,
+    listPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
+    detailPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
     modifier: Modifier = Modifier,
-    extraPane: (@Composable ThreePaneScaffoldScope.() -> Unit)? = null,
+    extraPane: (@Composable ThreePaneScaffoldPaneScope.() -> Unit)? = null,
+    paneMotions: ThreePaneMotion = calculateListDetailPaneScaffoldMotion(value),
+    paneExpansionDragHandle: (@Composable ThreePaneScaffoldScope.(PaneExpansionState) -> Unit)? =
+        null,
+    paneExpansionState: PaneExpansionState = rememberPaneExpansionState(value),
 ) {
     ThreePaneScaffold(
         modifier = modifier.fillMaxSize(),
         scaffoldDirective = directive,
         scaffoldValue = value,
         paneOrder = ListDetailPaneScaffoldDefaults.PaneOrder,
+        paneMotions = paneMotions,
         secondaryPane = listPane,
         tertiaryPane = extraPane,
+        paneExpansionDragHandle = paneExpansionDragHandle,
+        paneExpansionState = paneExpansionState,
+        primaryPane = detailPane
+    )
+}
+
+/**
+ * An opinionated implementation of [ThreePaneScaffold] following Material guidelines that displays
+ * the provided three panes in a canonical [list-detail layout](
+ * https://m3.material.io/foundations/layout/canonical-layouts/list-detail).
+ *
+ * This overload takes a [ThreePaneScaffoldState] describing the current [ThreePaneScaffoldValue]
+ * and any pane transitions or animations in progress.
+ *
+ * @param directive The top-level directives about how the scaffold should arrange its panes.
+ * @param scaffoldState The current state of the scaffold, containing information about the adapted
+ *   value of each pane of the scaffold and the transitions/animations in progress.
+ * @param listPane the list pane of the scaffold, which is supposed to hold a list of item summaries
+ *   that can be selected from, for example, the inbox mail list of a mail app. See
+ *   [ListDetailPaneScaffoldRole.List].
+ * @param detailPane the detail pane of the scaffold, which is supposed to hold the detailed info of
+ *   a selected item, for example, the mail content currently being viewed. See
+ *   [ListDetailPaneScaffoldRole.Detail].
+ * @param modifier [Modifier] of the scaffold layout.
+ * @param extraPane the extra pane of the scaffold, which is supposed to hold any supplementary info
+ *   besides the list and the detail panes, for example, a task list or a mini-calendar view of a
+ *   mail app. See [ListDetailPaneScaffoldRole.Extra].
+ * @param paneMotions The specified motion of the panes. By default the value will be calculated by
+ *   [calculateListDetailPaneScaffoldMotion] according to the target [ThreePaneScaffoldValue].
+ * @param paneExpansionDragHandle provide a custom pane expansion drag handle to allow users to
+ *   resize panes and change the pane expansion state by dragging. This is `null` by default, which
+ *   renders no drag handle. Even there's no drag handle, you can still change pane size directly
+ *   via modifying [paneExpansionState].
+ * @param paneExpansionState the state object of pane expansion.
+ */
+@ExperimentalMaterial3AdaptiveApi
+@Composable
+fun ListDetailPaneScaffold(
+    directive: PaneScaffoldDirective,
+    scaffoldState: ThreePaneScaffoldState,
+    listPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
+    detailPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
+    modifier: Modifier = Modifier,
+    extraPane: (@Composable ThreePaneScaffoldPaneScope.() -> Unit)? = null,
+    paneMotions: ThreePaneMotion = scaffoldState.calculateListDetailPaneScaffoldMotion(),
+    paneExpansionDragHandle: (@Composable ThreePaneScaffoldScope.(PaneExpansionState) -> Unit)? =
+        null,
+    paneExpansionState: PaneExpansionState = rememberPaneExpansionState(scaffoldState.targetState),
+) {
+    ThreePaneScaffold(
+        modifier = modifier.fillMaxSize(),
+        scaffoldDirective = directive,
+        scaffoldState = scaffoldState,
+        paneOrder = ListDetailPaneScaffoldDefaults.PaneOrder,
+        paneMotions = paneMotions,
+        secondaryPane = listPane,
+        tertiaryPane = extraPane,
+        paneExpansionDragHandle = paneExpansionDragHandle,
+        paneExpansionState = paneExpansionState,
         primaryPane = detailPane
     )
 }

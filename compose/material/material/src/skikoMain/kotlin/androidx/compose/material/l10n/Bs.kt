@@ -28,4 +28,5 @@ internal fun Translations.bs() = mapOf(
     Strings.DefaultErrorMessage to "Pogrešan unos",
     Strings.SliderRangeStart to "Početak raspona",
     Strings.SliderRangeEnd to "Kraj raspona",
+    Strings.SnackbarPaneTitle to "Obavještenje",
 )

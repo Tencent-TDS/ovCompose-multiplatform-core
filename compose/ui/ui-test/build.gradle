@@ -102,6 +102,7 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api(libs.kotlinCoroutinesTest)
                 api(libs.kotlinStdlib)
 
+                implementation(project(":collection:collection"))
                 implementation(project(":compose:ui:ui-util"))
             }
 
@@ -164,6 +165,24 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.truth)
                 implementation(libs.skiko)
             }
+
+            skikoTest.dependencies {
+                api(project(":compose:foundation:foundation"))
+                api(project(":compose:material:material"))
+                implementation(libs.kotlinTest)
+                implementation(libs.atomicFu)
+            }
+            skikoTest.dependsOn(commonTest)
+
+            desktopTest.dependencies {
+                implementation(libs.skikoCurrentOs)
+            }
+            desktopTest.dependsOn(skikoTest)
+            desktopTest.dependsOn(jvmTest)
+
+            wasmJsTest.dependsOn(skikoTest)
+            jsTest.dependsOn(skikoTest)
+            nativeTest.dependsOn(skikoTest)
 
             androidCommonTest.dependsOn(commonTest)
             androidTest.dependsOn(androidCommonTest)

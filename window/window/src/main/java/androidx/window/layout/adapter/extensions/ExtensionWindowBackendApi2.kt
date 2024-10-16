@@ -22,21 +22,22 @@ import androidx.annotation.GuardedBy
 import androidx.annotation.UiContext
 import androidx.annotation.VisibleForTesting
 import androidx.core.util.Consumer
+import androidx.window.core.ConsumerAdapter
 import androidx.window.extensions.layout.WindowLayoutComponent
 import androidx.window.layout.WindowLayoutInfo
-import androidx.window.layout.adapter.WindowBackend
 import java.util.concurrent.Executor
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-internal class ExtensionWindowBackendApi2(
-    private val component: WindowLayoutComponent
-) : WindowBackend {
+internal open class ExtensionWindowBackendApi2(
+    component: WindowLayoutComponent,
+    adapter: ConsumerAdapter
+) : ExtensionWindowBackendApi1(component, adapter) {
 
     private val globalLock = ReentrantLock()
 
     @GuardedBy("globalLock")
-    private val contextToListeners = mutableMapOf<Context, MulticastConsumer>()
+    private val contextToListeners = mutableMapOf<Context, MulticastConsumerApi2>()
 
     @GuardedBy("globalLock")
     private val listenerToContext = mutableMapOf<Consumer<WindowLayoutInfo>, Context>()
@@ -45,8 +46,10 @@ internal class ExtensionWindowBackendApi2(
      * Registers a listener to consume new values of [WindowLayoutInfo]. If there was a listener
      * registered for a given [Context] then the new listener will receive a replay of the last
      * known value.
+     *
      * @param context the host of a [android.view.Window] or an area on the screen. Has to be an
-     * [Activity] or a [UiContext] created with [Context#createWindowContext] or InputMethodService.
+     *   [Activity] or a [UiContext] created with [Context#createWindowContext] or
+     *   InputMethodService.
      * @param executor an executor from the parent interface
      * @param callback the listener that will receive new values
      */
@@ -60,14 +63,15 @@ internal class ExtensionWindowBackendApi2(
             contextToListeners[context]?.let { listener ->
                 listener.addListener(callback)
                 listenerToContext[callback] = context
-            } ?: run {
-                val consumer = MulticastConsumer(context)
-                contextToListeners[context] = consumer
-                listenerToContext[callback] = context
-                consumer.addListener(callback)
-
-                component.addWindowLayoutInfoListener(context, consumer)
             }
+                ?: run {
+                    val consumer = MulticastConsumerApi2(context)
+                    contextToListeners[context] = consumer
+                    listenerToContext[callback] = context
+                    consumer.addListener(callback)
+
+                    component.addWindowLayoutInfoListener(context, consumer)
+                }
         }
     }
 
@@ -75,6 +79,7 @@ internal class ExtensionWindowBackendApi2(
      * Unregisters a listener, if this is the last listener for a [UiContext] then the listener is
      * removed from the [WindowLayoutComponent]. Calling with the same listener multiple times in a
      * row does not have an effect.
+     *
      * @param callback a listener that may have been registered
      */
     override fun unregisterLayoutChangeCallback(callback: Consumer<WindowLayoutInfo>) {
@@ -90,9 +95,7 @@ internal class ExtensionWindowBackendApi2(
         }
     }
 
-    /**
-     * Returns {@code true} if all the collections are empty, {@code false} otherwise
-     */
+    /** Returns {@code true} if all the collections are empty, {@code false} otherwise */
     @VisibleForTesting
     override fun hasRegisteredListeners(): Boolean {
         return !(contextToListeners.isEmpty() && listenerToContext.isEmpty())

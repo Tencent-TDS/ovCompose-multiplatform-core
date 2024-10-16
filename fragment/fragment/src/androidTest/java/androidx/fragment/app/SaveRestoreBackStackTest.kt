@@ -30,7 +30,6 @@ import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import leakcanary.DetectLeaksAfterTestSuccess
 import org.junit.Assert.fail
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,21 +38,16 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class SaveRestoreBackStackTest {
 
-    @get:Rule
-    val rule = DetectLeaksAfterTestSuccess()
+    @get:Rule val rule = DetectLeaksAfterTestSuccess()
 
     @Test
     fun saveBackStack() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StateSaveFragment()
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -94,16 +88,12 @@ class SaveRestoreBackStackTest {
 
     @Test
     fun saveBackStackWithoutExecutePendingTransactions() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StateSaveFragment()
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             withActivity {
@@ -128,18 +118,13 @@ class SaveRestoreBackStackTest {
     }
 
     @Test
-    @Ignore("b/308684873")
     fun saveBackStackAddedWithoutExecutePendingTransactions() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StateSaveFragment()
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             withActivity {
@@ -163,16 +148,12 @@ class SaveRestoreBackStackTest {
 
     @Test
     fun savePreviouslyReferencedFragment() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StrictViewFragment()
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -202,16 +183,12 @@ class SaveRestoreBackStackTest {
 
     @Test
     fun saveNonReorderingAllowedTransaction() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StrictViewFragment()
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -240,17 +217,13 @@ class SaveRestoreBackStackTest {
 
     @Test
     fun saveNonReorderingAllowedSecondTransaction() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StrictViewFragment()
             val fragmentAboveReplacement = StrictViewFragment()
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -287,17 +260,13 @@ class SaveRestoreBackStackTest {
     @Suppress("DEPRECATION")
     @Test
     fun saveRetainedFragment() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StrictViewFragment()
             fragmentReplacement.retainInstance = true
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -326,18 +295,13 @@ class SaveRestoreBackStackTest {
 
     @Suppress("DEPRECATION")
     @Test
-    @Ignore("b/308684873")
     fun saveRetainedChildFragment() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StrictViewFragment()
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -347,7 +311,8 @@ class SaveRestoreBackStackTest {
                 .commit()
             executePendingTransactions()
 
-            fragmentReplacement.childFragmentManager.beginTransaction()
+            fragmentReplacement.childFragmentManager
+                .beginTransaction()
                 .add(StrictFragment().apply { retainInstance = true }, "retained")
                 .commit()
             executePendingTransactions(fragmentReplacement.childFragmentManager)
@@ -371,16 +336,12 @@ class SaveRestoreBackStackTest {
 
     @Test
     fun restoreBackStack() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StateSaveFragment("saved", "unsaved")
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -433,16 +394,12 @@ class SaveRestoreBackStackTest {
 
     @Test
     fun restoreBackStackTwice() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StateSaveFragment("saved", "unsaved")
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -470,17 +427,13 @@ class SaveRestoreBackStackTest {
 
     @Test
     fun restoreBackStackTwoTransactions() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StateSaveFragment("saved", "unsaved")
             val fragmentAboveReplacement = StateSaveFragment("savedAbove", "unsavedAbove")
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -546,16 +499,12 @@ class SaveRestoreBackStackTest {
 
     @Test
     fun restoreBackStackAfterRecreate() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            var fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            var fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StateSaveFragment("saved", "unsaved")
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -592,9 +541,7 @@ class SaveRestoreBackStackTest {
             // Now recreate the whole activity while the state of the back stack is saved
             recreate()
 
-            fm = withActivity {
-                supportFragmentManager
-            }
+            fm = withActivity { supportFragmentManager }
 
             fm.restoreBackStack("replacement")
             executePendingTransactions()
@@ -615,16 +562,12 @@ class SaveRestoreBackStackTest {
 
     @Test
     fun restoreBackStackWithoutExecutePendingTransactions() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StateSaveFragment("saved", "unsaved")
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -671,16 +614,12 @@ class SaveRestoreBackStackTest {
 
     @Test
     fun clearBackStack() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StateSaveFragment()
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -722,18 +661,13 @@ class SaveRestoreBackStackTest {
     }
 
     @Test
-    @Ignore("b/308684873")
     fun clearBackStackWithoutExecutePendingTransactions() {
-       withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+        withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StateSaveFragment("saved", "unsaved")
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -776,13 +710,9 @@ class SaveRestoreBackStackTest {
         withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
             val fragmentBase = StrictViewFragment()
             val fragmentParent = StrictFragment()
-            val fm = withActivity {
-                supportFragmentManager
-            }
+            val fm = withActivity { supportFragmentManager }
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -792,7 +722,8 @@ class SaveRestoreBackStackTest {
                 .commit()
             executePendingTransactions()
 
-            fragmentParent.childFragmentManager.beginTransaction()
+            fragmentParent.childFragmentManager
+                .beginTransaction()
                 .add(StrictFragment(), "childFragment")
                 .commit()
             executePendingTransactions()
@@ -802,8 +733,9 @@ class SaveRestoreBackStackTest {
                 .that(parentViewModel.cleared)
                 .isFalse()
 
-            val fragmentChild = fragmentParent.childFragmentManager
-                .findFragmentByTag("childFragment") as StrictFragment
+            val fragmentChild =
+                fragmentParent.childFragmentManager.findFragmentByTag("childFragment")
+                    as StrictFragment
             val childViewModel = ViewModelProvider(fragmentChild)[TestViewModel::class.java]
             assertWithMessage("Child ViewModel should not be cleared after commit()")
                 .that(childViewModel.cleared)
@@ -852,12 +784,8 @@ class SaveRestoreBackStackTest {
         withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
             val fragmentBase = StrictViewFragment()
             val fragmentParent = StrictFragment()
-            val fm = withActivity {
-                supportFragmentManager
-            }
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            val fm = withActivity { supportFragmentManager }
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -873,26 +801,30 @@ class SaveRestoreBackStackTest {
                 .isFalse()
 
             // add child 1
-            fragmentParent.childFragmentManager.beginTransaction()
+            fragmentParent.childFragmentManager
+                .beginTransaction()
                 .add(StrictFragment(), "childFragment1")
                 .commit()
             executePendingTransactions()
 
-            val fragmentChild1 = fragmentParent.childFragmentManager
-                .findFragmentByTag("childFragment1") as StrictFragment
+            val fragmentChild1 =
+                fragmentParent.childFragmentManager.findFragmentByTag("childFragment1")
+                    as StrictFragment
             val childViewModel1 = ViewModelProvider(fragmentChild1)[TestViewModel::class.java]
             assertWithMessage("Child ViewModel should not be cleared after commit()")
                 .that(childViewModel1.cleared)
                 .isFalse()
 
             // add child 2
-            fragmentParent.childFragmentManager.beginTransaction()
+            fragmentParent.childFragmentManager
+                .beginTransaction()
                 .add(StrictFragment(), "childFragment2")
                 .commit()
             executePendingTransactions()
 
-            val fragmentChild2 = fragmentParent.childFragmentManager
-                .findFragmentByTag("childFragment2") as StrictFragment
+            val fragmentChild2 =
+                fragmentParent.childFragmentManager.findFragmentByTag("childFragment2")
+                    as StrictFragment
             val childViewModel2 = ViewModelProvider(fragmentChild2)[TestViewModel::class.java]
             assertWithMessage("Child ViewModel should not be cleared after commit()")
                 .that(childViewModel2.cleared)
@@ -954,12 +886,8 @@ class SaveRestoreBackStackTest {
             val fragmentBase = StrictViewFragment()
             val grandParent = StrictFragment()
 
-            val fm = withActivity {
-                supportFragmentManager
-            }
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            val fm = withActivity { supportFragmentManager }
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -975,26 +903,28 @@ class SaveRestoreBackStackTest {
                 .isFalse()
 
             // add parent
-            grandParent.childFragmentManager.beginTransaction()
+            grandParent.childFragmentManager
+                .beginTransaction()
                 .add(StrictFragment(), "parent")
                 .commit()
             executePendingTransactions()
 
-            val parent = grandParent.childFragmentManager
-                .findFragmentByTag("parent") as StrictFragment
+            val parent =
+                grandParent.childFragmentManager.findFragmentByTag("parent") as StrictFragment
             val parentViewModel = ViewModelProvider(parent)[TestViewModel::class.java]
             assertWithMessage("ViewModel should not be cleared after commit()")
                 .that(parentViewModel.cleared)
                 .isFalse()
 
             // add grandchild
-            parent.childFragmentManager.beginTransaction()
+            parent.childFragmentManager
+                .beginTransaction()
                 .add(StrictFragment(), "grandchild")
                 .commit()
             executePendingTransactions()
 
-            val grandChild = parent.childFragmentManager
-                .findFragmentByTag("grandchild") as StrictFragment
+            val grandChild =
+                parent.childFragmentManager.findFragmentByTag("grandchild") as StrictFragment
 
             val grandChildViewModel = ViewModelProvider(grandChild)[TestViewModel::class.java]
             assertWithMessage("Child ViewModel should not be cleared after commit()")
@@ -1054,16 +984,12 @@ class SaveRestoreBackStackTest {
     @Test
     fun resumeClearsFragmentStoreSavedState() {
         withUse(ActivityScenario.launch(FragmentTestActivity::class.java)) {
-            val fm = withActivity {
-                supportFragmentManager
-            }
+            val fm = withActivity { supportFragmentManager }
             val fragmentBase = StrictViewFragment()
             val fragmentReplacement = StateSaveFragment()
             val fragmentReplacementChild = StateSaveFragment()
 
-            fm.beginTransaction()
-                .add(R.id.content, fragmentBase)
-                .commit()
+            fm.beginTransaction().add(R.id.content, fragmentBase).commit()
             executePendingTransactions()
 
             fm.beginTransaction()
@@ -1073,7 +999,8 @@ class SaveRestoreBackStackTest {
                 .commit()
             executePendingTransactions()
 
-            fragmentReplacement.childFragmentManager.beginTransaction()
+            fragmentReplacement.childFragmentManager
+                .beginTransaction()
                 .add(fragmentReplacementChild, "replacementChild")
                 .commit()
             executePendingTransactions(fragmentReplacement.childFragmentManager)
@@ -1083,22 +1010,26 @@ class SaveRestoreBackStackTest {
             executePendingTransactions()
 
             // states should be stored in fragmentStore
-            assertThat(fm.fragmentStore.getSavedState(fragmentReplacement.mWho))
+            assertThat(fm.fragmentStore.getSavedState(fragmentReplacement.mWho)).isNotNull()
+            assertThat(
+                    fragmentReplacement.childFragmentManager.fragmentStore.getSavedState(
+                        fragmentReplacementChild.mWho
+                    )
+                )
                 .isNotNull()
-            assertThat(fragmentReplacement.childFragmentManager.fragmentStore
-                .getSavedState(fragmentReplacementChild.mWho)
-            ).isNotNull()
 
             // resume activity and restore fragments
             moveToState(Lifecycle.State.RESUMED)
             executePendingTransactions()
 
             // states should be cleared from fragmentStore
-            assertThat(fm.fragmentStore.getSavedState(fragmentReplacement.mWho))
+            assertThat(fm.fragmentStore.getSavedState(fragmentReplacement.mWho)).isNull()
+            assertThat(
+                    fragmentReplacement.childFragmentManager.fragmentStore.getSavedState(
+                        fragmentReplacementChild.mWho
+                    )
+                )
                 .isNull()
-            assertThat(fragmentReplacement.childFragmentManager.fragmentStore
-                .getSavedState(fragmentReplacementChild.mWho)
-            ).isNull()
         }
     }
 }

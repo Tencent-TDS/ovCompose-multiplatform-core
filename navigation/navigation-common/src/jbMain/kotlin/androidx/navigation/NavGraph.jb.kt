@@ -33,7 +33,7 @@ import kotlinx.serialization.serializer
 public actual open class NavGraph actual constructor(navGraphNavigator: Navigator<out NavGraph>) :
     NavDestination(navGraphNavigator), Iterable<NavDestination> {
 
-    public val nodes: SparseArrayCompat<NavDestination> = SparseArrayCompat<NavDestination>()
+    public actual val nodes: SparseArrayCompat<NavDestination> = SparseArrayCompat<NavDestination>()
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) get
 
     private var startDestId = 0
@@ -41,19 +41,19 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public fun matchDeepLinkComprehensive(
-        route: String,
+        navDeepLinkRequest: NavDeepLinkRequest,
         searchChildren: Boolean,
         searchParent: Boolean,
         lastVisited: NavDestination
     ): DeepLinkMatch? {
         // First search through any deep links directly added to this NavGraph
-        val bestMatch = matchDeepLinkRequest(route)
+        val bestMatch = super.matchDeepLink(navDeepLinkRequest)
 
         // If searchChildren is true, search through all child destinations for a matching deeplink
         val bestChildMatch =
             if (searchChildren) {
                 mapNotNull { child ->
-                    if (child != lastVisited) child.matchDeepLink(route) else null
+                    if (child != lastVisited) child.matchDeepLink(navDeepLinkRequest) else null
                 }
                     .maxOrNull()
             } else null
@@ -63,16 +63,16 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
         val bestParentMatch =
             parent?.let {
                 if (searchParent && it != lastVisited)
-                    it.matchDeepLinkComprehensive(route, searchChildren, true, this)
+                    it.matchDeepLinkComprehensive(navDeepLinkRequest, searchChildren, true, this)
                 else null
             }
         return listOfNotNull(bestMatch, bestChildMatch, bestParentMatch).maxOrNull()
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public override fun matchDeepLink(route: String): DeepLinkMatch? =
+    public override fun matchDeepLink(navDeepLinkRequest: NavDeepLinkRequest): DeepLinkMatch? =
         matchDeepLinkComprehensive(
-            route,
+            navDeepLinkRequest,
             searchChildren = true,
             searchParent = false,
             lastVisited = this

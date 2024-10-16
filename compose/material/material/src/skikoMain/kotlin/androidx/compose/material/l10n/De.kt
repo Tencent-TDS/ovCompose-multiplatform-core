@@ -28,4 +28,5 @@ internal fun Translations.de() = mapOf(
     Strings.DefaultErrorMessage to "Ungültige Eingabe",
     Strings.SliderRangeStart to "Bereichsstart",
     Strings.SliderRangeEnd to "Bereichsende",
+    Strings.SnackbarPaneTitle to "Warnmeldung",
 )

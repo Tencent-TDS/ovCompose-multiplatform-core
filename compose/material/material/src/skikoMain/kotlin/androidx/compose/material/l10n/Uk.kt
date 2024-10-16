@@ -28,4 +28,5 @@ internal fun Translations.uk() = mapOf(
     Strings.DefaultErrorMessage to "Введено недійсні дані",
     Strings.SliderRangeStart to "Початок діапазону",
     Strings.SliderRangeEnd to "Кінець діапазону",
+    Strings.SnackbarPaneTitle to "Сповіщення",
 )

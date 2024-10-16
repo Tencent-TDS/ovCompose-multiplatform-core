@@ -33,6 +33,7 @@ internal fun Translations.ky() = mapOf(
     Strings.MenuCollapsed to "Жыйыштырылды",
     Strings.ToggleDropdownMenu to "Түрүлмө менюну өчүрүү/күйгүзүү",
     Strings.SnackbarDismiss to "Жабуу",
+    Strings.SnackbarPaneTitle to "Эскертүү",
     Strings.SearchBarSearch to "Издөө",
     Strings.SuggestionsAvailable to "Сунуштар төмөндө келтирилди",
     Strings.DatePickerTitle to "Күндү тандоо",
@@ -85,4 +86,6 @@ internal fun Translations.ky() = mapOf(
     Strings.TimePickerHour to "Саат",
     Strings.TimePickerMinuteTextField to "мүнөткө",
     Strings.TimePickerHourTextField to "саатка",
+    Strings.CloseRail to "Капталдагы тилкени жабуу",
+    Strings.WideNavigationRailPaneTitle to "Капталдагы өтүү тилкеси",
 )

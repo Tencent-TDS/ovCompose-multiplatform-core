@@ -37,12 +37,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.google.common.truth.Truth.assertThat
 import java.awt.BorderLayout
-import java.awt.Component
 import java.awt.Dimension
 import java.awt.GraphicsEnvironment
 import java.awt.KeyboardFocusManager
 import java.awt.Window
-import java.awt.event.FocusEvent
 import java.awt.event.FocusEvent.Cause
 import java.awt.event.KeyEvent
 import javax.swing.JButton
@@ -51,8 +49,6 @@ import javax.swing.JPanel
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
-import kotlin.test.assertFalse
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.skiko.MainUIDispatcher
@@ -954,15 +950,25 @@ class FocusTestScope {
         windows.clear()
     }
 
+    private fun focusOwner() = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner.also {
+        if (it == null) {
+            throw AssertionError(
+                "The focus owner is `null`; " +
+                "This can happen due to interference from the user or the window manager. " +
+                "Try running the test without interacting with any windows."
+            )
+        }
+    }
+
     suspend fun pressNextFocusKey() {
-        val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+        val focusOwner = focusOwner()
         focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_PRESSED, 0, 0, KeyEvent.VK_TAB, '\t'))
         focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_RELEASED, 0, 0, KeyEvent.VK_TAB, '\t'))
         awaitEdtAfterDelay()
     }
 
     suspend fun pressPreviousFocusKey() {
-        val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
+        val focusOwner = focusOwner()
         focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_PRESSED, 0, KeyEvent.SHIFT_DOWN_MASK, KeyEvent.VK_TAB, '\t'))
         focusOwner.dispatchEvent(KeyEvent(focusOwner, KeyEvent.KEY_RELEASED, 0, KeyEvent.SHIFT_DOWN_MASK, KeyEvent.VK_TAB, '\t'))
         awaitEdtAfterDelay()

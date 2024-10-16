@@ -21,6 +21,7 @@ import androidx.build.testutils.POM_COLLECTION_JVM
 import androidx.build.testutils.POM_COMPOSE_UI_GEOMETRY
 import androidx.build.testutils.POM_CORE_CORE
 import androidx.build.testutils.XmlProviderImpl
+import androidx.testutils.assertThrows
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,8 +33,6 @@ class MavenUploadHelperTest {
     @Test
     fun insertDefaultMultiplatformDependenciesTest() {
         val pom = XmlProviderImpl(POM_COLLECTION)
-
-        /* ktlint-disable max-line-length */
 
         // Expect that collection-jvm has been inserted in <dependencies>.
         val expected = """<?xml version="1.0"?>
@@ -78,12 +77,11 @@ class MavenUploadHelperTest {
       <groupId>androidx.collection</groupId>
       <artifactId>collection-jvm</artifactId>
       <version>1.3.0-alpha05</version>
-      <scope>runtime</scope>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
 </project>
 """
-        /* ktlint-enable max-line-length */
 
         insertDefaultMultiplatformDependencies(pom, "jvm")
 
@@ -94,8 +92,6 @@ class MavenUploadHelperTest {
     @Test
     fun insertDefaultMultiplatformDependenciesNoDepsTest() {
         val pom = XmlProviderImpl(POM_COMPOSE_UI_GEOMETRY)
-
-        /* ktlint-disable max-line-length */
 
         // Expect that collection-jvm has been inserted in <dependencies>.
         val expected = """<?xml version="1.0"?>
@@ -136,12 +132,11 @@ class MavenUploadHelperTest {
       <artifactId>ui-geometry-android</artifactId>
       <version>1.6.0-alpha01</version>
       <type>aar</type>
-      <scope>runtime</scope>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
 </project>
 """
-        /* ktlint-enable max-line-length */
 
         insertDefaultMultiplatformDependencies(pom, "android")
 
@@ -157,7 +152,7 @@ class MavenUploadHelperTest {
             "androidx.lifecycle:lifecycle-runtime"
         )
 
-        /* ktlint-disable max-line-length */
+
 
         // Expect that elements in <dependencies> are sorted alphabetically.
         val expected = """<?xml version="1.0"?>
@@ -260,7 +255,6 @@ class MavenUploadHelperTest {
   </dependencies>
 </project>
 """
-        /* ktlint-enable max-line-length */
 
         assignAarDependencyTypes(pom, androidLibrariesSet)
 
@@ -270,7 +264,6 @@ class MavenUploadHelperTest {
 
     @Test
     fun testEnsureConsistentJvmSuffix() {
-        /* ktlint-disable max-line-length */
 
         val pom = """<?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -307,7 +300,6 @@ class MavenUploadHelperTest {
   </dependencies>
 </project>
 """
-        /* ktlint-enable max-line-length */
 
         val xmlProvider = XmlProviderImpl(pom)
         ensureConsistentJvmSuffix(xmlProvider)
@@ -318,7 +310,6 @@ class MavenUploadHelperTest {
 
     @Test
     fun testAssignSingleVersionDependenciesInGroupForPom() {
-        /* ktlint-disable max-line-length */
 
         val pom = """<?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -367,7 +358,6 @@ class MavenUploadHelperTest {
   </dependencies>
 </project>
 """
-        /* ktlint-enable max-line-length */
 
         val xmlProvider = XmlProviderImpl(pom)
         val mavenGroup = LibraryGroup("androidx.example", Version("1.0.0"))
@@ -380,8 +370,6 @@ class MavenUploadHelperTest {
     @Test
     fun testSortPomDependencies() {
         val pom = POM_COLLECTION_JVM
-
-        /* ktlint-disable max-line-length */
 
         // Expect that elements in <dependencies> are sorted alphabetically.
         val expected = """<?xml version="1.0" encoding="UTF-8"?>
@@ -439,7 +427,6 @@ class MavenUploadHelperTest {
     </dependency>
   </dependencies>
 </project>"""
-        /* ktlint-enable max-line-length */
 
         val actual = sortPomDependencies(pom)
         assertEquals(expected, actual)
@@ -447,7 +434,6 @@ class MavenUploadHelperTest {
 
     @Test
     fun testSortGradleMetadataDependencies() {
-        /* ktlint-disable max-line-length */
         val metadata = """
 {
   "formatVersion": "1.1",
@@ -664,7 +650,6 @@ class MavenUploadHelperTest {
   ]
 }
         """.trimIndent()
-        /* ktlint-enable max-line-length */
 
         val actual = sortGradleMetadataDependencies(metadata)
         assertEquals(expected, actual)
@@ -672,7 +657,6 @@ class MavenUploadHelperTest {
 
     @Test
     fun testSortGradleMetadataDependenciesWithConstraints() {
-        /* ktlint-disable max-line-length */
         val metadata = """
 {
   "formatVersion": "1.1",
@@ -1023,9 +1007,170 @@ class MavenUploadHelperTest {
   ]
 }
         """.trimIndent()
-        /* ktlint-enable max-line-length */
 
         val actual = sortGradleMetadataDependencies(metadata)
         assertEquals(expected, actual)
+    }
+
+    @Test
+    fun testVerifyGradleMetadata() {
+        val metadata = """
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "androidx.activity",
+    "module": "activity-ktx",
+    "version": "1.5.0-alpha03",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "7.4"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseVariantReleaseApiPublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.activity",
+          "module": "activity",
+          "version": {
+            "requires": "1.5.0-alpha03"
+          }
+        },
+        {
+          "group": "androidx.core",
+          "module": "core-ktx",
+          "version": {
+            "requires": "1.1.0"
+          },
+          "reason": "Mirror activity dependency graph for -ktx artifacts"
+        },
+        {
+          "group": "androidx.lifecycle",
+          "module": "lifecycle-runtime-ktx",
+          "version": {
+            "requires": "2.5.0-alpha03"
+          },
+          "reason": "Mirror activity dependency graph for -ktx artifacts"
+        },
+        {
+          "group": "androidx.lifecycle",
+          "module": "lifecycle-viewmodel-ktx",
+          "version": {
+            "requires": "2.5.0-alpha03"
+          }
+        },
+        {
+          "group": "androidx.savedstate",
+          "module": "savedstate-ktx",
+          "version": {
+            "requires": "1.2.0-alpha01"
+          },
+          "reason": "Mirror activity dependency graph for -ktx artifacts"
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "1.6.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "activity-ktx-1.5.0-alpha03.aar",
+          "url": "activity-ktx-1.5.0-alpha03.aar",
+          "size": 31645,
+          "sha512": "d4b175f956cd329698705ab7ecdb080c6668d689bf9ae99e8d7c53baa4383848af73c65e280baabb4938121d5d06367a900b5fc9c072eb29aa86e89b6f0c4595",
+          "sha256": "e30b007d69f63a2a0c56b5275faea7badf0f80a06caa1c50b2eba7129581793e",
+          "sha1": "9818a50c9ed22d6c089026f4edd3106b06eb4a4e",
+          "md5": "186145646501129b4bdfd0f804ba96d9"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseRuntimePublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.activity",
+          "module": "activity",
+          "version": {
+            "requires": "1.5.0-alpha03"
+          }
+        },
+        {
+          "group": "androidx.core",
+          "module": "core-ktx",
+          "version": {
+            "requires": "1.1.0"
+          },
+          "reason": "Mirror activity dependency graph for -ktx artifacts"
+        },
+        {
+          "group": "androidx.lifecycle",
+          "module": "lifecycle-runtime-ktx",
+          "version": {
+            "requires": "2.5.0-alpha03"
+          },
+          "reason": "Mirror activity dependency graph for -ktx artifacts"
+        },
+        {
+          "group": "androidx.lifecycle",
+          "module": "lifecycle-viewmodel-ktx",
+          "version": {
+            "requires": "2.5.0-alpha03"
+          }
+        },
+        {
+          "group": "androidx.savedstate",
+          "module": "savedstate-ktx",
+          "version": {
+            "requires": "1.2.0-alpha01"
+          },
+          "reason": "Mirror activity dependency graph for -ktx artifacts"
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "1.6.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "activity-ktx-1.5.0-alpha03.aar",
+          "url": "activity-ktx-1.5.0-alpha03.aar",
+          "size": 31645,
+          "sha512": "d4b175f956cd329698705ab7ecdb080c6668d689bf9ae99e8d7c53baa4383848af73c65e280baabb4938121d5d06367a900b5fc9c072eb29aa86e89b6f0c4595",
+          "sha256": "e30b007d69f63a2a0c56b5275faea7badf0f80a06caa1c50b2eba7129581793e",
+          "sha1": "9818a50c9ed22d6c089026f4edd3106b06eb4a4e",
+          "md5": "186145646501129b4bdfd0f804ba96d9"
+        }
+      ]
+    }
+  ]
+}
+        """.trimIndent()
+
+       val error =  assertThrows<Exception> { verifyGradleMetadata(metadata) }
+        error.hasMessageThat()
+            .isEqualTo("The sourcesElements variant must exist in the module file.")
     }
 }

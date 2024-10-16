@@ -71,6 +71,7 @@ public final class androidx/compose/material3/adaptive/navigationsuite/Navigatio
 }
 
 public final class androidx/compose/material3/adaptive/navigationsuite/NavigationSuiteType$Companion {
+	public final fun getCustom-QfFTkUs ()Ljava/lang/String;
 	public final fun getNavigationBar-QfFTkUs ()Ljava/lang/String;
 	public final fun getNavigationDrawer-QfFTkUs ()Ljava/lang/String;
 	public final fun getNavigationRail-QfFTkUs ()Ljava/lang/String;

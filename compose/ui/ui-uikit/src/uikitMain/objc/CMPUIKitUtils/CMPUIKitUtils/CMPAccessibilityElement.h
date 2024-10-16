@@ -21,7 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CMPAccessibilityElement : UIAccessibilityElement
 
-- (__nullable id)resolveAccessibilityContainer CMP_MUST_BE_OVERRIDED;
+- (__nullable id)resolveAccessibilityContainer CMP_ABSTRACT_FUNCTION;
 
 + (__nullable id)accessibilityContainerOfObject:(id)object;
 
@@ -29,23 +29,23 @@ NS_ASSUME_NONNULL_BEGIN
 // Redeclared to make it visible to Kotlin for override purposes, workaround for the following issue:
 // https://youtrack.jetbrains.com/issue/KT-56001/Kotlin-Native-import-Objective-C-category-members-as-class-members-if-the-category-is-located-in-the-same-file
 
-- (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions CMP_MUST_BE_OVERRIDED;
+- (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions CMP_ABSTRACT_FUNCTION;
 
-- (UIAccessibilityTraits)accessibilityTraits CMP_MUST_BE_OVERRIDED;
+- (UIAccessibilityTraits)accessibilityTraits CMP_ABSTRACT_FUNCTION;
 
-- (NSString *__nullable)accessibilityIdentifier CMP_MUST_BE_OVERRIDED;
+- (NSString *__nullable)accessibilityIdentifier CMP_ABSTRACT_FUNCTION;
 
-- (NSString *__nullable)accessibilityHint CMP_MUST_BE_OVERRIDED;
+- (NSString *__nullable)accessibilityHint CMP_ABSTRACT_FUNCTION;
 
-- (NSString *__nullable)accessibilityLabel CMP_MUST_BE_OVERRIDED;
+- (NSString *__nullable)accessibilityLabel CMP_ABSTRACT_FUNCTION;
 
-- (NSString *__nullable)accessibilityValue CMP_MUST_BE_OVERRIDED;
+- (NSString *__nullable)accessibilityValue CMP_ABSTRACT_FUNCTION;
 
-- (CGRect)accessibilityFrame CMP_MUST_BE_OVERRIDED;
+- (CGRect)accessibilityFrame CMP_ABSTRACT_FUNCTION;
 
-- (BOOL)isAccessibilityElement CMP_MUST_BE_OVERRIDED;
+- (BOOL)isAccessibilityElement CMP_ABSTRACT_FUNCTION;
 
-- (BOOL)accessibilityActivate CMP_MUST_BE_OVERRIDED;
+- (BOOL)accessibilityActivate CMP_ABSTRACT_FUNCTION;
 
 // Private SDK method. Calls when the item is swipe-to-focused in VoiceOver.
 - (BOOL)accessibilityScrollToVisible;
@@ -57,7 +57,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)accessibilityElementDidLoseFocus;
 
-- (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction CMP_MUST_BE_OVERRIDED;
+- (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction CMP_ABSTRACT_FUNCTION;
 
 - (BOOL)accessibilityPerformEscape;
 

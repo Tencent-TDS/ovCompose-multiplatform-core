@@ -31,9 +31,7 @@ import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalPointerIconService
 import androidx.compose.ui.unit.IntSize
 
-/**
- * Represents a pointer icon to use in [Modifier.pointerHoverIcon]
- */
+/** Represents a pointer icon to use in [Modifier.pointerHoverIcon] */
 @Stable
 interface PointerIcon {
 
@@ -64,16 +62,16 @@ internal expect val pointerIconHand: PointerIcon
 
 internal interface PointerIconService {
     fun getIcon(): PointerIcon
+
     fun setIcon(value: PointerIcon?)
 }
 
 /**
  * Modifier that lets a developer define a pointer icon to display when the cursor is hovered over
- * the element. When [overrideDescendants] is set to true, descendants cannot override the
- * pointer icon using this modifier.
+ * the element. When [overrideDescendants] is set to true, descendants cannot override the pointer
+ * icon using this modifier.
  *
  * @sample androidx.compose.ui.samples.PointerIconSample
- *
  * @param icon The icon to set
  * @param overrideDescendants when false (by default) descendants are able to set their own pointer
  * icon. If true, no descendants under this parent are eligible to change the icon (it will be set
@@ -81,10 +79,8 @@ internal interface PointerIconService {
  */
 @Stable
 fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = false) =
-    this then PointerHoverIconModifierElement(
-        icon = icon,
-        overrideDescendants = overrideDescendants
-    )
+    this then
+        PointerHoverIconModifierElement(icon = icon, overrideDescendants = overrideDescendants)
 
 internal data class PointerHoverIconModifierElement(
     val icon: PointerIcon,
@@ -116,7 +112,8 @@ internal data class PointerHoverIconModifierElement(
 internal class PointerHoverIconModifierNode(
     icon: PointerIcon,
     overrideDescendants: Boolean = false
-) : Modifier.Node(),
+) :
+    Modifier.Node(),
     TraversableNode,
     PointerInputModifierNode,
     CompositionLocalConsumerModifierNode {
@@ -220,12 +217,13 @@ internal class PointerHoverIconModifierNode(
             traverseDescendants {
                 // Descendant in bounds has rights to the icon (and has already set it),
                 // so we ignore.
-                val continueTraversal = if (it.cursorInBoundsOfNode) {
-                    hasIconRightsOverDescendants = false
-                    TraverseDescendantsAction.CancelTraversal
-                } else {
-                    TraverseDescendantsAction.ContinueTraversal
-                }
+                val continueTraversal =
+                    if (it.cursorInBoundsOfNode) {
+                        hasIconRightsOverDescendants = false
+                        TraverseDescendantsAction.CancelTraversal
+                    } else {
+                        TraverseDescendantsAction.ContinueTraversal
+                    }
                 continueTraversal
             }
         }
@@ -282,9 +280,7 @@ internal class PointerHoverIconModifierNode(
         var pointerHoverIconModifierNode: PointerHoverIconModifierNode = this
 
         if (!overrideDescendants) {
-            findDescendantNodeWithCursorInBounds()?.let {
-                pointerHoverIconModifierNode = it
-            }
+            findDescendantNodeWithCursorInBounds()?.let { pointerHoverIconModifierNode = it }
         }
 
         pointerHoverIconModifierNode.displayIcon()
@@ -294,8 +290,7 @@ internal class PointerHoverIconModifierNode(
         var pointerHoverIconModifierNode: PointerHoverIconModifierNode? = null
 
         traverseAncestors {
-            if (it.overrideDescendants &&
-                it.cursorInBoundsOfNode) {
+            if (it.overrideDescendants && it.cursorInBoundsOfNode) {
                 pointerHoverIconModifierNode = it
             }
             // continue traversal
@@ -316,12 +311,14 @@ internal class PointerHoverIconModifierNode(
             if (pointerHoverIconModifierNode == null && it.cursorInBoundsOfNode) {
                 pointerHoverIconModifierNode = it
 
-            // We should only assign a node that override its descendants if there was a node
-            // below it where the mouse was in bounds meaning the pointerHoverIconModifierNode
-            // will not be null.
-            } else if (pointerHoverIconModifierNode != null &&
-                it.overrideDescendants &&
-                it.cursorInBoundsOfNode) {
+                // We should only assign a node that override its descendants if there was a node
+                // below it where the mouse was in bounds meaning the pointerHoverIconModifierNode
+                // will not be null.
+            } else if (
+                pointerHoverIconModifierNode != null &&
+                    it.overrideDescendants &&
+                    it.cursorInBoundsOfNode
+            ) {
                 pointerHoverIconModifierNode = it
             }
 

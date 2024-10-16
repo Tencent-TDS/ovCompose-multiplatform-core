@@ -46,6 +46,7 @@ import java.util.Random;
 @RunWith(AndroidJUnit4.class)
 public class StringNodesTest {
     private static final AppDataKey<DynamicString> KEY_FOO = new AppDataKey<>("foo");
+
     @Test
     public void fixedStringNodeTest() {
         List<String> results = new ArrayList<>();

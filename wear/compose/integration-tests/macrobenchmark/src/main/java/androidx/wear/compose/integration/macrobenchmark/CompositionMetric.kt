@@ -25,22 +25,26 @@ import kotlin.time.DurationUnit
 @OptIn(ExperimentalMetricApi::class)
 internal class CompositionMetric(private val composable: String) : TraceMetric() {
     @OptIn(ExperimentalMetricApi::class, ExperimentalPerfettoTraceProcessorApi::class)
-    override fun getResult(
+    override fun getMeasurements(
         captureInfo: CaptureInfo,
         traceSession: PerfettoTraceProcessor.Session
     ): List<Measurement> {
         val shortName = composable.substringAfterLast(".")
 
-        val durationsNs = traceSession.query(
-            """
+        val durationsNs =
+            traceSession
+                .query(
+                    """
                 SELECT * FROM slice
                     INNER JOIN thread_track on slice.track_id = thread_track.id
                     INNER JOIN thread USING(utid)
                     INNER JOIN process USING(upid)
                 WHERE process.name LIKE "${captureInfo.targetPackageName}"
                     AND slice.name LIKE "$composable (%)"
-            """.trimIndent()
-        ).map { it.long("dur") }
+            """
+                        .trimIndent()
+                )
+                .map { it.long("dur") }
 
         return listOf(
             Measurement(

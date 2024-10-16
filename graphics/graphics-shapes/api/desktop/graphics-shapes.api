@@ -1,0 +1,159 @@
+public final class androidx/graphics/shapes/CornerRounding {
+	public static final field Companion Landroidx/graphics/shapes/CornerRounding$Companion;
+	public static final field Unrounded Landroidx/graphics/shapes/CornerRounding;
+	public fun <init> ()V
+	public fun <init> (FF)V
+	public synthetic fun <init> (FFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getRadius ()F
+	public final fun getSmoothing ()F
+}
+
+public final class androidx/graphics/shapes/CornerRounding$Companion {
+}
+
+public class androidx/graphics/shapes/Cubic {
+	public static final field Companion Landroidx/graphics/shapes/Cubic$Companion;
+	public fun <init> ()V
+	public static final fun circularArc (FFFFFF)Landroidx/graphics/shapes/Cubic;
+	public final fun div (F)Landroidx/graphics/shapes/Cubic;
+	public final fun div (I)Landroidx/graphics/shapes/Cubic;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnchor0X ()F
+	public final fun getAnchor0Y ()F
+	public final fun getAnchor1X ()F
+	public final fun getAnchor1Y ()F
+	public final fun getControl0X ()F
+	public final fun getControl0Y ()F
+	public final fun getControl1X ()F
+	public final fun getControl1Y ()F
+	public fun hashCode ()I
+	public final fun plus (Landroidx/graphics/shapes/Cubic;)Landroidx/graphics/shapes/Cubic;
+	public final fun reverse ()Landroidx/graphics/shapes/Cubic;
+	public final fun split (F)Lkotlin/Pair;
+	public static final fun straightLine (FFFF)Landroidx/graphics/shapes/Cubic;
+	public final fun times (F)Landroidx/graphics/shapes/Cubic;
+	public final fun times (I)Landroidx/graphics/shapes/Cubic;
+	public fun toString ()Ljava/lang/String;
+	public final fun transformed (Landroidx/graphics/shapes/PointTransformer;)Landroidx/graphics/shapes/Cubic;
+}
+
+public final class androidx/graphics/shapes/Cubic$Companion {
+	public final fun circularArc (FFFFFF)Landroidx/graphics/shapes/Cubic;
+	public final fun straightLine (FFFF)Landroidx/graphics/shapes/Cubic;
+}
+
+public final class androidx/graphics/shapes/CubicKt {
+	public static final fun Cubic (FFFFFFFF)Landroidx/graphics/shapes/Cubic;
+}
+
+public final class androidx/graphics/shapes/Morph {
+	public fun <init> (Landroidx/graphics/shapes/RoundedPolygon;Landroidx/graphics/shapes/RoundedPolygon;)V
+	public final fun asCubics (F)Ljava/util/List;
+	public final fun calculateBounds ()[F
+	public final fun calculateBounds ([F)[F
+	public final fun calculateBounds ([FZ)[F
+	public static synthetic fun calculateBounds$default (Landroidx/graphics/shapes/Morph;[FZILjava/lang/Object;)[F
+	public final fun calculateMaxBounds ([F)[F
+	public static synthetic fun calculateMaxBounds$default (Landroidx/graphics/shapes/Morph;[FILjava/lang/Object;)[F
+	public final fun forEachCubic (FLandroidx/graphics/shapes/MutableCubic;Lkotlin/jvm/functions/Function1;)V
+	public final fun forEachCubic (FLkotlin/jvm/functions/Function1;)V
+	public static synthetic fun forEachCubic$default (Landroidx/graphics/shapes/Morph;FLandroidx/graphics/shapes/MutableCubic;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun getMorphMatch ()Ljava/util/List;
+	public static final fun match$graphics_shapes (Landroidx/graphics/shapes/RoundedPolygon;Landroidx/graphics/shapes/RoundedPolygon;)Ljava/util/List;
+}
+
+public final class androidx/graphics/shapes/MutableCubic : androidx/graphics/shapes/Cubic {
+	public fun <init> ()V
+	public final fun interpolate (Landroidx/graphics/shapes/Cubic;Landroidx/graphics/shapes/Cubic;F)V
+	public final fun transform (Landroidx/graphics/shapes/PointTransformer;)V
+}
+
+public abstract interface class androidx/graphics/shapes/MutablePoint {
+	public abstract fun getX ()F
+	public abstract fun getY ()F
+	public abstract fun setX (F)V
+	public abstract fun setY (F)V
+}
+
+public abstract interface class androidx/graphics/shapes/PointTransformer {
+	public abstract fun transform-XgqJiTY (FF)J
+}
+
+public final class androidx/graphics/shapes/RoundedPolygon {
+	public static final field Companion Landroidx/graphics/shapes/RoundedPolygon$Companion;
+	public final fun calculateBounds ()[F
+	public final fun calculateBounds ([F)[F
+	public final fun calculateBounds ([FZ)[F
+	public static synthetic fun calculateBounds$default (Landroidx/graphics/shapes/RoundedPolygon;[FZILjava/lang/Object;)[F
+	public final fun calculateMaxBounds ([F)[F
+	public static synthetic fun calculateMaxBounds$default (Landroidx/graphics/shapes/RoundedPolygon;[FILjava/lang/Object;)[F
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCenterX ()F
+	public final fun getCenterY ()F
+	public final fun getCubics ()Ljava/util/List;
+	public fun hashCode ()I
+	public final fun normalized ()Landroidx/graphics/shapes/RoundedPolygon;
+	public fun toString ()Ljava/lang/String;
+	public final fun transformed (Landroidx/graphics/shapes/PointTransformer;)Landroidx/graphics/shapes/RoundedPolygon;
+}
+
+public final class androidx/graphics/shapes/RoundedPolygon$Companion {
+}
+
+public final class androidx/graphics/shapes/RoundedPolygonKt {
+	public static final fun RoundedPolygon (I)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun RoundedPolygon (IF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun RoundedPolygon (IFF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun RoundedPolygon (IFFF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun RoundedPolygon (IFFFLandroidx/graphics/shapes/CornerRounding;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun RoundedPolygon (IFFFLandroidx/graphics/shapes/CornerRounding;Ljava/util/List;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun RoundedPolygon (Landroidx/graphics/shapes/RoundedPolygon;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun RoundedPolygon ([F)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun RoundedPolygon ([FLandroidx/graphics/shapes/CornerRounding;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun RoundedPolygon ([FLandroidx/graphics/shapes/CornerRounding;Ljava/util/List;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun RoundedPolygon ([FLandroidx/graphics/shapes/CornerRounding;Ljava/util/List;F)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun RoundedPolygon ([FLandroidx/graphics/shapes/CornerRounding;Ljava/util/List;FF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static synthetic fun RoundedPolygon$default (IFFFLandroidx/graphics/shapes/CornerRounding;Ljava/util/List;ILjava/lang/Object;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static synthetic fun RoundedPolygon$default ([FLandroidx/graphics/shapes/CornerRounding;Ljava/util/List;FFILjava/lang/Object;)Landroidx/graphics/shapes/RoundedPolygon;
+}
+
+public final class androidx/graphics/shapes/ShapesKt {
+	public static final fun circle (Landroidx/graphics/shapes/RoundedPolygon$Companion;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun circle (Landroidx/graphics/shapes/RoundedPolygon$Companion;I)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun circle (Landroidx/graphics/shapes/RoundedPolygon$Companion;IF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun circle (Landroidx/graphics/shapes/RoundedPolygon$Companion;IFF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun circle (Landroidx/graphics/shapes/RoundedPolygon$Companion;IFFF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static synthetic fun circle$default (Landroidx/graphics/shapes/RoundedPolygon$Companion;IFFFILjava/lang/Object;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pill (Landroidx/graphics/shapes/RoundedPolygon$Companion;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pill (Landroidx/graphics/shapes/RoundedPolygon$Companion;F)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pill (Landroidx/graphics/shapes/RoundedPolygon$Companion;FF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pill (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pill (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFFF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pill (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFFFF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static synthetic fun pill$default (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFFFFILjava/lang/Object;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;F)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;FF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFI)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFIF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFIFLandroidx/graphics/shapes/CornerRounding;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFIFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFIFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;Ljava/util/List;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFIFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;Ljava/util/List;F)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFIFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;Ljava/util/List;FF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFIFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;Ljava/util/List;FFF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun pillStar (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFIFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;Ljava/util/List;FFFF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static synthetic fun pillStar$default (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFIFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;Ljava/util/List;FFFFILjava/lang/Object;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun rectangle (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFLandroidx/graphics/shapes/CornerRounding;Ljava/util/List;FF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static synthetic fun rectangle$default (Landroidx/graphics/shapes/RoundedPolygon$Companion;FFLandroidx/graphics/shapes/CornerRounding;Ljava/util/List;FFILjava/lang/Object;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun star (Landroidx/graphics/shapes/RoundedPolygon$Companion;I)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun star (Landroidx/graphics/shapes/RoundedPolygon$Companion;IF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun star (Landroidx/graphics/shapes/RoundedPolygon$Companion;IFF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun star (Landroidx/graphics/shapes/RoundedPolygon$Companion;IFFLandroidx/graphics/shapes/CornerRounding;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun star (Landroidx/graphics/shapes/RoundedPolygon$Companion;IFFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun star (Landroidx/graphics/shapes/RoundedPolygon$Companion;IFFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;Ljava/util/List;)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun star (Landroidx/graphics/shapes/RoundedPolygon$Companion;IFFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;Ljava/util/List;F)Landroidx/graphics/shapes/RoundedPolygon;
+	public static final fun star (Landroidx/graphics/shapes/RoundedPolygon$Companion;IFFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;Ljava/util/List;FF)Landroidx/graphics/shapes/RoundedPolygon;
+	public static synthetic fun star$default (Landroidx/graphics/shapes/RoundedPolygon$Companion;IFFLandroidx/graphics/shapes/CornerRounding;Landroidx/graphics/shapes/CornerRounding;Ljava/util/List;FFILjava/lang/Object;)Landroidx/graphics/shapes/RoundedPolygon;
+}
+

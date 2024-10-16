@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.focus
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -26,7 +25,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -46,13 +44,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 // TODO: Move these tests to foundation after saveFocusedChild and restoreFocusedChild are stable.
-@ExperimentalFoundationApi
-@OptIn(ExperimentalComposeUiApi::class)
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class FocusRestorerTest {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     @Test
     fun restoresSavedChild() {
@@ -63,25 +58,13 @@ class FocusRestorerTest {
         lateinit var child2State: FocusState
         rule.setFocusableContent {
             focusManager = LocalFocusManager.current
-            Box(
-                Modifier
-                    .size(10.dp)
-                    .focusRequester(parent)
-                    .focusRestorer()
-                    .focusGroup()
-            ) {
+            Box(Modifier.size(10.dp).focusRequester(parent).focusRestorer().focusGroup()) {
                 key(1) {
-                    Box(
-                        Modifier
-                            .size(10.dp)
-                            .onFocusChanged { child1State = it }
-                            .focusTarget()
-                    )
+                    Box(Modifier.size(10.dp).onFocusChanged { child1State = it }.focusTarget())
                 }
                 key(2) {
                     Box(
-                        Modifier
-                            .size(10.dp)
+                        Modifier.size(10.dp)
                             .focusRequester(child2)
                             .onFocusChanged { child2State = it }
                             .focusTarget()
@@ -111,22 +94,10 @@ class FocusRestorerTest {
         lateinit var child2State: FocusState
         rule.setFocusableContent {
             focusManager = LocalFocusManager.current
-            Box(
-                Modifier
-                    .size(10.dp)
-                    .focusRequester(parent)
-                    .focusRestorer()
-                    .focusGroup()
-            ) {
+            Box(Modifier.size(10.dp).focusRequester(parent).focusRestorer().focusGroup()) {
+                Box(Modifier.size(10.dp).onFocusChanged { child1State = it }.focusTarget())
                 Box(
-                    Modifier
-                        .size(10.dp)
-                        .onFocusChanged { child1State = it }
-                        .focusTarget()
-                )
-                Box(
-                    Modifier
-                        .size(10.dp)
+                    Modifier.size(10.dp)
                         .focusRequester(child2)
                         .onFocusChanged { child2State = it }
                         .focusTarget()
@@ -155,22 +126,10 @@ class FocusRestorerTest {
         lateinit var grandChildState: FocusState
         rule.setFocusableContent {
             focusManager = LocalFocusManager.current
-            Box(
-                Modifier
-                    .size(10.dp)
-                    .focusRequester(parent)
-                    .focusRestorer()
-                    .focusGroup()
-            ) {
-                Box(
-                    Modifier
-                        .size(10.dp)
-                        .onFocusChanged { childState = it }
-                        .focusTarget()
-                ) {
+            Box(Modifier.size(10.dp).focusRequester(parent).focusRestorer().focusGroup()) {
+                Box(Modifier.size(10.dp).onFocusChanged { childState = it }.focusTarget()) {
                     Box(
-                        Modifier
-                            .size(10.dp)
+                        Modifier.size(10.dp)
                             .focusRequester(grandChild)
                             .onFocusChanged { grandChildState = it }
                             .focusTarget()
@@ -203,20 +162,10 @@ class FocusRestorerTest {
             lazyListState = rememberLazyListState()
             coroutineScope = rememberCoroutineScope()
             LazyColumn(
-                modifier = Modifier
-                    .size(100.dp)
-                    .focusRequester(parent)
-                    .focusRestorer(),
+                modifier = Modifier.size(100.dp).focusRequester(parent).focusRestorer(),
                 state = lazyListState
             ) {
-                items(100) { item ->
-                    Box(
-                        Modifier
-                            .size(10.dp)
-                            .testTag("item $item")
-                            .focusable()
-                    )
-                }
+                items(100) { item -> Box(Modifier.size(10.dp).testTag("item $item").focusable()) }
             }
         }
 
@@ -225,9 +174,7 @@ class FocusRestorerTest {
             requestFocus()
             assertIsFocused()
         }
-        rule.runOnIdle {
-            coroutineScope.launch { lazyListState.scrollToItem(50) }
-        }
+        rule.runOnIdle { coroutineScope.launch { lazyListState.scrollToItem(50) } }
 
         // Act.
         rule.runOnIdle { focusManager.clearFocus() }
@@ -249,25 +196,13 @@ class FocusRestorerTest {
         lateinit var child1State: FocusState
         lateinit var child2State: FocusState
         rule.setFocusableContent {
-            Box(
-                Modifier
-                    .size(10.dp)
-                    .focusRequester(parent)
-                    .focusRestorer { child2 }
-                    .focusGroup()
-            ) {
+            Box(Modifier.size(10.dp).focusRequester(parent).focusRestorer { child2 }.focusGroup()) {
                 key(1) {
-                    Box(
-                        Modifier
-                            .size(10.dp)
-                            .onFocusChanged { child1State = it }
-                            .focusTarget()
-                    )
+                    Box(Modifier.size(10.dp).onFocusChanged { child1State = it }.focusTarget())
                 }
                 key(2) {
                     Box(
-                        Modifier
-                            .size(10.dp)
+                        Modifier.size(10.dp)
                             .focusRequester(child2)
                             .onFocusChanged { child2State = it }
                             .focusTarget()

@@ -28,4 +28,5 @@ internal fun Translations.be() = mapOf(
     Strings.DefaultErrorMessage to "Памылка ўводу",
     Strings.SliderRangeStart to "Пачатак пераліку",
     Strings.SliderRangeEnd to "Канец пераліку",
+    Strings.SnackbarPaneTitle to "Абвестка",
 )

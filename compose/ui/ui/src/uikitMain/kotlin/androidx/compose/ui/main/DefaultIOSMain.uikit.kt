@@ -16,12 +16,29 @@
 
 package androidx.compose.ui.main
 
-import kotlinx.cinterop.*
-import platform.UIKit.*
-import platform.Foundation.*
+import kotlinx.cinterop.ObjCObjectBase
+import kotlinx.cinterop.autoreleasepool
+import kotlinx.cinterop.cstr
+import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.toCValues
+import platform.Foundation.NSStringFromClass
+import platform.UIKit.UIApplication
+import platform.UIKit.UIApplicationDelegateProtocol
+import platform.UIKit.UIApplicationDelegateProtocolMeta
+import platform.UIKit.UIApplicationMain
+import platform.UIKit.UIResponder
+import platform.UIKit.UIResponderMeta
+import platform.UIKit.UIScreen
+import platform.UIKit.UIViewController
+import platform.UIKit.UIWindow
 
 private var _rootViewController: UIViewController? = null
 
+@Deprecated(
+    "Not supposed to be a public API. Will be removed in the upcoming release.",
+    ReplaceWith("Follow the guidelines to create an iOS application:" +
+        "https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-multiplatform-create-first-app.html")
+)
 fun defaultUIKitMain(executableName: String, rootViewController: UIViewController) {
     _rootViewController = rootViewController
     val args = emptyArray<String>()
@@ -34,6 +51,11 @@ fun defaultUIKitMain(executableName: String, rootViewController: UIViewControlle
     }
 }
 
+@Deprecated(
+    "Not supposed to be a public API. Will be removed in the upcoming release.",
+    ReplaceWith("Follow the guidelines to create an iOS application:" +
+        "https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-multiplatform-create-first-app.html")
+)
 class DefaultIOSAppDelegate : UIResponder, UIApplicationDelegateProtocol {
     companion object Companion : UIResponderMeta(), UIApplicationDelegateProtocolMeta
 

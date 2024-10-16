@@ -18,6 +18,7 @@ package androidx.activity.result
 
 import android.app.Activity.RESULT_OK
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
@@ -38,19 +39,19 @@ import org.junit.runner.RunWith
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class ActivityResultRegistryTest {
-    private val registry = object : ActivityResultRegistry() {
-        override fun <I : Any?, O : Any?> onLaunch(
-            requestCode: Int,
-            contract: ActivityResultContract<I, O>,
-            input: I,
-            options: ActivityOptionsCompat?
-        ) {
-            dispatchResult(requestCode, RESULT_OK, Intent())
+    private val registry =
+        object : ActivityResultRegistry() {
+            override fun <I : Any?, O : Any?> onLaunch(
+                requestCode: Int,
+                contract: ActivityResultContract<I, O>,
+                input: I,
+                options: ActivityOptionsCompat?
+            ) {
+                dispatchResult(requestCode, RESULT_OK, Intent())
+            }
         }
-    }
 
-    @get:Rule
-    val rule = DetectLeaksAfterTestSuccess()
+    @get:Rule val rule = DetectLeaksAfterTestSuccess()
 
     @Test
     fun testRegisterLifecycleOwnerCallback() {
@@ -58,11 +59,10 @@ class ActivityResultRegistryTest {
         var resultReturned = false
 
         // register for the result
-        val activityResult = registry.register(
-            "test", lifecycleOwner, TakePicturePreview()
-        ) {
-            resultReturned = true
-        }
+        val activityResult =
+            registry.register("test", lifecycleOwner, TakePicturePreview()) {
+                resultReturned = true
+            }
 
         // move the state to started
         lifecycleOwner.currentState = Lifecycle.State.STARTED
@@ -78,10 +78,7 @@ class ActivityResultRegistryTest {
         val lifecycleOwner = TestLifecycleOwner(Lifecycle.State.CREATED)
 
         // register for the result
-        val activityResult = registry.register(
-            "test", lifecycleOwner,
-            TakePicturePreview()
-        ) {}
+        val activityResult = registry.register("test", lifecycleOwner, TakePicturePreview()) {}
 
         // saved the state of the registry
         val state = Bundle()
@@ -98,11 +95,7 @@ class ActivityResultRegistryTest {
 
         var resultReturned = false
         // re-register for the result that should have been saved
-        registry.register(
-            "test", lifecycleOwner, TakePicturePreview()
-        ) {
-            resultReturned = true
-        }
+        registry.register("test", lifecycleOwner, TakePicturePreview()) { resultReturned = true }
 
         lifecycleOwner.currentState = Lifecycle.State.STARTED
 
@@ -115,16 +108,18 @@ class ActivityResultRegistryTest {
 
         try {
             // register for the result
-            registry.register(
-                "test", lifecycleOwner, TakePicturePreview()
-            ) {}
+            registry.register("test", lifecycleOwner, TakePicturePreview()) {}
             fail("Registering for activity result after Lifecycle ON_CREATE should fail")
         } catch (e: IllegalStateException) {
-            assertThat(e).hasMessageThat().contains(
-                "LifecycleOwner $lifecycleOwner is attempting to register while current state " +
-                    "is " + lifecycleOwner.currentState + ". LifecycleOwners must call " +
-                    "register before they are STARTED."
-            )
+            assertThat(e)
+                .hasMessageThat()
+                .contains(
+                    "LifecycleOwner $lifecycleOwner is attempting to register while current state " +
+                        "is " +
+                        lifecycleOwner.currentState +
+                        ". LifecycleOwners must call " +
+                        "register before they are STARTED."
+                )
         }
     }
 
@@ -133,9 +128,7 @@ class ActivityResultRegistryTest {
         val lifecycleOwner = TestLifecycleOwner(Lifecycle.State.INITIALIZED)
 
         // register for the result
-        val activityResult = registry.register(
-            "test", lifecycleOwner, TakePicturePreview()
-        ) {}
+        val activityResult = registry.register("test", lifecycleOwner, TakePicturePreview()) {}
 
         // saved the state of the registry
         val state = Bundle()
@@ -149,11 +142,7 @@ class ActivityResultRegistryTest {
 
         var resultReturned = false
         // re-register for the result that should have been saved
-        registry.register(
-            "test", lifecycleOwner, TakePicturePreview()
-        ) {
-            resultReturned = true
-        }
+        registry.register("test", lifecycleOwner, TakePicturePreview()) { resultReturned = true }
 
         // launch the result
         activityResult.launch(null)
@@ -180,26 +169,30 @@ class ActivityResultRegistryTest {
     fun testLifecycleOwnerCallbackWithDispatchResult() {
         val lifecycleOwner = TestLifecycleOwner(Lifecycle.State.INITIALIZED)
 
-        val dispatchResultRegistry = object : ActivityResultRegistry() {
-            override fun <I : Any?, O : Any?> onLaunch(
-                requestCode: Int,
-                contract: ActivityResultContract<I, O>,
-                input: I,
-                options: ActivityOptionsCompat?
-            ) {
-                dispatchResult(requestCode, true)
+        val dispatchResultRegistry =
+            object : ActivityResultRegistry() {
+                override fun <I : Any?, O : Any?> onLaunch(
+                    requestCode: Int,
+                    contract: ActivityResultContract<I, O>,
+                    input: I,
+                    options: ActivityOptionsCompat?
+                ) {
+                    dispatchResult(requestCode, true)
+                }
             }
-        }
 
         var resultReturned = false
-        val activityResult = dispatchResultRegistry.register(
-            "test", lifecycleOwner, TakePicture(),
-        ) {
-            resultReturned = true
-        }
+        val activityResult =
+            dispatchResultRegistry.register(
+                "test",
+                lifecycleOwner,
+                TakePicture(),
+            ) {
+                resultReturned = true
+            }
 
         // launch the result
-        activityResult.launch(null)
+        activityResult.launch(Uri.EMPTY)
 
         // move to CREATED and make sure the callback is not fired
         lifecycleOwner.currentState = Lifecycle.State.CREATED
@@ -223,23 +216,27 @@ class ActivityResultRegistryTest {
     fun testLifecycleOwnerCallbackWithNullDispatchResult() {
         val lifecycleOwner = TestLifecycleOwner(Lifecycle.State.INITIALIZED)
 
-        val dispatchResultRegistry = object : ActivityResultRegistry() {
-            override fun <I : Any?, O : Any?> onLaunch(
-                requestCode: Int,
-                contract: ActivityResultContract<I, O>,
-                input: I,
-                options: ActivityOptionsCompat?
-            ) {
-                dispatchResult(requestCode, null)
+        val dispatchResultRegistry =
+            object : ActivityResultRegistry() {
+                override fun <I : Any?, O : Any?> onLaunch(
+                    requestCode: Int,
+                    contract: ActivityResultContract<I, O>,
+                    input: I,
+                    options: ActivityOptionsCompat?
+                ) {
+                    dispatchResult(requestCode, null)
+                }
             }
-        }
 
         var resultReturned = false
-        val activityResult = dispatchResultRegistry.register(
-            "test", lifecycleOwner, TakePicturePreview(),
-        ) {
-            resultReturned = true
-        }
+        val activityResult =
+            dispatchResultRegistry.register(
+                "test",
+                lifecycleOwner,
+                TakePicturePreview(),
+            ) {
+                resultReturned = true
+            }
 
         // launch the result
         activityResult.launch(null)
@@ -267,9 +264,7 @@ class ActivityResultRegistryTest {
         val lifecycleOwner = TestLifecycleOwner(Lifecycle.State.INITIALIZED)
 
         // register for the result
-        val activityResult = registry.register(
-            "test", lifecycleOwner, TakePicturePreview()
-        ) {}
+        val activityResult = registry.register("test", lifecycleOwner, TakePicturePreview()) {}
 
         // saved the state of the registry
         val state = Bundle()
@@ -286,11 +281,7 @@ class ActivityResultRegistryTest {
 
         var resultReturned = false
         // re-register for the result that should have been saved
-        registry.register(
-            "test", lifecycleOwner, TakePicturePreview()
-        ) {
-            resultReturned = true
-        }
+        registry.register("test", lifecycleOwner, TakePicturePreview()) { resultReturned = true }
 
         // move to CREATED and make sure the callback is not fired
         lifecycleOwner.currentState = Lifecycle.State.CREATED
@@ -308,25 +299,26 @@ class ActivityResultRegistryTest {
     fun testUnregisterAfterSavedState() {
         val lifecycleOwner = TestLifecycleOwner(Lifecycle.State.INITIALIZED)
         var resultReturned = false
-        val activityResult = registry.register("key", lifecycleOwner, StartActivityForResult()) { }
+        val activityResult = registry.register("key", lifecycleOwner, StartActivityForResult()) {}
 
-        activityResult.launch(null)
+        activityResult.launch(Intent())
 
         val savedState = Bundle()
         registry.onSaveInstanceState(savedState)
 
         registry.unregister("key")
 
-        val restoredRegistry = object : ActivityResultRegistry() {
-            override fun <I : Any?, O : Any?> onLaunch(
-                requestCode: Int,
-                contract: ActivityResultContract<I, O>,
-                input: I,
-                options: ActivityOptionsCompat?
-            ) {
-                dispatchResult(requestCode, RESULT_OK, Intent())
+        val restoredRegistry =
+            object : ActivityResultRegistry() {
+                override fun <I : Any?, O : Any?> onLaunch(
+                    requestCode: Int,
+                    contract: ActivityResultContract<I, O>,
+                    input: I,
+                    options: ActivityOptionsCompat?
+                ) {
+                    dispatchResult(requestCode, RESULT_OK, Intent())
+                }
             }
-        }
 
         restoredRegistry.onRestoreInstanceState(savedState)
 
@@ -356,23 +348,24 @@ class ActivityResultRegistryTest {
 
     @Test
     fun testRegisterBeforeRestoreInstanceState() {
-        registry.register("key", StartActivityForResult()) { }
+        registry.register("key", StartActivityForResult()) {}
 
         val savedState = Bundle()
         registry.onSaveInstanceState(savedState)
 
-        val restoredRegistry = object : ActivityResultRegistry() {
-            override fun <I : Any?, O : Any?> onLaunch(
-                requestCode: Int,
-                contract: ActivityResultContract<I, O>,
-                input: I,
-                options: ActivityOptionsCompat?
-            ) {
-                dispatchResult(requestCode, RESULT_OK, Intent())
+        val restoredRegistry =
+            object : ActivityResultRegistry() {
+                override fun <I : Any?, O : Any?> onLaunch(
+                    requestCode: Int,
+                    contract: ActivityResultContract<I, O>,
+                    input: I,
+                    options: ActivityOptionsCompat?
+                ) {
+                    dispatchResult(requestCode, RESULT_OK, Intent())
+                }
             }
-        }
 
-        restoredRegistry.register("key", StartActivityForResult()) { }
+        restoredRegistry.register("key", StartActivityForResult()) {}
         restoredRegistry.onRestoreInstanceState(savedState)
 
         val newSavedState = Bundle()
@@ -386,26 +379,25 @@ class ActivityResultRegistryTest {
     @Test
     fun testKeepKeyAfterLaunch() {
         var code = 0
-        val noDispatchRegistry = object : ActivityResultRegistry() {
-            override fun <I : Any?, O : Any?> onLaunch(
-                requestCode: Int,
-                contract: ActivityResultContract<I, O>,
-                input: I,
-                options: ActivityOptionsCompat?
-            ) {
-                code = requestCode
+        val noDispatchRegistry =
+            object : ActivityResultRegistry() {
+                override fun <I : Any?, O : Any?> onLaunch(
+                    requestCode: Int,
+                    contract: ActivityResultContract<I, O>,
+                    input: I,
+                    options: ActivityOptionsCompat?
+                ) {
+                    code = requestCode
+                }
             }
-        }
 
-        val activityResult = noDispatchRegistry.register("key", StartActivityForResult()) { }
+        val activityResult = noDispatchRegistry.register("key", StartActivityForResult()) {}
 
-        activityResult.launch(null)
+        activityResult.launch(Intent())
         activityResult.unregister()
 
         var callbackExecuted = false
-        noDispatchRegistry.register("key", StartActivityForResult()) {
-            callbackExecuted = true
-        }
+        noDispatchRegistry.register("key", StartActivityForResult()) { callbackExecuted = true }
 
         noDispatchRegistry.dispatchResult(code, RESULT_OK, Intent())
 
@@ -415,26 +407,25 @@ class ActivityResultRegistryTest {
     @Test
     fun testKeepKeyAfterLaunchDispatchResult() {
         var code = 0
-        val noDispatchRegistry = object : ActivityResultRegistry() {
-            override fun <I : Any?, O : Any?> onLaunch(
-                requestCode: Int,
-                contract: ActivityResultContract<I, O>,
-                input: I,
-                options: ActivityOptionsCompat?
-            ) {
-                code = requestCode
+        val noDispatchRegistry =
+            object : ActivityResultRegistry() {
+                override fun <I : Any?, O : Any?> onLaunch(
+                    requestCode: Int,
+                    contract: ActivityResultContract<I, O>,
+                    input: I,
+                    options: ActivityOptionsCompat?
+                ) {
+                    code = requestCode
+                }
             }
-        }
 
-        val activityResult = noDispatchRegistry.register("key", StartActivityForResult()) { }
+        val activityResult = noDispatchRegistry.register("key", StartActivityForResult()) {}
 
-        activityResult.launch(null)
+        activityResult.launch(Intent())
         activityResult.unregister()
 
         var callbackExecuted = false
-        noDispatchRegistry.register("key", StartActivityForResult()) {
-            callbackExecuted = true
-        }
+        noDispatchRegistry.register("key", StartActivityForResult()) { callbackExecuted = true }
 
         noDispatchRegistry.dispatchResult(code, ActivityResult(RESULT_OK, Intent()))
 
@@ -444,37 +435,41 @@ class ActivityResultRegistryTest {
     @Test
     fun testLaunchUnregistered() {
         val contract = StartActivityForResult()
-        val activityResult = registry.register("key", contract) { }
+        val activityResult = registry.register("key", contract) {}
 
         activityResult.unregister()
 
         try {
-            activityResult.launch(null)
+            activityResult.launch(Intent())
         } catch (e: IllegalStateException) {
-            assertThat(e).hasMessageThat().contains(
-                "Attempting to launch an unregistered ActivityResultLauncher with contract " +
-                    contract + " and input null. You must ensure the ActivityResultLauncher is " +
-                    "registered before calling launch()."
-            )
+            assertThat(e)
+                .hasMessageThat()
+                .contains(
+                    "Attempting to launch an unregistered ActivityResultLauncher with contract " +
+                        contract +
+                        " and input ${Intent()}. You must ensure the " +
+                        "ActivityResultLauncher is registered before calling launch()."
+                )
         }
     }
 
     @Test
     fun testSavePendingOnRestore() {
         var code = 0
-        val noDispatchRegistry = object : ActivityResultRegistry() {
-            override fun <I : Any?, O : Any?> onLaunch(
-                requestCode: Int,
-                contract: ActivityResultContract<I, O>,
-                input: I,
-                options: ActivityOptionsCompat?
-            ) {
-                code = requestCode
+        val noDispatchRegistry =
+            object : ActivityResultRegistry() {
+                override fun <I : Any?, O : Any?> onLaunch(
+                    requestCode: Int,
+                    contract: ActivityResultContract<I, O>,
+                    input: I,
+                    options: ActivityOptionsCompat?
+                ) {
+                    code = requestCode
+                }
             }
-        }
 
         val contract = StartActivityForResult()
-        val launcher = noDispatchRegistry.register("key", contract) { }
+        val launcher = noDispatchRegistry.register("key", contract) {}
 
         launcher.launch(Intent())
         launcher.unregister()
@@ -484,21 +479,20 @@ class ActivityResultRegistryTest {
         val savedState = Bundle()
         noDispatchRegistry.onSaveInstanceState(savedState)
 
-        val newNoDispatchRegistry = object : ActivityResultRegistry() {
-            override fun <I : Any?, O : Any?> onLaunch(
-                requestCode: Int,
-                contract: ActivityResultContract<I, O>,
-                input: I,
-                options: ActivityOptionsCompat?
-            ) {
-                code = requestCode
+        val newNoDispatchRegistry =
+            object : ActivityResultRegistry() {
+                override fun <I : Any?, O : Any?> onLaunch(
+                    requestCode: Int,
+                    contract: ActivityResultContract<I, O>,
+                    input: I,
+                    options: ActivityOptionsCompat?
+                ) {
+                    code = requestCode
+                }
             }
-        }
 
         var completedLaunch = false
-        newNoDispatchRegistry.register("key", contract) {
-            completedLaunch = true
-        }
+        newNoDispatchRegistry.register("key", contract) { completedLaunch = true }
 
         newNoDispatchRegistry.onRestoreInstanceState(savedState)
 

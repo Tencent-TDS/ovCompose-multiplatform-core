@@ -30,7 +30,8 @@ import androidx.navigation.Navigator
 import androidx.navigation.compose.ComposeNavigator.Destination
 import kotlin.jvm.JvmSuppressWildcards
 
-public actual class ComposeNavigator : Navigator<Destination>(NAME) {
+public actual class ComposeNavigator
+actual constructor() : Navigator<Destination>(NAME) {
     internal actual val transitionsInProgress
         get() = state.transitionsInProgress
 

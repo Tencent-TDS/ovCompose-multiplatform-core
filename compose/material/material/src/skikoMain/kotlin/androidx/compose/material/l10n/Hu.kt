@@ -28,4 +28,5 @@ internal fun Translations.hu() = mapOf(
     Strings.DefaultErrorMessage to "Érvénytelen adat",
     Strings.SliderRangeStart to "Tartomány kezdete",
     Strings.SliderRangeEnd to "Tartomány vége",
+    Strings.SnackbarPaneTitle to "Figyelmeztetés",
 )

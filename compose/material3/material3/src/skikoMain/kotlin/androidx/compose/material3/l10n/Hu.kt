@@ -33,6 +33,7 @@ internal fun Translations.hu() = mapOf(
     Strings.MenuCollapsed to "Összecsukva",
     Strings.ToggleDropdownMenu to "Legördülő menü átváltása",
     Strings.SnackbarDismiss to "Elvetés",
+    Strings.SnackbarPaneTitle to "Figyelmeztetés",
     Strings.SearchBarSearch to "Keresés",
     Strings.SuggestionsAvailable to "Javaslatok alább",
     Strings.DatePickerTitle to "Dátum kiválasztása",
@@ -85,4 +86,6 @@ internal fun Translations.hu() = mapOf(
     Strings.TimePickerHour to "Óra",
     Strings.TimePickerMinuteTextField to "perc megadása",
     Strings.TimePickerHourTextField to "óra megadása",
+    Strings.CloseRail to "Sáv bezárása",
+    Strings.WideNavigationRailPaneTitle to "Navigációs sáv",
 )

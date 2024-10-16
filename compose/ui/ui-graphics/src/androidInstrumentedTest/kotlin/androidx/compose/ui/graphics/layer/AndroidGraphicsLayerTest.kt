@@ -630,10 +630,10 @@ class AndroidGraphicsLayerTest {
                             drawRect(
                                 Color.Red,
                                 topLeft =
-                                Offset(
-                                    this.size.width / 2f - rectSize / 2f,
-                                    this.size.height / 2 - rectSize / 2f
-                                ),
+                                    Offset(
+                                        this.size.width / 2f - rectSize / 2f,
+                                        this.size.height / 2 - rectSize / 2f
+                                    ),
                                 Size(rectSize.toFloat(), rectSize.toFloat())
                             )
                         }
@@ -901,6 +901,155 @@ class AndroidGraphicsLayerTest {
         )
     }
 
+    @Test
+    fun testConcaveOutlineClipsOutsideBounds() {
+        val bgColor = Color.White
+        val targetColor = Color.Red
+        var layerSize = IntSize.Zero
+        graphicsLayerTest(
+            block = { graphicsContext ->
+                layerSize = IntSize(size.width.toInt(), size.height.toInt() / 2)
+                val outlinePath =
+                    Path().apply {
+                        addRect(Rect(0f, 0f, layerSize.width.toFloat(), layerSize.height.toFloat()))
+
+                        addRect(
+                            Rect(
+                                layerSize.width / 4f,
+                                layerSize.height.toFloat(),
+                                layerSize.width / 2f + layerSize.width / 4f,
+                                layerSize.height + layerSize.height / 2f
+                            )
+                        )
+                    }
+
+                val layer =
+                    graphicsContext.createGraphicsLayer().apply {
+                        record(size = layerSize) {
+                            drawRect(
+                                targetColor,
+                                size = Size(layerSize.width.toFloat(), layerSize.height * 2f)
+                            )
+                        }
+                        setPathOutline(outlinePath)
+                        clip = true
+                        shadowElevation = 20f
+                    }
+                drawRect(bgColor)
+                drawLayer(layer)
+            },
+            verify = { pixmap ->
+                val width = pixmap.width
+                assertEquals(targetColor, pixmap[0, 0])
+                assertEquals(targetColor, pixmap[width - 2, 0])
+                assertEquals(targetColor, pixmap[0, layerSize.height - 2])
+                assertEquals(targetColor, pixmap[width - 2, layerSize.height - 2])
+
+                assertEquals(bgColor, pixmap[0, layerSize.height + 2])
+                assertEquals(bgColor, pixmap[width - 2, layerSize.height + 2])
+                assertEquals(bgColor, pixmap[width / 4 - 2, layerSize.height + 2])
+                assertEquals(bgColor, pixmap[width / 2 + width / 4, layerSize.height + 2])
+
+                assertEquals(targetColor, pixmap[width / 2, layerSize.height + 2])
+                assertEquals(targetColor, pixmap[width / 2 + width / 4 - 2, layerSize.height + 2])
+                assertEquals(targetColor, pixmap[width / 2, layerSize.height + 2])
+            }
+        )
+    }
+
+    @Test
+    fun testRectOutlineClipsOutsideBounds() {
+        val bgColor = Color.Black
+        val targetColor = Color.Red
+        var outlineSize = Size.Zero
+        graphicsLayerTest(
+            block = { graphicsContext ->
+                val containerSize = size
+                outlineSize = Size(containerSize.width, containerSize.height - 10f)
+                val layerSize = IntSize(size.width.toInt(), size.height.toInt() / 2)
+
+                val layer =
+                    graphicsContext.createGraphicsLayer().apply {
+                        record(size = layerSize) {
+                            drawRect(
+                                targetColor,
+                                size = Size(layerSize.width.toFloat(), layerSize.height * 2f)
+                            )
+                        }
+                        setRectOutline(Offset.Zero, outlineSize)
+                        clip = true
+                    }
+                drawRect(bgColor)
+                drawLayer(layer)
+            },
+            verify = { pixmap ->
+                val width = pixmap.width
+                val height = pixmap.height
+                assertEquals(targetColor, pixmap[0, 0])
+                assertEquals(targetColor, pixmap[width - 2, 0])
+                assertEquals(targetColor, pixmap[0, (outlineSize.height - 2).toInt()])
+                assertEquals(targetColor, pixmap[width - 2, (outlineSize.height - 2).toInt()])
+
+                assertEquals(bgColor, pixmap[0, height - 2])
+                assertEquals(bgColor, pixmap[width - 2, height - 2])
+            }
+        )
+    }
+
+    @Test
+    fun testConcaveOutlineClip() {
+        val bgColor = Color.White
+        val targetColor = Color.Red
+        graphicsLayerTest(
+            block = { graphicsContext ->
+                val rectPath =
+                    Path().apply {
+                        addRect(
+                            Rect(
+                                left = 0f,
+                                top = size.height / 2,
+                                right = size.width,
+                                bottom = size.height,
+                            )
+                        )
+                    }
+
+                val tabPath =
+                    Path().apply {
+                        addRect(
+                            Rect(
+                                left = size.width / 4,
+                                top = 0f,
+                                right = size.width / 2 + size.width / 4,
+                                bottom = size.height / 2,
+                            )
+                        )
+                    }
+
+                val layer =
+                    graphicsContext.createGraphicsLayer().apply {
+                        record { drawRect(targetColor) }
+                        setPathOutline(rectPath + tabPath)
+                        clip = true
+                    }
+                drawRect(bgColor)
+                drawLayer(layer)
+            },
+            verify = { pixmap ->
+                val width = pixmap.width
+                val height = pixmap.height
+                assertEquals(bgColor, pixmap[0, 0])
+                assertEquals(bgColor, pixmap[width / 4 - 2, 0])
+                assertEquals(targetColor, pixmap[width / 4, 0])
+                assertEquals(targetColor, pixmap[width / 2 + width / 4 - 1, 0])
+                assertEquals(bgColor, pixmap[width / 2 + width / 4 + 2, 0])
+                assertEquals(bgColor, pixmap[width - 1, 0])
+                assertEquals(targetColor, pixmap[0, height - 1])
+                assertEquals(targetColor, pixmap[width - 1, height - 1])
+            }
+        )
+    }
+
     // Test requires validation of elevation shadows which require readback operations from
     // the PixelCopy APIs
     @Test
@@ -952,7 +1101,16 @@ class AndroidGraphicsLayerTest {
                     return shadowCount > 0
                 }
                 with(pixmap) {
-                    assertTrue(
+                    // Verify that pixels above top edge have some shadow
+                    assertTrue(hasShadowPixels(targetColor, left, top - 4, right, top))
+                    // Verify that pixels to the left of the left edge have some shadow
+                    assertTrue(hasShadowPixels(targetColor, left - 4, top, left, bottom))
+                    // Verify that pixels to the right of the right edge have some shadow
+                    assertTrue(hasShadowPixels(targetColor, right, top, right + 4, bottom))
+                    // Verify that pixels to the below the bottom edge have some shadow
+                    assertTrue(hasShadowPixels(targetColor, left, bottom, right, bottom + 4))
+                    // Verify that interior top left region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             left,
@@ -961,7 +1119,8 @@ class AndroidGraphicsLayerTest {
                             top + radius.toInt()
                         )
                     )
-                    assertTrue(
+                    // Verify that interior top right region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             right - radius.toInt(),
@@ -970,7 +1129,8 @@ class AndroidGraphicsLayerTest {
                             top + radius.toInt()
                         )
                     )
-                    assertTrue(
+                    // Verify that interior bottom left region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             left,
@@ -979,7 +1139,8 @@ class AndroidGraphicsLayerTest {
                             bottom
                         )
                     )
-                    assertTrue(
+                    // Verify that interior bottom right region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             right - radius.toInt(),
@@ -1432,9 +1593,9 @@ class AndroidGraphicsLayerTest {
                 val fullSize = size
                 val layerSize =
                     Size(
-                        fullSize.width.roundToInt() - inset * 2,
-                        fullSize.height.roundToInt() - inset * 2
-                    )
+                            fullSize.width.roundToInt() - inset * 2,
+                            fullSize.height.roundToInt() - inset * 2
+                        )
                         .toIntSize()
 
                 val layer =

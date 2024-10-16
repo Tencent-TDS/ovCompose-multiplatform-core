@@ -86,7 +86,7 @@ kotlin {
             }
         }
 
-        nonJvmMain {
+        nonJvmCommonMain {
             dependsOn(commonMain)
             dependencies {
                 implementation(libs.atomicFu)
@@ -96,7 +96,7 @@ kotlin {
         targets.all { target ->
             if (target.platformType !in [KotlinPlatformType.jvm, KotlinPlatformType.common]) {
                 target.compilations["main"].defaultSourceSet {
-                    dependsOn(nonJvmMain)
+                    dependsOn(nonJvmCommonMain)
                 }
             }
         }

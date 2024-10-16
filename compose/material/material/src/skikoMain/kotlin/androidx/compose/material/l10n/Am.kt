@@ -28,4 +28,5 @@ internal fun Translations.am() = mapOf(
     Strings.DefaultErrorMessage to "ልክ ያልሆነ ግቤት",
     Strings.SliderRangeStart to "የክልል መጀመሪያ",
     Strings.SliderRangeEnd to "የክልል መጨረሻ",
+    Strings.SnackbarPaneTitle to "ማንቂያ",
 )

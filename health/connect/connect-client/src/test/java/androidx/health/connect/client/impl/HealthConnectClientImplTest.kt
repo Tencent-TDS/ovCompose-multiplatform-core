@@ -22,8 +22,12 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.os.Looper
+import android.os.RemoteException
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.changes.DeletionChange
 import androidx.health.connect.client.changes.UpsertionChange
+import androidx.health.connect.client.feature.ExperimentalFeatureAvailabilityApi
+import androidx.health.connect.client.feature.HealthConnectFeaturesApkImpl
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.permission.HealthPermission.Companion.getReadPermission
 import androidx.health.connect.client.permission.HealthPermission.Companion.getWritePermission
@@ -84,9 +88,11 @@ import org.junit.runner.RunWith
 import org.robolectric.Shadows
 
 private const val PROVIDER_PACKAGE_NAME = "com.google.fake.provider"
+private const val PROVIDER_ACTION = "FakeProvider"
 
 private val API_METHOD_LIST =
     listOf<suspend HealthConnectClientImpl.() -> Unit>(
+        { getGrantedPermissions() },
         { revokeAllPermissions() },
         { insertRecords(listOf()) },
         { updateRecords(listOf()) },
@@ -121,7 +127,10 @@ private val API_METHOD_LIST =
 
 @Suppress("GoodTime") // Safe to use in test setup
 @RunWith(AndroidJUnit4::class)
-@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+@OptIn(
+    kotlinx.coroutines.ExperimentalCoroutinesApi::class,
+    ExperimentalFeatureAvailabilityApi::class
+)
 class HealthConnectClientImplTest {
 
     private lateinit var healthConnectClient: HealthConnectClientImpl
@@ -130,22 +139,10 @@ class HealthConnectClientImplTest {
     @Before
     fun setup() {
         val clientConfig =
-            ClientConfiguration("FakeAHPProvider", PROVIDER_PACKAGE_NAME, "FakeProvider")
+            ClientConfiguration("FakeAHPProvider", PROVIDER_PACKAGE_NAME, PROVIDER_ACTION)
 
-        healthConnectClient =
-            HealthConnectClientImpl(
-                ServiceBackedHealthDataClient(
-                    ApplicationProvider.getApplicationContext(),
-                    clientConfig,
-                    ConnectionManager(
-                        ApplicationProvider.getApplicationContext(),
-                        Looper.getMainLooper()
-                    )
-                )
-            )
         fakeAhpServiceStub = FakeHealthDataService()
-
-        Shadows.shadowOf(ApplicationProvider.getApplicationContext<Context>() as Application)
+        Shadows.shadowOf(ApplicationProvider.getApplicationContext<Application>())
             .setComponentNameAndServiceForBindServiceForIntent(
                 Intent()
                     .setPackage(clientConfig.servicePackageName)
@@ -155,11 +152,45 @@ class HealthConnectClientImplTest {
             )
         installPackage(ApplicationProvider.getApplicationContext(), PROVIDER_PACKAGE_NAME, true)
         Intents.init()
+
+        healthConnectClient =
+            HealthConnectClientImpl(
+                delegate =
+                    ServiceBackedHealthDataClient(
+                        ApplicationProvider.getApplicationContext(),
+                        clientConfig,
+                        ConnectionManager(
+                            ApplicationProvider.getApplicationContext(),
+                            Looper.getMainLooper()
+                        )
+                    ),
+                features =
+                    HealthConnectFeaturesApkImpl(
+                        ApplicationProvider.getApplicationContext(),
+                        PROVIDER_PACKAGE_NAME
+                    )
+            )
     }
 
     @After
     fun teardown() {
         Intents.release()
+    }
+
+    @Test
+    fun allFeatures_defaultVersion_unavailable() {
+        val features =
+            listOf(
+                HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND,
+                HealthConnectFeatures.FEATURE_HEALTH_DATA_HISTORIC_READ,
+                HealthConnectFeatures.FEATURE_SKIN_TEMPERATURE,
+                HealthConnectFeatures.FEATURE_PLANNED_EXERCISE
+            )
+
+        for (feature in features) {
+            assertThat(healthConnectClient.features.getFeatureStatus(feature))
+                .isEqualTo(HealthConnectFeatures.FEATURE_STATUS_UNAVAILABLE)
+        }
     }
 
     @Test
@@ -178,6 +209,27 @@ class HealthConnectClientImplTest {
                 response.await()
             }
         }
+    }
+
+    @Test
+    fun apiMethods_bindingFails_throwsRemoteException() = runTest {
+        Shadows.shadowOf(ApplicationProvider.getApplicationContext<Application>())
+            .declareActionUnbindable(PROVIDER_ACTION)
+
+        val responseList = mutableListOf<Deferred<Any>>()
+        for (method in API_METHOD_LIST) {
+            responseList.add(
+                async {
+                    val e = assertFailsWith(RemoteException::class) { healthConnectClient.method() }
+                    // Assert that we've wrapped the exception to expose a useful stack.
+                    assertThat(e.stackTrace.map { it.className }.toSet())
+                        .contains(HealthConnectClientImpl::class.qualifiedName)
+                }
+            )
+        }
+        advanceUntilIdle()
+        waitForMainLooperIdle()
+        responseList.map { it.await() }
     }
 
     @Test
@@ -789,7 +841,7 @@ class HealthConnectClientImplTest {
         val packageInfo = PackageInfo()
         packageInfo.packageName = packageName
         packageInfo.applicationInfo = ApplicationInfo()
-        packageInfo.applicationInfo.enabled = enabled
+        packageInfo.applicationInfo!!.enabled = enabled
         val packageManager = context.packageManager
         Shadows.shadowOf(packageManager).installPackage(packageInfo)
     }

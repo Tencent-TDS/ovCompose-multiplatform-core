@@ -19,12 +19,13 @@ package androidx.camera.lifecycle;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraEffect;
 import androidx.camera.core.UseCase;
 import androidx.camera.core.ViewPort;
 import androidx.camera.core.concurrent.CameraCoordinator;
 import androidx.camera.core.impl.CameraInternal;
+import androidx.camera.core.impl.RestrictedCameraInfo;
 import androidx.camera.core.internal.CameraUseCaseAdapter;
 import androidx.core.util.Preconditions;
 import androidx.lifecycle.Lifecycle;
@@ -68,8 +69,11 @@ import java.util.Set;
  * When it is released, all UseCases bound to the LifecycleCamera will be unbound and the
  * LifecycleCamera will be released.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 final class LifecycleCameraRepository {
+    private static final Object INSTANCE_LOCK = new Object();
+    @GuardedBy("INSTANCE_LOCK")
+    private static LifecycleCameraRepository sInstance = null;
+
     private final Object mLock = new Object();
 
     @GuardedBy("mLock")
@@ -84,6 +88,22 @@ final class LifecycleCameraRepository {
 
     @GuardedBy("mLock")
     @Nullable CameraCoordinator mCameraCoordinator;
+
+    @VisibleForTesting
+    LifecycleCameraRepository() {
+        // LifecycleCameraRepository is designed to be used as a singleton and the constructor
+        // should only be called for testing purpose.
+    }
+
+    @NonNull
+    static LifecycleCameraRepository getInstance() {
+        synchronized (INSTANCE_LOCK) {
+            if (sInstance == null) {
+                sInstance = new LifecycleCameraRepository();
+            }
+            return sInstance;
+        }
+    }
 
     /**
      * Create a new {@link LifecycleCamera} associated with the given {@link LifecycleOwner}.
@@ -107,11 +127,6 @@ final class LifecycleCameraRepository {
             Preconditions.checkArgument(mCameraMap.get(key) == null, "LifecycleCamera already "
                     + "exists for the given LifecycleOwner and set of cameras");
 
-            if (lifecycleOwner.getLifecycle().getCurrentState() == State.DESTROYED) {
-                throw new IllegalArgumentException(
-                        "Trying to create LifecycleCamera with destroyed lifecycle.");
-            }
-
             // Need to add observer before creating LifecycleCamera to make sure
             // it can be stopped before the latest active one is started.'
             lifecycleCamera = new LifecycleCamera(lifecycleOwner, cameraUseCaseAdaptor);
@@ -119,6 +134,12 @@ final class LifecycleCameraRepository {
             if (cameraUseCaseAdaptor.getUseCases().isEmpty()) {
                 lifecycleCamera.suspend();
             }
+
+            // If the lifecycle is already DESTROYED, we don't need to register the camera.
+            if (lifecycleOwner.getLifecycle().getCurrentState() == State.DESTROYED) {
+                return lifecycleCamera;
+            }
+
             registerCamera(lifecycleCamera);
         }
         return lifecycleCamera;
@@ -132,7 +153,8 @@ final class LifecycleCameraRepository {
      */
     @Nullable
     LifecycleCamera getLifecycleCamera(LifecycleOwner lifecycleOwner,
-            CameraUseCaseAdapter.CameraId cameraId) {
+            @NonNull CameraUseCaseAdapter.CameraId cameraId
+    ) {
         synchronized (mLock) {
             return mCameraMap.get(Key.create(lifecycleOwner, cameraId));
         }
@@ -174,7 +196,10 @@ final class LifecycleCameraRepository {
         synchronized (mLock) {
             LifecycleOwner lifecycleOwner = lifecycleCamera.getLifecycleOwner();
             Key key = Key.create(lifecycleOwner,
-                    lifecycleCamera.getCameraUseCaseAdapter().getCameraId());
+                    CameraUseCaseAdapter.generateCameraId(
+                            (RestrictedCameraInfo) lifecycleCamera.getCameraInfo(),
+                            (RestrictedCameraInfo) lifecycleCamera.getSecondaryCameraInfo()));
+
             LifecycleCameraRepositoryObserver observer =
                     getLifecycleCameraRepositoryObserver(lifecycleOwner);
             Set<Key> lifecycleCameraKeySet;
@@ -277,6 +302,10 @@ final class LifecycleCameraRepository {
             // LifecycleOwner.
             LifecycleCameraRepositoryObserver observer =
                     getLifecycleCameraRepositoryObserver(lifecycleOwner);
+            if (observer == null) {
+                // LifecycleCamera is not registered due to lifecycle destroyed, simply do nothing.
+                return;
+            }
             Set<Key> lifecycleCameraKeySet = mLifecycleObserverMap.get(observer);
 
             // Bypass the use cases lifecycle owner validation when concurrent camera mode is on.
@@ -299,7 +328,7 @@ final class LifecycleCameraRepository {
                 lifecycleCamera.getCameraUseCaseAdapter().setEffects(effects);
                 lifecycleCamera.bind(useCases);
             } catch (CameraUseCaseAdapter.CameraException e) {
-                throw new IllegalArgumentException(e.getMessage());
+                throw new IllegalArgumentException(e);
             }
 
             // The target LifecycleCamera has use case bound. If the target LifecycleOwner has been
@@ -495,14 +524,15 @@ final class LifecycleCameraRepository {
     }
 
     /**
-     * A key for mapping a {@link LifecycleOwner} and set of {@link CameraInternal} to a
+     * A key for mapping a {@link LifecycleOwner} and a {@link CameraUseCaseAdapter.CameraId} to a
      * {@link LifecycleCamera}.
      */
     @AutoValue
     abstract static class Key {
         static Key create(@NonNull LifecycleOwner lifecycleOwner,
                 @NonNull CameraUseCaseAdapter.CameraId cameraId) {
-            return new AutoValue_LifecycleCameraRepository_Key(lifecycleOwner, cameraId);
+            return new AutoValue_LifecycleCameraRepository_Key(
+                    lifecycleOwner, cameraId);
         }
 
         @NonNull

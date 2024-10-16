@@ -62,6 +62,7 @@ private class AndroidGraphicsContext(private val ownerView: ViewGroup) : Graphic
                         // NO-OP
                     }
 
+                    @Suppress("OVERRIDE_DEPRECATION")
                     override fun onLowMemory() {
                         // NO-OP
                     }
@@ -207,9 +208,7 @@ private class AndroidGraphicsContext(private val ownerView: ViewGroup) : Graphic
 
     @RequiresApi(29)
     private object UniqueDrawingIdApi29 {
-        @JvmStatic
-        @androidx.annotation.DoNotInline
-        fun getUniqueDrawingId(view: View) = view.uniqueDrawingId
+        @JvmStatic fun getUniqueDrawingId(view: View) = view.uniqueDrawingId
     }
 }
 

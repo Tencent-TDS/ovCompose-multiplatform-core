@@ -23,7 +23,6 @@ plugins {
 android {
     defaultConfig {
         applicationId "androidx.camera.integration.antelope"
-        minSdkVersion 21
         versionCode 35
         versionName "1.35"
     }
@@ -66,8 +65,12 @@ dependencies {
     implementation(libs.kotlinStdlib)
     implementation(libs.kotlinCoroutinesAndroid)
 
+    // Align dependencies in debugRuntimeClasspath and debugAndroidTestRuntimeClasspath.
+    androidTestImplementation("androidx.annotation:annotation-experimental:1.4.1")
+
     // Testing framework
     androidTestImplementation(project(":concurrent:concurrent-futures"))
+    androidTestImplementation(project(":concurrent:concurrent-futures-ktx"))
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)

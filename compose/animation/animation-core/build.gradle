@@ -101,6 +101,14 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(project(":annotation:annotation"))
             }
 
+            commonTest {
+                dependencies {
+                    implementation(kotlin("test"))
+                    implementation(libs.kotlinCoroutinesTest)
+                    implementation(project(":kruth:kruth"))
+                }
+            }
+
             androidMain {
                 dependencies {
                     api("androidx.annotation:annotation:1.1.0")

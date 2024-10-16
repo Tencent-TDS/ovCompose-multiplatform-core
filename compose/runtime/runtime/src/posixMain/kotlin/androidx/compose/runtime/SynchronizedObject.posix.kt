@@ -16,11 +16,20 @@
 
 package androidx.compose.runtime
 
+import androidx.compose.runtime.internal.currentThreadId
 import kotlin.native.ref.createCleaner
+import kotlinx.atomicfu.AtomicInt
+import kotlinx.atomicfu.AtomicLong
+import kotlinx.atomicfu.atomic
 import kotlinx.cinterop.Arena
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.ptr
+import platform.posix.pthread_cond_destroy
+import platform.posix.pthread_cond_init
+import platform.posix.pthread_cond_signal
+import platform.posix.pthread_cond_t
+import platform.posix.pthread_cond_wait
 import platform.posix.pthread_mutex_destroy
 import platform.posix.pthread_mutex_init
 import platform.posix.pthread_mutex_lock
@@ -30,13 +39,6 @@ import platform.posix.pthread_mutexattr_destroy
 import platform.posix.pthread_mutexattr_init
 import platform.posix.pthread_mutexattr_settype
 import platform.posix.pthread_mutexattr_t
-import kotlinx.atomicfu.*
-import kotlinx.atomicfu.AtomicInt
-import platform.posix.pthread_cond_destroy
-import platform.posix.pthread_cond_init
-import platform.posix.pthread_cond_signal
-import platform.posix.pthread_cond_t
-import platform.posix.pthread_cond_wait
 
 /**
  * Wrapper for `platform.posix.PTHREAD_MUTEX_ERRORCHECK` which is represented as `kotlin.Int` on darwin

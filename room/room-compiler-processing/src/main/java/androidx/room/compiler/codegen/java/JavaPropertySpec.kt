@@ -21,15 +21,11 @@ import androidx.room.compiler.codegen.XCodeBlock
 import androidx.room.compiler.codegen.XPropertySpec
 import com.squareup.javapoet.FieldSpec
 
-internal class JavaPropertySpec(
-    override val name: String,
-    internal val actual: FieldSpec
-) : JavaLang(), XPropertySpec {
+internal class JavaPropertySpec(override val name: String, internal val actual: FieldSpec) :
+    JavaLang(), XPropertySpec {
 
-    internal class Builder(
-        private val name: String,
-        internal val actual: FieldSpec.Builder
-    ) : JavaLang(), XPropertySpec.Builder {
+    internal class Builder(private val name: String, internal val actual: FieldSpec.Builder) :
+        JavaLang(), XPropertySpec.Builder {
 
         override fun addAnnotation(annotation: XAnnotationSpec) = apply {
             require(annotation is JavaAnnotationSpec)
@@ -39,6 +35,11 @@ internal class JavaPropertySpec(
         override fun initializer(initExpr: XCodeBlock) = apply {
             require(initExpr is JavaCodeBlock)
             actual.initializer(initExpr.actual)
+        }
+
+        override fun getter(code: XCodeBlock) = apply {
+            require(code is JavaCodeBlock)
+            error("Adding a property getter when code language is Java is not supported.")
         }
 
         override fun build(): XPropertySpec {

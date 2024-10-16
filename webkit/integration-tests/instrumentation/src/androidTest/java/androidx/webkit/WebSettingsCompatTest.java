@@ -16,15 +16,17 @@
 
 package androidx.webkit;
 
+import static androidx.webkit.WebViewMediaIntegrityApiStatusConfig.WEBVIEW_MEDIA_INTEGRITY_API_DISABLED;
+import static androidx.webkit.WebViewMediaIntegrityApiStatusConfig.WEBVIEW_MEDIA_INTEGRITY_API_ENABLED;
+import static androidx.webkit.WebViewMediaIntegrityApiStatusConfig.WEBVIEW_MEDIA_INTEGRITY_API_ENABLED_WITHOUT_APP_IDENTITY;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import android.os.Build;
 import android.webkit.WebSettings;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
 
 import org.junit.After;
@@ -44,7 +46,6 @@ import okhttp3.mockwebserver.RecordedRequest;
 
 @SmallTest
 @RunWith(AndroidJUnit4.class)
-@SdkSuppress(minSdkVersion = Build.VERSION_CODES.LOLLIPOP)
 public class WebSettingsCompatTest {
     public static final String TEST_APK_NAME = "androidx.webkit.instrumentation.test";
     WebViewOnUiThread mWebViewOnUiThread;
@@ -194,4 +195,148 @@ public class WebSettingsCompatTest {
 
     }
 
+    @Test
+    public void testWebViewMediaIntegrityApiDefaultStatus() throws Throwable {
+        WebkitUtils.checkFeature(WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+        Assert.assertEquals(WEBVIEW_MEDIA_INTEGRITY_API_ENABLED,
+                WebSettingsCompat.getWebViewMediaIntegrityApiStatus(settings).getDefaultStatus());
+        Assert.assertTrue(
+                WebSettingsCompat.getWebViewMediaIntegrityApiStatus(settings)
+                        .getOverrideRules().isEmpty());
+    }
+
+    @Test
+    public void testSetWebViewMediaIntegrityApiWithNoRules() throws Throwable {
+        WebkitUtils.checkFeature(WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+
+        WebViewMediaIntegrityApiStatusConfig config =
+                new WebViewMediaIntegrityApiStatusConfig.Builder(
+                        WEBVIEW_MEDIA_INTEGRITY_API_DISABLED)
+                        .build();
+        WebSettingsCompat.setWebViewMediaIntegrityApiStatus(settings, config);
+        Assert.assertEquals(
+                WEBVIEW_MEDIA_INTEGRITY_API_DISABLED,
+                WebSettingsCompat.getWebViewMediaIntegrityApiStatus(settings)
+                        .getDefaultStatus());
+        Assert.assertTrue(
+                WebSettingsCompat.getWebViewMediaIntegrityApiStatus(settings)
+                        .getOverrideRules().isEmpty());
+    }
+
+    @Test
+    public void testSetWebViewMediaIntegrityApiWithRules() throws Throwable {
+        WebkitUtils.checkFeature(WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+
+        WebViewMediaIntegrityApiStatusConfig config =
+                new WebViewMediaIntegrityApiStatusConfig.Builder(
+                        WEBVIEW_MEDIA_INTEGRITY_API_ENABLED_WITHOUT_APP_IDENTITY)
+                        .addOverrideRule("http://*.example.com",
+                                WEBVIEW_MEDIA_INTEGRITY_API_ENABLED)
+                        .build();
+        WebSettingsCompat.setWebViewMediaIntegrityApiStatus(settings, config);
+        Assert.assertEquals(
+                WEBVIEW_MEDIA_INTEGRITY_API_ENABLED_WITHOUT_APP_IDENTITY,
+                WebSettingsCompat.getWebViewMediaIntegrityApiStatus(settings).getDefaultStatus());
+        Assert.assertEquals(1,
+                WebSettingsCompat.getWebViewMediaIntegrityApiStatus(settings)
+                        .getOverrideRules().size());
+    }
+
+    @Test
+    public void testSetWebViewMediaIntegrityApiWithInvalidStatus() throws Throwable {
+        WebkitUtils.checkFeature(WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+        int invalidStatus = 15;
+
+        WebViewMediaIntegrityApiStatusConfig config =
+                new WebViewMediaIntegrityApiStatusConfig.Builder(invalidStatus).build();
+        Assert.assertThrows(
+                IllegalArgumentException.class,
+                () -> WebSettingsCompat.setWebViewMediaIntegrityApiStatus(settings, config));
+        Assert.assertTrue(
+                WebSettingsCompat.getWebViewMediaIntegrityApiStatus(settings)
+                        .getOverrideRules().isEmpty());
+    }
+
+    @Test
+    public void testSetWebViewMediaIntegrityApiWithInvalidRules() throws Throwable {
+        WebkitUtils.checkFeature(WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+        String validRule = "http://*.example.com";
+        String invalidRule1 = "http://xyz.*.com";
+        String invalidRule2 = "customscheme://xyz";
+
+        WebViewMediaIntegrityApiStatusConfig config =
+                new WebViewMediaIntegrityApiStatusConfig
+                        .Builder(WEBVIEW_MEDIA_INTEGRITY_API_DISABLED)
+                        .addOverrideRule(validRule, WEBVIEW_MEDIA_INTEGRITY_API_ENABLED)
+                        .addOverrideRule(invalidRule1, WEBVIEW_MEDIA_INTEGRITY_API_ENABLED)
+                        .addOverrideRule(invalidRule2, WEBVIEW_MEDIA_INTEGRITY_API_ENABLED)
+                        .build();
+        Exception error = Assert.assertThrows(
+                IllegalArgumentException.class,
+                () -> WebSettingsCompat.setWebViewMediaIntegrityApiStatus(settings, config));
+        Assert.assertTrue(error.getMessage().contains(invalidRule1));
+        Assert.assertTrue(error.getMessage().contains(invalidRule2));
+        Assert.assertTrue(
+                WebSettingsCompat.getWebViewMediaIntegrityApiStatus(settings)
+                        .getOverrideRules().isEmpty());
+    }
+
+    @Test
+    public void testWebauthnSupport() throws Throwable {
+        WebkitUtils.checkFeature(WebViewFeature.WEB_AUTHENTICATION);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+        mWebViewOnUiThread.setCleanupTask(
+                () -> WebSettingsCompat.setWebAuthenticationSupport(settings,
+                        WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_NONE));
+
+        Assert.assertEquals("NONE is the expected default",
+                WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_NONE,
+                WebSettingsCompat.getWebAuthenticationSupport(settings));
+
+        WebSettingsCompat.setWebAuthenticationSupport(settings,
+                WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP);
+        Assert.assertEquals(WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP,
+                WebSettingsCompat.getWebAuthenticationSupport(settings));
+
+        WebSettingsCompat.setWebAuthenticationSupport(settings,
+                WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER);
+        Assert.assertEquals(WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER,
+                WebSettingsCompat.getWebAuthenticationSupport(settings));
+    }
+
+    @Test
+    public void testSpeculativeLoading() {
+        WebkitUtils.checkFeature(WebViewFeature.SPECULATIVE_LOADING);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+        mWebViewOnUiThread.setCleanupTask(
+                () -> WebSettingsCompat.setSpeculativeLoadingStatus(settings,
+                        WebSettingsCompat.SPECULATIVE_LOADING_DISABLED));
+
+        Assert.assertEquals("DISABLED should be the default",
+                WebSettingsCompat.SPECULATIVE_LOADING_DISABLED,
+                WebSettingsCompat.getSpeculativeLoadingStatus(settings));
+
+        WebSettingsCompat.setSpeculativeLoadingStatus(settings,
+                WebSettingsCompat.SPECULATIVE_LOADING_PRERENDER_ENABLED);
+        Assert.assertEquals(WebSettingsCompat.SPECULATIVE_LOADING_PRERENDER_ENABLED,
+                WebSettingsCompat.getSpeculativeLoadingStatus(settings));
+
+    }
+
+    @Test
+    public void testBFCache() {
+        WebkitUtils.checkFeature(WebViewFeature.BACK_FORWARD_CACHE);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+
+        assertFalse("disabled should be the default",
+                WebSettingsCompat.getBackForwardCacheEnabled(settings));
+
+        WebSettingsCompat.setBackForwardCacheEnabled(settings, true);
+        Assert.assertTrue(WebSettingsCompat.getBackForwardCacheEnabled(settings));
+    }
 }

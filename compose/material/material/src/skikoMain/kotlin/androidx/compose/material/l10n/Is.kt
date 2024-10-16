@@ -28,4 +28,5 @@ internal fun Translations.`is`() = mapOf(
     Strings.DefaultErrorMessage to "Ógildur innsláttur",
     Strings.SliderRangeStart to "Upphaf sviðs",
     Strings.SliderRangeEnd to "Lok sviðs",
+    Strings.SnackbarPaneTitle to "Viðvörun",
 )

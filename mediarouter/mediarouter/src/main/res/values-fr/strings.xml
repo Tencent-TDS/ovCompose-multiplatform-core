@@ -33,7 +33,7 @@
     <string name="mr_controller_stop" msgid="5497722768305745508">"Arrêt"</string>
     <string name="mr_controller_expand_group" msgid="4521419834052044261">"Développer"</string>
     <string name="mr_controller_collapse_group" msgid="2585048604188129749">"Réduire"</string>
-    <string name="mr_controller_album_art" msgid="3330502667672708728">"Image de l\'album"</string>
+    <string name="mr_controller_album_art" msgid="3330502667672708728">"Pochette de l\'album"</string>
     <string name="mr_controller_volume_slider" msgid="2955862765169128170">"Curseur de volume"</string>
     <string name="mr_controller_no_media_selected" msgid="5495452265246139458">"Aucun contenu multimédia sélectionné"</string>
     <string name="mr_controller_no_info_available" msgid="855271725131981086">"Aucune information disponible"</string>
@@ -51,4 +51,8 @@
     <string name="mr_chooser_wifi_warning_description_unknown" msgid="3459891599800041449">"Assurez-vous que l\'autre appareil est connecté au même réseau Wi-Fi que cet appareil"</string>
     <string name="mr_chooser_wifi_learn_more" msgid="3799500840179081429"><a href="https://support.google.com/chromecast/?p=trouble-finding-devices">"En savoir plus"</a></string>
     <string name="ic_media_route_learn_more_accessibility" msgid="9119039724000326934">"Découvrez comment caster"</string>
+    <string name="mr_route_name_unknown" msgid="5538521943939635302">"Inconnu"</string>
+    <string name="mr_route_name_bluetooth" msgid="5056346328175584455">"Bluetooth"</string>
+    <string name="mr_route_name_tv" msgid="8041420425123528188">"TV"</string>
+    <string name="mr_route_name_speaker" msgid="708574147123374685">"Enceinte"</string>
 </resources>

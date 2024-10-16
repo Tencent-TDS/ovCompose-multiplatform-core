@@ -34,9 +34,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.platform.AccessibilityDebugLogger
 import androidx.compose.ui.platform.AccessibilitySyncOptions
+import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeUIViewController
 import androidx.compose.ui.window.Dialog

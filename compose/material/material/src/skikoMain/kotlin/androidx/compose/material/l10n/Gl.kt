@@ -28,4 +28,5 @@ internal fun Translations.gl() = mapOf(
     Strings.DefaultErrorMessage to "O texto escrito non é válido",
     Strings.SliderRangeStart to "Inicio do intervalo",
     Strings.SliderRangeEnd to "Fin do intervalo",
+    Strings.SnackbarPaneTitle to "Alerta",
 )

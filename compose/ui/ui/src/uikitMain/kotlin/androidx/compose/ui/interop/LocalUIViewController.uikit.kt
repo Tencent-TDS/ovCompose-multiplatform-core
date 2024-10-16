@@ -16,15 +16,17 @@
 
 package androidx.compose.ui.interop
 
-import androidx.compose.runtime.staticCompositionLocalOf
-import platform.UIKit.UIViewController
-
 /**
- * public value to get UIViewController of Compose window for library authors.
+ * Public value to get UIViewController of Compose window for library authors.
  * Maybe useful for features, like VideoPlayer and Bottom menus.
- * Please use it careful and don't remove another views.
+ * Please use it carefully and don't add or remove other views - check
+ * [androidx.compose.ui.interop.UIKitView] for those purposes.
  */
-// TODO: Move to androidx.compose.ui.uikit
-val LocalUIViewController = staticCompositionLocalOf<UIViewController> {
-    error("CompositionLocal UIViewController not provided")
-}
+@Deprecated(
+    message = "LocalUIViewController was moved to androidx.compose.ui.uikit",
+    replaceWith = ReplaceWith(
+        expression = "LocalUIViewController",
+        imports = arrayOf("androidx.compose.ui.uikit.LocalUIViewController")
+    )
+)
+val LocalUIViewController get() = androidx.compose.ui.uikit.LocalUIViewController

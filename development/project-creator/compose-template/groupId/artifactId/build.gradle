@@ -14,6 +14,14 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 
@@ -25,17 +33,16 @@ plugins {
 
 androidXMultiplatform {
     android()
-    desktop()
+    jvmStubs()
+    linuxX64Stubs()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
             }
-        }
-        androidMain.dependencies {
         }
 
         commonTest {
@@ -53,18 +60,10 @@ androidXMultiplatform {
             }
         }
 
-
         androidMain {
             dependsOn(jvmMain)
             dependencies {
                 api("androidx.annotation:annotation:1.1.0")
-            }
-        }
-
-        desktopMain {
-            dependsOn(jvmMain)
-            dependencies {
-                implementation(libs.kotlinStdlib)
             }
         }
 
@@ -84,10 +83,16 @@ androidXMultiplatform {
             }
         }
 
-        desktopTest {
-            dependsOn(jvmTest)
-            dependencies {
-            }
+        commonStubsMain {
+            dependsOn(commonMain)
+        }
+
+        jvmStubsMain {
+            dependsOn(commonStubsMain)
+        }
+
+        linuxx64StubsMain {
+            dependsOn(commonStubsMain)
         }
     }
 }

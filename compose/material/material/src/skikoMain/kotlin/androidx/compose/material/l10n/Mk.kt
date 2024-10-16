@@ -28,4 +28,5 @@ internal fun Translations.mk() = mapOf(
     Strings.DefaultErrorMessage to "Неважечки запис",
     Strings.SliderRangeStart to "Почеток на опсегот",
     Strings.SliderRangeEnd to "Крај на опсегот",
+    Strings.SnackbarPaneTitle to "Предупредување",
 )

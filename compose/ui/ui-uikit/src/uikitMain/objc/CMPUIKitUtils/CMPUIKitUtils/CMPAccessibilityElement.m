@@ -52,7 +52,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (__nullable id)resolveAccessibilityContainer {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 + (__nullable id)accessibilityContainerOfObject:(id)object {
@@ -61,43 +61,43 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (UIAccessibilityTraits)accessibilityTraits {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (NSString *__nullable)accessibilityIdentifier {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (NSString *__nullable)accessibilityHint {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (NSString *__nullable)accessibilityLabel {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (NSString *__nullable)accessibilityValue {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (CGRect)accessibilityFrame {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)isAccessibilityElement {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)accessibilityActivate {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)accessibilityPerformEscape {
@@ -105,11 +105,11 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (BOOL)accessibilityScrollToVisible {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (BOOL)accessibilityScrollToVisibleWithChild:(id)child {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    CMP_ABSTRACT_FUNCTION_CALLED
 }
 
 - (void)accessibilityElementDidBecomeFocused {

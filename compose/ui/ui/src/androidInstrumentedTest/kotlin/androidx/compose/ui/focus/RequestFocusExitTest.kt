@@ -17,7 +17,6 @@
 package androidx.compose.ui.focus
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,12 +26,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@OptIn(ExperimentalComposeUiApi::class)
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 class RequestFocusExitTest {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     @Test
     fun redirectingFocusExitFromChild1ToChild2_focusExitIsCalled() {
@@ -41,14 +38,9 @@ class RequestFocusExitTest {
         var exitCount = 0
         rule.setFocusableContent {
             Box(Modifier.focusTarget()) {
+                Box(Modifier.focusRequester(destination).focusTarget())
                 Box(
-                    Modifier
-                        .focusRequester(destination)
-                        .focusTarget()
-                )
-                Box(
-                    Modifier
-                        .focusProperties {
+                    Modifier.focusProperties {
                             exit = {
                                 exitCount++
                                 child2
@@ -56,16 +48,8 @@ class RequestFocusExitTest {
                         }
                         .focusTarget()
                 ) {
-                    Box(
-                        Modifier
-                            .focusRequester(child1)
-                            .focusTarget()
-                    )
-                    Box(
-                        Modifier
-                            .focusRequester(child2)
-                            .focusTarget()
-                    )
+                    Box(Modifier.focusRequester(child1).focusTarget())
+                    Box(Modifier.focusRequester(child2).focusTarget())
                 }
             }
         }

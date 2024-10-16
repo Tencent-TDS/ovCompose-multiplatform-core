@@ -30,10 +30,10 @@ internal value class Strings private constructor(@Suppress("unused") private val
         val ExposedDropdownMenu = Strings(4)
         val SliderRangeStart = Strings(5)
         val SliderRangeEnd = Strings(6)
+        val SnackbarPaneTitle = Strings(7)
         // When adding values here, make sure to also add them in material/build.gradle,
         // updateTranslations task (stringByResourceName parameter), and re-run the task
     }
 }
 
-@Composable
-internal expect fun getString(string: Strings): String
+@Composable internal expect fun getString(string: Strings): String

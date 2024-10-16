@@ -28,4 +28,5 @@ internal fun Translations.ne() = mapOf(
     Strings.DefaultErrorMessage to "अवैद्य इन्पुट",
     Strings.SliderRangeStart to "दायराको सुरुवात बिन्दु",
     Strings.SliderRangeEnd to "दायराको अन्तिम बिन्दु",
+    Strings.SnackbarPaneTitle to "अलर्ट",
 )

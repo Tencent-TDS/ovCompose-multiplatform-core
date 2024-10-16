@@ -33,6 +33,7 @@ internal fun Translations.te() = mapOf(
     Strings.MenuCollapsed to "కుదించబడింది",
     Strings.ToggleDropdownMenu to "డ్రాప్‌డౌన్ మెనూను టోగుల్ చేయండి",
     Strings.SnackbarDismiss to "విస్మరించండి",
+    Strings.SnackbarPaneTitle to "హెచ్చరిక",
     Strings.SearchBarSearch to "సెర్చ్ చేయండి",
     Strings.SuggestionsAvailable to "సూచనలు దిగువున ఉన్నాయి",
     Strings.DatePickerTitle to "తేదీని ఎంచుకోండి",
@@ -85,4 +86,6 @@ internal fun Translations.te() = mapOf(
     Strings.TimePickerHour to "గంట",
     Strings.TimePickerMinuteTextField to "నిమిషాలను ఎంచుకోవడం కోసం",
     Strings.TimePickerHourTextField to "గంటలను ఎంచుకోవడం కోసం",
+    Strings.CloseRail to "రైలును మూసివేయండి",
+    Strings.WideNavigationRailPaneTitle to "నావిగేషన్ రైలు",
 )

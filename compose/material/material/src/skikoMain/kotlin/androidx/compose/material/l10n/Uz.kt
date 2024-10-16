@@ -28,4 +28,5 @@ internal fun Translations.uz() = mapOf(
     Strings.DefaultErrorMessage to "Kiritilgan axborot xato",
     Strings.SliderRangeStart to "Oraliq boshi",
     Strings.SliderRangeEnd to "Oraliq oxiri",
+    Strings.SnackbarPaneTitle to "Signal",
 )

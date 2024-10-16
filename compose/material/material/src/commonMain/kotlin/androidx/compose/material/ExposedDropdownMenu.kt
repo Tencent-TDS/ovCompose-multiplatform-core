@@ -25,16 +25,13 @@ import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.internal.JvmDefaultWithCompatibility
+import androidx.compose.material.internal.Icons
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -120,27 +117,6 @@ internal expect fun ExposedDropdownMenuBoxScope.ExposedDropdownMenuDefaultImpl(
     scrollState: ScrollState = rememberScrollState(),
     content: @Composable ColumnScope.() -> Unit
 )
-
-internal fun Modifier.expandable(onExpandedChange: () -> Unit, menuLabel: String) =
-    pointerInput(onExpandedChange) {
-        awaitEachGesture {
-            // Must be PointerEventPass.Initial to observe events before the text field consumes
-            // them
-            // in the Main pass
-            awaitFirstDown(pass = PointerEventPass.Initial)
-            val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
-            if (upEvent != null) {
-                onExpandedChange()
-            }
-        }
-    }
-        .semantics {
-            contentDescription = menuLabel // this should be a localised string
-            onClick {
-                onExpandedChange()
-                true
-            }
-        }
 
 /** Contains default values used by Exposed Dropdown Menu. */
 @ExperimentalMaterialApi
@@ -361,6 +337,27 @@ object ExposedDropdownMenuDefaults {
             disabledPlaceholderColor = disabledPlaceholderColor
         )
 }
+
+internal fun Modifier.expandable(onExpandedChange: () -> Unit, menuLabel: String) =
+    pointerInput(onExpandedChange) {
+        awaitEachGesture {
+            // Must be PointerEventPass.Initial to observe events before the text field consumes
+            // them
+            // in the Main pass
+            awaitFirstDown(pass = PointerEventPass.Initial)
+            val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+            if (upEvent != null) {
+                onExpandedChange()
+            }
+        }
+    }
+        .semantics {
+            contentDescription = menuLabel // this should be a localised string
+            onClick {
+                onExpandedChange()
+                true
+            }
+        }
 
 @OptIn(ExperimentalMaterialApi::class)
 @Immutable

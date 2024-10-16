@@ -16,7 +16,6 @@
 
 package androidx.appcompat.app
 
-import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
 import androidx.appcompat.app.NightModeCustomApplyOverrideConfigurationActivity.CUSTOM_FONT_SCALE
 import androidx.appcompat.app.NightModeCustomApplyOverrideConfigurationActivity.CUSTOM_LOCALE
@@ -40,9 +39,8 @@ import org.junit.runners.Parameterized
 class NightModeCustomApplyOverrideConfigurationTestCase(private val setMode: NightSetMode) {
 
     @get:Rule
-    val activityRule = NightModeActivityTestRule(
-        NightModeCustomApplyOverrideConfigurationActivity::class.java
-    )
+    val activityRule =
+        NightModeActivityTestRule(NightModeCustomApplyOverrideConfigurationActivity::class.java)
 
     @Test
     @Suppress("DEPRECATION")
@@ -83,10 +81,6 @@ class NightModeCustomApplyOverrideConfigurationTestCase(private val setMode: Nig
     companion object {
         @JvmStatic
         @Parameterized.Parameters
-        fun data() = if (Build.VERSION.SDK_INT >= 17) {
-            listOf(NightSetMode.DEFAULT, NightSetMode.LOCAL)
-        } else {
-            listOf(NightSetMode.DEFAULT)
-        }
+        fun data() = listOf(NightSetMode.DEFAULT, NightSetMode.LOCAL)
     }
 }

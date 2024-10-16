@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
 
 plugins {
@@ -23,10 +30,6 @@ plugins {
 }
 
 android {
-    defaultConfig {
-        minSdkVersion 21
-        testInstrumentationRunner("androidx.test.runner.AndroidJUnitRunner")
-    }
     namespace "androidx.core.splashscreen"
 }
 
@@ -42,8 +45,6 @@ dependencies {
     androidTestImplementation(libs.truth)
     androidTestImplementation(projectOrArtifact(":appcompat:appcompat"))
     androidTestImplementation(project(":test:screenshot:screenshot"))
-
-    samples("androidx.core.core-splashscreen:core-splashscreen-samples:1.0.0-rc01")
 }
 
 androidx {
@@ -54,4 +55,5 @@ androidx {
     description = "This library provides the compatibility APIs for SplashScreen " +
             "and helper method to enable a splashscreen on devices prior Android 12"
     metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

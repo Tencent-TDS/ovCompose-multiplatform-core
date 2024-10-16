@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 
-import androidx.build.KmpPlatformsKt
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
     id("AndroidXPlugin")
 }
-
-def enableNative = KmpPlatformsKt.enableNative(project)
 
 androidXMultiplatform {
     jvm()
@@ -36,7 +39,7 @@ androidXMultiplatform {
     defaultPlatform(PlatformIdentifier.JVM)
 
     sourceSets {
-        all {
+        configureEach {
             languageSettings.optIn("kotlin.RequiresOptIn")
         }
 
@@ -60,29 +63,28 @@ androidXMultiplatform {
                 api(libs.kotlinTestCommon)
                 api(libs.kotlinTestAnnotationsCommon)
                 api(libs.kotlinCoroutinesTest)
-                api(project(":internal-testutils-datastore"))
-                api(project(":kruth:kruth"))
+                implementation(project(":internal-testutils-datastore"))
             }
         }
         jvmTest {
+            dependsOn(commonTest)
             dependencies {
                 implementation(libs.kotlinCoroutinesTest)
                 implementation(libs.kotlinTest)
                 implementation(libs.kotlinTestAnnotationsCommon)
-                api(project(":internal-testutils-datastore"))
+                implementation(project(":internal-testutils-datastore"))
                 api(project(":kruth:kruth"))
             }
         }
 
-        if (enableNative) {
-            nativeMain {
-                dependencies {
-                    implementation(libs.atomicFu)
-                }
+        nativeMain {
+            dependsOn(commonMain)
+            dependencies {
+                implementation(libs.atomicFu)
             }
         }
 
-        targets.all { target ->
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     dependsOn(nativeMain)

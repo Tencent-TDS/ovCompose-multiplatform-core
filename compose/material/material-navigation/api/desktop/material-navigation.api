@@ -18,6 +18,13 @@ public final class androidx/compose/material/navigation/BottomSheetNavigator$Des
 	public fun <init> (Landroidx/compose/material/navigation/BottomSheetNavigator;Lkotlin/jvm/functions/Function4;)V
 }
 
+public final class androidx/compose/material/navigation/BottomSheetNavigatorDestinationBuilder : androidx/navigation/NavDestinationBuilder {
+	public static final field $stable I
+	public fun <init> (Landroidx/compose/material/navigation/BottomSheetNavigator;Ljava/lang/String;Lkotlin/jvm/functions/Function4;)V
+	public fun <init> (Landroidx/compose/material/navigation/BottomSheetNavigator;Lkotlin/reflect/KClass;Ljava/util/Map;Lkotlin/jvm/functions/Function4;)V
+	public synthetic fun instantiateDestination ()Landroidx/navigation/NavDestination;
+}
+
 public final class androidx/compose/material/navigation/BottomSheetNavigatorKt {
 	public static final fun rememberBottomSheetNavigator (Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/runtime/Composer;II)Landroidx/compose/material/navigation/BottomSheetNavigator;
 }

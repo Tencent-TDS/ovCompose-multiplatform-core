@@ -33,6 +33,7 @@ internal fun Translations.bs() = mapOf(
     Strings.MenuCollapsed to "Suženo",
     Strings.ToggleDropdownMenu to "Uključivanje/isključivanje padajućeg menija",
     Strings.SnackbarDismiss to "Odbacivanje",
+    Strings.SnackbarPaneTitle to "Obavještenje",
     Strings.SearchBarSearch to "Pretraživanje",
     Strings.SuggestionsAvailable to "Prijedlozi su u nastavku",
     Strings.DatePickerTitle to "Odabir datuma",
@@ -85,4 +86,6 @@ internal fun Translations.bs() = mapOf(
     Strings.TimePickerHour to "Sat",
     Strings.TimePickerMinuteTextField to "za minute",
     Strings.TimePickerHourTextField to "za sat",
+    Strings.CloseRail to "Zatvaranje trake",
+    Strings.WideNavigationRailPaneTitle to "Traka za navigaciju",
 )
