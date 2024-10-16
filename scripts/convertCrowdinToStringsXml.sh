@@ -57,6 +57,7 @@ alias_name() {
         "pa-rIN") echo "pa" ;;
         "si-rLK") echo "si" ;;
         "ur-rPK") echo "ur" ;;
+        "val") echo "ca-rES" ;;
         *) echo "" ;;
     esac
 }
