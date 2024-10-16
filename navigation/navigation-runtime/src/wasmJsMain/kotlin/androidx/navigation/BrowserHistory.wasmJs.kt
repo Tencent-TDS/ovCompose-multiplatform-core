@@ -26,7 +26,17 @@ import org.w3c.dom.Window
  *  2) if a user puts a new destination route to the browser address field then navigates to the new destination
  *
  * If there is a custom `getBackStackEntryRoute` implementation,
- * then we don't have a knowledge how to parse urls to support direct navigation via browser address input
+ * then we don't have a knowledge how to parse urls to support direct navigation via browser address input.
+ * In that case, it should be done on the app's side:
+ * ```
+ * window.addEventListener("popstate") { event ->
+ *     event as PopStateEvent
+ *     if (event.state == null) { // empty state means manually entered address
+ *         val url = window.location.toString()
+ *         navController.navigate(...)
+ *     }
+ * }
+ * ```
  *
  * @param navController The [NavController] instance to bind to browser window navigation.
  * @param getBackStackEntryRoute An optional function that returns the route to show for a given [NavBackStackEntry].
