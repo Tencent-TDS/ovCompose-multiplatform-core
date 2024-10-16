@@ -99,7 +99,8 @@ val libraryToComponents = mapOf(
     "GRAPHICS_SHAPES" to listOf(
         ComposeComponent(
             path = ":graphics:graphics-shapes",
-            supportedPlatforms = ComposePlatforms.ALL_AOSP
+            // TODO: Maybe it makes sense to support mingwX64 here for consistency
+            supportedPlatforms = ComposePlatforms.ALL_AOSP - ComposePlatforms.WINDOWS_NATIVE
         ),
     ),
     "LIFECYCLE" to listOf(
