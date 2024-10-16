@@ -58,7 +58,7 @@ alias_name() {
         "si-rLK") echo "si" ;;
         "ur-rPK") echo "ur" ;;
         "val") echo "ca-rES" ;;
-        *) echo "" ;;
+        *) echo $name ;;
     esac
 }
 
@@ -77,14 +77,9 @@ for locale_dir in "$crowding_res_path"/*; do
         locale="${locale/-/-r}"
 
         if [ -f "$locale_dir/strings.xml" ]; then
-            localAlias=$(alias_name $locale)
-            if [ "$localAlias" != "" ]; then
-                mkdir -p "$target_dir/values-$localAlias"
-                cp "$locale_dir/strings.xml" "$target_dir/values-$localAlias/strings.xml"
-            else
-                mkdir -p "$target_dir/values-$locale"
-                cp "$locale_dir/strings.xml" "$target_dir/values-$locale/strings.xml"
-            fi
+            localeAlias=$(alias_name $locale)
+            mkdir -p "$target_dir/values-$localeAlias"
+            cp "$locale_dir/strings.xml" "$target_dir/values-$localeAlias/strings.xml"
         fi
     fi
 done
