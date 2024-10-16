@@ -98,7 +98,7 @@ val libraryToComponents = mapOf(
     ),
     "GRAPHICS_SHAPES" to listOf(
         ComposeComponent(
-                path = ":graphics:graphics-shapes",
+            path = ":graphics:graphics-shapes",
             supportedPlatforms = ComposePlatforms.ALL_AOSP
         ),
     ),
