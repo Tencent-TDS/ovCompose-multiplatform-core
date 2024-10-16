@@ -70,7 +70,7 @@ GLANCE_WEAR_TILES = "1.0.0-alpha06"
 GRAPHICS_CORE = "1.0.0"
 GRAPHICS_FILTERS = "1.0.0-alpha01"
 GRAPHICS_PATH = "1.0.0-rc01"
-GRAPHICS_SHAPES = "1.0.0-rc01"
+GRAPHICS_SHAPES = "1.0.0"
 GRIDLAYOUT = "1.1.0-beta02"
 HEALTH_CONNECT = "1.1.0-alpha09"
 HEALTH_CONNECT_TESTING_QUARANTINE = "1.0.0-alpha01"
@@ -317,6 +317,7 @@ COLLECTION_JETBRAINS = { group = "org.jetbrains.compose.collection-internal", at
 
 CORE_BUNDLE_JETBRAINS = { group = "org.jetbrains.androidx.core", atomicGroupVersion = "versions.CORE_BUNDLE", overrideInclude = [ ":core:core-bundle" ] }
 CORE_URI_JETBRAINS = { group = "org.jetbrains.androidx.core", atomicGroupVersion = "versions.CORE_URI", overrideInclude = [ ":core:core-uri" ] }
+GRAPHICS_SHAPES_JETBRAINS = { group = "org.jetbrains.androidx.graphics", atomicGroupVersion = "versions.GRAPHICS_SHAPES", overrideInclude = [ ":graphics:graphics-shapes" ] }
 SAVEDSTATE_JETBRAINS = { group = "org.jetbrains.androidx.savedstate", atomicGroupVersion = "versions.SAVEDSTATE", overrideInclude = [ ":savedstate:savedstate" ] }
 WINDOW_CORE_JETBRAINS = { group = "org.jetbrains.androidx.window", atomicGroupVersion = "versions.WINDOW", overrideInclude = [ ":window:window-core" ]  }
 
