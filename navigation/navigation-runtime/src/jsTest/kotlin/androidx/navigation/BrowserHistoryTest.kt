@@ -23,11 +23,13 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlin.test.Test
 import kotlinx.browser.window
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.w3c.dom.AddEventListenerOptions
 
+@OptIn(ExperimentalBrowserHistoryApi::class, ExperimentalCoroutinesApi::class)
 class BrowserHistoryTest {
 
     private fun NavController.createGraph() =

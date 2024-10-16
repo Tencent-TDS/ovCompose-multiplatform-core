@@ -31,6 +31,7 @@ import org.w3c.dom.Window
  * @param navController The [NavController] instance to bind to browser window navigation.
  * @param getBackStackEntryRoute An optional function that returns the route to show for a given [NavBackStackEntry].
  */
+@ExperimentalBrowserHistoryApi
 suspend fun Window.bindToNavigation(
     navController: NavController,
     getBackStackEntryRoute: ((entry: NavBackStackEntry) -> String)? = null

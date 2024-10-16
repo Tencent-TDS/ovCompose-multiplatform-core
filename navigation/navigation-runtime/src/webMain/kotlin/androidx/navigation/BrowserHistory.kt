@@ -24,12 +24,18 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 
+@RequiresOptIn(message = "This is an experimental browser API.")
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.BINARY)
+annotation class ExperimentalBrowserHistoryApi
+
 /**
  * Binds the browser window state to the given navigation controller.
  *
  * @param navController The [NavController] instance to bind to browser window navigation.
  * @param getBackStackEntryRoute A function that returns the route to show for a given [NavBackStackEntry].
  */
+@ExperimentalBrowserHistoryApi
 internal suspend fun BrowserWindow.bindToNavigation(
     navController: NavController,
     getBackStackEntryRoute: ((entry: NavBackStackEntry) -> String)?
