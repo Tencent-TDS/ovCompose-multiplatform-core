@@ -857,12 +857,7 @@ private class ScrollableNestedScrollConnection(
 
     override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
         return if (enabled) {
-            var velocityLeft: Velocity = available
-            with(scrollingLogic) {
-                scroll {
-                    velocityLeft = doFlingAnimation(available)
-                }
-            }
+            val velocityLeft = scrollingLogic.doFlingAnimation(available)
             available - velocityLeft
         } else {
             Velocity.Zero
