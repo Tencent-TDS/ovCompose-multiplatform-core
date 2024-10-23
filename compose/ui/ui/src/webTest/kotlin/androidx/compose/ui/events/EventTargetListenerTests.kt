@@ -58,9 +58,9 @@ class EventTargetListenerTests {
 
 //TODO: this won't work as supposed because lambda passed on the javascript side won't be disposed
 
-//        listener.dispose()
-//
-//        el.dispatchEvent(MouseEvent("mousedown"))
-//        assertEquals(listOf(1, 1, 1), log, "after dispose log should not be updated")
+        listener.dispose()
+
+        el.dispatchEvent(MouseEvent("mousedown"))
+        assertEquals(listOf(1, 1, 1), log, "after dispose log should not be updated")
     }
 }
