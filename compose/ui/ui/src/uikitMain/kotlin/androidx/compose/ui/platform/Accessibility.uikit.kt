@@ -30,7 +30,6 @@ import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsProperties.HideFromAccessibility
 import androidx.compose.ui.semantics.SemanticsPropertyKey
-import androidx.compose.ui.semantics.SemanticsProperties.HideFromAccessibility
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.uikit.utils.CMPAccessibilityContainer
