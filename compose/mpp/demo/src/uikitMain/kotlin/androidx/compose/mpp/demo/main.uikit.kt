@@ -6,8 +6,6 @@ import androidx.compose.mpp.demo.bugs.StartRecompositionCheck
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.main.defaultUIKitMain
-import androidx.compose.ui.uikit.ComposeUIViewControllerDelegate
 import androidx.compose.ui.window.ComposeUIViewController
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.autoreleasepool
@@ -22,9 +20,6 @@ import platform.UIKit.UIApplicationMain
 import platform.UIKit.UIResponder
 import platform.UIKit.UIResponderMeta
 import platform.UIKit.UIScreen
-import androidx.compose.ui.window.ComposeUIViewController
-import platform.UIKit.UIStatusBarAnimation
-import platform.UIKit.UIStatusBarStyle
 import platform.UIKit.UIViewController
 import platform.UIKit.UIWindow
 
@@ -85,10 +80,10 @@ private fun UIKitMain(makeRootViewController: () -> UIViewController) {
 }
 
 @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
-@OptIn(BetaInteropApi::class)
 private class IOSAppDelegate : UIResponder, UIApplicationDelegateProtocol {
     companion object Companion : UIResponderMeta(), UIApplicationDelegateProtocolMeta
 
+    @OptIn(BetaInteropApi::class)
     @OverrideInit
     constructor() : super()
 
